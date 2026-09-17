@@ -4,8 +4,17 @@ A proposal, not a ruling. Everything here is reversible and several items are ex
 flagged as the developer's call. Written against `design-record.md`, which is the current
 specification.
 
-The headline: **eleven player-facing words change.** Every crew name, every enemy archetype,
+The headline: **eight player-facing words change.** Every crew name, every enemy archetype,
 every fitting, every rarity tier and the entire §11 Universal vocabulary survive untouched.
+
+> **Revised after review.** An earlier draft also proposed `Blight → Cultures`, `void → salt` and
+> `energy → heat`. All three are withdrawn. The elements are **concepts** — primordial forces the
+> worlds run on, as `design-notes.md` originally framed them — not biological survival strategies,
+> and rewriting them as biology was a misreading of what "Spacology" means. **Blight, void and
+> energy all stand unchanged.** The stack rename `Fracture → Rot` survives on its own merits.
+>
+> §3's "What an element is" and §5's antagonist entry were both written on the withdrawn framing
+> and are now open questions rather than proposals.
 
 ---
 
@@ -37,7 +46,7 @@ Four of six unchanged. Mechanics are untouched throughout — only the words mov
 | Department | Was | What it does | At 2 | At 4 |
 |---|---|---|---|---|
 | **Hull** | Hull | Stands in front on purpose and gives it back | barriers 45% larger | **PAYBACK** — what a barrier swallows is returned to the attacker |
-| **Cultures** | Blight | Grows something on the enemy, lets it spread, then sets it off | every application lands one extra Rot | **BLOOM** — a culture joins the turn order and detonates every Rot on the board |
+| **Blight** | Blight | Grows something on the enemy, lets it spread, then sets it off | every application lands one extra Rot | **BLOOM** — a bloom joins the turn order and detonates every Rot on the board |
 | **Drive** | Drive | Gets the crew acting sooner and acting again | crew act 12% sooner | **RELAY** — a kill immediately advances the next crewmate |
 | **Ordnance** | Ordnance | Hits hard, and hardest into something already open | 20% more damage | **OVERSTRIKE** — a hit that breaks a shield lands a second time |
 | **Assay** | Assay | Reads the specimen, finds the seam, opens the shell | shields shred 60% faster | **DISSECTION** — a break costs the enemy two turns |
@@ -53,11 +62,14 @@ Four of six unchanged. Mechanics are untouched throughout — only the words mov
   **Crew** is simultaneously a department. Retiring it fixes Drive's string without editing
   Drive, and frees "crew" to mean the whole team, which it was always trying to do.
   (Triage was ruled out — `design-record.md:224` already uses "triaged" for the keep/strip gesture.)
-- **Blight → Cultures.** The weakest of the three, and the one most worth arguing about. Blight
-  is real plant pathology and does serve the title; it fails only the separation rule, because
-  you cannot report to it. It also sat between `growth` and `decay`, leaving three
-  decomposition words to hold apart at 9px. *Known risk: "Cultures" can misread as alien
-  civilisations.* See open question 2.
+**Blight stays.** An earlier draft proposed `Cultures` on the grounds that Blight fails the
+"report to ___" half of the separation rule. Withdrawn — the rule is a tiebreaker for new names,
+not a reason to retire a word that is already doing its job. Blight is real plant pathology, it
+reads instantly, BLOOM follows from it naturally, and it is the most-authored tag in the corpus.
+The separation rule drops to its two-way form (capitalisation only), which still works.
+
+The stack it applies is renamed **Fracture → Rot** — nothing there fractures, and
+`design-record.md:293` already says *"someone who detonates rot"*.
 
 **Ordnance and Assay should not move.** Ordnance is the best name in the project — precise,
 unambiguous, impossible to mistake for an element, and more survey-coded than it looks
@@ -68,48 +80,38 @@ proposals. Obscurity is cured once by a tooltip and then never again.
 
 ## 3 · Elements
 
-Four of six unchanged. Colours inherit except where noted.
+**All six unchanged.** `order · chaos · growth · void · decay · energy`, with their existing
+colours.
 
-| element | Was | Reads as | Colour |
-|---|---|---|---|
-| **order** | order | Life that builds to a plan — lattices, colonies, hives repeating one solution forever | `#7FA8C9` |
-| **chaos** | chaos | Life that never repeats — mutation as the survival strategy | `#C97F9E` |
-| **growth** | growth | Life that answers every problem by making more of itself | `#8FB878` |
-| **decay** | decay | Life that eats what is finished and puts it back in the ground | `#A89070` |
-| **salt** | void | Life that survives by stopping — dried, dormant, waiting out the dark | `#8F8FC9` |
-| **heat** | energy | Life running on chemistry rather than sunlight — vents, fast short metabolisms | **must change** |
+The elements are **concepts** — primordial forces the worlds run on — which is how
+`design-notes.md` framed them from the start: *"a ship exploring worlds that run on six primordial
+forces, with a crew learning to read the sigils."* They are not fire, ice and lightning, and they
+are not biology either. An earlier draft in this document rewrote all six as biological survival
+strategies and proposed `void → salt`, `energy → heat` on that basis. That was a misreading of
+what "Spacology" means: the ecology is the **subject matter** — species, worlds, a biosphere being
+consumed — not a demand that the underlying forces be renamed after biology.
 
-**Why `void` moves.** It is the only one of the six that is not a way of being alive. Reaching
-for "Void Walkers" is evidence the word is being pulled toward the antagonist anyway — retiring
-it as an element is exactly what makes that phrase safe to keep.
+### One real bug here, independent of naming
 
-**Why `energy` moves, and a hard constraint.** `#D4A45C` is `--energy` in the stylesheet *and*
-the acting / charged / ultready accent in sixteen places, and design-record §9 reserves amber
-for whoever is acting. Naming the element "heat" pulls the VFX toward that amber. **Give it its
-own hue and rename the CSS variable.**
+`#D4A45C` is `--energy` in the stylesheet **and** the acting / charged / ultready accent in sixteen
+places, while design-record §9 reserves amber for "whoever is acting". Whatever the element is
+called, those two meanings need separating — either give `energy` its own hue or move the acting
+accent off amber.
 
-### What an element *is*
+### What an element *means* — open
 
-> An element is the one thing a lifeform's biology has committed to — the survival strategy it
-> is built around — which your instruments read off it as a signature, and which one of your
-> crew has handled a thousand times before.
+Whatever the fiction is, it has to carry three mechanical jobs at once, and the third is the one
+currently unserved:
 
-That one sentence does all three mechanical jobs without hand-waving:
+1. **Weakness** — why is a specimen soft to this, and why does a crewmate carrying it shred at
+   full rate where a stranger fumbles at 20%?
+2. **Currency** — why does stripping a card yield shards *of its element*, and why do 24 of them
+   promote a crewmate?
+3. **Harmony** — why do allies sharing an element pile in the moment something breaks? **This is
+   the one the fiction has never explained**, and it is why the mechanic has stayed unreachable:
+   nothing in the design argues for stacking elements, only for spreading them.
 
-- **Weakness** works because every commitment is also a cost. Press on the thing an organism is
-  built around and it has nothing to fall back on. And a crewmate carrying that signature is an
-  expert who knows where the seam is — which is *why* they shred at full rate while a stranger
-  fumbles at 20%. Two weaknesses per enemy reads as "committed to two strategies, fragile in both".
-- **Currency** works because stripping a card does not destroy a person — you keep their notes
-  and samples, filed by signature. Twenty-four shards of one signature make a crystal, and a
-  crewmate who has studied a complete set gets promoted. The promotion ladder is a career ladder.
-- **Harmony** finally has a reason to exist: a second reading of the same signature *corroborates*
-  the first, which is why two colleagues in one field crowd in the moment a specimen is cracked
-  open. **This is the part the design has been missing — a fiction that argues for stacking
-  elements, not only for spreading them.**
-
-It is a taxonomy, not a damage type. That is why this game is not fire, ice and lightning, and
-why the element axis survives the rename to Spacology completely intact.
+A fiction that answers (3) convincingly is worth more here than any individual name.
 
 ---
 
@@ -172,7 +174,7 @@ there are six, players start hunting for a threshold.
 
 | Thing | Recommendation | Note |
 |---|---|---|
-| Antagonist | **the Null** | Keep. See below |
+| Antagonist | **open** | See below — "Void Walkers" was a passing idea, not a decision |
 | Run life-total | **Fidelity** | Replaces both "data integrity" and "data quality" |
 | A run | **voyage** | Unchanged — the working title becomes the word for a run |
 | One of fourteen | **leg** | Unchanged |
@@ -183,18 +185,27 @@ there are six, players start hunting for a threshold.
 | One character | **crewmate** | "intern" kept where it is true — the starter pack |
 | Worlds | Cairn, **Reef**, **Anvil**, Verge, **Scarp**, Hollows | Phomous, Maelstrom, Bastion move |
 
-**The Null, not the Void Walkers.** One word against three, and the only proper noun the player
-must learn. `dictionary.md` already fought this exact fight: *"the original design had Void as an
-element and Null as a reaction and Null as the antagonist; only the antagonist keeps the name."*
-"Walkers" is a plural agent noun — it promises findable individuals and eventually a boss the
-design does not deliver. The Null does not walk toward you; it reaches a system and the record
-stops.
+### The antagonist — open
 
-But the instinct to want something you can *point at* is right, and it is already satisfied twice.
-First, **Husk, Thrall, Spore, Cyst and Grub are not the Null — they are what it left behind**, and
-that enemy roster already reads as its wake. Second, because `void` is no longer an element,
-*"void walkers"* is now free as **crew slang** — a rumour in bios and pack flavour the survey does
-not officially endorse. Keep the phrase; keep it out of the UI.
+**"Void Walkers" was a passing idea, not a decision, and it is withdrawn.** It is also the wrong
+shape for what this thing actually is:
+
+> *"more of a plague that just consumes everything and corrupts it till nothing is left"*
+
+That is not an army and has no individuals in it, so a plural agent noun ("Walkers") promises
+findable enemies and eventually a boss that the fiction does not contain. What it needs is a
+**mass noun** — something that arrives, spreads, and leaves nothing.
+
+Two things already in the corpus point the right way and should be kept whatever it ends up called:
+
+- `dictionary.md` reserves one word for exactly this and nothing else: *"Null — reserved for the
+  cosmic plague. Never a mechanic, never a damage type, never an element."* Whether **the Null**
+  is the final name or a placeholder, the *discipline* of reserving one word is right.
+- **Husk, Thrall, Spore, Cyst and Grub are not the plague — they are what it left behind.** That
+  enemy roster already reads as its wake, which is a better way to make it visible than naming it
+  harder. Corruption, not conquest.
+
+Since `void` stays an element, the antagonist's name must not be built from it.
 
 **Fidelity, not Integrity.** Integrity is the wrong word for a bar you are trying to *raise* —
 every player reads it as hull integrity, a thing that starts full and falls, which is the exact
@@ -373,7 +384,7 @@ Five steps, each independently playable.
 | # | Question | Decision |
 |---|---|---|
 | 1 | How many crew are fielded — 6, 8 or 12? | **8 free of 12 slots**, with 7g-a-leg upkeep beyond 8. `FIELD=6` in the prototype is now wrong; set `FIELD=8` before the sweep runs, or the sweep measures the wrong game |
-| 2 | Cultures, or keep Blight? | **Cultures**, with the Fracture stack renamed **Rot**. The three-way separation rule stands |
+| 2 | Cultures, or keep Blight? | **Blight**, unchanged. Only the stack is renamed, **Fracture → Rot**. Cultures is withdrawn; the separation rule drops to its two-way form |
 | 3 | Is weakness coverage a planning lever, or a floor? | **A floor.** Harmony carries the element axis; world conditions carry world choice at a measured 4.7×. No content work. Delete the 89% claim from design-record §5 — it is true of no build yet run |
 | 4 | Are Calls in the first shippable version? | **Out of v1.** Ship the watched fight, play ten complete voyages before sleep, then decide |
 
