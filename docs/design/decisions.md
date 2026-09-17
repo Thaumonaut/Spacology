@@ -368,17 +368,34 @@ Five steps, each independently playable.
 
 ---
 
-## 10 · Open questions
+## 10 · Decisions taken
 
-Ranked. Only the ones where a different answer means materially different work.
+| # | Question | Decision |
+|---|---|---|
+| 1 | How many crew are fielded — 6, 8 or 12? | **8 free of 12 slots**, with 7g-a-leg upkeep beyond 8. `FIELD=6` in the prototype is now wrong; set `FIELD=8` before the sweep runs, or the sweep measures the wrong game |
+| 2 | Cultures, or keep Blight? | **Cultures**, with the Fracture stack renamed **Rot**. The three-way separation rule stands |
+| 3 | Is weakness coverage a planning lever, or a floor? | **A floor.** Harmony carries the element axis; world conditions carry world choice at a measured 4.7×. No content work. Delete the 89% claim from design-record §5 — it is true of no build yet run |
+| 4 | Are Calls in the first shippable version? | **Out of v1.** Ship the watched fight, play ten complete voyages before sleep, then decide |
+
+### What decision 1 changes
+
+`FIELD=6` appears in the prototype at `:518`. At field 8 the element-partner probability under a
+uniform draft is **72%** rather than 60%, which is what makes the Harmony cap of two the right
+starting guess rather than a hopeful one. The 80,000-fight sweep in §7 must run at field 8.
+
+### What decision 3 changes
+
+Nothing needs building, which is the point. It also means the coverage readout described in §7
+is not merely misleading — it is measuring something the design has now decided is not a lever.
+Replace it with per-element depth (*"order ×4 against 3 of 3 enemies"*) or remove it.
+
+---
+
+## 11 · Still open
 
 | # | Question | Recommended default |
 |---|---|---|
-| 1 | **How many crew are fielded — 6, 8 or 12?** The prototype has `FIELD=6`; §4 says 12 slots with 8 free and a measured average of 8.8. Element-partner probability is 60% / 72% / 87% respectively, so this moves the Harmony cap, the sweep, the upkeep economy, and whether a third axis was ever arithmetically plausible | **8 free of 12**, as the spec says. Set `FIELD=8` this week so code and docs stop disagreeing |
-| 2 | **Cultures, or keep Blight?** The only change you may genuinely dislike, and the most-authored tag in the corpus — 39 occurrences across five documents, 21 in the prototype, plus renaming the Fracture stack to Rot | **Cultures**, with Fracture → Rot. But this is the one to trade if you push back — keeping Blight just means dropping to a two-way separation rule (capitalisation only), which still works |
-| 3 | **Is weakness coverage a planning lever, or just a floor?** It cannot currently be a lever: any team holding 3+ distinct elements covers 100% | **Floor.** Harmony carries the element axis; conditions carry world choice at a measured 4.7×. Delete the 89% claim from §5 either way |
-| 4 | **What does the starter department pack deal?** Sets the difficulty of the first three legs and the first lesson the player learns | **4 single-department interns plus 2 off-department**, with at least one element repeated so Harmony fires on leg 1 |
-| 5 | **Where does type appear?** This is the back door through which the third axis returns — a label you can filter by is a label players assume pays | **Character sheet plus the acting card.** No filter chip and no count anywhere in the ops room until the game has shipped once |
-| 6 | **Fidelity, or keep Integrity?** Eleven occurrences in one document, but it is the number the player reads every leg | **Fidelity** |
-| 7 | **Are Calls in v1?** Decides whether the fight is watched or touched — and it is the one system with no Currency Wars equivalent, so it is where the game is most itself, and the most likely thing to eat a month | **Out of v1.** Decide after playing ten complete voyages before sleep |
-| 8 | **Which iPad, and how heavy can the VFX be?** The particle canvas caps `devicePixelRatio` at 3 — on a 12.9" Pro that is a 2732×2048 surface repainting during cascade rattle | **Budget against the cheapest iPad you own.** Keep the existing density slider; measure frame time during a four-stage cascade, not an idle turn |
+| 5 | **What does the starter department pack deal?** Sets the difficulty of the first three legs and the first lesson the player learns. Four single-department Commons lights a deep tier on leg 1, which teaches commitment in one move — but makes the opening fights unusually strong, so the calibration rule (a plain team wins about two thirds and can lose both ways) needs re-running against it | **4 single-department interns plus 2 off-department**, with at least one element repeated among the six so Harmony fires on leg 1 |
+| 6 | **Where does type appear — sheet, card front, or acting card?** This is the back door through which the third axis returns. A label you can filter by is a label players assume pays, and the first thing anyone does is long-press *Scavenger* hunting for the bonus that is not there | **Character sheet plus the acting card** (the prototype already renders it at `:777`). No filter chip and no count anywhere in the ops room until the game has shipped once |
+| 7 | **Fidelity, or keep Integrity?** Eleven occurrences in one document, but it is the number the player reads every leg, and it is the one place this proposal overrules both the spec and the phrasing used today | **Fidelity** |
+| 8 | **Which iPad, and how heavy can the VFX be?** The particle canvas caps `devicePixelRatio` at 3 — on a 12.9" Pro that is a 2732×2048 surface repainting during cascade rattle. Budget against the best iPad you own and it will stutter on the one you actually pick up at eleven at night, which is the whole use case | **Budget against the cheapest iPad you own.** Keep the existing density slider; measure frame time during a four-stage cascade, not an idle turn |
