@@ -25,7 +25,7 @@ Three kinds of label, three word-shapes, distinguishable at 9px with no colour a
 | Kind | Shape | Test that passes | Test that fails | Counted as |
 |---|---|---|---|---|
 | **Department** | Capitalised, never ends in `-er` | "report to Ordnance" | "traces of Ordnance" | a tally of people — `Ordnance ×4` |
-| **element** | always lowercase | "traces of salt" | "report to salt" | a quantity of material — `8 salt` |
+| **element** | always lowercase | "traces of decay" | "report to decay" | a quantity of material — `8 decay` |
 | **Type** | Capitalised, always ends in `-er` | "she works as a Spotter" | neither of the others | never counted at all |
 
 No word in any set passes another set's test. Any future candidate that passes two is
@@ -369,7 +369,7 @@ Five steps, each independently playable.
 
 4. **The rename pass, as data.** One `src/data/strings.ts` mapping stable ids to display names —
    the id `hull` never changes, its label can change ten times. Apply the eleven words, fix
-   `CHAFFNAMES`, move `heat` off the acting amber, split `EL` from `TAGCOL`. The next re-skin
+   `CHAFFNAMES`, move `energy` off the acting amber, split `EL` from `TAGCOL`. The next re-skin
    becomes a one-file diff.
 
 5. **The voyage around the fight.** Port the ops room onto the sim core — consignments, keep/strip,
