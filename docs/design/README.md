@@ -13,6 +13,9 @@ document in this folder contradicts it, this one wins.
 
 | File | What it covers |
 |---|---|
+| `decisions.md` | The naming proposal, three bugs found checking it, and the open questions |
+| `character-construction.md` | How a character is built — the uniqueness rule, self-sufficiency versus amplification, and where the roster falls short |
+| `discovery-findings.md` | Measured: can players find combinations nobody designed? |
 | `dictionary.md` | The controlled vocabulary, and the promotion/demotion rules that keep it from sprawling |
 | `roster-design.md` | The six tags with measured breakpoint tables per world |
 | `store.md` | The pack store and the scrap economy |

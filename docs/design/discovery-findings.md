@@ -166,20 +166,28 @@ is not a balance accident; it is the verb census showing through.
 
 ## 6 · What follows
 
-Three content rules, in the same family as the existing *"no applier ships without a spender"*:
+**See `character-construction.md`** — the prescription lives there, because the answer turned out
+to be structural rather than a matter of adding more verbs.
 
-1. **Every verb on at least three characters.** Two is a pair; three is a choice. The eight
-   singletons are the work — a second and third detonator changes `seed → deton` from a fixed
-   pairing into a decision about *which* detonator.
-2. **No character with zero hooks.** Corr and Bosk need one each. Not a nerf — give the big number
-   a condition it likes, and it becomes draftable for a reason instead of by default.
-3. **Trigger conditions should overlap.** Two reactors answering `break` at different ratios create
-   a real choice; three reactors answering three different events create three forced lines.
+The short version: the sparseness measured above is a symptom of **enablement**. A chain exists
+only where a producer meets its specific consumer, so with one detonator serving three seeders,
+`seed → deton` has exactly one shape however many seeders are added. Replacing enablement with
+**amplification** — every character completes its own loop, and others make that loop bigger —
+turns a sparse space of working pairs into a dense one, because anything touching a mechanic then
+improves anything else touching it.
 
-And one to watch rather than fix yet: **the top teams are full of duplicates** — `Maul, Maul`,
-`Rime, Rime`, `Corr, Corr`, `Cinder, Cinder`. Doubling the best hook currently beats diversifying.
-If that holds once elements are real, the draft flattens into hunting copies of one character,
-which is the opposite of the goal. Worth re-running after the element work.
+Three content rules fall out, detailed in that document: every verb on at least three characters,
+no character with zero hooks, and trigger conditions that overlap rather than partition.
+
+### A correction to §1 and §4
+
+Both runs above sampled teams **with replacement**, and their best teams doubled up freely —
+`Ferrule, Maul, Maul, Ash, Vitre`, `Maul, Maul, Corr, Nettle, Corr`. **Teams must be unique
+characters**, so those teams are illegal and the concentration figures are measured against a
+larger legal space than actually exists.
+
+`sim/unique-teams.js` re-runs the same questions under the real rule. Its numbers supersede §3 and
+§4; the verb census in §5 is unaffected, since it does not depend on team composition.
 
 ## 7 · What this cannot tell you
 
