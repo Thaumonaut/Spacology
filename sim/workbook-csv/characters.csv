@@ -1,22 +1,22 @@
-character,tags,hooks,in top 50,share of top teams,share of slots,best team without,cost of banning,depends on
-Ash,Blight,3,34,0.68,0.136,3.794,0.114,a detonator
-Mote,Drive / Assay,2,22,0.44,0.088,3.614,0.156,
-Maul,Ordnance / Assay,1,17,0.34,0.068,4.282,0,someone to break
-Rime,Assay,2,16,0.32,0.064,3.732,0.1284,
-Wex,Hull / Crew,1,15,0.3,0.06,4.282,0,
-Ferrule,Hull / Ordnance,2,14,0.28,0.056,4.282,0,
-Tarn,Hull / Ordnance,3,12,0.24,0.048,4.282,0,a barrier source
-Vitre,Assay / Drive,3,12,0.24,0.048,4.096,0.0434,
-Mire,Crew / Hull,3,12,0.24,0.048,4.282,0,someone to pull fire
-Ballast,Hull,2,10,0.2,0.04,4.282,0,
-Cinder,Blight / Ordnance,1,10,0.2,0.04,4.282,0,a detonator
-Sump,Blight / Crew,3,9,0.18,0.036,4.282,0,a detonator
-Vane,Drive / Crew,1,9,0.18,0.036,4.282,0,
-Corr,Ordnance,0,9,0.18,0.036,4.282,0,
-Fen,Crew,1,9,0.18,0.036,4.282,0,
-Ledger,Assay / Drive,1,8,0.16,0.032,4.282,0,someone to mark
-Pyre,Blight,1,7,0.14,0.028,4.096,0.0434,someone to seed
-Nettle,Drive,1,7,0.14,0.028,4.282,0,
-Quill,Assay / Blight,1,7,0.14,0.028,4.282,0,
-Halo,Crew / Drive,1,7,0.14,0.028,4.282,0,
-Bosk,Ordnance / Hull,0,4,0.08,0.016,4.282,0,
+character,roles,hooks,in top 50,share of top teams,share of slots,best team without,cost of banning,depends on
+Ash,DoT,3,29,0.58,0.116,2.968,0.3069,a detonator
+Mote,Speed / Breaker,2,21,0.42,0.084,3.58,0.1639,
+Maul,DPS / Breaker,1,18,0.36,0.072,4.282,0,someone to break
+Rime,Breaker,2,16,0.32,0.064,2.95,0.3111,
+Ferrule,Tank / DPS,2,15,0.3,0.06,4.282,0,
+Wex,Tank / Healer,1,14,0.28,0.056,4.282,0,
+Vitre,Breaker / Speed,3,14,0.28,0.056,4.096,0.0434,
+Cinder,DoT / DPS,1,12,0.24,0.048,4.282,0,a detonator
+Tarn,Tank / DPS,3,11,0.22,0.044,4.282,0,a shield source
+Sump,DoT / Healer,3,10,0.2,0.04,4.282,0,a detonator
+Halo,Healer / Speed,1,10,0.2,0.04,4.282,0,
+Ballast,Tank,2,9,0.18,0.036,4.282,0,
+Corr,DPS,0,9,0.18,0.036,4.282,0,
+Ledger,Breaker / Speed,1,9,0.18,0.036,4.282,0,someone to mark
+Mire,Healer / Tank,3,9,0.18,0.036,4.282,0,someone to pull fire
+Nettle,Speed,1,8,0.16,0.032,4.282,0,
+Bosk,DPS / Tank,0,8,0.16,0.032,4.282,0,
+Fen,Healer,1,8,0.16,0.032,4.282,0,
+Vane,Speed / Healer,1,7,0.14,0.028,4.282,0,
+Quill,Breaker / DoT,1,7,0.14,0.028,4.282,0,
+Pyre,DoT,1,6,0.12,0.024,4.096,0.0434,someone to seed

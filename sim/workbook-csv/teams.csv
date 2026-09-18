@@ -1,241 +1,161 @@
-team,open,murk,hive,fortress,bloom,avg,best,worst,swing,hooks,tags at 2+,deep tag
-"Pyre, Ash, Mote, Rime, Vitre",3.67,2.45,5.89,3.7,5.7,4.282,5.89,2.45,3.44,11,Blightx2 Drivex2 Assayx3,none
-"Rime, Ferrule, Mote, Ash, Wex",3.97,2.87,5.56,4.34,3.74,4.096,5.56,2.87,2.69,10,Assayx2 Hullx2,none
-"Vane, Rime, Sump, Maul, Mote",3.7,2.45,5.22,3.67,3.93,3.794,5.22,2.45,2.77,9,Drivex2 Crewx2 Assayx3,none
-"Maul, Mire, Ash, Ferrule, Mote",3.47,2.22,4.36,4.34,4.27,3.732,4.36,2.22,2.14,11,Ordnancex2 Assayx2 Hullx2,none
-"Vane, Rime, Mire, Ballast, Ash",3.4,2.45,5.38,3.97,2.87,3.614,5.38,2.45,2.93,11,Crewx2 Hullx2,none
-"Cinder, Rime, Tarn, Quill, Ash",3.49,2.31,4.09,3.97,4.04,3.58,4.09,2.31,1.78,10,Blightx3 Ordnancex2 Assayx2,none
-"Sump, Ash, Rime, Mire, Maul",3.35,2.52,4.06,3.97,3.9,3.56,4.06,2.52,1.54,12,Blightx2 Crewx2 Assayx2,none
-"Mote, Ash, Vane, Mire, Wex",3.56,2.24,4.5,3.97,2.82,3.418,4.5,2.24,2.26,10,Drivex2 Crewx3 Hullx2,none
-"Maul, Mote, Ash, Vitre, Nettle",2.94,2.13,3.6,3.6,4.09,3.272,4.09,2.13,1.96,10,Assayx3 Drivex3,none
-"Ash, Fen, Sump, Rime, Ledger",2.82,2.41,3.51,3.74,3.35,3.166,3.74,2.41,1.33,10,Blightx2 Crewx2 Assayx2,none
-"Quill, Rime, Cinder, Mote, Vitre",2.77,1.9,3.56,3.19,3.42,2.968,3.56,1.9,1.66,9,Assayx4 Blightx2 Drivex2,Assay
-"Vane, Mote, Cinder, Nettle, Ash",2.54,1.88,3.86,3.12,3.35,2.95,3.86,1.88,1.98,8,Drivex3 Blightx2,none
-"Wex, Vitre, Halo, Rime, Maul",2.68,1.85,3.95,2.84,3.35,2.934,3.95,1.85,2.1,8,Crewx2 Assayx3 Drivex2,none
-"Wex, Ash, Sump, Tarn, Corr",2.75,2.15,2.73,4.11,2.91,2.93,4.11,2.15,1.96,10,Hullx2 Crewx2 Blightx2 Ordnancex2,none
-"Ballast, Ash, Ferrule, Maul, Wex",2.91,2.08,2.73,3.81,3.05,2.916,3.81,2.08,1.73,9,Hullx3 Ordnancex2,none
-"Ballast, Ash, Ledger, Fen, Quill",2.8,2.15,3.23,3.49,2.73,2.88,3.49,2.15,1.34,8,Blightx2 Assayx2,none
-"Cinder, Tarn, Mote, Maul, Ash",2.52,1.9,2.94,3.23,3.35,2.788,3.35,1.9,1.45,10,Blightx2 Ordnancex3 Assayx2,none
-"Wex, Ash, Ferrule, Halo, Mire",3.12,1.9,3.51,3.4,1.94,2.774,3.51,1.9,1.61,10,Hullx3 Crewx3,none
-"Vitre, Quill, Maul, Tarn, Mote",2.15,1.67,3.4,2.82,2.94,2.596,3.4,1.67,1.73,10,Assayx4 Drivex2 Ordnancex2,Assay
-"Halo, Ash, Vitre, Bosk, Mire",2.52,1.88,2.84,3.03,2.68,2.59,3.03,1.88,1.15,10,Crewx2 Drivex2 Hullx2,none
-"Maul, Halo, Cinder, Ash, Mote",2.5,1.74,2.73,3.14,2.82,2.586,3.14,1.74,1.4,8,Ordnancex2 Assayx2 Drivex2 Blightx2,none
-"Mote, Corr, Rime, Fen, Maul",2.41,1.76,2.57,3.14,2.94,2.564,3.14,1.76,1.38,6,Assayx3 Ordnancex2,none
-"Sump, Mote, Tarn, Nettle, Vitre",2.29,1.58,3.49,2.54,2.84,2.548,3.49,1.58,1.91,12,Drivex3 Assayx2,none
-"Ferrule, Tarn, Rime, Sump, Mote",2.43,1.69,3.42,2.11,2.94,2.518,3.42,1.69,1.73,12,Hullx2 Ordnancex2 Assayx2,none
-"Corr, Mire, Ash, Mote, Maul",2.38,1.74,2.43,3.19,2.61,2.47,3.19,1.74,1.45,9,Ordnancex2 Assayx2,none
-"Vane, Rime, Vitre, Quill, Mote",2.41,1.71,3.28,2.13,2.73,2.452,3.28,1.71,1.57,9,Drivex3 Assayx4,Assay
-"Vitre, Rime, Corr, Tarn, Wex",2.38,1.55,3.14,2.36,2.8,2.446,3.14,1.55,1.59,9,Assayx2 Ordnancex2 Hullx2,none
-"Tarn, Ballast, Mire, Ferrule, Wex",2.38,1.76,2.57,3.14,2.27,2.424,3.14,1.76,1.38,11,Hullx5 Ordnancex2 Crewx2,Hull
-"Quill, Ash, Fen, Tarn, Ballast",2.41,1.88,2.24,3.14,2.29,2.392,3.14,1.88,1.26,10,Blightx2 Hullx2,none
-"Ash, Ferrule, Bosk, Pyre, Vitre",2.22,1.67,2.54,2.73,2.73,2.378,2.73,1.67,1.06,9,Blightx2 Hullx2 Ordnancex2,none
-"Ferrule, Corr, Vane, Mote, Ash",2.31,1.69,2.73,2.68,2.45,2.372,2.73,1.69,1.04,8,Ordnancex2 Drivex2,none
-"Mire, Tarn, Ash, Ferrule, Ballast",2.31,1.9,2.13,3.14,2.34,2.364,3.14,1.9,1.24,13,Hullx4 Ordnancex2,Hull
-"Mire, Ash, Fen, Halo, Ledger",2.43,1.76,2.47,3.14,2.01,2.362,3.14,1.76,1.38,9,Crewx3 Drivex2,none
-"Ferrule, Wex, Mote, Maul, Ledger",2.24,1.62,2.29,2.96,2.66,2.354,2.96,1.62,1.34,7,Hullx2 Ordnancex2 Drivex2 Assayx3,none
-"Ballast, Fen, Vane, Ferrule, Ash",2.41,1.74,2.57,3.12,1.88,2.344,3.12,1.74,1.38,9,Hullx2 Crewx2,none
-"Wex, Cinder, Ballast, Ash, Ledger",2.29,1.78,2.13,3.35,2.15,2.34,3.35,1.78,1.57,8,Hullx2 Blightx2,none
-"Mote, Wex, Vitre, Maul, Pyre",2.13,1.58,2.45,2.75,2.73,2.328,2.75,1.58,1.17,8,Drivex2 Assayx3,none
-"Ferrule, Cinder, Ballast, Corr, Ash",2.22,1.81,2.17,3.14,2.27,2.322,3.14,1.81,1.33,8,Hullx2 Ordnancex3 Blightx2,none
-"Nettle, Ferrule, Pyre, Ash, Rime",2.08,1.58,2.7,2.52,2.73,2.322,2.73,1.58,1.15,9,Blightx2,none
-"Ash, Halo, Fen, Wex, Maul",2.24,1.74,2.15,3.23,2.22,2.316,3.23,1.74,1.49,7,Crewx3,none
-"Fen, Mote, Halo, Maul, Pyre",2.15,1.53,2.84,2.5,2.47,2.298,2.84,1.53,1.31,6,Crewx2 Drivex2 Assayx2,none
-"Sump, Nettle, Ash, Wex, Corr",2.15,1.74,2.13,3.19,2.22,2.286,3.19,1.74,1.45,8,Blightx2 Crewx2,none
-"Sump, Ash, Cinder, Vane, Bosk",2.24,1.81,2.15,3.03,2.15,2.276,3.03,1.81,1.22,8,Blightx3 Crewx2 Ordnancex2,none
-"Fen, Tarn, Ash, Pyre, Mire",2.06,1.71,2.11,2.89,2.59,2.272,2.89,1.71,1.18,11,Crewx2 Hullx2 Blightx2,none
-"Mote, Rime, Cinder, Tarn, Quill",1.9,1.53,2.38,2.73,2.82,2.272,2.82,1.53,1.29,9,Assayx3 Blightx2 Ordnancex2,none
-"Ash, Wex, Mire, Nettle, Ledger",2.22,1.71,2.15,3.1,2.17,2.27,3.1,1.71,1.39,9,Hullx2 Crewx2 Drivex2,none
-"Corr, Mote, Rime, Wex, Ledger",2.13,1.39,3.03,2.17,2.52,2.248,3.03,1.39,1.64,6,Drivex2 Assayx3,none
-"Ferrule, Vitre, Pyre, Maul, Ballast",2.08,1.41,2.34,2.75,2.64,2.244,2.75,1.41,1.34,9,Hullx2 Ordnancex2 Assayx2,none
-"Cinder, Ash, Bosk, Maul, Ledger",2.08,1.62,2.08,3.14,2.15,2.214,3.14,1.62,1.52,6,Blightx2 Ordnancex3 Assayx2,none
-"Corr, Ash, Sump, Vane, Nettle",2.17,1.69,2.22,2.82,2.15,2.21,2.82,1.69,1.13,8,Blightx2 Crewx2 Drivex2,none
-"Pyre, Mote, Vitre, Nettle, Wex",2.08,1.37,3.05,2.08,2.43,2.202,3.05,1.37,1.68,8,Drivex3 Assayx2,none
-"Nettle, Maul, Mote, Mire, Wex",2.08,1.39,2.29,2.64,2.59,2.198,2.64,1.39,1.25,8,Drivex2 Assayx2 Crewx2 Hullx2,none
-"Rime, Ferrule, Vitre, Vane, Mote",2.06,1.37,3.3,1.74,2.5,2.194,3.3,1.37,1.93,10,Assayx3 Drivex3,none
-"Ash, Corr, Wex, Nettle, Cinder",2.08,1.74,1.99,3.03,2.08,2.184,3.03,1.74,1.29,6,Blightx2 Ordnancex2,none
-"Rime, Tarn, Maul, Wex, Pyre",2.01,1.46,2.01,2.84,2.41,2.146,2.84,1.46,1.38,8,Assayx2 Hullx2 Ordnancex2,none
-"Maul, Rime, Halo, Sump, Quill",2.04,1.41,2.41,2.43,2.43,2.144,2.43,1.41,1.02,8,Assayx3 Crewx2 Blightx2,none
-"Mote, Maul, Sump, Fen, Tarn",1.94,1.46,2.08,2.73,2.43,2.128,2.73,1.46,1.27,10,Assayx2 Ordnancex2 Crewx2,none
-"Vitre, Rime, Cinder, Fen, Ledger",1.97,1.3,2.68,2.27,2.41,2.126,2.68,1.3,1.38,8,Assayx3 Drivex2,none
-"Vitre, Fen, Maul, Corr, Wex",1.99,1.37,2.08,2.66,2.45,2.11,2.66,1.37,1.29,6,Assayx2 Crewx2 Ordnancex2,none
-"Halo, Ballast, Pyre, Mote, Ash",1.9,1.55,2.31,2.11,2.61,2.096,2.61,1.55,1.06,9,Drivex2 Blightx2,none
-"Mote, Bosk, Vitre, Nettle, Ferrule",1.92,1.32,2.34,2.34,2.54,2.092,2.54,1.32,1.22,8,Drivex3 Assayx2 Ordnancex2 Hullx2,none
-"Mire, Vitre, Ledger, Bosk, Maul",1.9,1.41,1.99,2.7,2.41,2.082,2.7,1.41,1.29,8,Hullx2 Assayx3 Drivex2 Ordnancex2,none
-"Pyre, Ash, Ballast, Nettle, Mire",1.9,1.53,2.06,2.45,2.45,2.078,2.45,1.53,0.92,10,Blightx2 Hullx2,none
-"Cinder, Ferrule, Mire, Mote, Maul",1.85,1.32,2.01,2.75,2.38,2.062,2.75,1.32,1.43,9,Ordnancex3 Hullx2 Assayx2,none
-"Ferrule, Bosk, Nettle, Ash, Fen",1.99,1.55,1.9,2.89,1.97,2.06,2.89,1.55,1.34,7,Hullx2 Ordnancex2,none
-"Mire, Fen, Vitre, Mote, Nettle",1.94,1.32,2.73,1.97,2.34,2.06,2.73,1.32,1.41,10,Crewx2 Assayx2 Drivex3,none
-"Mote, Ledger, Cinder, Ash, Halo",1.92,1.58,2.15,2.54,2.08,2.054,2.54,1.58,0.96,8,Drivex3 Assayx2 Blightx2,none
-"Ferrule, Bosk, Mote, Ballast, Wex",1.92,1.46,2.41,2.2,2.24,2.046,2.41,1.46,0.95,7,Hullx4 Ordnancex2,Hull
-"Ash, Ferrule, Cinder, Nettle, Tarn",2.08,1.58,1.85,2.8,1.9,2.042,2.8,1.58,1.22,10,Blightx2 Hullx2 Ordnancex3,none
-"Rime, Ferrule, Corr, Vitre, Mire",1.92,1.28,2.57,2.08,2.34,2.038,2.57,1.28,1.29,10,Assayx2 Hullx2 Ordnancex2,none
-"Vane, Halo, Vitre, Ash, Sump",1.9,1.58,2.06,2.52,2.08,2.028,2.52,1.58,0.94,11,Drivex3 Crewx3 Blightx2,none
-"Maul, Ferrule, Cinder, Wex, Quill",1.85,1.16,1.9,2.77,2.45,2.026,2.77,1.16,1.61,6,Ordnancex3 Assayx2 Hullx2 Blightx2,none
-"Bosk, Maul, Tarn, Ballast, Rime",1.85,1.44,1.9,2.64,2.29,2.024,2.64,1.44,1.2,8,Ordnancex3 Hullx3 Assayx2,none
-"Vitre, Maul, Ballast, Ash, Halo",1.92,1.58,2.08,2.43,2.11,2.024,2.43,1.58,0.85,10,Assayx2 Drivex2,none
-"Vane, Ferrule, Vitre, Ash, Ballast",2.08,1.48,2.08,2.54,1.94,2.024,2.54,1.48,1.06,11,Drivex2 Hullx2,none
-"Quill, Ledger, Maul, Ferrule, Vitre",1.74,1.3,2.24,2.54,2.22,2.008,2.54,1.3,1.24,8,Assayx4 Drivex2 Ordnancex2,Assay
-"Maul, Cinder, Wex, Bosk, Corr",1.69,1.28,1.85,2.75,2.34,1.982,2.75,1.28,1.47,3,Ordnancex4 Hullx2,Ordnance
-"Mote, Sump, Bosk, Rime, Tarn",1.78,1.32,2.24,2.2,2.34,1.976,2.34,1.32,1.02,10,Assayx2 Ordnancex2 Hullx2,none
-"Vitre, Ash, Bosk, Corr, Halo",2.01,1.41,1.99,2.34,2.08,1.966,2.34,1.41,0.93,7,Drivex2 Ordnancex2,none
-"Ash, Corr, Ledger, Vitre, Pyre",1.78,1.39,2.08,2.22,2.34,1.962,2.34,1.39,0.95,8,Blightx2 Assayx2 Drivex2,none
-"Ash, Quill, Nettle, Ballast, Mire",1.99,1.55,1.9,2.54,1.81,1.958,2.54,1.55,0.99,10,Blightx2 Hullx2,none
-"Ledger, Cinder, Ferrule, Ballast, Mote",1.78,1.23,2.24,2.34,2.17,1.952,2.34,1.23,1.11,8,Assayx2 Drivex2 Ordnancex2 Hullx2,none
-"Corr, Ledger, Rime, Ash, Pyre",1.9,1.41,1.94,2.24,2.24,1.946,2.24,1.41,0.83,7,Assayx2 Blightx2,none
-"Mote, Vitre, Quill, Ledger, Nettle",1.71,1.23,2.36,2.08,2.34,1.944,2.36,1.23,1.13,8,Drivex4 Assayx4,Drive Assay
-"Maul, Pyre, Ferrule, Mote, Fen",1.76,1.28,1.9,2.43,2.34,1.942,2.43,1.28,1.15,7,Ordnancex2 Assayx2,none
-"Ash, Ballast, Mire, Maul, Bosk",1.9,1.46,1.58,2.68,2.04,1.932,2.68,1.46,1.22,9,Hullx3 Ordnancex2,none
-"Ballast, Rime, Fen, Vane, Mote",1.85,1.28,2.73,1.62,2.11,1.918,2.73,1.28,1.45,8,Assayx2 Crewx2 Drivex2,none
-"Sump, Vitre, Halo, Ballast, Mote",1.83,1.18,2.75,1.69,2.08,1.906,2.75,1.18,1.57,11,Crewx2 Assayx2 Drivex3,none
-"Mote, Ledger, Ash, Bosk, Halo",1.9,1.41,1.97,2.22,1.9,1.88,2.22,1.41,0.81,7,Drivex3 Assayx2,none
-"Corr, Ballast, Ledger, Ash, Maul",1.85,1.41,1.71,2.52,1.9,1.878,2.52,1.41,1.11,7,Ordnancex2 Assayx2,none
-"Sump, Wex, Maul, Ferrule, Quill",1.69,1.05,2.01,2.29,2.22,1.852,2.29,1.05,1.24,8,Blightx2 Crewx2 Hullx2 Ordnancex2 Assayx2,none
-"Cinder, Mote, Wex, Sump, Quill",1.67,1.07,2.08,2.45,1.97,1.848,2.45,1.07,1.38,8,Blightx3 Assayx2 Crewx2,none
-"Ash, Vane, Fen, Ledger, Corr",1.83,1.37,1.69,2.57,1.74,1.84,2.57,1.37,1.2,6,Drivex2 Crewx2,none
-"Ballast, Tarn, Sump, Rime, Vitre",1.67,1.23,2.34,1.85,2.11,1.84,2.34,1.23,1.11,13,Hullx2 Assayx2,none
-"Pyre, Halo, Ferrule, Maul, Ash",1.74,1.39,1.74,2.17,2.15,1.838,2.17,1.39,0.78,8,Blightx2 Ordnancex2,none
-"Sump, Cinder, Nettle, Ferrule, Rime",1.58,1.07,2.15,2.29,2.04,1.826,2.29,1.07,1.22,9,Blightx2 Ordnancex2,none
-"Cinder, Mire, Rime, Halo, Maul",1.74,1.28,1.71,2.38,1.99,1.82,2.38,1.28,1.1,8,Ordnancex2 Crewx2 Assayx2,none
-"Halo, Mire, Maul, Ash, Corr",1.74,1.34,1.58,2.52,1.9,1.816,2.52,1.34,1.18,8,Crewx2 Ordnancex2,none
-"Mote, Wex, Tarn, Ledger, Cinder",1.74,1.25,1.85,2.22,2.01,1.814,2.22,1.25,0.97,8,Drivex2 Assayx2 Hullx2 Ordnancex2,none
-"Ledger, Fen, Rime, Vitre, Quill",1.76,1.16,2.29,1.74,2.04,1.798,2.29,1.16,1.13,8,Assayx4 Drivex2,Assay
-"Tarn, Ash, Ledger, Ballast, Vane",1.85,1.41,1.74,2.31,1.62,1.786,2.31,1.41,0.9,10,Hullx2 Drivex2,none
-"Corr, Wex, Mote, Cinder, Ballast",1.74,1.16,1.74,2.24,2.01,1.778,2.24,1.16,1.08,6,Ordnancex2 Hullx2,none
-"Fen, Vitre, Rime, Quill, Ballast",1.69,1.11,2.43,1.62,1.94,1.758,2.43,1.11,1.32,9,Assayx3,none
-"Halo, Cinder, Vitre, Nettle, Rime",1.55,1.14,2.11,1.85,2.13,1.756,2.13,1.14,0.99,8,Drivex3 Assayx2,none
-"Nettle, Bosk, Maul, Pyre, Vitre",1.58,1.23,1.71,2.08,2.08,1.736,2.08,1.23,0.85,6,Drivex2 Ordnancex2 Assayx2,none
-"Nettle, Mire, Bosk, Ferrule, Wex",1.69,1.16,1.9,2.17,1.71,1.726,2.17,1.16,1.01,7,Crewx2 Hullx4 Ordnancex2,Hull
-"Mote, Vane, Ferrule, Corr, Maul",1.58,1.23,1.58,2.29,1.92,1.72,2.29,1.23,1.06,6,Drivex2 Assayx2 Ordnancex3,none
-"Maul, Ledger, Halo, Cinder, Mote",1.58,1.23,1.64,2.24,1.9,1.718,2.24,1.23,1.01,6,Ordnancex2 Assayx3 Drivex3,none
-"Vitre, Corr, Mote, Halo, Wex",1.64,1.09,2.29,1.62,1.92,1.712,2.29,1.09,1.2,7,Assayx2 Drivex3 Crewx2,none
-"Vitre, Fen, Vane, Pyre, Mote",1.64,1.09,2.52,1.44,1.85,1.708,2.52,1.09,1.43,8,Assayx2 Drivex3 Crewx2,none
-"Quill, Corr, Rime, Fen, Cinder",1.55,1.11,1.51,2.29,1.88,1.668,2.29,1.11,1.18,5,Assayx2 Blightx2 Ordnancex2,none
-"Pyre, Vitre, Mote, Ledger, Bosk",1.46,1.07,1.88,1.81,2.08,1.66,2.08,1.07,1.01,7,Assayx3 Drivex3,none
-"Sump, Maul, Pyre, Vitre, Cinder",1.51,1.16,1.58,2.13,1.92,1.66,2.13,1.16,0.97,9,Blightx3 Ordnancex2 Assayx2,none
-"Tarn, Maul, Mote, Halo, Sump",1.58,1.09,1.58,2.2,1.85,1.66,2.2,1.09,1.11,10,Ordnancex2 Assayx2 Drivex2 Crewx2,none
-"Pyre, Corr, Mire, Maul, Fen",1.41,0.81,1.58,2.38,2.08,1.652,2.38,0.81,1.57,6,Ordnancex2 Crewx2,none
-"Cinder, Bosk, Ledger, Mote, Maul",1.41,1.11,1.67,2.15,1.9,1.648,2.15,1.11,1.04,5,Ordnancex3 Assayx3 Drivex2,none
-"Fen, Ledger, Rime, Corr, Cinder",1.53,1.11,1.53,2.29,1.78,1.648,2.29,1.11,1.18,5,Assayx2 Ordnancex2,none
-"Fen, Nettle, Mire, Quill, Vitre",1.55,1.02,2.08,1.74,1.83,1.644,2.08,1.02,1.06,9,Crewx2 Drivex2 Assayx2,none
-"Maul, Corr, Vitre, Quill, Nettle",1.41,1.16,1.58,2.04,1.9,1.618,2.04,1.16,0.88,6,Ordnancex2 Assayx3 Drivex2,none
-"Quill, Cinder, Rime, Mire, Ferrule",1.53,1,1.74,2.04,1.76,1.614,2.04,1,1.04,9,Assayx2 Blightx2 Ordnancex2 Hullx2,none
-"Maul, Ballast, Cinder, Ledger, Fen",1.46,1.07,1.44,2.2,1.85,1.604,2.2,1.07,1.13,6,Ordnancex2 Assayx2,none
-"Quill, Mire, Vitre, Ballast, Maul",1.44,1.07,1.53,2.01,1.9,1.59,2.01,1.07,0.94,10,Assayx3 Hullx2,none
-"Nettle, Mire, Maul, Vitre, Tarn",1.46,1.11,1.44,2.08,1.85,1.588,2.08,1.11,0.97,11,Drivex2 Hullx2 Ordnancex2 Assayx2,none
-"Maul, Quill, Ledger, Ferrule, Mire",1.41,0.91,1.58,2.08,1.9,1.576,2.08,0.91,1.17,8,Ordnancex2 Assayx3 Hullx2,none
-"Mote, Wex, Corr, Ferrule, Tarn",1.53,1.02,1.78,1.74,1.78,1.57,1.78,1.02,0.76,8,Hullx3 Ordnancex3,none
-"Nettle, Rime, Ledger, Sump, Vane",1.44,0.95,1.92,1.71,1.83,1.57,1.92,0.95,0.97,8,Drivex3 Assayx2 Crewx2,none
-"Mote, Vane, Rime, Ballast, Ferrule",1.53,1,2.22,1.3,1.78,1.566,2.22,1,1.22,9,Drivex2 Assayx2 Hullx2,none
-"Bosk, Corr, Ledger, Vitre, Ferrule",1.41,1.02,1.41,2.06,1.74,1.528,2.06,1.02,1.04,6,Ordnancex3 Hullx2 Assayx2 Drivex2,none
-"Rime, Quill, Vitre, Fen, Wex",1.48,0.98,2.08,1.37,1.71,1.524,2.08,0.98,1.1,8,Assayx3 Crewx2,none
-"Quill, Nettle, Vitre, Mote, Tarn",1.39,1.07,1.69,1.67,1.76,1.516,1.76,1.07,0.69,10,Assayx3 Drivex3,none
-"Cinder, Sump, Wex, Mote, Ballast",1.39,0.91,1.58,2.08,1.58,1.508,2.08,0.91,1.17,9,Blightx2 Crewx2 Hullx2,none
-"Mote, Cinder, Mire, Vane, Corr",1.39,1.02,1.39,2.11,1.6,1.502,2.11,1.02,1.09,7,Drivex2 Ordnancex2 Crewx2,none
-"Quill, Tarn, Bosk, Rime, Mire",1.37,1.05,1.46,1.9,1.67,1.49,1.9,1.05,0.85,9,Assayx2 Hullx3 Ordnancex2,none
-"Corr, Ferrule, Bosk, Rime, Ballast",1.39,1,1.51,1.78,1.69,1.474,1.78,1,0.78,6,Ordnancex3 Hullx3,none
-"Rime, Pyre, Maul, Quill, Nettle",1.39,1.07,1.41,1.83,1.67,1.474,1.83,1.07,0.76,6,Assayx3 Blightx2,none
-"Rime, Pyre, Tarn, Vane, Maul",1.34,1.07,1.34,1.85,1.64,1.448,1.85,1.07,0.78,8,Assayx2 Ordnancex2,none
-"Ledger, Nettle, Vitre, Fen, Cinder",1.3,1.02,1.3,1.99,1.58,1.438,1.99,1.02,0.97,7,Assayx2 Drivex3,none
-"Pyre, Cinder, Rime, Sump, Mire",1.28,0.86,1.46,1.94,1.55,1.418,1.94,0.86,1.08,10,Blightx3 Crewx2,none
-"Vitre, Ledger, Rime, Sump, Vane",1.41,0.91,1.74,1.39,1.62,1.414,1.74,0.91,0.83,10,Assayx3 Drivex3 Crewx2,none
-"Nettle, Ledger, Mote, Pyre, Fen",1.34,0.95,1.41,1.74,1.62,1.412,1.74,0.95,0.79,6,Drivex3 Assayx2,none
-"Vane, Vitre, Ledger, Sump, Nettle",1.28,0.88,1.74,1.55,1.58,1.406,1.74,0.88,0.86,9,Drivex4 Crewx2 Assayx2,Drive
-"Vitre, Ballast, Ledger, Cinder, Wex",1.32,0.88,1.58,1.71,1.53,1.404,1.71,0.88,0.83,8,Assayx2 Drivex2 Hullx2,none
-"Pyre, Vitre, Wex, Nettle, Ballast",1.3,0.86,1.74,1.51,1.58,1.398,1.74,0.86,0.88,8,Drivex2 Hullx2,none
-"Fen, Ferrule, Corr, Rime, Wex",1.3,0.86,1.64,1.55,1.58,1.386,1.64,0.86,0.78,6,Crewx2 Hullx2 Ordnancex2,none
-"Mire, Tarn, Corr, Vane, Sump",1.23,1.07,1.3,1.76,1.51,1.374,1.76,1.07,0.69,10,Crewx3 Hullx2 Ordnancex2,none
-"Sump, Tarn, Rime, Pyre, Ferrule",1.32,0.98,1.58,1.41,1.58,1.374,1.58,0.98,0.6,11,Blightx2 Hullx2 Ordnancex2,none
-"Corr, Fen, Pyre, Tarn, Cinder",1.23,1,1.16,2.08,1.37,1.368,2.08,1,1.08,6,Ordnancex3 Blightx2,none
-"Vitre, Ledger, Nettle, Mire, Bosk",1.25,0.93,1.23,1.83,1.55,1.358,1.83,0.93,0.9,8,Assayx2 Drivex3 Hullx2,none
-"Tarn, Pyre, Bosk, Ferrule, Cinder",1.23,0.88,1.23,1.92,1.48,1.348,1.92,0.88,1.04,7,Hullx3 Ordnancex4 Blightx2,Ordnance
-"Sump, Maul, Pyre, Mire, Nettle",1.16,0.75,1.3,1.88,1.64,1.346,1.88,0.75,1.13,9,Blightx2 Crewx2,none
-"Nettle, Cinder, Pyre, Vitre, Wex",1.23,0.86,1.23,1.88,1.46,1.332,1.88,0.86,1.02,7,Drivex2 Blightx2,none
-"Ballast, Vane, Mote, Tarn, Mire",1.16,0.91,1.44,1.64,1.44,1.318,1.64,0.91,0.73,11,Hullx3 Drivex2 Crewx2,none
-"Tarn, Quill, Cinder, Nettle, Fen",1.23,0.91,1.09,1.92,1.3,1.29,1.92,0.91,1.01,7,Ordnancex2 Blightx2,none
-"Corr, Bosk, Tarn, Vane, Fen",1.16,0.86,1.16,1.76,1.51,1.29,1.76,0.86,0.9,5,Ordnancex3 Hullx2 Crewx2,none
-"Vane, Corr, Ferrule, Rime, Tarn",1.23,0.88,1.39,1.48,1.46,1.288,1.48,0.88,0.6,8,Ordnancex3 Hullx2,none
-"Ledger, Corr, Ferrule, Quill, Nettle",1.16,0.91,1.07,1.83,1.44,1.282,1.83,0.91,0.92,5,Assayx2 Drivex2 Ordnancex2,none
-"Cinder, Ferrule, Rime, Vane, Ballast",1.23,0.81,1.41,1.46,1.46,1.274,1.46,0.81,0.65,8,Ordnancex2 Hullx2,none
-"Vane, Tarn, Cinder, Mire, Nettle",1.16,0.91,1.07,1.92,1.3,1.272,1.92,0.91,1.01,9,Drivex2 Crewx2 Hullx2 Ordnancex2,none
-"Sump, Vitre, Ferrule, Pyre, Nettle",1.16,0.79,1.44,1.53,1.41,1.266,1.53,0.79,0.74,10,Blightx2 Drivex2,none
-"Nettle, Bosk, Rime, Pyre, Corr",1.16,0.91,1.16,1.69,1.41,1.266,1.69,0.91,0.78,4,Ordnancex2,none
-"Cinder, Nettle, Wex, Ferrule, Ledger",1.16,0.75,1.16,1.9,1.3,1.254,1.9,0.75,1.15,6,Ordnancex2 Drivex2 Hullx2,none
-"Pyre, Vitre, Cinder, Vane, Mire",1.16,0.77,1.34,1.6,1.34,1.242,1.6,0.77,0.83,9,Blightx2 Drivex2 Crewx2,none
-"Wex, Corr, Cinder, Pyre, Fen",1.14,0.72,1.11,1.99,1.25,1.242,1.99,0.72,1.27,4,Crewx2 Ordnancex2 Blightx2,none
-"Quill, Corr, Pyre, Vitre, Mire",1.16,0.86,1.16,1.62,1.39,1.238,1.62,0.86,0.76,8,Assayx2 Blightx2,none
-"Wex, Ledger, Ferrule, Sump, Cinder",1.16,0.77,1.07,2.01,1.16,1.234,2.01,0.77,1.24,8,Hullx2 Crewx2 Ordnancex2 Blightx2,none
-"Sump, Halo, Rime, Wex, Cinder",1.09,0.75,1.18,1.83,1.23,1.216,1.83,0.75,1.08,8,Blightx2 Crewx3,none
-"Corr, Tarn, Sump, Halo, Maul",1.02,0.75,1.02,1.88,1.41,1.216,1.88,0.75,1.13,8,Ordnancex3 Crewx2,none
-"Rime, Sump, Mire, Corr, Halo",1.14,0.77,1.41,1.37,1.37,1.212,1.41,0.77,0.64,9,Crewx3,none
-"Maul, Ballast, Mire, Tarn, Halo",1.02,0.79,1.18,1.76,1.3,1.21,1.76,0.79,0.97,10,Ordnancex2 Hullx3 Crewx2,none
-"Quill, Vitre, Vane, Ferrule, Nettle",1.11,0.77,1.58,1.21,1.34,1.202,1.58,0.77,0.81,8,Assayx2 Drivex3,none
-"Mote, Quill, Nettle, Cinder, Halo",1.07,0.86,1.16,1.58,1.3,1.194,1.58,0.86,0.72,6,Drivex3 Assayx2 Blightx2,none
-"Vane, Tarn, Maul, Ledger, Sump",0.98,0.79,1.02,1.76,1.39,1.188,1.76,0.79,0.97,9,Drivex2 Crewx2 Ordnancex2 Assayx2,none
-"Mote, Pyre, Vane, Mire, Corr",1.11,0.81,1.25,1.41,1.32,1.18,1.41,0.81,0.6,7,Drivex2 Crewx2,none
-"Tarn, Cinder, Vane, Rime, Ballast",1.07,0.91,1.07,1.58,1.23,1.172,1.58,0.91,0.67,9,Hullx2 Ordnancex2,none
-"Bosk, Maul, Tarn, Corr, Pyre",0.98,0.75,0.91,1.83,1.37,1.168,1.83,0.75,1.08,5,Ordnancex4 Hullx2,Ordnance
-"Tarn, Cinder, Ferrule, Mire, Pyre",1.07,0.65,1.21,1.88,1,1.162,1.88,0.65,1.23,10,Hullx3 Ordnancex3 Blightx2,none
-"Fen, Tarn, Ferrule, Nettle, Cinder",1.14,0.61,1.32,1.76,0.98,1.162,1.76,0.61,1.15,8,Hullx2 Ordnancex3,none
-"Tarn, Ledger, Pyre, Mire, Bosk",1.07,0.79,1.07,1.62,1.25,1.16,1.62,0.79,0.83,8,Hullx3 Ordnancex2,none
-"Vitre, Ferrule, Cinder, Vane, Nettle",1.07,0.81,1.07,1.55,1.3,1.16,1.55,0.81,0.74,8,Drivex3 Ordnancex2,none
-"Pyre, Quill, Ledger, Rime, Tarn",1.05,0.84,1.07,1.39,1.32,1.134,1.39,0.84,0.55,8,Blightx2 Assayx3,none
-"Ferrule, Ballast, Vitre, Sump, Ledger",1.09,0.72,1.28,1.3,1.25,1.128,1.3,0.72,0.58,11,Hullx2 Assayx2 Drivex2,none
-"Vitre, Vane, Ferrule, Nettle, Corr",1.05,0.75,1.07,1.51,1.25,1.126,1.51,0.75,0.76,7,Drivex3 Ordnancex2,none
-"Vane, Mire, Corr, Cinder, Ballast",1.07,0.65,1.07,1.64,1.16,1.118,1.64,0.65,0.99,7,Crewx2 Hullx2 Ordnancex2,none
-"Halo, Ballast, Cinder, Rime, Fen",1.05,0.7,1.3,1.3,1.23,1.116,1.3,0.7,0.6,7,Crewx2,none
-"Tarn, Vane, Sump, Rime, Ferrule",1.09,0.77,1.58,0.98,1.16,1.116,1.58,0.77,0.81,11,Hullx2 Ordnancex2 Crewx2,none
-"Bosk, Quill, Vitre, Tarn, Halo",1,0.81,1.02,1.37,1.21,1.082,1.37,0.81,0.56,8,Ordnancex2 Hullx2 Assayx2 Drivex2,none
-"Sump, Mote, Pyre, Vane, Halo",0.95,0.68,1.41,1.11,1.25,1.08,1.41,0.68,0.73,8,Blightx2 Crewx3 Drivex3,none
-"Ballast, Vane, Ledger, Rime, Tarn",1.02,0.77,1.14,1.23,1.21,1.074,1.23,0.77,0.46,9,Hullx2 Drivex2 Assayx2,none
-"Vitre, Vane, Ballast, Mire, Corr",1.02,0.7,1.21,1.25,1.18,1.072,1.25,0.7,0.55,9,Drivex2 Crewx2 Hullx2,none
-"Sump, Tarn, Nettle, Corr, Vane",0.95,0.77,0.93,1.55,1.09,1.058,1.55,0.77,0.78,8,Crewx2 Ordnancex2 Drivex2,none
-"Wex, Pyre, Bosk, Cinder, Fen",1,0.61,1.02,1.6,1.05,1.056,1.6,0.61,0.99,4,Hullx2 Crewx2 Blightx2 Ordnancex2,none
-"Rime, Corr, Wex, Vane, Pyre",0.95,0.68,1.28,1.21,1.16,1.056,1.28,0.68,0.6,5,Crewx2,none
-"Mote, Sump, Vane, Ballast, Bosk",0.98,0.7,1.23,1.16,1.16,1.046,1.23,0.7,0.53,8,Drivex2 Crewx2 Hullx2,none
-"Corr, Vane, Sump, Bosk, Tarn",0.93,0.75,0.95,1.48,1.09,1.04,1.48,0.75,0.73,7,Ordnancex3 Crewx2 Hullx2,none
-"Cinder, Vane, Sump, Maul, Wex",0.91,0.56,0.88,1.83,1,1.036,1.83,0.56,1.27,7,Blightx2 Ordnancex2 Crewx3,none
-"Vane, Ledger, Cinder, Ferrule, Quill",0.93,0.65,0.91,1.55,1.05,1.018,1.55,0.65,0.9,6,Drivex2 Assayx2 Blightx2 Ordnancex2,none
-"Ferrule, Fen, Corr, Sump, Bosk",0.98,0.56,1.07,1.37,1.09,1.014,1.37,0.56,0.81,6,Hullx2 Ordnancex3 Crewx2,none
-"Bosk, Vane, Tarn, Ledger, Sump",0.93,0.7,0.91,1.44,1.09,1.014,1.44,0.7,0.74,8,Ordnancex2 Hullx2 Drivex2 Crewx2,none
-"Vane, Ferrule, Ballast, Sump, Rime",0.95,0.63,1.32,1.02,1.14,1.012,1.32,0.63,0.69,10,Crewx2 Hullx2,none
-"Ferrule, Ledger, Pyre, Tarn, Quill",0.98,0.58,1.07,1.3,1.09,1.004,1.3,0.58,0.72,8,Hullx2 Ordnancex2 Assayx2 Blightx2,none
-"Rime, Mire, Fen, Wex, Ferrule",0.93,0.63,1.25,1.05,1.16,1.004,1.25,0.63,0.62,9,Crewx3 Hullx3,none
-"Corr, Cinder, Ledger, Quill, Vane",0.86,0.7,0.75,1.6,1.05,0.992,1.6,0.7,0.9,4,Ordnancex2 Blightx2 Assayx2 Drivex2,none
-"Fen, Nettle, Quill, Ferrule, Bosk",0.88,0.56,0.91,1.34,1.02,0.942,1.34,0.56,0.78,5,Hullx2 Ordnancex2,none
-"Sump, Nettle, Cinder, Mire, Vane",0.86,0.56,0.75,1.6,0.88,0.93,1.6,0.56,1.04,9,Blightx2 Crewx3 Drivex2,none
-"Fen, Quill, Cinder, Mire, Ballast",0.91,0.54,0.86,1.46,0.88,0.93,1.46,0.54,0.92,8,Crewx2 Blightx2 Hullx2,none
-"Wex, Ledger, Ferrule, Halo, Cinder",0.84,0.56,0.86,1.44,0.93,0.926,1.44,0.56,0.88,6,Hullx2 Crewx2 Drivex2 Ordnancex2,none
-"Halo, Cinder, Ballast, Ledger, Tarn",0.81,0.68,0.77,1.37,0.93,0.912,1.37,0.68,0.69,8,Drivex2 Ordnancex2 Hullx2,none
-"Rime, Sump, Wex, Ferrule, Vane",0.88,0.56,1.11,0.95,1.02,0.904,1.11,0.56,0.55,9,Crewx3 Hullx2,none
-"Cinder, Ledger, Ferrule, Vane, Wex",0.86,0.56,0.86,1.32,0.88,0.896,1.32,0.56,0.76,6,Ordnancex2 Drivex2 Hullx2 Crewx2,none
-"Bosk, Ledger, Mire, Pyre, Ferrule",0.81,0.49,0.95,1.21,0.93,0.878,1.21,0.49,0.72,7,Ordnancex2 Hullx3,none
-"Ferrule, Bosk, Halo, Corr, Ballast",0.79,0.52,0.86,1.18,0.93,0.856,1.18,0.52,0.66,5,Hullx3 Ordnancex3,none
-"Ledger, Quill, Rime, Halo, Vane",0.81,0.61,0.95,0.98,0.93,0.856,0.98,0.61,0.37,6,Assayx3 Drivex3 Crewx2,none
-"Rime, Vane, Fen, Wex, Ballast",0.79,0.52,1.07,0.81,0.93,0.824,1.07,0.52,0.55,7,Crewx3 Hullx2,none
-"Bosk, Ballast, Fen, Mire, Ledger",0.77,0.47,0.88,1.09,0.88,0.818,1.09,0.47,0.62,7,Hullx3 Crewx2,none
-"Ferrule, Fen, Pyre, Corr, Tarn",0.72,0.42,0.98,1.09,0.88,0.818,1.09,0.42,0.67,7,Hullx2 Ordnancex3,none
-"Nettle, Quill, Cinder, Sump, Halo",0.75,0.49,0.63,1.39,0.79,0.81,1.39,0.49,0.9,7,Drivex2 Blightx3 Crewx2,none
-"Quill, Corr, Sump, Fen, Wex",0.72,0.47,0.72,1.28,0.77,0.792,1.28,0.47,0.81,6,Blightx2 Crewx3,none
-"Cinder, Pyre, Wex, Vane, Sump",0.77,0.4,0.54,1.39,0.72,0.764,1.39,0.4,0.99,7,Blightx3 Crewx3,none
-"Bosk, Maul, Vane, Tarn, Halo",0.68,0.49,0.68,1.16,0.81,0.764,1.16,0.49,0.67,6,Ordnancex3 Hullx2 Drivex2 Crewx2,none
-"Quill, Ballast, Corr, Wex, Fen",0.7,0.4,0.81,1.02,0.79,0.744,1.02,0.4,0.62,5,Hullx2 Crewx2,none
-"Quill, Halo, Bosk, Wex, Ledger",0.68,0.4,0.75,1,0.77,0.72,1,0.4,0.6,4,Assayx2 Crewx2 Drivex2 Hullx2,none
-"Quill, Sump, Ferrule, Mire, Ballast",0.7,0.4,0.68,1.07,0.7,0.71,1.07,0.4,0.67,11,Blightx2 Crewx2 Hullx3,none
-"Fen, Wex, Maul, Corr, Vane",0.63,0.4,0.63,1.05,0.77,0.696,1.05,0.4,0.65,4,Crewx3 Ordnancex2,none
-"Mire, Cinder, Vane, Ferrule, Tarn",0.63,0.4,0.58,1.16,0.63,0.68,1.16,0.4,0.76,10,Crewx2 Hullx3 Ordnancex3,none
-"Halo, Nettle, Ferrule, Tarn, Sump",0.63,0.4,0.68,0.95,0.68,0.668,0.95,0.4,0.55,10,Crewx2 Drivex2 Hullx2 Ordnancex2,none
-"Vane, Nettle, Tarn, Ferrule, Sump",0.63,0.4,0.65,0.98,0.68,0.668,0.98,0.4,0.58,10,Drivex2 Crewx2 Hullx2 Ordnancex2,none
-"Wex, Fen, Mire, Pyre, Bosk",0.61,0.4,0.7,0.91,0.7,0.664,0.91,0.4,0.51,6,Hullx3 Crewx3,none
-"Nettle, Mire, Halo, Bosk, Wex",0.58,0.4,0.7,0.93,0.7,0.662,0.93,0.4,0.53,6,Drivex2 Crewx3 Hullx3,none
-"Ledger, Halo, Ballast, Sump, Mire",0.56,0.4,0.58,0.88,0.63,0.61,0.88,0.4,0.48,10,Drivex2 Crewx3 Hullx2,none
-"Fen, Bosk, Sump, Ledger, Halo",0.56,0.4,0.61,0.86,0.61,0.608,0.86,0.4,0.46,6,Crewx3 Drivex2,none
-"Ferrule, Quill, Cinder, Fen, Vane",0.52,0.4,0.42,1.09,0.52,0.59,1.09,0.4,0.69,6,Ordnancex2 Blightx2 Crewx2,none
-"Nettle, Ferrule, Wex, Sump, Vane",0.54,0.4,0.52,0.79,0.56,0.562,0.79,0.4,0.39,8,Drivex2 Hullx2 Crewx3,none
-"Sump, Mire, Quill, Fen, Vane",0.54,0.4,0.49,0.84,0.54,0.562,0.84,0.4,0.44,9,Blightx2 Crewx4,Crew
-"Halo, Nettle, Ballast, Vane, Bosk",0.49,0.4,0.49,0.81,0.56,0.55,0.81,0.4,0.41,5,Crewx2 Drivex3 Hullx2,none
-"Ferrule, Pyre, Tarn, Wex, Vane",0.49,0.4,0.54,0.7,0.52,0.53,0.7,0.4,0.3,8,Hullx3 Ordnancex2 Crewx2,none
-"Ferrule, Pyre, Fen, Bosk, Vane",0.49,0.4,0.49,0.75,0.49,0.524,0.75,0.4,0.35,5,Hullx2 Ordnancex2 Crewx2,none
-"Vane, Sump, Ledger, Bosk, Halo",0.47,0.4,0.47,0.72,0.49,0.51,0.72,0.4,0.32,6,Drivex3 Crewx3,none
-"Fen, Ledger, Vane, Halo, Pyre",0.4,0.4,0.4,0.61,0.4,0.442,0.61,0.4,0.21,5,Crewx3 Drivex3,none
-"Halo, Vane, Sump, Bosk, Ferrule",0.4,0.4,0.4,0.56,0.4,0.432,0.56,0.4,0.16,7,Crewx3 Drivex2 Ordnancex2 Hullx2,none
-"Vane, Wex, Ballast, Mire, Halo",0.4,0.4,0.4,0.47,0.4,0.414,0.47,0.4,0.07,8,Drivex2 Crewx4 Hullx3,Crew
+team,open,murk,hive,fortress,bloom,avg,best,worst,swing,hooks,roles at 2+,deep role
+"Pyre, Ash, Mote, Rime, Vitre",3.67,2.45,5.89,3.7,5.7,4.282,5.89,2.45,3.44,11,DoTx2 Speedx2 Breakerx3,none
+"Rime, Ferrule, Mote, Ash, Wex",3.97,2.87,5.56,4.34,3.74,4.096,5.56,2.87,2.69,10,Breakerx2 Tankx2,none
+"Cinder, Rime, Tarn, Quill, Ash",3.49,2.31,4.09,3.97,4.04,3.58,4.09,2.31,1.78,10,DoTx3 DPSx2 Breakerx2,none
+"Sump, Ash, Rime, Mire, Maul",3.35,2.52,4.06,3.97,3.9,3.56,4.06,2.52,1.54,12,DoTx2 Healerx2 Breakerx2,none
+"Quill, Rime, Cinder, Mote, Vitre",2.77,1.9,3.56,3.19,3.42,2.968,3.56,1.9,1.66,9,Breakerx4 DoTx2 Speedx2,Breaker
+"Vane, Mote, Cinder, Nettle, Ash",2.54,1.88,3.86,3.12,3.35,2.95,3.86,1.88,1.98,8,Speedx3 DoTx2,none
+"Wex, Vitre, Halo, Rime, Maul",2.68,1.85,3.95,2.84,3.35,2.934,3.95,1.85,2.1,8,Healerx2 Breakerx3 Speedx2,none
+"Ballast, Ash, Ferrule, Maul, Wex",2.91,2.08,2.73,3.81,3.05,2.916,3.81,2.08,1.73,9,Tankx3 DPSx2,none
+"Ballast, Ash, Ledger, Fen, Quill",2.8,2.15,3.23,3.49,2.73,2.88,3.49,2.15,1.34,8,DoTx2 Breakerx2,none
+"Cinder, Tarn, Mote, Maul, Ash",2.52,1.9,2.94,3.23,3.35,2.788,3.35,1.9,1.45,10,DoTx2 DPSx3 Breakerx2,none
+"Wex, Ash, Ferrule, Halo, Mire",3.12,1.9,3.51,3.4,1.94,2.774,3.51,1.9,1.61,10,Tankx3 Healerx3,none
+"Halo, Ash, Vitre, Bosk, Mire",2.52,1.88,2.84,3.03,2.68,2.59,3.03,1.88,1.15,10,Healerx2 Speedx2 Tankx2,none
+"Mote, Corr, Rime, Fen, Maul",2.41,1.76,2.57,3.14,2.94,2.564,3.14,1.76,1.38,6,Breakerx3 DPSx2,none
+"Sump, Mote, Tarn, Nettle, Vitre",2.29,1.58,3.49,2.54,2.84,2.548,3.49,1.58,1.91,12,Speedx3 Breakerx2,none
+"Ferrule, Tarn, Rime, Sump, Mote",2.43,1.69,3.42,2.11,2.94,2.518,3.42,1.69,1.73,12,Tankx2 DPSx2 Breakerx2,none
+"Corr, Mire, Ash, Mote, Maul",2.38,1.74,2.43,3.19,2.61,2.47,3.19,1.74,1.45,9,DPSx2 Breakerx2,none
+"Vane, Rime, Vitre, Quill, Mote",2.41,1.71,3.28,2.13,2.73,2.452,3.28,1.71,1.57,9,Speedx3 Breakerx4,Breaker
+"Quill, Ash, Fen, Tarn, Ballast",2.41,1.88,2.24,3.14,2.29,2.392,3.14,1.88,1.26,10,DoTx2 Tankx2,none
+"Ash, Ferrule, Bosk, Pyre, Vitre",2.22,1.67,2.54,2.73,2.73,2.378,2.73,1.67,1.06,9,DoTx2 Tankx2 DPSx2,none
+"Ferrule, Corr, Vane, Mote, Ash",2.31,1.69,2.73,2.68,2.45,2.372,2.73,1.69,1.04,8,DPSx2 Speedx2,none
+"Mire, Tarn, Ash, Ferrule, Ballast",2.31,1.9,2.13,3.14,2.34,2.364,3.14,1.9,1.24,13,Tankx4 DPSx2,Tank
+"Mire, Ash, Fen, Halo, Ledger",2.43,1.76,2.47,3.14,2.01,2.362,3.14,1.76,1.38,9,Healerx3 Speedx2,none
+"Ferrule, Wex, Mote, Maul, Ledger",2.24,1.62,2.29,2.96,2.66,2.354,2.96,1.62,1.34,7,Tankx2 DPSx2 Speedx2 Breakerx3,none
+"Wex, Cinder, Ballast, Ash, Ledger",2.29,1.78,2.13,3.35,2.15,2.34,3.35,1.78,1.57,8,Tankx2 DoTx2,none
+"Mote, Wex, Vitre, Maul, Pyre",2.13,1.58,2.45,2.75,2.73,2.328,2.75,1.58,1.17,8,Speedx2 Breakerx3,none
+"Ferrule, Cinder, Ballast, Corr, Ash",2.22,1.81,2.17,3.14,2.27,2.322,3.14,1.81,1.33,8,Tankx2 DPSx3 DoTx2,none
+"Ash, Halo, Fen, Wex, Maul",2.24,1.74,2.15,3.23,2.22,2.316,3.23,1.74,1.49,7,Healerx3,none
+"Sump, Nettle, Ash, Wex, Corr",2.15,1.74,2.13,3.19,2.22,2.286,3.19,1.74,1.45,8,DoTx2 Healerx2,none
+"Sump, Ash, Cinder, Vane, Bosk",2.24,1.81,2.15,3.03,2.15,2.276,3.03,1.81,1.22,8,DoTx3 Healerx2 DPSx2,none
+"Ash, Wex, Mire, Nettle, Ledger",2.22,1.71,2.15,3.1,2.17,2.27,3.1,1.71,1.39,9,Tankx2 Healerx2 Speedx2,none
+"Corr, Mote, Rime, Wex, Ledger",2.13,1.39,3.03,2.17,2.52,2.248,3.03,1.39,1.64,6,Speedx2 Breakerx3,none
+"Ferrule, Vitre, Pyre, Maul, Ballast",2.08,1.41,2.34,2.75,2.64,2.244,2.75,1.41,1.34,9,Tankx2 DPSx2 Breakerx2,none
+"Corr, Ash, Sump, Vane, Nettle",2.17,1.69,2.22,2.82,2.15,2.21,2.82,1.69,1.13,8,DoTx2 Healerx2 Speedx2,none
+"Nettle, Maul, Mote, Mire, Wex",2.08,1.39,2.29,2.64,2.59,2.198,2.64,1.39,1.25,8,Speedx2 Breakerx2 Healerx2 Tankx2,none
+"Rime, Ferrule, Vitre, Vane, Mote",2.06,1.37,3.3,1.74,2.5,2.194,3.3,1.37,1.93,10,Breakerx3 Speedx3,none
+"Rime, Tarn, Maul, Wex, Pyre",2.01,1.46,2.01,2.84,2.41,2.146,2.84,1.46,1.38,8,Breakerx2 Tankx2 DPSx2,none
+"Maul, Rime, Halo, Sump, Quill",2.04,1.41,2.41,2.43,2.43,2.144,2.43,1.41,1.02,8,Breakerx3 Healerx2 DoTx2,none
+"Mote, Maul, Sump, Fen, Tarn",1.94,1.46,2.08,2.73,2.43,2.128,2.73,1.46,1.27,10,Breakerx2 DPSx2 Healerx2,none
+"Vitre, Rime, Cinder, Fen, Ledger",1.97,1.3,2.68,2.27,2.41,2.126,2.68,1.3,1.38,8,Breakerx3 Speedx2,none
+"Halo, Ballast, Pyre, Mote, Ash",1.9,1.55,2.31,2.11,2.61,2.096,2.61,1.55,1.06,9,Speedx2 DoTx2,none
+"Cinder, Ferrule, Mire, Mote, Maul",1.85,1.32,2.01,2.75,2.38,2.062,2.75,1.32,1.43,9,DPSx3 Tankx2 Breakerx2,none
+"Ferrule, Bosk, Nettle, Ash, Fen",1.99,1.55,1.9,2.89,1.97,2.06,2.89,1.55,1.34,7,Tankx2 DPSx2,none
+"Mote, Ledger, Cinder, Ash, Halo",1.92,1.58,2.15,2.54,2.08,2.054,2.54,1.58,0.96,8,Speedx3 Breakerx2 DoTx2,none
+"Ash, Ferrule, Cinder, Nettle, Tarn",2.08,1.58,1.85,2.8,1.9,2.042,2.8,1.58,1.22,10,DoTx2 Tankx2 DPSx3,none
+"Vane, Halo, Vitre, Ash, Sump",1.9,1.58,2.06,2.52,2.08,2.028,2.52,1.58,0.94,11,Speedx3 Healerx3 DoTx2,none
+"Bosk, Maul, Tarn, Ballast, Rime",1.85,1.44,1.9,2.64,2.29,2.024,2.64,1.44,1.2,8,DPSx3 Tankx3 Breakerx2,none
+"Quill, Ledger, Maul, Ferrule, Vitre",1.74,1.3,2.24,2.54,2.22,2.008,2.54,1.3,1.24,8,Breakerx4 Speedx2 DPSx2,Breaker
+"Maul, Cinder, Wex, Bosk, Corr",1.69,1.28,1.85,2.75,2.34,1.982,2.75,1.28,1.47,3,DPSx4 Tankx2,DPS
+"Mote, Sump, Bosk, Rime, Tarn",1.78,1.32,2.24,2.2,2.34,1.976,2.34,1.32,1.02,10,Breakerx2 DPSx2 Tankx2,none
+"Vitre, Ash, Bosk, Corr, Halo",2.01,1.41,1.99,2.34,2.08,1.966,2.34,1.41,0.93,7,Speedx2 DPSx2,none
+"Ash, Corr, Ledger, Vitre, Pyre",1.78,1.39,2.08,2.22,2.34,1.962,2.34,1.39,0.95,8,DoTx2 Breakerx2 Speedx2,none
+"Ledger, Cinder, Ferrule, Ballast, Mote",1.78,1.23,2.24,2.34,2.17,1.952,2.34,1.23,1.11,8,Breakerx2 Speedx2 DPSx2 Tankx2,none
+"Corr, Ledger, Rime, Ash, Pyre",1.9,1.41,1.94,2.24,2.24,1.946,2.24,1.41,0.83,7,Breakerx2 DoTx2,none
+"Mote, Vitre, Quill, Ledger, Nettle",1.71,1.23,2.36,2.08,2.34,1.944,2.36,1.23,1.13,8,Speedx4 Breakerx4,Speed Breaker
+"Maul, Pyre, Ferrule, Mote, Fen",1.76,1.28,1.9,2.43,2.34,1.942,2.43,1.28,1.15,7,DPSx2 Breakerx2,none
+"Corr, Ballast, Ledger, Ash, Maul",1.85,1.41,1.71,2.52,1.9,1.878,2.52,1.41,1.11,7,DPSx2 Breakerx2,none
+"Pyre, Halo, Ferrule, Maul, Ash",1.74,1.39,1.74,2.17,2.15,1.838,2.17,1.39,0.78,8,DoTx2 DPSx2,none
+"Sump, Cinder, Nettle, Ferrule, Rime",1.58,1.07,2.15,2.29,2.04,1.826,2.29,1.07,1.22,9,DoTx2 DPSx2,none
+"Cinder, Mire, Rime, Halo, Maul",1.74,1.28,1.71,2.38,1.99,1.82,2.38,1.28,1.1,8,DPSx2 Healerx2 Breakerx2,none
+"Halo, Mire, Maul, Ash, Corr",1.74,1.34,1.58,2.52,1.9,1.816,2.52,1.34,1.18,8,Healerx2 DPSx2,none
+"Mote, Wex, Tarn, Ledger, Cinder",1.74,1.25,1.85,2.22,2.01,1.814,2.22,1.25,0.97,8,Speedx2 Breakerx2 Tankx2 DPSx2,none
+"Ledger, Fen, Rime, Vitre, Quill",1.76,1.16,2.29,1.74,2.04,1.798,2.29,1.16,1.13,8,Breakerx4 Speedx2,Breaker
+"Fen, Vitre, Rime, Quill, Ballast",1.69,1.11,2.43,1.62,1.94,1.758,2.43,1.11,1.32,9,Breakerx3,none
+"Halo, Cinder, Vitre, Nettle, Rime",1.55,1.14,2.11,1.85,2.13,1.756,2.13,1.14,0.99,8,Speedx3 Breakerx2,none
+"Nettle, Bosk, Maul, Pyre, Vitre",1.58,1.23,1.71,2.08,2.08,1.736,2.08,1.23,0.85,6,Speedx2 DPSx2 Breakerx2,none
+"Mote, Vane, Ferrule, Corr, Maul",1.58,1.23,1.58,2.29,1.92,1.72,2.29,1.23,1.06,6,Speedx2 Breakerx2 DPSx3,none
+"Maul, Ledger, Halo, Cinder, Mote",1.58,1.23,1.64,2.24,1.9,1.718,2.24,1.23,1.01,6,DPSx2 Breakerx3 Speedx3,none
+"Vitre, Corr, Mote, Halo, Wex",1.64,1.09,2.29,1.62,1.92,1.712,2.29,1.09,1.2,7,Breakerx2 Speedx3 Healerx2,none
+"Vitre, Fen, Vane, Pyre, Mote",1.64,1.09,2.52,1.44,1.85,1.708,2.52,1.09,1.43,8,Breakerx2 Speedx3 Healerx2,none
+"Quill, Corr, Rime, Fen, Cinder",1.55,1.11,1.51,2.29,1.88,1.668,2.29,1.11,1.18,5,Breakerx2 DoTx2 DPSx2,none
+"Pyre, Vitre, Mote, Ledger, Bosk",1.46,1.07,1.88,1.81,2.08,1.66,2.08,1.07,1.01,7,Breakerx3 Speedx3,none
+"Pyre, Corr, Mire, Maul, Fen",1.41,0.81,1.58,2.38,2.08,1.652,2.38,0.81,1.57,6,DPSx2 Healerx2,none
+"Cinder, Bosk, Ledger, Mote, Maul",1.41,1.11,1.67,2.15,1.9,1.648,2.15,1.11,1.04,5,DPSx3 Breakerx3 Speedx2,none
+"Fen, Nettle, Mire, Quill, Vitre",1.55,1.02,2.08,1.74,1.83,1.644,2.08,1.02,1.06,9,Healerx2 Speedx2 Breakerx2,none
+"Maul, Corr, Vitre, Quill, Nettle",1.41,1.16,1.58,2.04,1.9,1.618,2.04,1.16,0.88,6,DPSx2 Breakerx3 Speedx2,none
+"Quill, Cinder, Rime, Mire, Ferrule",1.53,1,1.74,2.04,1.76,1.614,2.04,1,1.04,9,Breakerx2 DoTx2 DPSx2 Tankx2,none
+"Maul, Ballast, Cinder, Ledger, Fen",1.46,1.07,1.44,2.2,1.85,1.604,2.2,1.07,1.13,6,DPSx2 Breakerx2,none
+"Quill, Mire, Vitre, Ballast, Maul",1.44,1.07,1.53,2.01,1.9,1.59,2.01,1.07,0.94,10,Breakerx3 Tankx2,none
+"Nettle, Mire, Maul, Vitre, Tarn",1.46,1.11,1.44,2.08,1.85,1.588,2.08,1.11,0.97,11,Speedx2 Tankx2 DPSx2 Breakerx2,none
+"Maul, Quill, Ledger, Ferrule, Mire",1.41,0.91,1.58,2.08,1.9,1.576,2.08,0.91,1.17,8,DPSx2 Breakerx3 Tankx2,none
+"Mote, Wex, Corr, Ferrule, Tarn",1.53,1.02,1.78,1.74,1.78,1.57,1.78,1.02,0.76,8,Tankx3 DPSx3,none
+"Nettle, Rime, Ledger, Sump, Vane",1.44,0.95,1.92,1.71,1.83,1.57,1.92,0.95,0.97,8,Speedx3 Breakerx2 Healerx2,none
+"Mote, Vane, Rime, Ballast, Ferrule",1.53,1,2.22,1.3,1.78,1.566,2.22,1,1.22,9,Speedx2 Breakerx2 Tankx2,none
+"Bosk, Corr, Ledger, Vitre, Ferrule",1.41,1.02,1.41,2.06,1.74,1.528,2.06,1.02,1.04,6,DPSx3 Tankx2 Breakerx2 Speedx2,none
+"Quill, Nettle, Vitre, Mote, Tarn",1.39,1.07,1.69,1.67,1.76,1.516,1.76,1.07,0.69,10,Breakerx3 Speedx3,none
+"Cinder, Sump, Wex, Mote, Ballast",1.39,0.91,1.58,2.08,1.58,1.508,2.08,0.91,1.17,9,DoTx2 Healerx2 Tankx2,none
+"Mote, Cinder, Mire, Vane, Corr",1.39,1.02,1.39,2.11,1.6,1.502,2.11,1.02,1.09,7,Speedx2 DPSx2 Healerx2,none
+"Corr, Ferrule, Bosk, Rime, Ballast",1.39,1,1.51,1.78,1.69,1.474,1.78,1,0.78,6,DPSx3 Tankx3,none
+"Rime, Pyre, Maul, Quill, Nettle",1.39,1.07,1.41,1.83,1.67,1.474,1.83,1.07,0.76,6,Breakerx3 DoTx2,none
+"Ledger, Nettle, Vitre, Fen, Cinder",1.3,1.02,1.3,1.99,1.58,1.438,1.99,1.02,0.97,7,Breakerx2 Speedx3,none
+"Pyre, Cinder, Rime, Sump, Mire",1.28,0.86,1.46,1.94,1.55,1.418,1.94,0.86,1.08,10,DoTx3 Healerx2,none
+"Vitre, Ledger, Rime, Sump, Vane",1.41,0.91,1.74,1.39,1.62,1.414,1.74,0.91,0.83,10,Breakerx3 Speedx3 Healerx2,none
+"Nettle, Ledger, Mote, Pyre, Fen",1.34,0.95,1.41,1.74,1.62,1.412,1.74,0.95,0.79,6,Speedx3 Breakerx2,none
+"Vane, Vitre, Ledger, Sump, Nettle",1.28,0.88,1.74,1.55,1.58,1.406,1.74,0.88,0.86,9,Speedx4 Healerx2 Breakerx2,Speed
+"Vitre, Ballast, Ledger, Cinder, Wex",1.32,0.88,1.58,1.71,1.53,1.404,1.71,0.88,0.83,8,Breakerx2 Speedx2 Tankx2,none
+"Mire, Tarn, Corr, Vane, Sump",1.23,1.07,1.3,1.76,1.51,1.374,1.76,1.07,0.69,10,Healerx3 Tankx2 DPSx2,none
+"Corr, Fen, Pyre, Tarn, Cinder",1.23,1,1.16,2.08,1.37,1.368,2.08,1,1.08,6,DPSx3 DoTx2,none
+"Vitre, Ledger, Nettle, Mire, Bosk",1.25,0.93,1.23,1.83,1.55,1.358,1.83,0.93,0.9,8,Breakerx2 Speedx3 Tankx2,none
+"Tarn, Pyre, Bosk, Ferrule, Cinder",1.23,0.88,1.23,1.92,1.48,1.348,1.92,0.88,1.04,7,Tankx3 DPSx4 DoTx2,DPS
+"Sump, Maul, Pyre, Mire, Nettle",1.16,0.75,1.3,1.88,1.64,1.346,1.88,0.75,1.13,9,DoTx2 Healerx2,none
+"Tarn, Quill, Cinder, Nettle, Fen",1.23,0.91,1.09,1.92,1.3,1.29,1.92,0.91,1.01,7,DPSx2 DoTx2,none
+"Vane, Corr, Ferrule, Rime, Tarn",1.23,0.88,1.39,1.48,1.46,1.288,1.48,0.88,0.6,8,DPSx3 Tankx2,none
+"Ledger, Corr, Ferrule, Quill, Nettle",1.16,0.91,1.07,1.83,1.44,1.282,1.83,0.91,0.92,5,Breakerx2 Speedx2 DPSx2,none
+"Cinder, Ferrule, Rime, Vane, Ballast",1.23,0.81,1.41,1.46,1.46,1.274,1.46,0.81,0.65,8,DPSx2 Tankx2,none
+"Vane, Tarn, Cinder, Mire, Nettle",1.16,0.91,1.07,1.92,1.3,1.272,1.92,0.91,1.01,9,Speedx2 Healerx2 Tankx2 DPSx2,none
+"Sump, Vitre, Ferrule, Pyre, Nettle",1.16,0.79,1.44,1.53,1.41,1.266,1.53,0.79,0.74,10,DoTx2 Speedx2,none
+"Pyre, Vitre, Cinder, Vane, Mire",1.16,0.77,1.34,1.6,1.34,1.242,1.6,0.77,0.83,9,DoTx2 Speedx2 Healerx2,none
+"Wex, Corr, Cinder, Pyre, Fen",1.14,0.72,1.11,1.99,1.25,1.242,1.99,0.72,1.27,4,Healerx2 DPSx2 DoTx2,none
+"Sump, Halo, Rime, Wex, Cinder",1.09,0.75,1.18,1.83,1.23,1.216,1.83,0.75,1.08,8,DoTx2 Healerx3,none
+"Corr, Tarn, Sump, Halo, Maul",1.02,0.75,1.02,1.88,1.41,1.216,1.88,0.75,1.13,8,DPSx3 Healerx2,none
+"Rime, Sump, Mire, Corr, Halo",1.14,0.77,1.41,1.37,1.37,1.212,1.41,0.77,0.64,9,Healerx3,none
+"Maul, Ballast, Mire, Tarn, Halo",1.02,0.79,1.18,1.76,1.3,1.21,1.76,0.79,0.97,10,DPSx2 Tankx3 Healerx2,none
+"Quill, Vitre, Vane, Ferrule, Nettle",1.11,0.77,1.58,1.21,1.34,1.202,1.58,0.77,0.81,8,Breakerx2 Speedx3,none
+"Vane, Tarn, Maul, Ledger, Sump",0.98,0.79,1.02,1.76,1.39,1.188,1.76,0.79,0.97,9,Speedx2 Healerx2 DPSx2 Breakerx2,none
+"Mote, Pyre, Vane, Mire, Corr",1.11,0.81,1.25,1.41,1.32,1.18,1.41,0.81,0.6,7,Speedx2 Healerx2,none
+"Bosk, Maul, Tarn, Corr, Pyre",0.98,0.75,0.91,1.83,1.37,1.168,1.83,0.75,1.08,5,DPSx4 Tankx2,DPS
+"Tarn, Cinder, Ferrule, Mire, Pyre",1.07,0.65,1.21,1.88,1,1.162,1.88,0.65,1.23,10,Tankx3 DPSx3 DoTx2,none
+"Fen, Tarn, Ferrule, Nettle, Cinder",1.14,0.61,1.32,1.76,0.98,1.162,1.76,0.61,1.15,8,Tankx2 DPSx3,none
+"Tarn, Ledger, Pyre, Mire, Bosk",1.07,0.79,1.07,1.62,1.25,1.16,1.62,0.79,0.83,8,Tankx3 DPSx2,none
+"Vitre, Ferrule, Cinder, Vane, Nettle",1.07,0.81,1.07,1.55,1.3,1.16,1.55,0.81,0.74,8,Speedx3 DPSx2,none
+"Pyre, Quill, Ledger, Rime, Tarn",1.05,0.84,1.07,1.39,1.32,1.134,1.39,0.84,0.55,8,DoTx2 Breakerx3,none
+"Ferrule, Ballast, Vitre, Sump, Ledger",1.09,0.72,1.28,1.3,1.25,1.128,1.3,0.72,0.58,11,Tankx2 Breakerx2 Speedx2,none
+"Vane, Mire, Corr, Cinder, Ballast",1.07,0.65,1.07,1.64,1.16,1.118,1.64,0.65,0.99,7,Healerx2 Tankx2 DPSx2,none
+"Halo, Ballast, Cinder, Rime, Fen",1.05,0.7,1.3,1.3,1.23,1.116,1.3,0.7,0.6,7,Healerx2,none
+"Sump, Mote, Pyre, Vane, Halo",0.95,0.68,1.41,1.11,1.25,1.08,1.41,0.68,0.73,8,DoTx2 Healerx3 Speedx3,none
+"Ballast, Vane, Ledger, Rime, Tarn",1.02,0.77,1.14,1.23,1.21,1.074,1.23,0.77,0.46,9,Tankx2 Speedx2 Breakerx2,none
+"Vitre, Vane, Ballast, Mire, Corr",1.02,0.7,1.21,1.25,1.18,1.072,1.25,0.7,0.55,9,Speedx2 Healerx2 Tankx2,none
+"Wex, Pyre, Bosk, Cinder, Fen",1,0.61,1.02,1.6,1.05,1.056,1.6,0.61,0.99,4,Tankx2 Healerx2 DoTx2 DPSx2,none
+"Mote, Sump, Vane, Ballast, Bosk",0.98,0.7,1.23,1.16,1.16,1.046,1.23,0.7,0.53,8,Speedx2 Healerx2 Tankx2,none
+"Cinder, Vane, Sump, Maul, Wex",0.91,0.56,0.88,1.83,1,1.036,1.83,0.56,1.27,7,DoTx2 DPSx2 Healerx3,none
+"Vane, Ledger, Cinder, Ferrule, Quill",0.93,0.65,0.91,1.55,1.05,1.018,1.55,0.65,0.9,6,Speedx2 Breakerx2 DoTx2 DPSx2,none
+"Ferrule, Fen, Corr, Sump, Bosk",0.98,0.56,1.07,1.37,1.09,1.014,1.37,0.56,0.81,6,Tankx2 DPSx3 Healerx2,none
+"Bosk, Vane, Tarn, Ledger, Sump",0.93,0.7,0.91,1.44,1.09,1.014,1.44,0.7,0.74,8,DPSx2 Tankx2 Speedx2 Healerx2,none
+"Vane, Ferrule, Ballast, Sump, Rime",0.95,0.63,1.32,1.02,1.14,1.012,1.32,0.63,0.69,10,Healerx2 Tankx2,none
+"Ferrule, Ledger, Pyre, Tarn, Quill",0.98,0.58,1.07,1.3,1.09,1.004,1.3,0.58,0.72,8,Tankx2 DPSx2 Breakerx2 DoTx2,none
+"Corr, Cinder, Ledger, Quill, Vane",0.86,0.7,0.75,1.6,1.05,0.992,1.6,0.7,0.9,4,DPSx2 DoTx2 Breakerx2 Speedx2,none
+"Fen, Nettle, Quill, Ferrule, Bosk",0.88,0.56,0.91,1.34,1.02,0.942,1.34,0.56,0.78,5,Tankx2 DPSx2,none
+"Sump, Nettle, Cinder, Mire, Vane",0.86,0.56,0.75,1.6,0.88,0.93,1.6,0.56,1.04,9,DoTx2 Healerx3 Speedx2,none
+"Fen, Quill, Cinder, Mire, Ballast",0.91,0.54,0.86,1.46,0.88,0.93,1.46,0.54,0.92,8,Healerx2 DoTx2 Tankx2,none
+"Wex, Ledger, Ferrule, Halo, Cinder",0.84,0.56,0.86,1.44,0.93,0.926,1.44,0.56,0.88,6,Tankx2 Healerx2 Speedx2 DPSx2,none
+"Halo, Cinder, Ballast, Ledger, Tarn",0.81,0.68,0.77,1.37,0.93,0.912,1.37,0.68,0.69,8,Speedx2 DPSx2 Tankx2,none
+"Cinder, Ledger, Ferrule, Vane, Wex",0.86,0.56,0.86,1.32,0.88,0.896,1.32,0.56,0.76,6,DPSx2 Speedx2 Tankx2 Healerx2,none
+"Bosk, Ledger, Mire, Pyre, Ferrule",0.81,0.49,0.95,1.21,0.93,0.878,1.21,0.49,0.72,7,DPSx2 Tankx3,none
+"Ferrule, Bosk, Halo, Corr, Ballast",0.79,0.52,0.86,1.18,0.93,0.856,1.18,0.52,0.66,5,Tankx3 DPSx3,none
+"Ledger, Quill, Rime, Halo, Vane",0.81,0.61,0.95,0.98,0.93,0.856,0.98,0.61,0.37,6,Breakerx3 Speedx3 Healerx2,none
+"Rime, Vane, Fen, Wex, Ballast",0.79,0.52,1.07,0.81,0.93,0.824,1.07,0.52,0.55,7,Healerx3 Tankx2,none
+"Bosk, Ballast, Fen, Mire, Ledger",0.77,0.47,0.88,1.09,0.88,0.818,1.09,0.47,0.62,7,Tankx3 Healerx2,none
+"Quill, Corr, Sump, Fen, Wex",0.72,0.47,0.72,1.28,0.77,0.792,1.28,0.47,0.81,6,DoTx2 Healerx3,none
+"Cinder, Pyre, Wex, Vane, Sump",0.77,0.4,0.54,1.39,0.72,0.764,1.39,0.4,0.99,7,DoTx3 Healerx3,none
+"Bosk, Maul, Vane, Tarn, Halo",0.68,0.49,0.68,1.16,0.81,0.764,1.16,0.49,0.67,6,DPSx3 Tankx2 Speedx2 Healerx2,none
+"Fen, Wex, Maul, Corr, Vane",0.63,0.4,0.63,1.05,0.77,0.696,1.05,0.4,0.65,4,Healerx3 DPSx2,none
+"Halo, Nettle, Ferrule, Tarn, Sump",0.63,0.4,0.68,0.95,0.68,0.668,0.95,0.4,0.55,10,Healerx2 Speedx2 Tankx2 DPSx2,none
+"Vane, Nettle, Tarn, Ferrule, Sump",0.63,0.4,0.65,0.98,0.68,0.668,0.98,0.4,0.58,10,Speedx2 Healerx2 Tankx2 DPSx2,none
+"Nettle, Mire, Halo, Bosk, Wex",0.58,0.4,0.7,0.93,0.7,0.662,0.93,0.4,0.53,6,Speedx2 Healerx3 Tankx3,none
+"Fen, Bosk, Sump, Ledger, Halo",0.56,0.4,0.61,0.86,0.61,0.608,0.86,0.4,0.46,6,Healerx3 Speedx2,none
+"Ferrule, Quill, Cinder, Fen, Vane",0.52,0.4,0.42,1.09,0.52,0.59,1.09,0.4,0.69,6,DPSx2 DoTx2 Healerx2,none
+"Ferrule, Pyre, Fen, Bosk, Vane",0.49,0.4,0.49,0.75,0.49,0.524,0.75,0.4,0.35,5,Tankx2 DPSx2 Healerx2,none
+"Vane, Sump, Ledger, Bosk, Halo",0.47,0.4,0.47,0.72,0.49,0.51,0.72,0.4,0.32,6,Speedx3 Healerx3,none
+"Fen, Ledger, Vane, Halo, Pyre",0.4,0.4,0.4,0.61,0.4,0.442,0.61,0.4,0.21,5,Healerx3 Speedx3,none
+"Vane, Wex, Ballast, Mire, Halo",0.4,0.4,0.4,0.47,0.4,0.414,0.47,0.4,0.07,8,Speedx2 Healerx4 Tankx3,Healer

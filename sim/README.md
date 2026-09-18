@@ -48,7 +48,7 @@ are the real balance surface.
 ## A known limitation: element is not modelled
 
 **Characters have no element.** `roster.js` defines 21 characters across 25 properties — `tags`,
-`dmg`, `sp`, `apply`, `stacks`, `shred`, `detonate`, `thorns`, `taunt`, `marks`, `trig`, `react`
+`dmg`, `sp`, `appliesDot`, `dotPerHit`, `armorShred`, `detonate`, `thorns`, `taunt`, `marks`, `procOn`, `procMax`
 and the rest — and **none of them is an element.**
 
 Both engines assign it by array position instead:
@@ -123,11 +123,11 @@ Re-measured, the picture inverts:
 
 | | before | after |
 |---|---|---|
-| Most load-bearing constant | `VULN`, a damage amplifier, at 44.7% | `SHPER`, shield depth, at 56.2% |
-| Least | `DELAY` at exactly 0.0% | `DELAY` at 5.7% |
-| Best deep tag | `Ordnance×4` at +47% | `Assay×4` at +37.5%, the only monotonic curve |
-| Worst | `Crew×4` at −54% | `Crew×3` at −29.9% |
+| Most load-bearing constant | `VULN_BONUS`, a damage amplifier, at 44.7% | `ARMOR_PER_LAYER`, shield depth, at 56.2% |
+| Least | `BREAK_DELAY` at exactly 0.0% | `BREAK_DELAY` at 5.7% |
+| Best deep tag | `DPS×4` at +47% | `Breaker×4` at +37.5%, the only monotonic curve |
+| Worst | `Healer×4` at −54% | `Healer×3` at −29.9% |
 | Mandatory character | Ash: in 12 of top 12, banning her cost 37% | nothing above 16%; Ash costs 11% |
 
-**Always confirm a constant does something before concluding it does not matter.** `DELAY` reading
+**Always confirm a constant does something before concluding it does not matter.** `BREAK_DELAY` reading
 exactly zero across its whole range, including at `10`, is what exposed both bugs.

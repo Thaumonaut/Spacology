@@ -1,19 +1,19 @@
 verb,characters,holders
 detonate,1,Pyre
-spread,1,Sump
-advance,1,Vane
-charge,1,Halo
-drain,1,Ballast
-needsGuard,1,Tarn
-onHitBarrier,1,Ferrule
-over,1,Mire
+dotSpread,1,Sump
+turnBoost,1,Vane
+energyGain,1,Halo
+lifesteal,1,Ballast
+needsShield,1,Tarn
+shieldOnHit,1,Ferrule
+overheal,1,Mire
 marks,2,"Quill, Vitre"
 thorns,2,"Tarn, Mire"
 taunt,2,"Tarn, Ballast"
-barrier,2,"Wex, Ferrule"
-apply,3,"Ash, Cinder, Sump"
-stacks,3,"Ash, Cinder, Sump"
-trig,3,"Nettle, Maul, Ledger"
+shield,2,"Wex, Ferrule"
+appliesDot,3,"Ash, Cinder, Sump"
+dotPerHit,3,"Ash, Cinder, Sump"
+procOn,3,"Nettle, Maul, Ledger"
 heal,3,"Sump, Fen, Mire"
-shred,4,"Ash, Mote, Vitre, Rime"
+armorShred,4,"Ash, Mote, Vitre, Rime"
 aoe,4,"Ash, Mote, Vitre, Rime"

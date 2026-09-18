@@ -88,7 +88,7 @@ Audited with `sim/verbs.js` and a self-sufficiency pass over `sim/roster.js`:
 Proposals, not decisions. The shape is: give every mechanic-carrying character a complete if modest
 loop, then add modifier characters that steepen it.
 
-**The Blight chain, worked through.** Today: Ash seeds, Pyre spends, and neither functions without
+**The DoT chain, worked through.** Today: Ash seeds, Pyre spends, and neither functions without
 the other.
 
 | | Now | Proposed |
