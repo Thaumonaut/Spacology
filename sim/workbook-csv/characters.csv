@@ -1,22 +1,22 @@
 character,roles,hooks,in top 50,share of top teams,share of slots,best team without,cost of banning,depends on
-Ash,DoT,3,31,0.62,0.124,3.448,0.2341,a detonator
-Mote,Speed / Breaker,2,24,0.48,0.096,3.912,0.1311,
-Maul,DPS / Breaker,1,19,0.38,0.076,4.502,0,someone to break
-Rime,Breaker,2,19,0.38,0.076,3.732,0.171,
-Wex,Tank / Healer,1,18,0.36,0.072,4.098,0.0897,
-Vitre,Breaker / Speed,3,16,0.32,0.064,4.502,0,
-Ferrule,Tank / DPS,2,14,0.28,0.056,4.098,0.0897,
-Mire,Healer / Tank,3,12,0.24,0.048,4.502,0,someone to pull fire
-Tarn,Tank / DPS,3,11,0.22,0.044,4.502,0,a shield source
-Corr,DPS,0,10,0.2,0.04,4.502,0,
-Sump,DoT / Healer,3,9,0.18,0.036,4.502,0,a detonator
-Ledger,Breaker / Speed,1,9,0.18,0.036,4.502,0,someone to mark
-Halo,Healer / Speed,1,9,0.18,0.036,4.502,0,
-Ballast,Tank,2,8,0.16,0.032,4.502,0,
-Vane,Speed / Healer,1,7,0.14,0.028,4.502,0,
-Cinder,DoT / DPS,1,6,0.12,0.024,4.502,0,a detonator
-Pyre,DoT,1,6,0.12,0.024,4.502,0,someone to seed
-Nettle,Speed,1,6,0.12,0.024,4.502,0,
-Fen,Healer,1,6,0.12,0.024,4.502,0,
-Bosk,DPS / Tank,0,5,0.1,0.02,4.502,0,
-Quill,Breaker / DoT,1,5,0.1,0.02,4.502,0,
+Ash,DoT,3,29,0.58,0.116,3.48,0.2435,a detonator
+Mote,Speed / Breaker,2,25,0.5,0.1,4.018,0.1265,
+Rime,Breaker,2,20,0.4,0.08,3.788,0.1765,
+Vitre,Breaker / Speed,3,19,0.38,0.076,4.6,0,
+Maul,DPS / Breaker,1,18,0.36,0.072,4.6,0,someone to break
+Wex,Tank / Healer,1,17,0.34,0.068,4.098,0.1091,
+Ferrule,Tank / DPS,2,14,0.28,0.056,4.098,0.1091,
+Mire,Healer / Tank,3,12,0.24,0.048,4.6,0,someone to pull fire
+Tarn,Tank / DPS,3,10,0.2,0.04,4.6,0,a shield source
+Corr,DPS,0,10,0.2,0.04,4.6,0,
+Halo,Healer / Speed,1,10,0.2,0.04,4.6,0,
+Ledger,Breaker / Speed,1,9,0.18,0.036,4.6,0,someone to mark
+Ballast,Tank,2,8,0.16,0.032,4.6,0,
+Sump,DoT / Healer,3,7,0.14,0.028,4.6,0,a detonator
+Vane,Speed / Healer,1,7,0.14,0.028,4.6,0,
+Fen,Healer,1,7,0.14,0.028,4.6,0,
+Cinder,DoT / DPS,1,6,0.12,0.024,4.6,0,a detonator
+Pyre,DoT,1,6,0.12,0.024,4.6,0,someone to seed
+Quill,Breaker / DoT,1,6,0.12,0.024,4.6,0,
+Nettle,Speed,1,5,0.1,0.02,4.6,0,
+Bosk,DPS / Tank,0,5,0.1,0.02,4.6,0,

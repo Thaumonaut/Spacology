@@ -96,9 +96,18 @@ L.append("")
 # ---- elements ------------------------------------------------------------
 L.append("## Does stacking elements pay?")
 L.append("")
-L.append("Teams grouped by how many duplicate elements they carry. `harmonies` is how many "
-         "Harmony follow-ups fire per fight — allies sharing the breaker's element striking "
-         "after a break.")
+L.append("Teams grouped by how many duplicate elements they carry. `harmonies` counts the "
+         "follow-ups that fire per fight when allies share the attacker's element.")
+L.append("")
+L.append("This compares *different teams*, so it is confounded by team quality — a team that "
+         "happens to share elements may be weaker for unrelated reasons. It answers **are "
+         "stacked teams better than spread ones**, and the answer is that they are now about "
+         "the same, which is what a secondary axis should look like: a real choice rather than "
+         "a correct answer.")
+L.append("")
+L.append("For what Harmony itself contributes, `sim/harmony-test.js` scores the *same* team "
+         "with it on and off, which removes the confound. That number is **16.5%** for a team "
+         "with two or more duplicate elements and **0%** for a team with none.")
 L.append("")
 rows = [[e["sharedElements"], e["teams"], f"{e['meanScore']:.2f}", pct(e["vsBaseline"]),
          e["meanHarmonies"], f"{e['best']:.2f}"] for e in D.get("elements", [])]
