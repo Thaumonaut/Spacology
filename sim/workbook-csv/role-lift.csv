@@ -1,20 +1,20 @@
 role,count,teams,mean score,vs baseline,at 2,at 4
-Breaker,4,6,2.294,0.3755,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
-Breaker,3,26,2.08,0.247,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
-Breaker,2,77,1.9,0.139,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
-DoT,2,64,1.798,0.0782,one extra stack per application,BLOOM — a bloom joins the turn order; every DoT action pulls it forward; when it acts it detonates every DoT stack on the board
-Healer,1,97,1.794,0.0756,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
-DoT,3,7,1.765,0.0582,one extra stack per application,BLOOM — a bloom joins the turn order; every DoT action pulls it forward; when it acts it detonates every DoT stack on the board
-Tank,1,85,1.699,0.0188,barriers 45% larger,AMMUNITION — damage a shield swallows is returned to the attacker
-Speed,1,93,1.695,0.0162,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
-DPS,1,83,1.665,-0.002,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
-Speed,3,32,1.657,-0.0067,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
-DPS,2,96,1.652,-0.0093,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
-DoT,1,127,1.627,-0.0245,one extra stack per application,BLOOM — a bloom joins the turn order; every DoT action pulls it forward; when it acts it detonates every DoT stack on the board
-Speed,2,76,1.627,-0.0249,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
-Tank,2,90,1.595,-0.0435,barriers 45% larger,AMMUNITION — damage a shield swallows is returned to the attacker
-Healer,2,81,1.547,-0.0728,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
-DPS,3,24,1.503,-0.0988,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
-Breaker,1,88,1.441,-0.1362,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
-Tank,3,22,1.254,-0.248,barriers 45% larger,AMMUNITION — damage a shield swallows is returned to the attacker
-Healer,3,25,1.169,-0.2993,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
+Breaker,4,6,2.398,0.3843,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Breaker,3,26,2.172,0.2541,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Breaker,2,77,2.045,0.1807,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Healer,1,97,1.904,0.0991,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
+DoT,2,64,1.84,0.0621,one extra stack per application,BLOOM — a bloom joins the turn order; every DoT action pulls it forward; when it acts it detonates every DoT stack on the board
+Speed,3,32,1.79,0.0338,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+Tank,1,85,1.778,0.0268,barriers 45% larger,AMMUNITION — damage a shield swallows is returned to the attacker
+Speed,1,93,1.778,0.0266,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+DPS,1,83,1.75,0.0104,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
+DPS,2,96,1.718,-0.0084,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
+DoT,1,127,1.686,-0.0266,one extra stack per application,BLOOM — a bloom joins the turn order; every DoT action pulls it forward; when it acts it detonates every DoT stack on the board
+Speed,2,76,1.678,-0.031,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+Tank,2,90,1.639,-0.0536,barriers 45% larger,AMMUNITION — damage a shield swallows is returned to the attacker
+DoT,3,7,1.631,-0.0586,one extra stack per application,BLOOM — a bloom joins the turn order; every DoT action pulls it forward; when it acts it detonates every DoT stack on the board
+Healer,2,81,1.561,-0.0988,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
+DPS,3,24,1.497,-0.1358,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
+Breaker,1,88,1.466,-0.1534,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Tank,3,22,1.241,-0.2836,barriers 45% larger,AMMUNITION — damage a shield swallows is returned to the attacker
+Healer,3,25,1.225,-0.2927,healing 50% stronger,RELIEF — the first crew member to fall is brought back once

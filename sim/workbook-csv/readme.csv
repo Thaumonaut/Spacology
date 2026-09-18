@@ -5,7 +5,7 @@ Characters per team,5
 Fights per difficulty probe,26
 Difficulty ceiling,24
 Binary search steps,10
-Baseline (mean team score),1.668
+Baseline (mean team score),1.732
 Worlds,"open, murk, hive, fortress, bloom"
 ,
 WHAT A SCORE MEANS,
@@ -20,14 +20,19 @@ WHY THE CEILING MATTERS,
 ,top of every ranking. Everything here uses a ceiling of 24.
 ,
 WHAT THIS CANNOT TELL YOU,
-,"Neither engine models element as a property of a character; both assign it by array position, and Harmony is never evaluated. Everything here is a finding about verbs and tags only."
+,"Characters and enemies now carry a real element, and Harmony is evaluated. engine.js still uses the old index-assigned model, so ladder.js and counters.js are an independent control rather than a second opinion on elements."
 ,
 DEFAULT TUNING,
 ARMOR_PER_LAYER,14
-OFF_ELEMENT_SHRED,0.2
 ARMOR_MITIGATION,0.55
 VULN_BONUS,0.35
 BREAK_DELAY,0.35
+SHRED_SAME,0.2
+SHRED_ADJACENT,0.3
+SHRED_DISTANT,0.5
+SHRED_OPPOSITE,1
+HARMONY_CAP,2
+HARMONY_DMG,0.6
 ,
 TABS,
 Roster,"Every character: roles, stats, which verbs it carries, what it depends on"
@@ -37,6 +42,7 @@ Teams,"Sampled teams scored on every world. Sort by avg, or by swing to find the
 ,most world-dependent builds
 Characters,How much banning each character costs the ceiling — the mandatory-unit test
 Role lift,"Mean team score when N of a role are present, against baseline"
+Elements,"Whether doubling up on an element pays, and how often Harmony fires"
 Worlds,Which worlds discriminate between teams and which only measure competence
 Sensitivity,"One combat constant varied at a time, everything else at default"
 Sensitivity summary,Which constants actually move the game. Start here
