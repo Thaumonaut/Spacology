@@ -1,0 +1,194 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Opening a pack</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#080C12;color:#E8EDF2;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1300px;margin:0 auto;padding:24px 18px 90px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.lede{color:#9FB0BF;max-width:70ch;margin:0 0 8px}
+.rule{color:#7FD3BC;font-size:12.5px;max-width:74ch;margin:0 0 26px;
+  border-left:2px solid #2A6B5E;padding-left:11px}
+h2{font-size:15px;margin:34px 0 10px;font-weight:600}
+.cols{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.layers{flex:1;min-width:270px}
+.ly{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #16202B}
+.ly b{flex:0 0 22px;height:22px;border-radius:50%;background:#1C2B3A;color:#7FD3BC;
+  font-size:10px;display:flex;align-items:center;justify-content:center}
+.ly div span{display:block;font-size:12.5px}
+.ly div em{display:block;font-style:normal;font-size:11px;color:#5F6E7B;margin-top:1px}
+.ly.new b{background:#2A6B5E;color:#CFF5E8}
+
+/* ---------------- the board ---------------- */
+.board{width:760px;max-width:100%;aspect-ratio:4/3;border-radius:16px;padding:13px;
+  display:grid;grid-template-columns:58px 1fr;gap:12px;position:relative;
+  background:#090E16;border:1px solid #1C2B44;
+  background-image:radial-gradient(circle at 18% 22%,rgba(255,255,255,.42) .6px,transparent .7px),
+    radial-gradient(circle at 62% 14%,rgba(255,255,255,.3) .5px,transparent .6px),
+    radial-gradient(circle at 84% 58%,rgba(255,255,255,.34) .6px,transparent .7px),
+    radial-gradient(circle at 34% 72%,rgba(255,255,255,.26) .5px,transparent .6px);
+  background-size:180px 150px,140px 190px,210px 170px,160px 130px}
+.pin{position:absolute;width:19px;height:19px;border-radius:50%;background:#2A6B5E;
+  color:#CFF5E8;font-size:10px;display:flex;align-items:center;justify-content:center;
+  z-index:30;box-shadow:0 0 0 2px #090E16}
+
+/* queue */
+.queue{display:flex;flex-direction:column;gap:4px;position:relative}
+.qhd{font-size:7px;letter-spacing:.14em;color:#3F5468;margin-bottom:2px}
+.qi{height:21px;border-radius:4px;border:1px solid #2A6B5E;color:#7FD3BC;
+  display:flex;align-items:center;justify-content:space-between;padding:0 5px;
+  font-size:8.5px;font-variant-numeric:tabular-nums}
+.qi.foe{border-color:#7A3A4A;color:#E08A9E}
+.qi.now{background:#D4A45C;border-color:#D4A45C;color:#1A1204;height:27px;font-weight:600}
+.qi.brk{opacity:.45;border-style:dashed}
+.qi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbloom{height:21px;border-radius:4px;border:1px dashed #A89070;color:#D9B87A;
+  display:flex;align-items:center;justify-content:center;font-size:7.5px;letter-spacing:.06em}
+.qfoot{margin-top:auto;text-align:center;font-size:8px;color:#3F5468;line-height:1.5}
+.qfoot b{display:block;color:#D4A45C;font-size:12px;font-variant-numeric:tabular-nums}
+
+/* context strip */
+.ctx{display:flex;align-items:center;gap:9px;font-size:9px;color:#5F7A93;
+  margin-bottom:7px}
+.ctx .world{color:#AFCBE6;font-size:11px}
+.ctx .cond{border:1px solid #3A2A32;color:#D59AA3;border-radius:3px;padding:1px 5px;
+  font-size:8px}
+.ctx .grow{flex:1}
+.ctx .tag{border:1px solid #2A6B5E;color:#7FD3BC;border-radius:3px;padding:1px 5px;font-size:8px}
+
+/* score */
+/* the score lives in the status column, not across the field */
+.qscore{margin-top:9px;padding-top:8px;border-top:1px solid #16263C}
+.qscore .pc{font-size:15px;font-variant-numeric:tabular-nums;color:#9FBE7F;
+  text-align:center;line-height:1}
+.qscore .lbl{font-size:6.5px;color:#3F5468;text-align:center;margin-top:2px;line-height:1.3}
+.qscore .col{position:relative;height:52px;width:7px;margin:6px auto 0;border-radius:4px;
+  background:#0D141F;overflow:hidden}
+.qscore .col u{position:absolute;left:0;right:0;bottom:0;height:62%;background:#9FBE7F;
+  display:block}
+.qscore .col i{position:absolute;left:0;right:0;height:1px;background:#2B4B70;display:block}
+.qscore .col i.key{height:2px;background:#4A7A52}
+
+/* ranks */
+.rank{display:flex;gap:6px;justify-content:center;margin-bottom:7px}
+.foe{position:relative;width:68px;border:1px solid #2B4B70;border-radius:3px;
+  background:rgba(10,20,34,.78);padding:5px 3px 4px;text-align:center;line-height:1.15}
+.foe.elite{border-color:#7A3A4A}
+.foe .lv{font-size:6.5px;color:#4A6A8A}
+.foe .nm{font-size:9px;font-weight:600;color:#AFCBE6}
+.foe.elite .nm{color:#E8B4C2}
+.foe .weak{display:flex;gap:2px;justify-content:center;margin:2px 0 1px}
+.foe .weak i{width:9px;height:9px;border-radius:2px;font-size:6px;line-height:9px;
+  border:1px solid;display:block}
+.foe .weak i.off{opacity:.25}
+.foe .hp{height:2.5px;border-radius:2px;background:#0D141F;margin-top:2px;position:relative;
+  overflow:hidden}
+.foe .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.foe .sh{position:absolute;inset:-3px;border:1px solid rgba(143,184,120,.5);
+  border-radius:5px;pointer-events:none}
+.foe .sh2{position:absolute;inset:-6px;border:1px solid rgba(143,184,120,.26);
+  border-radius:7px;pointer-events:none}
+.foe .intent{position:absolute;left:50%;transform:translateX(-50%);top:-13px;
+  font-size:7px;color:#E08A9E;white-space:nowrap;background:#12080C;
+  border:1px solid #4A2028;border-radius:3px;padding:0 4px;line-height:11px}
+.foe .intent.aoe{color:#E0C48A;border-color:#4A3A20;background:#120E08}
+.foe .stk{position:absolute;right:-3px;bottom:-4px;display:flex;gap:2px}
+.foe .stk i{width:6px;height:6px;border-radius:50%;display:block}
+.foe .ibtn{position:absolute;left:0;top:0;width:26px;height:26px;color:#3F5468;
+  font-size:8px;padding:2px 0 0 3px;cursor:pointer}
+
+/* stage */
+.stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;
+  min-height:0}
+.beam{position:absolute;height:1px;background:linear-gradient(90deg,transparent,#D4A45C,transparent);
+  opacity:.55}
+.actor{width:132px;border:1px solid #6FE0C0;border-radius:4px;padding:11px 7px 9px;
+  text-align:center;background:rgba(8,26,22,.82);box-shadow:0 0 34px rgba(111,224,192,.2);
+  position:relative}
+.actor .lv{font-size:8px;color:#4E8A7C}
+.actor .nm{font-size:16px;font-weight:600;color:#CFF5E8;line-height:1.15}
+.actor .rl{font-size:9px;color:#6FA595}
+.actor .abil{margin-top:6px;font-size:8.5px;color:#9FD8C6;border-top:1px solid #1E3A33;
+  padding-top:5px}
+.actor .en{height:3px;border-radius:2px;background:#0D141F;margin-top:6px;position:relative;
+  overflow:hidden}
+.actor .en u{position:absolute;inset:0;width:82%;background:#D4A45C;display:block}
+.float{position:absolute;font-weight:700;font-size:19px;color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.9)}
+
+/* tray */
+.tray{border:1px solid #1C2B44;border-radius:8px;background:rgba(8,14,24,.66);padding:8px}
+.thead{display:flex;align-items:baseline;gap:7px;margin-bottom:5px}
+.thead .tl{font-size:7px;letter-spacing:.14em;color:#3F5468}
+.thead .cnt{font-size:7.5px;color:#5F7A93}
+.thead .grow{flex:1}
+.thead .trash{font-size:7.5px;color:#7A4550;border:1px dashed #4A2A32;border-radius:3px;
+  padding:1px 6px}
+.trow{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.slot{position:relative;border:1px solid #16263C;border-radius:3px;min-height:44px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1.15;padding:3px 2px}
+.slot.empty{border-style:dashed;color:#26374A;font-size:7px}
+.slot.filled{background:rgba(10,20,34,.8);border-color:#2B4B70}
+.slot .nm{font-size:8.5px;font-weight:600;color:#AFCBE6}
+.slot .tg{font-size:7px}
+.slot .hp{position:absolute;left:3px;right:3px;bottom:3px;height:2px;border-radius:1px;
+  background:#0D141F;overflow:hidden}
+.slot .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.slot .dots{position:absolute;right:3px;top:3px;display:flex;gap:2px}
+.slot .dots i{width:4px;height:4px;border-radius:50%;display:block}
+.slot.ready{border-color:#D4A45C;box-shadow:0 0 10px rgba(212,164,92,.3)}
+.slot .rdy{position:absolute;left:3px;top:2px;font-size:6.5px;color:#D4A45C}
+.slot.off{min-height:36px;opacity:.82}
+.slot.down{opacity:.3}
+.tsplit{height:1px;background:#16263C;margin:7px 0 6px}
+
+.packhdr{display:flex;align-items:baseline;gap:10px;margin-bottom:9px}
+.packhdr .pn{font-size:15px;font-weight:600;color:#CFE2F2}
+.packhdr .pt{font-size:9px;border:1px solid #2A6B5E;color:#7FD3BC;border-radius:3px;
+  padding:1px 6px}
+.packhdr .grow{flex:1}
+.packhdr .cnt{font-size:9px;color:#4A6A8A}
+
+.bay{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.c{position:relative;border:1px solid #223751;border-radius:4px;
+  background:rgba(10,18,30,.8);padding:7px 5px 6px;text-align:center;min-height:92px;
+  display:flex;flex-direction:column}
+.c .kind{position:absolute;left:0;top:0;width:3px;bottom:0;border-radius:3px 0 0 3px}
+.c.char .kind{background:#2B4B70}
+.c.gear .kind{background:#6B5A8C}
+.c.coin .kind{background:#8A6B2E}
+.c .ib{position:absolute;right:0;top:0;width:24px;height:24px;color:#3A4E63;font-size:8px;
+  padding:3px 4px 0 0;text-align:right}
+.c .lbl{font-size:6.5px;letter-spacing:.1em;color:#3F5468;margin-bottom:3px}
+.c .nm{font-size:11px;font-weight:600;color:#CFE2F2;line-height:1.15}
+.c .tg{font-size:8px;margin-top:1px}
+.c .dsc{font-size:7.5px;color:#4A6A8A;line-height:1.35;margin-top:4px;flex:1}
+.c .val{font-size:17px;font-weight:600;color:#D4A45C;margin:6px 0 2px;
+  font-variant-numeric:tabular-nums}
+.c .pair{font-size:7px;color:#6FA88A;line-height:1.3;margin-top:3px}
+.c .pair.no{color:#3F5468}
+.c .scr{font-size:7px;color:#5F7A93;margin-top:4px}
+
+.c.keep{border-color:#3E8A6E;background:rgba(10,32,26,.8);
+  box-shadow:0 0 0 1px rgba(62,138,110,.4)}
+.c.keep .flag{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;
+  font-size:7px;letter-spacing:.08em;background:#2A6B5E;color:#CFF5E8;
+  border-radius:3px;padding:1px 7px}
+.c.strip{opacity:.42}
+.c.strip .flag{position:absolute;left:50%;transform:translateX(-50%);bottom:-8px;
+  font-size:7px;letter-spacing:.08em;background:#4A2A32;color:#E0A9B1;
+  border-radius:3px;padding:1px 7px}
+.c.full{border-color:#5A3038}
+.c.full .warn{position:absolute;left:0;right:0;bottom:4px;font-size:6.5px;color:#C4626F}
+
+.tally{display:flex;align-items:center;gap:13px;margin-top:16px;
+  border-top:1px solid #16263C;padding-top:11px}
+.tally .grp{display:flex;flex-direction:column;line-height:1.2}
+.tally .grp b{font-size:15px;font-variant-numeric:tabular-nums}
+.tally .grp span{font-size:7.5px;color:#3F5468;letter-spacing:.06em}
+.tally .grow{flex:1}
+.tally .shd{display:flex;gap:8px;font-size:9.5px}
+.tally .shd span{color:#5F7A93}
+.tally button{min-height:42px;padding:0 22px;border-radius:5px;border:0;
+  background:#D4A45C;color:#1A1204;font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer}
+</style></head><body><div class="wrap"><h1>Opening a consignment</h1><p class="lede">Ten cards, drawn toward a playstyle. Some are crew, some are fittings, some are just salvage. Keep a few, strip the rest into shards.</p><p class="rule">The whole screen is one gesture repeated ten times, and a confirm. Nothing is irreversible until you press it, which is what lets the pack be this big without being frightening.</p><div class="cols"><div><div class="board"><div class="queue"><div class="qhd">VOYAGE</div><div class="qi now" style="height:auto;padding:5px;flex-direction:column;gap:1px"><span style="font-size:13px">102</span><span style="font-size:6.5px">GOLD</span></div><div class="qi" style="height:auto;padding:5px;flex-direction:column;gap:1px;border-color:#2A6B5E"><span style="font-size:13px;color:#7FBE86">74%</span><span style="font-size:6.5px;color:#4E8A7C">INTEGRITY</span></div><div class="qi" style="height:auto;padding:5px;flex-direction:column;gap:1px;border-color:#4A3A20;color:#D4A45C"><span style="font-size:13px">×3</span><span style="font-size:6.5px">STREAK</span></div><div class="qfoot" style="margin-top:auto">LEG 6 / 14<b style="color:#5F7A93;font-size:9px;font-weight:400">roster<br>11 of 12</b></div></div><div class="shop"><div class="packhdr"><span class="pn">Assay consignment</span><span class="pt">leans Assay</span><span class="grow"></span><span class="cnt">10 cards · 4 crew, 2 fittings, 2 salvage</span></div><div class="bay"><div class="c char keep"><span class="kind"></span><span class="ib">i</span><div class="lbl">CREW</div><div class="nm">Ledger</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="dsc">answers marked targets</div><div class="pair">✓ Quill marks for you</div><div class="scr">strip → 6 order</div><div class="flag">KEEP</div></div><div class="c coin"><span class="kind"></span><span class="ib">i</span><div class="lbl">SALVAGE</div><div class="val">34g</div><div class="nm"></div><div class="dsc"></div><div class="scr">strip → —</div></div><div class="c char keep"><span class="kind"></span><span class="ib">i</span><div class="lbl">CREW</div><div class="nm">Vitre</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="dsc">paints the whole line</div><div class="pair">✓ feeds Ledger</div><div class="scr">strip → 5 chaos</div><div class="flag">KEEP</div></div><div class="c gear keep"><span class="kind"></span><span class="ib">i</span><div class="lbl">FITTING</div><div class="nm">Ranging Sight</div><div class="dsc">area attacks reach one more</div><div class="pair">✓ Rime, Ash aboard</div><div class="scr">strip → 4 void</div><div class="flag">KEEP</div></div><div class="c char strip"><span class="kind"></span><span class="ib">i</span><div class="lbl">CREW</div><div class="nm">Bosk</div><div class="tg" style="color:#C97F9E">Ordnance</div><div class="dsc">slow, enormous, patient</div><div class="pair no">nothing aboard pairs</div><div class="scr">strip → 7 decay</div><div class="flag">STRIP</div></div><div class="c gear strip"><span class="kind"></span><span class="ib">i</span><div class="lbl">FITTING</div><div class="nm">Slow Fuse</div><div class="dsc">ultimate charges 25% faster</div><div class="pair">✓ any charged unit</div><div class="scr">strip → 4 energy</div><div class="flag">STRIP</div></div><div class="c char strip"><span class="kind"></span><span class="ib">i</span><div class="lbl">CREW</div><div class="nm">Mite</div><div class="tg" style="color:#7FA8C9">Hull</div><div class="dsc">plates on every swing</div><div class="pair">✓ keeps Tarn upright</div><div class="scr">strip → 5 growth</div><div class="flag">STRIP</div></div><div class="c coin"><span class="kind"></span><span class="ib">i</span><div class="lbl">SALVAGE</div><div class="val">18g</div><div class="nm"></div><div class="dsc"></div><div class="scr">strip → —</div></div><div class="c char strip"><span class="kind"></span><span class="ib">i</span><div class="lbl">CREW</div><div class="nm">Wick</div><div class="tg" style="color:#C97F9E">Ordnance</div><div class="dsc">fast and impatient</div><div class="pair no">nothing aboard pairs</div><div class="scr">strip → 6 chaos</div><div class="flag">STRIP</div></div><div class="c char full"><span class="kind"></span><span class="ib">i</span><div class="lbl">CREW</div><div class="nm">Sable</div><div class="tg" style="color:#8FB878">Crew</div><div class="dsc">overheals into barrier</div><div class="pair">✓ keeps Tarn upright</div><div class="scr">strip → 6 growth</div><div class="warn">roster full</div></div></div><div class="tally"><div class="grp"><b style="color:#7FBE86">3</b><span>KEEPING</span></div><div class="grp"><b style="color:#E0A9B1">6</b><span>STRIPPING</span></div><div class="grp"><b style="color:#D4A45C">+52g</b><span>SALVAGE</span></div><div class="grow"></div><div class="shd"><span style="color:#A89070">decay <b>+7</b></span><span style="color:#C97F9E">chaos <b>+12</b></span><span style="color:#8FB878">growth <b>+11</b></span><span style="color:#D4A45C">energy <b>+4</b></span></div><button>Confirm</button></div></div></div></div><div class="layers"><h2 style="margin-top:0">How it works</h2><div class="ly new"><b>1</b><div><span>Ten cards, three kinds</span><em>A coloured spine tells you what a card is before you read it — blue for crew, violet for a fitting, amber for salvage. You never have to parse a card to know its type.</em></div></div><div class="ly new"><b>2</b><div><span>Nothing is decided until you confirm</span><em>Cards start neutral. Tap once to keep, again to strip. A running tally shows what you are walking away with, in gold and in shards by element. No card is destroyed by a stray tap.</em></div></div><div class="ly new"><b>3</b><div><span>The pairing is on the card</span><em>Every crew card says whether it works with someone already aboard. “Quill marks for you” is the buy decision, answered where the decision is made.</em></div></div><div class="ly new"><b>4</b><div><span>Strip value stated, in the right element</span><em>“strip → 6 order”. So a card you do not want is still legible as a specific contribution to a specific crystal.</em></div></div><div class="ly new"><b>5</b><div><span>Roster pressure shown, not enforced</span><em>The last card is outlined red and reads “roster full”. You can still keep it — something else has to go — but the constraint is visible at the moment it bites.</em></div></div><div class="ly new"><b>6</b><div><span>Fittings are just another card</span><em>Equipment does not get its own system or its own screen. It arrives in the same pack, triaged by the same gesture, and says which of your crew it suits.</em></div></div></div></div><h2>Fittings</h2><p class="lede" style="margin-bottom:12px">Kept deliberately small and phrased in vocabulary that already exists, so a fitting is never a new rule — only more of one you know.</p><div class="layers" style="max-width:640px"><div class="ly"><b>◇</b><div><span>Ranging Sight</span><em>area attacks reach one more</em></div></div><div class="ly"><b>◇</b><div><span>Slow Fuse</span><em>ultimate charges 25% faster</em></div></div><div class="ly"><b>◇</b><div><span>Ballast Plate</span><em>barriers 30% larger</em></div></div><div class="ly"><b>◇</b><div><span>Tuning Fork</span><em>one extra ailment stack per application</em></div></div><div class="ly"><b>◇</b><div><span>Counterweight</span><em>draws fire twice as often</em></div></div><div class="ly"><b>◇</b><div><span>Bore Bit</span><em>shreds shields 40% faster</em></div></div></div><h2>Why this is better than three cards</h2><div class="layers" style="max-width:700px"><div class="ly"><b>✓</b><div><span>The reveal is an event</span><em>Ten cards landing is worth watching. Three is a transaction.</em></div></div><div class="ly"><b>✓</b><div><span>Scrapping is the expected outcome</span><em>Keeping three of ten feels like curation. Stripping two of three felt like waste, which was the original complaint about the Currency Wars shop.</em></div></div><div class="ly"><b>✓</b><div><span>Mixed types carry the variance</span><em>A pack with no crew you want still pays in gold and shards, so a bad pull is disappointing rather than ruinous.</em></div></div><div class="ly"><b>!</b><div><span>The risk</span><em>Ten cards is a lot of reading per shop visit. If a visit takes two minutes, a fourteen-leg voyage spends more time shopping than fighting. Worth timing before committing.</em></div></div></div></div></body></html>

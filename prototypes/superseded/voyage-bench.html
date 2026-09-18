@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voyage — bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#DCE2E6;--panel:#EDF1F3;--panel2:#E3E9EC;
+  --ink:#1C2830;--muted:#62737E;--faint:#8B9AA3;
+  --rule:rgba(28,40,48,.16);--rule2:rgba(28,40,48,.30);
+  --foe:#8C3B2E;--ochre:#A87516;--good:#2F6B4F;--ally:#1F6F8B;
+  --Order:#2E6B8C;--Void:#5B4A72;--Decay:#6E6A3A;--Growth:#3D7A4E;--Chaos:#98432F;--Energy:#B07A16;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --cond:'Barlow Condensed',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--cond);font-size:16px;
+ background-image:linear-gradient(var(--rule) .5px,transparent .5px),linear-gradient(90deg,var(--rule) .5px,transparent .5px);
+ background-size:28px 28px;background-position:-1px -1px}
+.wrap{max-width:1280px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:24px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;margin:2px 0 0}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;
+ border-bottom:1.5px solid var(--rule2);padding-bottom:10px;margin-bottom:14px}
+.panel{background:var(--panel);border:.5px solid var(--rule2);padding:12px 14px;margin-bottom:12px}
+.lab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+ margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lab em{font-style:normal;color:var(--faint);letter-spacing:.04em;text-transform:none;font-size:11px}
+select,button{font-family:var(--cond);font-size:15px;color:var(--ink);background:var(--panel2);
+ border:.5px solid var(--rule2);padding:6px 10px;cursor:pointer}
+button:hover:not(:disabled),select:hover{background:#fff}
+button:disabled{opacity:.32;cursor:default}
+button:focus-visible,select:focus-visible{outline:2px solid var(--ally);outline-offset:1px}
+.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.primary:hover:not(:disabled){background:#33454F}
+.meta{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.04em;line-height:1.5;display:block}
+.hide{display:none}
+
+/* status strip */
+.strip{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.pill{background:var(--panel);border:.5px solid var(--rule2);padding:6px 11px;font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.pill b{font-weight:500;font-size:14px}
+.pill.warn{border-color:var(--foe);color:var(--foe)}
+.hull i{color:var(--foe)}
+
+/* map */
+.track{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px}
+.tnode{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+ padding:4px 7px;border:.5px solid var(--rule2);color:var(--faint);background:var(--panel2)}
+.tnode.done{color:var(--good);border-color:var(--good)}
+.tnode.now{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.opt{background:var(--panel2);border:.5px solid var(--rule2);padding:14px;text-align:left;cursor:pointer}
+.opt:hover{background:#fff;border-color:var(--ink)}
+.opt.picked{background:#fff;border:1.5px solid var(--ink);margin:-1px}
+.slot.illegal{opacity:.3;background:repeating-linear-gradient(135deg,var(--panel2),var(--panel2) 5px,rgba(140,59,46,.12) 5px,rgba(140,59,46,.12) 10px)}
+.opt b{display:block;font-size:18px;font-weight:500;margin-bottom:3px}
+
+/* cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:9px}
+.ucard{background:var(--panel2);border:.5px solid var(--rule2);padding:9px 10px;text-align:left;cursor:pointer;
+ font-family:var(--cond);font-size:16px;color:var(--ink)}
+.ucard:hover{background:#fff;border-color:var(--ink)}
+.ucard.owned{opacity:.45}
+.ucard .un{font-size:17px;font-weight:500;display:flex;justify-content:space-between;gap:6px}
+.ucard .cost{font-family:var(--mono);font-size:12px;color:var(--ochre)}
+.ucard .nt{font-size:13.5px;color:var(--muted);line-height:1.3;margin-top:3px;min-height:2.5em}
+
+/* combat */
+.ribbon{display:flex;border:.5px solid var(--rule2);background:var(--panel);overflow:hidden}
+.chip{flex:1 1 0;min-width:0;padding:7px 5px;text-align:center;border-right:.5px solid var(--rule);
+ font-size:14px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip:last-child{border-right:0}
+.chip .n{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint);display:block}
+.chip.ally{color:var(--ally)}.chip.foe{color:var(--foe)}
+.chip.now{background:var(--ink);color:var(--panel)}.chip.now .n{color:rgba(255,255,255,.6)}
+.field{display:flex;flex-wrap:wrap;gap:8px}
+.foecard{flex:0 1 188px;background:var(--panel2);border:.5px solid var(--rule2);padding:8px 9px;display:flex;gap:8px}
+.foecard.dead{opacity:.18;filter:grayscale(1)}
+.foecard.act{border:1.5px solid var(--ink);margin:-1px}
+.foecard.aim{box-shadow:inset 0 0 0 2px var(--foe)}
+.ghost{flex:0 1 188px;border:1px dashed var(--rule2);padding:8px 9px;display:flex;align-items:center;
+ justify-content:space-between;color:var(--faint);background:transparent;min-height:74px}
+.ghost b{font-size:15px;font-weight:400}
+.fbody{flex:1;min-width:0}
+.fname{font-size:15px;font-weight:500;display:flex;justify-content:space-between;align-items:baseline;gap:5px}
+.tier{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tier.boss{color:var(--foe)}
+.bar{height:6px;background:#D5DDE1;border:.5px solid var(--rule);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%}
+.bar.hp i{background:var(--foe)}.bar.gd i{background:var(--ochre)}.bar.en i{background:var(--ally)}
+.num{font-family:var(--mono);font-size:9.5px;color:var(--muted);display:flex;justify-content:space-between;margin-top:1px}
+.tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+ padding:1px 5px;border:.5px solid currentColor;margin-top:4px;margin-right:3px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.slot{background:var(--panel2);border:.5px solid var(--rule2);padding:8px;text-align:left;width:100%;
+ font-family:var(--cond);font-size:16px;color:var(--ink);display:block;cursor:pointer}
+.slot:hover{background:#fff}
+.slot.act{border:1.5px solid var(--ink);margin:-1px}
+.slot.sel{border:1.5px dashed var(--ally);margin:-1px;background:#fff}
+.slot.aim{box-shadow:inset 0 0 0 2px var(--foe)}
+.slot.locked{background:repeating-linear-gradient(135deg,var(--panel2),var(--panel2) 6px,rgba(28,40,48,.05) 6px,rgba(28,40,48,.05) 12px);
+ color:var(--faint);cursor:default;opacity:.7}
+.slot.locked .nm{font-weight:400;font-size:14px}
+.levelup{font-family:var(--mono);font-size:12px;color:var(--good);letter-spacing:.06em}
+.info{position:absolute;top:4px;right:5px;font-family:var(--mono);font-size:10px;line-height:1;
+ width:15px;height:15px;display:flex;align-items:center;justify-content:center;
+ border:.5px solid var(--rule2);color:var(--muted);background:var(--panel);cursor:pointer;z-index:6}
+.info:hover{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.veil{position:fixed;inset:0;background:rgba(28,40,48,.45);display:flex;align-items:center;
+ justify-content:center;padding:20px;z-index:50}
+.card{background:var(--panel);border:.5px solid var(--ink);max-width:560px;width:100%;
+ max-height:88vh;overflow:auto;padding:18px 20px}
+.card h2{margin:0;font-size:26px;font-weight:600;letter-spacing:.03em;display:flex;
+ justify-content:space-between;align-items:baseline;gap:10px}
+.card h2 span{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.tagline{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+ color:var(--muted);margin:3px 0 10px}
+.quote{font-size:16px;color:var(--muted);line-height:1.35;margin:0 0 14px}
+.sect{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;
+ color:var(--faint);border-bottom:.5px solid var(--rule);padding-bottom:3px;margin:14px 0 8px}
+.statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.ab{border-left:2px solid var(--rule2);padding:2px 0 2px 10px;margin-bottom:10px}
+.ab .an{font-size:16px;font-weight:500;display:flex;justify-content:space-between;gap:8px}
+.ab .ac{font-family:var(--mono);font-size:10px;color:var(--ochre);letter-spacing:.06em}
+.ab .ad{font-size:14.5px;color:var(--muted);line-height:1.4}
+.ab.tr{border-left-color:var(--ally)}
+.rx{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0;
+ border-bottom:.5px dotted var(--rule)}
+.rx:last-child{border-bottom:0}
+.rx b{font-weight:500}
+.sect2{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;
+ color:var(--faint);border-top:.5px dotted var(--rule);padding-top:9px;margin:12px 0 8px}
+.flashmsg{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--panel);
+ font-family:var(--mono);font-size:12px;letter-spacing:.05em;padding:8px 14px;z-index:60;transition:opacity .4s}
+.flashmsg.gone{opacity:0}
+.rankpip{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ochre)}
+.hold{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.stone{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+ padding:4px 9px;border:.5px solid currentColor}
+.rx .kd{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.slot .nm{font-size:16px;font-weight:500;display:block}
+.rowlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+ text-align:center;margin:6px 0}
+.cols{display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:start}
+@media (max-width:940px){.cols{grid-template-columns:1fr}}
+
+/* battle layout — board left, instruments right, nothing scrolls */
+.arena{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:10px;align-items:start}
+@media (max-width:1000px){.arena{grid-template-columns:1fr}}
+.side{position:sticky;top:10px;display:flex;flex-direction:column;gap:10px}
+.board{display:flex;flex-direction:column;gap:10px}
+.pan{background:var(--panel);border:.5px solid var(--rule2);padding:10px 12px}
+.pan.tight{padding:8px 10px}
+.banner{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+ font-family:var(--mono);font-size:12px;letter-spacing:.05em;margin-bottom:8px}
+.banner .who{font-size:15px;font-family:var(--cond);letter-spacing:0}
+.banner .who b{font-weight:500}
+.banner .who .ar{color:var(--foe);padding:0 4px}
+.banner .wv{color:var(--ochre);text-transform:uppercase;font-size:10px;letter-spacing:.13em}
+.foecard{flex:0 1 172px}
+.ghost{flex:0 1 172px;min-height:66px}
+.foecard .fname{font-size:14px}
+.slot.mini{padding:6px 7px}
+.slot.mini .nm{font-size:15px}
+.slot.mini .meta{font-size:9px;line-height:1.35}
+.log.short{max-height:196px}
+.crewrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.crew .slot .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crew .slot .meta{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* roomy — few berths, learning the crew */
+.crew.roomy .grid,.crew.roomy .crewrow{gap:8px}
+.crew.roomy .slot{padding:9px}
+.crew.roomy .slot .nm{font-size:16px}
+
+/* normal */
+.crew.normal .grid,.crew.normal .crewrow{gap:6px}
+.crew.normal .slot{padding:6px 6px}
+.crew.normal .slot .nm{font-size:14px}
+.crew.normal .slot .meta{font-size:8.5px;line-height:1.35}
+.crew.normal .slot .d3{display:none}
+.crew.normal .slot .bar{height:5px}
+.crew.normal .slot .num{font-size:8.5px}
+
+/* tight — a full ship, position is all that matters */
+.crew.tight .grid,.crew.tight .crewrow{gap:3px}
+.crew.tight .slot{padding:4px 3px}
+.crew.tight .slot .nm{font-size:12px}
+.crew.tight .slot .meta{font-size:7.5px;letter-spacing:0;line-height:1.25}
+.crew.tight .slot .d3{display:none}
+.crew.tight .slot .bar{height:4px;margin-top:3px}
+.crew.tight .slot .num{font-size:7.5px}
+.crew.tight .info{display:none}
+.crew.tight .pop{font-size:14px !important;padding:0 3px}
+.crew.tight .pop.crit{font-size:19px !important}
+
+/* empty berths shrink out of the way rather than disappearing */
+.crew .slot.vacant{opacity:.4}
+.crew .slot.vacant .nm{color:var(--faint)}
+.crew.normal .slot.vacant,.crew.tight .slot.vacant{padding:3px;min-height:0}
+.crew.tight .slot.vacant .meta{display:none}
+.divider{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+ color:var(--faint);text-align:center;margin:2px 0;position:relative}
+.divider:before,.divider:after{content:'';position:absolute;top:50%;width:38%;height:.5px;background:var(--rule)}
+.divider:before{left:0}.divider:after{right:0}
+.facing{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+ color:var(--faint);text-align:center;margin:0 0 6px}
+.facing.enemyside{color:var(--foe);opacity:.65;margin-bottom:8px}
+.ctlbar{display:flex;gap:6px;flex-wrap:wrap}
+.ctlbar button,.ctlbar select{padding:5px 9px;font-size:14px}
+.log{font-family:var(--mono);font-size:11.5px;line-height:1.7;color:var(--muted);max-height:260px;overflow:auto}
+.log div:last-child{color:var(--ink)}
+.log .rule{color:var(--ink)}.log .reaction,.log .break,.log .recover{color:var(--ochre)}
+.log .kill,.log .lose{color:var(--foe)}.log .win{color:var(--good)}.log .wave,.log .spawn{color:var(--ally)}
+.rl{font-family:var(--mono);font-size:11px;line-height:1.6;padding:4px 0;border-bottom:.5px dotted var(--rule)}
+.rl:last-child{border-bottom:0}
+.rl b{color:var(--ink);font-weight:500}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spdots{font-family:var(--mono);font-size:15px;letter-spacing:.2em}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--panel2);padding:7px 9px;border:.5px solid var(--rule)}
+.stat b{display:block;font-family:var(--mono);font-size:17px;font-weight:500}
+.stat span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.key{display:flex;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:10px;letter-spacing:.06em}
+.key span{display:flex;align-items:center;gap:4px}
+.key i{width:9px;height:9px;display:inline-block;border:1.2px solid currentColor}
+
+/* floating numbers — persist across re-renders via negative animation-delay */
+.hasfx{position:relative}
+.pops{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:5}
+.pop{position:absolute;font-family:var(--mono);font-weight:500;white-space:nowrap;
+ padding:1px 5px;border-radius:2px;background:rgba(237,241,243,.86);border:.5px solid var(--rule)}
+.pop.dmg{color:var(--foe);font-size:20px}
+.pop.dmg.crit{font-size:30px;font-weight:600;border-color:var(--foe)}
+.pop.guard{color:var(--ochre);font-size:15px}
+.pop.tick{color:var(--Decay);font-size:13px}
+.pop.heal,.pop.shield{color:var(--good);font-size:16px}
+.pop.el{font-size:16px}
+.pop.reaction{font-size:18px;font-weight:600;color:var(--ochre);letter-spacing:.03em;border-color:var(--ochre)}
+.pop.reaction.r3{font-size:22px}.pop.reaction.r4{font-size:27px}
+.pop.brk{color:var(--ochre);font-size:17px;letter-spacing:.12em;border-color:var(--ochre)}
+@media (prefers-reduced-motion: no-preference){
+  .pop{animation:fly 2.4s cubic-bezier(.16,.9,.3,1) forwards}
+  @keyframes fly{
+    0%{opacity:0;transform:translateY(12px) scale(.75)}
+    7%{opacity:1;transform:translateY(0) scale(1.14)}
+    13%{transform:translateY(0) scale(1)}
+    72%{opacity:1;transform:translateY(-10px) scale(1)}
+    100%{opacity:0;transform:translateY(-30px) scale(.94)}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1 id="title">Voyage</h1><p class="sub" id="stitle">SELECT A DESTINATION</p></div>
+  <div class="ctl"><button id="abandon" class="hide">Abandon run</button></div>
+</header>
+
+<div class="strip hide" id="strip"></div>
+<div id="screen"></div>
+<div id="flash" class="flashmsg gone"></div>
+</div>
+
+<script>
+/* Combat core v2 — elements, four slots, priority lists, variance. No DOM. */
+
+const HEX = ['Order', 'Growth', 'Energy', 'Chaos', 'Decay', 'Void'];
+
+function relation(a, b) {
+  const d = Math.abs(HEX.indexOf(a) - HEX.indexOf(b));
+  const step = Math.min(d, 6 - d);
+  return step === 1 ? 'adjacent' : step === 2 ? 'distant' : 'opposite';
+}
+
+const PAIR = (a, b) => [a, b].sort().join('+');
+
+const REACTIONS = {
+  // adjacent — fuse readily
+  'Growth+Order':  { name: 'Crystal', kind: 'adjacent', ladder: 'Conduction' },
+  'Energy+Growth': { name: 'Life',    kind: 'adjacent', ladder: 'Vigor' },
+  'Chaos+Energy':  { name: 'Fire',    kind: 'adjacent', ladder: 'Burst' },
+  'Chaos+Decay':   { name: 'Poison',  kind: 'adjacent', ladder: 'Attrition' },
+  'Decay+Void':    { name: 'Rust',    kind: 'adjacent', ladder: 'Exposure' },
+  'Order+Void':    { name: 'Gravity', kind: 'adjacent', ladder: 'Suppression' },
+  // distant — resonate reluctantly
+  'Energy+Order':  { name: 'Light',   kind: 'distant',  ladder: 'Exposure' },
+  'Chaos+Growth':  { name: 'Plague',  kind: 'distant',  ladder: 'Attrition' },
+  'Decay+Energy':  { name: 'Shock',   kind: 'distant',  ladder: 'Conduction' },
+  'Chaos+Void':    { name: 'Rift',    kind: 'distant',  ladder: 'Burst' },
+  'Decay+Order':   { name: 'Stone',   kind: 'distant',  ladder: 'Suppression' },
+  'Growth+Void':   { name: 'Wind',    kind: 'distant',  ladder: 'Vigor' },
+  // opposite — annihilate on contact
+  'Chaos+Order':   { name: 'Collapse', kind: 'opposite' },
+  'Decay+Growth':  { name: 'Cycle',    kind: 'opposite' },
+  'Energy+Void':   { name: 'Null',     kind: 'opposite' },
+};
+
+const THRESH = { adjacent: 3, distant: 7, opposite: 3 };
+const RUNG_NAMES = {
+  Suppression: ['Slow', 'Restrain', 'Disarm', 'Freeze'],
+  Exposure:    ['Mark', 'Fragile', 'Sunder', 'Doom'],
+  Attrition:   ['Bleed', 'Poison', 'Plague', 'Wither'],
+  Conduction:  ['Trickle', 'Spread', 'Conduct', 'Cascade'],
+  Vigor:       ['Regen', 'Empower', 'Haste', 'Surge'],
+  Burst:       ['Spark', 'Flare', 'Detonation', 'Cataclysm'],
+};
+const rungOf = c => c < 4 ? 1 : c < 8 ? 2 : c < 14 ? 3 : 4;
+
+const VARIANCE = { fixed: 0, tight: 0.10, wide: 0.40, wild: null }; // wild handled separately
+
+const TILES = {
+  None:     { d: 'plain' },
+  Forge:    { gd: 1.5,  d: 'guard damage +50%' },
+  Vent:     { ap: 1.4,  d: 'elements applied +40%' },
+  Crucible: { rx: 1.4,  d: 'reaction size +40%' },
+  Ridge:    { ex: -30,  d: 'exposure -30' },
+};
+
+/* ---------------------------------------------------------------- roster */
+
+const R = (l, c, a, t) => ({ l, c, a, t });   // rule: label, condition, action, target
+
+const UNITS = {
+  Lattice: {
+    el: 'Order', role: 'Guard', trig: 'Cadence', fac: 'Foundry', v: 'tight', rows: 'front',
+    hp: 260, spd: 88, note: 'shields the exposed, seeds Order',
+    basic: { fx: [{ k: 'hit', v: 20 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'shield', v: 70 }, { k: 'apply', v: 2 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'applyAll', v: 3 }, { k: 'shieldAll', v: 55 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('an ally is hurt', s => s.allies.some(a => a.hp < a.max * 0.7) && s.sp >= 1, 'skill', 'big'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+  Plumb: {
+    el: 'Order', role: 'Damage', trig: 'Cadence', fac: 'Foundry', v: 'fixed', rows: 'any',
+    hp: 190, spd: 96, note: 'fixed damage, nothing alters it',
+    basic: { fx: [{ k: 'hit', v: 26 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'hit', v: 78, noBuff: true }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'hitPerElement', v: 22, el: 'Order' }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'mostEl'),
+      R('points to spare', s => s.sp >= 2, 'skill', 'weakest'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+  Ricochet: {
+    el: 'Chaos', role: 'Damage', trig: 'Follow-up', fac: 'Foundry', v: 'tight', rows: 'any',
+    hp: 175, spd: 102, note: 'attacks again whenever anything breaks',
+    trait: { on: 'break', fx: [{ k: 'hit', v: 24 }, { k: 'apply', v: 2 }], free: true },
+    basic: { fx: [{ k: 'hit', v: 22 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'hit', v: 20 }, { k: 'hit', v: 20 }, { k: 'apply', v: 2 }] },
+    ult:   { cost: 100, fills: 'break', fx: [{ k: 'applyAll', v: 4 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('target nearly broken', s => s.tgt && s.tgt.guard < 20 && s.sp >= 1, 'skill', 'lowGuard'),
+      R('points to spare', s => s.sp >= 3, 'skill', 'mostEl'),
+      R('otherwise', () => true, 'basic', 'lowGuard'),
+    ],
+  },
+  Backlash: {
+    el: 'Chaos', role: 'Support', trig: 'Reactive', fac: 'Thorn', v: 'tight', rows: 'front',
+    hp: 240, spd: 80, note: 'marks whoever hits your team',
+    trait: { on: 'allyHit', fx: [{ k: 'applyAttacker', v: 1 }], free: true },
+    basic: { fx: [{ k: 'hit', v: 18 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'taunt', v: 4 }, { k: 'shield', v: 50 }] },
+    ult:   { cost: 100, fills: 'hit', fx: [{ k: 'applyAll', v: 3 }, { k: 'taunt', v: 5 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('not taunting yet', s => s.self.taunt <= 0 && s.sp >= 1, 'skill', 'big'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+  Piston: {
+    el: 'Energy', role: 'Damage', trig: 'Cadence', fac: 'Foundry', v: 'wide', rows: 'front',
+    hp: 210, spd: 92, note: 'gains Momentum on consecutive basics',
+    trait: { on: 'passive' },
+    basic: { fx: [{ k: 'hitMomentum', v: 16 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }, { k: 'momentum', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'spendMomentum', v: 30 }] },
+    ult:   { cost: 100, fills: 'ownBasic', fx: [{ k: 'hitMomentum', v: 20 }, { k: 'hitMomentum', v: 20 }, { k: 'hitMomentum', v: 20 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('momentum is full', s => s.self.momentum >= 6 && s.sp >= 1, 'skill', 'big'),
+      R('otherwise', () => true, 'basic', 'weakest'),
+    ],
+  },
+  Piledriver: {
+    el: 'Energy', role: 'Break', trig: 'Cadence', fac: 'Foundry', v: 'tight', rows: 'front',
+    hp: 300, spd: 74, note: 'slow sledge, opens guard',
+    basic: { fx: [{ k: 'guard', v: 14 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'guard', v: 34 }, { k: 'apply', v: 2 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'guard', v: 999 }, { k: 'apply', v: 3 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'lowGuard'),
+      R('points available', s => s.sp >= 1, 'skill', 'lowGuard'),
+      R('otherwise', () => true, 'basic', 'lowGuard'),
+    ],
+  },
+  Trellis: {
+    el: 'Growth', role: 'Support', trig: 'Standing', fac: 'Wake', v: 'tight', rows: 'rear',
+    hp: 215, spd: 90, note: 'seeds Growth broadly',
+    basic: { fx: [{ k: 'hit', v: 16 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'apply', v: 4 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'applyAll', v: 3 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('points available', s => s.sp >= 1, 'skill', 'mostEl'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+  Salve: {
+    el: 'Decay', role: 'Sustain', trig: 'Cadence', fac: 'Wake', v: 'tight', rows: 'rear',
+    hp: 220, spd: 94, note: 'mends the weakest, seeds Decay',
+    basic: { fx: [{ k: 'hit', v: 16 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'heal', v: 85 }, { k: 'apply', v: 1 }] },
+    ult:   { cost: 100, fills: 'allyHurt', fx: [{ k: 'healAll', v: 70 }, { k: 'applyAll', v: 2 }] },
+    rules: [
+      R('someone is badly hurt', s => s.allies.some(a => a.hp < a.max * 0.45) && s.self.energy >= 100, 'ult', 'big'),
+      R('someone is hurt', s => s.allies.some(a => a.hp < a.max * 0.7) && s.sp >= 1, 'skill', 'big'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+  Hush: {
+    el: 'Void', role: 'Control', trig: 'Interrupt', fac: 'Choir', v: 'tight', rows: 'any',
+    hp: 185, spd: 106, note: 'acts the moment something starts charging',
+    trait: { on: 'charging', fx: [{ k: 'apply', v: 2 }, { k: 'delay', v: 45 }], free: true },
+    basic: { fx: [{ k: 'hit', v: 18 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'apply', v: 3 }, { k: 'delay', v: 35 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'applyAll', v: 2 }, { k: 'delayAll', v: 60 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('something is charging', s => s.enemies.some(e => e.charging) && s.sp >= 1, 'skill', 'charging'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+  Cinder: {
+    el: 'Chaos', role: 'Damage', trig: 'Cadence', fac: 'Cipher', v: 'tight', rows: 'any',
+    hp: 165, spd: 98, note: 'plain, reliable Chaos',
+    basic: { fx: [{ k: 'hit', v: 20 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'hit', v: 34 }, { k: 'apply', v: 3 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'applyAll', v: 3 }, { k: 'hit', v: 40 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'mostEl'),
+             R('points available', s => s.sp >= 1, 'skill', 'mostEl'),
+             R('otherwise', () => true, 'basic', 'big') ],
+  },
+  Gantry: {
+    el: 'Order', role: 'Support', trig: 'Standing', fac: 'Foundry', v: 'fixed', rows: 'rear',
+    hp: 200, spd: 86, note: 'steadies the line, seeds Order',
+    basic: { fx: [{ k: 'hit', v: 14 }, { k: 'apply', v: 1 }, { k: 'sp', v: 2 }] },
+    skill: { cost: 1, fx: [{ k: 'shieldAll', v: 40 }, { k: 'apply', v: 2 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'shieldAll', v: 80 }, { k: 'applyAll', v: 2 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+             R('someone is hurt', s => s.allies.some(a => a.hp < a.max * 0.75) && s.sp >= 1, 'skill', 'big'),
+             R('otherwise', () => true, 'basic', 'big') ],
+  },
+  Bloom: {
+    el: 'Growth', role: 'Sustain', trig: 'Cadence', fac: 'Wake', v: 'tight', rows: 'rear',
+    hp: 195, spd: 92, note: 'mends slowly, seeds Growth',
+    basic: { fx: [{ k: 'hit', v: 14 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'healAll', v: 42 }, { k: 'apply', v: 2 }] },
+    ult:   { cost: 100, fills: 'allyHurt', fx: [{ k: 'healAll', v: 95 }, { k: 'applyAll', v: 2 }] },
+    rules: [ R('crew is badly hurt', s => s.allies.some(a => a.hp < a.max * 0.5) && s.self.energy >= 100, 'ult', 'big'),
+             R('crew is hurt', s => s.allies.some(a => a.hp < a.max * 0.8) && s.sp >= 1, 'skill', 'big'),
+             R('otherwise', () => true, 'basic', 'big') ],
+  },
+  Rime: {
+    el: 'Decay', role: 'Control', trig: 'Cadence', fac: 'Thorn', v: 'tight', rows: 'any',
+    hp: 180, spd: 100, note: 'slows what it touches',
+    basic: { fx: [{ k: 'hit', v: 16 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'apply', v: 3 }, { k: 'delay', v: 30 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'applyAll', v: 2 }, { k: 'delayAll', v: 55 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+             R('points available', s => s.sp >= 1, 'skill', 'lowGuard'),
+             R('otherwise', () => true, 'basic', 'big') ],
+  },
+  Arclight: {
+    el: 'Energy', role: 'Damage', trig: 'Follow-up', fac: 'Choir', v: 'wide', rows: 'any',
+    hp: 170, spd: 108, note: 'strikes again whenever anything breaks',
+    trait: { on: 'break', fx: [{ k: 'hit', v: 20 }, { k: 'apply', v: 1 }], free: true },
+    basic: { fx: [{ k: 'hit', v: 19 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'hit', v: 30 }, { k: 'apply', v: 2 }] },
+    ult:   { cost: 100, fills: 'break', fx: [{ k: 'applyAll', v: 3 }, { k: 'hit', v: 45 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+             R('points available', s => s.sp >= 2, 'skill', 'lowGuard'),
+             R('otherwise', () => true, 'basic', 'lowGuard') ],
+  },
+  Cairnstone: {
+    el: 'Order', role: 'Guard', trig: 'Cadence', fac: 'Foundry', v: 'fixed', rows: 'front',
+    hp: 300, spd: 70, note: 'cheap, heavy, absorbs',
+    basic: { fx: [{ k: 'hit', v: 15 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'taunt', v: 4 }, { k: 'shield', v: 60 }] },
+    ult:   { cost: 100, fills: 'hit', fx: [{ k: 'shieldAll', v: 70 }, { k: 'taunt', v: 5 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+             R('not holding the line', s => s.self.taunt <= 0 && s.sp >= 1, 'skill', 'big'),
+             R('otherwise', () => true, 'basic', 'big') ],
+  },
+  Wisp: {
+    el: 'Void', role: 'Support', trig: 'Cadence', fac: 'Choir', v: 'tight', rows: 'rear',
+    hp: 150, spd: 112, note: 'quick, cheap, seeds Void',
+    basic: { fx: [{ k: 'hit', v: 12 }, { k: 'apply', v: 1 }, { k: 'sp', v: 2 }] },
+    skill: { cost: 1, fx: [{ k: 'apply', v: 3 }, { k: 'delay', v: 20 }] },
+    ult:   { cost: 100, fills: 'self', fx: [{ k: 'applyAll', v: 2 }, { k: 'delayAll', v: 35 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+             R('plenty of points', s => s.sp >= 3, 'skill', 'mostEl'),
+             R('otherwise', () => true, 'basic', 'big') ],
+  },
+  Grist: {
+    el: 'Growth', role: 'Damage', trig: 'Cadence', fac: 'Cipher', v: 'wide', rows: 'any',
+    hp: 185, spd: 90, note: 'chews through the small ones first',
+    basic: { fx: [{ k: 'hit', v: 21 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'hit', v: 26 }, { k: 'hit', v: 26 }] },
+    ult:   { cost: 100, fills: 'ownBasic', fx: [{ k: 'hit', v: 38 }, { k: 'applyAll', v: 2 }] },
+    rules: [ R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+             R('points available', s => s.sp >= 2, 'skill', 'weakest'),
+             R('otherwise', () => true, 'basic', 'weakest') ],
+  },
+  Toll: {
+    el: 'Void', role: 'Damage', trig: 'Cadence', fac: 'Thorn', v: 'wild', rows: 'rear',
+    hp: 200, spd: 68, note: 'gains Weight while others act; holds until heavy',
+    trait: { on: 'passive' },
+    basic: { fx: [{ k: 'hitWeight', v: 9 }, { k: 'apply', v: 1 }, { k: 'sp', v: 1 }] },
+    skill: { cost: 1, fx: [{ k: 'hitWeight', v: 16 }, { k: 'applyWeight', v: 1 }] },
+    ult:   { cost: 100, fills: 'weight', fx: [{ k: 'hitWeightAll', v: 11 }, { k: 'delayAll', v: 40 }] },
+    rules: [
+      R('ultimate ready', s => s.self.energy >= 100, 'ult', 'big'),
+      R('weight is low', s => s.self.weight < 5, 'hold', null),
+      R('heavy, points available', s => s.sp >= 1, 'skill', 'big'),
+      R('otherwise', () => true, 'basic', 'big'),
+    ],
+  },
+};
+
+/* --------------------------------------------------------------- enemies */
+
+const FOES = {
+  Husk: {
+    tier: 'mob', hp: 145, guard: 26, spd: 108, atk: 18,
+    note: 'attacks; nothing else',
+    rules: [R('always', () => true, 'basic', 'exposed')],
+  },
+  Warden: {
+    tier: 'elite', hp: 470, guard: 78, spd: 84, atk: 38,
+    note: 'regenerates guard; strikes the whole team every third action',
+    trait: { on: 'ownTurn', regen: 9 },
+    rules: [
+      R('every third action', s => s.self.acted % 3 === 2, 'skill', 'all'),
+      R('otherwise', () => true, 'basic', 'exposed'),
+    ],
+  },
+  Colossus: {
+    tier: 'boss', hp: 1850, guard: 165, spd: 52, atk: 74,
+    note: 'takes 40% less damage while unbroken; charges every fourth action',
+    trait: { on: 'passive', armour: 0.4, chargeEvery: 4, chargeMult: 2.2 },
+    rules: [R('always', () => true, 'basic', 'exposed')],
+  },
+};
+
+/* An encounter is a sequence of waves. At most `cap` hostiles stand on the field
+   at once; the rest queue and step forward as slots open. */
+const ENCOUNTERS = {
+  'Skirmish': { cap: 3, waves: [[['Husk', 5]], [['Husk', 4]]] },
+  'Vanguard': { cap: 4, waves: [[['Husk', 5]], [['Warden', 2], ['Husk', 2]]] },
+  'Colossus': { cap: 3, waves: [[['Husk', 4]], [['Colossus', 1]]] },
+  'Warband':  { cap: 4, waves: [[['Husk', 5]], [['Warden', 2], ['Husk', 2]], [['Colossus', 1], ['Warden', 1]]] },
+};
+
+/* ------------------------------------------------------------------- rng */
+
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ----------------------------------------------------------------- fight */
+
+
+
+function createFight(team, tiles, encKey, seed = 1, mods = {}, book = null) {
+  const BOOK = book || UNITS;
+  const M = Object.assign({ rung: 0, el: 0, spMax: 5, spStart: 3, guard: 1, insist: false, startAv: 0,
+                           decay: 0.18, energy: 0, foeHp: 1, foeAtk: 1,
+                           layout: [3, 3], dmg: 'exposure' }, mods);
+  const LAYOUT = M.layout, ROWS = LAYOUT.length;
+  const rowStart = [];
+  { let c = 0; LAYOUT.forEach(w => { rowStart.push(c); c += w; }); }
+  const rowOf = i => { for (let r = ROWS - 1; r >= 0; r--) if (i >= rowStart[r]) return r; return 0; };
+  const frac = r => ROWS === 1 ? 1 : r / (ROWS - 1);   // 0 = rearmost, 1 = front
+  const rand = rng(seed);
+  let id = 1;
+  const log = [];
+
+  const allies = [];
+  team.forEach((n, i) => {
+    if (!n) return;
+    const u = BOOK[n];
+    allies.push({
+      id: 'a' + id++, name: n, side: 'ally', slot: i, u,
+      hp: u.hp, max: u.hp, av: M.startAv, spd: u.spd, energy: M.energy, shield: 0,
+      momentum: 0, weight: 0, taunt: 0, acted: 0, lastBasic: false,
+    });
+  });
+
+  const enc = ENCOUNTERS[encKey];
+  const FIELD_CAP = enc.cap + (M.capBonus || 0);
+  const enemies = [];
+  let queue = [], waveNo = 0, counters = {};
+
+  function make(k, entering) {
+    const f = FOES[k];
+    counters[k] = (counters[k] || 0) + 1;
+    return {
+      id: 'e' + id++, name: k + ' ' + counters[k], side: 'foe', kind: k, u: f,
+      hp: Math.round(f.hp * M.foeHp), max: Math.round(f.hp * M.foeHp),
+      guard: Math.round(f.guard * M.foeHp), maxGuard: Math.round(f.guard * M.foeHp), av: entering ? -30 : 0,
+      spd: f.spd, atk: Math.round(f.atk * M.foeAtk), broken: 0, acted: 0, charging: false, poison: 0, frozen: 0,
+      el: { Order: 0, Growth: 0, Energy: 0, Chaos: 0, Decay: 0, Void: 0 },
+    };
+  }
+  function loadWave(i) {
+    waveNo = i + 1;
+    queue = [];
+    enc.waves[i].forEach(([k, n]) => { for (let j = 0; j < n; j++) queue.push(k); });
+  }
+  function fillField(entering) {
+    const names = [];
+    while (queue.length && enemies.filter(e => e.hp > 0).length < FIELD_CAP) {
+      const e = make(queue.shift(), entering);
+      enemies.push(e);
+      names.push(e.name);
+    }
+    return names;
+  }
+  loadWave(0);
+  fillField(false);
+
+  const S = {
+    t: 0, sp: M.spStart, spMax: M.spMax, allies, enemies, log, over: false, win: false, steps: 0,
+    get queue() { return queue.slice(); },
+    get wave() { return waveNo; },
+    get waves() { return enc.waves.length; },
+    get cap() { return FIELD_CAP; },
+    get remaining() {
+      const onField = enemies.filter(e => e.hp > 0).reduce((s, e) => s + e.hp, 0);
+      const queued = queue.reduce((s, k) => s + FOES[k].hp, 0);
+      let later = 0;
+      for (let i = waveNo; i < enc.waves.length; i++) enc.waves[i].forEach(([k, n]) => later += FOES[k].hp * n);
+      const totalAll = enc.waves.reduce((s, w) => s + w.reduce((t, [k, n]) => t + FOES[k].hp * n, 0), 0);
+      return (onField + queued + later) / totalAll;
+    },
+    lastReaction: null, fx: [], actorId: null, targetId: null, lastCrit: false,
+    pool: 0, poolMax: 0, layout: LAYOUT, dmgModel: M.dmg,
+    rowOf: rowOf,
+  };
+  if (M.dmg === 'pool') { S.poolMax = allies.reduce((s, a) => s + a.max, 0); S.pool = S.poolMax; }
+  const pop = (k, on, v, extra) => S.fx.push(Object.assign({ k, on, v }, extra || {}));
+
+  const live = () => allies.filter(a => a.hp > 0);
+  const foes = () => enemies.filter(e => e.hp > 0);
+  const dead = () => allies.filter(a => a.hp <= 0).map(a => a.name);
+
+  function say(text, extra) { S.log.push({ t: +S.t.toFixed(1), text, ...(extra || {}) }); }
+
+  function roll(v, prof) {
+    if (prof === 'fixed') { S.lastCrit = false; return v; }
+    let f;
+    if (prof === 'wild') f = 0.3 + rand() * 2.7;
+    else { const sp = VARIANCE[prof] ?? 0.10; f = 1 - sp + rand() * sp * 2; }
+    if (M.insist && f < 1) { const g = prof === 'wild' ? 0.3 + rand() * 2.7 : 1 - (VARIANCE[prof] ?? 0.1) + rand() * (VARIANCE[prof] ?? 0.1) * 2; f = Math.max(f, g); }
+    const lo = prof === 'wild' ? 0.3 : 1 - (VARIANCE[prof] ?? 0.1);
+    const hi = prof === 'wild' ? 3.0 : 1 + (VARIANCE[prof] ?? 0.1);
+    S.lastCrit = f >= lo + (hi - lo) * 0.75;
+    return v * f;
+  }
+
+  function tile(i) { return TILES[tiles[i]] || {}; }
+
+  function rowMods(i) {
+    const f = frac(rowOf(i));
+    return { gd: 0.6 + f * 0.9, ap: 1.2 - f * 0.2, pm: 1.6 - f * 0.85 };
+  }
+  function frontLiveRow() {
+    let best = -1;
+    live().forEach(a => { const r = rowOf(a.slot); if (r > best) best = r; });
+    return best;
+  }
+  function exposure(a) {
+    const t = tile(a.slot);
+    if (M.dmg === 'front') {
+      const fr = frontLiveRow();
+      return rowOf(a.slot) === fr ? 100 + (a.taunt > 0 ? 400 : 0) : 0;
+    }
+    let e = 25 + frac(rowOf(a.slot)) * 75;
+    if (a.taunt > 0) e += 400;
+    return Math.max(0, e + (t.ex || 0));
+  }
+
+  function pick(sel, self) {
+    const f = foes();
+    if (!f.length) return null;
+    switch (sel) {
+      case 'lowGuard': return f.filter(e => e.broken <= 0).sort((a, b) => a.guard - b.guard)[0] || f[0];
+      case 'weakest':  return f.slice().sort((a, b) => a.hp - b.hp)[0];
+      case 'mostEl':   return f.slice().sort((a, b) => total(b.el) - total(a.el))[0];
+      case 'charging': return f.filter(e => e.charging)[0] || f[0];
+      case 'broken':   return f.filter(e => e.broken > 0)[0] || f[0];
+      default:         return f.slice().sort((a, b) => b.max - a.max)[0];
+    }
+  }
+  const total = m => HEX.reduce((s, k) => s + m[k], 0);
+
+  function pickAlly(self, sel) {
+    const a = live();
+    if (sel === 'self') return self;
+    return a.reduce((p, c) => (c.hp / c.max < p.hp / p.max ? c : p));
+  }
+
+  function hurtFoe(e, amount, byName) {
+    let d = amount;
+    if (e.u.trait?.armour && e.broken <= 0) d *= (1 - e.u.trait.armour);
+    if (e.broken > 0) d *= 1.3;
+    e.hp -= d;
+    return Math.round(d);
+  }
+
+  /* ---- elements and reactions ---- */
+
+  const EL_CAP = 3;   // a target holds at most three element types
+  function applyEl(e, el, amt, source) {
+    const t = tile(source ? source.slot : 0);
+    const v = (amt + M.el) * (t.ap || 1);
+    const wasEmpty = e.el[el] <= 0;
+    e.el[el] += v;
+    if (wasEmpty) {
+      const held = HEX.filter(k => e.el[k] > 0);
+      if (held.length > EL_CAP) {
+        const drop = held.filter(k => k !== el).sort((a, b) => e.el[a] - e.el[b])[0];
+        e.el[drop] = 0;
+        say(`${e.name} sheds ${drop}`, { kind: 'shed', on: e.id });
+      }
+    }
+    return checkReaction(e, el, source);
+  }
+
+  function checkReaction(e, justAdded, source) {
+    const others = HEX.filter(k => k !== justAdded && e.el[k] > 0);
+    // opposites first — they cannot coexist
+    const order = ['opposite', 'adjacent', 'distant'];
+    for (const kind of order) {
+      for (const o of others) {
+        if (relation(justAdded, o) !== kind) continue;
+        const need = THRESH[kind];
+        if (e.el[justAdded] < need || e.el[o] < need) continue;
+        return fire(e, justAdded, o, kind, source);
+      }
+    }
+    return null;
+  }
+
+  function fire(e, a, b, kind, source) {
+    const r = REACTIONS[PAIR(a, b)];
+    const t = tile(source ? source.slot : 0);
+    // Both elements are spent entirely. Magnitude is the smaller of the two,
+    // so applying unevenly wastes the surplus.
+    const held = { a: e.el[a], b: e.el[b] };
+    let consumed = Math.min(held.a, held.b) * (t.rx || 1);
+    const wasted = Math.abs(held.a - held.b);
+    e.el[a] = 0; e.el[b] = 0;
+    const rung = Math.min(4, rungOf(consumed) + M.rung);
+    const c = consumed;
+    let detail = '';
+
+    switch (r.name) {
+      case 'Fire':     { const d = hurtFoe(e, c * 15 * rung, null); detail = d + ' damage'; break; }
+      case 'Poison':   { e.poison += c * rung * 0.8; detail = Math.round(c * rung * 0.8) + ' poison'; break; }
+      case 'Life':     { live().forEach(x => x.hp = Math.min(x.max, x.hp + c * 5 * rung)); detail = 'team healed'; break; }
+      case 'Crystal':  { const o = foes().filter(x => x !== e)[0]; if (o) { HEX.forEach(k => o.el[k] += e.el[k] * 0.5); detail = 'spread to ' + o.name; } else detail = 'nothing to spread to'; break; }
+      case 'Rust':     { e.maxGuard = Math.max(10, e.maxGuard - c * 2 * rung); const d = hurtFoe(e, c * 6 * rung); detail = 'guard eroded, ' + d + ' damage'; break; }
+      case 'Gravity':  { e.av -= c * 7 * rung; detail = 'pushed down the track'; break; }
+      case 'Light':    { const d = Math.round(c * 17 * rung); e.hp -= d; detail = d + ' through guard'; break; }
+      case 'Plague':   { e.poison += c * rung; foes().filter(x => x !== e).forEach(x => x.poison += c * rung * 0.4); detail = 'spreading'; break; }
+      case 'Shock':    { let n = 0; foes().forEach(x => { hurtFoe(x, c * 7 * rung); n++; }); detail = 'chained to ' + n; break; }
+      case 'Rift':     { e.av -= 220; e.frozen += 1; detail = 'torn out of the order'; break; }
+      case 'Stone':    { e.frozen += rung; detail = 'petrified ' + rung; break; }
+      case 'Wind':     { live().forEach(x => x.av += 25 * rung); detail = 'team advanced'; break; }
+      case 'Collapse': { HEX.forEach(k => e.el[k] = 0); e.guard = 0; e.broken = Math.max(e.broken, 3); detail = 'everything stripped, guard shattered'; break; }
+      case 'Cycle':    { live().forEach(x => x.hp = Math.min(x.max, x.hp + c * 7)); detail = 'converted to healing'; break; }
+      case 'Null':     { e.av -= 180; detail = 'removed from the track'; break; }
+    }
+
+    const label = r.kind === 'opposite' ? r.name
+      : (RUNG_NAMES[r.ladder] ? RUNG_NAMES[r.ladder][rung - 1] : r.name);
+    S.lastReaction = { name: r.name, kind: r.kind, rung, label, on: e.id };
+    pop('reaction', e.id, label, { name: r.name, rung });
+    say(`${r.name} on ${e.name} — ${label} · ${Math.round(c)} spent${wasted > 1 ? ', ' + Math.round(wasted) + ' wasted' : ''} · ${detail}`,
+        { kind: 'reaction', on: e.id });
+    return r;
+  }
+
+  /* ---- effects ---- */
+
+  function runFx(actor, ability, tgt) {
+    const prof = actor.u.v || 'tight';
+    const t = tile(actor.slot ?? 0);
+    let broke = null;
+
+    for (const f of ability.fx) {
+      switch (f.k) {
+        case 'hit':          if (tgt) { const d = hurtFoe(tgt, (f.noBuff ? f.v : roll(f.v, prof)) * (actor.u.pow || 1)); pop('dmg', tgt.id, d, { crit: !f.noBuff && S.lastCrit, from: actor.id }); say(`${actor.name} hits ${tgt.name} for ${d}${!f.noBuff && S.lastCrit ? ' — clean hit' : ''}`, { on: tgt.id }); } break;
+        case 'hitMomentum':  if (tgt) { const d = hurtFoe(tgt, roll(f.v * (1 + actor.momentum * 0.22), prof) * (actor.u.pow || 1)); pop('dmg', tgt.id, d, { crit: S.lastCrit, from: actor.id }); say(`${actor.name} strikes for ${d} (momentum ${actor.momentum})`, { on: tgt.id }); } break;
+        case 'spendMomentum':if (tgt) { const d = hurtFoe(tgt, roll(f.v * (1 + actor.momentum), prof) * (actor.u.pow || 1)); pop('dmg', tgt.id, d, { crit: true, from: actor.id }); say(`${actor.name} spends ${actor.momentum} momentum for ${d}`, { on: tgt.id }); actor.momentum = 0; } break;
+        case 'hitWeight':    if (tgt) { const d = hurtFoe(tgt, roll(f.v * actor.weight, prof) * (actor.u.pow || 1)); pop('dmg', tgt.id, d, { crit: S.lastCrit, from: actor.id }); say(`${actor.name} lands ${d} at weight ${actor.weight.toFixed(1)}`, { on: tgt.id }); actor.weight = 0; } break;
+        case 'hitWeightAll': { const w = actor.weight; foes().forEach(e => hurtFoe(e, roll(f.v * w, prof) * (actor.u.pow || 1))); say(`${actor.name} unloads ${w} weight on everything`); actor.weight = 0; break; }
+        case 'hitPerElement':{ if (tgt) { const n = foes().reduce((s, e) => s + e.el[f.el], 0); const d = hurtFoe(tgt, roll(f.v * Math.max(1, n), prof) * (actor.u.pow || 1)); pop('dmg', tgt.id, d, { crit: S.lastCrit, from: actor.id }); say(`${actor.name} converts ${Math.round(n)} ${f.el} into ${d}`, { on: tgt.id }); } break; }
+        case 'guard':        if (tgt) { const d = f.v * (t.gd || 1) * M.guard * (actor.u.pow || 1); tgt.guard -= d; say(`${actor.name} hits ${tgt.name} guard for ${Math.round(Math.min(d, 999))}`, { on: tgt.id }); pop('guard', tgt.id, Math.round(Math.min(d, tgt.maxGuard))); if (tgt.guard <= 0 && tgt.broken <= 0) broke = tgt; } break;
+        case 'apply':        if (tgt) { pop('el', tgt.id, '+' + f.v, { el: actor.u.el }); say(`${actor.name} applies ${f.v} ${actor.u.el} to ${tgt.name}`, { on: tgt.id }); applyEl(tgt, actor.u.el, f.v, actor); } break;
+        case 'applyWeight':  if (tgt) { applyEl(tgt, actor.u.el, Math.max(1, Math.round(actor.weight * f.v)), actor); } break;
+        case 'applyAll':     say(`${actor.name} floods the field with ${f.v} ${actor.u.el}`); foes().forEach(e => { pop('el', e.id, '+' + f.v, { el: actor.u.el }); applyEl(e, actor.u.el, f.v, actor); }); break;
+        case 'applyAttacker':if (tgt) { applyEl(tgt, actor.u.el, f.v, actor); say(`${actor.name} marks ${tgt.name}`, { on: tgt.id }); } break;
+        case 'sp':           S.sp = Math.min(S.spMax, S.sp + f.v); break;
+        case 'heal':         { const q = pickAlly(actor); const before = q.hp; q.hp = Math.min(q.max, q.hp + f.v); pop('heal', q.id, Math.round(q.hp - before)); say(`${actor.name} mends ${q.name} for ${Math.round(q.hp - before)}`); break; }
+        case 'healAll':      live().forEach(x => x.hp = Math.min(x.max, x.hp + f.v)); say(`${actor.name} mends the whole crew`); break;
+        case 'shield':       { const q = live().reduce((p, c) => exposure(c) > exposure(p) ? c : p); q.shield += f.v; pop('shield', q.id, '+' + f.v); say(`${actor.name} shields ${q.name}`); break; }
+        case 'shieldAll':    live().forEach(x => x.shield += f.v); say(`${actor.name} shields everyone`); break;
+        case 'taunt':        actor.taunt = f.v; say(`${actor.name} draws fire`); break;
+        case 'momentum':     actor.momentum = Math.min(actor.u.momCap || 6, actor.momentum + f.v); break;
+        case 'delay':        if (tgt) { tgt.av -= f.v; say(`${actor.name} delays ${tgt.name}`, { on: tgt.id }); } break;
+        case 'delayAll':     foes().forEach(e => e.av -= f.v); say(`${actor.name} delays everything`); break;
+      }
+      if (S.over) break;
+    }
+    return broke;
+  }
+
+  function onBreak(e, by) {
+    e.broken = 4;
+    e.av -= 120;
+    e.guard = 0;
+    pop('break', e.id, 0);
+    say(`BREAK — ${e.name} is open, guard stays down for ${e.broken}`, { kind: 'break', on: e.id });
+    live().forEach(a => {
+      if (a.u.trait?.on === 'break' && a !== by) {
+        const tgt = e;
+        runFx(a, { fx: a.u.trait.fx }, tgt);
+        say(`${a.name} follows up`, { kind: 'trait' });
+      }
+      if (a.u.ult?.fills === 'break') a.energy = Math.min(100, a.energy + 34);
+    });
+  }
+
+  /* ---- the step ---- */
+
+  function chooseRule(actor, isFoe) {
+    const ctx = {
+      self: actor, allies: live(), enemies: foes(), sp: S.sp,
+      tgt: null,
+    };
+    const rules = actor.u.rules;
+    for (const r of rules) {
+      ctx.tgt = isFoe ? null : pick(r.t, actor);
+      if (!r.c(ctx)) continue;
+      if (r.a === 'skill' && !isFoe && (S.sp < (actor.u.skill?.cost || 1))) continue;
+      if (r.a === 'ult' && actor.energy < 100) continue;
+      return r;
+    }
+    return rules[rules.length - 1];
+  }
+
+  function step() {
+    if (S.over) return null;
+    S.steps++;
+    if (S.steps > 400) { S.over = true; say('Time expires'); return S.log[S.log.length - 1]; }
+
+    const actors = [...live(), ...foes()];
+    let nx = actors[0], nt = (100 - nx.av) / nx.spd;
+    for (const c of actors) { const ct = (100 - c.av) / c.spd; if (ct < nt) { nt = ct; nx = c; } }
+    S.t += nt;
+    actors.forEach(c => c.av += c.spd * nt);
+    foes().forEach(e => {
+      if (e.broken > 0) {
+        e.broken = Math.max(0, e.broken - nt);
+        if (e.broken === 0) { e.guard = e.maxGuard; say(`${e.name} recovers its guard`, { kind: 'recover', on: e.id }); }
+      }
+      if (e.poison > 0) { const d = e.poison * nt * 0.9; e.hp -= d; if (d > 0.5) pop('tick', e.id, Math.round(d)); }
+      HEX.forEach(k => { if (e.el[k] > 0) e.el[k] = Math.max(0, e.el[k] - nt * M.decay); });
+    });
+    // weight accrues to anyone who did not just act
+    live().forEach(a => { if (a !== nx) a.weight = Math.min(a.u.wtCap || 10, a.weight + 0.35); });
+    nx.av -= 100;
+    const before = S.log.length;
+    S.fx = [];
+    S.actorId = nx.id;
+    S.targetId = null;
+
+    if (nx.side === 'foe') {
+      nx.acted++;
+      if (nx.frozen > 0) { nx.frozen--; say(`${nx.name} is locked in place`); }
+      else {
+        if (nx.u.trait?.regen) nx.guard = Math.min(nx.maxGuard, nx.guard + nx.u.trait.regen);
+        const ce = nx.u.trait?.chargeEvery;
+        const charged = ce && nx.acted % ce === 0;
+        nx.charging = ce ? ((nx.acted + 1) % ce === 0) : false;
+        const r = chooseRule(nx, true);
+        const mult = charged ? nx.u.trait.chargeMult : 1;
+        const atk = Math.round((nx.atk || nx.u.atk) * mult);
+        if (r.a === 'skill' || r.t === 'all' || charged) {
+          const hitList = M.dmg === 'front' ? live().filter(a => exposure(a) > 0) : live();
+          hitList.forEach(a => { const v = Math.round(atk * (charged ? 0.7 : 0.55)); damageAlly(a, v, nx); pop('dmg', a.id, v, { crit: charged, from: nx.id }); });
+          say(`${nx.name} strikes ${M.dmg === 'front' ? 'the front line' : 'the whole crew'} for ${Math.round(atk * (charged ? 0.7 : 0.55))}${charged ? ' (charged)' : ''}`, { kind: 'aoe' });
+        } else {
+          const d = dead();
+          const tn = live().filter(a => a.taunt > 0);
+          let tgt;
+        if (tn.length) tgt = tn[0];
+        else {
+          const cand = live().filter(a => exposure(a) > 0);
+          const list = cand.length ? cand : live();
+          if (M.dmg === 'front') tgt = list.reduce((p, c) => exposure(c) > exposure(p) ? c : p);
+          else {
+            const tot = list.reduce((s2, a) => s2 + exposure(a), 0);
+            let pick2 = rand() * tot;
+            tgt = list[0];
+            for (const a of list) { pick2 -= exposure(a); if (pick2 <= 0) { tgt = a; break; } }
+          }
+        }
+          damageAlly(tgt, atk, nx);
+          pop('dmg', tgt.id, atk, { from: nx.id });
+          S.targetId = tgt.id;
+          say(`${nx.name} hits ${tgt.name} for ${atk}`, { on: tgt.id });
+        }
+        // interrupt trait
+        if (nx.charging) live().forEach(a => {
+          if (a.u.trait?.on === 'charging') { runFx(a, { fx: a.u.trait.fx }, nx); say(`${a.name} interrupts`, { kind: 'trait' }); }
+        });
+      }
+    } else {
+      nx.acted++;
+      nx.taunt = Math.max(0, nx.taunt - 1);
+      const r = chooseRule(nx, false);
+      const tgt = pick(r.t, nx);
+      if (tgt) S.targetId = tgt.id;
+      let broke = null;
+      if (r.a === 'hold') { say(`${nx.name} waits — ${r.l} (weight ${nx.weight.toFixed(1)})`, { kind: 'hold' }); nx.lastBasic = false; }
+      else {
+        const ab = nx.u[r.a];
+        if (r.a === 'skill') S.sp -= (ab.cost || 1);
+        if (r.a === 'ult') nx.energy = 0;
+        say(`${nx.name} — ${r.l} → ${r.a}`, { kind: 'rule' });
+        broke = runFx(nx, ab, tgt);
+        nx.lastBasic = (r.a === 'basic');
+        if (r.a !== 'basic') nx.momentum = 0;
+      }
+      // energy gain
+      const fills = nx.u.ult?.fills;
+      if (fills === 'self') nx.energy = Math.min(100, nx.energy + 22);
+      else if (fills === 'ownBasic' && nx.lastBasic) nx.energy = Math.min(100, nx.energy + 30);
+      else if (fills === 'weight') nx.energy = Math.min(100, nx.energy + nx.weight * 5);
+      else nx.energy = Math.min(100, nx.energy + 12);
+      if (broke) onBreak(broke, nx);
+    }
+
+    const kills = enemies.filter(e => e.hp <= 0 && !e.logged);
+    kills.forEach(e => { e.logged = true; });
+    if (kills.length) say(kills.map(e => e.name).join(', ') + ' destroyed', { kind: 'kill' });
+
+    // pull the queue forward as the field opens up
+    if (foes().length < FIELD_CAP && queue.length) {
+      const n = fillField(true);
+      if (n.length) say(n.join(', ') + ' steps forward', { kind: 'spawn' });
+    }
+    // next wave when the field and the queue are both empty
+    if (!foes().length && !queue.length && waveNo < enc.waves.length) {
+      loadWave(waveNo);
+      const n = fillField(true);
+      say(`Wave ${waveNo} of ${enc.waves.length} — ${n.join(', ')}`, { kind: 'wave' });
+    }
+
+    if (!foes().length && !queue.length && waveNo >= enc.waves.length) { S.over = true; S.win = true; say('Encounter cleared', { kind: 'win' }); }
+    else if (!live().length) { S.over = true; say('Crew lost', { kind: 'lose' }); }
+
+    return S.log.slice(before);
+  }
+
+  function damageAlly(a, amount, from) {
+    let d = amount;
+    if (a.shield > 0) { const absorbed = Math.min(a.shield, d); a.shield -= absorbed; d -= absorbed; }
+    if (M.dmg === 'pool') {
+      S.pool -= d;
+      if (S.pool <= 0) allies.forEach(x => { x.hp = 0; });
+      else allies.forEach(x => { x.hp = Math.max(1, Math.round(x.max * (S.pool / S.poolMax))); });
+    } else a.hp -= d;
+    live().forEach(x => {
+      if (x.u.trait?.on === 'allyHit') runFx(x, { fx: x.u.trait.fx }, from);
+    });
+    if (from.u.ult) { /* enemies do not build energy */ }
+    live().forEach(x => { if (x.u.ult?.fills === 'hit') x.energy = Math.min(100, x.energy + 9); });
+  }
+
+  function order(n) {
+    const c = [...live(), ...foes()].map(x => ({ id: x.id, name: x.name, side: x.side, av: x.av, spd: x.spd }));
+    const out = [];
+    for (let k = 0; k < n && c.length; k++) {
+      let b = c[0], bt = (100 - b.av) / b.spd;
+      for (const x of c) { const t = (100 - x.av) / x.spd; if (t < bt) { bt = t; b = x; } }
+      c.forEach(x => x.av += x.spd * bt);
+      b.av -= 100;
+      out.push({ id: b.id, name: b.name, side: b.side });
+    }
+    return out;
+  }
+
+  return { S, step, order, exposure };
+}
+
+const ENHANCE = {
+  Lattice: [
+    { n:'Buttressed',   d:'skill shields for 110 instead of 70',        f:u => { u.skill.fx[0].v = 110; } },
+    { n:'Wide Aegis',   d:'skill also shields a second ally',           f:u => { u.skill.fx.push({ k:'shieldAll', v:35 }); } },
+    { n:'Load-Bearing', d:'ultimate also strips 40 guard from all',     f:u => { u.ult.fx.push({ k:'guard', v:40 }); } },
+  ],
+  Plumb: [
+    { n:'True Measure', d:'fixed strike rises to 115',                   f:u => { u.skill.fx[0].v = 115; } },
+    { n:'Double Entry', d:'basic returns two skill points',              f:u => { u.basic.fx[2].v = 2; } },
+    { n:'Reckoning',    d:'ultimate counts Order at double',             f:u => { u.ult.fx[0].v = 44; } },
+  ],
+  Ricochet: [
+    { n:'Rebound',      d:'the follow-up applies 4 Chaos',               f:u => { u.trait.fx[1].v = 4; } },
+    { n:'Third Shot',   d:'skill strikes a third time',                  f:u => { u.skill.fx.splice(2, 0, { k:'hit', v:20 }); } },
+    { n:'Overpressure', d:'follow-up damage rises to 40',                f:u => { u.trait.fx[0].v = 40; } },
+  ],
+  Backlash: [
+    { n:'Barbed',       d:'marks the attacker with 2 Chaos',             f:u => { u.trait.fx[0].v = 2; } },
+    { n:'Bracing',      d:'taunt also shields for 90',                   f:u => { u.skill.fx[1].v = 90; } },
+    { n:'Spite',        d:'ultimate floods 5 Chaos instead of 3',        f:u => { u.ult.fx[0].v = 5; } },
+  ],
+  Piston: [
+    { n:'Flywheel',     d:'momentum caps at nine instead of six',        f:u => { u.momCap = 9; } },
+    { n:'Bore',         d:'basic damage rises to 22',                    f:u => { u.basic.fx[0].v = 22; } },
+    { n:'Blowdown',     d:'spending momentum hits for 46 per stack',     f:u => { u.skill.fx[0].v = 46; } },
+  ],
+  Piledriver: [
+    { n:'Counterweight',d:'skill strips 48 guard',                       f:u => { u.skill.fx[0].v = 48; } },
+    { n:'Percussion',   d:'basic strips 22 guard',                       f:u => { u.basic.fx[0].v = 22; } },
+    { n:'Seismic',      d:'ultimate seeds 6 Energy on the break',        f:u => { u.ult.fx[1].v = 6; } },
+  ],
+  Trellis: [
+    { n:'Rootbound',    d:'skill applies 6 Growth',                      f:u => { u.skill.fx[0].v = 6; } },
+    { n:'Canopy',       d:'ultimate floods 5 Growth',                    f:u => { u.ult.fx[0].v = 5; } },
+    { n:'Seeded',       d:'basic applies 2 Growth',                      f:u => { u.basic.fx[1].v = 2; } },
+  ],
+  Salve: [
+    { n:'Deep Mend',    d:'skill heals for 130',                         f:u => { u.skill.fx[0].v = 130; } },
+    { n:'Triage',       d:'ultimate heals the crew for 110',             f:u => { u.ult.fx[0].v = 110; } },
+    { n:'Bitter Draught',d:'skill also applies 3 Decay',                 f:u => { u.skill.fx[1].v = 3; } },
+  ],
+  Hush: [
+    { n:'Long Silence', d:'the interrupt delays by 70',                  f:u => { u.trait.fx[1].v = 70; } },
+    { n:'Smothering',   d:'skill applies 5 Void',                        f:u => { u.skill.fx[0].v = 5; } },
+    { n:'Full Stop',    d:'ultimate delays everything by 95',            f:u => { u.ult.fx[1].v = 95; } },
+  ],
+  Toll: [
+    { n:'Ballast',      d:'weight caps at fifteen instead of ten',       f:u => { u.wtCap = 15; } },
+    { n:'Dead Drop',    d:'basic hits for 13 per point of weight',       f:u => { u.basic.fx[0].v = 13; } },
+    { n:'Longer Fuse',  d:'holds until weight reaches eight',            f:u => { u.rules[1].c = s => s.self.weight < 8; } },
+  ],
+};
+
+Object.assign(ENHANCE, {
+  Cinder:     [{n:'Kindled',d:'skill applies 5 Chaos',f:u=>{u.skill.fx[1].v=5}},
+               {n:'Hot Iron',d:'skill hits for 48',f:u=>{u.skill.fx[0].v=48}},
+               {n:'Wildfire',d:'ultimate floods 5 Chaos',f:u=>{u.ult.fx[0].v=5}}],
+  Gantry:     [{n:'Girder',d:'skill shields everyone for 65',f:u=>{u.skill.fx[0].v=65}},
+               {n:'Overseer',d:'basic returns three points',f:u=>{u.basic.fx[2].v=3}},
+               {n:'Keystone',d:'ultimate shields for 125',f:u=>{u.ult.fx[0].v=125}}],
+  Bloom:      [{n:'Verdant',d:'skill heals the crew for 68',f:u=>{u.skill.fx[0].v=68}},
+               {n:'Rooted',d:'skill applies 4 Growth',f:u=>{u.skill.fx[1].v=4}},
+               {n:'Florescence',d:'ultimate heals for 150',f:u=>{u.ult.fx[0].v=150}}],
+  Rime:       [{n:'Hoarfrost',d:'skill delays by 52',f:u=>{u.skill.fx[1].v=52}},
+               {n:'Deepfreeze',d:'skill applies 5 Decay',f:u=>{u.skill.fx[0].v=5}},
+               {n:'Whiteout',d:'ultimate delays everything by 85',f:u=>{u.ult.fx[1].v=85}}],
+  Arclight:   [{n:'Afterflash',d:'the follow-up hits for 34',f:u=>{u.trait.fx[0].v=34}},
+               {n:'Conductor',d:'the follow-up applies 3 Energy',f:u=>{u.trait.fx[1].v=3}},
+               {n:'Chain',d:'skill hits twice',f:u=>{u.skill.fx.splice(1,0,{k:'hit',v:30})}}],
+  Cairnstone: [{n:'Bedrock',d:'skill shields for 105',f:u=>{u.skill.fx[1].v=105}},
+               {n:'Immovable',d:'taunt lasts seven turns',f:u=>{u.skill.fx[0].v=7}},
+               {n:'Monolith',d:'ultimate shields everyone for 120',f:u=>{u.ult.fx[0].v=120}}],
+  Wisp:       [{n:'Flicker',d:'basic returns three points',f:u=>{u.basic.fx[2].v=3}},
+               {n:'Fading',d:'skill applies 5 Void',f:u=>{u.skill.fx[0].v=5}},
+               {n:'Vanishing',d:'ultimate delays everything by 60',f:u=>{u.ult.fx[1].v=60}}],
+  Grist:      [{n:'Millstone',d:'basic hits for 29',f:u=>{u.basic.fx[0].v=29}},
+               {n:'Grinding',d:'skill hits three times',f:u=>{u.skill.fx.push({k:'hit',v:26})}},
+               {n:'Harvest',d:'ultimate hits for 60',f:u=>{u.ult.fx[0].v=60}}],
+});
+
+const ATTRS = {
+  Kindling:      { d: 'reactions land one rung higher',      m: { rung: 1 } },
+  'Deep Reserve':{ d: 'skill point cap +2, start with 5',    m: { spMax: 7, spStart: 5 } },
+  Insistence:    { d: 'any below-average roll is rerolled',  m: { insist: true } },
+  'Ferrous Core':{ d: 'guard damage +45%',                   m: { guard: 1.45 } },
+  Saturation:    { d: 'every element application is +1',     m: { el: 1 } },
+  Quickstart:    { d: 'the crew begins at 40 action value',  m: { startAv: 40 } },
+  'Long Fuse':   { d: 'elements decay far more slowly',      m: { decay: 0.06 } },
+  Overcharge:    { d: 'ultimates begin at 40 energy',        m: { energy: 40 } },
+};
+const PLANETS = {
+  Cairn:      { d: 'dense Order plating · swarming natives', tiles: ['Forge','None','Ridge','Forge','None','Crucible'], enc: { fight: 'Skirmish', elite: 'Vanguard', boss: 'Warband' } },
+  'The Anvil':{ d: 'aggressive ground · one enormous native', tiles: ['Crucible','Vent','None','Forge','Vent','None'], enc: { fight: 'Skirmish', elite: 'Vanguard', boss: 'Colossus' } },
+  Quietus:    { d: 'bare rock, no help from the ground',      tiles: ['None','None','None','None','None','None'], enc: { fight: 'Skirmish', elite: 'Vanguard', boss: 'Colossus' } },
+};
+/* Hulls. Layouts run rear → front. Every hull has twelve berths, so the choice
+   is purely about shape and the order berths open in. Row bonuses interpolate
+   by position, so a wide rear is a detonation ship and a wide front is a
+   breaking ship. */
+/* Row bands. 'front' units may stand in the front half of the hull, 'rear' units
+   in the rear half, 'any' anywhere. With three ranks the middle is shared. */
+const BANDS = { front: 'front half only', rear: 'rear half only', any: 'anywhere' };
+
+/* Every berth is open from the first jump. What limits you is reactor output —
+   how many of the crew the ship can keep awake at once. */
+const HULLS = {
+  Trident:   { layout: [4, 4, 4], power: 0,
+               d: 'even thirds — no strong pull in any direction' },
+  Bastion:   { layout: [3, 3, 6], power: 0,
+               d: 'broad front — heavy guard damage, most of the crew exposed' },
+  Reliquary: { layout: [6, 3, 3], power: 0,
+               d: 'broad rear — big payout multipliers, thin line up front' },
+  Spindle:   { layout: [2, 8, 2], power: 0,
+               d: 'everything amidships — the eight-wide waist takes anyone' },
+  Kite:      { layout: [5, 2, 5], power: 1,
+               d: 'barbell — strong at both ends, and a little spare output' },
+  Lance:     { layout: [12], power: 2,
+               d: 'one open deck — surplus output, but no rear berths at all' },
+};
+const FORMATIONS = HULLS;
+const DMG_MODELS = {
+  exposure: 'everyone can be hit, rear rows less often',
+  front:    'only the frontmost living row can be hit at all',
+  pool:     'one shared health pool, position affects output only',
+};
+
+
+</script>
+<script>
+var SIDES = { Order:3, Void:4, Decay:5, Growth:6, Chaos:7, Energy:8 };
+var COST = { Lattice:5, Plumb:5, Ricochet:6, Backlash:4, Piston:6, Piledriver:5, Trellis:4, Salve:4, Hush:5, Toll:6 };
+/* Crew capacity is the progression. Slots open front-to-back as the ship's
+   berths are cleared, so early fights are a thin front line. */
+/* Rows run rear → front in index order. Berths open from the front backwards. */
+function slotsOf(layout){ return layout.reduce(function(a,b){ return a+b; }, 0); }
+function rowsOf(layout){
+  var out = [], c = 0;
+  layout.forEach(function(w){ out.push([]); for (var i=0;i<w;i++) out[out.length-1].push(c+i); c += w; });
+  return out;
+}
+function orderOf(layout, strategy){
+  var rows = rowsOf(layout), out = [], r;
+  if (strategy === 'rear'){
+    for (r = 0; r < rows.length; r++) out = out.concat(rows[r]);
+  } else if (strategy === 'middle'){
+    var mid = Math.floor(rows.length / 2), seq = [mid];
+    for (var d = 1; d < rows.length; d++){
+      if (mid + d < rows.length) seq.push(mid + d);
+      if (mid - d >= 0) seq.push(mid - d);
+    }
+    seq.forEach(function(i){ out = out.concat(rows[i]); });
+  } else if (strategy === 'spread'){
+    var max = Math.max.apply(null, rows.map(function(x){ return x.length; }));
+    for (var c = 0; c < max; c++)
+      for (r = rows.length - 1; r >= 0; r--) if (rows[r][c] !== undefined) out.push(rows[r][c]);
+  } else {
+    for (r = rows.length - 1; r >= 0; r--) out = out.concat(rows[r]);
+  }
+  return out;
+}
+var ODDS = [[70,25,5],[58,30,12],[46,34,20],[36,36,28],[28,36,36],[22,36,42],[18,36,46],[15,35,50]];
+function levelsFor(layout){
+  var n = slotsOf(layout);
+  var L = Math.min(8, Math.max(2, n - 2));          // never more than eight ranks of berth
+  var out = [];
+  for (var i = 0; i < L; i++){
+    var cap = Math.round(3 + (n - 3) * i / (L - 1));
+    out.push({ cap: cap, next: i === L - 1 ? null : 5 + Math.round(i * 1.5), odds: ODDS[Math.min(i, ODDS.length - 1)] });
+  }
+  return out;
+}
+var SLOT_ORDER = [], LEVELS = [];
+var XP = { reward: 2, fight: 3, elite: 4, boss: 6, attribute: 2 };
+var TIER = { 4: 0, 5: 1, 6: 2 };   // cost → rarity band
+var RANK = [
+  { hp: 1.00, pow: 1.00 },
+  { hp: 1.18, pow: 1.16 },
+  { hp: 1.38, pow: 1.34 },
+  { hp: 1.60, pow: 1.55 },
+];
+var CRYSTAL_COST = 5, PRISM_COST = 9;
+/* Ranking costs more crystals each time, so nobody is maxed out in act one. */
+var RANK_COST = [1, 2, 3];
+function rankCost(n){ return RANK_COST[rankOf(n)] || 99; }
+function stoneCount(e){ return RUN.stones[e] || 0; }
+/* Enemies grow across the voyage, which is what makes ranking up necessary. */
+function actOf(stop){ return stop < 5 ? 0 : stop < 8 ? 1 : 2; }
+var ACT_SCALE = [ { foeHp: 0.70, foeAtk: 0.76 }, { foeHp: 1.05, foeAtk: 1.00 }, { foeHp: 1.50, foeAtk: 1.28 } ];
+
+var MAP = [
+  ['reward'], ['reward'],
+  ['fight','elite'], ['fight','attribute'], ['boss'],
+  ['fight','elite'], ['fight','attribute'], ['boss'],
+  ['elite','fight'], ['attribute'], ['boss'],
+];
+var NODEDESC = {
+  reward:{ t:'Salvage', d:'Strip the wreck for gold. Sometimes plating. Rarely, a refit.' },
+  fight:{ t:'Skirmish', d:'A light engagement. Gold on victory.' },
+  elite:{ t:'Vanguard', d:'Harder. More gold, and deck plating.' },
+  attribute:{ t:'Refit', d:'The ship learns something. Pick one of three.' },
+  boss:{ t:'Descent', d:'The planet answers. Act gate.' },
+};
+
+var $ = function(id){ return document.getElementById(id); };
+var RUN = null, F = null, timer = null, sel = null, seedC = 1;
+var TEST = { dmg: 'exposure', showAll: false };
+var HULL_OFFER = null;
+var SPEED = 'auto';   // persists across fights
+var POPS = [], POPMS = 2400;
+
+/* ---------------------------------------------------------------- helpers */
+function stop(){ if (timer){ clearTimeout(timer); timer = null; } }
+function rowFrac(i){
+  var rows = rowsOf(RUN.layout);
+  if (rows.length === 1) return 1;
+  for (var r = 0; r < rows.length; r++) if (rows[r].indexOf(i) >= 0) return r / (rows.length - 1);
+  return 0;
+}
+function canPlace(name, i){
+  if (!name) return true;
+  var band = UNITS[name].rows;
+  if (band === 'any') return true;
+  var f = rowFrac(i);
+  return band === 'front' ? f >= 0.5 : f <= 0.5;
+}
+function legalSlots(name){
+  return openSlots().filter(function(i){ return canPlace(name, i); });
+}
+function bandLabel(name){
+  var b = UNITS[name].rows;
+  return b === 'front' ? 'front half' : b === 'rear' ? 'rear half' : 'any rank';
+}
+function powerCap(){ return lvl().cap + (HULLS[RUN.hull].power || 0); }
+function frontMin(){ return Math.max(1, Math.ceil(powerCap() / 3)); }
+function fielded(){ return RUN.field.filter(Boolean).length; }
+function frontHalf(){
+  return RUN.field.filter(function(n, i){ return n && rowFrac(i) >= 0.5; }).length;
+}
+function crewReady(){ return fielded() > 0 && frontHalf() >= Math.min(frontMin(), fielded()); }
+/* The interface tightens as the ship fills. Early on you are learning who these
+   people are, so cards are roomy. Later you know them and only care where they
+   stand, so they compress. The fight view runs one step tighter than the yard. */
+function density(step){
+  var c = powerCap() + (step || 0);
+  return c <= 4 ? 'roomy' : c <= 8 ? 'normal' : 'tight';
+}
+function rosterCap(){ return Math.min(Object.keys(UNITS).length, slotsOf(RUN.layout) + 2); }
+function lvl(){ return LEVELS[Math.min(RUN.level, LEVELS.length - 1)]; }
+function slotOpen(i){ return true; }   // all berths open; output is the limit
+function openSlots(){ return RUN.field.map(function(_, i){ return i; }); }
+function fieldForFight(){ return RUN.field.slice(); }
+function gainXp(n){
+  RUN.xp += n;
+  while (lvl().next !== null && RUN.xp >= lvl().next){
+    RUN.xp -= lvl().next; RUN.level++;
+    RUN.levelledTo = lvl().cap;
+  }
+}
+function mods(){
+  var m = Object.assign({ layout: RUN.layout, dmg: RUN.dmg }, ACT_SCALE[actOf(RUN.stop)]);
+  // a wider crew meets a wider enemy — otherwise big formations trivialise everything
+  var n = slotsOf(RUN.layout), k = n / 6;
+  m.foeHp  = (m.foeHp  || 1) * (0.55 + 0.45 * k);
+  m.foeAtk = (m.foeAtk || 1) * (0.75 + 0.25 * k);
+  m.capBonus = Math.max(0, Math.floor((n - 6) / 3));
+  RUN.attrs.forEach(function(a){ Object.assign(m, ATTRS[a].m); });
+  return m;
+}
+function rankOf(n){ return (RUN.ranks[n] && RUN.ranks[n].r) || 0; }
+function enhOf(n){ return (RUN.ranks[n] && RUN.ranks[n].e) || []; }
+function unitFor(n){
+  var base = UNITS[n];
+  var u = Object.assign({}, base);
+  u.basic = JSON.parse(JSON.stringify(base.basic));
+  u.skill = JSON.parse(JSON.stringify(base.skill));
+  u.ult   = JSON.parse(JSON.stringify(base.ult));
+  if (base.trait) u.trait = JSON.parse(JSON.stringify(base.trait));
+  u.rules = base.rules.map(function(r){ return { l:r.l, c:r.c, a:r.a, t:r.t }; });
+  var r = RANK[rankOf(n)];
+  u.hp = Math.round(base.hp * r.hp);
+  u.pow = r.pow;
+  enhOf(n).forEach(function(name){
+    var e = (ENHANCE[n] || []).filter(function(x){ return x.n === name; })[0];
+    if (e) e.f(u);
+  });
+  return u;
+}
+function book(){
+  var b = {};
+  roster().forEach(function(n){ b[n] = unitFor(n); });
+  return b;
+}
+function roster(){ return RUN.field.filter(Boolean).concat(RUN.bench); }
+function owns(n){ return roster().indexOf(n) >= 0; }
+function polygon(sides, r, cx, cy){
+  var p = [];
+  for (var i = 0; i < sides; i++){ var a = -Math.PI/2 + i*2*Math.PI/sides;
+    p.push((cx + r*Math.cos(a)).toFixed(1) + ',' + (cy + r*Math.sin(a)).toFixed(1)); }
+  return p.join(' ');
+}
+function sigil(el){
+  var present = HEX.filter(function(k){ return el[k] > 0.4; });
+  var s = '<svg width="52" height="52" viewBox="0 0 52 52" aria-hidden="true">';
+  present.forEach(function(k){
+    var amt = Math.min(1, el[k]/12), r = 8 + amt*16;
+    s += '<polygon points="'+polygon(SIDES[k], r, 26, 26)+'" fill="none" stroke="var(--'+k+')" stroke-width="1.5" opacity="'+(0.45+amt*0.55).toFixed(2)+'"/>';
+  });
+  return s + '</svg>';
+}
+
+/* ------------------------------------------------------- character cards */
+function describe(fx, el){
+  return fx.map(function(f){
+    switch (f.k){
+      case 'hit':           return f.noBuff ? 'deals exactly ' + f.v + ' damage, unaffected by anything' : 'deals ' + f.v + ' damage';
+      case 'hitMomentum':   return 'deals ' + f.v + ' damage, +22% per Momentum';
+      case 'spendMomentum': return 'spends all Momentum for ' + f.v + ' damage, doubled per stack';
+      case 'hitWeight':     return 'deals ' + f.v + ' damage per point of Weight, then sheds it';
+      case 'hitWeightAll':  return 'hits every enemy for ' + f.v + ' per point of Weight';
+      case 'hitPerElement': return 'deals ' + f.v + ' per point of ' + f.el + ' anywhere on the field';
+      case 'guard':         return f.v > 900 ? 'shatters guard outright' : 'strips ' + f.v + ' guard';
+      case 'apply':         return 'applies ' + f.v + ' ' + el;
+      case 'applyWeight':   return 'applies ' + el + ' equal to Weight';
+      case 'applyAll':      return 'applies ' + f.v + ' ' + el + ' to every enemy';
+      case 'applyAttacker': return 'applies ' + f.v + ' ' + el + ' to whoever struck';
+      case 'sp':            return 'returns ' + f.v + ' skill point';
+      case 'heal':          return 'heals the weakest ally ' + f.v;
+      case 'healAll':       return 'heals the whole crew ' + f.v;
+      case 'shield':        return 'shields the most exposed ally for ' + f.v;
+      case 'shieldAll':     return 'shields everyone for ' + f.v;
+      case 'taunt':         return 'draws fire for ' + f.v + ' turns';
+      case 'momentum':      return 'builds Momentum';
+      case 'delay':         return 'pushes the target ' + f.v + ' down the track';
+      case 'delayAll':      return 'pushes every enemy ' + f.v + ' down the track';
+      default: return f.k;
+    }
+  }).join(' · ');
+}
+var TRIGWORD = { break:'anything breaks', allyHit:'an ally is struck', charging:'an enemy begins charging', passive:'always, quietly', ownTurn:'its own turn' };
+var FILLWORD = { self:'acting', break:'enemies breaking', ownBasic:'its own basic attacks', weight:'accumulated Weight', hit:'the crew taking hits', allyHurt:'allies being wounded' };
+
+function cardHtml(n, buy){
+  var owned = owns(n);
+  var u = owned ? unitFor(n) : UNITS[n];
+  var rk = rankOf(n), en = enhOf(n);
+  var rx = HEX.filter(function(k){ return k !== u.el; }).map(function(k){
+    var rel = relation(u.el, k), r = REACTIONS[[u.el,k].sort().join('+')];
+    var word = rel === 'adjacent' ? 'fuses easily' : rel === 'distant' ? 'resonates slowly' : 'annihilates';
+    return '<div class="rx"><span>with <b>'+k+'</b></span><span><b>'+r.name+'</b> <span class="kd">'+word+'</span></span></div>';
+  }).join('');
+
+  var abil = '';
+  if (u.trait) abil += '<div class="ab tr"><div class="an"><span>Trait</span><span class="ac">on '+(TRIGWORD[u.trait.on]||u.trait.on)+'</span></div>'
+    + '<div class="ad">'+(u.trait.fx ? describe(u.trait.fx, u.el) + (u.trait.free ? ' · does not cost its turn' : '') : 'shapes how it fights rather than acting')+'</div></div>';
+  abil += '<div class="ab"><div class="an"><span>Basic</span><span class="ac">free</span></div><div class="ad">'+describe(u.basic.fx, u.el)+'</div></div>';
+  abil += '<div class="ab"><div class="an"><span>Skill</span><span class="ac">'+(u.skill.cost||1)+' point</span></div><div class="ad">'+describe(u.skill.fx, u.el)+'</div></div>';
+  abil += '<div class="ab"><div class="an"><span>Ultimate</span><span class="ac">100 energy · from '+(FILLWORD[u.ult.fills]||u.ult.fills)+'</span></div><div class="ad">'+describe(u.ult.fx, u.el)+'</div></div>';
+
+  var rules = u.rules.map(function(r,i){
+    return '<div class="rl">'+(i+1)+'. if <b>'+r.l+'</b> → '+r.a+(r.t?' · '+r.t:'')+'</div>'; }).join('');
+
+  return '<div class="veil" id="veil"><div class="card" onclick="event.stopPropagation()">'
+    + '<h2>'+n+'<span style="color:var(--'+u.el+')">'+u.el+'</span></h2>'
+    + '<p class="tagline">'+u.role+' · '+u.trig+' · '+u.fac+' · '+bandLabel(n)
+      + (owned ? ' · rank '+(rk+1)+' of 4' : '')+'</p>'
+    + '<p class="quote">'+u.note+'</p>'
+    + '<div class="sect">Attributes</div><div class="statgrid">'
+      + '<div class="stat"><b>'+u.hp+'</b><span>health</span></div>'
+      + '<div class="stat"><b>'+u.spd+'</b><span>speed</span></div>'
+      + '<div class="stat"><b>'+u.v+'</b><span>variance</span></div>'
+      + '<div class="stat"><b>'+(owned ? '×'+u.pow.toFixed(2) : COST[n]+'g')+'</b><span>'+(owned?'output':'hire')+'</span></div></div>'
+    + (en.length ? '<div class="sect">Enhancements</div>' + en.map(function(x){
+        var e = (ENHANCE[n]||[]).filter(function(y){return y.n===x})[0];
+        return '<div class="rx"><span><b>'+x+'</b></span><span class="kd">'+(e?e.d:'')+'</span></div>'; }).join('') : '')
+    + '<div class="sect">Abilities</div>'+abil
+    + '<div class="sect">How it behaves</div>'+rules
+    + '<div class="sect">'+u.el+' on the wheel</div>'+rx
+    + '<div class="ctl" style="margin-top:16px">'
+      + (buy ? '<button class="primary" id="cardbuy">Hire for '+COST[n]+'g</button>' : '')
+      + '<button id="cardclose">Close</button></div>'
+    + '</div></div>';
+}
+function openCard(n, buy, onBuy){
+  var d = document.createElement('div');
+  d.innerHTML = cardHtml(n, buy);
+  document.body.appendChild(d.firstChild);
+  var v = $('veil');
+  v.onclick = closeCard;
+  $('cardclose').onclick = closeCard;
+  if (buy && $('cardbuy')) $('cardbuy').onclick = function(){ closeCard(); onBuy(); };
+}
+function closeCard(){ var v = $('veil'); if (v) v.remove(); }
+function wireInfo(){
+  Array.prototype.forEach.call(document.querySelectorAll('[data-info]'), function(b){
+    b.onclick = function(ev){
+      ev.stopPropagation(); ev.preventDefault();
+      var n = b.dataset.info;
+      var inShop = RUN && RUN.shop && RUN.shop.indexOf(n) >= 0;
+      var can = inShop && RUN.gold >= COST[n] && roster().length < rosterCap();
+      openCard(n, can, function(){
+        RUN.gold -= COST[n]; take(n); RUN.shop.splice(RUN.shop.indexOf(n), 1);
+        flash(n + ' comes aboard'); screenStore();
+      });
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ start */
+function screenPlanets(){
+  $('strip').className = 'strip hide';
+  $('abandon').className = 'hide';
+  $('stitle').textContent = 'SELECT A DESTINATION';
+  if (!HULL_OFFER) rollHulls();
+  var offer = TEST.showAll ? Object.keys(HULLS) : HULL_OFFER;
+  $('screen').innerHTML = '<div class="panel"><p class="lab"><span>Available hulls</span>'
+      + '<em>twelve berths either way — the shape is the choice</em></p><div class="opts">'
+      + offer.map(function(k){
+          var hl = HULLS[k];
+          return '<button class="opt'+(TEST.hull===k?' picked':'')+'" data-h="'+k+'"><b>'+k+'</b>'
+            + '<span class="meta">'+hl.d+'</span>'
+            + '<span class="meta" style="margin-top:5px">'+hullDiagram(hl.layout)+'</span>'
+            + '<span class="meta" style="margin-top:4px">'+bandSplit(hl.layout)+'</span>'
+            + '<span class="meta">'+(hl.power ? '+'+hl.power+' reactor output' : 'standard output')+'</span></button>';
+        }).join('') + '</div>'
+      + '<div class="ctl" style="margin-top:10px">'
+        + '<button id="rehull">Different hulls</button>'
+        + '<button id="allhull">'+(TEST.showAll?'Offer three':'Show every hull')+'</button>'
+        + '<select id="dmg">'
+          + Object.keys(DMG_MODELS).map(function(k){
+              return '<option value="'+k+'"'+(k===TEST.dmg?' selected':'')+'>'+k+' — '+DMG_MODELS[k]+'</option>'; }).join('')
+        + '</select></div></div>'
+    + '<div class="panel"><p class="lab"><span>Destinations</span>'
+    + '<em>the planet sets your deck plating and what lives there</em></p><div class="opts">'
+    + Object.keys(PLANETS).map(function(p){
+        var d = PLANETS[p];
+        return '<button class="opt" data-p="'+p+'"><b>'+p+'</b><span class="meta">'+d.d+'</span>'
+             + '<span class="meta" style="margin-top:6px">plating: '+d.tiles.map(function(t){return t==='None'?'—':t}).join(' · ')+'</span></button>';
+      }).join('') + '</div></div>';
+  $('dmg').onchange = function(e){ TEST.dmg = e.target.value; };
+  $('rehull').onclick = function(){ rollHulls(); screenPlanets(); };
+  $('allhull').onclick = function(){ TEST.showAll = !TEST.showAll; screenPlanets(); };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-h]'), function(b){
+    b.onclick = function(){ TEST.hull = b.dataset.h; screenPlanets(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-p]'), function(b){
+    b.onclick = function(){ startRun(b.dataset.p); };
+  });
+}
+function rollHulls(){
+  var pool = Object.keys(HULLS), out = [];
+  while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length), 1)[0]);
+  HULL_OFFER = out;
+  if (out.indexOf(TEST.hull) < 0) TEST.hull = out[0];
+}
+function bandSplit(layout){
+  var rows = layout.length, f = 0, r = 0, both = 0;
+  layout.forEach(function(w, i){
+    var frac = rows === 1 ? 1 : i / (rows - 1);
+    if (frac > 0.5) f += w; else if (frac < 0.5) r += w; else both += w;
+  });
+  return f + ' front-only · ' + both + ' shared · ' + r + ' rear-only';
+}
+function hullDiagram(layout){
+  return layout.slice().reverse().map(function(w, i){
+    return (i === 0 ? 'front ' : i === layout.length - 1 ? 'rear  ' : '      ') + '▮'.repeat(w);
+  }).join('<br>');
+}
+function startRun(planet){
+  if (!TEST.hull) rollHulls();
+  var hull = HULLS[TEST.hull], layout = hull.layout, n = slotsOf(layout);
+  SLOT_ORDER = orderOf(layout, 'front');
+  LEVELS = levelsFor(layout);
+  var tiles = [];
+  for (var i = 0; i < n; i++) tiles.push(PLANETS[planet].tiles[i % PLANETS[planet].tiles.length]);
+  RUN = { planet: planet, hull: TEST.hull, layout: layout, dmg: TEST.dmg, gold: 4, integrity: 20, maxIntegrity: 20,
+          field: Array(n).fill(null),
+          bench: [], tiles: tiles, attrs: [], stop: 0, haul: null, shop: null, lastResult: null, level: 0, xp: 0, ranks: {}, stones: {}, pending: null };
+  $('abandon').className = '';
+  screenMap();
+}
+
+/* -------------------------------------------------------------------- map */
+function strip(){
+  $('strip').className = 'strip';
+  var hearts = '';
+  for (var i = 0; i < RUN.maxIntegrity; i += 2) hearts += (RUN.integrity > i ? '▮' : '▯');
+  $('strip').innerHTML =
+      '<span class="pill">'+RUN.hull+' · '+RUN.planet+' · '+RUN.dmg+'</span>'
+    + '<span class="pill hull">hull <b><i>'+hearts+'</i></b> '+RUN.integrity+'/'+RUN.maxIntegrity+'</span>'
+    + '<span class="pill">gold <b>'+RUN.gold+'</b></span>'
+    + '<span class="pill">berths <b>'+lvl().cap+'</b> · crew '+roster().length+'/8</span>'
+    + '<span class="pill">level <b>'+(RUN.level+1)+'</b>'+(lvl().next!==null ? ' · xp '+RUN.xp+'/'+lvl().next : ' · max')+'</span>'
+    + (HEX.filter(function(e){return stoneCount(e)>0}).length
+        ? '<span class="pill">hold ' + HEX.filter(function(e){return stoneCount(e)>0})
+            .map(function(e){ return e.slice(0,2)+'×'+stoneCount(e); }).join(' ') + '</span>' : '')
+    + (RUN.attrs.length ? '<span class="pill">refits: '+RUN.attrs.join(' · ')+'</span>' : '');
+}
+function track(){
+  return '<div class="track">' + MAP.map(function(o, i){
+    var cls = i < RUN.stop ? 'done' : (i === RUN.stop ? 'now' : '');
+    return '<span class="tnode '+cls+'">'+(o.length>1 ? '◇' : NODEDESC[o[0]].t.slice(0,4))+'</span>';
+  }).join('') + '</div>';
+}
+function screenMap(){
+  stop(); F = null; strip();
+  if (RUN.integrity <= 0) return screenEnd(false);
+  if (RUN.stop >= MAP.length) return screenEnd(true);
+  $('stitle').textContent = 'STOP ' + (RUN.stop + 1) + ' OF ' + MAP.length;
+  var opts = MAP[RUN.stop];
+  $('screen').innerHTML = track() + '<div class="panel"><p class="lab"><span>Course</span>'
+    + '<em>' + (opts.length > 1 ? 'choose one' : 'the only way on') + '</em></p><div class="opts">'
+    + opts.map(function(o){ return '<button class="opt" data-n="'+o+'"><b>'+NODEDESC[o].t+'</b><span class="meta">'+NODEDESC[o].d+'</span></button>'; }).join('')
+    + '</div></div>' + crewPanel(false);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-n]'), function(b){
+    b.onclick = function(){ enter(b.dataset.n); };
+  });
+  wireSlots();
+}
+function enter(kind){
+  if (kind === 'reward') return screenReward();
+  if (kind === 'store') return screenStore();
+  if (kind === 'attribute') return screenAttr();
+  return screenFight(kind);
+}
+function advance(){ RUN.stop++; screenMap(); }
+/* Currency Wars rhythm: every stop is followed by a moment at the
+   quartermaster to read the last fight and plan the next. */
+function finishNode(){ RUN.shop = null; screenStore(); }
+
+/* ----------------------------------------------------------------- crew UI */
+function crewPanel(interactive){
+  var allRows = rowsOf(RUN.layout);
+  // rows are stored rear → front; draw them front → rear so the board faces the enemy
+  var drawOrder = allRows.map(function(_, i){ return i; }).reverse();
+  var rows = drawOrder.map(function(r){
+    var idx = allRows[r];
+    return '<div class="grid" style="grid-template-columns:repeat('+idx.length+',minmax(0,1fr))">' + idx.map(function(i){
+      var n = RUN.field[i], u = n ? UNITS[n] : null;
+      if (!RUN.field[i] && fielded() >= powerCap() && sel === null)
+        return '<button class="slot locked" data-i="'+i+'"><span class="nm">unpowered</span>'
+          + '<span class="meta">'+(rowFrac(i) > 0.5 ? 'front-half berth' : rowFrac(i) < 0.5 ? 'rear-half berth' : 'takes anyone')+'</span>'
+          + '<span class="meta">no output to spare</span></button>';
+      var me = null;
+      if (F && n) for (var j=0;j<F.S.allies.length;j++) if (F.S.allies[j].name === n) me = F.S.allies[j];
+      var cls = (sel === i ? 'sel' : '') + (F && me && F.S.actorId === me.id ? ' act' : '')
+              + (F && me && F.S.targetId === me.id ? ' aim' : '');
+      var body = '<span class="nm">' + (n || '·') + '</span>';
+      if (u) body += '<span class="meta d2" style="color:var(--'+u.el+')">'+u.el.toUpperCase()+' · '+u.role.toUpperCase()+' <span class="rankpip">'+'★'.repeat(rankOf(n)+1)+'</span></span>'
+                   + '<span class="meta d3">'+bandLabel(n)+' · '+u.v+' · spd '+u.spd+'</span>'
+                   + (enhOf(n).length ? '<span class="meta d3" style="color:var(--ochre)">'+enhOf(n).join(' · ')+'</span>' : '');
+      if (me) body += '<div class="bar hp"><i style="width:'+Math.max(0,me.hp/me.max*100)+'%"></i></div>'
+                    + '<div class="num"><span>'+Math.max(0,Math.round(me.hp))+'/'+me.max+'</span><span>'+(me.shield>0?'+'+Math.round(me.shield):'')+'</span></div>'
+                    + '<div class="bar en"><i style="width:'+me.energy+'%"></i></div>'
+                    + '<div class="num"><span>energy</span><span>'+Math.round(me.energy)+'</span></div>';
+      var accepts = rowFrac(i) >= 0.5 && rowFrac(i) <= 0.5 ? 'takes anyone'
+                  : rowFrac(i) > 0.5 ? 'front-half berth' : 'rear-half berth';
+      body += '<span class="meta d3">'+accepts+' · '+RUN.tiles[i]+'</span>';
+      var illegal = sel !== null && RUN.field[sel] && !canPlace(RUN.field[sel], i);
+      if (illegal) cls += ' illegal';
+      var fx = me ? popsFor(me.id) : '';
+      return '<button class="slot hasfx '+cls+(n?'':' vacant')+'" data-i="'+i+'">'+fx
+        + (n ? '<span class="info" data-info="'+n+'">i</span>' : '') + body + '</button>';
+    }).join('') + '</div>' + '<p class="rowlab">' + (r === allRows.length - 1 ? 'front rank — meets the enemy'
+        : r === 0 ? 'rear rank — safest, biggest payout' : 'middle rank') + '</p>';
+  }).join('');
+  var bench = RUN.bench.length
+    ? '<p class="rowlab" style="margin-top:10px">bench</p><div class="cards">' + RUN.bench.map(function(n,k){
+        return '<button class="ucard" data-b="'+k+'"><span class="info" data-info="'+n+'">i</span>'
+          + '<span class="un">'+n+'</span><span class="meta" style="color:var(--'+UNITS[n].el+')">'+UNITS[n].el+' · '+bandLabel(n)+'</span><div class="nt">'+UNITS[n].note+'</div></button>';
+      }).join('') + '</div>' : '';
+  return '<div class="panel"><p class="lab"><span>Crew</span><em>'
+       + (interactive ? 'tap a berth, then another to swap · tap twice to stand down' : 'tap a berth to read its priority list')
+       + '</em></p><div class="crew '+density(0)+'">' + rows + '</div>' + bench + '</div>';
+}
+function wireSlots(){
+  wireInfo();
+  Array.prototype.forEach.call(document.querySelectorAll('[data-i]'), function(b){
+    b.onclick = function(){
+      var i = +b.dataset.i;
+      if (sel === i){
+        if (RUN.field[i] && roster().length <= 8){ RUN.bench.push(RUN.field[i]); RUN.field[i] = null; }
+        sel = null;
+      } else if (sel !== null){
+        var a = RUN.field[sel], b2 = RUN.field[i];
+        if (!canPlace(a, i) || !canPlace(b2, sel)){
+          flash((canPlace(a, i) ? b2 : a) + ' cannot stand there');
+          sel = null; redraw(); return;
+        }
+        RUN.field[sel] = b2; RUN.field[i] = a; sel = null;
+      } else sel = i;
+      redraw();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-b]'), function(b){
+    b.onclick = function(){
+      var k = +b.dataset.b;
+      var target = sel !== null ? sel : RUN.field.indexOf(null);
+      if (target < 0) return;
+      var out = RUN.field[target];
+      RUN.field[target] = RUN.bench[k];
+      if (out) RUN.bench[k] = out; else RUN.bench.splice(k, 1);
+      sel = null; redraw();
+    };
+  });
+}
+var redraw = function(){ screenMap(); };
+
+/* ---------------------------------------------------------------- salvage */
+var PLATING = ['Forge','Vent','Crucible','Ridge'];
+function screenReward(){
+  if (!RUN.haul){
+    var gold = 9 + Math.floor(Math.random() * 4);
+    RUN.gold += gold;
+    var haul = { gold: gold, tile: null, attr: null };
+    var r = Math.random();
+    if (r < 0.10){
+      var pool = Object.keys(ATTRS).filter(function(a){ return RUN.attrs.indexOf(a) < 0; });
+      if (pool.length) haul.attr = pool[Math.floor(Math.random()*pool.length)];
+    } else if (r < 0.45){
+      haul.tile = PLATING[Math.floor(Math.random()*PLATING.length)];
+    }
+    if (haul.attr) RUN.attrs.push(haul.attr);
+    RUN.haul = haul;
+  }
+  var h = RUN.haul;
+  strip();
+  $('stitle').textContent = 'SALVAGE';
+
+  var found = '<p style="font-size:20px;margin:0 0 4px">+' + h.gold + ' gold</p>';
+  if (h.attr) found += '<p style="font-size:17px;margin:0 0 4px;color:var(--ochre)">Refit recovered — <b>'+h.attr+'</b></p>'
+                     + '<span class="meta">'+ATTRS[h.attr].d+'</span>';
+  else if (h.tile) found += '<p style="font-size:17px;margin:0 0 4px;color:var(--ally)">Plating recovered — <b>'+h.tile+'</b></p>'
+                     + '<span class="meta">'+TILES[h.tile].d+' · choose a slot to install it</span>';
+  else found += '<span class="meta">nothing else worth carrying</span>';
+
+  $('screen').innerHTML = track()
+    + '<div class="panel"><p class="lab"><span>The wreck yields</span><em>spend it at the quartermaster</em></p>'
+    + found + '</div>'
+    + (h.tile ? platingPanel(h.tile) : '')
+    + '<div class="panel"><div class="ctl"><button class="primary" id="onward">'
+      + (h.tile ? 'Leave it and move on' : 'To the quartermaster') + '</button></div></div>';
+
+  if (h.tile){
+    Array.prototype.forEach.call(document.querySelectorAll('[data-plate]'), function(b){
+      b.onclick = function(){ RUN.tiles[+b.dataset.plate] = h.tile; RUN.haul.tile = null; screenReward(); };
+    });
+  }
+  $('onward').onclick = function(){ RUN.haul = null; gainXp(XP.reward); finishNode(); };
+}
+function platingPanel(tile){
+  return '<div class="panel"><p class="lab"><span>Install ' + tile + '</span><em>replaces whatever is there for the rest of the voyage</em></p>'
+    + rowsOf(RUN.layout).map(function(_, i){ return i; }).reverse().map(function(r){
+        var idx = rowsOf(RUN.layout)[r];
+        return '<div class="crewrow'+(idx.length>=6?' tightrow':'')+'" style="grid-template-columns:repeat('+idx.length+',minmax(0,1fr))">' + idx.map(function(i){
+          return '<button class="slot mini" data-plate="'+i+'"><span class="nm">'+(RUN.field[i]||'empty slot')+'</span>'
+               + '<span class="meta">now: '+RUN.tiles[i]+'</span>'
+               + '<span class="meta" style="color:var(--ally)">install '+tile+'</span></button>';
+        }).join('') + '</div>';
+      }).join('') + '</div>';
+}
+
+function take(n){
+  var open = legalSlots(n).filter(function(i){ return !RUN.field[i]; });
+  if (open.length && fielded() < powerCap()) RUN.field[open[0]] = n;
+  else if (roster().length < rosterCap()) RUN.bench.push(n);
+}
+
+/* ------------------------------------------------------------------ store */
+function rollStones(){
+  var out = [], els = HEX.slice();
+  var mine = roster().map(function(n){ return UNITS[n].el; });
+  // bias toward elements you actually field, but never guarantee it
+  for (var i = 0; i < 2; i++){
+    var e = (Math.random() < 0.6 && mine.length) ? mine[Math.floor(Math.random()*mine.length)]
+          : els[Math.floor(Math.random()*els.length)];
+    out.push(e);
+  }
+  RUN.stoneOffer = out;
+}
+function rollShop(){
+  rollStones();
+  var pool = Object.keys(UNITS).filter(function(n){ return !owns(n); });
+  var odds = lvl().odds, out = [];
+  while (out.length < 4 && pool.length){
+    var r = Math.random() * 100, band = r < odds[0] ? 0 : r < odds[0] + odds[1] ? 1 : 2;
+    var tries = 0, pick = null;
+    while (tries++ < 3 && pick === null){
+      var cands = pool.filter(function(n){ return TIER[COST[n]] === band; });
+      if (cands.length) pick = cands[Math.floor(Math.random()*cands.length)];
+      else band = Math.max(0, band - 1);
+    }
+    if (pick === null) pick = pool[Math.floor(Math.random()*pool.length)];
+    pool.splice(pool.indexOf(pick), 1);
+    out.push(pick);
+  }
+  RUN.shop = out;
+}
+function screenStore(){
+  if (!RUN.shop) rollShop();
+  strip();
+  var last = RUN.lastResult;
+  $('stitle').textContent = 'QUARTERMASTER' + (last ? ' — ' + last : '');
+  $('screen').innerHTML = track()
+    + (last ? '<div class="panel tight" style="padding:9px 12px"><span class="meta" style="font-size:12px">'+last+'</span>'
+        + (RUN.levelledTo ? '<div class="levelup">Reactor output rises — you can field '+(RUN.levelledTo + (HULLS[RUN.hull].power||0))+' now</div>' : '')
+        + '</div>' : '')
+    + '<div class="panel"><p class="lab"><span>Manifest</span><em>tap to hire · tap the corner to read the card first</em></p><div class="cards">'
+    + RUN.shop.map(function(n){ var u = UNITS[n], c = COST[n];
+        var blocked = RUN.gold < c || roster().length >= rosterCap();
+        return '<button class="ucard '+(blocked?'owned':'')+'" data-buy="'+n+'">'
+             + '<span class="info" data-info="'+n+'">i</span>'
+             + '<span class="un"><span>'+n+'</span><span class="cost">'+c+'g</span></span>'
+             + '<span class="meta" style="color:var(--'+u.el+')">'+u.el+' · '+u.role+' · '+bandLabel(n)+'</span>'
+             + '<div class="nt">'+u.note+'</div></button>';
+      }).join('')
+    + '</div>'
+    + '<div class="sect2">The hold</div>'
+    + '<div class="hold">' + (HEX.filter(function(e){ return stoneCount(e) > 0; }).length
+        ? HEX.filter(function(e){ return stoneCount(e) > 0; }).map(function(e){
+            return '<span class="stone" style="color:var(--'+e+')">'+e+' ×'+stoneCount(e)+'</span>'; }).join('')
+        : '<span class="meta">no crystals aboard</span>') + '</div>'
+    + forgePanel()
+    + '<div class="sect2">Primordials — bank them, then forge</div><div class="cards">'
+    + RUN.stoneOffer.map(function(e, i){
+        return '<button class="ucard'+(RUN.gold < CRYSTAL_COST ? ' owned':'')+'" data-stone="'+i+'">'
+          + '<span class="un"><span style="color:var(--'+e+')">'+e+' crystal</span><span class="cost">'+CRYSTAL_COST+'g</span></span>'
+          + '<div class="nt">banked in the hold until you forge with it</div></button>';
+      }).join('')
+    + '<button class="ucard'+(RUN.gold < PRISM_COST ? ' owned':'')+'" data-prism="1">'
+      + '<span class="un"><span>prism</span><span class="cost">'+PRISM_COST+'g</span></span>'
+      + '<div class="nt">becomes whichever element you need — the expensive way out</div></button>'
+    + '</div>'
+    + '<div class="ctl" style="margin-top:10px">'
+    + '<button id="reroll"'+(RUN.gold < 3 ? ' disabled':'')+'>Reroll (3g)</button>'
+    + '<button id="train"'+(RUN.gold < 4 || lvl().next === null ? ' disabled':'')+'>Clear a berth (4g → 4xp)</button>'
+    + '<button class="primary" id="leave"'+(crewReady()?'':' disabled')+'>Cast off</button>'
+    + '<span class="meta">'+(fielded()===0 ? 'wake someone before casting off'
+        : !crewReady() ? 'needs '+(Math.min(frontMin(),fielded()) - frontHalf())+' more in the front half'
+        : 'interest: +'+Math.min(3, Math.floor(RUN.gold/8))+'g on departure')+'</span></div></div>'
+    + crewPanel(true) + sellPanel();
+  Array.prototype.forEach.call(document.querySelectorAll('[data-buy]'), function(b){
+    b.onclick = function(){
+      var n = b.dataset.buy, c = COST[n];
+      if (RUN.gold < c){ flash('not enough gold for ' + n); return; }
+      if (roster().length >= rosterCap()){ flash('no room aboard for ' + n); return; }
+      RUN.gold -= c;
+      take(n);
+      RUN.shop.splice(RUN.shop.indexOf(n), 1);
+      flash(n + (RUN.bench.indexOf(n) >= 0 ? ' joins the bench' : ' comes aboard'));
+      screenStore();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sell]'), function(b){
+    b.onclick = function(){
+      var n = b.dataset.sell;
+      RUN.gold += COST[n];
+      var i = RUN.field.indexOf(n);
+      if (i >= 0) RUN.field[i] = null; else RUN.bench.splice(RUN.bench.indexOf(n), 1);
+      screenStore();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-stone]'), function(b){
+    b.onclick = function(){
+      var e = RUN.stoneOffer[+b.dataset.stone];
+      if (RUN.gold < CRYSTAL_COST) return;
+      RUN.gold -= CRYSTAL_COST;
+      RUN.stones[e] = stoneCount(e) + 1;
+      RUN.stoneOffer.splice(+b.dataset.stone, 1);
+      flash('a ' + e + ' crystal goes into the hold');
+      screenStore();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-prism]'), function(b){
+    b.onclick = function(){ if (RUN.gold >= PRISM_COST) screenPrism(); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-forge]'), function(b){
+    b.onclick = function(){
+      var n = b.dataset.forge, e = UNITS[n].el, c = rankCost(n);
+      if (stoneCount(e) < c) return;
+      RUN.stones[e] -= c;
+      screenRank([n]);
+    };
+  });
+  $('reroll').onclick = function(){ if (RUN.gold >= 3){ RUN.gold -= 3; rollShop(); screenStore(); } };
+  $('train').onclick = function(){ if (RUN.gold >= 4 && lvl().next !== null){ RUN.gold -= 4; gainXp(4); screenStore(); } };
+  $('leave').onclick = function(){
+    var i = Math.min(3, Math.floor(RUN.gold/8));
+    RUN.gold += i; RUN.shop = null; RUN.lastResult = null; RUN.levelledTo = null;
+    advance();
+  };
+  redraw = screenStore; wireSlots();
+}
+function forgePanel(){
+  var cands = roster().filter(function(n){ return rankOf(n) < 3; });
+  if (!cands.length) return '';
+  return '<div class="sect2">Forge — cost rises with each rank</div><div class="cards">'
+    + cands.map(function(n){
+        var u = UNITS[n], c = rankCost(n), have = stoneCount(u.el), can = have >= c;
+        return '<button class="ucard'+(can?'':' owned')+'" data-forge="'+n+'">'
+          + '<span class="un"><span>'+n+'</span><span class="cost" style="color:var(--'+u.el+')">'+have+'/'+c+' '+u.el+'</span></span>'
+          + '<span class="meta">rank '+(rankOf(n)+1)+' → '+(rankOf(n)+2)+' · '+'★'.repeat(rankOf(n)+1)+'</span>'
+          + '<div class="nt">'+(can ? '+'+Math.round((RANK[rankOf(n)+1].hp-1)*100)+'% health, +'
+              +Math.round((RANK[rankOf(n)+1].pow-1)*100)+'% output, one enhancement'
+            : 'needs '+(c-have)+' more '+u.el)+'</div></button>';
+      }).join('') + '</div>';
+}
+function screenPrism(){
+  strip();
+  $('stitle').textContent = 'PRISM';
+  $('screen').innerHTML = '<div class="panel"><p class="lab"><span>Attune the prism</span>'
+    + '<em>'+PRISM_COST+'g · becomes one crystal of whichever element you name</em></p><div class="opts">'
+    + HEX.map(function(e){
+        return '<button class="opt" data-att="'+e+'"><b style="color:var(--'+e+')">'+e+'</b>'
+          + '<span class="meta">hold: '+stoneCount(e)+'</span></button>'; }).join('')
+    + '</div><div class="ctl" style="margin-top:12px"><button id="pback">Back</button></div></div>';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-att]'), function(b){
+    b.onclick = function(){
+      RUN.gold -= PRISM_COST;
+      RUN.stones[b.dataset.att] = stoneCount(b.dataset.att) + 1;
+      screenStore();
+    };
+  });
+  $('pback').onclick = screenStore;
+}
+function sellPanel(){
+  var r = roster();
+  if (!r.length) return '';
+  return '<div class="panel"><p class="lab"><span>Sell</span><em>full refund — the cost of a pivot is the synergy you break</em></p><div class="cards">'
+    + r.map(function(n){ return '<button class="ucard" data-sell="'+n+'">'
+        + '<span class="info" data-info="'+n+'">i</span>'
+        + '<span class="un"><span>'+n+'</span><span class="cost">+'+COST[n]+'g</span></span>'
+        + '<span class="meta" style="color:var(--'+UNITS[n].el+')">'+UNITS[n].el+' · '+bandLabel(n)+'</span></button>'; }).join('')
+    + '</div></div>';
+}
+
+/* ------------------------------------------------------------ ranking up */
+function flash(msg){
+  var el = $('flash');
+  if (el){ el.textContent = msg; el.className = 'flashmsg'; setTimeout(function(){ el.className = 'flashmsg gone'; }, 2200); }
+}
+function screenRank(cands){
+  RUN.pending = { cands: cands, unit: null, picks: null };
+  drawRank();
+}
+function drawRank(){
+  var p = RUN.pending;
+  strip();
+  $('stitle').textContent = 'THE FORGE';
+  if (!p.unit){
+    $('screen').innerHTML = '<div class="panel"><p class="lab"><span>Who takes the crystal</span>'
+      + '<em>rank raises health and output, and grants one enhancement</em></p><div class="cards">'
+      + p.cands.map(function(n){ var u = UNITS[n], r = rankOf(n);
+          return '<button class="ucard" data-rank="'+n+'"><span class="un"><span>'+n+'</span>'
+            + '<span class="cost">rank '+(r+1)+' → '+(r+2)+'</span></span>'
+            + '<span class="meta" style="color:var(--'+u.el+')">'+u.el+' · '+u.role+'</span>'
+            + '<div class="nt">'+Math.round((RANK[r+1].hp-1)*100)+'% health, '+Math.round((RANK[r+1].pow-1)*100)+'% output</div></button>';
+        }).join('') + '</div></div>';
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rank]'), function(b){
+      b.onclick = function(){
+        var n = b.dataset.rank;
+        var taken = enhOf(n);
+        var pool = (ENHANCE[n] || []).filter(function(e){ return taken.indexOf(e.n) < 0; });
+        p.unit = n;
+        p.picks = pool.slice(0, 3);
+        drawRank();
+      };
+    });
+    return;
+  }
+  var n = p.unit, u = UNITS[n], r = rankOf(n);
+  $('screen').innerHTML = '<div class="panel"><p class="lab"><span>'+n+' rises to rank '+(r+2)+'</span>'
+    + '<em>+'+Math.round((RANK[r+1].hp-1)*100)+'% health · +'+Math.round((RANK[r+1].pow-1)*100)+'% output</em></p>'
+    + (p.picks.length ? '<div class="opts">' + p.picks.map(function(e){
+        return '<button class="opt" data-enh="'+e.n+'"><b>'+e.n+'</b><span class="meta">'+e.d+'</span></button>';
+      }).join('') + '</div>' : '<span class="meta">no enhancements left — the stat gain stands alone</span>'
+        + '<div class="ctl" style="margin-top:12px"><button class="primary" data-enh="">Take it</button></div>')
+    + '</div>';
+  Array.prototype.forEach.call(document.querySelectorAll('[data-enh]'), function(b){
+    b.onclick = function(){
+      if (!RUN.ranks[n]) RUN.ranks[n] = { r: 0, e: [] };
+      RUN.ranks[n].r++;
+      if (b.dataset.enh) RUN.ranks[n].e.push(b.dataset.enh);
+      RUN.pending = null;
+      screenStore();
+    };
+  });
+}
+
+/* --------------------------------------------------------------- refit */
+function screenAttr(){
+  if (!RUN.pick){
+    var pool = Object.keys(ATTRS).filter(function(a){ return RUN.attrs.indexOf(a) < 0; });
+    RUN.pick = [];
+    while (RUN.pick.length < 3 && pool.length) RUN.pick.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0]);
+  }
+  strip();
+  $('stitle').textContent = 'REFIT';
+  $('screen').innerHTML = track() + '<div class="panel"><p class="lab"><span>The ship learns</span><em>permanent for this voyage</em></p><div class="opts">'
+    + RUN.pick.map(function(a){ return '<button class="opt" data-a="'+a+'"><b>'+a+'</b><span class="meta">'+ATTRS[a].d+'</span></button>'; }).join('')
+    + '</div></div>' + crewPanel(true);
+  Array.prototype.forEach.call(document.querySelectorAll('[data-a]'), function(b){
+    b.onclick = function(){ RUN.attrs.push(b.dataset.a); RUN.pick = null; gainXp(XP.attribute); finishNode(); };
+  });
+  redraw = screenAttr; wireSlots();
+}
+
+/* ------------------------------------------------------------------ fight */
+function screenFight(kind){
+  var encKey = PLANETS[RUN.planet].enc[kind === 'boss' ? 'boss' : kind === 'elite' ? 'elite' : 'fight'];
+  seedC++;
+  F = createFight(fieldForFight(), RUN.tiles, encKey, seedC, mods(), book());
+  POPS = [];
+  RUN.result = null; RUN.node = kind;
+  $('stitle').textContent = NODEDESC[kind].t.toUpperCase() + ' — ' + encKey.toUpperCase();
+  redraw = drawFight;
+  drawFight();
+  tick();          // engagement begins the moment you arrive
+}
+function popsFor(id){
+  var now = Date.now();
+  var mine = POPS.filter(function(p){ return p.on === id && now - p.born < POPMS; });
+  if (!mine.length) return '';
+  return '<div class="pops">' + mine.map(function(x, i){
+    var age = now - x.born;
+    var st = 'left:'+(6 + (x.lane%3)*30)+'%;top:'+(Math.floor(x.lane/3)*22)+'px;animation-delay:-'+age+'ms';
+    if (x.k==='dmg')      return '<span class="pop dmg '+(x.crit?'crit':'')+'" style="'+st+'">'+x.v+'</span>';
+    if (x.k==='guard')    return '<span class="pop guard" style="'+st+'">−'+x.v+'</span>';
+    if (x.k==='tick')     return '<span class="pop tick" style="'+st+'">'+x.v+'</span>';
+    if (x.k==='heal')     return '<span class="pop heal" style="'+st+'">+'+x.v+'</span>';
+    if (x.k==='shield')   return '<span class="pop shield" style="'+st+'">'+x.v+'</span>';
+    if (x.k==='el')       return '<span class="pop el" style="'+st+';color:var(--'+x.el+')">'+x.v+' '+x.el.slice(0,2)+'</span>';
+    if (x.k==='break')    return '<span class="pop brk" style="'+st+'">BREAK</span>';
+    if (x.k==='reaction') return '<span class="pop reaction r'+x.rung+'" style="'+st+'">'+x.name+'</span>';
+    return '';
+  }).join('') + '</div>';
+}
+function harvest(){
+  var lanes = {};
+  F.S.fx.forEach(function(x){
+    lanes[x.on] = (lanes[x.on] || 0);
+    POPS.push(Object.assign({}, x, { born: Date.now(), lane: lanes[x.on]++ }));
+  });
+  var cut = Date.now() - POPMS;
+  POPS = POPS.filter(function(p){ return p.born > cut; });
+}
+function fightCrew(){
+  var allRows = rowsOf(RUN.layout);
+  var drawOrder = allRows.map(function(_, i){ return i; }).reverse();
+  return '<div class="crew '+density(3)+'">' + drawOrder.map(function(r, k){
+    var idx = allRows[r];
+    return (k === 0 ? '<div class="facing">▲ facing the enemy</div>' : '')
+      + '<div class="crewrow" style="grid-template-columns:repeat('+idx.length+',minmax(0,1fr))">' + idx.map(function(i){
+      var n = RUN.field[i], u = n ? UNITS[n] : null, me = null;
+      if (!n) return '<button class="slot mini vacant" disabled><span class="nm">·</span></button>';
+      if (F && n) for (var j=0;j<F.S.allies.length;j++) if (F.S.allies[j].name === n) me = F.S.allies[j];
+      var cls = (sel === i ? 'sel' : '') + (F && me && F.S.actorId === me.id ? ' act' : '')
+              + (F && me && F.S.targetId === me.id ? ' aim' : '');
+      var body = '<span class="nm">' + (n || '·') + '</span>';
+      if (u) body += '<span class="meta d2" style="color:var(--'+u.el+')">'+u.el.toUpperCase()+' · '+u.role.toUpperCase()+'</span>'
+                   + '<span class="meta d3">'+bandLabel(n)+' <span class="rankpip">'+'★'.repeat(rankOf(n)+1)+'</span></span>';
+      if (me){
+        var x = [];
+        if (me.momentum) x.push('mom '+me.momentum);
+        if (me.weight >= 0.5) x.push('wt '+me.weight.toFixed(1));
+        if (me.taunt > 0) x.push('taunt');
+        body += '<div class="bar hp"><i style="width:'+Math.max(0,me.hp/me.max*100)+'%"></i></div>'
+             + '<div class="num"><span>'+Math.max(0,Math.round(me.hp))+'</span><span>'+(me.shield>0?'+'+Math.round(me.shield)+' sh':'')+'</span></div>'
+             + '<div class="bar en"><i style="width:'+me.energy+'%"></i></div>'
+             + '<div class="num"><span>'+Math.round(me.energy)+'</span><span>'+x.join(' ')+'</span></div>';
+      }
+      body += '<span class="meta d3">'+(RUN.tiles[i]==='None'?'plain ground':RUN.tiles[i])+'</span>';
+      return '<button class="slot mini hasfx '+cls+(n?'':' vacant')+'" data-i="'+i+'">'+(me?popsFor(me.id):'')
+        + (n ? '<span class="info" data-info="'+n+'">i</span>' : '') + body + '</button>';
+    }).join('') + '</div>'
+      + (k < drawOrder.length - 1 ? '<div class="divider">' + (r === allRows.length - 1 ? 'front' : 'middle') + '</div>' : '');
+  }).join('') + '</div>';
+}
+
+function drawFight(){
+  var S = F.S;
+  var ord = F.order(9), cur = null, T = null, all = S.allies.concat(S.enemies);
+  for (var i=0;i<all.length;i++){ if (all[i].id === S.actorId) cur = all[i]; if (all[i].id === S.targetId) T = all[i]; }
+
+  var ribbon = (cur ? '<div class="chip now"><span class="n">acted</span>'+cur.name+'</div>' : '')
+    + ord.slice(0, cur?8:9).map(function(o,i){
+        return '<div class="chip '+o.side+'"><span class="n">'+(i===0?'next':'+'+(i+1))+'</span>'+o.name+'</div>'; }).join('');
+
+  var counts = {}; S.queue.forEach(function(k){ counts[k] = (counts[k]||0)+1; });
+  var ghosts = Object.keys(counts).map(function(k){
+    return '<div class="ghost"><b>'+k+(counts[k]>1?' ×'+counts[k]:'')+'</b><span class="meta">next in</span></div>'; }).join('');
+
+  var foes = S.enemies.map(function(e){
+    var tags = '';
+    if (e.broken > 0) tags += '<span class="tag" style="color:var(--ochre)">broken '+e.broken.toFixed(1)+'</span>';
+    if (e.charging) tags += '<span class="tag" style="color:var(--foe)">charging</span>';
+    if (e.frozen > 0) tags += '<span class="tag" style="color:var(--Order)">locked</span>';
+    if (e.poison > 0.5) tags += '<span class="tag" style="color:var(--Decay)">'+Math.round(e.poison)+' tick</span>';
+    var els = HEX.filter(function(k){return e.el[k]>0.4}).map(function(k){
+      return '<span style="color:var(--'+k+')">'+k.slice(0,2)+' '+e.el[k].toFixed(1)+'</span>'; }).join(' ');
+    return '<div class="foecard hasfx'+(e.hp<=0?' dead':'')+(S.actorId===e.id?' act':'')+(S.targetId===e.id?' aim':'')+'">'
+      + popsFor(e.id) + '<div>'+sigil(e.el)+'</div><div class="fbody">'
+      + '<div class="fname"><span>'+e.name+'</span><span class="tier '+e.u.tier+'">'+e.u.tier+'</span></div>'
+      + '<div class="bar hp"><i style="width:'+Math.max(0,e.hp/e.max*100)+'%"></i></div>'
+      + '<div class="num"><span>'+Math.max(0,Math.round(e.hp))+'</span><span>hp</span></div>'
+      + '<div class="bar gd"><i style="width:'+Math.max(0,e.guard/e.maxGuard*100)+'%"></i></div>'
+      + '<div class="num"><span>'+Math.max(0,Math.round(e.guard))+'</span><span>guard</span></div>'
+      + '<span class="meta">'+(els||'clear')+'</span>'+tags+'</div></div>';
+  }).join('');
+
+  var dots = '●'.repeat(S.sp) + '○'.repeat(Math.max(0, S.spMax - S.sp));
+  var pn = sel !== null ? RUN.field[sel] : null;
+  var rules = pn ? UNITS[pn].rules.map(function(r,i){
+      return '<div class="rl">'+(i+1)+'. <b>'+r.l+'</b> → '+r.a+'</div>'; }).join('')
+      + (UNITS[pn].trait ? '<div class="rl" style="color:var(--ally)">trait · on '+UNITS[pn].trait.on+'</div>' : '')
+    : '<div class="rl">tap a crew member to read theirs</div>';
+
+  var controls = S.over
+    ? '<button class="primary" id="cont" style="width:100%">Continue</button>'
+    : '<div class="ctlbar"><button id="play">'+(timer ? 'Pause' : 'Watch')+'</button>'
+      + '<button id="step">Step</button>'
+      + '<select id="speed">'
+        + [['850','slow'],['420','normal'],['150','fast'],['auto','auto pace']].map(function(o){
+            return '<option value="'+o[0]+'"'+(SPEED===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('')
+      + '</select>'
+      + '<button id="fin">Resolve</button></div>';
+
+  $('screen').innerHTML =
+    '<div class="arena"><div class="board">'
+    + '<div class="pan tight"><div class="ribbon">'+ribbon+'</div></div>'
+    + '<div class="pan"><div class="facing enemyside">▼ hostiles advance from here</div><div class="banner">'
+      + '<span class="who">'+(cur ? '<b>'+cur.name+'</b>' + (T ? '<span class="ar">→</span><b>'+T.name+'</b>' : ' acts') : 'standing by')+'</span>'
+      + '<span class="wv">wave '+S.wave+'/'+S.waves+' · field '+S.cap+'</span></div>'
+      + '<div class="field">'+foes+ghosts+'</div></div>'
+    + '<div class="pan">'+fightCrew()+'</div>'
+    + '</div><div class="side">'
+    + '<div class="pan tight"><div class="stats">'
+      + '<div class="stat"><b>'+S.t.toFixed(1)+'</b><span>time</span></div>'
+      + '<div class="stat"><b class="spdots">'+dots+'</b><span>points</span></div>'
+      + '<div class="stat"><b>'+S.enemies.filter(function(e){return e.hp>0}).length+'</b><span>field</span></div>'
+      + '<div class="stat"><b style="color:'+(S.over?(S.win?'var(--good)':'var(--foe)'):'inherit')+'">'
+        + (S.over?(S.win?'WIN':'LOSS'):S.steps)+'</b><span>'+(S.over?'result':'steps')+'</span></div></div>'
+      + '<div style="margin-top:8px">'+controls+'</div></div>'
+    + '<div class="pan tight"><p class="lab"><span>Log</span></p><div class="log short" id="log">'
+      + S.log.slice(-60).map(function(l){ return '<div class="'+(l.kind||'')+'">'+String(l.t).padStart(5,'\u00a0')+' '+l.text+'</div>'; }).join('')
+      + '</div></div>'
+    + '<div class="pan tight"><p class="lab"><span>Priority list</span><em>'+(pn||'')+'</em></p>'+rules+'</div>'
+    + '</div></div>';
+
+  var lg = $('log'); if (lg) lg.scrollTop = lg.scrollHeight;
+  wireSlots();
+  if (S.over){ $('cont').onclick = resolveFight; }
+  else {
+    $('step').onclick = function(){ stop(); F.step(); harvest(); drawFight(); };
+    $('fin').onclick  = function(){ stop(); var n=0; while(!F.S.over && n<800){ F.step(); n++; } POPS=[]; drawFight(); };
+    $('play').onclick = function(){ if (timer){ stop(); drawFight(); return; } tick(); };
+    $('speed').onchange = function(e){
+      SPEED = e.target.value;
+      if (timer){ clearTimeout(timer); timer = null; tick(); }   // apply without waiting out the current beat
+    };
+  }
+}
+
+var BIG = { reaction:1, break:1, wave:1, spawn:1, kill:1, win:1, lose:1, recover:1 };
+function tick(){
+  if (!F || F.S.over){ stop(); drawFight(); return; }
+  F.step(); harvest(); drawFight();
+  var v = SPEED, wait;
+  if (v === 'auto'){
+    var notable = F.S.log.slice(-6).some(function(l){ return BIG[l.kind]; })
+               || F.S.fx.some(function(x){ return x.crit || x.k === 'reaction'; });
+    wait = notable ? 1100 : 300;
+  } else wait = +v;
+  timer = setTimeout(tick, wait);
+}
+function resolveFight(){
+  var win = F.S.win;
+  if (win){
+    var g = RUN.node === 'boss' ? 14 : RUN.node === 'elite' ? 10 : 6;
+    RUN.gold += g;
+    var x = XP[RUN.node] || 2;
+    gainXp(x);
+    RUN.lastResult = 'cleared in ' + F.S.t.toFixed(1) + ' · +' + g + 'g · +' + x + 'xp';
+  } else {
+    var frac = F.S.remaining;
+    var loss = Math.max(2, Math.round(2 + 8 * frac));
+    RUN.integrity -= loss;
+    // salvage from a defeat — enough to rebuild with, never enough to be comfortable
+    var g = Math.round((RUN.node === 'boss' ? 14 : RUN.node === 'elite' ? 10 : 6) * (0.45 + 0.35 * (1 - frac)));
+    RUN.gold += g;
+    var x = Math.max(1, Math.round((XP[RUN.node] || 2) / 2));
+    gainXp(x);
+    RUN.lastResult = 'lost with ' + Math.round(frac*100) + '% still standing · hull −' + loss + ' · salvaged ' + g + 'g, +' + x + 'xp';
+  }
+  F = null; POPS = [];
+  if (RUN.integrity <= 0) return screenEnd(false);
+  finishNode();
+}
+
+/* -------------------------------------------------------------------- end */
+function screenEnd(cleared){
+  stop();
+  $('stitle').textContent = cleared ? 'VOYAGE COMPLETE' : 'HULL BREACHED';
+  $('screen').innerHTML = '<div class="panel"><p class="lab">'+(cleared?'Cleared':'Lost')+'</p>'
+    + '<p style="font-size:19px;margin:0 0 8px">'+(cleared ? 'You made it off '+RUN.planet+'.' : 'The ship broke up over '+RUN.planet+'.')+'</p>'
+    + '<span class="meta">reached stop '+Math.min(RUN.stop+1, MAP.length)+' of '+MAP.length
+    + ' · hull '+Math.max(0,RUN.integrity)+' · crew '+roster().join(', ')
+    + (RUN.attrs.length ? ' · refits '+RUN.attrs.join(', ') : '')+'</span>'
+    + '<div class="ctl" style="margin-top:14px"><button class="primary" id="again">New voyage</button></div></div>';
+  $('again').onclick = screenPlanets;
+  $('strip').className = 'strip hide';
+  $('abandon').className = 'hide';
+}
+$('abandon').onclick = function(){ stop(); F = null; screenPlanets(); };
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape'){ closeCard(); return; }
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === ' ' && F && !F.S.over && $('play')){ e.preventDefault(); $('play').click(); }
+  if (e.key === 'ArrowRight' && F && !F.S.over && $('step')) $('step').click();
+});
+screenPlanets();
+</script>
+</body>
+</html>

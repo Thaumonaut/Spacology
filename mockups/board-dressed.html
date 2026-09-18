@@ -1,0 +1,139 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dressed board</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#080C12;color:#E8EDF2;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1300px;margin:0 auto;padding:24px 18px 90px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.lede{color:#9FB0BF;max-width:70ch;margin:0 0 8px}
+.rule{color:#7FD3BC;font-size:12.5px;max-width:74ch;margin:0 0 26px;
+  border-left:2px solid #2A6B5E;padding-left:11px}
+h2{font-size:15px;margin:34px 0 10px;font-weight:600}
+.cols{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.layers{flex:1;min-width:270px}
+.ly{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #16202B}
+.ly b{flex:0 0 22px;height:22px;border-radius:50%;background:#1C2B3A;color:#7FD3BC;
+  font-size:10px;display:flex;align-items:center;justify-content:center}
+.ly div span{display:block;font-size:12.5px}
+.ly div em{display:block;font-style:normal;font-size:11px;color:#5F6E7B;margin-top:1px}
+.ly.new b{background:#2A6B5E;color:#CFF5E8}
+
+/* ---------------- the board ---------------- */
+.board{width:760px;max-width:100%;aspect-ratio:4/3;border-radius:16px;padding:13px;
+  display:grid;grid-template-columns:58px 1fr;gap:12px;position:relative;
+  background:#090E16;border:1px solid #1C2B44;
+  background-image:radial-gradient(circle at 18% 22%,rgba(255,255,255,.42) .6px,transparent .7px),
+    radial-gradient(circle at 62% 14%,rgba(255,255,255,.3) .5px,transparent .6px),
+    radial-gradient(circle at 84% 58%,rgba(255,255,255,.34) .6px,transparent .7px),
+    radial-gradient(circle at 34% 72%,rgba(255,255,255,.26) .5px,transparent .6px);
+  background-size:180px 150px,140px 190px,210px 170px,160px 130px}
+.pin{position:absolute;width:19px;height:19px;border-radius:50%;background:#2A6B5E;
+  color:#CFF5E8;font-size:10px;display:flex;align-items:center;justify-content:center;
+  z-index:30;box-shadow:0 0 0 2px #090E16}
+
+/* queue */
+.queue{display:flex;flex-direction:column;gap:4px;position:relative}
+.qhd{font-size:7px;letter-spacing:.14em;color:#3F5468;margin-bottom:2px}
+.qi{height:21px;border-radius:4px;border:1px solid #2A6B5E;color:#7FD3BC;
+  display:flex;align-items:center;justify-content:space-between;padding:0 5px;
+  font-size:8.5px;font-variant-numeric:tabular-nums}
+.qi.foe{border-color:#7A3A4A;color:#E08A9E}
+.qi.now{background:#D4A45C;border-color:#D4A45C;color:#1A1204;height:27px;font-weight:600}
+.qi.brk{opacity:.45;border-style:dashed}
+.qi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbloom{height:21px;border-radius:4px;border:1px dashed #A89070;color:#D9B87A;
+  display:flex;align-items:center;justify-content:center;font-size:7.5px;letter-spacing:.06em}
+.qfoot{margin-top:auto;text-align:center;font-size:8px;color:#3F5468;line-height:1.5}
+.qfoot b{display:block;color:#D4A45C;font-size:12px;font-variant-numeric:tabular-nums}
+
+/* context strip */
+.ctx{display:flex;align-items:center;gap:9px;font-size:9px;color:#5F7A93;
+  margin-bottom:7px}
+.ctx .world{color:#AFCBE6;font-size:11px}
+.ctx .cond{border:1px solid #3A2A32;color:#D59AA3;border-radius:3px;padding:1px 5px;
+  font-size:8px}
+.ctx .grow{flex:1}
+.ctx .tag{border:1px solid #2A6B5E;color:#7FD3BC;border-radius:3px;padding:1px 5px;font-size:8px}
+
+/* score */
+.score{margin-bottom:9px}
+.score .sl{display:flex;justify-content:space-between;font-size:8px;color:#3F5468;
+  margin-bottom:3px}
+.score .sb{position:relative;height:6px;border-radius:3px;background:#0D141F;overflow:hidden}
+.score .sb u{position:absolute;left:0;top:0;bottom:0;width:62%;background:#9FBE7F;display:block}
+.score .sb i{position:absolute;top:0;bottom:0;width:1px;background:#2B4B70;display:block}
+.score .sb i.key{width:2px;background:#4A7A52}
+
+/* ranks */
+.rank{display:flex;gap:6px;justify-content:center;margin-bottom:7px}
+.foe{position:relative;width:68px;border:1px solid #2B4B70;border-radius:3px;
+  background:rgba(10,20,34,.78);padding:5px 3px 4px;text-align:center;line-height:1.15}
+.foe.elite{border-color:#7A3A4A}
+.foe .lv{font-size:6.5px;color:#4A6A8A}
+.foe .nm{font-size:9px;font-weight:600;color:#AFCBE6}
+.foe.elite .nm{color:#E8B4C2}
+.foe .weak{display:flex;gap:2px;justify-content:center;margin:2px 0 1px}
+.foe .weak i{width:9px;height:9px;border-radius:2px;font-size:6px;line-height:9px;
+  border:1px solid;display:block}
+.foe .weak i.off{opacity:.25}
+.foe .hp{height:2.5px;border-radius:2px;background:#0D141F;margin-top:2px;position:relative;
+  overflow:hidden}
+.foe .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.foe .sh{position:absolute;inset:-3px;border:1px solid rgba(143,184,120,.5);
+  border-radius:5px;pointer-events:none}
+.foe .sh2{position:absolute;inset:-6px;border:1px solid rgba(143,184,120,.26);
+  border-radius:7px;pointer-events:none}
+.foe .intent{position:absolute;left:50%;transform:translateX(-50%);top:-13px;
+  font-size:7px;color:#E08A9E;white-space:nowrap;background:#12080C;
+  border:1px solid #4A2028;border-radius:3px;padding:0 4px;line-height:11px}
+.foe .intent.aoe{color:#E0C48A;border-color:#4A3A20;background:#120E08}
+.foe .stk{position:absolute;right:-3px;bottom:-4px;display:flex;gap:2px}
+.foe .stk i{width:6px;height:6px;border-radius:50%;display:block}
+.foe .ibtn{position:absolute;left:0;top:0;width:26px;height:26px;color:#3F5468;
+  font-size:8px;padding:2px 0 0 3px;cursor:pointer}
+
+/* stage */
+.stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;
+  min-height:0}
+.beam{position:absolute;height:1px;background:linear-gradient(90deg,transparent,#D4A45C,transparent);
+  opacity:.55}
+.actor{width:132px;border:1px solid #6FE0C0;border-radius:4px;padding:11px 7px 9px;
+  text-align:center;background:rgba(8,26,22,.82);box-shadow:0 0 34px rgba(111,224,192,.2);
+  position:relative}
+.actor .lv{font-size:8px;color:#4E8A7C}
+.actor .nm{font-size:16px;font-weight:600;color:#CFF5E8;line-height:1.15}
+.actor .rl{font-size:9px;color:#6FA595}
+.actor .abil{margin-top:6px;font-size:8.5px;color:#9FD8C6;border-top:1px solid #1E3A33;
+  padding-top:5px}
+.actor .en{height:3px;border-radius:2px;background:#0D141F;margin-top:6px;position:relative;
+  overflow:hidden}
+.actor .en u{position:absolute;inset:0;width:82%;background:#D4A45C;display:block}
+.float{position:absolute;font-weight:700;font-size:19px;color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.9)}
+
+/* tray */
+.tray{border:1px solid #1C2B44;border-radius:8px;background:rgba(8,14,24,.66);padding:8px}
+.thead{display:flex;align-items:baseline;gap:7px;margin-bottom:5px}
+.thead .tl{font-size:7px;letter-spacing:.14em;color:#3F5468}
+.thead .cnt{font-size:7.5px;color:#5F7A93}
+.thead .grow{flex:1}
+.thead .trash{font-size:7.5px;color:#7A4550;border:1px dashed #4A2A32;border-radius:3px;
+  padding:1px 6px}
+.trow{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.slot{position:relative;border:1px solid #16263C;border-radius:3px;min-height:44px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1.15;padding:3px 2px}
+.slot.empty{border-style:dashed;color:#26374A;font-size:7px}
+.slot.filled{background:rgba(10,20,34,.8);border-color:#2B4B70}
+.slot .nm{font-size:8.5px;font-weight:600;color:#AFCBE6}
+.slot .tg{font-size:7px}
+.slot .hp{position:absolute;left:3px;right:3px;bottom:3px;height:2px;border-radius:1px;
+  background:#0D141F;overflow:hidden}
+.slot .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.slot .dots{position:absolute;right:3px;top:3px;display:flex;gap:2px}
+.slot .dots i{width:4px;height:4px;border-radius:50%;display:block}
+.slot.ready{border-color:#D4A45C;box-shadow:0 0 10px rgba(212,164,92,.3)}
+.slot .rdy{position:absolute;left:3px;top:2px;font-size:6.5px;color:#D4A45C}
+.slot.off{min-height:36px;opacity:.82}
+.slot.down{opacity:.3}
+.tsplit{height:1px;background:#16263C;margin:7px 0 6px}
+</style></head><body><div class="wrap"><h1>The board, fully dressed</h1><p class="lede">A and C merged — the chart’s calm surface and free colour, the instrument’s density. Every layer the rough draft was missing is on here and numbered.</p><p class="rule"><b>Into the Breach:</b> “Sacrifice cool ideas for the sake of clarity every time.” They cut weapons they could not convey.<br><b>Marvel Snap:</b> the cards take precedence in the hierarchy; the UI exists to highlight them. Every element here has to pass that test.</p><div class="cols"><div><div class="board"><span class="pin" style="left:-9px;top:96px">1</span><span class="pin" style="left:150px;top:-9px">2</span><span class="pin" style="left:392px;top:26px">3</span><span class="pin" style="right:-9px;top:150px">4</span><span class="pin" style="left:-9px;bottom:206px">5</span><span class="pin" style="right:-9px;bottom:114px">6</span><span class="pin" style="left:150px;bottom:-9px">7</span><div class="queue"><div class="qhd">ORDER</div><div class="qi now"><span class="nm">Maul</span><span>now</span></div><div class="qbloom">BLOOM 3</div><div class="qi foe"><span class="nm">Maw</span><span>12</span></div><div class="qi"><span class="nm">Rime</span><span>19</span></div><div class="qi foe brk"><span class="nm">Husk</span><span>24</span></div><div class="qi"><span class="nm">Tarn</span><span>31</span></div><div class="qi foe"><span class="nm">Mite</span><span>36</span></div><div class="qi"><span class="nm">Ash</span><span>44</span></div><div class="qfoot">ROUND 3 / 14<b>138g</b>streak ×3</div></div><div style="display:flex;flex-direction:column;min-width:0"><div class="ctx"><span class="world">Phomous</span><span>danger 4</span><span class="cond">heavy air</span><span class="cond">sterile ground</span><span class="grow"></span><span class="tag">Assay×4</span><span class="tag">Blight×2</span></div><div class="score"><div class="sl"><span>heavy loss if it ends here</span><span>62%</span></div><div class="sb"><u></u><i style="left:18%"></i><i style="left:42%"></i><i style="left:68%"></i><i class="key" style="left:88%"></i></div></div><div class="rank"><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Mite</div><div class="weak"><i class="" style="color:#7FA8C9;border-color:#7FA8C9">O</i><i class="off" style="color:#C97F9E;border-color:#C97F9E">C</i></div><div class="hp"><u style="width:64%"></u></div></div><div class="foe"><div class="intent ">→ Tarn</div><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Grub</div><div class="weak"><i class="off" style="color:#8FB878;border-color:#8FB878">G</i><i class="" style="color:#8F8FC9;border-color:#8F8FC9">V</i></div><div class="hp"><u style="width:88%"></u></div></div><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.24</div><div class="nm">Shard</div><div class="weak"><i class="" style="color:#A89070;border-color:#A89070">D</i><i class="" style="color:#D4A45C;border-color:#D4A45C">E</i></div><div class="hp"><u style="width:41%"></u></div><div class="stk"><i style="background:#A89070"></i><i style="background:#A89070"></i><i style="background:#A89070"></i></div></div><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Wisp</div><div class="weak"><i class="" style="color:#7FA8C9;border-color:#7FA8C9">O</i><i class="off" style="color:#8FB878;border-color:#8FB878">G</i></div><div class="hp"><u style="width:100%"></u></div></div><div class="foe"><div class="intent ">→ Fen</div><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.23</div><div class="nm">Thrall</div><div class="weak"><i class="off" style="color:#C97F9E;border-color:#C97F9E">C</i><i class="off" style="color:#8F8FC9;border-color:#8F8FC9">V</i></div><div class="hp"><u style="width:77%"></u></div></div><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Nit</div><div class="weak"><i class="" style="color:#D4A45C;border-color:#D4A45C">E</i><i class="off" style="color:#A89070;border-color:#A89070">D</i></div><div class="hp"><u style="width:55%"></u></div><div class="stk"><i style="background:#A89070"></i></div></div></div><div class="rank"><div class="foe"><div class="sh"></div><div class="sh2"></div><span class="ibtn">i</span><div class="lv">Lv.28</div><div class="nm">Drone</div><div class="weak"><i class="" style="color:#7FA8C9;border-color:#7FA8C9">O</i><i class="" style="color:#A89070;border-color:#A89070">D</i></div><div class="hp"><u style="width:72%"></u></div></div><div class="foe elite"><div class="intent aoe">sweeps the line</div><div class="sh"></div><div class="sh2"></div><span class="ibtn">i</span><div class="lv">Lv.31</div><div class="nm">Maw</div><div class="weak"><i class="off" style="color:#C97F9E;border-color:#C97F9E">C</i><i class="" style="color:#D4A45C;border-color:#D4A45C">E</i></div><div class="hp"><u style="width:94%"></u></div></div><div class="foe"><div class="sh"></div><div class="sh2"></div><span class="ibtn">i</span><div class="lv">Lv.28</div><div class="nm">Husk</div><div class="weak"><i class="" style="color:#8FB878;border-color:#8FB878">G</i><i class="off" style="color:#8F8FC9;border-color:#8F8FC9">V</i></div><div class="hp"><u style="width:58%"></u></div><div class="stk"><i style="background:#A89070"></i><i style="background:#A89070"></i></div></div></div><div class="stage"><div class="beam" style="left:18%;right:30%;top:36%"></div><div class="float" style="left:19%;top:14%">41</div><div class="float" style="left:64%;top:24%;font-size:13px;color:#E08A9E">break</div><div class="actor"><div class="lv">Lv.25</div><div class="nm">Maul</div><div class="rl">answers a break</div><div class="abil">RIVET STORM ready</div><div class="en"><u></u></div></div></div><div class="tray"><div class="thead"><span class="tl">ON FIELD</span><span class="cnt">4 of 6</span><span class="grow"></span><span class="trash">drag here to strip</span></div><div class="trow"><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Rime</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="hp"><u style="width:96%"></u></div></div><div class="slot filled ready"><span class="rdy">READY</span><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Maul</div><div class="tg" style="color:#C97F9E">Ordnance</div><div class="hp"><u style="width:71%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Tarn</div><div class="tg" style="color:#7FA8C9">Hull</div><div class="hp"><u style="width:38%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Ash</div><div class="tg" style="color:#A89070">Blight</div><div class="hp"><u style="width:88%"></u></div></div><div class="slot empty">empty</div><div class="slot empty">empty</div></div><div class="tsplit"></div><div class="thead"><span class="tl">OFF FIELD</span><span class="cnt">3 aboard · 1 down</span></div><div class="trow"><div class="slot filled off"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Quill</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off"><div class="nm">Fen</div><div class="tg" style="color:#8FB878">Crew</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Pyre</div><div class="tg" style="color:#A89070">Blight</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off down"><div class="nm">Vane</div><div class="tg" style="color:#D4A45C">Drive</div><div class="hp"><u style="width:0%"></u></div></div><div class="slot empty off">empty</div><div class="slot empty off">empty</div></div></div></div></div></div><div class="layers"><h2 style="margin-top:0">What is on it</h2><div class="ly new"><b>1</b><div><span>Turn order, with the Bloom in it</span><em>Names and waits, coloured by side. A broken enemy dims. Entities that are not units sit in the queue too.</em></div></div><div class="ly new"><b>2</b><div><span>Enemy intent</span><em>Who each one will hit, above its card. Area attacks read differently from single ones. Into the Breach’s rule: never surprise the player with something they could have planned around.</em></div></div><div class="ly new"><b>3</b><div><span>Weakness pips, lit or dim</span><em>Two per enemy, bright when someone aboard can exploit it. The pre-fight read kept on screen during the fight.</em></div></div><div class="ly new"><b>4</b><div><span>Shields as rings, ailments as dots</span><em>Layers are concentric rings outside the card; stacks are dots at the corner. Both countable at a glance, no text.</em></div></div><div class="ly new"><b>5</b><div><span>Recovery score with band marks</span><em>How much of the board you have taken, thresholds drawn on. Tells you what one more kill is worth.</em></div></div><div class="ly new"><b>6</b><div><span>On field and off field, split</span><em>With counts, a downed crewmate dimmed rather than removed, and the strip target living where the crew already is.</em></div></div><div class="ly new"><b>7</b><div><span>Context strip</span><em>Where you are, how dangerous, which conditions are live, which tags are active. Everything that changes the rules, in one line.</em></div></div><div class="ly"><b>8</b><div><span>Charged crew marked READY</span><em>A unit that can interrupt is outlined amber in the tray, so an available ultimate never has to be hunted for.</em></div></div><div class="ly"><b>9</b><div><span>The ability named on the actor</span><em>The acting card says what it is about to do, not just who it is.</em></div></div><div class="ly"><b>10</b><div><span>A 44px inspect corner</span><em>Glyph small inside it. The rest of the card stays draggable.</em></div></div><p style="font-size:11px;color:#5F6E7B;line-height:1.7;margin-top:14px">Green numbers are layers the rough draft did not have. The rest are refinements to what was already there.</p></div></div><h2>What is deliberately kept off</h2><div class="cols"><div class="layers" style="max-width:680px"><div class="ly"><b>—</b><div><span>Numeric stats on every card</span><em>Attack, defence and speed live in the inspect sheet. On the board they would compete with the cards, which is the one thing Snap’s rule forbids.</em></div></div><div class="ly"><b>—</b><div><span>A settings or menu bar</span><em>Pause belongs in a corner, off the play surface. Nothing that is not the game holds a permanent position.</em></div></div><div class="ly"><b>—</b><div><span>Element colour on crew cards</span><em>Tag colour already does that work. Two colour systems on one card is one too many.</em></div></div><div class="ly"><b>—</b><div><span>Damage previews for your own crew</span><em>You do not pick their targets, so it would be noise. Enemy intent matters because you can still move people out of it.</em></div></div></div></div></div></body></html>

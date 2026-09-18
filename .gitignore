@@ -1,0 +1,4 @@
+search.json
+best.json
+*.csv
+node_modules/

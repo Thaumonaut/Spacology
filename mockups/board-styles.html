@@ -1,0 +1,363 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Board styles</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#0B0F13;color:#E8EDF2;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:24px 18px 80px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.lede{color:#9FB0BF;max-width:66ch;margin:0 0 30px}
+h2{font-size:16px;margin:40px 0 2px;font-weight:600}
+h2 em{font-style:normal;color:#5F6E7B;font-weight:400;font-size:12.5px;margin-left:8px}
+.note{color:#9FB0BF;font-size:12.5px;max-width:72ch;margin:0 0 14px}
+.note b{color:#E8EDF2}
+
+/* ---------- shared board skeleton ---------- */
+.board{display:grid;grid-template-columns:52px 1fr;gap:12px;
+  aspect-ratio:4/3;width:100%;max-width:720px;padding:14px;border-radius:18px;
+  overflow:hidden}
+.queue{display:flex;flex-direction:column;gap:5px}
+.qi{height:22px;border-radius:5px;background:#2E4034;display:flex;align-items:center;
+  justify-content:center;font-size:9px;color:#9FB8A2;font-variant-numeric:tabular-nums}
+.qi.foe{background:#43272C;color:#D59AA3}
+.qi.now{background:#7FBE86;height:28px}
+.qfoot{margin-top:auto;display:flex;flex-direction:column;gap:4px;font-size:8.5px;
+  color:#5F6E7B;text-align:center}
+.qfoot b{color:#D4A45C;font-size:11px}
+.field{display:flex;flex-direction:column;min-width:0}
+.rank{display:flex;gap:7px;justify-content:center}
+.rank.back{margin-bottom:8px}
+.rank.front{margin-bottom:auto}
+.foe{flex:0 0 auto;width:62px;border-radius:7px;padding:6px 3px;text-align:center;
+  line-height:1.15;position:relative}
+.foe .lv{display:block;font-size:7px;opacity:.65}
+.foe b{display:block;font-size:9px;font-weight:600}
+.foe i{display:block;font-size:7.5px;font-style:normal;opacity:.7}
+.stage{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;
+  padding:10px 0}
+.actor{width:104px;border-radius:9px;padding:10px 6px;text-align:center;line-height:1.2}
+.actor .lv{display:block;font-size:8px;opacity:.7}
+.actor b{display:block;font-size:13px}
+.actor i{display:block;font-size:9px;font-style:normal;opacity:.75}
+.sheet{width:100%;max-width:330px;border-radius:11px;padding:13px 14px}
+.sh{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.sh b{font-size:17px} .sh span{font-size:10px;opacity:.6}
+.sh em{margin-left:auto;font-style:normal;font-size:10px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:5px 14px;margin-bottom:11px}
+.stats div{font-size:9px}
+.stats span{display:block;opacity:.6;margin-bottom:2px}
+.stats u{display:block;height:4px;border-radius:2px;text-decoration:none}
+.shrow{display:flex;gap:8px;font-size:9.5px;padding:3px 0;align-items:baseline}
+.shrow b{flex:0 0 auto}
+.shrow span{opacity:.62}
+.tray{border-radius:12px;padding:9px}
+.tlab{font-size:7.5px;letter-spacing:.14em;opacity:.55;margin-bottom:5px}
+.tlab.off{margin-top:8px}
+.trow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.trow.off{grid-template-columns:repeat(6,1fr)}
+.slot{border-radius:7px;min-height:46px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;line-height:1.15;padding:3px}
+.slot.sm{min-height:38px}
+.slot .lv{font-size:6.5px;opacity:.6}
+.slot b{font-size:8.5px} .slot i{font-size:7px;font-style:normal;opacity:.7}
+
+/* ================= A. survey instrument ================= */
+.t-inst{background:#101820;border:1px solid #23303B}
+.t-inst .foe{background:#1C2630;border:1px solid #2E3D4A;color:#CBD6E0}
+.t-inst .foe.elite{background:#2A1D22;border-color:#4A2F37;color:#E7B9C0}
+.t-inst .actor{background:#1F2B35;border:1px solid #D4A45C;color:#F0DDBC;
+  box-shadow:0 0 22px rgba(212,164,92,.28)}
+.t-inst .sheet{background:#141D25;border:1px solid #2A3743}
+.t-inst .stats u{background:#4E6376}
+.t-inst .shrow b{color:#D4A45C}
+.t-inst .tray{background:#141D25;border:1px solid #23303B}
+.t-inst .slot{background:#0D141A;border:1px dashed #263340}
+.t-inst .slot.filled{background:#1C2630;border:1px solid #33424F}
+.t-inst .el-void{color:#8F8FC9}
+
+/* ================= B. card table ================= */
+.t-felt{background:
+  radial-gradient(120% 90% at 50% 0%,#20463B 0%,#16302A 55%,#102420 100%);
+  border:1px solid #2C5449;
+  box-shadow:inset 0 0 70px rgba(0,0,0,.45)}
+.t-felt .qi{background:#2A4A3E;color:#BCD6C6}
+.t-felt .qi.foe{background:#4A2E2E;color:#E2AFAF}
+.t-felt .qi.now{background:#E6D3A3;color:#2A2113}
+.t-felt .qfoot{color:#8AA697} .t-felt .qfoot b{color:#E6D3A3}
+.t-felt .foe{background:linear-gradient(#FBF7EE,#EDE4D4);color:#2A2419;
+  border:1px solid #C9BCA4;box-shadow:0 2px 5px rgba(0,0,0,.35)}
+.t-felt .foe.elite{background:linear-gradient(#F6E0E2,#E9C9CD);border-color:#C29AA0}
+.t-felt .actor{background:linear-gradient(#FFFDF7,#F2EADA);color:#241E14;
+  border:2px solid #E6D3A3;box-shadow:0 10px 26px rgba(0,0,0,.5),0 0 0 4px rgba(230,211,163,.18)}
+.t-felt .sheet{background:linear-gradient(#FFFDF7,#F4ECDD);color:#241E14;
+  border:1px solid #C9BCA4;box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.t-felt .stats u{background:#8A7A5E}
+.t-felt .shrow b{color:#7A5C2E}
+.t-felt .tray{background:rgba(9,20,17,.5);border:1px solid #2C5449}
+.t-felt .slot{background:rgba(255,253,247,.06);border:1px dashed rgba(230,211,163,.3)}
+.t-felt .slot.filled{background:linear-gradient(#FBF7EE,#EDE4D4);color:#2A2419;
+  border:1px solid #C9BCA4;box-shadow:0 2px 5px rgba(0,0,0,.3)}
+.t-felt .el-void{color:#6B5AA8}
+
+/* ================= C. star chart ================= */
+.t-chart{background:#080C14;border:1px solid #1C2B44;
+  background-image:radial-gradient(circle at 18% 22%,rgba(255,255,255,.5) .6px,transparent .7px),
+    radial-gradient(circle at 62% 14%,rgba(255,255,255,.35) .5px,transparent .6px),
+    radial-gradient(circle at 84% 58%,rgba(255,255,255,.4) .6px,transparent .7px),
+    radial-gradient(circle at 34% 72%,rgba(255,255,255,.3) .5px,transparent .6px);
+  background-size:180px 150px,140px 190px,210px 170px,160px 130px}
+.t-chart .qi{background:none;border:1px solid #2A6B5E;color:#7FD3BC}
+.t-chart .qi.foe{border-color:#7A3A4A;color:#E08A9E}
+.t-chart .qi.now{background:#6FE0C0;border-color:#6FE0C0;color:#041A15}
+.t-chart .qfoot{color:#4A6A8A} .t-chart .qfoot b{color:#7FD3BC}
+.t-chart .foe{background:rgba(10,20,34,.7);border:1px solid #2B4B70;color:#AFCBE6;
+  border-radius:3px}
+.t-chart .foe.elite{border-color:#7A3A4A;color:#E8B4C2}
+.t-chart .actor{background:rgba(8,26,22,.8);border:1px solid #6FE0C0;color:#CFF5E8;
+  border-radius:3px;box-shadow:0 0 30px rgba(111,224,192,.22)}
+.t-chart .sheet{background:rgba(8,14,24,.88);border:1px solid #2B4B70;border-radius:3px}
+.t-chart .stats u{background:#3E7FA8}
+.t-chart .shrow b{color:#6FE0C0}
+.t-chart .tray{background:rgba(8,14,24,.6);border:1px solid #1C2B44;border-radius:4px}
+.t-chart .slot{border:1px solid #16263C;border-radius:3px}
+.t-chart .slot.filled{background:rgba(10,20,34,.8);border-color:#2B4B70;color:#AFCBE6}
+.t-chart .el-void{color:#9B8FD6}
+
+/* ================= D. bold poster ================= */
+.t-bold{background:#14161B;border:2px solid #22252D}
+.t-bold .qi{background:#2B7D4F;color:#0E1611;border-radius:0;font-weight:700}
+.t-bold .qi.foe{background:#A63D4E;color:#170A0D}
+.t-bold .qi.now{background:#F0B646;color:#1A1204;height:30px}
+.t-bold .qfoot{color:#6B7280;font-weight:700;letter-spacing:.06em}
+.t-bold .qfoot b{color:#F0B646;font-size:13px}
+.t-bold .foe{background:#2A2E37;border-radius:0;border-left:4px solid #6B7280;
+  text-align:left;padding:7px 6px;width:70px}
+.t-bold .foe b{font-size:10px;letter-spacing:-.2px}
+.t-bold .foe.elite{border-left-color:#A63D4E;background:#33262A}
+.t-bold .actor{background:#F0B646;color:#17120A;border-radius:0;width:132px;
+  padding:14px 8px;box-shadow:8px 8px 0 rgba(0,0,0,.4)}
+.t-bold .actor b{font-size:17px;letter-spacing:-.4px}
+.t-bold .actor .lv,.t-bold .actor i{opacity:.72}
+.t-bold .sheet{background:#F2F3F5;color:#16181D;border-radius:0;
+  box-shadow:10px 10px 0 rgba(0,0,0,.45)}
+.t-bold .sh b{font-size:20px;letter-spacing:-.5px}
+.t-bold .stats u{background:#16181D}
+.t-bold .shrow b{color:#A6621C}
+.t-bold .tray{background:#1B1E24;border-radius:0;border-top:3px solid #F0B646}
+.t-bold .tlab{font-weight:700;letter-spacing:.2em;opacity:.7}
+.t-bold .slot{background:#22252D;border-radius:0}
+.t-bold .slot.filled{background:#2E323C;border-left:3px solid #2B7D4F}
+.t-bold .el-void{color:#6B4FA8}
+</style></head><body><div class="wrap">
+<h1>Board styles</h1>
+<p class="lede">Your layout, four ways. Same skeleton throughout: the queue down the left with the round and purse at its foot, enemies in ranks up top, the acting unit rising into the middle, and the on-field / off-field tray anchored at the bottom. Each board is 4:3, the shape of an iPad.</p>
+<h2>A &middot; Survey instrument<em>the readout you already have, tightened</em></h2><p class="note">Closest to what exists. Numbers are the hero, colour is reserved for state, everything is a thin rule on dark. <b>Reads well at arm’s length and ages well</b> — but it looks like a tool, and a card game wants a little warmth.</p>
+<div style="display:flex;gap:20px;flex-wrap:wrap">
+<div class="board t-inst">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="actor"><span class="lv">Lv.25</span><b>Mantium</b><i>Buffer</i></div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+<div class="board t-inst">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="sheet">
+          <div class="sh"><b>Nokomino</b><span>Lv.25</span><em class="el-void">Void</em></div>
+          <div class="stats">
+            <div><span>Attack</span><u style="width:72%%"></u></div>
+            <div><span>Release</span><u style="width:48%%"></u></div>
+            <div><span>Shield</span><u style="width:34%%"></u></div>
+            <div><span>Roll Rate</span><u style="width:61%%"></u></div>
+            <div><span>Speed</span><u style="width:55%%"></u></div>
+            <div><span>Roll Damage</span><u style="width:80%%"></u></div>
+          </div>
+          <div class="shrow"><b>Pierce</b><span>ignores the front rank entirely</span></div>
+          <div class="shrow"><b>Answers marks</b><span>fires again at anything written down</span></div>
+          <div class="shrow"><b>Plays with</b><span class="pw">Quill marks for you &middot; Rime cracks shields</span></div>
+        </div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+<h2>B &middot; Card table<em>cards with real weight</em></h2><p class="note">Cards are paper on felt, with shadows and a warm cream face. <b>The most tactile</b>, and drag-and-drop feels obvious because the pieces look liftable. The risk is that a busy fight gets noisy, and light card faces are harsher at night.</p>
+<div style="display:flex;gap:20px;flex-wrap:wrap">
+<div class="board t-felt">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="actor"><span class="lv">Lv.25</span><b>Mantium</b><i>Buffer</i></div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+<div class="board t-felt">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="sheet">
+          <div class="sh"><b>Nokomino</b><span>Lv.25</span><em class="el-void">Void</em></div>
+          <div class="stats">
+            <div><span>Attack</span><u style="width:72%%"></u></div>
+            <div><span>Release</span><u style="width:48%%"></u></div>
+            <div><span>Shield</span><u style="width:34%%"></u></div>
+            <div><span>Roll Rate</span><u style="width:61%%"></u></div>
+            <div><span>Speed</span><u style="width:55%%"></u></div>
+            <div><span>Roll Damage</span><u style="width:80%%"></u></div>
+          </div>
+          <div class="shrow"><b>Pierce</b><span>ignores the front rank entirely</span></div>
+          <div class="shrow"><b>Answers marks</b><span>fires again at anything written down</span></div>
+          <div class="shrow"><b>Plays with</b><span class="pw">Quill marks for you &middot; Rime cracks shields</span></div>
+        </div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+<h2>C &middot; Star chart<em>engraved, cartographic</em></h2><p class="note">Hairline boxes, a faint starfield, cyan for your side. <b>Fits the fiction best</b> — a survey vessel charting worlds — and it is the calmest of the four for playing in bed. Thin strokes need care at small sizes.</p>
+<div style="display:flex;gap:20px;flex-wrap:wrap">
+<div class="board t-chart">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="actor"><span class="lv">Lv.25</span><b>Mantium</b><i>Buffer</i></div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+<div class="board t-chart">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="sheet">
+          <div class="sh"><b>Nokomino</b><span>Lv.25</span><em class="el-void">Void</em></div>
+          <div class="stats">
+            <div><span>Attack</span><u style="width:72%%"></u></div>
+            <div><span>Release</span><u style="width:48%%"></u></div>
+            <div><span>Shield</span><u style="width:34%%"></u></div>
+            <div><span>Roll Rate</span><u style="width:61%%"></u></div>
+            <div><span>Speed</span><u style="width:55%%"></u></div>
+            <div><span>Roll Damage</span><u style="width:80%%"></u></div>
+          </div>
+          <div class="shrow"><b>Pierce</b><span>ignores the front rank entirely</span></div>
+          <div class="shrow"><b>Answers marks</b><span>fires again at anything written down</span></div>
+          <div class="shrow"><b>Plays with</b><span class="pw">Quill marks for you &middot; Rime cracks shields</span></div>
+        </div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+<h2>D &middot; Bold poster<em>flat colour, heavy type</em></h2><p class="note">Square corners, hard shadows, big amber for whoever is acting. <b>Reads instantly from across the room</b> and would look distinct in a storefront screenshot. It is the loudest, and least suited to a quiet bedtime session.</p>
+<div style="display:flex;gap:20px;flex-wrap:wrap">
+<div class="board t-bold">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="actor"><span class="lv">Lv.25</span><b>Mantium</b><i>Buffer</i></div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+<div class="board t-bold">
+  <div class="queue">
+    <div class="qi now"></div><div class="qi foe">1</div><div class="qi foe">13</div>
+    <div class="qi">14</div><div class="qi foe">16</div><div class="qi">19</div>
+    <div class="qi">20</div><div class="qi foe">24</div><div class="qi">30</div>
+    <div class="qfoot"><span>Round 3</span><b>82g</b></div>
+  </div>
+  <div class="field">
+    <div class="rank back"><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="foe"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="foe"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div></div>
+    <div class="rank front"><div class="foe elite"><span class="lv">Lv.31</span><b>Vargh</b><i>Breaker</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Thoral</b><i>Bulwark</i></div><div class="foe elite"><span class="lv">Lv.31</span><b>Sesk</b><i>Lash</i></div></div>
+    <div class="stage"><div class="sheet">
+          <div class="sh"><b>Nokomino</b><span>Lv.25</span><em class="el-void">Void</em></div>
+          <div class="stats">
+            <div><span>Attack</span><u style="width:72%%"></u></div>
+            <div><span>Release</span><u style="width:48%%"></u></div>
+            <div><span>Shield</span><u style="width:34%%"></u></div>
+            <div><span>Roll Rate</span><u style="width:61%%"></u></div>
+            <div><span>Speed</span><u style="width:55%%"></u></div>
+            <div><span>Roll Damage</span><u style="width:80%%"></u></div>
+          </div>
+          <div class="shrow"><b>Pierce</b><span>ignores the front rank entirely</span></div>
+          <div class="shrow"><b>Answers marks</b><span>fires again at anything written down</span></div>
+          <div class="shrow"><b>Plays with</b><span class="pw">Quill marks for you &middot; Rime cracks shields</span></div>
+        </div></div>
+    <div class="tray">
+      <div class="tlab">ON&nbsp;FIELD</div><div class="trow"><div class="slot filled"><span class="lv">Lv.25</span><b>Mantium</b><i>Strike</i></div><div class="slot filled"><span class="lv">Lv.25</span><b>Nokomino</b><i>Pierce</i></div><div class="slot"></div><div class="slot"></div><div class="slot"></div></div>
+      <div class="tlab off">OFF&nbsp;FIELD</div><div class="trow off"><div class="slot filled sm"><span class="lv">Lv.60</span><b>Vgeria</b><i>Anthem</i></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div><div class="slot sm"></div></div>
+    </div>
+  </div>
+</div>
+</div>
+<h2>What I would pick<em>and why</em></h2>
+<p class="note"><b>C, the star chart</b>, with B’s card weight borrowed for the
+crew tray only. The chart style fits a survey vessel, stays calm at night, and leaves
+colour free to mean something — which matters when green is a tag, red is an enemy
+and amber is whoever is acting. Making only the tray cards feel like physical objects
+tells your hand where the draggable things are without lighting up the whole screen.</p>
+<p class="note">The one thing I would take from <b>D</b> is the acting card: solid amber,
+hard shadow, twice the size of anything else. In your sketch the actor is the same size
+as everything else, and it is the one card that should never be missable.</p>
+</div></body></html>

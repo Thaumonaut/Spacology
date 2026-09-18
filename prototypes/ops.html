@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ops</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+:root{--bg:#080C12;--panel:#0C131C;--raised:#101A26;--line:#1C2B44;--line2:#223751;
+  --ink:#E8EDF2;--ink2:#AFCBE6;--ink3:#4A6A8A;--ink4:#3F5468;
+  --gold:#D4A45C;--good:#7FBE86;--teal:#6FE0C0;--bad:#C4626F}
+html,body{margin:0;background:var(--bg);color:var(--ink);overscroll-behavior:none;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:radial-gradient(circle at 16% 20%,rgba(255,255,255,.34) .6px,transparent .7px),
+    radial-gradient(circle at 64% 12%,rgba(255,255,255,.26) .5px,transparent .6px),
+    radial-gradient(circle at 86% 62%,rgba(255,255,255,.3) .6px,transparent .7px);
+  background-size:200px 170px,150px 200px,230px 180px;background-attachment:fixed}
+.shell{max-width:1120px;margin:0 auto;padding:16px 14px 80px;
+  display:grid;grid-template-columns:132px minmax(0,1fr);gap:14px;align-items:start}
+@media(max-width:820px){.shell{grid-template-columns:1fr}}
+
+/* ---- status rail ---- */
+.rail{position:sticky;top:14px;display:flex;flex-direction:column;gap:6px}
+@media(max-width:820px){.rail{position:static;flex-direction:row;flex-wrap:wrap}}
+.rl{border:1px solid var(--line);border-radius:5px;background:rgba(10,18,30,.8);
+  padding:8px 10px;line-height:1.2;flex:1 1 auto}
+.rl b{display:block;font-size:17px;font-variant-numeric:tabular-nums}
+.rl i{display:block;font-size:7.5px;color:var(--ink4);font-style:normal;letter-spacing:.1em}
+.rl.gold b{color:var(--gold)} .rl.int b{color:var(--good)}
+.rl.int.low b{color:var(--gold)} .rl.int.crit b{color:var(--bad)}
+.rl.str b{color:var(--teal)}
+.railbar{height:4px;border-radius:2px;background:#0A1018;margin-top:5px;overflow:hidden;
+  position:relative}
+.railbar u{position:absolute;inset:0;display:block;background:var(--good);transition:width .5s}
+.tagrail{font-size:8.5px;color:var(--ink3);line-height:1.7;padding:7px 10px;
+  border:1px solid var(--line);border-radius:5px;background:rgba(10,18,30,.5)}
+.tagrail b{color:var(--ink2)}
+
+/* ---- panels ---- */
+.p{border:1px solid var(--line);border-radius:7px;background:rgba(10,18,30,.72);
+  padding:13px;margin-bottom:12px}
+.ph{display:flex;align-items:baseline;gap:9px;margin-bottom:10px}
+.ph .t{font-size:14px;font-weight:600}
+.ph .s{font-size:9px;color:var(--ink4);letter-spacing:.06em}
+.ph .grow{flex:1}
+.ph .r{font-size:9.5px;color:var(--ink3)}
+.ph .r b{color:var(--gold)}
+.hint{font-size:10.5px;color:var(--ink4);line-height:1.6;margin-top:9px}
+
+/* ---- pack offers ---- */
+.offers{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+@media(max-width:700px){.offers{grid-template-columns:1fr}}
+.of{position:relative;border:1px solid var(--line2);border-radius:5px;
+  background:rgba(10,18,30,.85);padding:11px 10px 10px;cursor:pointer;
+  display:flex;flex-direction:column;text-align:left;font-family:inherit;color:var(--ink)}
+.of:disabled{opacity:.38;cursor:default}
+.of .fl{position:absolute;left:-1px;right:-1px;top:-1px;height:2px;border-radius:5px 5px 0 0}
+.of.match{border-color:#2A6B5E}.of.match .fl{background:#2A6B5E}
+.of.prime{border-color:#8A6B2E;box-shadow:0 0 18px rgba(212,164,92,.15)}
+.of.prime .fl{background:linear-gradient(90deg,#8A6B2E,#E0C48A,#8A6B2E)}
+.of.deep{border-style:dashed}
+.of .ax{font-size:6.5px;letter-spacing:.12em;color:var(--ink4)}
+.of .nm{font-size:14px;font-weight:600;line-height:1.15;margin-top:2px}
+.of .ds{font-size:8.5px;color:var(--ink3);line-height:1.4;margin-top:3px;min-height:23px}
+.of .fit{font-size:8.5px;margin-top:6px;line-height:1.35;min-height:22px}
+.of .fit.y{color:var(--good)} .of .fit.n{color:var(--ink4)}
+.of .bars{display:flex;gap:3px;align-items:flex-end;height:24px;margin-top:8px}
+.of .bars i{flex:1;border-radius:2px;display:block;min-height:3px}
+.of .best{font-size:8px;color:var(--ink3);margin-top:5px}
+.of .best b{color:#E0C48A}
+.of .cost{margin-top:auto;padding-top:9px;display:flex;align-items:baseline;gap:6px}
+.of .cost .g{font-size:15px;color:var(--gold);font-weight:600;font-variant-numeric:tabular-nums}
+.of .cost .n{font-size:8px;color:var(--ink4)}
+
+/* ---- bay ---- */
+.bay{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+@media(max-width:700px){.bay{grid-template-columns:repeat(3,1fr)}}
+.cc{position:relative;border:1px solid var(--line2);border-radius:4px;
+  background:rgba(10,18,30,.85);padding:8px 6px 7px;min-height:104px;
+  display:flex;flex-direction:column;cursor:pointer;text-align:center;
+  transition:all .14s}
+.cc .sp{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.cc .ib{position:absolute;right:0;top:0;width:30px;height:30px;color:var(--ink4);
+  font-size:8px;padding:4px 5px 0 0;text-align:right}
+.cc .lb{font-size:6.5px;letter-spacing:.1em;color:var(--ink4)}
+.cc .nm{font-size:11px;font-weight:600;line-height:1.15;margin-top:2px}
+.cc .tg{font-size:8px;margin-top:1px}
+.cc .ds{font-size:7.5px;color:var(--ink3);line-height:1.35;margin-top:4px;flex:1}
+.cc .vl{font-size:18px;font-weight:600;color:var(--gold);margin:8px 0 3px}
+.cc .pr{font-size:7px;line-height:1.3;margin-top:3px}
+.cc .pr.y{color:#6FA88A} .cc .pr.n{color:var(--ink4)}
+.cc .sc{font-size:7px;color:var(--ink3);margin-top:4px}
+.cc.keep{border-color:#3E8A6E;background:rgba(10,32,26,.8)}
+.cc.strip{opacity:.4}
+.cc .flag{position:absolute;left:50%;transform:translateX(-50%);bottom:-7px;
+  font-size:6.5px;letter-spacing:.08em;border-radius:3px;padding:1px 7px}
+.cc.keep .flag{background:#2A6B5E;color:#CFF5E8}
+.cc.strip .flag{background:#4A2A32;color:#E0A9B1}
+.cc.full{border-color:#5A3038}
+
+/* ---- crew ---- */
+.crew{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+@media(max-width:700px){.crew{grid-template-columns:repeat(3,1fr)}}
+.cu{position:relative;border:1px solid var(--line2);border-radius:4px;
+  background:rgba(10,18,30,.85);padding:7px 4px 6px;min-height:62px;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;line-height:1.15}
+.cu .rb{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.cu .nm{font-size:10px;font-weight:600}
+.cu .tg{font-size:7.5px}
+.cu .ft{font-size:6.5px;color:#9B8FD6;margin-top:2px}
+.cu .ib{position:absolute;right:0;top:0;width:26px;height:26px;color:var(--ink4);
+  font-size:7.5px;padding:3px 4px 0 0;text-align:right}
+.cu.bench{opacity:.62;border-style:dashed}
+.cu .dots{position:absolute;left:5px;bottom:4px;display:flex;gap:2px}
+.cu .dots i{width:4px;height:4px;border-radius:50%;display:block;background:var(--good)}
+.cu.empty{border-style:dashed;color:#26374A;font-size:8px;cursor:default;
+  background:none;align-items:center;justify-content:center}
+.subh{font-size:7.5px;letter-spacing:.12em;color:var(--ink4);margin:11px 0 5px}
+.subh:first-child{margin-top:0}
+
+/* ---- buttons / bits ---- */
+.btn{min-height:44px;padding:0 18px;border-radius:5px;border:0;background:var(--gold);
+  color:#1A1204;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+.btn.alt{background:rgba(10,18,30,.8);color:var(--ink2);border:1px solid var(--line2)}
+.btn.wide{width:100%;margin-top:10px}
+.btn:disabled{opacity:.4}
+.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.tally{display:flex;align-items:center;gap:14px;margin-top:15px;
+  border-top:1px solid var(--line);padding-top:11px;flex-wrap:wrap}
+.tally .g{display:flex;flex-direction:column;line-height:1.2}
+.tally .g b{font-size:15px;font-variant-numeric:tabular-nums}
+.tally .g span{font-size:7.5px;color:var(--ink4);letter-spacing:.06em}
+.tally .grow{flex:1}
+.shr{display:flex;gap:9px;flex-wrap:wrap;font-size:10px}
+.shr span{color:var(--ink3)}
+.dest{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+@media(max-width:700px){.dest{grid-template-columns:1fr}}
+.dc{border:1px solid var(--line2);border-radius:5px;background:rgba(10,18,30,.85);
+  padding:11px 10px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink)}
+.dc .n{font-size:14px;font-weight:600}
+.dc .pips{display:flex;gap:3px;margin:6px 0}
+.dc .pips i{width:13px;height:5px;border-radius:2px;background:#1C2B44;display:block}
+.dc .pips i.on{background:var(--gold)} .dc .pips i.hot{background:var(--bad)}
+.dc .od{font-size:10.5px;line-height:1.5;margin-top:5px}
+.dc .od b{font-variant-numeric:tabular-nums}
+.readout{font-size:11px;color:var(--ink3);line-height:1.75}
+.readout b{color:var(--ink2);font-variant-numeric:tabular-nums}
+#log{max-height:150px;overflow:auto;font-size:11px;line-height:1.7;color:var(--ink3)}
+#log b{color:var(--ink2)} #log .w{color:var(--good)} #log .l{color:var(--bad)}
+#sheet{position:fixed;inset:0;z-index:70;background:rgba(6,9,14,.76);display:none;
+  align-items:center;justify-content:center;padding:18px}
+#sheet.on{display:flex}
+#sheet .in{width:100%;max-width:400px;background:#0D151F;border:1px solid var(--line2);
+  border-radius:9px;padding:16px;max-height:84vh;overflow:auto}
+#sheet h4{margin:0 0 3px;font-size:18px}
+#sheet .m{font-size:11px;color:var(--ink4);margin-bottom:11px}
+#sheet .rw{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
+#sheet .rw span:last-child{color:var(--ink3)}
+#sheet .lab{font-size:9px;color:var(--ink4);letter-spacing:.06em;margin:12px 0 5px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="rail" id="rail"></div>
+  <div id="main"></div>
+</div>
+<div id="sheet"><div class="in" id="sheetin"></div></div>
+<script>
+/* ===================== data ===================== */
+var EL={order:'#7FA8C9',chaos:'#C97F9E',growth:'#8FB878',
+        void:'#8F8FC9',decay:'#A89070',energy:'#D4A45C'};
+var ELK=Object.keys(EL);
+var TAGCOL={Hull:'#7FA8C9',Blight:'#A89070',Drive:'#D4A45C',
+            Ordnance:'#C97F9E',Assay:'#8F8FC9',Crew:'#8FB878'};
+var TAGS={
+ Hull:{2:'barriers 45% larger',4:'AMMUNITION \u2014 barriers answer the attacker'},
+ Blight:{2:'one extra stack applied',4:'BLOOM \u2014 every ailment detonates at once'},
+ Drive:{2:'the crew act 12% sooner',4:'RELAY \u2014 a kill advances the next crewmate'},
+ Ordnance:{2:'20% more damage',4:'OVERSTRIKE \u2014 a breaking hit lands twice'},
+ Assay:{2:'shields shred 60% faster',4:'DISSECTION \u2014 a break costs two turns'},
+ Crew:{2:'healing 50% stronger',4:'RELIEF \u2014 the first to fall comes back'}};
+var TAGL=Object.keys(TAGS);
+var RAR=[
+ {k:0,n:'Common',  c:'#3A4E63',pow:10,scrap:2},
+ {k:1,n:'Uncommon',c:'#4E7A8C',pow:16,scrap:4},
+ {k:2,n:'Rare',    c:'#8A6BA8',pow:26,scrap:8},
+ {k:3,n:'Prime',   c:'#C9922E',pow:44,scrap:16}];
+
+/* mechanics are what a pack can be aimed at */
+var MECH={
+ rot:  {n:'Rot & Bloom',   d:'seeders, spreaders and the thing that lights them',
+        has:['seed','spread','deton']},
+ mark: {n:'Marks & Answers',d:'units that write targets down and units that punish them',
+        has:['mark','onmark','onbrk']},
+ wall: {n:'Shields & Reflect',d:'bodies that soak and bodies that answer',
+        has:['guard','bait','plate']},
+ tempo:{n:'Tempo & Follow-up',d:'extra turns and extra swings',
+        has:['push','react','charge','sweep']},
+ mend: {n:'Mend & Barrier', d:'keeping people upright and turning surplus into plate',
+        has:['mend','over']}};
+var MECHK=Object.keys(MECH);
+
+var POOL=[
+ {n:'Ward',   tag:'Hull',    e:'order', k:'guard', r:0,d:'shields whoever is lowest'},
+ {n:'Tarn',   tag:'Hull',    e:'decay', k:'bait',  r:1,d:'draws fire and answers it'},
+ {n:'Ballast',tag:'Hull',    e:'growth',k:'guard', r:0,d:'soaks and drains'},
+ {n:'Ferrule',tag:'Hull',    e:'energy',k:'plate', r:1,d:'plates on every swing'},
+ {n:'Bulwark',tag:'Hull',    e:'void',  k:'bait',  r:3,d:'every blow it takes arms the crew'},
+ {n:'Ash',    tag:'Blight',  e:'chaos', k:'seed',  r:0,d:'coats the whole line'},
+ {n:'Cinder', tag:'Blight',  e:'energy',k:'seed',  r:1,d:'burns one of them deeply'},
+ {n:'Sump',   tag:'Blight',  e:'growth',k:'spread',r:1,d:'rot jumps when one falls'},
+ {n:'Pyre',   tag:'Blight',  e:'void',  k:'deton', r:2,d:'waits, then lights the pile'},
+ {n:'Verdigris',tag:'Blight',e:'decay', k:'deton', r:3,d:'the rot never stops spreading'},
+ {n:'Vane',   tag:'Drive',   e:'order', k:'push',  r:0,d:'shoves people forward'},
+ {n:'Nettle', tag:'Drive',   e:'chaos', k:'react', r:1,d:'fires whenever anyone does'},
+ {n:'Mote',   tag:'Drive',   e:'growth',k:'sweep', r:0,d:'sweeps the line for cracks'},
+ {n:'Halo',   tag:'Drive',   e:'energy',k:'charge',r:2,d:'gives away its own power'},
+ {n:'Quicksilver',tag:'Drive',e:'void', k:'push',  r:3,d:'the whole crew acts twice'},
+ {n:'Corr',   tag:'Ordnance',e:'void',  k:'nuke',  r:1,d:'one target, one number'},
+ {n:'Bosk',   tag:'Ordnance',e:'decay', k:'brute', r:0,d:'slow, enormous, patient'},
+ {n:'Maul',   tag:'Ordnance',e:'order', k:'onbrk', r:2,d:'answers a break enormously'},
+ {n:'Wick',   tag:'Ordnance',e:'chaos', k:'nuke',  r:0,d:'fast and impatient'},
+ {n:'Anvil',  tag:'Ordnance',e:'growth',k:'onbrk', r:3,d:'a break is worth three hits'},
+ {n:'Quill',  tag:'Assay',   e:'growth',k:'mark',  r:0,d:'writes a target down'},
+ {n:'Rime',   tag:'Assay',   e:'void',  k:'shred', r:1,d:'strips every shell it sees'},
+ {n:'Ledger', tag:'Assay',   e:'order', k:'onmark',r:2,d:'answers anything marked'},
+ {n:'Vitre',  tag:'Assay',   e:'chaos', k:'mark',  r:0,d:'paints the whole line'},
+ {n:'Lens',   tag:'Assay',   e:'energy',k:'onmark',r:3,d:'every mark is a death sentence'},
+ {n:'Fen',    tag:'Crew',    e:'order', k:'mend',  r:0,d:'keeps the crew upright'},
+ {n:'Mire',   tag:'Crew',    e:'void',  k:'mend',  r:1,d:'mends, and hits back'},
+ {n:'Sable',  tag:'Crew',    e:'growth',k:'over',  r:1,d:'overheals into barrier'},
+ {n:'Slate',  tag:'Crew',    e:'decay', k:'charge',r:0,d:'feeds somebody an ultimate'},
+ {n:'Reliquary',tag:'Crew',  e:'chaos', k:'over',  r:3,d:'nobody who falls stays down'}];
+
+var FITS=[
+ {n:'Ranging Sight', d:'area attacks reach one more',        want:['seed','sweep','shred'],pow:8},
+ {n:'Slow Fuse',     d:'ultimate charges 25% faster',        want:['charge','push'],       pow:7},
+ {n:'Ballast Plate', d:'barriers 30% larger',                want:['guard','plate','over'],pow:8},
+ {n:'Tuning Fork',   d:'one extra stack per application',    want:['seed','spread'],       pow:9},
+ {n:'Counterweight', d:'draws fire twice as often',          want:['bait','guard'],        pow:7},
+ {n:'Bore Bit',      d:'shreds shields 40% faster',          want:['shred','mark'],        pow:9},
+ {n:'Recoil Spring', d:'follow-ups hit 30% harder',          want:['react','onmark','onbrk'],pow:9}];
+
+/* who pairs with whom, derived from kits */
+var PAIRS=[['mark','onmark'],['seed','deton'],['spread','deton'],['shred','onbrk'],
+           ['bait','mend'],['bait','over'],['guard','bait'],['charge','nuke'],
+           ['push','react'],['sweep','react']];
+function pairsWith(a,b){
+  for(var i=0;i<PAIRS.length;i++){
+    if((PAIRS[i][0]===a.k&&PAIRS[i][1]===b.k)||(PAIRS[i][1]===a.k&&PAIRS[i][0]===b.k))
+      return true;
+  }
+  return false;
+}
+/* ===================== state and generation ===================== */
+var FIELD_SLOTS=12;     // two rows of six
+var ROSTER_CAP=16;      // twelve aboard plus a small bench
+var FREE_UPKEEP=8;      // beyond this, each fielded crewmate costs to keep ready
+var UPKEEP=7;
+var S=null;
+function rr(){ return Math.random(); }
+function pick(a){ return a[Math.floor(rr()*a.length)]; }
+function uid(){ return 'x'+(rr()*1e9|0); }
+
+function newRun(){
+  S={gold:70,integrity:70,leg:1,legs:14,roster:[],field:[],
+     shards:{},crystals:{},offers:null,pack:null,refreshes:0,
+     history:[],streak:0,log:[]};
+  ELK.forEach(function(e){S.shards[e]=0;S.crystals[e]=0;});
+  rollOffers();
+}
+/* odds climb as the voyage goes */
+function rarityOdds(leg,deep){
+  var t=(leg-1)/13;
+  var prime = (deep?0.085:0.006+0.032*t);
+  var rare  = (deep?0.22:0.035+0.085*t);
+  var unc   = 0.20+0.10*t;
+  return [1-prime-rare-unc, unc, rare, prime];
+}
+function rollRarity(leg,deep){
+  var o=rarityOdds(leg,deep), r=rr(), a=0;
+  for(var i=3;i>=0;i--){ a+=o[i]; if(r<a) return i; }
+  return 0;
+}
+function mkChar(base,rar){
+  var c={}; for(var k in base) c[k]=base[k];
+  c.uid=uid(); c.type='char'; c.r=rar; c.fit=null;
+  return c;
+}
+/* a pack aimed at a mechanic pulls from the kits that mechanic uses */
+function genPack(theme,leg,deep,size){
+  var out=[];
+  var kinds = theme.mech?MECH[theme.mech].has:null;
+  for(var i=0;i<size;i++){
+    var roll=rr();
+    if(roll<0.16){ out.push({type:'coin',uid:uid(),amt:Math.round(5+rr()*9+leg)}); continue; }
+    if(roll<0.34){
+      var f=pick(FITS);
+      out.push({type:'fit',uid:uid(),n:f.n,d:f.d,want:f.want,pow:f.pow,
+                r:rollRarity(leg,deep)>2?2:rr()<0.3?1:0});
+      continue;
+    }
+    var rar=rollRarity(leg,deep);
+    var cands=POOL.filter(function(p){
+      if(p.r>rar) return false;
+      if(kinds) return kinds.indexOf(p.k)>=0;
+      return theme.els?theme.els.indexOf(p.e)>=0:true;
+    });
+    if(!cands.length) cands=POOL.filter(function(p){return p.r<=rar});
+    var best=cands.filter(function(p){return p.r===rar});
+    var c=best.length?pick(best):pick(cands);
+    out.push(mkChar(c,Math.max(c.r,0)));
+  }
+  return out;
+}
+function bestRarity(cards){
+  var b=0; cards.forEach(function(c){ if(c.type==='char'&&c.r>b) b=c.r; });
+  return b;
+}
+function composition(cards){
+  var t=[0,0,0,0];
+  cards.forEach(function(c){ if(c.type==='char') t[c.r]++; });
+  return t;
+}
+function rollOffers(){
+  var used={}, out=[];
+  for(var i=0;i<3;i++){
+    var deep = (S.leg>=8 && rr()<0.22);
+    var theme;
+    if(rr()<0.55){
+      var m; var g=0;
+      do{ m=pick(MECHK); }while(used['m'+m]&&g++<20);
+      used['m'+m]=1;
+      theme={mech:m,n:MECH[m].n,d:MECH[m].d,axis:'MECHANIC'};
+    } else {
+      var e1,e2,g2=0;
+      do{ e1=pick(ELK); e2=pick(ELK); }while((e1===e2||used['e'+e1+e2])&&g2++<20);
+      used['e'+e1+e2]=1;
+      theme={els:[e1,e2],n:cap(e1)+' & '+cap(e2),
+             d:'anything of those two elements, any role',axis:'ELEMENT'};
+    }
+    var size=deep?8:10;
+    var cards=genPack(theme,S.leg,deep,size);
+    out.push({theme:theme,cards:cards,deep:deep,size:size,
+      cost:Math.round((deep?66:28)+S.leg*4.4),
+      best:bestRarity(cards),comp:composition(cards)});
+  }
+  S.offers=out;
+}
+function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+function refreshCost(){ return S.refreshes===0?0:Math.round(9+(S.refreshes-1)*6); }
+function upkeep(){ return Math.max(0,fielded().length-FREE_UPKEEP)*UPKEEP; }
+
+/* ===================== crew and strength ===================== */
+function fielded(){ return S.roster.filter(function(c){return c.onField}); }
+function tagN(t,list){ return (list||fielded()).filter(function(c){return c.tag===t}).length; }
+function crewPower(c){
+  var p=RAR[c.r].pow;
+  if(c.fit){
+    p+=c.fit.pow*(c.fit.want.indexOf(c.k)>=0?1.6:0.5);
+    p+=c.fit.r*3;
+  }
+  return p;
+}
+/* team strength is what the staging ground is actually for */
+function strength(){
+  var f=fielded();
+  if(!f.length) return {total:0,base:0,tags:0,pairs:0,fits:0,n:0,deep:[],pairList:[]};
+  var base=f.reduce(function(a,c){return a+crewPower(c)},0);
+  var tags=0,deep=[];
+  TAGL.forEach(function(t){
+    var n=tagN(t,f);
+    if(n>=4){ tags+=46; deep.push(t+'\u00d74'); }
+    else if(n>=2){ tags+=15; }
+  });
+  var pairs=0,pl=[];
+  for(var i=0;i<f.length;i++) for(var j=i+1;j<f.length;j++)
+    if(pairsWith(f[i],f[j])){ pairs+=13; pl.push(f[i].n+' + '+f[j].n); }
+  var fits=f.reduce(function(a,c){
+    return a+(c.fit&&c.fit.want.indexOf(c.k)>=0?6:0) },0);
+  return {total:Math.round(base+tags+pairs+fits),base:Math.round(base),
+    tags:tags,pairs:pairs,fits:fits,n:f.length,deep:deep,pairList:pl};
+}
+/* what a leg demands, and how a fight resolves against it */
+function demand(leg,danger){
+  return Math.round((84+leg*46)*(0.70+danger*0.17));
+}
+var BANDS=[
+ {min:100,k:'perfect', t:'Perfect recovery',pay:1.00},
+ {min:88, k:'slight',  t:'Slight shortfall',pay:0.75},
+ {min:68, k:'small',   t:'Small loss',      pay:0.55},
+ {min:42, k:'mild',    t:'Mild loss',       pay:0.35},
+ {min:18, k:'hard',    t:'Heavy loss',      pay:0.20},
+ {min:0,  k:'crushing',t:'Total loss',      pay:0.08}];
+function bandFor(p){ for(var i=0;i<BANDS.length;i++) if(p>=BANDS[i].min) return BANDS[i];
+  return BANDS[5]; }
+function bandDelta(b,d){
+  if(b.k==='perfect') return 3+d*2;
+  if(b.k==='slight')  return 0;
+  if(b.k==='small')   return -(1+d);
+  if(b.k==='mild')    return -(3+d*2);
+  if(b.k==='hard')    return -(6+d*2);
+  return -(10+d*3);
+}
+/* ===================== render ===================== */
+var $=function(i){return document.getElementById(i)};
+var VIEW='ops';
+function h(s){ return s; }
+
+function drawRail(){
+  var st=strength(), f=fielded();
+  var ip=Math.max(0,Math.min(100,S.integrity));
+  var icls=ip<25?'crit':(ip<55?'low':'');
+  var tags='';
+  TAGL.forEach(function(t){
+    var n=tagN(t,f); if(!n) return;
+    tags+='<div><b style="color:'+TAGCOL[t]+'">'+t+'\u00d7'+n+'</b>'+
+      (n>=4?' deep':(n>=2?' \u2713':''))+'</div>';
+  });
+  $('rail').innerHTML=
+    '<div class="rl gold"><b>'+S.gold+'</b><i>GOLD</i></div>'+
+    '<div class="rl int '+icls+'"><b>'+Math.round(ip)+'%</b><i>INTEGRITY</i>'+
+      '<div class="railbar"><u style="width:'+ip+'%;background:'+
+      (ip<25?'var(--bad)':ip<55?'var(--gold)':'var(--good)')+'"></u></div></div>'+
+    '<div class="rl str"><b>'+st.total+'</b><i>STRENGTH</i></div>'+
+    '<div class="rl"><b>'+S.leg+'<span style="font-size:10px;color:var(--ink4)">/'+
+      S.legs+'</span></b><i>LEG</i></div>'+
+    '<div class="rl"><b'+(f.length>FREE_UPKEEP?' style="color:var(--gold)"':'')+'>'+
+      f.length+'<span style="font-size:10px;color:var(--ink4)">/'+FIELD_SLOTS+
+      '</span></b><i>ON FIELD</i>'+
+      (upkeep()?'<div style="font-size:8px;color:var(--bad);margin-top:3px">\u2212'+
+        upkeep()+'g a leg</div>':'')+'</div>'+
+    '<div class="rl"><b'+(S.roster.length>=ROSTER_CAP?' style="color:var(--bad)"':'')+'>'+
+      S.roster.length+'<span style="font-size:10px;color:var(--ink4)">/'+ROSTER_CAP+
+      '</span></b><i>ABOARD</i></div>'+
+    (tags?'<div class="tagrail">'+tags+'</div>':
+      '<div class="tagrail">no tag paired yet</div>');
+}
+function rarBars(comp){
+  var mx=Math.max.apply(null,comp)||1;
+  return comp.map(function(n,i){
+    return '<i style="background:'+RAR[i].c+';height:'+Math.round(4+n/mx*20)+'px'+
+      (i===3&&n?';box-shadow:0 0 9px rgba(224,196,138,.55)':'')+'"></i>';
+  }).join('');
+}
+function offerFit(o){
+  var f=fielded();
+  if(o.theme.mech){
+    var kinds=MECH[o.theme.mech].has;
+    var have=f.filter(function(c){return kinds.indexOf(c.k)>=0});
+    return have.length?{y:1,t:'you have '+have.slice(0,2).map(function(c){return c.n}).join(', ')+
+      (have.length>2?' +'+(have.length-2):'')+' aboard'}
+      :{y:0,t:'nothing aboard plays this way'};
+  }
+  var have2=f.filter(function(c){return o.theme.els.indexOf(c.e)>=0});
+  return have2.length?{y:1,t:have2.length+' aboard use these elements'}
+    :{y:0,t:'nothing aboard leans either way'};
+}
+function drawOps(){
+  var st=strength();
+  var m='';
+  /* --- offers --- */
+  m+='<div class="p"><div class="ph"><span class="t">Consignments</span>'+
+    '<span class="s">LEG '+S.leg+'</span><span class="grow"></span>'+
+    '<span class="r">prime <b>1 in '+Math.round(1/rarityOdds(S.leg)[3])+'</b></span></div>'+
+    '<div class="offers">';
+  S.offers.forEach(function(o,i){
+    var fit=offerFit(o);
+    var cls=(o.best>=3?'prime ':'')+(fit.y?'match ':'')+(o.deep?'deep':'');
+    m+='<button class="of '+cls+'" data-buy="'+i+'"'+(S.gold<o.cost?' disabled':'')+'>'+
+      '<span class="fl"></span>'+
+      '<div class="ax">'+o.theme.axis+(o.deep?' \u00b7 DEEP':'')+'</div>'+
+      '<div class="nm">'+o.theme.n+'</div>'+
+      '<div class="ds">'+o.theme.d+'</div>'+
+      '<div class="fit '+(fit.y?'y':'n')+'">'+fit.t+'</div>'+
+      '<div class="bars">'+rarBars(o.comp)+'</div>'+
+      '<div class="best">'+(o.best>=3?'shows <b>1 PRIME</b>':
+        o.best===2?'shows a rare':'nothing above uncommon')+'</div>'+
+      '<div class="cost"><span class="g">'+o.cost+'g</span>'+
+      '<span class="n">'+o.size+' cards</span></div></button>';
+  });
+  m+='</div>';
+  var primeMismatch=S.offers.filter(function(o){
+    return o.best>=3 && !offerFit(o).y; })[0];
+  if(primeMismatch) m+='<div class="hint" style="color:#E0C48A">The <b>'+
+    primeMismatch.theme.n+'</b> pack carries a prime, but nothing aboard plays that way.</div>';
+  m+='<div class="row" style="margin-top:11px">'+
+    '<button class="btn alt" data-refresh="1"'+(S.gold<refreshCost()?' disabled':'')+
+    '>Refresh offers \u00b7 '+refreshCost()+'g</button>'+
+    '<span class="hint" style="margin:0">'+S.refreshes+' used this leg \u00b7 price climbs</span>'+
+    '</div></div>';
+
+  /* --- crew --- */
+  var up=upkeep();
+  m+='<div class="p"><div class="ph"><span class="t">Crew</span>'+
+    '<span class="s">'+fielded().length+' / '+FIELD_SLOTS+' ON FIELD \u00b7 '+
+      S.roster.length+' / '+ROSTER_CAP+' ABOARD</span>'+
+    '<span class="grow"></span>'+
+    (up?'<span class="r" style="color:var(--bad)">upkeep <b style="color:var(--bad)">\u2212'+
+      up+'g</b> a leg</span>':'<span class="r">strength <b>'+st.total+'</b></span>')+
+    '</div>';
+  m+=crewHTML();
+  m+='<div class="readout" style="margin-top:11px">'+
+    'crew <b>'+st.base+'</b> &nbsp;\u00b7&nbsp; tag bonuses <b>'+st.tags+'</b>'+
+    (st.deep.length?' <span style="color:var(--good)">('+st.deep.join(', ')+')</span>':'')+
+    ' &nbsp;\u00b7&nbsp; pairings <b>'+st.pairs+'</b>'+
+    (st.pairList.length?' <span style="color:var(--ink4)">'+
+      st.pairList.slice(0,3).join(' \u00b7 ')+'</span>':'')+
+    ' &nbsp;\u00b7&nbsp; fittings <b>'+st.fits+'</b></div>';
+  m+='</div>';
+
+  /* --- hold --- */
+  var anyShard=ELK.some(function(e){return S.shards[e]>0||S.crystals[e]>0});
+  m+='<div class="p"><div class="ph"><span class="t">The hold</span>'+
+    '<span class="grow"></span></div><div class="shr">';
+  ELK.forEach(function(e){
+    if(!S.shards[e]&&!S.crystals[e]) return;
+    m+='<span style="color:'+EL[e]+'">'+e+' <b>'+S.shards[e]+'</b>'+
+      (S.crystals[e]?' <span style="color:var(--gold)">\u25c6'+S.crystals[e]+'</span>':'')+
+      '</span>';
+  });
+  if(!anyShard) m+='<span>nothing stripped yet</span>';
+  m+='</div>';
+  var canForge=ELK.some(function(e){return S.shards[e]>=10});
+  m+='<div class="row" style="margin-top:10px">'+
+    '<button class="btn alt" data-forge="1"'+(canForge?'':' disabled')+
+    '>Forge crystals \u00b7 10 shards each</button>'+
+    '<span class="hint" style="margin:0">a crystal promotes a crewmate one rarity</span>'+
+    '</div></div>';
+
+  /* --- launch --- */
+  m+='<div class="p"><div class="ph"><span class="t">Set a heading</span>'+
+    '<span class="grow"></span></div><div class="dest">';
+  (S.dests||rollDests()).forEach(function(d,i){
+    var need=demand(S.leg,d.danger);
+    var ratio=st.total/need;
+    var pips='';
+    for(var k=0;k<5;k++) pips+='<i class="'+(k<d.danger?(d.danger>=4?'hot':'on'):'')+'"></i>';
+    m+='<button class="dc" data-go="'+i+'"'+(st.n?'':' disabled')+'>'+
+      '<div class="n">'+d.n+'</div><div class="pips">'+pips+'</div>'+
+      '<div class="od">needs about <b>'+need+'</b><br>'+
+      '<span style="color:'+(ratio>=1?'var(--good)':ratio>=.72?'var(--gold)':'var(--bad)')+
+      '">you bring <b>'+st.total+'</b></span><br>'+
+      '<span style="color:var(--ink4)">clean +'+(3+d.danger*2)+'% \u00b7 rout \u2212'+
+      (10+d.danger*3)+'% \u00b7 up to '+d.gold+'g</span></div></button>';
+  });
+  m+='</div></div>';
+  m+='<div class="p"><div class="ph"><span class="t">Ship\u2019s log</span></div>'+
+    '<div id="log">'+(S.log.length?S.log.join(''):
+      '<span style="color:var(--ink4)">nothing yet</span>')+'</div></div>';
+  $('main').innerHTML=m;
+  wire();
+}
+function crewHTML(){
+  var f=fielded(), b=S.roster.filter(function(c){return !c.onField});
+  function one(c,bench){
+    var pn=S.roster.filter(function(o){return o!==c&&o.onField&&pairsWith(c,o)}).length;
+    return '<div class="cu'+(bench?' bench':'')+'" data-unit="'+c.uid+'">'+
+      '<span class="rb" style="background:'+RAR[c.r].c+'"></span>'+
+      '<span class="ib" data-see="'+c.uid+'">i</span>'+
+      '<div class="nm">'+c.n+'</div>'+
+      '<div class="tg" style="color:'+TAGCOL[c.tag]+'">'+c.tag+'</div>'+
+      (c.fit?'<div class="ft">\u25c7 '+c.fit.n+'</div>':'')+
+      (pn?'<div class="dots">'+Array(pn+1).join('<i></i>')+'</div>':'')+
+      '</div>';
+  }
+  var m='<div class="subh">ON FIELD</div><div class="crew">';
+  f.forEach(function(c){ m+=one(c,false); });
+  for(var i=f.length;i<FIELD_SLOTS;i++)
+    m+='<div class="cu empty">'+(i<FREE_UPKEEP?'empty':'+'+UPKEEP+'g')+'</div>';
+  m+='</div>';
+  if(b.length){
+    m+='<div class="subh">OFF FIELD</div><div class="crew">';
+    b.forEach(function(c){ m+=one(c,true); });
+    m+='</div>';
+  }
+  return m;
+}
+function rollDests(){
+  var names=['Cairn','Phomous','Maelstrom','Verge','Bastion','The Hollows'];
+  var used={},out=[];
+  for(var i=0;i<3;i++){
+    var n; var g=0;
+    do{ n=pick(names); }while(used[n]&&g++<20);
+    used[n]=1;
+    var danger=1+Math.floor(rr()*5);
+    if(S.leg<=2) danger=Math.min(danger,2);
+    out.push({n:n,danger:danger,gold:Math.round(20+danger*9+S.leg*2)});
+  }
+  S.dests=out;
+  return out;
+}
+/* ===================== opening a pack ===================== */
+function drawBay(){
+  var p=S.pack;
+  var keep=p.cards.filter(function(c){return c.mark==='keep'}).length;
+  var strip=p.cards.filter(function(c){return c.mark==='strip'}).length;
+  var gold=0, shards={};
+  ELK.forEach(function(e){shards[e]=0});
+  p.cards.forEach(function(c){
+    if(c.mark==='keep'&&c.type==='coin') gold+=c.amt;
+    if(c.mark==='strip'){
+      if(c.type==='coin') gold+=Math.round(c.amt*0.5);
+      else if(c.type==='char') shards[c.e]+=RAR[c.r].scrap;
+      else shards[pick(ELK)]+=5+c.r*3;
+    }
+  });
+  var room=ROSTER_CAP-S.roster.length;
+  var over=Math.max(0,keepChars()-room);
+  var m='<div class="p"><div class="ph"><span class="t">'+p.theme.n+'</span>'+
+    '<span class="s">'+p.theme.axis+(p.deep?' \u00b7 DEEP':'')+'</span>'+
+    '<span class="grow"></span><span class="r"'+(over?' style="color:var(--bad)"':'')+'>'+
+    'room for <b'+(over?' style="color:var(--bad)"':'')+'>'+room+'</b> more</span></div>'+
+    '<div class="bay">';
+  p.cards.forEach(function(c,i){
+    m+=cardHTML(c,i);
+  });
+  m+='</div>';
+  m+='<div class="tally">'+
+    '<div class="g"><b style="color:var(--good)">'+keep+'</b><span>KEEPING</span></div>'+
+    '<div class="g"><b style="color:#E0A9B1">'+strip+'</b><span>STRIPPING</span></div>'+
+    '<div class="g"><b style="color:var(--gold)">+'+gold+'g</b><span>SALVAGE</span></div>'+
+    '<div class="grow"></div><div class="shr">';
+  ELK.forEach(function(e){ if(shards[e]) m+='<span style="color:'+EL[e]+'">'+e+
+    ' <b>+'+shards[e]+'</b></span>'; });
+  m+='</div>'+
+    '<button class="btn" data-confirm="1"'+(over?' disabled':'')+'>Confirm</button></div>';
+  m+='<div class="hint"'+(over?' style="color:var(--bad)"':'')+'>'+
+    (over?'Keeping '+keepChars()+' with room for '+room+'. Strip '+over+
+      ' more, or send '+over+' of the crew aboard to salvage first.'
+     :'Tap once to keep, again to strip. Nothing happens until you confirm.')+
+    '</div></div>';
+  $('main').innerHTML=m;
+  wire();
+}
+function keepChars(){
+  return S.pack?S.pack.cards.filter(function(c){
+    return c.mark==='keep'&&c.type==='char'}).length:0;
+}
+function cardHTML(c,i){
+  var cls='cc '+(c.mark||'');
+  var spine=c.type==='char'?RAR[c.r].c:(c.type==='fit'?'#6B5A8C':'#8A6B2E');
+  var m='<div class="'+cls+'" data-card="'+i+'"><span class="sp" style="background:'+
+    spine+'"></span><span class="ib" data-peek="'+i+'">i</span>';
+  if(c.type==='coin'){
+    m+='<div class="lb">SALVAGE</div><div class="vl">'+c.amt+'g</div>'+
+      '<div class="ds" style="flex:0">loose currency</div>'+
+      '<div class="sc">strip \u2192 '+Math.round(c.amt*0.5)+'g</div>';
+  } else if(c.type==='fit'){
+    m+='<div class="lb">FITTING</div><div class="nm">'+c.n+'</div>'+
+      '<div class="ds">'+c.d+'</div>';
+    var suits=fielded().filter(function(u){return c.want.indexOf(u.k)>=0});
+    m+='<div class="pr '+(suits.length?'y':'n')+'">'+
+      (suits.length?'\u2713 suits '+suits.slice(0,2).map(function(u){return u.n}).join(', ')
+        :'nobody aboard uses it')+'</div>';
+    m+='<div class="sc">strip \u2192 '+(5+c.r*3)+' shards</div>';
+  } else {
+    m+='<div class="lb" style="color:'+RAR[c.r].c+'">'+RAR[c.r].n.toUpperCase()+'</div>'+
+      '<div class="nm">'+c.n+'</div>'+
+      '<div class="tg" style="color:'+TAGCOL[c.tag]+'">'+c.tag+'</div>'+
+      '<div class="ds">'+c.d+'</div>';
+    var pals=fielded().filter(function(u){return pairsWith(c,u)});
+    m+='<div class="pr '+(pals.length?'y':'n')+'">'+
+      (pals.length?'\u2713 '+pals[0].n+' pairs with this':'nothing aboard pairs')+'</div>';
+    m+='<div class="sc">strip \u2192 '+RAR[c.r].scrap+' '+c.e+'</div>';
+  }
+  if(c.mark) m+='<div class="flag">'+(c.mark==='keep'?'KEEP':'STRIP')+'</div>';
+  return m+'</div>';
+}
+function toggleCard(i){
+  var c=S.pack.cards[i];
+  c.mark = c.mark==='keep'?'strip':(c.mark==='strip'?null:'keep');
+  drawBay();
+}
+function confirmPack(){
+  var p=S.pack;
+  p.cards.forEach(function(c){
+    if(c.mark==='keep'){
+      if(c.type==='coin') S.gold+=c.amt;
+      else if(c.type==='char'){
+        if(S.roster.length>=ROSTER_CAP){ S.shards[c.e]+=RAR[c.r].scrap; return; }
+        c.onField=fielded().length<FIELD_SLOTS; S.roster.push(c);
+      }
+      else { S.loose=S.loose||[]; S.loose.push(c); attachFit(c); }
+    } else {
+      if(c.type==='coin') S.gold+=Math.round(c.amt*0.4);
+      else if(c.type==='char') S.shards[c.e]+=RAR[c.r].scrap;
+      else S.shards[pick(ELK)]+=5+c.r*3;
+    }
+  });
+  S.pack=null; S.dests=null;
+  drawRail(); drawOps();
+}
+/* a kept fitting goes to whoever it suits best and is not already fitted */
+function attachFit(f){
+  var best=null,bv=-1;
+  S.roster.forEach(function(u){
+    if(u.fit) return;
+    var v=(f.want.indexOf(u.k)>=0?2:0)+(u.onField?1:0);
+    if(v>bv){bv=v;best=u;}
+  });
+  if(best) best.fit=f;
+}
+function buyPack(i){
+  var o=S.offers[i];
+  if(S.gold<o.cost) return;
+  S.gold-=o.cost;
+  S.pack=o;
+  drawRail(); drawBay();
+}
+function doRefresh(){
+  var c=refreshCost();
+  if(S.gold<c) return;
+  S.gold-=c; S.refreshes++;
+  rollOffers(); drawRail(); drawOps();
+}
+var CRYSTAL_COST=24;
+var PROMOTE=[1,3,6];      // crystals to reach uncommon, rare, prime
+function forge(){
+  ELK.forEach(function(e){
+    while(S.shards[e]>=CRYSTAL_COST){ S.shards[e]-=CRYSTAL_COST; S.crystals[e]++; }
+  });
+  // promote the strongest candidate only, so a crystal is a decision not a tide
+  var best=null,bv=-1;
+  S.roster.forEach(function(u){
+    if(!u.onField||u.r>=3) return;
+    var cost=PROMOTE[u.r];
+    if(S.crystals[u.e]<cost) return;
+    var v=crewPower(u)-cost*6;
+    if(v>bv){bv=v;best=u;}
+  });
+  if(best){ S.crystals[best.e]-=PROMOTE[best.r]; best.r++; }
+  drawRail(); drawOps();
+}
+/* ===================== the leg ===================== */
+function launch(i){
+  var d=S.dests[i], st=strength();
+  if(!st.n) return;
+  var need=demand(S.leg,d.danger);
+  // how much of the board you take, with a little noise
+  var ratio=st.total/need;
+  var pct=Math.max(0,Math.min(100,Math.round(
+    (ratio>=1 ? 88+Math.min(12,(ratio-1)*44) : 24+ratio*64) + (rr()*16-8))));
+  if(ratio>=1.25&&rr()<0.6) pct=100;
+  var band=bandFor(pct), delta=bandDelta(band,d.danger);
+  var pay=Math.round(d.gold*band.pay);
+  var bonus=0;
+  if(band.k==='perfect'||band.k==='slight'){ S.streak++; bonus=Math.min(S.streak,5)*9; }
+  else S.streak=0;
+  var up=upkeep();
+  S.gold+=pay+bonus-up;
+  if(S.gold<0) S.gold=0;
+  S.integrity=Math.max(0,Math.min(100,S.integrity+delta));
+  S.log.unshift('<div><b>Leg '+S.leg+'</b> '+d.n+' d'+d.danger+' \u2014 '+
+    '<span class="'+(delta>=0?'w':'l')+'">'+pct+'% \u00b7 '+band.t+' \u00b7 '+
+    (delta>=0?'+':'')+delta+'%</span> \u00b7 +'+(pay+bonus)+'g'+
+    (bonus?' <span style="color:var(--good)">(streak '+S.streak+')</span>':'')+
+    (up?' <span style="color:var(--bad)">\u2212'+up+'g upkeep</span>':'')+'</div>');
+  S.leg++; S.refreshes=0; S.dests=null;
+  rollOffers();
+  showResult(d,pct,band,delta,pay,bonus);
+}
+function showResult(d,pct,band,delta,pay,bonus){
+  var over = S.integrity<=0 || S.leg>S.legs;
+  var col=delta>0?'var(--good)':(delta===0?'var(--ink)':'var(--bad)');
+  var m='<div class="p" style="text-align:center">'+
+    '<div style="font-size:24px;font-weight:600;color:'+col+'">'+band.t+'</div>'+
+    '<div style="color:var(--ink3);font-size:12px">'+d.n+' \u00b7 danger '+d.danger+'</div>'+
+    '<div style="font-size:34px;font-variant-numeric:tabular-nums;margin:10px 0 2px">'+
+      pct+'%</div>'+
+    '<div style="font-size:20px;color:'+col+';font-variant-numeric:tabular-nums">'+
+      (delta>0?'+':'')+delta+'% integrity</div>'+
+    '<div style="color:var(--gold);margin-top:7px">+'+(pay+bonus)+' gold'+
+      (bonus?' <span style="color:var(--good);font-size:12px">streak \u00d7'+S.streak+
+        ' +'+bonus+'</span>':'')+'</div>';
+  if(over){
+    m+='<div style="margin-top:16px;font-size:16px;color:'+
+      (S.integrity<=0?'var(--bad)':'var(--good)')+'">'+
+      (S.integrity<=0?'The survey is lost':'The voyage holds \u2014 '+
+        Math.round(S.integrity)+'% recovered')+'</div>'+
+      '<button class="btn wide" data-again="1">Another voyage</button>';
+  } else {
+    m+='<button class="btn wide" data-back="1">Back to ops</button>';
+  }
+  m+='</div>';
+  $('main').innerHTML=m;
+  drawRail(); wire();
+}
+
+/* ===================== sheet ===================== */
+function openSheet(c){
+  var m='<h4>'+c.n+'</h4>';
+  if(c.type==='fit'||c.want){
+    m+='<div class="m">Fitting</div><div class="rw"><span>'+c.d+'</span></div>';
+    var suits=S.roster.filter(function(u){return c.want.indexOf(u.k)>=0});
+    m+='<div class="lab">SUITS</div>'+
+      (suits.length?suits.map(function(u){return '<div class="rw"><span>'+u.n+
+        '</span><span>'+u.tag+'</span></div>'}).join(''):
+      '<div class="rw"><span>nobody aboard</span></div>');
+  } else {
+    m+='<div class="m"><span style="color:'+RAR[c.r].c+'">'+RAR[c.r].n+'</span> \u00b7 '+
+      '<span style="color:'+TAGCOL[c.tag]+'">'+c.tag+'</span> \u00b7 '+
+      '<span style="color:'+EL[c.e]+'">'+c.e+'</span></div>'+
+      '<div class="rw"><span>'+c.d+'</span></div>'+
+      '<div class="lab">WORTH</div>'+
+      '<div class="rw"><span>Power</span><span>'+crewPower(c)+'</span></div>'+
+      '<div class="rw"><span>Strip value</span><span>'+RAR[c.r].scrap+' '+c.e+'</span></div>';
+    if(c.fit) m+='<div class="rw"><span>Fitted</span><span>\u25c7 '+c.fit.n+'</span></div>';
+    var pals=S.roster.filter(function(u){return u!==c&&pairsWith(c,u)});
+    m+='<div class="lab">PLAYS WITH</div>'+
+      (pals.length?pals.map(function(u){return '<div class="rw"><span>'+u.n+'</span>'+
+        '<span>'+(u.onField?'on field':'benched')+'</span></div>'}).join(''):
+      '<div class="rw"><span>nothing aboard pairs with this</span></div>');
+    var n=tagN(c.tag);
+    m+='<div class="lab" style="color:'+TAGCOL[c.tag]+'">'+c.tag.toUpperCase()+
+      ' \u2014 '+n+' ON FIELD</div>'+
+      '<div class="rw"><span>'+(n>=4?TAGS[c.tag][4]:(n>=2?TAGS[c.tag][2]:
+        (2-n)+' more for '+TAGS[c.tag][2]))+'</span></div>';
+  }
+  m+='<button class="btn wide" data-close="1">Close</button>';
+  $('sheetin').innerHTML=m;
+  $('sheet').classList.add('on');
+  wire();
+}
+
+/* ===================== wiring ===================== */
+function wire(){
+  document.querySelectorAll('[data-buy]').forEach(function(b){
+    b.onclick=function(){ buyPack(+b.dataset.buy); }; });
+  document.querySelectorAll('[data-refresh]').forEach(function(b){
+    b.onclick=doRefresh; });
+  document.querySelectorAll('[data-forge]').forEach(function(b){
+    b.onclick=forge; });
+  document.querySelectorAll('[data-go]').forEach(function(b){
+    b.onclick=function(){ launch(+b.dataset.go); }; });
+  document.querySelectorAll('[data-card]').forEach(function(b){
+    b.onclick=function(e){
+      if(e.target.dataset.peek!==undefined) return;
+      toggleCard(+b.dataset.card); }; });
+  document.querySelectorAll('[data-peek]').forEach(function(b){
+    b.onclick=function(e){ e.stopPropagation();
+      var c=S.pack.cards[+b.dataset.peek];
+      if(c.type!=='coin') openSheet(c); }; });
+  document.querySelectorAll('[data-confirm]').forEach(function(b){
+    b.onclick=confirmPack; });
+  document.querySelectorAll('[data-unit]').forEach(function(b){
+    b.onclick=function(e){
+      if(e.target.dataset.see!==undefined) return;
+      var u=S.roster.filter(function(x){return x.uid===b.dataset.unit})[0];
+      if(!u) return;
+      if(u.onField) u.onField=false;
+      else { if(fielded().length>=FIELD_SLOTS) return; u.onField=true; }
+      S.dests=S.dests; drawRail(); drawOps(); }; });
+  document.querySelectorAll('[data-see]').forEach(function(b){
+    b.onclick=function(e){ e.stopPropagation();
+      var u=S.roster.filter(function(x){return x.uid===b.dataset.see})[0];
+      if(u) openSheet(u); }; });
+  document.querySelectorAll('[data-close]').forEach(function(b){
+    b.onclick=function(){ $('sheet').classList.remove('on'); }; });
+  document.querySelectorAll('[data-back]').forEach(function(b){
+    b.onclick=function(){ drawRail(); drawOps(); }; });
+  document.querySelectorAll('[data-again]').forEach(function(b){
+    b.onclick=function(){ newRun(); drawRail(); drawOps(); }; });
+  var sh=$('sheet');
+  if(sh) sh.onclick=function(e){ if(e.target.id==='sheet') sh.classList.remove('on'); };
+}
+newRun(); drawRail(); drawOps();
+</script></body></html>

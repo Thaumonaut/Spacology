@@ -1,0 +1,22 @@
+module.exports=[
+ ['control  plain damage',            {}],
+ ['control  all AoE',                 {aoeUnits:3}],
+ ['heavy dot  1 type  big ticks',     {dotUnits:4,dotTypes:1,dotTick:7,dotGrow:.12,dotHits:1,
+                                       aoeUnits:1,siphon:2,ward:.22}],
+ ['heavy dot  no support',            {dotUnits:4,dotTypes:1,dotTick:7,dotGrow:.12,aoeUnits:1}],
+ ['wide dot   4 types  many hits',    {dotUnits:4,dotTypes:4,dotTick:2.4,dotGrow:.05,dotHits:3,
+                                       aoeUnits:1,siphon:2,ward:.06}],
+ ['wide dot   4 types  no support',   {dotUnits:4,dotTypes:4,dotTick:2.4,dotGrow:.05,dotHits:3,
+                                       aoeUnits:1}],
+ ['detonator  stacks then burst',     {dotUnits:3,dotTypes:1,dotTick:5,dotGrow:.12,
+                                       aoeUnits:1,detonator:1,detBoost:1.2}],
+ ['chain      follow-up cascade',     {reactors:3,reactBudget:3,reactRatio:.7,retarget:'random'}],
+ ['chain      cascade  same target',  {reactors:3,reactBudget:3,reactRatio:.7,retarget:'same'}],
+ ['break      shred and vulnerable',  {aoeUnits:2,shred:16}],
+ ['tall       fewer  upgraded',       {units:4,upgrades:6,dmg:16}],
+ ['wide       more  unupgraded',      {units:6,dmg:12}],
+ ['hybrid     dots + cascade',        {dotUnits:2,dotTypes:2,dotTick:4,aoeUnits:1,
+                                       reactors:2,reactBudget:2}],
+ ['hybrid     dots + detonator',      {dotUnits:3,dotTypes:2,dotTick:5,aoeUnits:1,
+                                       detonator:1,ward:.22,siphon:2}]
+];
