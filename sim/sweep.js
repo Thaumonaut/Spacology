@@ -12,6 +12,7 @@
 // ============================================================================
 const S = require('./synergy.js');
 const { CHARS, TAGS: ROLES, WORLDS } = require('./roster.js');
+const E = require('./elements.js');
 
 const NAMES = Object.keys(CHARS);
 const WL = ['open', 'murk', 'hive', 'fortress', 'bloom'];
@@ -79,8 +80,13 @@ while (teams.length < SAMPLE) {
 log(`scoring ${teams.length} teams x ${WL.length} worlds (ceiling ${CAP})`);
 const teamRows = teams.map((t, i) => {
   if (i % 40 === 0 && i) log(`  ${i}/${teams.length}`);
-  const per = {}; WL.forEach(w => per[w] = S.score(t, w, N, CAP, STEPS));
+  const per = {}, har = {};
+  WL.forEach(w => { const r = S.scoreTeam(t, w, N, CAP, STEPS); per[w] = r.bp; har[w] = r.harmonies; });
   const vals = WL.map(w => per[w]);
+  const els = t.map(n => CHARS[n].element);
+  const elCount = {}; els.forEach(e => elCount[e] = (elCount[e] || 0) + 1);
+  const shared = els.length - new Set(els).size;      // how much the team doubles up
+  const biggestStack = Math.max(...Object.values(elCount));
   const tc = {}; t.forEach(n => (CHARS[n].tags || []).forEach(g => tc[g] = (tc[g] || 0) + 1));
   const deep = Object.entries(tc).filter(([, v]) => v >= 4).map(([g]) => g);
   const entry = Object.entries(tc).filter(([, v]) => v >= 2).map(([g, v]) => g + 'x' + v);
@@ -90,7 +96,9 @@ const teamRows = teams.map((t, i) => {
     best: Math.max(...vals), worst: Math.min(...vals),
     swing: +(Math.max(...vals) - Math.min(...vals)).toFixed(3),
     hooks: t.reduce((a, n) => a + HOOKS.filter(v => VERBS[v](CHARS[n])).length, 0),
-    rolesAt2: entry.join(' '), deepRole: deep.join(' ') || 'none'
+    rolesAt2: entry.join(' '), deepRole: deep.join(' ') || 'none',
+    elements: els.join(' '), sharedElements: shared, biggestStack,
+    harmonies: +(WL.reduce((a, w) => a + har[w], 0) / WL.length).toFixed(1)
   };
 }).sort((a, b) => b.avg - a.avg);
 
@@ -132,6 +140,23 @@ const roleRows = Object.entries(lift).filter(([, v]) => v.length >= 6).map(([k, 
            at2: (ROLES[tag] || {})[2] || '', at4: (ROLES[tag] || {})[4] || '' };
 }).sort((a, b) => b.vsBaseline - a.vsBaseline);
 
+// ---- does stacking elements pay? ------------------------------------------
+// Teams grouped by how many duplicate elements they carry. If the element axis
+// works, sharing should be worth something and should show up as Harmony.
+const byShared = {};
+teamRows.forEach(r => (byShared[r.sharedElements] = byShared[r.sharedElements] || []).push(r));
+const elementRows = Object.keys(byShared).sort((a, b) => a - b).map(k => {
+  const g = byShared[k];
+  const mean = g.reduce((a, r) => a + r.avg, 0) / g.length;
+  return {
+    sharedElements: +k, teams: g.length,
+    meanScore: +mean.toFixed(3),
+    vsBaseline: +((mean / baseline) - 1).toFixed(4),
+    meanHarmonies: +(g.reduce((a, r) => a + r.harmonies, 0) / g.length).toFixed(1),
+    best: +Math.max(...g.map(r => r.avg)).toFixed(2)
+  };
+});
+
 // ---- world discrimination -------------------------------------------------
 const worldRows = WL.map(w => {
   const v = teamRows.map(r => r[w]);
@@ -156,11 +181,14 @@ const PROBES = [
   ['Wex, Sump, Nettle, Bosk, Ferrule', ['Wex', 'Sump', 'Nettle', 'Bosk', 'Ferrule']]
 ];
 const SWEEPS = {
-  ARMOR_MITIGATION:  [0.25, 0.40, 0.55, 0.70, 0.85],   // damage through an intact shield
-  OFF_ELEMENT_SHRED:    [0.05, 0.10, 0.20, 0.35, 0.50],   // off-element armorShred rate
-  VULN_BONUS:  [0.00, 0.20, 0.35, 0.50, 0.75],   // extra damage once broken
-  BREAK_DELAY: [0.00, 0.20, 0.35, 0.50, 0.75],   // share of a turn a break costs
-  ARMOR_PER_LAYER: [8, 11, 14, 18, 24]               // shield points per layer
+  ARMOR_PER_LAYER:  [8, 11, 14, 18, 24],               // armour points per layer
+  ARMOR_MITIGATION: [0.25, 0.40, 0.55, 0.70, 0.85],    // damage through intact armour
+  VULN_BONUS:       [0.00, 0.20, 0.35, 0.50, 0.75],    // extra damage once broken
+  BREAK_DELAY:      [0.00, 0.20, 0.35, 0.50, 0.75],    // turn cost of a break
+  HARMONY_CAP:      [0, 1, 2, 3, 8],                   // allies that may answer a break
+  HARMONY_DMG:      [0.20, 0.40, 0.60, 0.90, 1.30],    // damage of that answer
+  SHRED_OPPOSITE:   [0.50, 0.75, 1.00, 1.50, 2.00],    // stripping armour with the weakness
+  SHRED_SAME:       [0.05, 0.12, 0.20, 0.35, 0.50]     // stripping it with the wrong element
 };
 const SWORLDS = ['open', 'murk', 'hive'];
 const defaults = S.getTuning();
@@ -188,12 +216,12 @@ const out = {
     sample: teams.length, teamSize: SIZE, fightsPerProbe: N,
     ceiling: CAP, searchSteps: STEPS,
     baseline, worlds: WL, defaults,
-    caveat: 'Neither engine models element as a property of a character; both assign it by '
-          + 'array position, and Harmony is never evaluated. Everything here is a finding '
-          + 'about verbs and tags only.'
+    caveat: 'Characters and enemies now carry a real element, and Harmony is evaluated. '
+          + 'engine.js still uses the old index-assigned model, so ladder.js and counters.js '
+          + 'are an independent control rather than a second opinion on elements.'
   },
   roster, verbs, teams: teamRows, characters: charRows, roles: roleRows,
-  worlds: worldRows, sweep: sweepRows
+  worlds: worldRows, sweep: sweepRows, elements: elementRows
 };
 require('fs').writeFileSync('sweep.json', JSON.stringify(out));
 log(`wrote sweep.json  (${teamRows.length} teams, ${sweepRows.length} sweep rows)`);

@@ -93,6 +93,19 @@ L.append(table(["character", "roles", "hooks", "in top 50", "cost of banning"], 
                ["l", "l", "r", "r", "r"]))
 L.append("")
 
+# ---- elements ------------------------------------------------------------
+L.append("## Does stacking elements pay?")
+L.append("")
+L.append("Teams grouped by how many duplicate elements they carry. `harmonies` is how many "
+         "Harmony follow-ups fire per fight — allies sharing the breaker's element striking "
+         "after a break.")
+L.append("")
+rows = [[e["sharedElements"], e["teams"], f"{e['meanScore']:.2f}", pct(e["vsBaseline"]),
+         e["meanHarmonies"], f"{e['best']:.2f}"] for e in D.get("elements", [])]
+L.append(table(["duplicate elements", "teams", "mean score", "vs baseline", "harmonies", "best"],
+               rows, ["r", "r", "r", "r", "r", "r"]))
+L.append("")
+
 # ---- sensitivity ---------------------------------------------------------
 L.append("## Which constants move the game")
 L.append("")

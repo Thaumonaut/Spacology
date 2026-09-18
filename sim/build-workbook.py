@@ -77,6 +77,7 @@ readme = [
     ["", "most world-dependent builds"],
     ["Characters", "How much banning each character costs the ceiling — the mandatory-unit test"],
     ["Role lift", "Mean team score when N of a role are present, against baseline"],
+    ["Elements", "Whether doubling up on an element pays, and how often Harmony fires"],
     ["Worlds", "Which worlds discriminate between teams and which only measure competence"],
     ["Sensitivity", "One combat constant varied at a time, everything else at default"],
     ["Sensitivity summary", "Which constants actually move the game. Start here"],
@@ -100,12 +101,15 @@ add("Verbs", ["verb", "characters", "holders"],
 # ---------------------------------------------------------------- Teams ----
 W = M["worlds"]
 add("Teams",
-    ["team"] + W + ["avg", "best", "worst", "swing", "hooks", "roles at 2+", "deep role"],
+    ["team"] + W + ["avg", "best", "worst", "swing", "hooks", "roles at 2+", "deep role",
+     "elements", "duplicate elements", "harmonies"],
     [[t["team"]] + [t[w] for w in W] +
-     [t["avg"], t["best"], t["worst"], t["swing"], t["hooks"], t["rolesAt2"], t["deepRole"]]
+     [t["avg"], t["best"], t["worst"], t["swing"], t["hooks"], t["rolesAt2"], t["deepRole"],
+      t["elements"], t["sharedElements"], t["harmonies"]]
      for t in D["teams"]],
-    widths=[40] + [9] * len(W) + [8, 8, 8, 8, 7, 26, 14],
-    formats=[None] + ["2dp"] * len(W) + ["2dp", "2dp", "2dp", "2dp", "int", None, None])
+    widths=[40] + [9] * len(W) + [8, 8, 8, 8, 7, 26, 14, 34, 19, 11],
+    formats=[None] + ["2dp"] * len(W) + ["2dp", "2dp", "2dp", "2dp", "int", None, None,
+                                          None, "int", "1dp"])
 
 # ----------------------------------------------------------- Characters ----
 add("Characters",
@@ -130,6 +134,14 @@ add("Worlds",
       w["wouldBeCensoredAt6"], w["mix"]] for w in D["worlds"]],
     widths=[11, 42, 10, 8, 9, 8, 10, 16, 30],
     formats=[None, None, "2dp", "2dp", "2dp", "2dp", "2dp", "int", None])
+
+# ------------------------------------------------------------- Elements ----
+add("Elements",
+    ["duplicate elements", "teams", "mean score", "vs baseline", "harmonies per fight", "best"],
+    [[e["sharedElements"], e["teams"], e["meanScore"], e["vsBaseline"], e["meanHarmonies"],
+      e["best"]] for e in D.get("elements", [])],
+    widths=[19, 8, 12, 13, 21, 8],
+    formats=["int", "int", "2dp", "pct", "1dp", "2dp"])
 
 # ---------------------------------------------------------- Sensitivity ----
 add("Sensitivity", ["constant", "value", "is default", "team", "world", "bp"],
