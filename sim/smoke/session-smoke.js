@@ -1,5 +1,6 @@
+const path=require('path');
 const fs=require('fs');
-const html=fs.readFileSync('/mnt/user-data/outputs/session.html','utf8');
+const html=fs.readFileSync(path.join(__dirname,'../../prototypes/superseded/session.html'),'utf8');
 const code=html.match(/<script>([\s\S]*)<\/script>/)[1];
 const ids=[...new Set([...html.matchAll(/id="([A-Za-z0-9_-]+)"/g)].map(x=>x[1]))];
 function mkEl(id){

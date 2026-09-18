@@ -1,6 +1,7 @@
+const path=require('path');
 // run the whole session headlessly: does a run actually complete?
 const fs=require('fs');
-const html=fs.readFileSync('/mnt/user-data/outputs/run.html','utf8');
+const html=fs.readFileSync(path.join(__dirname,'../../prototypes/superseded/run.html'),'utf8');
 const code=html.match(/<script>([\s\S]*)<\/script>/)[1];
 function mkEl(id){
   const e={id,style:{},dataset:{},children:[],textContent:'',_h:'',

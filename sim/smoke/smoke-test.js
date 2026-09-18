@@ -1,6 +1,7 @@
+const path=require('path');
 // Minimal DOM shim so the prototype's logic can be exercised without a browser.
 const fs=require('fs');
-const html=fs.readFileSync('/mnt/user-data/outputs/watchable-fight.html','utf8');
+const html=fs.readFileSync(path.join(__dirname,'../../prototypes/watchable-fight.html'),'utf8');
 const code=html.match(/<script>([\s\S]*)<\/script>/)[1];
 const ids=[...new Set([...html.matchAll(/id="([A-Za-z0-9_-]+)"/g)].map(x=>x[1]))];
 

@@ -1,5 +1,6 @@
+const path=require('path');
 const fs=require('fs');
-const html=fs.readFileSync('/mnt/user-data/outputs/voyage.html','utf8');
+const html=fs.readFileSync(path.join(__dirname,'../../prototypes/voyage.html'),'utf8');
 const code=html.match(/<script>([\s\S]*)<\/script>/)[1];
 const ids=[...new Set([...html.matchAll(/id="([A-Za-z0-9_-]+)"/g)].map(x=>x[1]))];
 function mk(id){const e={id,style:{},dataset:{},children:[],textContent:'',_h:'',value:'100',

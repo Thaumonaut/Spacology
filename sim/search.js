@@ -4,7 +4,7 @@ const NAMES=Object.keys(CHARS);
 function mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
   t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const rnd=mb(20260909);
-const WL=['open','murk','hive','fortress','blight'];
+const WL=['open','murk','hive','fortress','bloom'];
 
 // sample teams of five, duplicates allowed (doubling a tag is a real choice)
 const seen=new Set(), teams=[];
@@ -21,7 +21,7 @@ const results=teams.map(t=>{
 });
 results.sort((a,b)=>b.avg-a.avg);
 console.log('TOP TEAMS BY AVERAGE ACROSS FIVE WORLDS');
-console.log('team                                        avg   open  murk  hive  fort  blight');
+console.log('team                                        avg   open  murk  hive  fort  bloom');
 results.slice(0,10).forEach(r=>console.log('  '+r.t.join(', ').padEnd(42)+
   r.avg.toFixed(2).padEnd(6)+WL.map(w=>r.per[w].toFixed(2).padEnd(6)).join('')));
 console.log('\nMOST WORLD-DEPENDENT (biggest gap between best and worst planet)');
