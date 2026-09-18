@@ -30,8 +30,8 @@ const N=60;
 for(let r=0;r<N;r++){
   api.newRun();
   const S=api.S;
-  let guard=0;
-  while(guard++<120){
+  let protectAlly=0;
+  while(protectAlly++<120){
     if(S.integrity<=0){ ends.lost=(ends.lost||0)+1; break; }
     if(S.leg>S.legs){ ends.home=(ends.home||0)+1; break; }
     // shop while affordable

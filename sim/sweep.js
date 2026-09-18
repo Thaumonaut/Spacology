@@ -11,7 +11,7 @@
 //  exactly the comparisons a sweep is for.
 // ============================================================================
 const S = require('./synergy.js');
-const { CHARS, TAGS, WORLDS } = require('./roster.js');
+const { CHARS, TAGS: ROLES, WORLDS } = require('./roster.js');
 
 const NAMES = Object.keys(CHARS);
 const WL = ['open', 'murk', 'hive', 'fortress', 'bloom'];
@@ -29,34 +29,34 @@ const log = m => console.log(`[${((Date.now() - t0) / 1000).toFixed(0)}s] ${m}`)
 
 // ---- the verb vocabulary, and what each character offers ------------------
 const VERBS = {
-  apply: c => c.apply, stacks: c => c.stacks, detonate: c => c.detonate, spread: c => c.spread,
-  shred: c => c.shred, marks: c => c.marks, aoe: c => c.aoe, trig: c => c.trig,
-  thorns: c => c.thorns, taunt: c => c.taunt, barrier: c => c.barrier, heal: c => c.heal,
-  advance: c => c.advance, charge: c => c.charge, drain: c => c.drain,
-  needsGuard: c => c.needsGuard, onHitBarrier: c => c.onHitBarrier, over: c => c.over
+  appliesDot: c => c.appliesDot, dotPerHit: c => c.dotPerHit, detonate: c => c.detonate, dotSpread: c => c.dotSpread,
+  armorShred: c => c.armorShred, marks: c => c.marks, aoe: c => c.aoe, procOn: c => c.procOn,
+  thorns: c => c.thorns, taunt: c => c.taunt, shield: c => c.shield, heal: c => c.heal,
+  turnBoost: c => c.turnBoost, energyGain: c => c.energyGain, lifesteal: c => c.lifesteal,
+  needsShield: c => c.needsShield, shieldOnHit: c => c.shieldOnHit, overheal: c => c.overheal
 };
 // a hook is a verb that can interlock with another character's
-const HOOKS = ['apply', 'detonate', 'spread', 'shred', 'marks', 'aoe', 'trig',
-  'thorns', 'taunt', 'barrier', 'heal', 'advance', 'charge', 'drain', 'needsGuard',
-  'onHitBarrier', 'over'];
+const HOOKS = ['appliesDot', 'detonate', 'dotSpread', 'armorShred', 'marks', 'aoe', 'procOn',
+  'thorns', 'taunt', 'shield', 'heal', 'turnBoost', 'energyGain', 'lifesteal', 'needsShield',
+  'shieldOnHit', 'overheal'];
 
 function dependency(c) {
   const d = [];
-  if (c.apply && !c.detonate) d.push('a detonator');
-  if (c.detonate && !c.apply) d.push('someone to seed');
-  if (c.trig === 'mark' && !c.marks) d.push('someone to mark');
-  if (c.trig === 'break' && !c.shred) d.push('someone to break');
+  if (c.appliesDot && !c.detonate) d.push('a detonator');
+  if (c.detonate && !c.appliesDot) d.push('someone to seed');
+  if (c.procOn === 'mark' && !c.marks) d.push('someone to mark');
+  if (c.procOn === 'break' && !c.armorShred) d.push('someone to break');
   if (c.thorns && !c.taunt) d.push('someone to pull fire');
-  if (c.needsGuard) d.push('a barrier source');
+  if (c.needsShield) d.push('a shield source');
   return d.join(' + ');
 }
 
 const roster = Object.entries(CHARS).map(([name, c]) => ({
-  name, tags: (c.tags || []).join(' / '), dmg: c.dmg, sp: c.sp,
+  name, roles: (c.tags || []).join(' / '), dmg: c.dmg, speed: c.speed,
   hpMul: c.hpMul || 1,
   hooks: HOOKS.filter(v => VERBS[v](c)).length,
   verbs: HOOKS.filter(v => VERBS[v](c)).join(' '),
-  trig: c.trig || '', ratio: c.ratio || '', react: c.react || '',
+  procOn: c.procOn || '', procDmg: c.procDmg || '', procMax: c.procMax || '',
   needs: dependency(c), bio: c.bio || ''
 }));
 
@@ -90,7 +90,7 @@ const teamRows = teams.map((t, i) => {
     best: Math.max(...vals), worst: Math.min(...vals),
     swing: +(Math.max(...vals) - Math.min(...vals)).toFixed(3),
     hooks: t.reduce((a, n) => a + HOOKS.filter(v => VERBS[v](CHARS[n])).length, 0),
-    tagsAt2: entry.join(' '), deepTag: deep.join(' ') || 'none'
+    rolesAt2: entry.join(' '), deepRole: deep.join(' ') || 'none'
   };
 }).sort((a, b) => b.avg - a.avg);
 
@@ -105,7 +105,7 @@ const charRows = NAMES.map(n => {
   const without = teamRows.find(r => !r.members.includes(n));
   const c = CHARS[n];
   return {
-    name: n, tags: (c.tags || []).join(' / '),
+    name: n, roles: (c.tags || []).join(' / '),
     hooks: HOOKS.filter(v => VERBS[v](c)).length,
     topFreq: inTop, topShare: +(inTop / TOPN).toFixed(3),
     slotShare: +(inTop / (TOPN * SIZE)).toFixed(4),
@@ -115,7 +115,7 @@ const charRows = NAMES.map(n => {
   };
 }).sort((a, b) => b.topFreq - a.topFreq);
 
-// ---- tag lift -------------------------------------------------------------
+// ---- role lift -------------------------------------------------------------
 const lift = {};
 teamRows.forEach(r => {
   const c = {}; r.members.forEach(n => (CHARS[n].tags || []).forEach(g => c[g] = (c[g] || 0) + 1));
@@ -124,12 +124,12 @@ teamRows.forEach(r => {
     (lift[k] = lift[k] || []).push(r.avg);
   });
 });
-const tagRows = Object.entries(lift).filter(([, v]) => v.length >= 6).map(([k, v]) => {
+const roleRows = Object.entries(lift).filter(([, v]) => v.length >= 6).map(([k, v]) => {
   const [tag, count] = k.split('|');
   const mean = v.reduce((a, b) => a + b, 0) / v.length;
   return { tag, count: +count, n: v.length, mean: +mean.toFixed(3),
            vsBaseline: +((mean / baseline) - 1).toFixed(4),
-           at2: (TAGS[tag] || {})[2] || '', at4: (TAGS[tag] || {})[4] || '' };
+           at2: (ROLES[tag] || {})[2] || '', at4: (ROLES[tag] || {})[4] || '' };
 }).sort((a, b) => b.vsBaseline - a.vsBaseline);
 
 // ---- world discrimination -------------------------------------------------
@@ -156,11 +156,11 @@ const PROBES = [
   ['Wex, Sump, Nettle, Bosk, Ferrule', ['Wex', 'Sump', 'Nettle', 'Bosk', 'Ferrule']]
 ];
 const SWEEPS = {
-  SOAK:  [0.25, 0.40, 0.55, 0.70, 0.85],   // damage through an intact shield
-  UN:    [0.05, 0.10, 0.20, 0.35, 0.50],   // off-element shred rate
-  VULN:  [0.00, 0.20, 0.35, 0.50, 0.75],   // extra damage once broken
-  DELAY: [0.00, 0.20, 0.35, 0.50, 0.75],   // share of a turn a break costs
-  SHPER: [8, 11, 14, 18, 24]               // shield points per layer
+  ARMOR_MITIGATION:  [0.25, 0.40, 0.55, 0.70, 0.85],   // damage through an intact shield
+  OFF_ELEMENT_SHRED:    [0.05, 0.10, 0.20, 0.35, 0.50],   // off-element armorShred rate
+  VULN_BONUS:  [0.00, 0.20, 0.35, 0.50, 0.75],   // extra damage once broken
+  BREAK_DELAY: [0.00, 0.20, 0.35, 0.50, 0.75],   // share of a turn a break costs
+  ARMOR_PER_LAYER: [8, 11, 14, 18, 24]               // shield points per layer
 };
 const SWORLDS = ['open', 'murk', 'hive'];
 const defaults = S.getTuning();
@@ -192,7 +192,7 @@ const out = {
           + 'array position, and Harmony is never evaluated. Everything here is a finding '
           + 'about verbs and tags only.'
   },
-  roster, verbs, teams: teamRows, characters: charRows, tags: tagRows,
+  roster, verbs, teams: teamRows, characters: charRows, roles: roleRows,
   worlds: worldRows, sweep: sweepRows
 };
 require('fs').writeFileSync('sweep.json', JSON.stringify(out));

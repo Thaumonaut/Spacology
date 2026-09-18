@@ -8,7 +8,7 @@ const {TEMPLATES,make}=require('./designer.js');
 const {compose,tagCount}=require('./composer.js');
 const {evaluate}=require('./evaluator.js');
 const TKEYS=Object.keys(TEMPLATES);
-const TAGS=['Hull','Blight','Drive','Ordnance','Assay','Crew'];
+const TAGS=['Tank','DoT','Speed','DPS','Breaker','Healer'];
 const rnd=mb(90210);
 
 const POOL=48, GENS=Number(process.argv[2]||3), TEAMS=Number(process.argv[3]||26);
@@ -64,7 +64,7 @@ final.forEach((r,i)=>{
   console.log('\n#'+(i+1)+'  fit '+r.fit+'   power '+r.power+'  interest '+r.interest);
   console.log('   tags: '+Object.entries(r.tags).filter(([,v])=>v>=2)
     .map(([k,v])=>k+'\u00d7'+v).join(' '));
-  console.log('   avg '+r.avg+'  spread '+r.spread+'x  biggest '+r.big+'  ev/rnd '+r.ev);
+  console.log('   avg '+r.avg+'  dotSpread '+r.dotSpread+'x  biggest '+r.big+'  ev/rnd '+r.ev);
   r.team.forEach(c=>{
     const kit=Object.entries(c).filter(([k])=>
       !['tmpl','tags','gen','spent','id','score','parent'].includes(k))

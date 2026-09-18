@@ -65,13 +65,13 @@ console.log('script loads cleanly');
 
 let fails=0;
 for(const team of ['bloom','ledger','plate','relay','found','flat']){
-  for(const planet of ['order','pairish','spread','away']){
+  for(const planet of ['order','pairish','dotSpread','away']){
     for(const [f,p] of [[3,6],[6,12],[9,18]]){
       try{
         api.FIELDV=f; api.POOLV=p;
         api.build(team,planet);
-        let guard=0,end=null;
-        while(guard++<600){
+        let protectAlly=0,end=null;
+        while(protectAlly++<600){
           const ev=api.resolveAction();
           if(ev && ev.end){ end=ev.end; break; }
         }
@@ -88,10 +88,10 @@ console.log(fails? fails+' failures' : 'all 48 team/planet/encounter combination
 console.log('\nultimates as interrupts');
 console.log('  team      ults  interrupts  lost slot  turns stolen');
 for(const t of ['bloom','ledger','plate','relay']){
-  api.FIELDV=6; api.POOLV=12; api.build(t,'spread');
-  let guard=0, ults=0, ints=0, stolen=0, holds=[];
+  api.FIELDV=6; api.POOLV=12; api.build(t,'dotSpread');
+  let protectAlly=0, ults=0, ints=0, stolen=0, holds=[];
   let prevAV=null;
-  while(guard++<700){
+  while(protectAlly++<700){
     const G=api.G;
     const ev=api.resolveAction();
     if(ev&&ev.end) break;
@@ -114,9 +114,9 @@ for(const t of ['bloom','ledger','plate','relay']){
 // SNAPSHOT CHECK - a card must be able to open on pre-action health
 console.log('\ndoes the snapshot precede the damage?');
 for(const t of ['bloom','ledger','plate']){
-  api.FIELDV=6; api.POOLV=12; api.build(t,'spread');
-  let guard=0, staleOpens=0, checked=0, held=0;
-  while(guard++<600){
+  api.FIELDV=6; api.POOLV=12; api.build(t,'dotSpread');
+  let protectAlly=0, staleOpens=0, checked=0, held=0;
+  while(protectAlly++<600){
     const ev=api.resolveAction();
     if(ev&&ev.end) break;
     const G=api.G;
@@ -138,10 +138,10 @@ for(const t of ['bloom','ledger','plate']){
 // BLOOM CHECK - the bloom event must resolve without an actor
 console.log('\nbloom events, and whether anything reads an actor that is not there');
 for(const [f,p] of [[6,12],[9,18]]){
-  api.FIELDV=f; api.POOLV=p; api.build('bloom','spread');
-  let guard=0, blooms=0, burned=0, err=null;
+  api.FIELDV=f; api.POOLV=p; api.build('bloom','dotSpread');
+  let protectAlly=0, blooms=0, burned=0, err=null;
   try{
-    while(guard++<900){
+    while(protectAlly++<900){
       const ev=api.resolveAction();
       if(ev&&ev.end) break;
       if(ev&&ev.bloom){ blooms++;
@@ -157,9 +157,9 @@ for(const [f,p] of [[6,12],[9,18]]){
 console.log('\nteam      field/pool  total spawned  dead  still rendered  peak rendered');
 for(const team of ['bloom','ledger','plate','relay','found']){
   for(const [f,p] of [[6,12],[9,18]]){
-    api.FIELDV=f; api.POOLV=p; api.build(team,'spread');
-    let guard=0, peak=0;
-    while(guard++<900){
+    api.FIELDV=f; api.POOLV=p; api.build(team,'dotSpread');
+    let protectAlly=0, peak=0;
+    while(protectAlly++<900){
       const ev=api.resolveAction();
       if(ev&&ev.end) break;
       const G=api.G;
@@ -184,12 +184,12 @@ for(const team of ['bloom','ledger','plate','relay','found']){
   for(const [f,p] of [[3,6],[6,12],[9,18]]){
     let R=0,A=0,F=0,M=0,B=0,W=0,N=40;
     for(let s=0;s<N;s++){
-      api.FIELDV=f; api.POOLV=p; api.build(team,'spread');
-      let guard=0,end=null;
-      while(guard++<900){ const ev=api.resolveAction(); if(ev&&ev.end){end=ev.end;break;} }
+      api.FIELDV=f; api.POOLV=p; api.build(team,'dotSpread');
+      let protectAlly=0,end=null;
+      while(protectAlly++<900){ const ev=api.resolveAction(); if(ev&&ev.end){end=ev.end;break;} }
       const G=api.G;
       R+=G.round; A+=G.actions; F+=G.follows||0; M=Math.max(M,G.maxChain||0);
-      B+=G.breaks; if(end==='Crew wins')W++;
+      B+=G.breaks; if(end==='Healer wins')W++;
     }
     console.log(team.padEnd(10)+String(f).padEnd(7)+String(p).padEnd(6)+
       (Math.round(W/N*100)+'% win').padEnd(14)+(R/N).toFixed(1).padEnd(8)+

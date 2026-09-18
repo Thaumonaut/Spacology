@@ -6,6 +6,9 @@ themselves a record of what was tried and abandoned.
 
 ## Read this first
 
+**`glossary.md`** is the working vocabulary — standard industry terms only, and what each
+one replaced. The older documents in this folder predate it and still use the custom names.
+
 **`design-record.md`** is the current consolidated specification. Where any other
 document in this folder contradicts it, this one wins.
 
@@ -13,6 +16,7 @@ document in this folder contradicts it, this one wins.
 
 | File | What it covers |
 |---|---|
+| `glossary.md` | The working vocabulary: roles, character properties, enemy archetypes, combat constants |
 | `decisions.md` | The naming proposal, three bugs found checking it, and the open questions |
 | `character-construction.md` | How a character is built — the uniqueness rule, self-sufficiency versus amplification, and where the roster falls short |
 | `discovery-findings.md` | Measured: can players find combinations nobody designed? |

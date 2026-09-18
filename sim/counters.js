@@ -2,10 +2,10 @@ const {evaluate,FOES}=require('./engine.js');
 const BUILDS=require('./builds.js');
 const KINDS=Object.keys(FOES);
 
-// a realistic encounter: mostly chaff with a few of one archetype mixed in
+// a realistic encounter: mostly swarm with a few of one archetype mixed in
 function scene(d,kind){
   return {pool:16,field:8,hpBase:Math.round(60*d),dmgBase:Math.round(12*d),
-          mix:kind==='chaff'?[['chaff',16]]:[['chaff',8],[kind,8]]};
+          mix:kind==='swarm'?[['swarm',16]]:[['swarm',8],[kind,8]]};
 }
 function breakpoint(P,kind){
   let lo=0.4, hi=2.6, best=lo;
@@ -26,7 +26,7 @@ BUILDS.forEach(([name,P])=>{
 // relative difficulty: how far each archetype drags a build below its own average
 const rel=[['build'].concat(KINDS)];
 out.slice(1).forEach(r=>{
-  // normalise on the median: the easy chaff column is an outlier and skews a mean
+  // normalise on the median: the easy swarm column is an outlier and skews a mean
   const vals=r.slice(1), sorted=vals.slice().sort((a,b)=>a-b);
   const med=sorted.length%2?sorted[(sorted.length-1)/2]
             :(sorted[sorted.length/2-1]+sorted[sorted.length/2])/2;

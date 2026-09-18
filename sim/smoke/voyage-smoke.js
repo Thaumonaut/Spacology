@@ -45,8 +45,8 @@ for(let r=0;r<N;r++){
   let bestStreak2=0;
   // open the free crate plus a couple more, keep everything
   api.openCrate('wide'); api.settlePull(); crates++;
-  let guard=0;
-  while(guard++<80){
+  let protectAlly=0;
+  while(protectAlly++<80){
     if(V.data<=0){ ends.lost=(ends.lost||0)+1; break; }
     if(V.leg>V.legs){ ends.home=(ends.home||0)+1; break; }
     if(!V.roster.length){ api.openCrate('wide'); api.settlePull(); crates++; }

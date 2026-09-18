@@ -9,23 +9,23 @@
 const {CHARS}=require('./roster.js');
 
 const VERBS={
-  'apply/stacks (seed)':   c=>c.apply,
+  'appliesDot/dotPerHit (seed)':   c=>c.appliesDot,
   'detonate (spend seeds)':c=>c.detonate,
-  'spread':                c=>c.spread,
-  'shred':                 c=>c.shred,
+  'dotSpread':                c=>c.dotSpread,
+  'armorShred':                 c=>c.armorShred,
   'marks':                 c=>c.marks,
   'aoe':                   c=>c.aoe,
-  'trig/react (answers)':  c=>c.trig,
+  'procOn/procMax (answers)':  c=>c.procOn,
   'thorns':                c=>c.thorns,
   'taunt':                 c=>c.taunt,
-  'barrier':               c=>c.barrier,
+  'shield':               c=>c.shield,
   'heal':                  c=>c.heal,
-  'advance':               c=>c.advance,
-  'charge':                c=>c.charge,
-  'drain':                 c=>c.drain,
-  'needsGuard':            c=>c.needsGuard,
-  'onHitBarrier':          c=>c.onHitBarrier,
-  'over':                  c=>c.over
+  'turnBoost':               c=>c.turnBoost,
+  'energyGain':                c=>c.energyGain,
+  'lifesteal':                 c=>c.lifesteal,
+  'needsShield':            c=>c.needsShield,
+  'shieldOnHit':          c=>c.shieldOnHit,
+  'overheal':                  c=>c.overheal
 };
 
 console.log('VERB CENSUS across '+Object.keys(CHARS).length+' characters');
@@ -36,8 +36,8 @@ Object.entries(VERBS)
   .forEach(([v,who])=>console.log('  '+String(who.length).padStart(2)+'  '+v.padEnd(24)+who.join(', ')));
 
 console.log('\nTRIGGER CONDITIONS  (reactors answer different events, so they do not substitute)');
-Object.entries(CHARS).filter(([,c])=>c.trig).forEach(([n,c])=>
-  console.log('  '+n.padEnd(9)+'on '+String(c.trig).padEnd(7)+'ratio '+c.ratio+'   up to x'+c.react));
+Object.entries(CHARS).filter(([,c])=>c.procOn).forEach(([n,c])=>
+  console.log('  '+n.padEnd(9)+'on '+String(c.procOn).padEnd(7)+'procDmg '+c.procDmg+'   up to x'+c.procMax));
 
 console.log('\nHOOKS PER CHARACTER  (zero means it can never be part of a combination)');
 Object.entries(CHARS)

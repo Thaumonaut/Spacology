@@ -38,8 +38,8 @@ const N=60;
 for(let r=0;r<N;r++){
   api.newRun();
   const G=api.G;
-  let guard=0;
-  while(guard++<200){
+  let protectAlly=0;
+  while(protectAlly++<200){
     if(G.node>=G.map.length){ done++; why.finished=(why.finished||0)+1; break; }
     if(G.hull<=0){ lost++; why.hull=(why.hull||0)+1; break; }
     if(!G.roster.filter(u=>u.slot>=0&&u.hp>0).length){
@@ -49,7 +49,7 @@ for(let r=0;r<N;r++){
       // a plausible shopper: buy crates while affordable, commission at a boundary
       let spins=0;
       while(G.gold>=30&&spins++<6){
-        const edge=['Hull','Blight','Drive','Ordnance','Assay','Crew']
+        const edge=['Tank','DoT','Speed','DPS','Breaker','Healer']
           .find(t=>{const c=api.tagCount(t);return c===1||c===3;});
         if(edge&&G.gold>=100){ api.commission(edge); coms++; }
         else { api.settlePull(); api.openPack(spins%2?'focus':'wide'); packs++; api.settlePull(); }
@@ -69,7 +69,7 @@ for(let r=0;r<N;r++){
     if(ev.end!=='win'){ G.hull-=0; if(G.hull<=0) break; G.node++; }
   }
   totalGold+=G.gold;
-  if(G.node<G.map.length&&G.hull>0&&guard>=200) why.guard=(why.guard||0)+1;
+  if(G.node<G.map.length&&G.hull>0&&protectAlly>=200) why.protectAlly=(why.protectAlly||0)+1;
 }
 console.log('\n'+N+' full runs played out');
 console.log('  completed         '+done+'  ('+Math.round(done/N*100)+'%)');
@@ -79,6 +79,6 @@ console.log('  rounds per fight  '+(rounds/Math.max(1,fights)).toFixed(1));
 console.log('  crates opened     '+(packs/N).toFixed(1));
 console.log('  commissions       '+(coms/N).toFixed(1));
 console.log('  upgrades          '+(ups/N).toFixed(1));
-console.log('  gold left over    '+(totalGold/N).toFixed(0));
+console.log('  gold left overheal    '+(totalGold/N).toFixed(0));
 console.log('  how runs ended    '+JSON.stringify(why));
 console.log('  how fights ended  '+JSON.stringify(endTally));

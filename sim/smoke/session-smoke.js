@@ -55,18 +55,18 @@ for(let r=0;r<N;r++){
   api.runScreen('draft');
   R.roster=[]; R.offer.slice(0,4).forEach(u=>{u.fielded=true;R.roster.push(u)});
   R.offer=null;
-  let guard=0;
-  while(guard++<120){
+  let protectAlly=0;
+  while(protectAlly++<120){
     if(R.node>=R.map.length){ done++; why.finished=(why.finished||0)+1; break; }
     if(R.hull<=0){ lost++; why.integrity=(why.integrity||0)+1; break; }
     const n=R.map[R.node];
     if(n.t==='store'){
-      let sp=0;
-      while(R.gold>=26&&sp++<5){
-        const edge=Object.keys({Hull:1,Blight:1,Drive:1,Ordnance:1,Assay:1,Crew:1})
+      let speed=0;
+      while(R.gold>=26&&speed++<5){
+        const edge=Object.keys({Tank:1,DoT:1,Speed:1,DPS:1,Breaker:1,Healer:1})
           .find(t=>{const c=api.tagN(t);return c===1||c===3});
         if(edge&&R.gold>=96){ api.commissionTag(edge); coms++; }
-        else { api.openCrate(sp%2?'focus':'wide'); crates++; api.settle(); }
+        else { api.openCrate(speed%2?'focus':'wide'); crates++; api.settle(); }
       }
       api.craftAll(); api.settle(); R.node++; continue;
     }

@@ -70,13 +70,13 @@ readme = [
 ] + [[k, v] for k, v in M["defaults"].items()] + [
     ["", ""],
     ["TABS", ""],
-    ["Roster", "Every character: tags, stats, which verbs it carries, what it depends on"],
+    ["Roster", "Every character: roles, stats, which verbs it carries, what it depends on"],
     ["Verbs", "How many characters carry each verb. A verb on one character gives every"],
     ["", "chain through it exactly one possible shape"],
     ["Teams", "Sampled teams scored on every world. Sort by avg, or by swing to find the"],
     ["", "most world-dependent builds"],
     ["Characters", "How much banning each character costs the ceiling — the mandatory-unit test"],
-    ["Tag lift", "Mean team score when N of a tag are present, against baseline"],
+    ["Role lift", "Mean team score when N of a role are present, against baseline"],
     ["Worlds", "Which worlds discriminate between teams and which only measure competence"],
     ["Sensitivity", "One combat constant varied at a time, everything else at default"],
     ["Sensitivity summary", "Which constants actually move the game. Start here"],
@@ -85,10 +85,10 @@ add("Readme", ["field", "value"], readme, widths=[30, 96])
 
 # --------------------------------------------------------------- Roster ----
 add("Roster",
-    ["character", "tags", "dmg", "sp", "hpMul", "hooks", "verbs", "trigger", "ratio",
-     "react", "depends on", "bio"],
-    [[r["name"], r["tags"], r["dmg"], r["sp"], r["hpMul"], r["hooks"], r["verbs"],
-      r["trig"], r["ratio"], r["react"], r["needs"], r["bio"]] for r in D["roster"]],
+    ["character", "roles", "dmg", "speed", "hpMul", "hooks", "verbs", "procs on",
+     "proc dmg", "max procs", "depends on", "bio"],
+    [[r["name"], r["roles"], r["dmg"], r["speed"], r["hpMul"], r["hooks"], r["verbs"],
+      r["procOn"], r["procDmg"], r["procMax"], r["needs"], r["bio"]] for r in D["roster"]],
     widths=[11, 18, 6, 6, 7, 7, 34, 9, 7, 7, 26, 62],
     formats=[None, None, "int", "int", "2dp", "int", None, None, "2dp", "int", None, None])
 
@@ -100,26 +100,26 @@ add("Verbs", ["verb", "characters", "holders"],
 # ---------------------------------------------------------------- Teams ----
 W = M["worlds"]
 add("Teams",
-    ["team"] + W + ["avg", "best", "worst", "swing", "hooks", "tags at 2+", "deep tag"],
+    ["team"] + W + ["avg", "best", "worst", "swing", "hooks", "roles at 2+", "deep role"],
     [[t["team"]] + [t[w] for w in W] +
-     [t["avg"], t["best"], t["worst"], t["swing"], t["hooks"], t["tagsAt2"], t["deepTag"]]
+     [t["avg"], t["best"], t["worst"], t["swing"], t["hooks"], t["rolesAt2"], t["deepRole"]]
      for t in D["teams"]],
     widths=[40] + [9] * len(W) + [8, 8, 8, 8, 7, 26, 14],
     formats=[None] + ["2dp"] * len(W) + ["2dp", "2dp", "2dp", "2dp", "int", None, None])
 
 # ----------------------------------------------------------- Characters ----
 add("Characters",
-    ["character", "tags", "hooks", "in top 50", "share of top teams", "share of slots",
+    ["character", "roles", "hooks", "in top 50", "share of top teams", "share of slots",
      "best team without", "cost of banning", "depends on"],
-    [[c["name"], c["tags"], c["hooks"], c["topFreq"], c["topShare"], c["slotShare"],
+    [[c["name"], c["roles"], c["hooks"], c["topFreq"], c["topShare"], c["slotShare"],
       c["bestWithout"], c["costOfBanning"], c["needs"]] for c in D["characters"]],
     widths=[11, 18, 7, 11, 19, 15, 18, 16, 26],
     formats=[None, None, "int", "int", "pct", "pct", "2dp", "pct", None])
 
 # -------------------------------------------------------------- Tag lift ----
-add("Tag lift", ["tag", "count", "teams", "mean score", "vs baseline", "at 2", "at 4"],
+add("Role lift", ["role", "count", "teams", "mean score", "vs baseline", "at 2", "at 4"],
     [[t["tag"], t["count"], t["n"], t["mean"], t["vsBaseline"], t["at2"], t["at4"]]
-     for t in D["tags"]],
+     for t in D["roles"]],
     widths=[12, 8, 8, 12, 13, 40, 62],
     formats=[None, "int", "int", "2dp", "pct", None, None])
 

@@ -2,9 +2,9 @@
 // STAGE 2 - the composer.  Takes a pool of characters and assembles rosters
 // that actually reach tag thresholds and satisfy the applier/spender rule.
 // ---------------------------------------------------------------------------
-const TAGS=['Hull','Blight','Drive','Ordnance','Assay','Crew'];
-const APPLIER={Blight:c=>c.apply, Assay:c=>c.marks, Hull:c=>c.barrier||c.onHitBarrier};
-const SPENDER={Blight:c=>c.detonate, Assay:c=>c.react, Hull:c=>c.thorns};
+const TAGS=['Tank','DoT','Speed','DPS','Breaker','Healer'];
+const APPLIER={DoT:c=>c.appliesDot, Breaker:c=>c.marks, Tank:c=>c.shield||c.shieldOnHit};
+const SPENDER={DoT:c=>c.detonate, Breaker:c=>c.procMax, Tank:c=>c.thorns};
 
 function tagCount(team){const t={};team.forEach(c=>c.tags.forEach(g=>t[g]=(t[g]||0)+1));return t;}
 
@@ -14,11 +14,11 @@ function compose(pool,rnd,size,targetTag){
   const wants=pool.filter(c=>c.tags.includes(targetTag));
   if(wants.length<2) return null;
   // spender first, then its appliers, so the payoff is never orphaned
-  const sp=wants.filter(c=>SPENDER[targetTag]?SPENDER[targetTag](c):true);
+  const spenders=wants.filter(c=>SPENDER[targetTag]?SPENDER[targetTag](c):true);
   const ap=wants.filter(c=>APPLIER[targetTag]?APPLIER[targetTag](c):true);
   if(SPENDER[targetTag]){
-    if(!sp.length||ap.length<2) return null;
-    team.push(sp[Math.floor(rnd()*sp.length)]);
+    if(!spenders.length||ap.length<2) return null;
+    team.push(spenders[Math.floor(rnd()*spenders.length)]);
     const picks=ap.slice().sort(()=>rnd()-0.5).slice(0,2);
     picks.forEach(p=>{if(!team.includes(p))team.push(p);});
   }
