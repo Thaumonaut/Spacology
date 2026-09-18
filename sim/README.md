@@ -90,3 +90,44 @@ Both were startup failures, not model changes:
 - The five `smoke/` harnesses read their prototype from `/mnt/user-data/outputs/…`, an absolute
   path from the machine they were written on. Now resolved relative to `__dirname`.
 - `search.js` asked for a world named `blight`; `roster.js` defines `bloom`. Every call threw.
+
+## Two bugs found and fixed, and what they invalidate
+
+Both were in `synergy.js`; `engine.js` was unaffected.
+
+**Enemies never took a turn.** Foes spawned with
+`av: (10000/p.sp) * (.4 + rnd()*.7) * BON.foeSlow`, and `BON` has no `foeSlow`. Every foe's action
+value was `NaN`, `NaN` never sorts to the front of the turn order, and no foe ever acted —
+measured at zero foe turns across sixty fights at three difficulties. The crew was scored against
+a board that could not hit back, and the only loss condition was the twenty-round limit.
+
+**Ailment ticks made enemies unkillable.** The tick on a foe's own turn multiplies by
+`BON.tickMul`, also never defined, so the tick was `NaN` and took the foe's health to `NaN` with
+it — and `NaN` fails every `<= 0` test. Dormant only because foes never had turns, so fixing the
+first bug activated the second. 213 foes reached `NaN` health in twenty fights before the fix and
+none after. The Bloom's identical formula hardcodes `1.0`, which is why 1 is the intended value.
+
+This is the failure mode the design record already documents under *"bugs that produced confident
+wrong answers"* — enemies with no action value field, undefined arithmetic, an eleven-round fight
+with zero enemy actions reading as *"placement does not matter"*. Same shape, different engine.
+
+### What the correction reverses
+
+The top team fell from `6.44` to failing at difficulty `3.0`. Everything scored through
+`synergy.js` before the fix is void, including the breakpoint tables in `roster-design.md`,
+`synergy-notes.md` and `pipeline-notes.md` — whose headline conclusions were that the healing
+build and the shielding build underperform. In a model where nothing attacks you, that is
+arithmetic rather than a finding.
+
+Re-measured, the picture inverts:
+
+| | before | after |
+|---|---|---|
+| Most load-bearing constant | `VULN`, a damage amplifier, at 44.7% | `SHPER`, shield depth, at 56.2% |
+| Least | `DELAY` at exactly 0.0% | `DELAY` at 5.7% |
+| Best deep tag | `Ordnance×4` at +47% | `Assay×4` at +37.5%, the only monotonic curve |
+| Worst | `Crew×4` at −54% | `Crew×3` at −29.9% |
+| Mandatory character | Ash: in 12 of top 12, banning her cost 37% | nothing above 16%; Ash costs 11% |
+
+**Always confirm a constant does something before concluding it does not matter.** `DELAY` reading
+exactly zero across its whole range, including at `10`, is what exposed both bugs.
