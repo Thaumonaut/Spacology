@@ -170,11 +170,15 @@ function fight(chars,world,diff,seed){
   }
   return {win:over==='win',round,big,events,blooms};
 }
-function score(names,world,N){ return scoreTeam(names,world,N).bp; }
-function scoreTeam(chars,world,N){
+function score(names,world,N,CAP,STEPS){ return scoreTeam(names,world,N,CAP,STEPS).bp; }
+// CAP is the top of the difficulty search and STEPS its resolution.  The defaults
+// reproduce every number measured before they were parameterised.  Raise CAP when a
+// team returns a value at the ceiling: that is a censored result meaning "beat the
+// hardest difficulty tried", not a breakpoint.
+function scoreTeam(chars,world,N,CAP,STEPS){
   N=N||30;
-  let lo=.4,hi=6.0,best=lo;
-  for(let i=0;i<7;i++){ const mid=(lo+hi)/2; let w=0;
+  let lo=.4,hi=(CAP||6.0),best=lo;
+  for(let i=0;i<(STEPS||7);i++){ const mid=(lo+hi)/2; let w=0;
     for(let s=1;s<=N;s++) if(fight(chars,world,mid,(s*2654435761)>>>0).win) w++;
     if(w/N>=.75){best=mid;lo=mid;} else hi=mid; }
   let ev=0,big=0,rd=0;
