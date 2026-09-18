@@ -44,16 +44,16 @@ Mean team score when N of a role are present, against baseline.
 | --- | --- | ---: | ---: | ---: |
 | Ash | DoT | 3 | 34 | -11.4% |
 | Mote | Speed / Breaker | 2 | 22 | -15.6% |
-| Maul | DPS / Breaker | 1 | 17 | +0.0% |
+| Maul | DPS / Breaker | 1 | 17 | — |
 | Rime | Breaker | 2 | 16 | -12.8% |
-| Wex | Tank / Healer | 1 | 15 | +0.0% |
-| Ferrule | Tank / DPS | 2 | 14 | +0.0% |
-| Tarn | Tank / DPS | 3 | 12 | +0.0% |
+| Wex | Tank / Healer | 1 | 15 | — |
+| Ferrule | Tank / DPS | 2 | 14 | — |
+| Tarn | Tank / DPS | 3 | 12 | — |
 | Vitre | Breaker / Speed | 3 | 12 | -4.3% |
-| Mire | Healer / Tank | 3 | 12 | +0.0% |
-| Ballast | Tank | 2 | 10 | +0.0% |
-| Cinder | DoT / DPS | 1 | 10 | +0.0% |
-| Sump | DoT / Healer | 3 | 9 | +0.0% |
+| Mire | Healer / Tank | 3 | 12 | — |
+| Ballast | Tank | 2 | 10 | — |
+| Cinder | DoT / DPS | 1 | 10 | — |
+| Sump | DoT / Healer | 3 | 9 | — |
 
 ## Which constants move the game
 
@@ -72,7 +72,7 @@ Each constant varied alone across five values, everything else at default. `rang
 | world | speed | median | max | spread | note |
 | --- | ---: | ---: | ---: | ---: | --- |
 | hive | 1 | 1.64 | 5.89 | 14.7x | a tide of small things |
-| bloom | 1 | 1.81 | 5.70 | 14.2x | the Null is thick here — ailments bite harder |
+| bloom | 1 | 1.81 | 5.70 | 14.2x | the Null is thick here — damage over time bites harder |
 | open | 1 | 1.46 | 3.97 | 9.9x | nothing unusual |
 | fortress | 1 | 1.97 | 4.34 | 9.2x | a few very tough things |
 | murk | 0.72 | 1.07 | 2.87 | 7.2x | low visibility — everyone acts slower |
