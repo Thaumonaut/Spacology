@@ -1,4 +1,20 @@
 tag,count,teams,mean score,vs baseline,at 2,at 4
-Drive,1,6,1.742,-0.1253,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
-Hull,1,6,1.704,-0.1446,barriers 45% larger,AMMUNITION — damage a barrier swallows is returned to the attacker
-Assay,1,6,1.704,-0.1446,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Assay,4,6,2.965,0.3133,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Assay,3,26,2.94,0.3021,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Assay,2,77,2.763,0.2236,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Blight,2,64,2.577,0.1415,one extra stack per application,BLOOM — a bloom joins the turn order; every Blight action pulls it forward; when it acts it detonates every ailment on the board
+Crew,1,97,2.527,0.1192,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
+Hull,1,85,2.486,0.1008,barriers 45% larger,AMMUNITION — damage a barrier swallows is returned to the attacker
+Ordnance,2,96,2.395,0.0608,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
+Drive,1,93,2.348,0.0399,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+Drive,3,32,2.323,0.029,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+Ordnance,3,24,2.186,-0.0318,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
+Blight,1,127,2.181,-0.0342,one extra stack per application,BLOOM — a bloom joins the turn order; every Blight action pulls it forward; when it acts it detonates every ailment on the board
+Blight,3,7,2.177,-0.0357,one extra stack per application,BLOOM — a bloom joins the turn order; every Blight action pulls it forward; when it acts it detonates every ailment on the board
+Drive,2,76,2.173,-0.0377,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+Ordnance,1,83,2.115,-0.0634,20% more damage,OVERSTRIKE — a hit that breaks a shield lands a second time
+Hull,2,90,2.02,-0.1053,barriers 45% larger,AMMUNITION — damage a barrier swallows is returned to the attacker
+Assay,1,88,1.92,-0.1497,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
+Crew,2,81,1.799,-0.2034,healing 50% stronger,RELIEF — the first crew member to fall is brought back once
+Hull,3,22,1.535,-0.3202,barriers 45% larger,AMMUNITION — damage a barrier swallows is returned to the attacker
+Crew,3,25,1.22,-0.4597,healing 50% stronger,RELIEF — the first crew member to fall is brought back once

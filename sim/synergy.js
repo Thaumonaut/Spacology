@@ -38,6 +38,16 @@ function fight(chars,world,diff,seed){
     shredMul: (T('Assay')>=2?1.6:1),
     dissect:  T('Assay')>=4,                // break costs two turns
     healMul:  (T('Crew')>=2?1.5:1),
+    // foeSlow scales the action value foes spawn with; 1 means unmodified.
+    // It was referenced at spawn and never defined, which made every foe's av
+    // NaN, so no foe ever sorted to the front of the order and none ever acted.
+    foeSlow:  1,
+    // tickMul scales ailment damage on a foe's own turn. Also referenced and
+    // never defined, which made the tick NaN and the foe's health NaN with it -
+    // and NaN fails every <= 0 test, so the foe became unkillable. Dormant only
+    // because foes never took a turn. The Bloom's identical formula hardcodes
+    // 1.0, so 1 is the intended value.
+    tickMul:  1,
     revive:   T('Crew')>=4
   };
   const blightCount=T('Blight');
