@@ -1,0 +1,22 @@
+character,tags,hooks,in top 50,share of top teams,share of slots,best team without,cost of banning,depends on
+Cinder,Blight / Ordnance,1,6,0.5,0.1,2.922,0.1124,a detonator
+Rime,Assay,2,5,0.417,0.0833,3.292,0,
+Ferrule,Hull / Ordnance,2,4,0.333,0.0667,2.922,0.1124,
+Pyre,Blight,1,4,0.333,0.0667,3.292,0,someone to seed
+Quill,Assay / Blight,1,4,0.333,0.0667,3.292,0,
+Mire,Crew / Hull,3,4,0.333,0.0667,2.922,0.1124,someone to pull fire
+Tarn,Hull / Ordnance,3,3,0.25,0.05,3.292,0,a barrier source
+Sump,Blight / Crew,3,3,0.25,0.05,3.292,0,a detonator
+Vane,Drive / Crew,1,3,0.25,0.05,3.292,0,
+Nettle,Drive,1,3,0.25,0.05,3.292,0,
+Mote,Drive / Assay,2,3,0.25,0.05,2.888,0.1227,
+Vitre,Assay / Drive,3,3,0.25,0.05,3.292,0,
+Ledger,Assay / Drive,1,3,0.25,0.05,3.292,0,someone to mark
+Fen,Crew,1,3,0.25,0.05,3.292,0,
+Bosk,Ordnance / Hull,0,2,0.167,0.0333,3.292,0,
+Maul,Ordnance / Assay,1,2,0.167,0.0333,2.922,0.1124,someone to break
+Halo,Crew / Drive,1,2,0.167,0.0333,3.292,0,
+Wex,Hull / Crew,1,1,0.083,0.0167,3.292,0,
+Ballast,Hull,2,1,0.083,0.0167,3.292,0,
+Ash,Blight,3,1,0.083,0.0167,3.292,0,a detonator
+Corr,Ordnance,0,0,0,0,3.292,0,

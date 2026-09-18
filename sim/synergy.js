@@ -2,7 +2,17 @@ const {FOEKIND:FOES}=require('./roster.js');
 const {CHARS,WORLDS,TAGS}=require('./roster.js');
 function mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
   t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const SHPER=14,UN=.2,SOAK=.55,VULN=.35,DELAY=.35;
+// Combat tuning.  Mutable so a sweep can vary one constant at a time; the values
+// here are the originals and reproduce every number measured before this change.
+//   SHPER  shield points per layer        UN     off-element shred rate
+//   SOAK   damage taken through shields   VULN   extra damage once broken
+//   DELAY  share of a turn a break costs
+// Named TUNE, not T - fight() already binds T locally as its tag counter.
+const TUNE={SHPER:14,UN:.2,SOAK:.55,VULN:.35,DELAY:.35};
+const TUNE0=Object.assign({},TUNE);
+function setTuning(o){ Object.assign(TUNE,o||{}); return Object.assign({},TUNE); }
+function resetTuning(){ Object.assign(TUNE,TUNE0); return Object.assign({},TUNE); }
+function getTuning(){ return Object.assign({},TUNE); }
 const ELS=['order','chaos','growth','void','decay','energy'];
 
 function fight(chars,world,diff,seed){
@@ -48,7 +58,7 @@ function fight(chars,world,diff,seed){
     all.push({id:'f'+spawned,side:'foe',kind:p.kind,spec:p.spec,
       weak:[ELS[spawned%6],ELS[(spawned*3+1)%6]],e:ELS[spawned%6],
       sp:p.sp,dmg:p.dmg,hp:p.hp,max:p.hp,av:(10000/p.sp)*(.4+rnd()*.7)*BON.foeSlow,
-      alive:true,shL:p.shL,shC:SHPER,broken:false,vuln:0,ail:0}); spawned++; } }
+      alive:true,shL:p.shL,shC:TUNE.SHPER,broken:false,vuln:0,ail:0}); spawned++; } }
   spawn();
   const alive=()=>all.filter(u=>u.alive);
   const foes=()=>all.filter(u=>u.side==='foe'&&u.alive);
@@ -57,8 +67,8 @@ function fight(chars,world,diff,seed){
   let av=0,round=1,g=0,over=null,big=0,events=0,blooms=0;
   function dmgTo(s,t,a){
     if(!t||!t.alive) return 0;
-    let m=1+(t.vuln>0?VULN:0)+(t.ail||0)*.07;
-    if(t.side==='foe'&&!t.broken&&t.shL>0) m*=SOAK;
+    let m=1+(t.vuln>0?TUNE.VULN:0)+(t.ail||0)*.07;
+    if(t.side==='foe'&&!t.broken&&t.shL>0) m*=TUNE.SOAK;
     let d=Math.round(a*m);
     const raw=d;                       // what it would have been before any barrier
     if(t.side==='ally'&&t.bar>0){const s2=Math.min(t.bar,d);t.bar-=s2;d-=s2;}
@@ -76,9 +86,9 @@ function fight(chars,world,diff,seed){
           if(nx) nx.av=Math.max(1,nx.av-(10000/nx.sp)*0.3); } } }
     return d; }
   function shred(s,t,a){ if(!t||t.broken||t.shL<=0) return false;
-    let p=a*(isW(t,s.e)?1:UN);
-    while(p>0&&t.shL>0){ if(p>=t.shC){p-=t.shC;t.shL--;t.shC=t.shL>0?SHPER:0} else {t.shC-=p;p=0} }
-    if(t.shL<=0){t.broken=true;t.vuln=1;t.av+=(10000/t.sp)*DELAY;
+    let p=a*(isW(t,s.e)?1:TUNE.UN);
+    while(p>0&&t.shL>0){ if(p>=t.shC){p-=t.shC;t.shL--;t.shC=t.shL>0?TUNE.SHPER:0} else {t.shC-=p;p=0} }
+    if(t.shL<=0){t.broken=true;t.vuln=1;t.av+=(10000/t.sp)*TUNE.DELAY;
       if(BON.dissect) t.skips=2;
       if(BON.overstrike) dmgTo(s,t,a*0.9);
       allies().filter(u=>u.trig==='break'&&(u._r||0)<u.react).forEach(u=>{
@@ -121,7 +131,7 @@ function fight(chars,world,diff,seed){
         f.ail=Math.max(0,f.ail-Math.max(1,Math.round(f.ail*act.spec.cleanse))); });
         act.av=10000/act.sp; continue; }
       if(act.broken){ if(act.skips>1){act.skips--;act.av=10000/act.sp;continue;}
-        act.broken=false;act.vuln=0;act.shL=act.spec.shl;act.shC=SHPER;
+        act.broken=false;act.vuln=0;act.shL=act.spec.shl;act.shC=TUNE.SHPER;
         act.av=10000/act.sp;continue;}
       const pool=allies(); const shots=(act.spec&&act.spec.volley)||1;
       const wts=pool.map(u=>(u.taunt||1)*(1+0.8*(1-u.hp/u.max)));
@@ -156,9 +166,9 @@ function fight(chars,world,diff,seed){
           f.hp-=d; burst+=d; events++; f.ail=0; if(f.hp<=0)f.alive=false;});
         big=Math.max(big,burst); act.av=10000/act.sp; spawn(); continue; } }
     let t=null,bw=-1e9;
-    fs.forEach(x=>{const sl=x.broken?0:((x.shL-1)*SHPER+x.shC);
-      const eff=act.dmg*((!x.broken&&sl>0)?SOAK:1);
-      let sc=-(sl/Math.max(1,act.dmg*(isW(x,act.e)?1:UN))+x.hp/Math.max(1,eff))*.6;
+    fs.forEach(x=>{const sl=x.broken?0:((x.shL-1)*TUNE.SHPER+x.shC);
+      const eff=act.dmg*((!x.broken&&sl>0)?TUNE.SOAK:1);
+      let sc=-(sl/Math.max(1,act.dmg*(isW(x,act.e)?1:TUNE.UN))+x.hp/Math.max(1,eff))*.6;
       if(act.apply&&x.ail<8)sc+=.7; if(x.vuln>0)sc+=.7; if(sc>bw){bw=sc;t=x};});
     if(!t)t=fs[0];
     const tgts=act.aoe?fs.slice():[t];
@@ -187,4 +197,4 @@ function scoreTeam(chars,world,N,CAP,STEPS){
   return {bp:+best.toFixed(2), evPerRound:+((ev/N)/(rd/N)).toFixed(1), big,
           rounds:+(rd/N).toFixed(1)};
 }
-module.exports={fight,score,scoreTeam};
+module.exports={fight,score,scoreTeam,setTuning,resetTuning,getTuning};

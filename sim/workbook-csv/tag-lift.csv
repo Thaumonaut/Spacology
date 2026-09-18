@@ -1,0 +1,4 @@
+tag,count,teams,mean score,vs baseline,at 2,at 4
+Drive,1,6,1.742,-0.1253,the crew act 12% sooner,RELAY — a crew kill immediately advances the next crewmate
+Hull,1,6,1.704,-0.1446,barriers 45% larger,AMMUNITION — damage a barrier swallows is returned to the attacker
+Assay,1,6,1.704,-0.1446,shields shredded 60% faster,DISSECTION — break costs the enemy two turns instead of one
