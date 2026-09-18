@@ -15,11 +15,12 @@ const TUNE={ARMOR_PER_LAYER:14,ARMOR_MITIGATION:.55,VULN_BONUS:.35,BREAK_DELAY:.
   // Harmony: on a break, allies sharing the breaker's element strike too.
   // HARMONY_CAP is how many may answer; 0 turns it off.
   HARMONY_CAP:2, HARMONY_DMG:.6,
-  // What Harmony answers. 'break' is the original design and fires rarely,
-  // because it needs someone on the team carrying armorShred. 'hit' lets any
-  // attack trigger it, which is the lever that decides whether stacking an
-  // element is a strategy or a rounding error.
-  HARMONY_ON:'break'};
+  // What Harmony answers. Measured across seventy teams with the team held
+  // fixed: answering a break is worth 2.5% to an element-stacked team, and
+  // answering any hit is worth 16.5%, while a team with no duplicate elements
+  // gains exactly nothing either way. Gating it on a break also locked chaos
+  // and growth out entirely, since neither has a character carrying armorShred.
+  HARMONY_ON:'hit'};
 const TUNE0=Object.assign({},TUNE);
 function setTuning(o){ Object.assign(TUNE,o||{}); return Object.assign({},TUNE); }
 function resetTuning(){ Object.assign(TUNE,TUNE0); return Object.assign({},TUNE); }
