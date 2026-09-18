@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Action animation test</title>
+<style>
+:root{
+  --bg:#131A21; --panel:#1B242D; --raised:#232F3A; --line:#2E3C48;
+  --ink:#DCE4EA; --ink2:#8A98A5; --ink3:#5F6E7B;
+  --order:#7FA8C9; --chaos:#C97F9E; --growth:#8FB878; --energy:#D4A45C;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+body{padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+h1{font-size:15px;font-weight:500;margin:0 0 2px}
+.sub{font-size:12px;color:var(--ink3);margin:0 0 14px}
+.zlabel{font-size:10px;color:var(--ink3);letter-spacing:.06em;margin-bottom:6px}
+
+.field{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+
+#stage{height:180px;background:#0F161C;border:1px solid var(--line);border-radius:10px;
+  position:relative;overflow:hidden;perspective:600px}
+#stage.flash{background:#3A3020}
+.slot{position:absolute;top:38px;width:104px;height:78px;border-radius:10px;
+  background:var(--raised);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500}
+#actor{left:20px;color:var(--energy);border-color:var(--energy);background:#2A3541}
+#target{right:20px}
+#target.dead{opacity:.3}
+.arrow{position:absolute;top:70px;left:50%;transform:translateX(-50%);
+  font-size:20px;color:var(--energy);opacity:0}
+.cap{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;color:var(--ink2)}
+.pipline{position:absolute;top:122px;right:20px;width:104px;text-align:center;
+  font-size:13px;letter-spacing:3px;color:var(--growth)}
+.phasetag{position:absolute;top:10px;left:12px;font-size:10px;color:var(--ink3);letter-spacing:.06em}
+
+#timeline{display:flex;height:22px;border:1px solid var(--line);border-radius:6px;
+  overflow:hidden;margin-top:10px}
+#timeline div{display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#0F161C;overflow:hidden;white-space:nowrap}
+
+.ctl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:4px}
+.seg button{flex:1;background:transparent;border:0;border-right:1px solid var(--line);
+  color:var(--ink2);padding:9px 3px;font-size:11px;font-family:inherit;min-height:38px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--raised);color:var(--ink)}
+label{display:block;font-size:11px;color:var(--ink3);margin:10px 0 3px}
+.sl{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--energy);height:26px}
+.val{font-size:12px;min-width:56px;text-align:right}
+.tog{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 0;border-top:1px solid var(--line);font-size:12px;color:var(--ink2)}
+.tog input{width:44px;height:26px;accent-color:var(--energy)}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btns button{flex:1;background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:11px;font-size:13px;font-family:inherit;min-height:44px}
+.btns button:active{background:#2C3A46}
+.readout{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);
+  border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+.readout b{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body>
+
+<h1>Action animation test</h1>
+<p class="sub">One action, looped. Tune the phases until it reads.</p>
+
+<div class="field">
+  <div id="stage">
+    <div class="phasetag" id="ptag">idle</div>
+    <div class="slot" id="actor">Hammer</div>
+    <div class="arrow" id="arrow">&#10230;</div>
+    <div class="slot" id="target">Husk</div>
+    <div class="pipline" id="pips">&#9670;&#9670;&#9670;</div>
+    <div class="cap" id="cap">Rivet strike</div>
+  </div>
+  <div id="timeline"></div>
+</div>
+
+<div class="ctl">
+  <div class="zlabel">Tier</div>
+  <div class="seg" id="segTier">
+    <button data-v="basic" class="on">Basic</button>
+    <button data-v="skill">Skill</button>
+    <button data-v="ult">Ultimate</button>
+  </div>
+
+  <div class="zlabel" style="margin-top:12px">Charge</div>
+  <div class="seg" id="segCharge">
+    <button data-v="compress" class="on">Compress</button>
+    <button data-v="pullback">Pull back</button>
+    <button data-v="tilt">Tilt</button>
+    <button data-v="shake">Tremble</button>
+  </div>
+
+  <div class="zlabel" style="margin-top:12px">Impact</div>
+  <div class="seg" id="segImpact">
+    <button data-v="flash" class="on">Flash</button>
+    <button data-v="shake">Shake</button>
+    <button data-v="knock">Knockback</button>
+    <button data-v="all">All three</button>
+  </div>
+
+  <label>Enter <span class="val" id="vEnter" style="float:right">80ms</span></label>
+  <div class="sl"><input type="range" id="rEnter" min="0" max="500" step="20" value="80"></div>
+
+  <label>Charge <span class="val" id="vCharge" style="float:right">180ms</span></label>
+  <div class="sl"><input type="range" id="rCharge" min="0" max="2000" step="20" value="180"></div>
+
+  <label>Release <span class="val" id="vRelease" style="float:right">70ms</span></label>
+  <div class="sl"><input type="range" id="rRelease" min="20" max="400" step="10" value="70"></div>
+
+  <label>Hitstop <span class="val" id="vStop" style="float:right">70ms</span></label>
+  <div class="sl"><input type="range" id="rStop" min="0" max="400" step="10" value="70"></div>
+
+  <label>Recover <span class="val" id="vRecover" style="float:right">90ms</span></label>
+  <div class="sl"><input type="range" id="rRecover" min="0" max="800" step="20" value="90"></div>
+
+  <label>Exit <span class="val" id="vExit" style="float:right">90ms</span></label>
+  <div class="sl"><input type="range" id="rExit" min="0" max="600" step="20" value="90"></div>
+
+  <div class="tog"><span>Overlap next entrance with exit</span><input type="checkbox" id="cOverlap" checked></div>
+  <div class="tog"><span>Freeze everything during hitstop</span><input type="checkbox" id="cFreeze" checked></div>
+
+  <div class="btns">
+    <button id="bLoop">Loop</button>
+    <button id="bOnce">Once</button>
+  </div>
+
+  <div class="readout">
+    <span>Action <b id="oTotal">—</b></span>
+    <span>17-action fight <b id="oFight">—</b></span>
+  </div>
+</div>
+
+<script>
+var PRESET={
+  basic:{enter:80,charge:180,release:70,stop:70,recover:90,exit:90,name:'Rivet strike',pips:3},
+  skill:{enter:120,charge:600,release:70,stop:120,recover:160,exit:120,name:'Overload',pips:3},
+  ult:{enter:200,charge:1400,release:70,stop:220,recover:400,exit:220,name:'Unmaking',pips:3}
+};
+var KEYS=['enter','charge','release','stop','recover','exit'];
+var TLC={enter:'#5F6E7B',charge:'#D4A45C',release:'#DCE4EA',stop:'#C97F9E',recover:'#7FA8C9',exit:'#3E4C58'};
+
+var tier='basic', chargeStyle='compress', impactStyle='flash';
+var looping=false, chain=[], running=false;
+
+function $(i){return document.getElementById(i)}
+function g(k){return +$('r'+cap1(k)).value}
+function cap1(s){return s.charAt(0).toUpperCase()+s.slice(1)}
+function total(){var t=0;KEYS.forEach(function(k){t+=g(k)});
+  if($('cOverlap').checked) t-=Math.min(g('exit'),g('enter'));
+  return t;}
+
+function sync(){
+  KEYS.forEach(function(k){ $('v'+cap1(k)).textContent=g(k)+'ms'; });
+  var t=total();
+  $('oTotal').textContent=t+'ms';
+  $('oFight').textContent=(t*17/1000).toFixed(1)+'s';
+  drawTimeline();
+}
+
+function drawTimeline(){
+  var tl=$('timeline'); tl.innerHTML='';
+  var t=total()||1;
+  KEYS.forEach(function(k){
+    var w=g(k)/t*100; if(w<=0) return;
+    var d=document.createElement('div');
+    d.style.width=w+'%'; d.style.background=TLC[k];
+    d.textContent = w>13 ? k : '';
+    tl.appendChild(d);
+  });
+}
+
+function loadPreset(){
+  var p=PRESET[tier];
+  KEYS.forEach(function(k){ $('r'+cap1(k)).value=p[k]; });
+  $('cap').textContent=p.name;
+  sync();
+}
+
+function setT(el,ms,tf){ el.style.transition='transform '+ms+'ms '+(tf||'ease')+', opacity '+ms+'ms ease, background '+ms+'ms ease'; }
+function clearChain(){ chain.forEach(clearTimeout); chain=[]; }
+function at(ms,fn){ chain.push(setTimeout(fn,ms)); }
+
+function chargeTransform(){
+  if(chargeStyle==='compress') return 'scale(.86)';
+  if(chargeStyle==='pullback') return 'translateX(-26px)';
+  if(chargeStyle==='tilt')     return 'rotateY(26deg) translateX(-10px)';
+  return 'scale(1.03)';
+}
+
+function run(){
+  if(running) return;
+  running=true;
+  var a=$('actor'), t=$('target'), ar=$('arrow'), pv=$('pips'), stg=$('stage'), tg=$('ptag');
+  var E=g('enter'), C=g('charge'), R=g('release'), S=g('stop'), V=g('recover'), X=g('exit');
+  var trem=null;
+
+  a.style.transition='none'; a.style.transform='translateX(-140px)'; a.style.opacity='0';
+  t.style.transition='none'; t.style.transform='none'; t.style.opacity='1'; t.classList.remove('dead');
+  ar.style.opacity='0'; stg.classList.remove('flash');
+  pv.textContent='\u25C6\u25C6\u25C6'; pv.style.color='var(--growth)';
+  tg.textContent='enter';
+
+  at(20,function(){ setT(a,E,'cubic-bezier(.2,.9,.3,1)'); a.style.transform='none'; a.style.opacity='1'; });
+
+  at(E+20,function(){
+    tg.textContent='charge';
+    if(chargeStyle==='shake'){
+      var on=false;
+      trem=setInterval(function(){ on=!on; a.style.transition='none';
+        a.style.transform='translateX('+(on?2:-2)+'px) scale(1.02)'; },40);
+    } else {
+      setT(a,C,'cubic-bezier(.4,0,.6,1)'); a.style.transform=chargeTransform();
+    }
+    setT(ar,C); ar.style.opacity='.5';
+  });
+
+  at(E+C+20,function(){
+    if(trem) clearInterval(trem);
+    tg.textContent='release';
+    setT(a,R,'cubic-bezier(.6,0,.9,.2)'); a.style.transform='translateX(48px) scale(1.06)';
+    ar.style.opacity='1';
+  });
+
+  at(E+C+R+20,function(){
+    tg.textContent='impact';
+    if(impactStyle==='flash'||impactStyle==='all'){ stg.classList.add('flash'); }
+    if(impactStyle==='shake'||impactStyle==='all'){
+      t.style.transition='none'; t.style.transform='translateX(6px)';
+      setTimeout(function(){ t.style.transform='translateX(-4px)'; },40);
+      setTimeout(function(){ setT(t,90); t.style.transform='none'; },80);
+    }
+    if(impactStyle==='knock'||impactStyle==='all'){
+      setT(t,S||60,'cubic-bezier(.2,.9,.3,1)'); t.style.transform='translateX(22px)';
+    }
+    if($('cFreeze').checked){ a.style.transition='none'; }
+    pv.textContent='\u25C6\u25C6\u25C7'; pv.style.color='var(--ink)';
+    setTimeout(function(){ pv.style.color='var(--growth)'; },220);
+  });
+
+  at(E+C+R+S+20,function(){
+    tg.textContent='recover';
+    stg.classList.remove('flash');
+    setT(a,V,'cubic-bezier(.2,.8,.4,1)'); a.style.transform='none';
+    setT(t,V); t.style.transform='none';
+    setT(ar,V); ar.style.opacity='0';
+  });
+
+  at(E+C+R+S+V+20,function(){
+    tg.textContent='exit';
+    setT(a,X,'cubic-bezier(.6,0,.9,.2)'); a.style.transform='translateX(140px)'; a.style.opacity='0';
+  });
+
+  at(total()+40,function(){
+    running=false; tg.textContent='idle';
+    if(looping){ clearChain(); run(); }
+  });
+}
+
+function seg(id,fn){
+  $(id).onclick=function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    this.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on'); fn(b.dataset.v);
+  };
+}
+seg('segTier',function(v){ tier=v; loadPreset(); });
+seg('segCharge',function(v){ chargeStyle=v; });
+seg('segImpact',function(v){ impactStyle=v; });
+
+KEYS.forEach(function(k){ $('r'+cap1(k)).oninput=sync; });
+$('cOverlap').onchange=sync;
+
+$('bLoop').onclick=function(){
+  looping=!looping;
+  this.textContent=looping?'Stop':'Loop';
+  if(looping && !running){ clearChain(); run(); }
+};
+$('bOnce').onclick=function(){ looping=false; $('bLoop').textContent='Loop'; clearChain(); running=false; run(); };
+
+loadPreset();
+</script>
+</body>
+</html>

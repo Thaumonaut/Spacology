@@ -1,0 +1,955 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Placement</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;
+  -webkit-user-select:none;user-select:none}
+:root{
+  --bg:#0F161C; --panel:#151E26; --raised:#1D2831; --line:#26313B;
+  --ink:#E8EDF2; --ink2:#9FB0BF; --ink3:#5F6E7B;
+  --gold:#D4A45C; --good:#7FBE86; --bad:#C4626F;
+  --stone:#28323C; --stoneHi:#3B4855;
+}
+html,body{margin:0;background:var(--bg);color:var(--ink);overscroll-behavior:none;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:18px 16px 80px}
+h1{font-size:19px;font-weight:600;margin:0 0 2px;letter-spacing:-.01em}
+.sub{color:var(--ink2);margin:0 0 18px;max-width:58ch}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 268px;gap:18px;align-items:start}
+@media (max-width:840px){.cols{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.card + .card{margin-top:12px}
+.hd{font-size:11px;color:var(--ink3);margin:0 0 9px;letter-spacing:.02em}
+
+/* ---------- the two fields ---------- */
+.fl{font-size:10px;color:var(--ink3);margin:0 0 5px}
+.fl + .fl{margin-top:14px}
+#eboard,#board{display:grid;gap:6px;touch-action:none;position:relative}
+.gap{height:22px;margin:7px 0;display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:var(--ink3);
+  background:repeating-linear-gradient(90deg,transparent 0 8px,rgba(95,110,123,.18) 8px 9px)}
+
+/* terrain reads as surface, never as colour, so colour is free for state */
+.cell{position:relative;aspect-ratio:1;border-radius:8px;cursor:pointer;
+  background:var(--stone);border:1px solid #313D48;
+  display:flex;align-items:center;justify-content:center;
+  padding-bottom:11px;
+  transition:transform .09s,box-shadow .12s,filter .12s}
+.cell .surf{position:absolute;inset:0;border-radius:7px;pointer-events:none}
+.t-ridge{border-color:#4E5D6B}
+.t-ridge .surf{background:linear-gradient(#4A5866 0 34%,#333F4A 34% 100%);
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.14),inset 0 -6px 8px rgba(0,0,0,.4)}
+.t-thicket .surf{background:#232D2A;
+  background-image:radial-gradient(circle at 30% 30%,rgba(160,200,170,.30) 1.4px,transparent 1.5px),
+    radial-gradient(circle at 72% 62%,rgba(160,200,170,.24) 1.6px,transparent 1.7px),
+    radial-gradient(circle at 48% 84%,rgba(160,200,170,.20) 1.2px,transparent 1.3px);
+  background-size:11px 11px,13px 13px,9px 9px}
+.t-flats{border-color:#5A5544}
+.t-flats .surf{background:#3B3A31;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35)}
+.t-marsh .surf{background:#222E36;
+  background-image:repeating-linear-gradient(0deg,transparent 0 5px,
+    rgba(140,180,205,.20) 5px 6px)}
+.t-rubble .surf{background:#2C2A33;
+  background-image:linear-gradient(35deg,rgba(180,170,200,.16) 25%,transparent 26%),
+    linear-gradient(-42deg,rgba(180,170,200,.13) 30%,transparent 31%),
+    linear-gradient(12deg,rgba(180,170,200,.10) 55%,transparent 56%);
+  background-size:9px 9px,12px 12px,7px 7px}
+
+
+/* one state channel at a time */
+.cell .state{position:absolute;inset:0;border-radius:7px;pointer-events:none;z-index:1;
+  opacity:0;transition:opacity .12s}
+.cell.on .state{opacity:1}
+.cell.hot{box-shadow:0 0 0 2px var(--gold)}
+.cell.drop{box-shadow:0 0 0 2px var(--good);transform:scale(1.04)}
+.cell.dimmed{filter:brightness(.45) saturate(.4)}
+.cell.pulse{box-shadow:0 0 0 2px rgba(212,164,92,.85)}
+
+.chip{position:relative;z-index:3;width:74%;border-radius:6px;
+  background:rgba(28,38,47,.82);backdrop-filter:blur(2px);
+  border:1px solid #4A5865;padding:3px 2px;text-align:center;line-height:1.15;
+  box-shadow:0 2px 7px rgba(0,0,0,.5)}
+.chip .nm{font-size:10px;font-weight:600}
+.chip .rl{font-size:7.5px;color:var(--ink3)}
+/* the ground shows through as a band across the bottom of every square */
+.cell .ground{position:absolute;left:0;right:0;bottom:0;height:13px;z-index:2;
+  border-radius:0 0 7px 7px;pointer-events:none;display:flex;align-items:center;
+  justify-content:center;font-size:7.5px;letter-spacing:.05em;
+  color:rgba(232,237,242,.72);background:rgba(9,13,17,.5);text-transform:uppercase}
+.cell.bare .ground{background:none;color:rgba(159,176,191,.45)}
+.chip.sel{border-color:var(--gold);box-shadow:0 0 12px rgba(212,164,92,.55)}
+.chip.lifted{opacity:.25}
+#ghost{position:fixed;z-index:90;pointer-events:none;width:64px;
+  transform:translate(-50%,-50%) scale(1.1);display:none}
+#ghost .chip{width:100%;border-color:var(--gold);box-shadow:0 6px 18px rgba(0,0,0,.6)}
+
+.chip.foechip{background:#2B2028;border-color:#5E3A44;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.chip.foechip .nm{color:#E0A9B1}
+.chip.foechip.elite{border-color:#8E4E5C;box-shadow:0 0 10px rgba(142,78,92,.5)}
+.chip.foechip.elite .nm{color:#F0BEC5}
+.delta{position:absolute;left:2px;right:2px;bottom:2px;z-index:4;text-align:center;
+  font-size:7.5px;letter-spacing:.02em;border-radius:3px;padding:1px 0;pointer-events:none}
+.delta.good{background:rgba(127,190,134,.9);color:#0F1A12}
+.delta.bad{background:rgba(196,98,111,.9);color:#1A0F11}
+.cell.taken{filter:brightness(.5) saturate(.4)}
+
+/* ---------- inspector ---------- */
+#insp{position:fixed;z-index:80;width:224px;background:#18222B;
+  border:1px solid #33414D;border-radius:11px;padding:11px 12px;display:none;
+  box-shadow:0 12px 34px rgba(0,0,0,.6)}
+#insp h4{margin:0 0 2px;font-size:13px;font-weight:600}
+#insp .who{font-size:10.5px;color:var(--ink3);line-height:1.45;margin-bottom:8px}
+#insp .row{display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0}
+#insp .row span:last-child{font-variant-numeric:tabular-nums;color:var(--ink2)}
+#insp .row .g{color:var(--good)} #insp .row .b{color:var(--bad)}
+#insp .grab{position:absolute;left:0;right:0;top:0;height:22px;cursor:grab}
+#insp .x{position:absolute;right:8px;top:6px;font-size:15px;color:var(--ink3);
+  cursor:pointer;line-height:1}
+
+/* ---------- controls ---------- */
+.seg{display:flex;flex-wrap:wrap;gap:5px}
+.seg button{flex:1 1 auto;min-width:48px;background:var(--raised);color:var(--ink2);
+  border:1px solid var(--line);border-radius:8px;padding:7px 6px;font-size:12px;
+  font-family:inherit;cursor:pointer}
+.seg button.on{background:#2A3541;color:var(--ink);border-color:#46545F}
+label.rw{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);
+  margin:11px 0 4px}
+label.rw b{color:var(--ink)}
+input[type=range]{width:100%;accent-color:var(--gold)}
+button.go{width:100%;background:var(--gold);color:#20180B;border:0;border-radius:9px;
+  padding:11px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-top:10px}
+button.go.alt{background:var(--raised);color:var(--ink);border:1px solid var(--line)}
+button.go:disabled{opacity:.5}
+
+.score{display:flex;align-items:baseline;gap:9px;margin-bottom:2px}
+.score b{font-size:31px;font-variant-numeric:tabular-nums;line-height:1;font-weight:600}
+.score span{font-size:11px;color:var(--ink3)}
+.score b.g{color:var(--good)} .score b.b{color:var(--bad)}
+.detail{font-size:11.5px;color:var(--ink2);line-height:1.7;margin-top:8px;
+  padding-top:8px;border-top:1px solid var(--line);display:none}
+.detail.open{display:block}
+.detail i{font-style:normal;float:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+.more{font-size:11px;color:var(--ink3);cursor:pointer;margin-top:6px;display:inline-block}
+.note{font-size:11px;color:var(--ink3);line-height:1.6;margin-top:9px}
+.key{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:var(--ink3);margin-top:9px}
+.key i{display:inline-block;width:16px;height:9px;border-radius:2px;margin-right:4px;
+  vertical-align:-1px;border:1px solid #3B4855}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Placement</h1>
+<p class="sub">The enemies pick their own ground first &mdash; snipers climb, mortars
+hide, brutes come forward. Then you place against them. Drag someone and the ground
+shows whether each square is better or worse than where they stand now.</p>
+
+<div class="cols">
+<div>
+  <div class="card">
+    <p class="fl">Their ground</p>
+    <div id="eboard"></div>
+    <div class="gap" id="gapLbl">open ground</div>
+    <p class="fl">Your ground</p>
+    <div id="board"></div>
+    <div class="key">
+      <span><i style="background:linear-gradient(#4A5866 0 34%,#333F4A 34%)"></i>ridge</span>
+      <span><i style="background:#232D2A"></i>thicket</span>
+      <span><i style="background:#3B3A31"></i>flats</span>
+      <span><i style="background:#222E36"></i>marsh</span>
+      <span><i style="background:#2C2A33"></i>rubble</span>
+    </div>
+    <div class="note" id="hint"></div>
+  </div>
+</div>
+
+<div>
+  <div class="card">
+    <p class="hd">How this holds up</p>
+    <div class="score"><b id="sVal">&mdash;</b><span id="sLbl">not measured</span></div>
+    <span class="more" id="more">show the details</span>
+    <div class="detail" id="detail"></div>
+    <button class="go" id="run">Measure this layout</button>
+    <button class="go alt" id="suggest">Suggest a layout</button>
+  </div>
+  <div class="card">
+    <p class="hd">Field</p>
+    <div class="seg" id="segSize"></div>
+    <label class="rw">Crew <b id="vTeam">6</b></label>
+    <input type="range" id="rTeam" min="3" max="9" step="1" value="6">
+    <label class="rw">Enemies <b id="vFoes">8</b></label>
+    <input type="range" id="rFoes" min="3" max="14" step="1" value="8">
+    <button class="go alt" id="roll">New ground</button>
+  </div>
+  <div class="card">
+    <p class="hd">Paint ground</p>
+    <div class="seg" id="segTerr">
+      <button data-t="plain" class="on">Open</button>
+      <button data-t="ridge">Ridge</button>
+      <button data-t="thicket">Thicket</button>
+      <button data-t="flats">Flats</button>
+      <button data-t="marsh">Marsh</button>
+      <button data-t="rubble">Rubble</button>
+    </div>
+    <div class="note" id="tileNote"></div>
+  </div>
+</div>
+</div>
+</div>
+
+<div id="ghost"></div>
+<div id="insp">
+  <div class="grab"></div><div class="x">&times;</div>
+  <h4 id="iT"></h4><div class="who" id="iW"></div><div id="iB"></div>
+</div>
+
+<script>
+/* ============================ model ============================ */
+// Every tile helps someone and hurts someone else. None is simply better.
+var TILE={
+  plain :{lbl:'Open',   draw:1.00, dmg:1.00, out:1.00, taken:1.00,
+          who:'nobody in particular'},
+  ridge :{lbl:'Ridge',  draw:1.55, dmg:1.15, out:1.00, taken:1.00, blocks:1, high:1,
+          who:'gunners who can take a hit \u2014 sees over everything, seen by everything'},
+  thicket:{lbl:'Thicket',draw:0.55, dmg:1.00, out:0.35, taken:1.00, hides:1,
+          who:'menders and blockers \u2014 cannot be shot, cannot shoot out'},
+  flats :{lbl:'Salt flats',draw:1.25, dmg:1.35, out:1.00, taken:1.35,
+          who:'bait and glass cannons \u2014 everything hits harder, both ways'},
+  marsh :{lbl:'Marsh',  draw:1.00, dmg:1.00, out:1.00, taken:0.70, slow:0.74,
+          who:'slow heavies \u2014 dug in, tough, and late'},
+  rubble:{lbl:'Rubble', draw:1.00, dmg:1.00, out:1.00, taken:1.00, noblast:1,
+          who:'anyone bunching up \u2014 blasts do not spread through it'}
+};
+var TKEYS=Object.keys(TILE);
+var KITS=[
+  {tag:'shields', n:'Ward',   d:'covers two squares around it', sp:80, dmg:9, hpMul:1.6,
+   reach:2, block:.62, falloff:.30},
+  {tag:'bait',    n:'Tarn',   d:'draws fire and hits back',     sp:84, dmg:7, hpMul:1.3,
+   thorns:2.6, taunt:5},
+  {tag:'gun',     n:'Corr',   d:'straight shot, big number',    sp:96, dmg:19},
+  {tag:'gun',     n:'Bosk',   d:'straight shot',                sp:100,dmg:18},
+  {tag:'arcs',    n:'Rime',   d:'arcs over anything',           sp:104,dmg:17, lob:1},
+  {tag:'mends',   n:'Fen',    d:'heals two squares around it',  sp:108,dmg:8, heal:44, area:2},
+  {tag:'gun',     n:'Wick',   d:'straight shot, quick',         sp:112,dmg:15},
+  {tag:'shields', n:'Ballast',d:'covers one square around it',  sp:76, dmg:12,hpMul:1.5,
+   reach:1, block:.55, falloff:.30},
+  {tag:'arcs',    n:'Mote',   d:'arcs, weaker',                 sp:106,dmg:13, lob:1}
+];
+function mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var SHPER=14,SOAK=.55,VULN=.35;
+function cheb(a,b){return Math.max(Math.abs(a.row-b.row),Math.abs(a.col-b.col));}
+// The two fields face each other. Their board occupies rows 0..R-1 of a shared
+// space, then a strip of open ground, then yours. A sight line crosses both.
+var GAP=1;
+function worldRow(side,r,rows){ return side==='foe' ? r : rows+GAP+r; }
+function worldMap(emap,pmap,rows,cols){
+  var w=[];
+  for(var r=0;r<rows;r++) w.push(emap[r].slice());
+  for(var g=0;g<GAP;g++){ var blank=[]; for(var c=0;c<cols;c++) blank.push('plain'); w.push(blank); }
+  for(var r2=0;r2<rows;r2++) w.push(pmap[r2].slice());
+  return w;
+}
+function blockedLine(map,from,to){
+  var steps=Math.max(Math.abs(from.row-to.row),Math.abs(from.col-to.col));
+  if(steps<2) return false;
+  for(var i=1;i<steps;i++){
+    var r=Math.round(from.row+(to.row-from.row)*i/steps);
+    var c=Math.round(from.col+(to.col-from.col)*i/steps);
+    var t=map[r]&&map[r][c];
+    if(t&&TILE[t].blocks) return true;
+  }
+  return false;
+}
+// Enemies are kits too, and they pick their ground the same way the crew does.
+var FOEKITS=[
+  {n:'Lance', tag:'straight', d:'a long clean shot, and it wants to see you',
+   sp:96, dmg:11, hp:56, shl:1, kind:'straight', wants:'sight'},
+  {n:'Bastion',tag:'shields', d:'stands over the others and soaks for them',
+   sp:78, dmg:9,  hp:160,shl:2, kind:'straight', wants:'near', elite:1},
+  {n:'Mortar',tag:'arcs',    d:'lobs over everything, so it hides',
+   sp:88, dmg:12, hp:60, shl:1, kind:'lob', wants:'cover'},
+  {n:'Howler',tag:'blast',   d:'a wide blast, aimed where you bunch up',
+   sp:84, dmg:10, hp:70, shl:1, kind:'blast', wants:'sight'},
+  {n:'Brute', tag:'heavy',   d:'slow and enormous, hits like a wall',
+   sp:74, dmg:19, hp:180,shl:2, kind:'straight', wants:'forward', elite:1},
+  {n:'Stalker',tag:'quick',  d:'fast, and it goes for whoever is softest',
+   sp:118,dmg:8,  hp:48, shl:1, kind:'straight', wants:'cover'}
+];
+function foeRoster(n){
+  var out=[];
+  for(var i=0;i<n;i++) out.push(FOEKITS[i%FOEKITS.length]);
+  return out;
+}
+// score a square on THEIR field for one of their kits
+function foeSquare(kit,r,c,emap,pmap,rows,cols,taken){
+  var t=TILE[emap[r][c]];
+  var w=worldMap(emap,pmap,rows,cols);
+  var reach=0,total=0;
+  for(var pr=0;pr<rows;pr++) for(var pc=0;pc<cols;pc++){
+    total++;
+    var from={row:worldRow('foe',r,rows),col:c};
+    var to={row:worldRow('ally',pr,rows),col:pc};
+    if(kit.kind==='lob'||(!blockedLine(w,from,to)&&t.out>=1)) reach++;
+  }
+  var cover=1-reach/Math.max(1,total);
+  var near=0;
+  taken.forEach(function(q){
+    if(Math.max(Math.abs(q[0]-r),Math.abs(q[1]-c))<=1) near++; });
+  var v=0;
+  if(kit.wants==='sight')   v = (reach/total)*1.2 + (t.high?.5:0) + (t.dmg-1)*.7
+                                - (t.out<1?1.1:0) - (t.slow?.4:0);
+  if(kit.wants==='cover')   v = cover*1.0 + (t.hides?.7:0) + (1-t.taken)*.6
+                                - (t.slow?.3:0);
+  if(kit.wants==='near')    v = Math.min(1,near/2)*1.0 + (1-t.taken)*.7
+                                + (t.hides?.2:0);
+  if(kit.wants==='forward') v = (rows-1-r)/Math.max(1,rows-1)*0.9 + (t.dmg-1)*.8
+                                + (1-t.taken)*.4 - (t.slow?.5:0);
+  return v;
+}
+// greedy: the ones with the strongest opinions choose first
+function placeFoes(rows,cols,emap,pmap,n){
+  var roster=foeRoster(n), taken=[], out=[];
+  var order=roster.map(function(k,i){return i}).sort(function(a,b){
+    var w={sight:0,forward:1,cover:2,near:3};
+    return w[roster[a].wants]-w[roster[b].wants];
+  });
+  var slots=new Array(n);
+  order.forEach(function(i){
+    var kit=roster[i],best=null,bv=-1e9;
+    for(var r=0;r<rows;r++) for(var c=0;c<cols;c++){
+      if(taken.some(function(q){return q[0]===r&&q[1]===c})) continue;
+      var v=foeSquare(kit,r,c,emap,pmap,rows,cols,taken);
+      if(v>bv){bv=v;best=[r,c];}
+    }
+    if(!best){ for(var r2=0;r2<rows&&!best;r2++) for(var c2=0;c2<cols&&!best;c2++)
+      if(!taken.some(function(q){return q[0]===r2&&q[1]===c2})) best=[r2,c2]; }
+    if(best){ taken.push(best); slots[i]=best; }
+  });
+  for(var i2=0;i2<n;i2++) out.push(slots[i2]||[0,0]);
+  return out;
+}
+var _fpCache={key:null,val:null};
+function foePosts(rows,cols,n,emap,pmap){
+  emap=emap||(typeof S!=='undefined'?S.emap:null);
+  pmap=pmap||(typeof S!=='undefined'?S.map:null);
+  if(!emap||!pmap){ // fall back to a simple line if called before the maps exist
+    var out=[],band=Math.min(3,cols);
+    for(var i=0;i<n;i++) out.push([Math.floor(i/band)%rows,cols-1-(i%band)]);
+    return out;
+  }
+  var key=rows+'|'+cols+'|'+n+'|'+JSON.stringify(emap)+JSON.stringify(pmap);
+  if(_fpCache.key===key) return _fpCache.val;
+  var v=placeFoes(rows,cols,emap,pmap,n);
+  _fpCache={key:key,val:v};
+  return v;
+}
+function fight(cfg,seed){
+  var rnd=mb(seed), rows=cfg.rows, cols=cfg.cols;
+  var pmap=cfg.map, emap=cfg.emap||cfg.map;
+  var map=worldMap(emap,pmap,rows,cols);
+  var posts=foePosts(rows,cols,cfg.foes,emap,pmap);
+  var U=[];
+  cfg.team.forEach(function(c,i){
+    var p=cfg.placement[i]; if(!p) return;
+    var t=TILE[pmap[p[0]][p[1]]];
+    U.push(Object.assign({},c,{id:'a'+i,side:'ally',
+      row:worldRow('ally',p[0],rows),col:p[1],home:p[0],
+      draw:t.draw,tdmg:t.taken,outMul:t.out,hides:t.hides||0,
+      noblast:t.noblast||0,high:t.high||0,dealMul:t.dmg,
+      hp:Math.round(112*(c.hpMul||1)),max:Math.round(112*(c.hpMul||1)),
+      av:(10000/c.sp)/(t.slow||1),alive:true}));
+  });
+  if(!U.length) return {over:'wipe',round:0};
+  var fr=foeRoster(cfg.foes);
+  for(var i=0;i<cfg.foes;i++){
+    var kit=fr[i], pp=posts[i], et=TILE[emap[pp[0]][pp[1]]];
+    U.push({id:'f'+i,side:'foe',name:kit.n,row:worldRow('foe',pp[0],rows),col:pp[1],
+      home:pp[0],high:et.high||0,hides:et.hides||0,
+      sp:Math.round(kit.sp*(et.slow||1)),
+      dmg:Math.round(kit.dmg*cfg.diff*et.dmg*(et.high?1.15:1)),
+      hp:Math.round(kit.hp*cfg.diff),max:Math.round(kit.hp*cfg.diff),
+      shL:kit.shl,shC:SHPER,broken:false,vuln:0,alive:true,
+      draw:1,tdmg:et.taken,outMul:et.out,
+      av:(10000/kit.sp)*(0.4+rnd()*0.6), kind:kit.kind});
+  }
+  var alive=function(){return U.filter(function(u){return u.alive})};
+  var foes=function(){return U.filter(function(u){return u.side==='foe'&&u.alive})};
+  var allies=function(){return U.filter(function(u){return u.side==='ally'&&u.alive})};
+  var av=0,round=1,g=0,over=null,walled=0,missed=0,blocked=0,reflected=0,
+      blastCasts=0,blastHits=0,shots=0;
+  function coverFor(t){
+    var best=0,who=null;
+    allies().forEach(function(a){
+      if(!a.reach||a===t) return;
+      var d=cheb(a,t); if(d>a.reach) return;
+      var sh=a.block*(1-(a.falloff||.3)*Math.max(0,d-1));
+      if(sh>best){best=sh;who=a;}
+    });
+    return who?{who:who,share:Math.max(0,Math.min(.85,best))}:null;
+  }
+  function deal(src,t,amt,straight){
+    if(!t||!t.alive) return 0;
+    shots++;
+    if(straight&&src.row!==undefined&&blockedLine(map,src,t)){walled++;return 0;}
+    // a thicket cannot be shot into from outside it
+    if(straight&&t.hides&&src.side!==t.side){missed++;return 0;}
+    if(t.side==='ally'){
+      var cv=coverFor(t);
+      if(cv){var cut=Math.round(amt*cv.share);amt-=cut;blocked+=cut;
+        cv.who.hp-=cut; if(cv.who.hp<=0)cv.who.alive=false;}
+    }
+    var m=(1+(t.vuln>0?VULN:0))*(t.tdmg||1);
+    if(t.side==='foe'&&!t.broken&&t.shL>0) m*=SOAK;
+    var d=Math.round(amt*m); t.hp-=d;
+    if(t.side==='ally'&&t.thorns&&src.side==='foe'&&t.alive){
+      var back=Math.round(d*t.thorns); src.hp-=back; reflected+=back;
+      if(src.hp<=0)src.alive=false;
+    }
+    if(t.hp<=0&&t.alive)t.alive=false;
+    return d;
+  }
+  function pickAlly(){
+    var l=allies(); if(!l.length) return null;
+    var w=l.map(function(u){return (u.taunt||1)*(u.draw||1)*(1+.7*(1-u.hp/u.max))});
+    var r=rnd()*w.reduce(function(a,b){return a+b},0);
+    for(var i=0;i<l.length;i++){ r-=w[i]; if(r<=0) return l[i]; }
+    return l[l.length-1];
+  }
+  while(g++<20000){
+    if(!foes().length){over='win';break}
+    if(!allies().length){over='wipe';break}
+    var al=alive(); al.sort(function(a,b){return a.av-b.av});
+    var act=al[0],ad=act.av; al.forEach(function(u){u.av-=ad}); av+=ad;
+    var nr=Math.floor(av/100)+1;
+    if(nr>round){round=nr; if(round>20){over='timeout';break}}
+    if(act.side==='foe'){
+      if(act.kind==='blast'){
+        var l=allies(),best=null,bn=-1;
+        l.forEach(function(c){var n=l.filter(function(x){return cheb(x,c)<=1}).length;
+          if(n>bn){bn=n;best=c;}});
+        blastCasts++;
+        if(best) l.filter(function(x){return cheb(x,best)<=1}).forEach(function(x){
+          if(x!==best&&x.noblast) return;      // rubble stops the spread
+          deal(act,x,act.dmg*(x===best?1:.72),false); blastHits++; });
+      } else if(act.kind==='lob'){ deal(act,pickAlly(),act.dmg*.85,false); }
+      else { deal(act,pickAlly(),act.dmg,true); }
+      act.av=10000/act.sp; continue;
+    }
+    if(act.heal){
+      var near=allies().filter(function(a){return cheb(a,act)<=(act.area||0)});
+      var pool=act.area?near:[allies().sort(function(a,b){return a.hp/a.max-b.hp/b.max})[0]];
+      pool.forEach(function(a){if(a)a.hp=Math.min(a.max,a.hp+act.heal*(act.area?.75:1))});
+      act.av=10000/act.sp; continue;
+    }
+    var fs=foes(),t=null,bw=-1e9;
+    fs.forEach(function(x){
+      var sl=x.broken?0:((x.shL-1)*SHPER+(x.shC||0));
+      var sc=-(sl/Math.max(1,act.dmg)+x.hp/Math.max(1,act.dmg));
+      if(act.high)sc+=.3;
+      if(sc>bw){bw=sc;t=x;}
+    });
+    if(t){
+      if(!t.broken&&t.shL>0){ var p=act.dmg*.6;
+        while(p>0&&t.shL>0){ if(p>=t.shC){p-=t.shC;t.shL--;t.shC=t.shL>0?SHPER:0}
+          else {t.shC-=p;p=0} }
+        if(t.shL<=0){t.broken=true;t.vuln=1;}
+      }
+      deal(act,t,act.dmg*(act.dealMul||1),!act.lob&&(act.outMul||1)>=1);
+      // shooting out of a thicket is mostly not possible
+      
+    }
+    act.av=10000/act.sp;
+  }
+  return {over:over,round:round,walled:walled,missed:missed,blocked:blocked,
+    reflected:reflected,shots:shots,
+    perBlast:blastCasts?blastHits/blastCasts:0};
+}
+function score(cfg,N){
+  N=N||26;
+  var lo=.4,hi=5.0,best=lo;
+  for(var i=0;i<8;i++){
+    var mid=(lo+hi)/2,w=0;
+    for(var s=1;s<=N;s++){
+      var c=Object.assign({},cfg,{diff:mid});
+      if(fight(c,(s*2654435761)>>>0).over==='win') w++;
+    }
+    if(w/N>=.75){best=mid;lo=mid;} else hi=mid;
+  }
+  var agg={walled:0,missed:0,blocked:0,reflected:0,perBlast:0,round:0,shots:0};
+  for(var s2=1;s2<=N;s2++){
+    var f=fight(Object.assign({},cfg,{diff:best}),(s2*2654435761)>>>0);
+    for(var k in agg) agg[k]+=f[k]||0;
+  }
+  for(var k2 in agg) agg[k2]/=N;
+  agg.bp=+best.toFixed(2);
+  return agg;
+}
+
+/* ============================ state ============================ */
+var S={rows:3,cols:6,team:6,foes:8,map:[],emap:[],place:[],sel:0,brush:null,
+  paintSide:'ally', show:{cover:1,shadow:1,blast:0,suit:1}};
+var $=function(id){return document.getElementById(id)};
+
+var SIZES=[[2,4],[3,3],[3,4],[3,6],[4,6],[4,9]];
+function buildSizes(){
+  $('segSize').innerHTML=SIZES.map(function(s){
+    return '<button data-r="'+s[0]+'" data-c="'+s[1]+'"'+
+      ((s[0]===S.rows&&s[1]===S.cols)?' class="on"':'')+'>'+s[0]+'\u00d7'+s[1]+'</button>';
+  }).join('');
+  $('segSize').querySelectorAll('button').forEach(function(b){
+    b.onclick=function(){
+      S.rows=+b.dataset.r; S.cols=+b.dataset.c;
+      rollMap(true); S.place=[]; autoPlace(); buildSizes(); draw();
+    };
+  });
+}
+function oneMap(rows,cols,flat,rnd){
+  var m=[];
+  for(var r=0;r<rows;r++){ m.push([]);
+    for(var c=0;c<cols;c++){
+      if(flat){ m[r].push('plain'); continue; }
+      var q=rnd(),t='plain';
+      if(q<.16)t='ridge'; else if(q<.32)t='thicket';
+      else if(q<.44)t='flats'; else if(q<.54)t='marsh'; else if(q<.64)t='rubble';
+      m[r].push(t);
+    } }
+  return m;
+}
+function rollMap(flat){
+  var rnd=mb((Date.now()&0xffff)^(S.rows*97+S.cols*31));
+  S.map =oneMap(S.rows,S.cols,flat,rnd);
+  S.emap=oneMap(S.rows,S.cols,flat,rnd);
+}
+function crew(){ return KITS.slice(0,S.team); }
+function autoPlace(){
+  S.place=[];
+  var cells=[];
+  for(var c=0;c<S.cols;c++) for(var r=0;r<S.rows;r++) cells.push([r,c]);
+  for(var i=0;i<S.team;i++) S.place.push(cells[i%cells.length]);
+}
+function occupant(r,c){
+  for(var i=0;i<S.place.length;i++){
+    var p=S.place[i];
+    if(p&&p[0]===r&&p[1]===c) return i;
+  }
+  return -1;
+}
+
+/* ============================ state ============================ */
+var S={rows:3,cols:6,team:6,foes:8,map:[],emap:[],place:[],sel:-1,
+        brush:null,drag:null,lastScore:null};
+var $=function(id){return document.getElementById(id)};
+var SIZES=[[2,4],[3,4],[3,6],[3,8],[4,6],[4,9]];
+var GAPR=1;
+
+function oneMap(rows,cols,flat,rnd){
+  var m=[];
+  for(var r=0;r<rows;r++){ m.push([]);
+    for(var c=0;c<cols;c++){
+      if(flat){ m[r].push('plain'); continue; }
+      var q=rnd(),t='plain';
+      if(q<.15)t='ridge'; else if(q<.30)t='thicket';
+      else if(q<.42)t='flats'; else if(q<.52)t='marsh'; else if(q<.62)t='rubble';
+      m[r].push(t);
+    } }
+  return m;
+}
+function rollMap(flat){
+  var rnd=mb((Date.now()&0xffff)^(S.rows*97+S.cols*31));
+  S.map=oneMap(S.rows,S.cols,flat,rnd);
+  S.emap=oneMap(S.rows,S.cols,flat,rnd);
+}
+function crew(){ return KITS.slice(0,S.team); }
+function autoPlace(){
+  S.place=[]; var cells=[];
+  for(var c=0;c<S.cols;c++) for(var r=0;r<S.rows;r++) cells.push([r,c]);
+  for(var i=0;i<S.team;i++) S.place.push(cells[i%cells.length]);
+}
+function occupant(r,c){
+  for(var i=0;i<S.place.length;i++){
+    var p=S.place[i]; if(p&&p[0]===r&&p[1]===c) return i;
+  } return -1;
+}
+function world(){ return worldMap(S.emap,S.map,S.rows,S.cols); }
+function wr(side,r){ return worldRow(side,r,S.rows); }
+function posts(){ return foePosts(S.rows,S.cols,S.foes); }
+
+/* ================= what a square is worth to a person ================= */
+function sightFrom(r,c,lob,hides){
+  var w=world(),P=posts(),seen=[],shoot=[];
+  P.forEach(function(p,i){
+    var f={row:wr('foe',p[0]),col:p[1]}, a={row:wr('ally',r),col:c};
+    if(!hides && !blockedLine(w,f,a)) seen.push(i);
+    if(lob || (!hides && !blockedLine(w,a,f))) shoot.push(i);
+  });
+  return {seen:seen,shoot:shoot};
+}
+function squareValue(i,r,c,ignoreSelf){
+  var k=crew()[i]; if(!k) return 0;
+  var t=TILE[S.map[r][c]];
+  var s=sightFrom(r,c,k.lob,t.hides);
+  var n=Math.max(1,S.foes);
+  var expo=s.seen.length/n, reach=s.shoot.length/n;
+  var near=0;
+  S.place.forEach(function(q,j){
+    if(j===i||!q) return;
+    if(Math.max(Math.abs(q[0]-r),Math.abs(q[1]-c))<=Math.max(1,k.reach||k.area||1)) near++;
+  });
+  var nf=Math.min(1,near/Math.max(1,S.team-1));
+  var v;
+  if(k.thorns)            v = expo*.9 + (t.taken-1)*1.2 + (t.draw-1)*.6 - (t.hides?.9:0);
+  else if(k.reach||k.area)v = nf*1.0 - expo*.55 + (t.hides?.45:0) + (1-t.taken)*.6 - (t.slow?.35:0);
+  else if(k.lob)          v = -expo*.8 + (t.hides?.7:0) + (1-t.taken)*.5 + (t.dmg-1)*.5;
+  else                    v = reach*1.0 - expo*.45 + (t.dmg-1)*.9 + (t.high?.25:0)
+                              - (t.out<1?.9:0) - (t.slow?.3:0) - (t.taken-1)*.4;
+  return v;
+}
+
+/* ============================ drawing ============================ */
+function tileClass(t){ return t==='plain'?'':' t-'+t; }
+function cellHTML(side,r,c,extra,inner){
+  var t=(side==='foe'?S.emap:S.map)[r][c];
+  var bare=(t==='plain');
+  return '<div class="cell'+tileClass(t)+(bare?' bare':'')+(extra||'')+'" data-side="'+side+
+    '" data-r="'+r+'" data-c="'+c+'"><div class="surf"></div><div class="state"></div>'+
+    (inner||'')+
+    '<div class="ground">'+(t==='plain'?'':TILE[t].lbl)+'</div></div>';
+}
+function draw(){
+  var d=S.drag, sel=S.sel;
+  var eb=$('eboard'), b=$('board');
+  eb.style.gridTemplateColumns='repeat('+S.cols+',minmax(0,1fr))';
+  b.style.gridTemplateColumns='repeat('+S.cols+',minmax(0,1fr))';
+
+  // which enemies matter right now
+  var lit={},back={};
+  var focus = d ? d.i : (sel>=0?sel:-1);
+  if(focus>=0 && S.place[focus] && !d){
+    var k=crew()[focus], p=S.place[focus], t=TILE[S.map[p[0]][p[1]]];
+    var s=sightFrom(p[0],p[1],k.lob,t.hides);
+    s.shoot.forEach(function(x){lit[x]=1}); s.seen.forEach(function(x){back[x]=1});
+  }
+  var P=posts(), FR=foeRoster(S.foes), eh='';
+  for(var r=0;r<S.rows;r++) for(var c=0;c<S.cols;c++){
+    var pi=-1; P.forEach(function(p,i){ if(p[0]===r&&p[1]===c) pi=i; });
+    var ex='', inner='';
+    if(pi>=0){
+      var fk=FR[pi];
+      var mark='';
+      if(hov){
+        var nowSees=hov.seen.indexOf(pi)>=0, didSee=hov.before.seen.indexOf(pi)>=0;
+        var nowHit =hov.shoot.indexOf(pi)>=0, didHit=hov.before.shoot.indexOf(pi)>=0;
+        if(nowSees) ex=' pulse';
+        else { ex=' dimmed'; if(didSee) mark='<span class="delta good">loses you</span>'; }
+        if(!nowSees&&!didSee) mark='';
+        if(nowHit&&!didHit) mark='<span class="delta good">now in range</span>';
+        if(!nowHit&&didHit) mark='<span class="delta bad">out of range</span>';
+      } else if(focus>=0){
+        if(lit[pi]) ex=' hot';
+        else if(back[pi]) ex=' pulse';
+        else ex=' dimmed';
+      }
+      inner='<div class="chip foechip'+(fk.elite?' elite':'')+'"><div class="nm">'+
+        fk.n+'</div><div class="rl">'+fk.tag+'</div></div>'+mark;
+    } else if(focus>=0||hov){ ex=' dimmed'; }
+    eh+=cellHTML('foe',r,c,ex,inner);
+  }
+  eb.innerHTML=eh;
+
+  // While dragging we show consequences, not a verdict: who could reach this
+  // person from the square under the finger, and who they could reach back.
+  var hov=null;
+  if(d&&d.over){
+    var k=crew()[d.i], hr=d.over[0], hc=d.over[1];
+    var ht=TILE[S.map[hr][hc]];
+    hov=sightFrom(hr,hc,k.lob,ht.hides);
+    hov.tile=ht;
+    var was=TILE[S.map[d.from[0]][d.from[1]]];
+    hov.before=sightFrom(d.from[0],d.from[1],k.lob,was.hides);
+    hov.cover=null;
+    crew().forEach(function(k2,j){
+      if(j===d.i||!k2.reach) return;
+      var q=S.place[j]; if(!q) return;
+      var dist=Math.max(Math.abs(q[0]-hr),Math.abs(q[1]-hc));
+      if(dist<=k2.reach){
+        var sh=k2.block*(1-(k2.falloff||.3)*Math.max(0,dist-1));
+        if(!hov.cover||sh>hov.cover.share) hov.cover={n:k2.n,share:sh};
+      }
+    });
+  }
+  var html='';
+  for(var r3=0;r3<S.rows;r3++) for(var c3=0;c3<S.cols;c3++){
+    var key=r3+','+c3, oi=occupant(r3,c3), ex2='', inner2='';
+    if(oi>=0){
+      var kk=crew()[oi];
+      inner2='<div class="chip'+(oi===sel&&!d?' sel':'')+(d&&d.i===oi?' lifted':'')+
+        '" data-chip="'+oi+'"><div class="nm">'+kk.n+'</div><div class="rl">'+
+        kk.tag+'</div></div>';
+    }
+    if(d){
+      var occ=occupant(r3,c3);
+      if(occ>=0&&occ!==d.i) ex2=' taken';
+      if(d.over&&d.over[0]===r3&&d.over[1]===c3) ex2+=' drop';
+    }
+    html+=cellHTML('ally',r3,c3,ex2,inner2);
+  }
+  b.innerHTML=html;
+  wire();
+  headline();
+  var f2=(focus>=0&&S.place[focus])?focus:-1;
+  if(d&&hov){
+    var kn=crew()[d.i].n, n=S.foes;
+    var lost=hov.before.seen.filter(function(x){return hov.seen.indexOf(x)<0}).length;
+    var gained=hov.seen.filter(function(x){return hov.before.seen.indexOf(x)<0}).length;
+    var bits=[kn+' would be seen by '+hov.seen.length+' of '+n];
+    if(lost) bits.push(lost+' lose sight');
+    if(gained) bits.push(gained+' gain it');
+    bits.push('can hit '+hov.shoot.length);
+    if(hov.tile.hides) bits.push('cannot shoot out of a thicket');
+    if(hov.tile.high) bits.push('high ground');
+    if(hov.cover) bits.push(hov.cover.n+' covers this square');
+    $('gapLbl').textContent=bits.join(' \u00b7 ');
+  }
+  else if(d) $('gapLbl').textContent='drop '+crew()[d.i].n+' somewhere';
+  else if(f2>=0){
+    var kx=crew()[f2],px=S.place[f2],tx=TILE[S.map[px[0]][px[1]]];
+    var sx=sightFrom(px[0],px[1],kx.lob,tx.hides);
+    $('gapLbl').textContent=kx.n+' can reach '+sx.shoot.length+' of '+S.foes+
+      ', and '+sx.seen.length+' can reach back';
+  } else $('gapLbl').textContent='open ground';
+  $('hint').textContent = d ? 'Watch their field: dimmed enemies cannot see this square.'
+    : (sel>=0 ? 'Drag to move. Tap any square to inspect the ground.'
+              : 'Drag someone across the ground and watch who loses sight of them.');
+}
+function wire(){
+  document.querySelectorAll('.cell').forEach(function(el){
+    el.addEventListener('pointerdown',onDown);
+  });
+}
+
+/* ============================ dragging ============================ */
+function cellFromPoint(x,y){
+  var el=document.elementFromPoint(x,y);
+  while(el&&!el.classList.contains('cell')) el=el.parentElement;
+  return el;
+}
+function onDown(e){
+  var el=e.currentTarget;
+  var side=el.dataset.side, r=+el.dataset.r, c=+el.dataset.c;
+  if(S.brush){ (side==='foe'?S.emap:S.map)[r][c]=S.brush; draw(); return; }
+  if(side==='foe'){ inspect(el,'foe',r,c); return; }
+  var oi=occupant(r,c);
+  if(oi<0){ S.sel=-1; inspect(el,'ally',r,c); draw(); return; }
+  // picking someone up
+  e.preventDefault();
+  hideInspector();
+  S.sel=oi;
+  S.drag={i:oi,from:[r,c],over:[r,c],moved:false};
+  var g=$('ghost'), k=crew()[oi];
+  g.innerHTML='<div class="chip"><div class="nm">'+k.n+'</div><div class="rl">'+
+    k.tag+'</div></div>';
+  g.style.display='block'; g.style.left=e.clientX+'px'; g.style.top=e.clientY+'px';
+  window.addEventListener('pointermove',onMove);
+  window.addEventListener('pointerup',onUp);
+  draw();
+}
+function onMove(e){
+  if(!S.drag) return;
+  e.preventDefault();
+  S.drag.moved=true;
+  var g=$('ghost');
+  g.style.left=e.clientX+'px'; g.style.top=e.clientY+'px';
+  var el=cellFromPoint(e.clientX,e.clientY);
+  if(el&&el.dataset.side==='ally'){
+    var r=+el.dataset.r,c=+el.dataset.c;
+    if(!S.drag.over||S.drag.over[0]!==r||S.drag.over[1]!==c){
+      S.drag.over=[r,c]; draw();
+    }
+  }
+}
+function onUp(e){
+  if(!S.drag) return;
+  window.removeEventListener('pointermove',onMove);
+  window.removeEventListener('pointerup',onUp);
+  $('ghost').style.display='none';
+  var d=S.drag, el=cellFromPoint(e.clientX,e.clientY);
+  S.drag=null;
+  if(el&&el.dataset.side==='ally'){
+    var r=+el.dataset.r,c=+el.dataset.c, oi=occupant(r,c);
+    if(oi<0) S.place[d.i]=[r,c];
+    else if(oi!==d.i){ var tmp=S.place[oi]; S.place[oi]=S.place[d.i]; S.place[d.i]=tmp; }
+  }
+  S.lastScore=null;
+  draw();
+}
+
+/* ============================ inspector ============================ */
+function inspect(el,side,r,c){
+  var t=TILE[(side==='foe'?S.emap:S.map)[r][c]];
+  var oi=(side==='ally')?occupant(r,c):-1;
+  var fi=-1;
+  if(side==='foe') posts().forEach(function(p,i){ if(p[0]===r&&p[1]===c) fi=i; });
+  var rows='';
+  function row(k,v,cls){ rows+='<div class="row"><span>'+k+'</span><span class="'+
+    (cls||'')+'">'+v+'</span></div>'; }
+  if(t.high) row('High ground','+15% damage, sees over','g');
+  if(t.hides) row('Cannot be shot into','or out of','g');
+  if(t.taken>1) row('Damage taken','+'+Math.round((t.taken-1)*100)+'%','b');
+  if(t.taken<1) row('Damage taken','\u2212'+Math.round((1-t.taken)*100)+'%','g');
+  if(t.dmg>1) row('Damage dealt','+'+Math.round((t.dmg-1)*100)+'%','g');
+  if(t.slow) row('Acts','\u2212'+Math.round((1-t.slow)*100)+'% as often','b');
+  if(t.noblast) row('Blasts','do not spread here','g');
+  if(t.draw>1.1) row('Drawn at',t.draw.toFixed(2)+'\u00d7','b');
+  if(t.draw<.9) row('Drawn at',t.draw.toFixed(2)+'\u00d7','g');
+  if(!rows) row('Nothing here','plain ground');
+  if(fi>=0){
+    var fk=foeRoster(S.foes)[fi];
+    rows+='<div class="row" style="margin-top:6px;border-top:1px solid #2A3742;'+
+      'padding-top:6px"><span><b>'+fk.n+'</b></span><span>'+fk.tag+'</span></div>';
+    rows+='<div class="who" style="margin:4px 0 2px">'+fk.d+'</div>';
+    var w=world(), canHit=0, tot=0;
+    for(var pr=0;pr<S.rows;pr++) for(var pc=0;pc<S.cols;pc++){ tot++;
+      var f={row:wr('foe',r),col:c}, a={row:wr('ally',pr),col:pc};
+      if(fk.kind==='lob'||(!blockedLine(w,f,a)&&!t.hides)) canHit++; }
+    row('Squares it can hit',canHit+' of '+tot,canHit>tot*.6?'b':'g');
+    row('Damage',fk.dmg+(t.high?' (+15% up here)':''),'');
+    row('Health',fk.hp+'','');
+  }
+  if(oi>=0){
+    var k=crew()[oi], s=sightFrom(r,c,k.lob,t.hides);
+    rows+='<div class="row" style="margin-top:6px;border-top:1px solid #2A3742;'+
+      'padding-top:6px"><span><b>'+k.n+'</b></span><span>'+k.d+'</span></div>';
+    row('Can reach',s.shoot.length+' of '+S.foes,s.shoot.length>S.foes*.6?'g':'b');
+    row('Exposed to',s.seen.length+' of '+S.foes,s.seen.length<S.foes*.5?'g':'b');
+  }
+  $('iT').textContent=t.lbl;
+  $('iW').textContent=t.who;
+  $('iB').innerHTML=rows;
+  var box=el.getBoundingClientRect(), ins=$('insp');
+  ins.style.display='block';
+  var x=Math.min(window.innerWidth-236,Math.max(8,box.left+box.width/2-112));
+  var y=box.bottom+8;
+  if(y+ins.offsetHeight>window.innerHeight-8) y=Math.max(8,box.top-ins.offsetHeight-8);
+  ins.style.left=x+'px'; ins.style.top=y+'px';
+}
+function hideInspector(){ $('insp').style.display='none'; }
+$('insp').querySelector('.x').onclick=hideInspector;
+(function(){
+  var ins=$('insp'), grab=ins.querySelector('.grab'), off=null;
+  grab.addEventListener('pointerdown',function(e){
+    off=[e.clientX-ins.offsetLeft,e.clientY-ins.offsetTop];
+    var mv=function(ev){ ins.style.left=(ev.clientX-off[0])+'px';
+      ins.style.top=(ev.clientY-off[1])+'px'; };
+    var up=function(){ window.removeEventListener('pointermove',mv);
+      window.removeEventListener('pointerup',up); };
+    window.addEventListener('pointermove',mv);
+    window.addEventListener('pointerup',up);
+  });
+})();
+
+/* ============================ scoring ============================ */
+function cfg(place){
+  return {rows:S.rows,cols:S.cols,map:S.map,emap:S.emap,team:crew(),
+    placement:place||S.place,foes:S.foes,diff:1};
+}
+function headline(){
+  var v=S.lastScore;
+  if(!v){ $('sVal').textContent='\u2014'; $('sVal').className='';
+    $('sLbl').textContent='not measured'; $('detail').innerHTML=''; return; }
+  $('sVal').textContent=v.bp.toFixed(2)+'\u00d7';
+  $('sVal').className=v.bp>=1.7?'g':v.bp<1.1?'b':'';
+  $('sLbl').textContent='enemy strength this beats';
+  $('detail').innerHTML=
+    'Rounds <i>'+v.round.toFixed(1)+'</i><br>'+
+    'Shots stopped by ground <i>'+v.walled.toFixed(1)+' of '+v.shots.toFixed(0)+'</i><br>'+
+    'Lost into thickets <i>'+v.missed.toFixed(1)+'</i><br>'+
+    'Taken by a blocker <i>'+v.blocked.toFixed(0)+'</i><br>'+
+    'Returned by bait <i>'+v.reflected.toFixed(0)+'</i><br>'+
+    'Caught per blast <i>'+v.perBlast.toFixed(2)+'</i>';
+}
+$('more').onclick=function(){
+  var d=$('detail'); d.classList.toggle('open');
+  this.textContent=d.classList.contains('open')?'hide the details':'show the details';
+};
+$('run').onclick=function(){
+  var b=this; b.disabled=true; b.textContent='Measuring\u2026';
+  setTimeout(function(){
+    S.lastScore=score(cfg(),26); headline();
+    $('detail').classList.add('open'); $('more').textContent='hide the details';
+    b.disabled=false; b.textContent='Measure this layout';
+  },30);
+};
+// place everyone on their own best square, one at a time, so you can watch it reason
+$('suggest').onclick=function(){
+  var b=this; b.disabled=true;
+  var order=crew().map(function(k,i){return i}).sort(function(x,y){
+    var kx=crew()[x],ky=crew()[y];
+    var w=function(k){ return k.reach?0:(k.area?1:(k.thorns?2:3)); };
+    return w(kx)-w(ky);
+  });
+  var step=0;
+  (function next(){
+    if(step>=order.length){ b.disabled=false; S.lastScore=null; draw(); return; }
+    var i=order[step++];
+    var best=null,bv=-1e9;
+    for(var r=0;r<S.rows;r++) for(var c=0;c<S.cols;c++){
+      var oc=occupant(r,c); if(oc>=0&&oc!==i) continue;
+      var v=squareValue(i,r,c);
+      if(v>bv){bv=v;best=[r,c];}
+    }
+    if(best){ S.place[i]=best; S.sel=i; draw(); }
+    setTimeout(next,340);
+  })();
+};
+
+/* ============================ controls ============================ */
+function buildSizes(){
+  $('segSize').innerHTML=SIZES.map(function(s){
+    return '<button data-r="'+s[0]+'" data-c="'+s[1]+'"'+
+      ((s[0]===S.rows&&s[1]===S.cols)?' class="on"':'')+'>'+s[0]+'\u00d7'+s[1]+'</button>';
+  }).join('');
+  $('segSize').querySelectorAll('button').forEach(function(bt){
+    bt.onclick=function(){
+      S.rows=+bt.dataset.r; S.cols=+bt.dataset.c;
+      if(S.team>S.rows*S.cols){ S.team=S.rows*S.cols;
+        $('rTeam').value=S.team; $('vTeam').textContent=S.team; }
+      rollMap(false); autoPlace(); S.sel=-1; S.lastScore=null;
+      buildSizes(); draw();
+    };
+  });
+}
+$('rTeam').oninput=function(){
+  S.team=Math.min(+this.value,S.rows*S.cols);
+  this.value=S.team; $('vTeam').textContent=S.team;
+  if(S.place.length>S.team) S.place=S.place.slice(0,S.team);
+  while(S.place.length<S.team) S.place.push(null);
+  autoPlace(); S.sel=-1; S.lastScore=null; draw();
+};
+$('rFoes').oninput=function(){ S.foes=+this.value; $('vFoes').textContent=this.value;
+  S.lastScore=null; draw(); };
+$('roll').onclick=function(){ rollMap(false); _fpCache.key=null;
+  S.lastScore=null; hideInspector(); draw(); };
+function tileNote(t){
+  $('tileNote').innerHTML = t ? '<b>'+TILE[t].lbl+'</b> \u2014 '+TILE[t].who
+    : 'Pick a ground type, then tap squares on either field.';
+}
+$('segTerr').querySelectorAll('button').forEach(function(bt){
+  bt.onclick=function(){
+    var on=bt.classList.contains('on')&&S.brush===bt.dataset.t;
+    $('segTerr').querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
+    _fpCache.key=null;
+    if(on||bt.dataset.t==='plain'&&S.brush==='plain'){ S.brush=null; tileNote(null); }
+    else { bt.classList.add('on'); S.brush=bt.dataset.t; tileNote(bt.dataset.t); }
+    S.lastScore=null; draw();
+  };
+});
+document.addEventListener('pointerdown',function(e){
+  if(!$('insp').contains(e.target)&&!e.target.closest('.cell')) hideInspector();
+});
+buildSizes(); rollMap(false); autoPlace(); tileNote(null); draw();
+</script>
+</body>
+</html>

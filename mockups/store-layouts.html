@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Store layouts</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{--bg:#0F161C;--panel:#151E26;--raised:#1D2831;--line:#26313B;
+  --ink:#E8EDF2;--ink2:#9FB0BF;--ink3:#5F6E7B;--gold:#D4A45C;--good:#7FBE86;--bad:#C4626F;
+  --Hull:#7FA8C9;--Blight:#A89070;--Drive:#D4A45C;--Ordnance:#C97F9E;--Assay:#8F8FC9;--Crew:#8FB878}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 16px 70px}
+h1{font-size:21px;margin:0 0 3px;font-weight:600}
+.sub{color:var(--ink2);margin:0 0 6px;max-width:64ch}
+.warn{color:var(--gold);font-size:12.5px;margin:0 0 26px}
+h2{font-size:15px;margin:34px 0 3px;font-weight:600}
+h2 em{font-style:normal;color:var(--ink3);font-weight:400;font-size:12px}
+.why{color:var(--ink2);font-size:12.5px;margin:0 0 12px;max-width:70ch}
+.verdict{font-size:12px;margin:10px 0 0;padding:9px 12px;border-radius:8px;
+  background:#131B22;border-left:2px solid var(--line);color:var(--ink2);max-width:70ch}
+.verdict b{color:var(--ink)}
+.verdict.good{border-left-color:var(--good)}
+.verdict.bad{border-left-color:var(--bad)}
+
+.frame{width:400px;max-width:100%;border:1px solid var(--line);border-radius:16px;
+  background:var(--bg);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+.row2{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+
+/* shared chrome */
+.bar{display:flex;align-items:center;gap:13px;padding:10px 13px;
+  border-bottom:1px solid var(--line);background:var(--panel)}
+.bar .v{display:flex;flex-direction:column;line-height:1.2}
+.bar .v b{font-size:15px;font-variant-numeric:tabular-nums}
+.bar .v i{font-size:8.5px;color:var(--ink3);font-style:normal}
+.bar .grow{flex:1}
+.dbar{width:78px;height:5px;border-radius:3px;background:#0E1419;margin-top:4px;
+  position:relative;overflow:hidden}
+.dbar u{position:absolute;inset:0;width:62%;background:var(--good);display:block}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel)}
+.tabs button{flex:1;background:none;border:0;color:var(--ink3);font-family:inherit;
+  font-size:12.5px;padding:13px 6px;cursor:pointer;border-bottom:2px solid transparent}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--gold)}
+.tabs button .n{display:block;font-size:9px;color:var(--ink3);margin-top:1px}
+.body{padding:13px}
+
+.hl{font-size:10px;color:var(--ink3);margin:0 0 8px;letter-spacing:.04em}
+.crates3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cr{border:1px solid var(--line);border-radius:11px;background:var(--raised);
+  padding:13px 7px;text-align:center;min-height:92px;display:flex;flex-direction:column;
+  justify-content:center}
+.cr .t{font-size:12px;font-weight:600}
+.cr .d{font-size:9px;color:var(--ink3);line-height:1.35;margin-top:3px}
+.cr .p{font-size:12px;color:var(--gold);margin-top:6px;font-variant-numeric:tabular-nums}
+.cr.free{border-color:#3E6B4C}.cr.free .p{color:var(--good)}
+
+.pull{display:flex;gap:9px;justify-content:center;margin:14px 0 4px}
+.pc{width:106px;border:1px solid var(--line);border-radius:11px;background:var(--raised);
+  padding:9px 6px 8px;text-align:center;position:relative}
+.pc .nm{font-size:13px;font-weight:600}
+.pc .tg{font-size:9.5px} .pc .el{font-size:9.5px;color:var(--ink3)}
+.pc .act{margin-top:8px;display:flex;gap:5px}
+.pc .act button{flex:1;min-height:34px;border-radius:7px;border:1px solid var(--line);
+  background:#131B22;color:var(--ink2);font-family:inherit;font-size:10px;cursor:pointer}
+.pc .act button.keep{border-color:#3E6B4C;color:var(--good)}
+.pc .act button.strip{border-color:#5A3038;color:#E0A9B1}
+
+.crewgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.u{position:relative;border:1px solid var(--line);border-radius:10px;background:var(--raised);
+  padding:9px 4px;text-align:center;min-height:64px;display:flex;flex-direction:column;
+  justify-content:center}
+.u .nm{font-size:11px;font-weight:600}
+.u .tg{font-size:8.5px}
+.u .dots{position:absolute;right:5px;bottom:5px;display:flex;gap:3px}
+.u .dots i{width:5px;height:5px;border-radius:50%;display:block}
+.u .dots i.g{background:var(--good)}.u .dots i.n{background:var(--gold)}
+.u.empty{border-style:dashed;color:#3A4651;font-size:9px;background:none}
+
+.hold{display:flex;gap:11px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);
+  padding:9px 11px;background:#131B22;border-radius:9px;margin-top:10px}
+.sum{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;
+  border:1px solid var(--line);border-radius:10px;background:var(--raised);
+  margin-top:9px;cursor:pointer}
+.sum .l{font-size:12.5px}
+.sum .r{font-size:11px;color:var(--ink3)}
+.sum .chev{color:var(--ink3);margin-left:8px}
+
+.go{width:100%;min-height:46px;background:var(--gold);color:#20180B;border:0;
+  border-radius:10px;font-size:14px;font-weight:600;font-family:inherit;margin-top:12px;
+  cursor:pointer}
+.go.alt{background:var(--raised);color:var(--ink);border:1px solid var(--line)}
+
+/* trash */
+.trash{margin-top:11px;border:1px dashed #5A3038;border-radius:11px;min-height:58px;
+  display:flex;align-items:center;justify-content:center;gap:8px;color:#8B5560;
+  font-size:11.5px;background:rgba(90,48,56,.08)}
+.trash.hot{border-style:solid;border-color:var(--bad);color:#E0A9B1;
+  background:rgba(196,98,111,.14)}
+
+/* inspect affordances */
+.ib{position:absolute;left:0;top:0;width:44px;height:44px;border-radius:10px 0 10px 0;
+  display:flex;align-items:flex-start;justify-content:flex-start;padding:5px 0 0 6px;
+  color:var(--ink3);font-size:11px;cursor:pointer}
+.ib.small{width:16px;height:16px;border:1px solid #38434E;border-radius:50%;
+  left:4px;top:3px;padding:0;align-items:center;justify-content:center;font-size:9px}
+.tapnote{font-size:10.5px;color:var(--ink3);margin-top:8px;line-height:1.55}
+.sizekey{display:flex;gap:14px;font-size:10px;color:var(--ink3);margin-top:8px}
+.sizekey span{display:flex;align-items:center;gap:5px}
+.sizekey i{display:block;border:1px dashed #4A5865;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Store layouts</h1>
+<p class="sub">Three directions for the quartermaster, before any of it gets built. Same
+content in each: crates, the pull, the crew, the hold, and a way out.</p>
+<p class="warn">The current store stacks six panels in one scroll with no hierarchy, and
+the inspect target is 15&nbsp;px inside a draggable card. Apple's minimum is 44&nbsp;px.
+Both are fixed in all three below.</p>
+
+<h2>A &middot; Tabbed <em>one job at a time</em></h2>
+<p class="why">Recruit, Salvage and Crew become tabs. Nothing scrolls past a screen, and
+the tab bar tells you what the store even contains &mdash; which the current version
+never does.</p>
+<div class="row2">
+<div class="frame">
+  <div class="bar">
+    <div class="v"><b>138</b><i>gold</i></div>
+    <div class="v"><i>data integrity</i><div class="dbar"><u></u></div></div>
+    <div class="grow"></div>
+    <div class="v"><b>3</b><i>clean legs</i></div>
+  </div>
+  <div class="tabs">
+    <button class="on">Recruit<span class="n">3 crates</span></button>
+    <button>Salvage<span class="n">2 crystals</span></button>
+    <button>Crew<span class="n">7 aboard</span></button>
+  </div>
+  <div class="body">
+    <p class="hl">CRATES</p>
+    <div class="crates3">
+      <div class="cr"><div class="t">Mixed</div><div class="d">three, from anywhere</div><div class="p">26g</div></div>
+      <div class="cr"><div class="t">Focused</div><div class="d">leans to your tags</div><div class="p">36g</div></div>
+      <div class="cr"><div class="t">Salvage</div><div class="d">two, richer scrap</div><div class="p">22g</div></div>
+    </div>
+    <div class="pull">
+      <div class="pc"><span class="ib">i</span><div class="nm">Quill</div>
+        <div class="tg" style="color:var(--Assay)">Assay</div><div class="el">growth</div>
+        <div class="act"><button class="keep">Keep</button><button class="strip">Strip</button></div></div>
+      <div class="pc"><span class="ib">i</span><div class="nm">Bosk</div>
+        <div class="tg" style="color:var(--Ordnance)">Ordnance</div><div class="el">decay</div>
+        <div class="act"><button class="keep">Keep</button><button class="strip">Strip</button></div></div>
+      <div class="pc"><span class="ib">i</span><div class="nm">Fen</div>
+        <div class="tg" style="color:var(--Crew)">Crew</div><div class="el">order</div>
+        <div class="act"><button class="keep">Keep</button><button class="strip">Strip</button></div></div>
+    </div>
+    <p class="tapnote">Keep and Strip are explicit buttons, 34&nbsp;px tall. No guessing
+      whether tapping the card scraps it.</p>
+    <div class="sum"><span class="l">Commission a tag</span>
+      <span class="r">Assay 3 of 4 &mdash; 74g<span class="chev">&rsaquo;</span></span></div>
+    <button class="go">Set a heading</button>
+  </div>
+</div>
+<div style="flex:1;min-width:250px">
+  <div class="verdict good"><b>Best for iPad.</b> One screenful, no scrolling, and the
+    tab labels carry live counts so you can see there are crystals waiting without
+    opening anything.</div>
+  <div class="verdict"><b>Cost:</b> the crew you are building is out of sight while you
+    shop, which is exactly when you want to see it.</div>
+</div>
+</div>
+
+<h2>B &middot; Priority column <em>one screen, everything collapsed</em></h2>
+<p class="why">Crates stay at the top because opening one is the reason you are here.
+Everything else is a one-line summary that expands. Nothing is hidden, but nothing
+competes either.</p>
+<div class="row2">
+<div class="frame">
+  <div class="bar">
+    <div class="v"><b>138</b><i>gold</i></div>
+    <div class="v"><i>data integrity</i><div class="dbar"><u></u></div></div>
+    <div class="grow"></div>
+    <div class="v"><b>3</b><i>clean legs</i></div>
+  </div>
+  <div class="body">
+    <p class="hl">OPEN A CRATE</p>
+    <div class="crates3">
+      <div class="cr free"><div class="t">Mixed</div><div class="d">three, from anywhere</div><div class="p">free</div></div>
+      <div class="cr"><div class="t">Focused</div><div class="d">leans to your tags</div><div class="p">36g</div></div>
+      <div class="cr"><div class="t">Salvage</div><div class="d">two, richer scrap</div><div class="p">22g</div></div>
+    </div>
+    <div class="sum"><span class="l">Commission a tag</span>
+      <span class="r">3 of 4 Assay &mdash; 74g<span class="chev">&rsaquo;</span></span></div>
+    <div class="sum"><span class="l">The hold</span>
+      <span class="r">2 crystals ready<span class="chev">&rsaquo;</span></span></div>
+    <div class="sum"><span class="l">Crew</span>
+      <span class="r">7 aboard &middot; Assay&times;3<span class="chev">&rsaquo;</span></span></div>
+    <button class="go">Set a heading</button>
+    <button class="go alt">Arrange the crew</button>
+  </div>
+</div>
+<div style="flex:1;min-width:250px">
+  <div class="verdict good"><b>Cheapest to build</b> and the closest to what exists. The
+    summary rows do real work &mdash; "2 crystals ready" is information the current store
+    buries three panels down.</div>
+  <div class="verdict bad"><b>Risk:</b> collapsed rows get ignored. If crystals are always
+    behind a tap, most players will never forge one.</div>
+</div>
+</div>
+
+<h2>C &middot; Shop over crew <em>the thing you are building stays visible</em></h2>
+<p class="why">The crew sits under the shop permanently. You see the gap you are filling
+while you decide what to buy, and the trash slot lives where the crew is &mdash; drag
+someone down into it.</p>
+<div class="row2">
+<div class="frame">
+  <div class="bar">
+    <div class="v"><b>138</b><i>gold</i></div>
+    <div class="v"><i>data integrity</i><div class="dbar"><u></u></div></div>
+    <div class="grow"></div>
+    <div class="v"><b>3</b><i>clean legs</i></div>
+  </div>
+  <div class="body">
+    <div class="crates3">
+      <div class="cr"><div class="t">Mixed</div><div class="d">three, anywhere</div><div class="p">26g</div></div>
+      <div class="cr"><div class="t">Focused</div><div class="d">your tags</div><div class="p">36g</div></div>
+      <div class="cr"><div class="t">Salvage</div><div class="d">richer scrap</div><div class="p">22g</div></div>
+    </div>
+    <div class="hold"><span style="color:var(--Blight)">decay 7</span>
+      <span style="color:var(--Assay)">void 4</span>
+      <span style="color:var(--gold)">&#9670;2 ready</span></div>
+    <p class="hl" style="margin-top:14px">ABOARD &mdash; 7 OF 12</p>
+    <div class="crewgrid">
+      <div class="u"><span class="ib small">i</span><div class="nm">Quill</div>
+        <div class="tg" style="color:var(--Assay)">Assay</div>
+        <div class="dots"><i class="g"></i></div></div>
+      <div class="u"><span class="ib small">i</span><div class="nm">Ledger</div>
+        <div class="tg" style="color:var(--Assay)">Assay</div>
+        <div class="dots"><i class="n"></i></div></div>
+      <div class="u"><span class="ib small">i</span><div class="nm">Rime</div>
+        <div class="tg" style="color:var(--Assay)">Assay</div>
+        <div class="dots"><i class="g"></i><i class="n"></i></div></div>
+      <div class="u"><span class="ib small">i</span><div class="nm">Maul</div>
+        <div class="tg" style="color:var(--Ordnance)">Ordnance</div>
+        <div class="dots"><i class="n"></i></div></div>
+      <div class="u"><span class="ib small">i</span><div class="nm">Fen</div>
+        <div class="tg" style="color:var(--Crew)">Crew</div></div>
+      <div class="u"><span class="ib small">i</span><div class="nm">Tarn</div>
+        <div class="tg" style="color:var(--Hull)">Hull</div>
+        <div class="dots"><i class="n"></i></div></div>
+      <div class="u"><span class="ib small">i</span><div class="nm">Bosk</div>
+        <div class="tg" style="color:var(--Ordnance)">Ordnance</div></div>
+      <div class="u empty">empty</div>
+    </div>
+    <div class="trash">Drag here to strip for shards</div>
+    <button class="go">Set a heading</button>
+  </div>
+</div>
+<div style="flex:1;min-width:250px">
+  <div class="verdict good"><b>Best for the decision.</b> Shopping and the crew you are
+    shopping for are on the same screen, so "I need one more Assay" is visible rather than
+    remembered.</div>
+  <div class="verdict good"><b>The trash slot fits here naturally</b> &mdash; it lives with
+    the crew, and dragging down into it is the same verb as dragging into a slot.</div>
+  <div class="verdict bad"><b>Cost:</b> it will scroll on a phone, and the crate row gets
+    squeezed.</div>
+</div>
+</div>
+
+<h2>Touch targets <em>the part that is not a preference</em></h2>
+<div class="row2">
+  <div class="frame" style="width:300px"><div class="body">
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div class="u" style="width:96px"><span class="ib small">i</span>
+        <div class="nm">Quill</div><div class="tg" style="color:var(--Assay)">Assay</div></div>
+      <div class="u" style="width:96px"><span class="ib">i</span>
+        <div class="nm">Quill</div><div class="tg" style="color:var(--Assay)">Assay</div></div>
+    </div>
+    <div class="sizekey">
+      <span><i style="width:15px;height:15px"></i>15px &mdash; current</span>
+      <span><i style="width:30px;height:30px"></i>44px &mdash; corner zone</span>
+    </div>
+    <p class="tapnote">The fix is not a bigger dot. It is an invisible 44&nbsp;px corner
+      zone with a small glyph inside it, so the target is thumb-sized while the card
+      still looks clean. The rest of the card stays draggable.</p>
+    <p class="tapnote"><b>Or drop the corner entirely:</b> a short press opens the sheet,
+      a drag moves the unit. One finger, no target to miss &mdash; but it needs a hint the
+      first time, because nothing on screen advertises it.</p>
+  </div></div>
+</div>
+
+<h2>What I would build</h2>
+<p class="why"><b>C for the store</b>, because the whole point of the screen is filling a
+gap in the crew and C is the only one where the gap is visible while you shop. Take A's
+explicit <b>Keep / Strip</b> buttons on pulled cards &mdash; tapping a card to destroy it
+is the kind of thing that gets done by accident once and then never trusted again. Take
+B's <b>collapsed commission row</b>, since commissioning is rare and does not deserve
+permanent space.</p>
+<p class="why">Then the 44&nbsp;px corner zone everywhere, and the trash slot under the
+crew.</p>
+</div>
+</body>
+</html>

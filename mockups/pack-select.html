@@ -1,0 +1,197 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choosing a pack</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#080C12;color:#E8EDF2;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1300px;margin:0 auto;padding:24px 18px 90px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.lede{color:#9FB0BF;max-width:70ch;margin:0 0 8px}
+.rule{color:#7FD3BC;font-size:12.5px;max-width:74ch;margin:0 0 26px;
+  border-left:2px solid #2A6B5E;padding-left:11px}
+h2{font-size:15px;margin:34px 0 10px;font-weight:600}
+.cols{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.layers{flex:1;min-width:270px}
+.ly{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #16202B}
+.ly b{flex:0 0 22px;height:22px;border-radius:50%;background:#1C2B3A;color:#7FD3BC;
+  font-size:10px;display:flex;align-items:center;justify-content:center}
+.ly div span{display:block;font-size:12.5px}
+.ly div em{display:block;font-style:normal;font-size:11px;color:#5F6E7B;margin-top:1px}
+.ly.new b{background:#2A6B5E;color:#CFF5E8}
+
+/* ---------------- the board ---------------- */
+.board{width:760px;max-width:100%;aspect-ratio:4/3;border-radius:16px;padding:13px;
+  display:grid;grid-template-columns:58px 1fr;gap:12px;position:relative;
+  background:#090E16;border:1px solid #1C2B44;
+  background-image:radial-gradient(circle at 18% 22%,rgba(255,255,255,.42) .6px,transparent .7px),
+    radial-gradient(circle at 62% 14%,rgba(255,255,255,.3) .5px,transparent .6px),
+    radial-gradient(circle at 84% 58%,rgba(255,255,255,.34) .6px,transparent .7px),
+    radial-gradient(circle at 34% 72%,rgba(255,255,255,.26) .5px,transparent .6px);
+  background-size:180px 150px,140px 190px,210px 170px,160px 130px}
+.pin{position:absolute;width:19px;height:19px;border-radius:50%;background:#2A6B5E;
+  color:#CFF5E8;font-size:10px;display:flex;align-items:center;justify-content:center;
+  z-index:30;box-shadow:0 0 0 2px #090E16}
+
+/* queue */
+.queue{display:flex;flex-direction:column;gap:4px;position:relative}
+.qhd{font-size:7px;letter-spacing:.14em;color:#3F5468;margin-bottom:2px}
+.qi{height:21px;border-radius:4px;border:1px solid #2A6B5E;color:#7FD3BC;
+  display:flex;align-items:center;justify-content:space-between;padding:0 5px;
+  font-size:8.5px;font-variant-numeric:tabular-nums}
+.qi.foe{border-color:#7A3A4A;color:#E08A9E}
+.qi.now{background:#D4A45C;border-color:#D4A45C;color:#1A1204;height:27px;font-weight:600}
+.qi.brk{opacity:.45;border-style:dashed}
+.qi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbloom{height:21px;border-radius:4px;border:1px dashed #A89070;color:#D9B87A;
+  display:flex;align-items:center;justify-content:center;font-size:7.5px;letter-spacing:.06em}
+.qfoot{margin-top:auto;text-align:center;font-size:8px;color:#3F5468;line-height:1.5}
+.qfoot b{display:block;color:#D4A45C;font-size:12px;font-variant-numeric:tabular-nums}
+
+/* context strip */
+.ctx{display:flex;align-items:center;gap:9px;font-size:9px;color:#5F7A93;
+  margin-bottom:7px}
+.ctx .world{color:#AFCBE6;font-size:11px}
+.ctx .cond{border:1px solid #3A2A32;color:#D59AA3;border-radius:3px;padding:1px 5px;
+  font-size:8px}
+.ctx .grow{flex:1}
+.ctx .tag{border:1px solid #2A6B5E;color:#7FD3BC;border-radius:3px;padding:1px 5px;font-size:8px}
+
+/* score */
+/* the score lives in the status column, not across the field */
+.qscore{margin-top:9px;padding-top:8px;border-top:1px solid #16263C}
+.qscore .pc{font-size:15px;font-variant-numeric:tabular-nums;color:#9FBE7F;
+  text-align:center;line-height:1}
+.qscore .lbl{font-size:6.5px;color:#3F5468;text-align:center;margin-top:2px;line-height:1.3}
+.qscore .col{position:relative;height:52px;width:7px;margin:6px auto 0;border-radius:4px;
+  background:#0D141F;overflow:hidden}
+.qscore .col u{position:absolute;left:0;right:0;bottom:0;height:62%;background:#9FBE7F;
+  display:block}
+.qscore .col i{position:absolute;left:0;right:0;height:1px;background:#2B4B70;display:block}
+.qscore .col i.key{height:2px;background:#4A7A52}
+
+/* ranks */
+.rank{display:flex;gap:6px;justify-content:center;margin-bottom:7px}
+.foe{position:relative;width:68px;border:1px solid #2B4B70;border-radius:3px;
+  background:rgba(10,20,34,.78);padding:5px 3px 4px;text-align:center;line-height:1.15}
+.foe.elite{border-color:#7A3A4A}
+.foe .lv{font-size:6.5px;color:#4A6A8A}
+.foe .nm{font-size:9px;font-weight:600;color:#AFCBE6}
+.foe.elite .nm{color:#E8B4C2}
+.foe .weak{display:flex;gap:2px;justify-content:center;margin:2px 0 1px}
+.foe .weak i{width:9px;height:9px;border-radius:2px;font-size:6px;line-height:9px;
+  border:1px solid;display:block}
+.foe .weak i.off{opacity:.25}
+.foe .hp{height:2.5px;border-radius:2px;background:#0D141F;margin-top:2px;position:relative;
+  overflow:hidden}
+.foe .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.foe .sh{position:absolute;inset:-3px;border:1px solid rgba(143,184,120,.5);
+  border-radius:5px;pointer-events:none}
+.foe .sh2{position:absolute;inset:-6px;border:1px solid rgba(143,184,120,.26);
+  border-radius:7px;pointer-events:none}
+.foe .intent{position:absolute;left:50%;transform:translateX(-50%);top:-13px;
+  font-size:7px;color:#E08A9E;white-space:nowrap;background:#12080C;
+  border:1px solid #4A2028;border-radius:3px;padding:0 4px;line-height:11px}
+.foe .intent.aoe{color:#E0C48A;border-color:#4A3A20;background:#120E08}
+.foe .stk{position:absolute;right:-3px;bottom:-4px;display:flex;gap:2px}
+.foe .stk i{width:6px;height:6px;border-radius:50%;display:block}
+.foe .ibtn{position:absolute;left:0;top:0;width:26px;height:26px;color:#3F5468;
+  font-size:8px;padding:2px 0 0 3px;cursor:pointer}
+
+/* stage */
+.stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;
+  min-height:0}
+.beam{position:absolute;height:1px;background:linear-gradient(90deg,transparent,#D4A45C,transparent);
+  opacity:.55}
+.actor{width:132px;border:1px solid #6FE0C0;border-radius:4px;padding:11px 7px 9px;
+  text-align:center;background:rgba(8,26,22,.82);box-shadow:0 0 34px rgba(111,224,192,.2);
+  position:relative}
+.actor .lv{font-size:8px;color:#4E8A7C}
+.actor .nm{font-size:16px;font-weight:600;color:#CFF5E8;line-height:1.15}
+.actor .rl{font-size:9px;color:#6FA595}
+.actor .abil{margin-top:6px;font-size:8.5px;color:#9FD8C6;border-top:1px solid #1E3A33;
+  padding-top:5px}
+.actor .en{height:3px;border-radius:2px;background:#0D141F;margin-top:6px;position:relative;
+  overflow:hidden}
+.actor .en u{position:absolute;inset:0;width:82%;background:#D4A45C;display:block}
+.float{position:absolute;font-weight:700;font-size:19px;color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.9)}
+
+/* tray */
+.tray{border:1px solid #1C2B44;border-radius:8px;background:rgba(8,14,24,.66);padding:8px}
+.thead{display:flex;align-items:baseline;gap:7px;margin-bottom:5px}
+.thead .tl{font-size:7px;letter-spacing:.14em;color:#3F5468}
+.thead .cnt{font-size:7.5px;color:#5F7A93}
+.thead .grow{flex:1}
+.thead .trash{font-size:7.5px;color:#7A4550;border:1px dashed #4A2A32;border-radius:3px;
+  padding:1px 6px}
+.trow{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.slot{position:relative;border:1px solid #16263C;border-radius:3px;min-height:44px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1.15;padding:3px 2px}
+.slot.empty{border-style:dashed;color:#26374A;font-size:7px}
+.slot.filled{background:rgba(10,20,34,.8);border-color:#2B4B70}
+.slot .nm{font-size:8.5px;font-weight:600;color:#AFCBE6}
+.slot .tg{font-size:7px}
+.slot .hp{position:absolute;left:3px;right:3px;bottom:3px;height:2px;border-radius:1px;
+  background:#0D141F;overflow:hidden}
+.slot .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.slot .dots{position:absolute;right:3px;top:3px;display:flex;gap:2px}
+.slot .dots i{width:4px;height:4px;border-radius:50%;display:block}
+.slot.ready{border-color:#D4A45C;box-shadow:0 0 10px rgba(212,164,92,.3)}
+.slot .rdy{position:absolute;left:3px;top:2px;font-size:6.5px;color:#D4A45C}
+.slot.off{min-height:36px;opacity:.82}
+.slot.down{opacity:.3}
+.tsplit{height:1px;background:#16263C;margin:7px 0 6px}
+
+.selhdr{display:flex;align-items:baseline;gap:11px;margin-bottom:10px}
+.selhdr .t{font-size:14px;font-weight:600;color:#CFE2F2}
+.selhdr .grow{flex:1}
+.selhdr .odds{font-size:9px;color:#4A6A8A}
+.selhdr .odds b{color:#D4A45C}
+
+.packs{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.pk{position:relative;border:1px solid #223751;border-radius:5px;
+  background:rgba(10,18,30,.82);padding:11px 10px 10px;display:flex;flex-direction:column}
+.pk.match{border-color:#2A6B5E;background:rgba(8,26,22,.7)}
+.pk.prime{border-color:#8A6B2E;box-shadow:0 0 18px rgba(212,164,92,.16)}
+.pk .flagline{position:absolute;left:-1px;right:-1px;top:-1px;height:2px;border-radius:5px 5px 0 0}
+.pk.match .flagline{background:#2A6B5E}
+.pk.prime .flagline{background:linear-gradient(90deg,#8A6B2E,#E0C48A,#8A6B2E)}
+.pk .axis{font-size:6.5px;letter-spacing:.12em;color:#3F5468}
+.pk .nm{font-size:14px;font-weight:600;color:#CFE2F2;line-height:1.15;margin-top:2px}
+.pk .sub{font-size:8.5px;color:#4A6A8A;line-height:1.4;margin-top:3px;min-height:23px}
+.pk .fit{font-size:8.5px;margin-top:6px;line-height:1.35}
+.pk .fit.yes{color:#7FBE86} .pk .fit.no{color:#4A6A8A}
+
+.rar{display:flex;gap:3px;margin-top:9px;align-items:flex-end;height:26px}
+.rar i{flex:1;border-radius:2px;display:block}
+.rar i.r1{background:#3A4E63;height:9px}
+.rar i.r2{background:#4E7A8C;height:14px}
+.rar i.r3{background:#8A6BA8;height:19px}
+.rar i.r4{background:linear-gradient(#F0D49A,#C9922E);height:26px;
+  box-shadow:0 0 9px rgba(224,196,138,.5)}
+.rarlab{display:flex;justify-content:space-between;font-size:6.5px;color:#3F5468;
+  margin-top:3px}
+
+.pk .known{margin-top:8px;border-top:1px solid #16263C;padding-top:7px;font-size:8px;
+  color:#5F7A93;line-height:1.5}
+.pk .known b{color:#E0C48A}
+.pk .cost{margin-top:auto;padding-top:9px;display:flex;align-items:baseline;gap:6px}
+.pk .cost .g{font-size:15px;color:#D4A45C;font-variant-numeric:tabular-nums;font-weight:600}
+.pk .cost .n{font-size:8px;color:#3F5468}
+
+.refresh{display:flex;align-items:center;gap:11px;margin-top:11px;
+  border-top:1px solid #16263C;padding-top:10px}
+.refresh .lbl{font-size:10.5px;color:#5F7A93}
+.refresh .lbl b{color:#CFE2F2}
+.refresh .grow{flex:1}
+.refresh button{min-height:38px;padding:0 17px;border-radius:4px;
+  border:1px solid #2B4B70;background:rgba(10,18,30,.8);color:#AFCBE6;
+  font-family:inherit;font-size:11.5px;cursor:pointer}
+.refresh .used{font-size:8px;color:#3F5468}
+
+.ladder{display:flex;gap:7px;margin-top:9px}
+.ladder .st{flex:1;border:1px solid #16263C;border-radius:4px;padding:6px 7px;
+  font-size:8px;color:#4A6A8A;line-height:1.45}
+.ladder .st.now{border-color:#2A6B5E;color:#7FD3BC;background:rgba(8,26,22,.5)}
+.ladder .st b{display:block;font-size:10px;color:#CFE2F2;margin-bottom:1px}
+.ladder .st.now b{color:#7FD3BC}
+</style></head><body><div class="wrap"><h1>Choosing a consignment</h1><p class="lede">The store is where the run is decided. This screen is the decision: three packs, each aimed at a playstyle, each showing what rarity it actually holds.</p><p class="rule">The tension the whole screen exists for: <b>the prime is in the wrong pack.</b> Take the strong card off-theme, take the right theme with nothing special in it, or pay to look again and risk the offer getting worse.</p><div class="cols"><div style="flex:1;min-width:0"><div class="board" style="aspect-ratio:auto;min-height:0"><div class="queue"><div class="qhd">VOYAGE</div><div class="qi now" style="height:auto;padding:5px;flex-direction:column;gap:1px"><span style="font-size:13px">118</span><span style="font-size:6.5px">GOLD</span></div><div class="qi" style="height:auto;padding:5px;flex-direction:column;gap:1px;border-color:#2A6B5E"><span style="font-size:13px;color:#7FBE86">74%</span><span style="font-size:6.5px;color:#4E8A7C">INTEGRITY</span></div><div class="qi" style="height:auto;padding:5px;flex-direction:column;gap:1px;border-color:#4A3A20;color:#D4A45C"><span style="font-size:13px">×3</span><span style="font-size:6.5px">STREAK</span></div><div class="qfoot" style="margin-top:20px">LEG 6 / 14<b style="color:#5F7A93;font-size:9px;font-weight:400">Blight×3<br>Assay×2</b></div></div><div class="shop"><div class="selhdr"><span class="t">Consignments on offer</span><span class="grow"></span><span class="odds">this leg · prime <b>1 in 14</b></span></div><div class="packs"><div class="pk match"><span class="flagline"></span><div class="axis">MECHANIC</div><div class="nm">Rot &amp; Bloom</div><div class="sub">seeders, spreaders and the thing that lights them</div><div class="fit yes">you have Ash and Pyre aboard</div><div class="rar"><i class="r1" style="flex:5"></i><i class="r2" style="flex:3"></i><i class="r3" style="flex:2"></i></div><div class="rarlab"><span>common</span><span>prime</span></div><div class="known">shows <b>1 rare</b></div><div class="cost"><span class="g">26g</span><span class="n">10 cards</span></div></div><div class="pk prime"><span class="flagline"></span><div class="axis">ELEMENT</div><div class="nm">Order &amp; Chaos</div><div class="sub">anything of those two elements, any role</div><div class="fit no">nothing aboard leans either way</div><div class="rar"><i class="r1" style="flex:4"></i><i class="r2" style="flex:3"></i><i class="r3" style="flex:2"></i><i class="r4" style="flex:1"></i></div><div class="rarlab"><span>common</span><span>prime</span></div><div class="known">shows <b>1 PRIME</b></div><div class="cost"><span class="g">34g</span><span class="n">10 cards</span></div></div><div class="pk "><span class="flagline"></span><div class="axis">MECHANIC</div><div class="nm">Marks &amp; Answers</div><div class="sub">units that write targets down and units that punish them</div><div class="fit yes">you have Quill, Ledger, Vitre</div><div class="rar"><i class="r1" style="flex:6"></i><i class="r2" style="flex:3"></i><i class="r3" style="flex:1"></i></div><div class="rarlab"><span>common</span><span>prime</span></div><div class="known">nothing above uncommon</div><div class="cost"><span class="g">22g</span><span class="n">10 cards</span></div></div></div><div class="refresh"><span class="lbl">The <b>Order &amp; Chaos</b> pack carries a prime, but nothing aboard uses those elements.</span><span class="grow"></span><span class="used">2 refreshes used</span><button>Refresh the offers · 14g</button></div><div class="ladder"><div class="st"><b>Legs 1–4</b>prime 1 in 40</div><div class="st now"><b>Legs 5–9</b>prime 1 in 14</div><div class="st"><b>Legs 10+</b>prime 1 in 6</div><div class="st"><b>Deep packs</b>prime 1 in 3, cost double</div></div></div></div></div></div><div class="cols" style="margin-top:20px"><div class="layers"><h2 style="margin-top:0">How it works</h2><div class="ly new"><b>1</b><div><span>Packs are themed two ways</span><em>Some by mechanic — rot and bloom, marks and answers, shields and reflect. Some by element pair. So there are two ways to aim a purchase, and they slice the pool differently.</em></div></div><div class="ly new"><b>2</b><div><span>Rarity is visible before you buy</span><em>The bar chart is the pack’s actual composition, and the line under it names the best card inside: “shows 1 PRIME”. You never buy blind, so the decision is real rather than a gamble.</em></div></div><div class="ly new"><b>3</b><div><span>Fit is stated against your crew</span><em>“you have Ash and Pyre aboard”, or “nothing aboard leans either way”. The game does the cross-reference so you do not have to hold it in your head.</em></div></div><div class="ly new"><b>4</b><div><span>The dilemma, in one line</span><em>The prime is in the pack you do not want. That sentence under the offers is the whole store: take the strong card off-theme, take the right theme with nothing special, or pay to look again.</em></div></div><div class="ly new"><b>5</b><div><span>Refresh costs, and rises</span><em>Rerolling the offers is the third option and it has a price that climbs. So “hold out for the right prime” is a real gamble with a real cost, not a free spin.</em></div></div><div class="ly new"><b>6</b><div><span>Odds climb as the voyage goes</span><em>1 in 40 early, 1 in 6 deep, and deep packs at double cost carry 1 in 3. A prime landing in act three is expected; one landing in act one is a run-defining piece of luck.</em></div></div></div><div class="layers"><h2 style="margin-top:0">Rarity</h2><div class="ly"><b style="background:#3A4E63;color:#0B1016">◆</b><div><span>Common</span><em>the working roster — one clear job, done reliably</em></div></div><div class="ly"><b style="background:#4E7A8C;color:#0B1016">◆</b><div><span>Uncommon</span><em>a second property, usually a small one</em></div></div><div class="ly"><b style="background:#8A6BA8;color:#0B1016">◆</b><div><span>Rare</span><em>changes how a tag plays rather than how hard it hits</em></div></div><div class="ly"><b style="background:#C9922E;color:#0B1016">◆</b><div><span>Prime</span><em>a rule of its own. One prime can decide what the rest of the crew is for.</em></div></div><p style="font-size:11px;color:#5F6E7B;line-height:1.7;margin-top:12px">Four tiers, and the jump that matters is rare to prime. A prime is not a bigger number, it is a rule — which is why seeing one in a pack is worth rerolling for, and why taking one off-theme is a genuine mistake rather than a small loss.</p></div></div></div></body></html>

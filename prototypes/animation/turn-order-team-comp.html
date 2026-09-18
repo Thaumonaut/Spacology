@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Turn order and team comp</title>
+<style>
+:root{
+  --bg:#131A21; --panel:#1B242D; --raised:#232F3A; --line:#2E3C48;
+  --ink:#DCE4EA; --ink2:#8A98A5; --ink3:#5F6E7B; --ghost:#C97F9E; --energy:#D4A45C;
+  --order:#7FA8C9; --chaos:#C97F9E; --growth:#8FB878; --void:#8F8FC9;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+body{padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+h1{font-size:15px;font-weight:500;margin:0 0 2px}
+.sub{font-size:12px;color:var(--ink3);margin:0 0 14px}
+.zlabel{font-size:10px;color:var(--ink3);letter-spacing:.06em;margin:12px 0 6px}
+.field{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:12px;margin-bottom:12px}
+
+/* turn track */
+.trackwrap{position:relative;margin:2px 0 10px}
+.track{display:flex;gap:5px;align-items:flex-end;overflow:hidden;
+  padding:16px 2px 4px;min-height:60px}
+.tk{flex:0 0 auto;width:38px;border-radius:7px;border:1px solid var(--line);
+  background:var(--raised);text-align:center;padding:5px 2px 4px;
+  transition:transform .34s cubic-bezier(.2,.85,.3,1), opacity .34s, background .2s}
+.tk .tn{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tk .tw{font-size:8px;color:var(--ink3);margin-top:1px}
+.tk.now{border-color:var(--energy);background:#2E3A47}
+.tk.foe{border-style:solid}
+.tk.ally{}
+.tk.slid{background:#3A2634;border-color:var(--ghost)}
+.tk.fade{opacity:.38}
+.roundmark{width:2px;flex:0 0 auto;background:var(--line);align-self:stretch;margin:0 2px}
+
+/* units */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.grid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.u{background:var(--raised);border:1px solid var(--line);border-radius:8px;
+  padding:6px 4px;text-align:center;position:relative;overflow:hidden;
+  transition:border-color .2s,opacity .3s,transform .18s}
+.u.dead{opacity:.22}
+.u.hit{transform:translateY(3px)}
+.u .un{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.u .ue{font-size:8px;letter-spacing:.4px;margin-top:1px}
+.bar{height:4px;border-radius:2px;background:#26313B;margin-top:4px;
+  position:relative;overflow:hidden}
+.bar i{position:absolute;inset:0;display:block;transition:width .28s}
+.bar b{position:absolute;inset:0;display:block;background:var(--ghost);transition:width .5s .3s}
+.tagrow{display:flex;gap:3px;justify-content:center;margin-top:3px;min-height:12px}
+.st{font-size:8px;padding:1px 4px;border-radius:6px;border:1px solid;letter-spacing:.3px}
+
+.log{height:132px;overflow-y:auto;background:#101820;border:1px solid var(--line);
+  border-radius:8px;padding:8px 9px;font-size:11px;line-height:1.65;color:var(--ink2)}
+.log div{margin-bottom:1px}
+.log .brk{color:var(--ghost)} .log .chain{color:var(--energy)}
+.log .rnd{color:var(--ink3);border-top:1px solid var(--line);margin-top:4px;padding-top:3px}
+.log .kill{color:#fff}
+
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1 0 50%;background:transparent;border:0;border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);color:var(--ink2);padding:10px 3px;font-size:11px;
+  font-family:inherit;min-height:42px}
+.seg button.on{background:var(--raised);color:var(--ink)}
+.btns{display:flex;gap:8px;margin-top:10px}
+.btns button{flex:1;background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:11px;font-size:13px;font-family:inherit;min-height:44px}
+label{display:block;font-size:11px;color:var(--ink3);margin:11px 0 3px;overflow:hidden}
+label b{float:right;color:var(--ink);font-weight:400;font-size:12px}
+input[type=range]{width:100%;accent-color:var(--energy);height:26px}
+.stats{font-size:11px;color:var(--ink3);background:#101820;border:1px solid var(--line);
+  border-radius:8px;padding:9px 10px;margin-top:10px;line-height:1.75}
+.stats b{color:var(--ink);font-weight:400}
+.hdr{display:flex;justify-content:space-between;font-size:11px;color:var(--ink3);
+  margin-bottom:6px}
+.hdr b{color:var(--ink);font-weight:500}
+.spark{display:flex;gap:2px;align-items:flex-end;height:22px;margin-top:5px}
+.spark div{flex:1;background:var(--energy);border-radius:1px;min-height:1px}
+</style>
+</head>
+<body>
+
+<h1>Turn order and team comp</h1>
+<p class="sub">Break delays and exposes. Watch who chains.</p>
+
+<div class="field">
+  <div class="hdr">
+    <span>Round <b id="hRound">1</b> of <b id="hMax">12</b></span>
+    <span id="hState">ready</span>
+  </div>
+
+  <div class="zlabel" style="margin-top:0">Turn order &mdash; next 12 actions</div>
+  <div class="trackwrap"><div class="track" id="track"></div></div>
+
+  <div class="zlabel">Enemies</div>
+  <div class="grid" id="foes"></div>
+
+  <div class="zlabel">Crew</div>
+  <div class="grid c4" id="crew"></div>
+
+  <div class="btns">
+    <button id="bStep">Step</button>
+    <button id="bPlay">Play</button>
+    <button id="bReset">Reset</button>
+  </div>
+</div>
+
+<div class="field">
+  <div class="zlabel" style="margin-top:0">Battle log</div>
+  <div class="log" id="log"></div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="field">
+  <div class="zlabel" style="margin-top:0">Team composition</div>
+  <div class="seg" id="sTeam">
+    <button data-v="wide" class="on">Wide &mdash; 4 elements</button>
+    <button data-v="pair">Pair &mdash; 2 + 2</button>
+    <button data-v="deep">Deep &mdash; 3 Order</button>
+    <button data-v="charger">Chargers &mdash; slow burst</button>
+    <button data-v="swarm">Swarm &mdash; fast chip</button>
+  </div>
+  <div class="zlabel">Planet &mdash; enemy shield elements</div>
+  <div class="seg" id="sPlanet">
+    <button data-v="order">Bastion &mdash; all Order</button>
+    <button data-v="pairish">Cairn &mdash; two Order</button>
+    <button data-v="spread" class="on">Verge &mdash; spread</button>
+    <button data-v="away">Hollows &mdash; no Order</button>
+  </div>
+  <div class="stats" id="teamNote"></div>
+
+  <label>Break delay <b id="vDelay"></b></label>
+  <input type="range" id="rDelay" min="0" max="80" step="5" value="35">
+  <label>Vulnerability <b id="vVuln"></b></label>
+  <input type="range" id="rVuln" min="0" max="100" step="5" value="35">
+  <label>Vulnerability lasts <b id="vVdur"></b></label>
+  <input type="range" id="rVdur" min="1" max="5" step="1" value="2">
+  <label>Shield regrows after <b id="vRegen"></b></label>
+  <input type="range" id="rRegen" min="1" max="8" step="1" value="3">
+  <label>Harmony follow-up damage <b id="vHarm"></b></label>
+  <input type="range" id="rHarm" min="0" max="100" step="5" value="45">
+  <label>Playback speed <b id="vSpd"></b></label>
+  <input type="range" id="rSpd" min="120" max="1400" step="40" value="440">
+</div>
+
+<script>
+var EL={order:'#7FA8C9',chaos:'#C97F9E',growth:'#8FB878',void:'#8F8FC9'};
+var MAXROUND=14;
+
+var PLANETS={
+  order:{n:'Bastion',els:['order','order','order']},
+  pairish:{n:'Cairn',els:['order','order','growth']},
+  spread:{n:'Verge',els:['order','chaos','growth']},
+  away:{n:'The Hollows',els:['chaos','growth','void']}
+};
+var TEAMS={
+  wide:{note:'One of each element. Can chip every shield, but only one unit is effective '+
+    'against any given enemy, so breaks come slowly. Never triggers harmony.',
+    crew:[{n:'Vell',e:'chaos',sp:104,dmg:13},{n:'Hammer',e:'order',sp:96,dmg:15},
+          {n:'Sable',e:'growth',sp:100,dmg:13},{n:'Corr',e:'void',sp:92,dmg:16}]},
+  pair:{note:'Two and two. Half-speed breaks on two elements, small chains on both.',
+    crew:[{n:'Hammer',e:'order',sp:96,dmg:15},{n:'Rook',e:'order',sp:101,dmg:13},
+          {n:'Sable',e:'growth',sp:100,dmg:13},{n:'Mag',e:'growth',sp:94,dmg:15}]},
+  deep:{note:'Three Order plus one. Shreds Order shields and stalls everywhere else &mdash; '+
+    'but every Order break fires three follow-ups at once.',
+    crew:[{n:'Hammer',e:'order',sp:96,dmg:15},{n:'Rook',e:'order',sp:101,dmg:13},
+          {n:'Pell',e:'order',sp:88,dmg:17},{n:'Sable',e:'growth',sp:100,dmg:13}]},
+  charger:{note:'Slow and heavy. Few actions, each one large. Long gaps between beats.',
+    crew:[{n:'Pell',e:'order',sp:70,dmg:26},{n:'Corr',e:'void',sp:66,dmg:29},
+          {n:'Mag',e:'growth',sp:74,dmg:24},{n:'Vell',e:'chaos',sp:72,dmg:25}]},
+  swarm:{note:'Fast and light. Many small actions, constant motion, little punctuation.',
+    crew:[{n:'Nib',e:'chaos',sp:142,dmg:7},{n:'Tik',e:'order',sp:138,dmg:8},
+          {n:'Ras',e:'growth',sp:146,dmg:7},{n:'Vex',e:'void',sp:134,dmg:8}]}
+};
+var FOEBASE=[
+  {n:'Drone',sp:88, hp:150,dmg:18},
+  {n:'Husk', sp:104,hp:120,dmg:22},
+  {n:'Maw',  sp:76, hp:190,dmg:30}
+];
+var SHLAYERS=2, SHPER=14, UNMATCHED=0.2;
+
+var G=null, timer=null, playing=false;
+function $(i){return document.getElementById(i)}
+function gv(i){return +$(i).value}
+
+function build(team,planet){
+  var t=TEAMS[team];
+  G={round:1, av:0, over:false, team:team, planet:planet||(G&&G.planet)||'spread',
+     log:[], chains:0, longest:0, breaks:0, suppressed:0, foeTurns:0, dealt:{}, acted:{},
+     beat:[], units:[]};
+  t.crew.forEach(function(c,i){
+    G.units.push({id:'a'+i,side:'ally',n:c.n,e:c.e,sp:c.sp,dmg:c.dmg,
+      hp:100,max:100,av:10000/c.sp,alive:true});
+    G.dealt[c.n]=0; G.acted[c.n]=0;
+  });
+  var pl=PLANETS[G.planet];
+  FOEBASE.forEach(function(f,i){
+    G.units.push({id:'f'+i,side:'foe',n:f.n,e:pl.els[i],sp:f.sp,dmg:f.dmg,
+      hp:f.hp,max:f.hp,av:10000/f.sp,alive:true,
+      shMax:SHLAYERS,shL:SHLAYERS,shC:SHPER,per:SHPER,
+      broken:false,regen:0,vuln:0});
+  });
+  $('teamNote').innerHTML=t.note+'<br><span style="color:var(--ink3)">Planet: <b>'+
+    PLANETS[G.planet].n+'</b> &mdash; '+PLANETS[G.planet].els.join(', ')+'</span>';
+  render(); renderTrack(); logLine('Round 1','rnd');
+  $('stats').innerHTML='';
+}
+
+/* ---------- projection for the turn track ---------- */
+function project(n){
+  var sim=G.units.filter(function(u){return u.alive})
+    .map(function(u){return {u:u,av:u.av,sp:u.sp}});
+  var out=[];
+  for(var k=0;k<n;k++){
+    sim.sort(function(a,b){return a.av-b.av});
+    var t=sim[0]; if(!t) break;
+    var adv=t.av;
+    sim.forEach(function(x){x.av-=adv});
+    out.push({u:t.u, wait:Math.round(adv)});
+    t.av=10000/t.sp;
+  }
+  return out;
+}
+function renderTrack(prevIds){
+  var q=project(12), el=$('track'); el.innerHTML='';
+  q.forEach(function(s,i){
+    var d=document.createElement('div');
+    var moved = prevIds && prevIds[i] && prevIds[i]!==s.u.id;
+    d.className='tk '+s.u.side+(i===0?' now':'')+(moved?' slid':'')+(i>7?' fade':'');
+    d.innerHTML='<div class="tn" style="color:'+
+      (s.u.side==='foe'?EL[s.u.e]:'var(--ink)')+'">'+s.u.n+'</div>'+
+      '<div class="tw">'+(i===0?'now':'+'+s.wait)+'</div>';
+    el.appendChild(d);
+  });
+}
+function trackIds(){ return project(12).map(function(s){return s.u.id}); }
+
+/* ---------- rendering ---------- */
+function render(){
+  ['foe','ally'].forEach(function(side){
+    var host=$(side==='foe'?'foes':'crew'); host.innerHTML='';
+    G.units.filter(function(u){return u.side===side}).forEach(function(u){
+      var d=document.createElement('div');
+      d.className='u'+(u.alive?'':' dead'); d.id='u-'+u.id;
+      var tags='';
+      if(u.side==='foe'){
+        if(u.broken) tags+='<span class="st" style="color:var(--ghost);border-color:var(--ghost)">broken '+u.regen+'</span>';
+        if(u.vuln>0) tags+='<span class="st" style="color:#fff;border-color:#fff">vuln '+u.vuln+'</span>';
+      }
+      var shPct = u.side==='foe' && !u.broken ? (u.shC/u.per*100) : 0;
+      d.innerHTML='<div class="un">'+u.n+'</div>'+
+        '<div class="ue" style="color:'+EL[u.e]+'">'+u.e+'</div>'+
+        '<div class="bar"><b style="width:'+(u.hp/u.max*100)+'%"></b>'+
+          '<i style="width:'+(u.hp/u.max*100)+'%;background:var(--ink)"></i></div>'+
+        (u.side==='foe'?'<div class="bar"><i style="width:'+shPct+
+          '%;background:'+EL[u.e]+'"></i></div>'+
+          '<div class="ue" style="color:var(--ink3)">'+
+            (u.broken?'no shield':u.shL+' layer'+(u.shL===1?'':'s'))+'</div>':'')+
+        '<div class="tagrow">'+tags+'</div>';
+      host.appendChild(d);
+    });
+  });
+  $('hRound').textContent=G.round;
+  $('hMax').textContent=MAXROUND;
+}
+function flash(u){
+  var e=$('u-'+u.id); if(!e) return;
+  e.classList.add('hit'); setTimeout(function(){e.classList.remove('hit')},170);
+}
+function logLine(txt,cls){
+  var d=document.createElement('div');
+  if(cls) d.className=cls;
+  d.innerHTML=txt; $('log').appendChild(d);
+  $('log').scrollTop=$('log').scrollHeight;
+}
+
+/* ---------- combat ---------- */
+function damage(src,tgt,amt,tag){
+  var mult=1+(tgt.vuln>0?gv('rVuln')/100:0);
+  var d=Math.round(amt*mult);
+  tgt.hp=Math.max(0,tgt.hp-d);
+  G.dealt[src.n]=(G.dealt[src.n]||0)+d;
+  flash(tgt);
+  logLine('&nbsp;&nbsp;'+src.n+' &rarr; '+tgt.n+' <b>'+d+'</b>'+
+    (mult>1?' <span style="color:#fff">(vuln)</span>':'')+(tag||''));
+  if(tgt.hp<=0){ tgt.alive=false; logLine('&nbsp;&nbsp;'+tgt.n+' is down','kill'); }
+  return d;
+}
+function chipShield(src,tgt,amt){
+  if(tgt.broken||tgt.shL<=0) return false;
+  var match=src.e===tgt.e;
+  var pool=amt*(match?1:UNMATCHED), popped=0;
+  while(pool>0 && tgt.shL>0){
+    if(pool>=tgt.shC){ pool-=tgt.shC; tgt.shL--; popped++;
+      tgt.shC = tgt.shL>0 ? tgt.per : 0; }
+    else { tgt.shC-=pool; pool=0; }
+  }
+  if(popped) logLine('&nbsp;&nbsp;'+tgt.n+' shield &minus;'+popped+
+    (match?' <span style="color:'+EL[src.e]+'">(matched)</span>':''));
+  if(tgt.shL<=0){ doBreak(src,tgt); return true; }
+  return false;
+}
+function doBreak(src,tgt){
+  tgt.broken=true; tgt.regen=gv('rRegen'); tgt.vuln=gv('rVdur');
+  tgt.av += (10000/tgt.sp)*(gv('rDelay')/100);
+  G.breaks++;
+  logLine('<b>BREAK</b> &mdash; '+tgt.n+' delayed and exposed','brk');
+  var allies=G.units.filter(function(u){
+    return u.side==='ally' && u.alive && u.e===src.e && u.id!==src.id; });
+  if(allies.length){
+    G.chains++;
+    G.longest=Math.max(G.longest,allies.length+1);
+    logLine('&nbsp;&nbsp;harmony &times;'+(allies.length+1)+' follow-up','chain');
+    allies.forEach(function(a){
+      damage(a,tgt,a.dmg*(gv('rHarm')/100),' <span style="color:var(--energy)">chain</span>');
+    });
+  }
+  G.beat.push(allies.length+1);
+}
+function pickTarget(side){
+  var pool=G.units.filter(function(u){return u.side!==side && u.alive});
+  if(!pool.length) return null;
+  var broken=pool.filter(function(u){return u.vuln>0});
+  if(broken.length) return broken[0];
+  return pool.sort(function(a,b){return a.hp-b.hp})[0];
+}
+
+function tick(){
+  if(G.over) return false;
+  var alive=G.units.filter(function(u){return u.alive});
+  if(!alive.some(function(u){return u.side==='foe'})){ finish('Crew wins'); return false; }
+  if(!alive.some(function(u){return u.side==='ally'})){ finish('Crew wiped'); return false; }
+
+  var prev=trackIds();
+  alive.sort(function(a,b){return a.av-b.av});
+  var act=alive[0], adv=act.av;
+  alive.forEach(function(u){u.av-=adv});
+  G.av+=adv;
+  var newRound=Math.floor(G.av/100)+1;
+  if(newRound>G.round){
+    G.round=newRound; logLine('Round '+G.round,'rnd');
+    G.units.forEach(function(u){
+      if(u.side!=='foe') return;
+      if(u.vuln>0) u.vuln--;
+      if(u.broken){ u.regen--;
+        if(u.regen<=0){ u.broken=false; u.shL=u.shMax; u.shC=u.per;
+          logLine('&nbsp;&nbsp;'+u.n+' shield reforms'); } }
+    });
+    if(G.round>MAXROUND){ finish('Out of time'); return false; }
+  }
+
+  G.acted[act.n]=(G.acted[act.n]||0)+1;
+  var tgt=pickTarget(act.side);
+  if(tgt){
+    if(act.side==='ally'){
+      var broke=chipShield(act,tgt,act.dmg);
+      damage(act,tgt,act.dmg);
+    } else if(act.broken){
+      G.suppressed++;
+      logLine('&nbsp;&nbsp;'+act.n+' is broken and loses its turn','brk');
+    } else {
+      damage(act,tgt,act.dmg);
+    }
+  }
+  if(act.side==='foe') G.foeTurns++;
+  act.av=10000/act.sp;
+  render(); renderTrack(prev);
+  return true;
+}
+function finish(msg){
+  G.over=true; playing=false; clearTimeout(timer);
+  $('bPlay').textContent='Play'; $('hState').textContent=msg;
+  logLine('<b>'+msg+'</b> in '+G.round+' rounds','rnd');
+  var names=Object.keys(G.dealt);
+  var tot=names.reduce(function(a,n){return a+G.dealt[n]},0)||1;
+  var shares=names.map(function(n){return G.dealt[n]/tot});
+  var mean=1/names.length;
+  var spread=Math.sqrt(shares.reduce(function(a,x){
+    return a+Math.pow(x-mean,2)},0)/names.length)/mean;
+  var even=Math.max(0,Math.round((1-spread)*100));
+  var bars=names.map(function(n){
+    return '<div style="height:'+Math.max(2,Math.round(G.dealt[n]/tot*100))+'%" title="'+n+'"></div>';
+  }).join('');
+  $('stats').innerHTML=
+    '<b>'+msg+'</b> in '+G.round+' rounds &middot; '+G.breaks+' breaks &middot; '+
+      G.chains+' chains<br>'+
+    'longest chain <b>'+(G.longest||1)+' units</b> &middot; '+
+      'enemy turns suppressed <b>'+
+      (G.foeTurns?Math.round(G.suppressed/G.foeTurns*100):0)+'%</b> &middot; '+
+      'contribution evenness <b>'+even+'%</b><br>'+
+    names.map(function(n){return n+' '+Math.round(G.dealt[n]/tot*100)+'%'}).join(' &middot; ')+
+    '<div class="spark">'+bars+'</div>';
+}
+
+/* ---------- controls ---------- */
+$('bStep').onclick=function(){ playing=false; clearTimeout(timer);
+  $('bPlay').textContent='Play'; tick(); };
+$('bPlay').onclick=function(){
+  if(playing){ playing=false; clearTimeout(timer); this.textContent='Play'; return; }
+  playing=true; this.textContent='Pause';
+  (function loop(){ if(!playing) return;
+    if(tick()) timer=setTimeout(loop,gv('rSpd')); })();
+};
+$('bReset').onclick=function(){ playing=false; clearTimeout(timer);
+  $('bPlay').textContent='Play'; $('log').innerHTML=''; $('hState').textContent='ready';
+  build(G.team,G.planet); };
+function pick(id,fn){ $(id).onclick=function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  this.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
+  b.classList.add('on');
+  playing=false; clearTimeout(timer); $('bPlay').textContent='Play';
+  $('log').innerHTML=''; $('hState').textContent='ready';
+  fn(b.dataset.v); }; }
+pick('sTeam',function(v){ build(v,G.planet); });
+pick('sPlanet',function(v){ build(G.team,v); });
+[['rDelay','vDelay','%'],['rVuln','vVuln','%'],['rVdur','vVdur',' rounds'],
+ ['rRegen','vRegen',' rounds'],['rHarm','vHarm','%'],['rSpd','vSpd','ms']]
+.forEach(function(p){
+  $(p[0]).oninput=function(){$(p[1]).textContent=this.value+p[2]};
+  $(p[1]).textContent=$(p[0]).value+p[2];
+});
+
+build('wide','spread');
+</script>
+</body>
+</html>

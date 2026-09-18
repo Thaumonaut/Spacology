@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Battle rhythm</title>
+<style>
+:root{
+  --bg:#131A21; --panel:#1B242D; --raised:#232F3A; --line:#2E3C48;
+  --ink:#DCE4EA; --ink2:#8A98A5; --ink3:#5F6E7B; --ghost:#C97F9E; --energy:#D4A45C;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+body{padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+h1{font-size:15px;font-weight:500;margin:0 0 2px}
+.sub{font-size:12px;color:var(--ink3);margin:0 0 14px}
+.zlabel{font-size:10px;color:var(--ink3);letter-spacing:.06em;margin:12px 0 6px}
+.field{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+
+#stage{height:250px;background:#0F161C;border:1px solid var(--line);border-radius:10px;
+  position:relative;overflow:hidden;perspective:700px}
+#actor{position:absolute;left:18px;top:96px;width:92px;height:66px;border-radius:10px;
+  background:#2A3541;border:1px solid var(--energy);color:var(--energy);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;z-index:3}
+.ai{position:absolute;width:92px;height:66px;border-radius:10px;border:1px solid var(--energy);
+  background:#2A3541;left:18px;top:96px;z-index:2;pointer-events:none}
+.tgt{position:absolute;right:18px;width:96px;height:56px;border-radius:9px;
+  background:var(--raised);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:12px}
+#t0{top:26px} #t1{top:96px} #t2{top:166px}
+.shl{position:absolute;right:14px;width:104px;height:64px;border-radius:11px;
+  border:2px solid;opacity:0;pointer-events:none;z-index:1}
+#s0{top:22px} #s1{top:92px} #s2{top:162px}
+.hb{position:absolute;right:18px;width:96px;height:6px;border-radius:3px;background:#26313B;overflow:hidden}
+#h0{top:86px} #h1{top:156px} #h2{top:226px}
+.hb .gh{position:absolute;inset:0;background:var(--ghost);width:100%}
+.hb .fx{position:absolute;inset:0;background:var(--ink);width:100%}
+.orb{position:absolute;width:13px;height:13px;border-radius:50%;z-index:2;pointer-events:none}
+#beam{position:absolute;height:3px;top:126px;left:112px;width:0;opacity:0;border-radius:2px;z-index:2}
+#ring{position:absolute;left:64px;top:129px;width:0;height:0;border-radius:50%;
+  border:2px solid;opacity:0;transform:translate(-50%,-50%);z-index:1}
+#wash{position:absolute;inset:0;opacity:0;pointer-events:none;z-index:4}
+.dn{position:absolute;font-weight:500;pointer-events:none;opacity:0;right:122px;z-index:5}
+.phasetag{position:absolute;top:9px;left:11px;font-size:10px;color:var(--ink3);letter-spacing:.06em;z-index:6}
+.cap{position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:12px;color:var(--ink2);z-index:6}
+
+.tlwrap{margin-top:10px}
+.tlrow{display:flex;height:20px;border:1px solid var(--line);border-radius:5px;overflow:hidden}
+.tlrow+.tlrow{margin-top:3px}
+.tlrow div{display:flex;align-items:center;justify-content:center;font-size:9px;
+  color:#0F161C;overflow:hidden;white-space:nowrap}
+.tlkey{font-size:10px;color:var(--ink3);margin-top:5px}
+.warn{font-size:11px;color:#E88;margin-top:6px}
+.ok{font-size:11px;color:var(--growth,#8FB878);margin-top:6px}
+
+.seg{display:flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{flex:1 0 33%;background:transparent;border:0;border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);color:var(--ink2);padding:10px 2px;font-size:11px;
+  font-family:inherit;min-height:40px}
+.seg button.on{background:var(--raised);color:var(--ink)}
+.ctl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+label{display:block;font-size:11px;color:var(--ink3);margin:11px 0 3px;overflow:hidden}
+label b{float:right;color:var(--ink);font-weight:400;font-size:12px}
+label.drv{color:var(--ink3);opacity:.75}
+input[type=range]{width:100%;accent-color:var(--energy);height:26px}
+.derived{font-size:11px;color:var(--ink3);background:#101820;border:1px solid var(--line);
+  border-radius:8px;padding:9px 10px;margin-top:10px;line-height:1.7}
+.derived b{color:var(--ink);font-weight:400}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btns button{flex:1;background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:11px;font-size:13px;font-family:inherit;min-height:44px}
+</style>
+</head>
+<body>
+
+<h1>Battle rhythm</h1>
+<p class="sub">Timing is derived. Only the beat is tuned.</p>
+
+<div class="field">
+  <div id="stage">
+    <div class="phasetag" id="ptag">idle</div>
+    <div id="ring"></div>
+    <div id="beam"></div>
+    <div id="actor">Hammer</div>
+    <div class="tgt" id="t0">Drone</div>
+    <div class="tgt" id="t1">Husk</div>
+    <div class="tgt" id="t2">Maw</div>
+    <div class="shl" id="s0"></div>
+    <div class="shl" id="s1"></div>
+    <div class="shl" id="s2"></div>
+    <div class="hb" id="h0"><div class="gh"></div><div class="fx"></div></div>
+    <div class="hb" id="h1"><div class="gh"></div><div class="fx"></div></div>
+    <div class="hb" id="h2"><div class="gh"></div><div class="fx"></div></div>
+    <div id="wash"></div>
+    <div class="cap" id="cap">&nbsp;</div>
+  </div>
+
+  <div class="tlwrap">
+    <div class="tlrow" id="tlPhase"></div>
+    <div class="tlrow" id="tlGhost"></div>
+    <div class="tlkey">Top: phases. Bottom: ghost bar &mdash; pale is waiting, solid is draining.</div>
+    <div id="verdict"></div>
+  </div>
+</div>
+
+<div class="ctl">
+  <div class="zlabel">Action type</div>
+  <div class="seg" id="sKind">
+    <button data-v="attack" class="on">Attack</button>
+    <button data-v="volley">Volley</button>
+    <button data-v="shield">Shield</button>
+    <button data-v="buff">Buff</button>
+    <button data-v="debuff">Debuff</button>
+    <button data-v="heal">Heal</button>
+  </div>
+
+  <div class="zlabel">Delivery</div>
+  <div class="seg" id="sDeliv">
+    <button data-v="melee" class="on">Melee</button>
+    <button data-v="cast">Cast</button>
+    <button data-v="projectile">Projectile</button>
+    <button data-v="beam">Beam</button>
+    <button data-v="aura">Aura</button>
+  </div>
+
+  <div class="zlabel">Impact primitive</div>
+  <div class="seg" id="sImp">
+    <button data-v="jolt" class="on">Jolt</button>
+    <button data-v="blink">Blink</button>
+    <button data-v="invert">Invert</button>
+    <button data-v="dissolve">Dissolve</button>
+    <button data-v="expand">Expand</button>
+    <button data-v="stack">Stacked</button>
+  </div>
+
+  <div class="zlabel">Rhythm</div>
+  <div class="seg" id="sRhythm">
+    <button data-v="single" class="on">Single</button>
+    <button data-v="even">Even</button>
+    <button data-v="accel">Accelerating</button>
+    <button data-v="crescendo">Crescendo</button>
+  </div>
+
+  <div class="zlabel">Scope</div>
+  <div class="seg" id="sScope">
+    <button data-v="single" class="on">One</button>
+    <button data-v="cleave">Cleave</button>
+    <button data-v="all">All</button>
+  </div>
+
+  <div class="zlabel">Element</div>
+  <div class="seg" id="sElem">
+    <button data-v="order" class="on">Order</button>
+    <button data-v="chaos">Chaos</button>
+    <button data-v="growth">Growth</button>
+    <button data-v="energy">Energy</button>
+    <button data-v="void">Void</button>
+    <button data-v="decay">Decay</button>
+  </div>
+
+  <div class="zlabel">Tier</div>
+  <div class="seg" id="sTier">
+    <button data-v="basic" class="on">Basic</button>
+    <button data-v="skill">Skill</button>
+    <button data-v="ult">Ultimate</button>
+  </div>
+
+  <label>Beat &mdash; silence after everything resolves <b id="vBeat"></b></label>
+  <input type="range" id="rBeat" min="0" max="900" step="20" value="220">
+  <label>Settle <b id="vSe"></b></label>
+  <input type="range" id="rSe" min="0" max="900" step="20" value="240">
+  <label>Hitstop <b id="vHs"></b></label>
+  <input type="range" id="rHs" min="0" max="300" step="10" value="90">
+  <label>Rebound <b id="vRb"></b></label>
+  <input type="range" id="rRb" min="0" max="240" step="10" value="80">
+  <label>Impact intensity <b id="vPu"></b></label>
+  <input type="range" id="rPu" min="10" max="100" step="5" value="35">
+  <label>Debounce window <b id="vMg"></b></label>
+  <input type="range" id="rMg" min="100" max="1200" step="20" value="480">
+  <label>Ghost drain per 10 damage <b id="vDr"></b></label>
+  <input type="range" id="rDr" min="20" max="200" step="10" value="70">
+
+  <div class="derived" id="derived"></div>
+
+  <div class="btns">
+    <button id="bOnce">Once</button>
+    <button id="bLoop">Loop</button>
+    <button id="bSeq">Sequence</button>
+  </div>
+</div>
+
+<div class="ctl">
+  <div class="zlabel">Fight budget &mdash; work backwards from length</div>
+  <label>Target fight length <b id="vLen"></b></label>
+  <input type="range" id="rLen" min="20" max="240" step="5" value="90">
+  <label>Crew <b id="vCrew"></b></label>
+  <input type="range" id="rCrew" min="2" max="6" step="1" value="4">
+  <label>Enemies <b id="vFoe"></b></label>
+  <input type="range" id="rFoe" min="1" max="5" step="1" value="3">
+  <label>Skills per crew per round <b id="vMix"></b></label>
+  <input type="range" id="rMix" min="0" max="100" step="5" value="35">
+  <label>Ultimates per fight <b id="vUlt"></b></label>
+  <input type="range" id="rUlt" min="0" max="6" step="1" value="2">
+  <div class="derived" id="budget"></div>
+</div>
+
+<script>
+var COL={order:'#7FA8C9',chaos:'#C97F9E',growth:'#8FB878',
+         energy:'#D4A45C',void:'#8F8FC9',decay:'#A89070'};
+var TIER={basic:{charge:220,hits:1,dmg:12},skill:{charge:640,hits:3,dmg:11},
+          ult:{charge:1420,hits:6,dmg:14}};
+var TOP=[26,96,166];
+var S={kind:'attack',deliv:'melee',imp:'jolt',rhythm:'single',
+       scope:'single',elem:'order',tier:'basic'};
+var looping=false,seq=false,running=false,chain=[],gt=[null,null,null],hp=[100,100,100];
+
+function $(i){return document.getElementById(i)}
+function at(ms,f){chain.push(setTimeout(f,ms))}
+function clr(){chain.forEach(clearTimeout);chain=[];gt.forEach(clearTimeout);
+  document.querySelectorAll('.ai,.dn,.orb.tmp').forEach(function(e){e.remove()})}
+function tr(e,ms,tf){e.style.transition='all '+ms+'ms '+(tf||'ease')}
+function fz(e){e.style.transition='none'}
+function P(){return +$('rPu').value/100}
+function isSupport(){return ['shield','buff','heal'].indexOf(S.kind)>=0}
+function isHostile(){return ['attack','volley','debuff'].indexOf(S.kind)>=0}
+function doesDamage(){return S.kind==='attack'||S.kind==='volley'}
+
+function nHits(){
+  if(S.kind==='volley') return S.tier==='basic'?3:S.tier==='skill'?5:8;
+  if(isSupport()||S.kind==='debuff') return 1;
+  return S.rhythm==='single'?1:TIER[S.tier].hits;
+}
+function gapList(n){
+  if(n===1) return [0];
+  var a=[],i;
+  if(S.kind==='volley'){for(i=0;i<n;i++)a.push(70)}
+  else if(S.rhythm==='even'){for(i=0;i<n;i++)a.push(150)}
+  else if(S.rhythm==='accel'){for(i=0;i<n;i++)a.push(Math.round(250*Math.pow(.78,i)))}
+  else {for(i=0;i<n-1;i++)a.push(90); a[n-2]=440; a.push(0)}
+  return a;
+}
+function tlist(){return S.scope==='all'?[0,1,2]:S.scope==='cleave'?[1,0,2]:[1]}
+function travelOf(){
+  var tl=tlist();
+  if(S.kind==='volley') return Math.round(120+90+ (tl.length-1)*40);
+  return Math.round(gestureSpan(tl));
+}
+
+/* ---- derived timing ---- */
+function timing(){
+  var T=TIER[S.tier], n=nHits(), G=gapList(n), tv=travelOf();
+  var HS=+$('rHs').value, RB=+$('rRb').value, beat=+$('rBeat').value;
+  var maxGap=0; for(var i=0;i<n-1;i++) maxGap=Math.max(maxGap,G[i]+tv+HS+RB);
+  var win = +$('rMg').value;
+  var gDelay = doesDamage() ? win : 0;
+  var tight = maxGap>0 && win<=maxGap;
+  var mul = S.rhythm==='crescendo'?2.4:(n>1?1.5:1);
+  var totalDmg = doesDamage() ? Math.round(T.dmg*(n-1) + T.dmg*mul) : 0;
+  var gDrain = doesDamage() ? Math.round(120 + totalDmg/10 * +$('rDr').value) : 0;
+  var resolve = doesDamage() ? gDelay+gDrain : Math.round(260+380*P());
+  var after = resolve + beat;
+  var hitblock=0; for(i=0;i<n;i++) hitblock += tv+HS+RB+G[i];
+  var enter=80, exit=90, SE=+$('rSe').value;
+  return {n:n,G:G,tv:tv,HS:HS,RB:RB,beat:beat,gDelay:gDelay,gDrain:gDrain,
+          resolve:resolve,after:after,hitblock:hitblock,charge:T.charge,
+          enter:enter,exit:exit,settle:SE,totalDmg:totalDmg,
+          maxGap:maxGap,win:win,tight:tight,
+          total:enter+SE+T.charge+hitblock+after+exit};
+}
+function drawTL(){
+  var t=timing(), tot=t.total||1;
+  var ph=[['enter',t.enter,'#3E4C58'],['settle',t.settle,'#8A98A5'],
+          ['charge',t.charge,'#D4A45C'],[t.n>1?t.n+' hits':'hit',t.hitblock,'#C97F9E'],
+          ['resolve',t.resolve,'#7FA8C9'],['beat',t.beat,'#4A5A66'],['exit',t.exit,'#2E3C48']];
+  var r=$('tlPhase'); r.innerHTML='';
+  ph.forEach(function(p){
+    if(p[1]<=0) return;
+    var d=document.createElement('div');
+    d.style.width=(p[1]/tot*100)+'%'; d.style.background=p[2];
+    d.textContent=(p[1]/tot*100)>13?p[0]:''; r.appendChild(d);
+  });
+  var g=$('tlGhost'); g.innerHTML='';
+  var pre=t.enter+t.settle+t.charge;
+  var lead=pre + t.hitblock - (t.tv+t.HS+t.RB);
+  function push(w,c,lab){ if(w<=0) return; var d=document.createElement('div');
+    d.style.width=(w/tot*100)+'%'; d.style.background=c;
+    d.textContent=(w/tot*100)>16?lab:''; g.appendChild(d); }
+  push(lead,'#1B242D','');
+  if(t.gDelay){ push(t.gDelay,'#5A3A48','waiting'); push(t.gDrain,'#C97F9E','draining'); }
+  else push(t.resolve,'#3E5A6A','settling');
+  var used=lead+(t.gDelay?t.gDelay+t.gDrain:t.resolve);
+  push(Math.max(0,tot-used),'#1B242D','');
+
+  var slack = tot - used - t.exit;
+  var v=$('verdict');
+  if(slack<0) v.className='warn', v.textContent='Bar is still draining '+Math.abs(Math.round(slack))+'ms after exit begins.';
+  else v.className='ok', v.textContent=Math.round(slack)+'ms of silence after the bar settles.';
+
+  $('derived').innerHTML=
+    'debounce window <b>'+t.win+'ms</b>, resets on every hit'+
+      (t.tight?' &mdash; <span style="color:#E88">shorter than the '+Math.round(t.maxGap)+
+        'ms hit interval, so the bar chases each hit</span>':
+        (t.maxGap>0?' &mdash; clears the '+Math.round(t.maxGap)+'ms hit interval':''))+'<br>'+
+    'ghost drain = 120 + '+t.totalDmg+' damage &divide; 10 &times; rate = <b>'+t.gDrain+'ms</b><br>'+
+    'aftermath = window + drain + beat = <b>'+t.after+'ms</b><br>'+
+    'action total = <b>'+t.total+'ms</b>';
+  BUDGET.actionMs=t.total; drawBudget();
+}
+
+function resetAll(){
+  hp=[100,100,100];
+  [0,1,2].forEach(function(i){
+    var b=$('h'+i);
+    b.querySelector('.fx').style.transition='none'; b.querySelector('.fx').style.width='100%';
+    b.querySelector('.gh').style.transition='none'; b.querySelector('.gh').style.width='100%';
+    var e=$('t'+i); e.style.transition='none'; e.style.background='var(--raised)';
+    e.style.transform='none'; e.style.opacity='1'; e.style.color='var(--ink)';
+    e.style.borderColor='var(--line)';
+    var s=$('s'+i); s.style.transition='none'; s.style.opacity='0'; s.style.transform='scale(1.2)';
+  });
+  fz($('wash')); $('wash').style.opacity='0';
+  fz($('beam')); $('beam').style.opacity='0';
+}
+function dmgBar(i,d,gD,gR){
+  hp[i]=Math.max(0,hp[i]-d);
+  var b=$('h'+i),fx=b.querySelector('.fx'),gh=b.querySelector('.gh');
+  fx.style.transition='width 70ms cubic-bezier(.2,.9,.3,1)'; fx.style.width=hp[i]+'%';
+  clearTimeout(gt[i]);
+  gt[i]=setTimeout(function(){
+    gh.style.transition='width '+gR+'ms cubic-bezier(.3,.6,.3,1)'; gh.style.width=hp[i]+'%';
+  },gD);
+}
+function healBar(i,d,gR){
+  hp[i]=Math.min(100,hp[i]+d);
+  var b=$('h'+i),fx=b.querySelector('.fx'),gh=b.querySelector('.gh');
+  gh.style.transition='width 80ms'; gh.style.width=hp[i]+'%';
+  fx.style.transition='width '+gR+'ms cubic-bezier(.3,.6,.3,1)'; fx.style.width=hp[i]+'%';
+}
+function num(i,d,p,c){
+  var e=document.createElement('div'); e.className='dn'; e.textContent=d;
+  e.style.color=c; e.style.fontSize=(14+16*p)+'px'; e.style.top=(38+i*70)+'px';
+  $('stage').appendChild(e);
+  requestAnimationFrame(function(){
+    e.style.transition='opacity 100ms, transform 540ms cubic-bezier(.15,.9,.3,1)';
+    e.style.opacity='1'; e.style.transform='translateY(-20px)';
+    setTimeout(function(){e.style.opacity='0';setTimeout(function(){e.remove()},220)},380);
+  });
+}
+function impactHold(i,p,last){
+  var e=$('t'+i), c=COL[S.elem], m=S.imp;
+  fz(e);
+  if(m==='jolt'||m==='stack')  e.style.transform='translateX('+(8+26*p)+'px)';
+  if(m==='blink'||m==='stack'){e.style.opacity='.15'; e.style.background=c}
+  if(m==='invert'||m==='stack'){e.style.background=last?'#fff':c;
+    e.style.color='#0F161C'; e.style.borderColor=last?'#fff':c}
+  if(m==='dissolve'){e.style.opacity=String(Math.max(.1,.7-.6*p)); e.style.background=c}
+  if(m==='expand'){e.style.transform='scale('+(1+.16*p)+')'; e.style.background=c}
+  if(p>.55||last){ var w=$('wash'); fz(w);
+    w.style.background=last&&S.tier==='ult'?'#fff':c; w.style.opacity=String(.10+.22*p); }
+}
+function impactRelease(i,p,ms){
+  var e=$('t'+i), m=S.imp, springs=(m==='jolt'||m==='stack');
+  e.style.opacity='1'; e.style.background='var(--raised)';
+  e.style.color='var(--ink)'; e.style.borderColor='var(--line)';
+  var w=$('wash');
+  w.style.transition='opacity '+(ms*1.4)+'ms cubic-bezier(.1,.7,.2,1)'; w.style.opacity='0';
+  if(!springs){ tr(e,ms*1.3,'cubic-bezier(.2,.8,.3,1)'); e.style.transform='none'; return; }
+  var amp=(5+11*p), d=ms||70, acc=0, sign=-1;
+  [1,.42,.16,0].forEach(function(f,idx){
+    var seg=d*(idx===0?1:0.62-0.12*idx);
+    setTimeout(function(){
+      tr(e,Math.max(50,seg),'cubic-bezier(.33,.9,.4,1)');
+      e.style.transform= f>0 ? 'translateX('+(sign*amp*f)+'px)' : 'none';
+      sign*=-1;
+    },acc);
+    acc+=Math.max(50,seg);
+  });
+}
+function supportLand(i,c){
+  var e=$('t'+i);
+  if(S.kind==='shield'){
+    var s=$('s'+i); fz(s); s.style.borderColor=c; s.style.transform='scale(1.25)'; s.style.opacity='0';
+    requestAnimationFrame(function(){ s.style.transition='all 260ms cubic-bezier(.15,.9,.3,1)';
+      s.style.opacity='.85'; s.style.transform='scale(1)'; });
+  } else if(S.kind==='buff'){
+    tr(e,200,'cubic-bezier(.15,.9,.3,1)');
+    e.style.transform='translateY(-7px) scale(1.05)'; e.style.borderColor=c;
+    setTimeout(function(){ tr(e,320); e.style.transform='none'; },220);
+  } else if(S.kind==='debuff'){
+    tr(e,240); e.style.transform='translateY(5px) scale(.95)';
+    e.style.opacity='.6'; e.style.borderColor=c;
+    setTimeout(function(){ tr(e,360); e.style.transform='none'; e.style.opacity='1'; },280);
+  } else if(S.kind==='heal'){
+    tr(e,200); e.style.borderColor=c; e.style.background='#243028';
+    setTimeout(function(){ tr(e,400); e.style.background='var(--raised)'; },240);
+  }
+}
+var ACT={x:64,y:129};
+function tgtPos(i){return {x:246,y:TOP[i]+28}}
+function tgtDist(i){var p=tgtPos(i);return Math.sqrt(Math.pow(p.x-ACT.x,2)+Math.pow(p.y-ACT.y,2))}
+
+function spawnGlyph(ti,c,delay,bloom){
+  setTimeout(function(){
+    var g=document.createElement('div'); g.className='orb tmp';
+    g.style.width='54px'; g.style.height='54px'; g.style.borderRadius='50%';
+    g.style.background='transparent'; g.style.border='2px solid '+c;
+    g.style.boxShadow='0 0 14px '+c;
+    g.style.left=(tgtPos(ti).x-27)+'px'; g.style.top=(tgtPos(ti).y-27)+'px';
+    g.style.opacity='0'; g.style.transform='scale(.22)';
+    $('stage').appendChild(g);
+    requestAnimationFrame(function(){
+      g.style.transition='all '+bloom+'ms cubic-bezier(.2,.9,.3,1)';
+      g.style.opacity='.9'; g.style.transform='scale(1.15)';
+    });
+    setTimeout(function(){ g.style.transition='opacity 140ms';
+      g.style.opacity='0'; setTimeout(function(){g.remove()},150); },bloom);
+  },delay);
+}
+function spawnOrb(ti,c,delay,flight){
+  setTimeout(function(){
+    var p=tgtPos(ti);
+    var o=document.createElement('div'); o.className='orb tmp';
+    o.style.background=c; o.style.boxShadow='0 0 10px '+c;
+    o.style.left=(ACT.x+42)+'px'; o.style.top=(ACT.y-6)+'px'; o.style.opacity='1';
+    $('stage').appendChild(o);
+    requestAnimationFrame(function(){
+      o.style.transition='all '+flight+'ms cubic-bezier(.42,0,.88,.5)';
+      o.style.left=(p.x-20)+'px'; o.style.top=(p.y-6)+'px';
+    });
+    setTimeout(function(){ o.remove(); },flight+20);
+  },delay);
+}
+
+/* returns [{ti, arrive}] — every damaged target gets something reaching it */
+function deliverGesture(tl){
+  var c=COL[S.elem], a=$('actor'), d=S.deliv, out=[];
+  if(d==='melee'){
+    var t=0;
+    tl.forEach(function(ti,k){
+      var p=tgtPos(ti), leg=k===0?95:85, start=t;
+      at(start,function(){
+        if(k===0) afterimages(p.x-ACT.x-22,p.y-ACT.y,2);
+        tr(a,leg,'cubic-bezier(.75,0,.9,.2)');
+        a.style.transform='translate('+(p.x-ACT.x-26)+'px,'+(p.y-ACT.y)+'px) scale(1.05)';
+      });
+      out.push({ti:ti,arrive:start+leg});
+      t=start+leg+(k<tl.length-1?55:0);
+    });
+  } else if(d==='cast'){
+    at(0,function(){ tr(a,80,'cubic-bezier(.7,0,.9,.2)');
+      a.style.transform='translateX(-12px) scale(1.05)'; });
+    tl.forEach(function(ti,k){
+      spawnGlyph(ti,c,40+k*70,150);
+      out.push({ti:ti,arrive:190+k*70});
+    });
+  } else if(d==='projectile'){
+    at(0,function(){ tr(a,70,'cubic-bezier(.7,0,.9,.2)');
+      a.style.transform='translateX(-16px)'; });
+    var far=Math.max.apply(null,tl.map(tgtDist));
+    tl.forEach(function(ti,k){
+      var fl=Math.round(120+90*(tgtDist(ti)/far));
+      spawnOrb(ti,c,k*45,fl);
+      out.push({ti:ti,arrive:k*45+fl});
+    });
+  } else if(d==='beam'){
+    at(0,function(){ tr(a,80); a.style.transform='translateX(-8px) scale(1.03)'; });
+    var b=$('beam');
+    tl.forEach(function(ti,k){
+      var p=tgtPos(ti), reach=k===0?130:95;
+      at(k*110,function(){
+        if(k===0){ fz(b); b.style.background=c; b.style.boxShadow='0 0 10px '+c;
+          b.style.top=(p.y-1)+'px'; b.style.width='0'; b.style.opacity='1';
+          requestAnimationFrame(function(){
+            b.style.transition='width '+reach+'ms cubic-bezier(.1,.9,.2,1)';
+            b.style.width='142px'; });
+        } else {
+          b.style.transition='top '+reach+'ms cubic-bezier(.3,.7,.3,1)';
+          b.style.top=(p.y-1)+'px';
+        }
+      });
+      out.push({ti:ti,arrive:k*110+reach});
+    });
+    at(tl.length*110+180,function(){ tr(b,140); b.style.opacity='0'; });
+  } else {
+    at(0,function(){ tr(a,80); a.style.transform='scale(1.07)';
+      var r=$('ring'); fz(r); r.style.borderColor=c;
+      r.style.width='0'; r.style.height='0'; r.style.opacity='.95';
+      requestAnimationFrame(function(){
+        r.style.transition='all 340ms cubic-bezier(.25,.8,.4,1)';
+        r.style.width='420px'; r.style.height='420px'; r.style.opacity='0'; });
+    });
+    tl.forEach(function(ti){
+      out.push({ti:ti,arrive:Math.round(60+340*(tgtDist(ti)/210))});
+    });
+  }
+  return out;
+}
+function gestureSpan(tl){
+  var g=deliverGestureDry(tl);
+  return Math.max.apply(null,g.map(function(x){return x.arrive}));
+}
+function deliverGestureDry(tl){
+  var d=S.deliv, out=[];
+  if(d==='melee'){ var t=0; tl.forEach(function(ti,k){ var leg=k===0?95:85;
+    out.push({ti:ti,arrive:t+leg}); t+=leg+(k<tl.length-1?55:0); }); }
+  else if(d==='cast'){ tl.forEach(function(ti,k){ out.push({ti:ti,arrive:190+k*70}) }); }
+  else if(d==='projectile'){ var far=Math.max.apply(null,tl.map(tgtDist));
+    tl.forEach(function(ti,k){ out.push({ti:ti,arrive:k*45+Math.round(120+90*(tgtDist(ti)/far))}) }); }
+  else if(d==='beam'){ tl.forEach(function(ti,k){ out.push({ti:ti,arrive:k*110+(k===0?130:95)}) }); }
+  else { tl.forEach(function(ti){ out.push({ti:ti,arrive:Math.round(60+340*(tgtDist(ti)/210))}) }); }
+  return out;
+}
+function afterimages(tx,ty,n){
+  for(var i=1;i<=n;i++)(function(k){ setTimeout(function(){
+    var g=document.createElement('div'); g.className='ai';
+    g.style.transform='translate('+(tx*k/(n+1))+'px,'+(ty*k/(n+1))+'px)';
+    g.style.opacity=String(.30-.05*k); $('stage').appendChild(g);
+    setTimeout(function(){ g.style.transition='opacity 160ms'; g.style.opacity='0';
+      setTimeout(function(){g.remove()},170); },40);
+  },k*14)})(i);
+}
+
+function run(after){
+  if(running) return; running=true;
+  var t=timing(), T=TIER[S.tier], a=$('actor'), tg=$('ptag'), c=COL[S.elem];
+  var tl=tlist(), p=P();
+  clr(); resetAll();
+  fz(a); a.style.transform='translateX(-140px)'; a.style.opacity='0'; a.style.boxShadow='none';
+  $('cap').textContent=S.kind+' \u00B7 '+S.deliv+' \u00B7 '+(t.n>1?t.n+' hits':'single');
+
+  var k=20;
+  at(k,function(){tg.textContent='enter';tr(a,t.enter,'cubic-bezier(.2,.9,.3,1)');
+    a.style.transform='none';a.style.opacity='1'});
+  k+=t.enter;
+  at(k,function(){tg.textContent='settle'});
+  k+=t.settle;
+  at(k,function(){tg.textContent='charge';
+    tr(a,t.charge,'cubic-bezier(.35,0,.65,1)');
+    a.style.transform=S.tier==='ult'?'rotateY(38deg) translateX(-16px)':
+      S.tier==='skill'?'scale(.84)':'translateX(-30px)';
+    a.style.boxShadow='0 0 '+(12+34*p)+'px '+(2+6*p)+'px '+c; });
+  k+=t.charge;
+
+  var acc=k;
+  for(var i=0;i<t.n;i++){(function(kk,base){
+    var last=kk===t.n-1;
+    var mul=(S.rhythm==='crescendo'&&last&&S.kind==='attack')?2.4:(last&&t.n>1?1.5:1);
+    var ip=Math.min(1,p*mul);
+    at(base,function(){
+      tg.textContent=t.n>1?('hit '+(kk+1)+'/'+t.n):'release';
+      a.style.boxShadow='none';
+      var arrivals = S.kind==='volley'
+        ? tl.map(function(ti,q){ var fl=Math.round(120+90*(tgtDist(ti)/210));
+            spawnOrb(ti,c,q*40,fl); return {ti:ti,arrive:q*40+fl}; })
+        : deliverGesture(tl);
+      arrivals.forEach(function(ar,idx){
+        setTimeout(function(){
+          if(idx===0) tg.textContent='contact';
+          var fo=S.scope==='cleave'&&idx>0?.6:1;
+          if(doesDamage()){
+            var d=Math.round(T.dmg*mul*fo);
+            impactHold(ar.ti,ip*fo,last); dmgBar(ar.ti,d,t.gDelay,t.gDrain); num(ar.ti,d,ip,c);
+            setTimeout(function(){ impactRelease(ar.ti,ip,t.RB||60); },t.HS);
+          } else if(S.kind==='heal'){
+            healBar(ar.ti,26,420); supportLand(ar.ti,c); num(ar.ti,'+26',ip,'#8FB878');
+          } else { supportLand(ar.ti,c); }
+        },ar.arrive);
+      });
+    });
+    at(base+t.tv+t.HS,function(){
+      tg.textContent='rebound';
+      if(!last){ tr(a,Math.max(60,t.G[kk]*.7),'cubic-bezier(.2,.8,.4,1)');
+        a.style.transform=S.deliv==='melee'?'translate(120px,0) scale(.97)':'translateX(-6px)'; }
+    });
+  })(i,acc); acc+=t.tv+t.HS+t.RB+t.G[i];}
+
+  at(acc,function(){ tg.textContent='resolve';
+    tr(a,Math.min(400,t.resolve*.5),'cubic-bezier(.2,.8,.4,1)'); a.style.transform='none'; });
+  at(acc+t.resolve,function(){ tg.textContent='beat'; });
+  at(acc+t.after,function(){ tg.textContent='exit';
+    tr(a,t.exit,'cubic-bezier(.6,0,.9,.2)');
+    a.style.transform='translateX(140px)'; a.style.opacity='0'; });
+  at(t.total+80,function(){
+    running=false; tg.textContent='idle';
+    if(after) after(); else if(looping){clr();run()}
+  });
+}
+
+var SEQ=[{tier:'basic',kind:'attack',rhythm:'single',scope:'single'},
+         {tier:'basic',kind:'attack',rhythm:'single',scope:'single'},
+         {tier:'skill',kind:'buff',  rhythm:'single',scope:'all'},
+         {tier:'skill',kind:'attack',rhythm:'even',  scope:'single'},
+         {tier:'ult',  kind:'attack',rhythm:'crescendo',scope:'all'}];
+function runSeq(i){
+  if(!seq||i>=SEQ.length){ seq=false; $('bSeq').textContent='Sequence'; return; }
+  Object.keys(SEQ[i]).forEach(function(k){S[k]=SEQ[i][k]});
+  syncSegs(); drawTL();
+  run(function(){ setTimeout(function(){runSeq(i+1)},120) });
+}
+function syncSegs(){
+  [['sKind','kind'],['sDeliv','deliv'],['sImp','imp'],['sRhythm','rhythm'],
+   ['sScope','scope'],['sElem','elem'],['sTier','tier']].forEach(function(pr){
+    $(pr[0]).querySelectorAll('button').forEach(function(b){
+      b.classList.toggle('on',b.dataset.v===S[pr[1]]); });
+  });
+}
+function seg(id,key){ $(id).onclick=function(e){
+  var b=e.target.closest('button'); if(!b) return;
+  this.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
+  b.classList.add('on'); S[key]=b.dataset.v; drawTL(); }; }
+seg('sKind','kind'); seg('sDeliv','deliv'); seg('sImp','imp'); seg('sRhythm','rhythm');
+seg('sScope','scope'); seg('sElem','elem'); seg('sTier','tier');
+[['rBeat','vBeat','ms'],['rSe','vSe','ms'],['rHs','vHs','ms'],['rRb','vRb','ms'],
+ ['rPu','vPu','%'],['rMg','vMg','ms'],['rDr','vDr','ms']].forEach(function(p){
+  $(p[0]).oninput=function(){$(p[1]).textContent=this.value+p[2];drawTL()};
+  $(p[1]).textContent=$(p[0]).value+p[2];
+});
+$('bOnce').onclick=function(){looping=false;seq=false;$('bLoop').textContent='Loop';
+  clr();running=false;run()};
+$('bLoop').onclick=function(){looping=!looping;seq=false;this.textContent=looping?'Stop':'Loop';
+  if(looping&&!running){clr();run()}};
+$('bSeq').onclick=function(){ if(seq){seq=false;this.textContent='Sequence';return}
+  seq=true;looping=false;$('bLoop').textContent='Loop';clr();running=false;
+  this.textContent='Stop';runSeq(0); };
+var BUDGET={actionMs:1200};
+function measure(kind,tier){
+  var save={kind:S.kind,tier:S.tier,rhythm:S.rhythm,scope:S.scope};
+  S.kind=kind; S.tier=tier;
+  if(tier==='basic'){S.rhythm='single'} if(tier==='skill'){S.rhythm='even'}
+  if(tier==='ult'){S.rhythm='crescendo'}
+  var ms=timingRaw().total;
+  S.kind=save.kind;S.tier=save.tier;S.rhythm=save.rhythm;S.scope=save.scope;
+  return ms;
+}
+function timingRaw(){ return timing(); }
+function drawBudget(){
+  var L=+$('rLen').value*1000, nc=+$('rCrew').value, nf=+$('rFoe').value;
+  var mix=+$('rMix').value/100, nu=+$('rUlt').value;
+  var mBasic=measure('attack','basic'), mSkill=measure('attack','skill'),
+      mUlt=measure('attack','ult');
+  var perCrew = mBasic*(1-mix) + mSkill*mix;
+  var perRound = perCrew*nc + mBasic*nf;
+  var ultCost = mUlt*nu;
+  var rounds = Math.max(1,(L-ultCost)/perRound);
+  var actions = Math.round(rounds*(nc+nf)+nu);
+  var crewActions = Math.round(rounds*nc);
+  var dmgPerAction = 34;
+  var hpPool = Math.round(crewActions*dmgPerAction);
+  var perFoe = Math.round(hpPool/nf);
+  var verdict = rounds<4 ? 'Too short &mdash; no room for a build to come online.'
+    : rounds>14 ? 'Too long &mdash; the middle will feel like filler.'
+    : 'Workable. A build has time to matter without outstaying it.';
+  $('budget').innerHTML=
+    'basic <b>'+Math.round(mBasic)+'ms</b> &middot; skill <b>'+Math.round(mSkill)+
+      'ms</b> &middot; ultimate <b>'+Math.round(mUlt)+'ms</b><br>'+
+    'round costs <b>'+(perRound/1000).toFixed(1)+'s</b> with '+nc+' crew and '+nf+' enemies<br>'+
+    'fits <b>'+rounds.toFixed(1)+' rounds</b>, about <b>'+actions+' actions</b><br>'+
+    'crew get <b>'+crewActions+' actions</b> &mdash; at 34 damage each that is '+
+      '<b>'+hpPool+' total health</b>, or <b>'+perFoe+'</b> per enemy<br>'+
+    '<span style="color:'+(rounds<4||rounds>14?'#E88':'#8FB878')+'">'+verdict+'</span>';
+}
+[['rLen','vLen','s'],['rCrew','vCrew',''],['rFoe','vFoe',''],
+ ['rMix','vMix','%'],['rUlt','vUlt','']].forEach(function(p){
+  $(p[0]).oninput=function(){$(p[1]).textContent=this.value+p[2];drawBudget()};
+  $(p[1]).textContent=$(p[0]).value+p[2];
+});
+resetAll(); drawTL(); drawBudget();
+</script>
+</body>
+</html>

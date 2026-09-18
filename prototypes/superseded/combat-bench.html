@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combat bench</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#DCE2E6; --panel:#EDF1F3; --panel2:#E3E9EC;
+  --ink:#1C2830; --muted:#62737E; --faint:#8B9AA3;
+  --rule:rgba(28,40,48,.16); --rule2:rgba(28,40,48,.30);
+  --ally:#1F6F8B; --foe:#8C3B2E; --ochre:#A87516; --olive:#4A6B3D; --good:#2F6B4F; --plum:#6B4A72;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  --cond:'Barlow Condensed',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--cond);font-size:16px;
+  background-image:linear-gradient(var(--rule) .5px,transparent .5px),linear-gradient(90deg,var(--rule) .5px,transparent .5px);
+  background-size:28px 28px;background-position:-1px -1px}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:26px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;margin:0}
+.sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.08em;margin:2px 0 0}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;
+  border-bottom:1.5px solid var(--rule2);padding-bottom:12px;margin-bottom:18px}
+.panel{background:var(--panel);border:.5px solid var(--rule2);padding:12px 14px;margin-bottom:14px}
+.lab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.lab em{font-style:normal;color:var(--faint);letter-spacing:.04em;text-transform:none;font-size:11px}
+select,button{font-family:var(--cond);font-size:15px;color:var(--ink);background:var(--panel2);
+  border:.5px solid var(--rule2);padding:6px 10px;cursor:pointer}
+button:hover:not(:disabled),select:hover{background:#fff}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible{outline:2px solid var(--ally);outline-offset:1px}
+.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.primary:hover:not(:disabled){background:#33454F}
+.chipbtn{font-size:13px;padding:3px 9px}
+.chipbtn.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.ribbon{display:flex;border:.5px solid var(--rule2);background:var(--panel);overflow:hidden}
+.chip{flex:1 1 0;min-width:0;padding:8px 6px;text-align:center;border-right:.5px solid var(--rule);
+  font-size:14px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip:last-child{border-right:0}
+.chip .n{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--faint);display:block}
+.chip.ally{color:var(--ally)}.chip.foe{color:var(--foe)}
+.chip.now{background:var(--ink);color:var(--panel)}.chip.now .n{color:rgba(255,255,255,.6)}
+.field{display:flex;flex-wrap:wrap;gap:8px}
+.foecard{flex:0 1 166px;background:var(--panel2);border:.5px solid var(--rule2);padding:8px 9px;position:relative;
+  transition:opacity .25s,filter .25s}
+.foecard.dead{opacity:.2;filter:grayscale(1)}
+.foecard.tgt{border:1.5px solid var(--foe);margin:-1px}
+.foecard.act{border:1.5px solid var(--ink);margin:-1px}
+.fname{font-size:15px;font-weight:500;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.tier{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.tier.boss,.tier.colossus{color:var(--foe)}
+.bar{height:7px;background:#D5DDE1;border:.5px solid var(--rule);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;transition:width .2s}
+.bar.hp i{background:var(--foe)}.bar.gd i{background:var(--ochre)}.bar.ap i{background:var(--ally)}
+.num{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;margin-top:2px}
+.tag{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  padding:1px 5px;border:.5px solid currentColor;margin-top:5px;margin-right:3px}
+.tag.brk{color:var(--ochre)}.tag.chg{color:var(--foe)}.tag.vln{color:var(--plum)}
+.pop{position:absolute;right:6px;top:-2px;font-family:var(--mono);font-size:18px;font-weight:500;pointer-events:none}
+.pop.dmg{color:var(--foe)}.pop.gd{color:var(--ochre)}.pop.st{color:var(--ally)}.pop.big{font-size:27px}
+@media (prefers-reduced-motion: no-preference){
+  .pop{animation:rise .7s ease-out forwards}
+  @keyframes rise{0%{opacity:0;transform:translateY(6px)}20%{opacity:1}100%{opacity:0;transform:translateY(-16px)}}
+  .foecard.hit{animation:shake .18s}
+  @keyframes shake{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.slot{background:var(--panel2);border:.5px solid var(--rule2);padding:8px;cursor:pointer;text-align:left;width:100%;
+  font-family:var(--cond);font-size:16px;display:block;color:var(--ink)}
+.slot:hover{background:#fff}
+.slot.pick{border:1.5px dashed var(--ally);margin:-1px;background:#fff}
+.slot.tgt{border:1.5px solid var(--foe);margin:-1px}
+.slot.act{border:1.5px solid var(--ink);margin:-1px}
+.slot .nm{font-size:16px;font-weight:500;display:block}
+.slot .nm.empty{color:var(--faint);font-weight:400}
+.meta{font-family:var(--mono);font-size:9.5px;color:var(--muted);letter-spacing:.05em;line-height:1.55;display:block}
+.slot .note{font-size:13.5px;color:var(--muted);line-height:1.25;min-height:2.4em;margin:2px 0}
+.slot select{width:100%;font-size:12px;padding:2px 4px;margin-top:4px}
+.rowlab{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);
+  text-align:center;margin:6px 0}
+.cols{display:grid;grid-template-columns:1fr 320px;gap:14px;align-items:start}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--panel2);padding:7px 9px;border:.5px solid var(--rule)}
+.stat b{display:block;font-family:var(--mono);font-size:17px;font-weight:500}
+.stat span{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.log{font-family:var(--mono);font-size:11.5px;line-height:1.75;color:var(--muted);max-height:250px;overflow:auto}
+.log div:last-child{color:var(--ink)}
+.log .br{color:var(--ochre)}.log .kl{color:var(--foe)}.log .sp{color:var(--olive)}.log .hl{color:var(--good)}
+.chk{font-family:var(--mono);font-size:11px;letter-spacing:.03em;padding:5px 0;border-bottom:.5px dotted var(--rule)}
+.chk:last-child{border-bottom:0}
+.ok{color:var(--good)}.no{color:var(--foe)}
+.syn{padding:6px 0;border-bottom:.5px dotted var(--rule)}
+.syn:last-child{border-bottom:0}
+.syn .sh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.syn .sn{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase}
+.syn .pips{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--faint)}
+.syn .pips b{color:var(--ink);font-weight:400}
+.syn .act{font-size:13.5px;line-height:1.3;color:var(--good);display:block;margin-top:1px}
+.syn .nxt{font-size:13px;line-height:1.3;color:var(--faint);display:block}
+.syn.off .sn{color:var(--faint)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint{font-size:14px;color:var(--muted);line-height:1.4;margin:8px 0 0}
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:8px}
+.rcard{background:var(--panel2);border:.5px solid var(--rule2);padding:9px 10px;cursor:pointer;text-align:left;
+  font-family:var(--cond);font-size:16px;color:var(--ink)}
+.rcard:hover{background:#fff;border-color:var(--ink)}
+.rcard.used{opacity:.42}
+.rcard .rn{font-size:17px;font-weight:500;display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.rcard .arch{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+.rcard .fn{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);display:block;margin-top:1px}
+.rcard .rnote{font-size:13.5px;color:var(--muted);line-height:1.3;margin-top:4px;min-height:2.6em}
+.rcard .rstat{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:4px;
+  border-top:.5px dotted var(--rule);padding-top:4px;display:flex;justify-content:space-between}
+.a-Burn{color:var(--foe)}.a-Shatter{color:var(--ochre)}.a-Reflect{color:var(--plum)}
+.a-Legion{color:var(--olive)}.a-Universal{color:var(--ally)}.a-Support{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>Combat bench</h1><p class="sub">DETERMINISTIC &middot; NO ART &middot; MECHANICS ONLY</p></div>
+  <div class="ctl">
+    <select id="preset" aria-label="Preset team"></select>
+    <select id="enc" aria-label="Encounter"></select>
+    <button class="primary" id="go">Run encounter</button>
+  </div>
+</header>
+
+<div class="panel">
+  <p class="lab"><span>Turn order &mdash; upcoming</span><em id="ordhint"></em></p>
+  <div class="ribbon" id="ribbon"></div>
+</div>
+
+<div class="panel">
+  <p class="lab">Hostiles</p>
+  <div class="field" id="field"></div>
+</div>
+
+<div class="cols">
+  <div>
+    <div class="panel">
+      <p class="lab"><span>Your formation</span><em id="slothint"></em></p>
+      <div class="grid" id="back"></div>
+      <p class="rowlab">back row &mdash; covered by the slot below it</p>
+      <div class="grid" id="front"></div>
+      <p class="rowlab">front row &mdash; highest exposure is targeted first</p>
+    </div>
+    <div class="panel">
+      <p class="lab">Event log</p>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <p class="lab">Readout</p>
+      <div class="stats" id="stats"></div>
+      <div class="ctl" style="margin-top:10px">
+        <button id="step">Step</button>
+        <button id="play">Watch</button>
+        <select id="speed" aria-label="Speed"><option value="900">slow</option><option value="520" selected>normal</option><option value="220">fast</option></select>
+        <button id="fin">Resolve</button>
+      </div>
+      <p class="hint" id="hint">Build a formation, then run an encounter.</p>
+    </div>
+    <div class="panel"><p class="lab"><span>Synergies</span><em id="synhint"></em></p><div id="check"></div></div>
+    <div class="panel"><p class="lab">Damage attribution</p><div id="attr" class="log" style="max-height:none"></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <p class="lab"><span>Roster</span><em id="filthint"></em></p>
+  <div class="ctl" id="filters" style="margin-bottom:10px"></div>
+  <div class="roster" id="roster"></div>
+</div>
+</div>
+
+<script>
+/* Combat simulation core. Deterministic. No DOM, no randomness. */
+
+const UNITS = {
+  Ember:       { arch:'Burn', fac:'Choir',    fn:'Enabler',   spd:105, hp:165, act:'apply',   ap:3.4,  note:'fast, light stacks' },
+  Ash:         { arch:'Burn', fac:'Wake',    fn:'Enabler',   spd:88,  hp:200, act:'apply',   ap:5.0,  note:'slow, heavy stacks' },
+  Bellows:     { arch:'Burn', fac:'Cipher',    fn:'Amplifier', spd:92,  hp:150, act:'channel', amp:1.6, chg:0, note:'all stacks x1.6' },
+  Cinder:      { arch:'Burn', fac:'Cipher',    fn:'Payoff',    spd:95,  hp:145, act:'jab',     pm:1.0,  note:'detonates on break' },
+  Pyre:        { arch:'Burn', fac:'Cipher',    fn:'Payoff',    spd:80,  hp:135, act:'jab',     pm:1.5,  note:'slower, bigger boom' },
+
+  Chisel:      { arch:'Shatter', fac:'Choir', fn:'Enabler',   spd:115, hp:170, act:'guard',   gd:12,   note:'fast guard chip' },
+  Piledriver:  { arch:'Shatter', fac:'Foundry', fn:'Enabler',   spd:72,  hp:285, act:'guard',   gd:26,   note:'slow sledge' },
+  Keystone:    { arch:'Shatter', fac:'Foundry', fn:'Amplifier', spd:90,  hp:180, act:'guard',   gd:8, kmp:1.4, note:'breaks hit 40% harder' },
+  Cleave:      { arch:'Shatter', fac:'Thorn', fn:'Payoff',    spd:84,  hp:190, act:'strike',  dmg:46, vsBroken:2.4, note:'extra instance vs broken' },
+
+  Goad:        { arch:'Reflect', fac:'Thorn', fn:'Enabler',   spd:70,  hp:400, act:'provoke', taunt:1, prov:16, note:'draws attacks while above 40% hp' },
+  Mirrorplate: { arch:'Reflect', fac:'Choir', fn:'Amplifier', spd:85,  hp:190, act:'channel', rmp:1.7, chg:18, note:'pool gain x1.7' },
+  Bulwark:     { arch:'Reflect', fac:'Thorn', fn:'Payoff',    spd:78,  hp:300, act:'reflect', rf:0.82,  note:'spends the whole pool' },
+
+  Warden:      { arch:'Legion', fac:'Wake',  fn:'Enabler',   spd:96,  hp:180, act:'summon',  cap:3,   note:'summons Echo tokens' },
+  Standard:    { arch:'Legion', fac:'Wake',  fn:'Amplifier', spd:88,  hp:175, act:'channel', tmp:1.8, chg:0, note:'tokens hit x1.8' },
+  Marshal:     { arch:'Legion', fac:'Cipher',  fn:'Payoff',    spd:82,  hp:200, act:'rally',   per:20,  note:'damage per living ally' },
+
+  Metronome:   { arch:'Support', fac:'Choir', fn:'Tempo',     spd:122, hp:130, act:'advance', adv:45,  note:'pushes one ally up the track' },
+
+  Verge:       { arch:'Universal', fac:'Foundry', fn:'Damage',    spd:92,  hp:190, act:'strike',  dmg:31, vsBroken:1, note:'plain damage, needs nothing' },
+  Tithe:       { arch:'Universal', fac:'Wake', fn:'Amplifier', spd:88,  hp:165, act:'bolster', dmul:1.15, note:'all allies deal +20%' },
+  Sable:       { arch:'Universal', fac:'Thorn', fn:'Debuff',    spd:100, hp:150, act:'mark',    vuln:3.5, note:'marked foe takes +30%' },
+  Salve:       { arch:'Universal', fac:'Wake', fn:'Sustain',   spd:95,  hp:170, act:'heal',    heal:52, note:'heals the weakest ally' },
+  Bastion:     { arch:'Universal', fac:'Foundry', fn:'Protector', spd:68,  hp:380, act:'brace',   taunt:1, dr:0.40, note:'takes every hit, at 45% off' },
+  Pace:        { arch:'Universal', fac:'Choir', fn:'Tempo',     spd:110, hp:145, act:'quicken', tadv:11, note:'nudges the whole team forward' },
+};
+
+const TOKEN = { name:'Echo', spd:100, hp:70, dmg:16, token:true };
+
+const TILES = {
+  None:     {},
+  Forge:    { gd:1.5,  desc:'guard damage +50%' },
+  Vent:     { ap:1.4,  desc:'stacks applied +40%' },
+  Crucible: { pm:1.5,  desc:'detonation +50%' },
+  Ridge:    { ex:-30,  desc:'exposure -30' },
+  Bluff:    { ex:40, all:1.25, desc:'exposure +40, all output +25%' },
+  Conduit:  { adj:1.2, desc:'row neighbours +20%' },
+};
+
+const FOES = {
+  mob:   { hp:180,  guard:26,  spd:112, atk:16, brk:2.5, label:'mob' },
+  elite: { hp:610,  guard:76,  spd:86,  atk:42, brk:3.5, label:'elite' },
+  boss:  { hp:2000, guard:150, spd:60,  atk:72, brk:4.5, label:'boss', chargeEvery:3, chargeMult:2.4 },
+  colossus:{ hp:5200, guard:250, spd:46, atk:178, brk:5.5, label:'colossus', chargeEvery:4, chargeMult:2.2 },
+};
+
+const ENCOUNTERS = {
+  'Mob spam':          { start:[['mob',6]], waves:[{ at:9, add:[['mob',3]] }] },
+  'Elite pair':        { start:[['elite',2]], waves:[] },
+  'Elites and mobs':   { start:[['elite',2],['mob',4]], waves:[] },
+  'Boss':              { start:[['boss',1]], waves:[] },
+  'Boss, elites, mobs':{ start:[['boss',1],['elite',1],['mob',3]], waves:[{ at:13, add:[['mob',2]] }] },
+  'Colossus':          { start:[['colossus',1]], waves:[] },
+};
+
+const FACTIONS = {
+  Foundry: { blurb:'heavy industry', tiers:[
+    { at:2, text:'guard damage +25%' }, { at:4, text:'breaks last 2s longer' }] },
+  Choir:   { blurb:'tempo and cadence', tiers:[
+    { at:2, text:'all allies +8 speed' }, { at:4, text:'+20 speed, everyone starts part-charged' }] },
+  Thorn:   { blurb:'retaliation', tiers:[
+    { at:2, text:'pool gain +25%' }, { at:4, text:'pool gain +60%, cap +140' }] },
+  Wake:    { blurb:'endurance', tiers:[
+    { at:2, text:'ally health +15%' }, { at:4, text:'health +30%, allies self-heal each action' }] },
+  Cipher:  { blurb:'precision', tiers:[
+    { at:2, text:'stacks applied +20%' }, { at:4, text:'stacks +45%, detonations splash' }] },
+};
+
+const ARCH_TIERS = {
+  Burn:    [{ at:2, text:'stacks +15%' }, { at:3, text:'detonations +30%' }, { at:4, text:'detonations +60%' }],
+  Shatter: [{ at:2, text:'guard damage +30%' }, { at:3, text:'broken foes take +15%' }, { at:4, text:'broken foes take +30%' }],
+  Reflect: [{ at:2, text:'pool cap +120' }, { at:3, text:'reflect +30%' }, { at:4, text:'reflect +60%' }],
+  Legion:  [{ at:2, text:'+1 token cap' }, { at:3, text:'tokens +50%' }, { at:4, text:'tokens +100%' }],
+};
+
+/* Universals have no archetype tier of their own. Each one counts as +1 toward
+   whichever archetype you already lean into hardest, which is what makes them glue. */
+function synergies(team){
+  const names = team.filter(Boolean);
+  const facCount = {}, archCount = {};
+  let wild = 0;
+  names.forEach(n => {
+    const u = UNITS[n];
+    if (u.fac) facCount[u.fac] = (facCount[u.fac] || 0) + 1;
+    if (u.arch === 'Universal' || u.arch === 'Support') wild++;
+    else archCount[u.arch] = (archCount[u.arch] || 0) + 1;
+  });
+  let lean = null;
+  Object.keys(archCount).forEach(a => { if (!lean || archCount[a] > archCount[lean]) lean = a; });
+  if (lean && wild) archCount[lean] += wild;
+
+  const b = { gd:1, ap:1, pm:1, pool:1, poolCap:0, spd:0, hp:1, tokenCap:0, tokenMul:1,
+              brokenMul:1, brkAdd:0, startAv:0, selfHeal:0, splash:0 };
+  const active = [];
+
+  Object.keys(facCount).forEach(f => {
+    const c = facCount[f];
+    FACTIONS[f].tiers.forEach(t => {
+      if (c < t.at) return;
+      active.push({ kind:'faction', name:f, at:t.at, text:t.text });
+      if (f === 'Foundry' && t.at === 2) b.gd *= 1.25;
+      if (f === 'Foundry' && t.at === 4) b.brkAdd += 2.0;
+      if (f === 'Choir'   && t.at === 2) b.spd += 8;
+      if (f === 'Choir'   && t.at === 4){ b.spd += 12; b.startAv = 35; }
+      if (f === 'Thorn'   && t.at === 2) b.pool *= 1.25;
+      if (f === 'Thorn'   && t.at === 4){ b.pool *= 1.28; b.poolCap += 140; }
+      if (f === 'Wake'    && t.at === 2) b.hp *= 1.15;
+      if (f === 'Wake'    && t.at === 4){ b.hp *= 1.13; b.selfHeal = 0.03; }
+      if (f === 'Cipher'  && t.at === 2) b.ap *= 1.20;
+      if (f === 'Cipher'  && t.at === 4){ b.ap *= 1.21; b.splash = 0.30; }
+    });
+  });
+
+  Object.keys(archCount).forEach(a => {
+    if (!ARCH_TIERS[a]) return;
+    const c = archCount[a];
+    ARCH_TIERS[a].forEach(t => {
+      if (c < t.at) return;
+      active.push({ kind:'archetype', name:a, at:t.at, text:t.text });
+      if (a === 'Burn'    && t.at === 2) b.ap *= 1.15;
+      if (a === 'Burn'    && t.at === 3) b.pm *= 1.30;
+      if (a === 'Burn'    && t.at === 4) b.pm *= 1.23;
+      if (a === 'Shatter' && t.at === 2) b.gd *= 1.30;
+      if (a === 'Shatter' && t.at === 3) b.brokenMul *= 1.15;
+      if (a === 'Shatter' && t.at === 4) b.brokenMul *= 1.13;
+      if (a === 'Reflect' && t.at === 2) b.poolCap += 120;
+      if (a === 'Reflect' && t.at === 3) b.pm *= 1.0, b.reflect = (b.reflect || 1) * 1.30;
+      if (a === 'Reflect' && t.at === 4) b.reflect = (b.reflect || 1) * 1.23;
+      if (a === 'Legion'  && t.at === 2) b.tokenCap += 1;
+      if (a === 'Legion'  && t.at === 3) b.tokenMul *= 1.50;
+      if (a === 'Legion'  && t.at === 4) b.tokenMul *= 1.33;
+    });
+  });
+  b.reflect = b.reflect || 1;
+  return { facCount, archCount, wild, lean, active, bonus:b };
+}
+
+const BACK = i => i < 3;
+
+function tileOf(slotTiles, i){ return TILES[slotTiles[i]] || {}; }
+
+function rowNeighbours(i){
+  const row = BACK(i) ? [0,1,2] : [3,4,5];
+  const p = row.indexOf(i);
+  return row.filter((_, k) => Math.abs(k - p) === 1);
+}
+
+function slotBoost(slotTiles, i){
+  let m = 1;
+  rowNeighbours(i).forEach(j => { const t = tileOf(slotTiles, j); if (t.adj) m *= t.adj; });
+  const own = tileOf(slotTiles, i);
+  if (own.all) m *= own.all;
+  return m;
+}
+
+function exposure(slots, slotTiles, i, deadNames){
+  const t = tileOf(slotTiles, i);
+  let e;
+  if (BACK(i)) {
+    const cover = slots[i + 3];
+    e = (cover && !deadNames.includes(cover)) ? 28 : 82;
+  } else e = 100;
+  return Math.max(0, e + (t.ex || 0));
+}
+
+function rowMods(i){
+  return BACK(i) ? { gd:0.6, ap:1.2, pm:1.6 } : { gd:1.5, ap:1.0, pm:0.75 };
+}
+
+/* Predict the next N actors without mutating anything. */
+function predictOrder(actors, n){
+  const clone = actors.filter(a => a.hp > 0).map(a => ({ id:a.id, name:a.name, side:a.side, av:a.av, spd:a.spd }));
+  const out = [];
+  for (let k = 0; k < n && clone.length; k++){
+    let best = clone[0], bt = (100 - best.av) / best.spd;
+    for (const c of clone){ const t = (100 - c.av) / c.spd; if (t < bt){ bt = t; best = c; } }
+    clone.forEach(c => c.av += c.spd * bt);
+    best.av -= 100;
+    out.push({ id:best.id, name:best.name, side:best.side });
+  }
+  return out;
+}
+
+function runFight(team, slotTiles, encounterKey){
+  const enc = ENCOUNTERS[encounterKey];
+  const syn = synergies(team);
+  const B = syn.bonus;
+  const events = [];
+  let t = 0, steps = 0, pool = 0, nextId = 1;
+  const POOL_CAP = 260 + B.poolCap;
+  const damageBy = {};
+
+  const allies = [];
+  team.forEach((name, i) => {
+    if (!name) return;
+    const u = UNITS[name];
+    const mh = Math.round(u.hp * B.hp);
+    allies.push({ id:'a' + (nextId++), name, side:'ally', slot:i, hp:mh, max:mh, av:B.startAv, spd:u.spd + B.spd, u });
+    damageBy[name] = 0;
+  });
+
+  const enemies = [];
+  function spawn(tier, count, stagger){
+    for (let k = 0; k < count; k++){
+      const f = FOES[tier];
+      enemies.push({
+        id:'e' + (nextId++), name:f.label + ' ' + (enemies.length + 1), side:'foe', tier,
+        hp:f.hp, max:f.hp, guard:f.guard, maxGuard:f.guard, broken:0, vuln:0, stacks:0,
+        av: stagger ? -(k * 18) : 0, spd:f.spd, atk:f.atk, f, charge:0, fresh:true,
+      });
+    }
+  }
+  enc.start.forEach(([tier, n]) => spawn(tier, n, true));
+  const waves = enc.waves.map(w => ({ ...w, done:false }));
+
+  const liveAllies = () => allies.filter(a => a.hp > 0);
+  const liveFoes = () => enemies.filter(e => e.hp > 0);
+  const deadNames = () => allies.filter(a => a.hp <= 0).map(a => a.name);
+  const tokens = () => allies.filter(a => a.u.token);
+  const ampBurn = () => liveAllies().reduce((m, a) => a.u.amp ? m * a.u.amp : m, 1);
+  const ampBreak = () => liveAllies().reduce((m, a) => a.u.kmp ? m * a.u.kmp : m, 1);
+  const ampPool = () => liveAllies().reduce((m, a) => a.u.rmp ? m * a.u.rmp : m, 1);
+  const ampToken = () => liveAllies().reduce((m, a) => a.u.tmp ? m * a.u.tmp : m, 1);
+  const ampAll   = () => liveAllies().reduce((m, a) => a.u.dmul ? m * a.u.dmul : m, 1);
+
+  function snap(log, actorId, targetId, fx){
+    events.push({
+      t:+t.toFixed(1), log, actorId:actorId || null, targetId:targetId || null, fx:fx || null, pool:Math.round(pool),
+      allies:allies.map(a => ({ id:a.id, name:a.name, slot:a.slot, hp:Math.max(0, Math.round(a.hp)), max:a.max, token:!!a.u.token })),
+      enemies:enemies.map(e => ({ id:e.id, name:e.name, tier:e.tier, hp:Math.max(0, Math.round(e.hp)), max:e.max,
+        guard:Math.max(0, Math.round(e.guard)), maxGuard:e.maxGuard, broken:+e.broken.toFixed(1), vuln:+e.vuln.toFixed(1), stacks:+e.stacks.toFixed(1),
+        charging: e.f.chargeEvery ? (e.f.chargeEvery - 1 - (e.charge % e.f.chargeEvery)) : null })),
+      order:predictOrder([...allies, ...enemies], 9),
+    });
+  }
+
+  function hurt(foe, amount, byName){
+    const mult = (foe.broken > 0 ? 1.3 * B.brokenMul : 1) * (foe.vuln > 0 ? 1.25 : 1) * ampAll();
+    const dealt = amount * mult;
+    foe.hp -= dealt;
+    if (byName && damageBy[byName] !== undefined) damageBy[byName] += dealt;
+    return Math.round(dealt);
+  }
+
+  function detonate(foe, cause){
+    const payoffs = liveAllies().filter(a => a.u.pm);
+    let total = 0;
+    payoffs.forEach(p => {
+      const rm = rowMods(p.slot), ti = tileOf(slotTiles, p.slot);
+      const d = foe.stacks * p.u.pm * rm.pm * (ti.pm || 1) * ampBreak() * slotBoost(slotTiles, p.slot) * B.pm * 10;
+      total += hurt(foe, d, p.name);
+    });
+    if (!payoffs.length && foe.stacks > 0){
+      // Baseline burn-off. A team with no payoff is weak, not broken.
+      total += hurt(foe, foe.stacks * 3, null);
+    }
+    if (B.splash && total > 0){
+      const other = liveFoes().filter(e => e !== foe).sort((a, b) => b.max - a.max)[0];
+      if (other) hurt(other, total * B.splash, null);
+    }
+    const had = foe.stacks;
+    foe.stacks = 0;
+    return { total, had, none: payoffs.length === 0, cause };
+  }
+
+  function pickTarget(kind){
+    const fs = liveFoes();
+    if (!fs.length) return null;
+    if (kind === 'guard')   return fs.filter(e => e.broken <= 0).sort((a,b) => a.guard - b.guard)[0] || fs[0];
+    if (kind === 'stacks')  return fs.slice().sort((a,b) => b.stacks - a.stacks)[0];
+    if (kind === 'broken')  return fs.filter(e => e.broken > 0).sort((a,b) => b.max - a.max)[0] || fs.slice().sort((a,b) => b.max - a.max)[0];
+    if (kind === 'finish')  return fs.slice().sort((a,b) => a.hp - b.hp)[0];
+    return fs.slice().sort((a,b) => b.max - a.max)[0];
+  }
+
+  snap('Encounter: ' + encounterKey + ' — ' + enemies.length + ' hostiles', null, null, null);
+
+  while (liveFoes().length && liveAllies().length && steps < 420 && t < 46){
+    const pool_actors = [...liveAllies(), ...liveFoes()];
+    let nx = pool_actors[0], nt = (100 - nx.av) / nx.spd;
+    for (const c of pool_actors){ const ct = (100 - c.av) / c.spd; if (ct < nt){ nt = ct; nx = c; } }
+    t += nt; steps++;
+    pool_actors.forEach(c => c.av += c.spd * nt);
+    liveFoes().forEach(e => {
+      if (e.broken > 0) e.broken = Math.max(0, e.broken - nt);
+      if (e.vuln   > 0) e.vuln   = Math.max(0, e.vuln   - nt);
+    });
+    nx.av -= 100;
+
+    for (const w of waves){
+      if (!w.done && t >= w.at){
+        w.done = true;
+        w.add.forEach(([tier, n]) => spawn(tier, n, true));
+        snap('Reinforcements arrive — ' + w.add.map(a => a[1] + ' ' + a[0]).join(', '), null, null, { kind:'spawn' });
+      }
+    }
+
+    if (nx.side === 'foe'){
+      const f = nx;
+      f.charge++;
+      const isCharged = f.f.chargeEvery && f.charge % f.f.chargeEvery === 0;
+      const atk = Math.round(f.atk * (isCharged ? f.f.chargeMult : 1));
+      const dn = deadNames();
+      const taunts = liveAllies().filter(a => a.u.taunt && a.hp > a.max * 0.4);
+
+      if (isCharged){
+        liveAllies().forEach(a => { a.hp -= atk * 0.6; });
+        pool = Math.min(POOL_CAP, pool + (16 + atk * 0.6) * ampPool() * B.pool);
+        const downed = allies.filter(a => a.hp <= 0 && !dn.includes(a.name)).map(a => a.name);
+        snap(f.name + ' unleashes a charged strike — ' + Math.round(atk * 0.6) + ' to everyone' + (downed.length ? '. ' + downed.join(', ') + ' down' : ''),
+             f.id, null, { kind:'aoe', amount:Math.round(atk * 0.6) });
+      } else {
+        const tgt = taunts.length ? taunts[0]
+          : liveAllies().reduce((p, c) => {
+              const ce = exposure(team, slotTiles, c.slot, dn), pe = exposure(team, slotTiles, p.slot, dn);
+              return (ce > pe || (ce === pe && c.hp < p.hp)) ? c : p;
+            });
+        const taken = Math.round(atk * (1 - (tgt.u.dr || 0)));
+        tgt.hp -= taken;
+        pool = Math.min(POOL_CAP, pool + (16 + atk * 0.6) * ampPool() * B.pool);
+        snap(f.name + ' hits ' + tgt.name + ' for ' + taken + (tgt.u.dr ? ' (braced)' : '') + (tgt.hp <= 0 ? ' — ' + tgt.name + ' is down' : ''),
+             f.id, tgt.id, { kind:'hit', amount:taken, on:tgt.id });
+      }
+      continue;
+    }
+
+    const a = nx, u = a.u, rm = rowMods(a.slot), ti = tileOf(slotTiles, a.slot), bo = slotBoost(slotTiles, a.slot);
+    let broke = null;
+
+    // Baseline contribution. Every ally chips guard and applies a trickle of stacks,
+    // so a missing role slows you down instead of switching you off.
+    if (!u.token){
+      const bt = pickTarget('guard');
+      if (bt){
+        bt.guard -= 1.0 * B.gd;
+        bt.stacks += 0.22 * B.ap;
+        if (bt.guard <= 0 && bt.broken <= 0) broke = bt;
+      }
+      if (B.selfHeal) a.hp = Math.min(a.max, a.hp + a.max * B.selfHeal);
+    }
+
+    if (u.token){
+      const tg = pickTarget('finish');
+      if (tg){ const d = hurt(tg, u.dmg * ampToken() * B.tokenMul, 'Echo'); snap(a.name + ' strikes ' + tg.name + ' for ' + d, a.id, tg.id, { kind:'dmg', amount:d, on:tg.id }); }
+      else snap(a.name + ' idles', a.id, null, null);
+
+    } else if (u.act === 'apply'){
+      const tg = pickTarget('big');
+      const s = u.ap * rm.ap * (ti.ap || 1) * ampBurn() * bo * B.ap;
+      tg.stacks += s;
+      snap(a.name + ' applies ' + s.toFixed(1) + ' stacks to ' + tg.name, a.id, tg.id, { kind:'stack', amount:+s.toFixed(1), on:tg.id });
+
+    } else if (u.act === 'guard'){
+      const tg = pickTarget('guard');
+      const d = u.gd * rm.gd * (ti.gd || 1) * bo * B.gd;
+      tg.guard -= d;
+      snap(a.name + ' hits ' + tg.name + ' guard for ' + Math.round(d), a.id, tg.id, { kind:'guard', amount:Math.round(d), on:tg.id });
+      if (tg.guard <= 0 && tg.broken <= 0) broke = tg;
+
+    } else if (u.act === 'strike'){
+      const tg = pickTarget('broken');
+      let d = hurt(tg, u.dmg * bo, a.name);
+      let extra = 0;
+      if (tg.broken > 0) extra = hurt(tg, u.dmg * (u.vsBroken - 1) * bo, a.name);
+      snap(a.name + ' strikes ' + tg.name + ' for ' + d + (extra ? ' + ' + extra + ' on the broken target' : ''),
+           a.id, tg.id, { kind:'dmg', amount:d + extra, on:tg.id });
+
+    } else if (u.act === 'jab'){
+      const tg = pickTarget('stacks');
+      const d = hurt(tg, 14 * rm.pm * bo, a.name);
+      snap(a.name + ' jabs ' + tg.name + ' for ' + d, a.id, tg.id, { kind:'dmg', amount:d, on:tg.id });
+
+    } else if (u.act === 'reflect'){
+      if (pool > 0){
+        const tg = pickTarget('big');
+        const d = hurt(tg, pool * u.rf * bo * B.reflect, a.name);
+        pool = 0;
+        snap(a.name + ' reflects the pool into ' + tg.name + ' for ' + d, a.id, tg.id, { kind:'dmg', amount:d, on:tg.id });
+      } else snap(a.name + ' waits — the pool is empty', a.id, null, null);
+
+    } else if (u.act === 'provoke'){
+      pool = Math.min(POOL_CAP, pool + u.prov * ampPool() * B.pool);
+      snap(a.name + ' provokes — pool +' + Math.round(u.prov * ampPool()), a.id, null, { kind:'pool' });
+
+    } else if (u.act === 'channel'){
+      if (u.chg){ pool = Math.min(POOL_CAP, pool + u.chg); snap(a.name + ' channels — pool +' + u.chg, a.id, null, { kind:'pool' }); }
+      else snap(a.name + ' holds the line', a.id, null, null);
+
+    } else if (u.act === 'summon'){
+      if (tokens().length < u.cap + B.tokenCap){
+        const tk = { id:'a' + (nextId++), name:'Echo ' + (tokens().length + 1), side:'ally', slot:a.slot,
+                     hp:Math.round(TOKEN.hp * B.hp), max:Math.round(TOKEN.hp * B.hp), av:40, spd:TOKEN.spd + B.spd, u:{ ...TOKEN } };
+        allies.push(tk);
+        if (damageBy['Echo'] === undefined) damageBy['Echo'] = 0;
+        snap(a.name + ' summons ' + tk.name, a.id, null, { kind:'summon' });
+      } else {
+        const tg = pickTarget('finish');
+        const d = hurt(tg, 18 * bo, a.name);
+        snap(a.name + ' is at token cap and attacks for ' + d, a.id, tg.id, { kind:'dmg', amount:d, on:tg.id });
+      }
+
+    } else if (u.act === 'rally'){
+      const tg = pickTarget('big');
+      const n = liveAllies().length;
+      const d = hurt(tg, u.per * n * bo, a.name);
+      snap(a.name + ' rallies ' + n + ' allies for ' + d, a.id, tg.id, { kind:'dmg', amount:d, on:tg.id });
+
+    } else if (u.act === 'bolster'){
+      snap(a.name + ' bolsters the line — all allies at +' + Math.round((u.dmul - 1) * 100) + '%', a.id, null, { kind:'buff' });
+
+    } else if (u.act === 'mark'){
+      const tg = pickTarget('big');
+      tg.vuln = u.vuln;
+      snap(a.name + ' marks ' + tg.name + ' — takes +25% for ' + u.vuln + 's', a.id, tg.id, { kind:'mark', on:tg.id });
+
+    } else if (u.act === 'heal'){
+      const hurtAllies = liveAllies().filter(x => x.hp < x.max);
+      if (hurtAllies.length){
+        const q = hurtAllies.reduce((p, c) => (c.hp / c.max) < (p.hp / p.max) ? c : p);
+        const amt = Math.min(u.heal * bo, q.max - q.hp);
+        q.hp += amt;
+        snap(a.name + ' mends ' + q.name + ' for ' + Math.round(amt), a.id, q.id, { kind:'heal', amount:Math.round(amt) });
+      } else snap(a.name + ' stands ready, nobody hurt', a.id, null, null);
+
+    } else if (u.act === 'brace'){
+      const tg = pickTarget('finish');
+      if (tg){ const d = hurt(tg, 16 * bo, a.name); snap(a.name + ' braces and swings for ' + d, a.id, tg.id, { kind:'dmg', amount:d, on:tg.id }); }
+      else snap(a.name + ' braces', a.id, null, null);
+
+    } else if (u.act === 'quicken'){
+      liveAllies().forEach(x => { if (x !== a) x.av += u.tadv; });
+      snap(a.name + ' quickens the team — everyone +' + u.tadv, a.id, null, { kind:'advance' });
+
+    } else if (u.act === 'advance'){
+      const cand = liveAllies().filter(x => x !== a && !x.u.token && x.u.act !== 'channel');
+      if (cand.length){
+        const q = cand.reduce((p, c) => c.av > p.av ? c : p);
+        q.av += u.adv;
+        snap(a.name + ' advances ' + q.name + ' up the track', a.id, q.id, { kind:'advance' });
+      } else snap(a.name + ' idles', a.id, null, null);
+    }
+
+    if (broke){
+      broke.av -= 130;
+      broke.broken = broke.f.brk + B.brkAdd;
+      const r = detonate(broke, 'break');
+      broke.guard = broke.maxGuard;
+      snap('BREAK on ' + broke.name + ' — ' + r.had.toFixed(1) + ' stacks detonate for ' + Math.round(r.total) +
+           (r.none ? ' (nobody can detonate)' : ''), a.id, broke.id, { kind:'break', amount:Math.round(r.total), on:broke.id });
+    }
+
+    const killed = enemies.filter(e => e.hp <= 0 && !e.logged);
+    killed.forEach(e => { e.logged = true; });
+    if (killed.length) snap(killed.map(e => e.name).join(', ') + ' destroyed', null, null, { kind:'death' });
+  }
+
+  const win = liveFoes().length === 0;
+  snap(win ? 'Victory' : (liveAllies().length ? 'Time expired — hostiles remain' : 'Party wiped'), null, null, { kind:win ? 'win' : 'lose' });
+  return { win, events, damageBy, turns:steps };
+}
+
+
+
+</script>
+<script>
+const PRESETS = {
+  'Burn detonation':   ['Bellows','Cinder','Ash','Bastion','Piledriver','Salve'],
+  'Shatter cleave':    ['Keystone','Cinder','Tithe','Bastion','Chisel','Cleave'],
+  'Reflect thorns':    ['Mirrorplate','Bulwark','Standard','Goad','Warden','Marshal'],
+  'Legion tokens':     ['Standard','Marshal','Tithe','Bastion','Warden','Pace'],
+  'All universal':     ['Tithe','Verge','Sable','Bastion','Salve','Pace'],
+  'No payoff (fails)': ['Ember','Ash','Bellows','Piledriver','Chisel','Keystone'],
+  'Mono Thorn':        ['Bulwark','Sable','Goad','Cleave','Tithe','Salve'],
+  'Mono Foundry':      ['Piledriver','Keystone','Bastion','Verge','Cinder','Bellows'],
+  'Split 3+3':         ['Piledriver','Keystone','Bulwark','Goad','Cinder','Bellows'],
+  'Empty':             [null,null,null,null,null,null],
+};
+let team = PRESETS['Burn detonation'].slice();
+let tiles = ['None','Crucible','None','Forge','Vent','None'];
+let res = null, k = 0, timer = null, pick = null, filter = 'All';
+
+const $ = id => document.getElementById(id);
+Object.keys(ENCOUNTERS).forEach(n => $('enc').add(new Option(n, n)));
+$('enc').value = 'Elites and mobs';
+Object.keys(PRESETS).forEach(n => $('preset').add(new Option(n, n)));
+
+function stop(){ if (timer){ clearInterval(timer); timer = null; } $('play').textContent = 'Watch'; }
+function reset(){ stop(); res = null; k = 0; renderAll(); }
+function exposureAt(i){
+  const dead = res ? res.events[k].allies.filter(a => a.hp <= 0).map(a => a.name) : [];
+  return exposure(team, tiles, i, dead);
+}
+function assign(name){
+  let slot = pick;
+  if (slot === null){ slot = team.indexOf(null); if (slot < 0) return; }
+  const j = team.indexOf(name);
+  if (j >= 0) team[j] = team[slot];
+  team[slot] = name;
+  pick = null; reset();
+}
+
+function buildSlots(){
+  [['back',[0,1,2]],['front',[3,4,5]]].forEach(function(pair){
+    var id = pair[0], idx = pair[1];
+    $(id).innerHTML = idx.map(function(i){
+      var n = team[i], u = n ? UNITS[n] : null;
+      var ev = res ? res.events[k] : null;
+      var me = (ev && n) ? ev.allies.filter(function(a){return a.name===n})[0] : null;
+      var cls = [(pick===i?'pick':''), (ev&&me&&ev.actorId===me.id?'act':''), (ev&&me&&ev.targetId===me.id?'tgt':'')].join(' ');
+      var t = TILES[tiles[i]];
+      return '<button class="slot '+cls+'" data-i="'+i+'">'
+        +'<span class="nm '+(u?'':'empty')+'">'+(n||'empty slot')+'</span>'
+        +'<span class="meta a-'+(u?u.arch:'Support')+'">'+(u?(u.arch.toUpperCase()+' \u00b7 '+u.fac.toUpperCase()):'tap to select')+'</span>'
+        +'<div class="note">'+(u?u.note:'')+'</div>'
+        +'<span class="meta">exp '+exposureAt(i)+(u?(' \u00b7 spd '+u.spd+' \u00b7 '+(me?me.hp+'/'+me.max:u.hp)+' hp'):'')+'</span>'
+        +'<select data-t="'+i+'" onclick="event.stopPropagation()">'
+        + Object.keys(TILES).map(function(x){return '<option '+(x===tiles[i]?'selected':'')+'>'+x+'</option>'}).join('')
+        +'</select><span class="meta">'+(t.desc||'plain ground')+'</span></button>';
+    }).join('');
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.slot'), function(b){
+    b.onclick = function(){
+      var i = +b.dataset.i;
+      if (pick === i){ team[i] = null; pick = null; reset(); return; }
+      pick = i; renderAll();
+    };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function(s){
+    s.onchange = function(e){ tiles[+e.target.dataset.t] = e.target.value; reset(); };
+  });
+  $('slothint').textContent = pick === null
+    ? 'tap a slot, then pick a unit below'
+    : 'slot selected \u2014 pick a unit, or tap the slot again to clear it';
+}
+
+function buildRoster(){
+  var archs = ['All']
+    .concat(Object.keys(UNITS).map(function(n){return UNITS[n].arch}).filter(function(v,i,a){return a.indexOf(v)===i}))
+    .concat(Object.keys(FACTIONS));
+  $('filters').innerHTML = archs.map(function(a){
+    return '<button class="chipbtn '+(filter===a?'on':'')+'" data-f="'+a+'">'+a+'</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-f]'), function(b){
+    b.onclick = function(){ filter = b.dataset.f; renderAll(); };
+  });
+  var list = Object.keys(UNITS).filter(function(n){
+    return filter==='All' || UNITS[n].arch===filter || UNITS[n].fac===filter; });
+  $('roster').innerHTML = list.map(function(n){
+    var u = UNITS[n], used = team.indexOf(n) >= 0;
+    return '<button class="rcard '+(used?'used':'')+'" data-u="'+n+'">'
+      +'<span class="rn"><span>'+n+'</span><span class="arch a-'+u.arch+'">'+u.arch+'</span></span>'
+      +'<span class="fn">'+u.fac+' \u00b7 '+u.fn+'</span>'
+      +'<div class="rnote">'+u.note+'</div>'
+      +'<div class="rstat"><span>spd '+u.spd+'</span><span>'+u.hp+' hp</span><span>'+(used?'in team':'available')+'</span></div>'
+      +'</button>';
+  }).join('');
+  Array.prototype.forEach.call(document.querySelectorAll('[data-u]'), function(b){
+    b.onclick = function(){ assign(b.dataset.u); };
+  });
+  $('filthint').textContent = list.length + ' units \u00b7 flex units count toward whichever type you lean into';
+}
+
+function buildCheck(){
+  var sy = synergies(team);
+  var rows = [];
+  function block(kind, name, count, tiers, blurb){
+    var hi = 0, act = '', nxt = '';
+    tiers.forEach(function(t){ if (count >= t.at){ hi = t.at; act = t.text; } });
+    var pending = tiers.filter(function(t){ return count < t.at; })[0];
+    if (pending) nxt = 'at ' + pending.at + ': ' + pending.text;
+    var top = tiers[tiers.length - 1].at;
+    var pips = '';
+    for (var i = 1; i <= top; i++) pips += (i <= count ? '<b>\u25cf</b>' : '\u25cb');
+    if (count > top) pips += '<b>+' + (count - top) + '</b>';
+    rows.push('<div class="syn ' + (hi ? '' : 'off') + '">'
+      + '<div class="sh"><span class="sn a-' + (kind === 'arch' ? name : 'Universal') + '">' + name + '</span>'
+      + '<span class="pips">' + pips + '</span></div>'
+      + (act ? '<span class="act">' + act + '</span>' : '')
+      + (nxt ? '<span class="nxt">' + nxt + '</span>' : '')
+      + '</div>');
+  }
+  Object.keys(sy.archCount).sort(function(a,b){return sy.archCount[b]-sy.archCount[a]}).forEach(function(a){
+    if (ARCH_TIERS[a]) block('arch', a, sy.archCount[a], ARCH_TIERS[a]);
+  });
+  Object.keys(sy.facCount).sort(function(a,b){return sy.facCount[b]-sy.facCount[a]}).forEach(function(f){
+    block('fac', f, sy.facCount[f], FACTIONS[f].tiers);
+  });
+  $('check').innerHTML = rows.length ? rows.join('') : '<div class="syn off">no units placed</div>';
+  $('synhint').textContent = sy.wild
+    ? sy.wild + ' flex \u2192 ' + (sy.lean || 'nothing yet')
+    : 'two axes: type and faction';
+}
+
+function buildRibbon(){
+  var r = $('ribbon');
+  if (!res){ r.innerHTML = '<div class="chip"><span class="n">idle</span>\u2014</div>'; $('ordhint').textContent=''; return; }
+  var ev = res.events[k];
+  var all = ev.allies.concat(ev.enemies);
+  var cur = all.filter(function(x){return x.id===ev.actorId})[0];
+  var h = cur ? '<div class="chip now"><span class="n">acting</span>'+cur.name+'</div>' : '';
+  h += ev.order.slice(0, cur?8:9).map(function(o,i){
+    return '<div class="chip '+o.side+'"><span class="n">'+(i===0?'next':'+'+(i+1))+'</span>'+o.name+'</div>';
+  }).join('');
+  r.innerHTML = h;
+  $('ordhint').textContent = 'breaks and advances reshuffle this';
+}
+
+function buildField(){
+  var f = $('field');
+  if (!res){ f.innerHTML = '<p class="hint">No encounter running.</p>'; return; }
+  var ev = res.events[k];
+  f.innerHTML = ev.enemies.map(function(e){
+    var dead = e.hp <= 0, hit = ev.fx && ev.fx.on === e.id, pop = '';
+    if (hit && ev.fx.amount != null){
+      var kind = ev.fx.kind;
+      var cls = kind==='guard' ? 'gd' : kind==='stack' ? 'st' : 'dmg';
+      pop = '<span class="pop '+cls+(kind==='break'?' big':'')+'">'+(kind==='stack'?'+':'')+ev.fx.amount+'</span>';
+    }
+    return '<div class="foecard '+(dead?'dead':'')+' '+(ev.targetId===e.id?'tgt':'')+' '+(ev.actorId===e.id?'act':'')+' '+(hit&&!dead?'hit':'')+'">'
+      + pop
+      + '<div class="fname"><span>'+e.name+'</span><span class="tier '+e.tier+'">'+e.tier+'</span></div>'
+      + '<div class="bar hp"><i style="width:'+Math.max(0,e.hp/e.max*100)+'%"></i></div>'
+      + '<div class="num"><span>hp</span><span>'+e.hp+'</span></div>'
+      + '<div class="bar gd"><i style="width:'+Math.max(0,e.guard/e.maxGuard*100)+'%"></i></div>'
+      + '<div class="num"><span>guard</span><span>'+e.guard+'</span></div>'
+      + (e.stacks>0 ? '<div class="bar ap"><i style="width:'+Math.min(100,e.stacks*2)+'%"></i></div><div class="num"><span>stacks</span><span>'+e.stacks+'</span></div>' : '')
+      + (e.broken>0 ? '<span class="tag brk">broken '+e.broken+'</span>' : '')
+      + (e.vuln>0 ? '<span class="tag vln">marked</span>' : '')
+      + (e.charging===0 ? '<span class="tag chg">charging</span>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function buildStats(){
+  var s = $('stats');
+  if (!res){
+    s.innerHTML = ['time','pool','hostiles','result'].map(function(l){
+      return '<div class="stat"><b>\u2014</b><span>'+l+'</span></div>'; }).join('');
+    return;
+  }
+  var ev = res.events[k], last = k >= res.events.length - 1;
+  s.innerHTML = '<div class="stat"><b>'+ev.t+'</b><span>time</span></div>'
+    + '<div class="stat"><b>'+ev.pool+'</b><span>pool</span></div>'
+    + '<div class="stat"><b>'+ev.enemies.filter(function(e){return e.hp>0}).length+'</b><span>hostiles</span></div>'
+    + '<div class="stat"><b style="color:'+(last?(res.win?'var(--good)':'var(--foe)'):'inherit')+'">'
+    + (last?(res.win?'WIN':'LOSS'):(k+1)+'/'+res.events.length)+'</b><span>'+(last?'result':'event')+'</span></div>';
+}
+
+function buildLog(){
+  var l = $('log');
+  if (!res){ l.innerHTML = '<div style="color:var(--faint)">no fight yet</div>'; return; }
+  l.innerHTML = res.events.slice(0, k+1).slice(-70).map(function(e){
+    var c = /^BREAK/.test(e.log) ? 'br' : /destroyed|down|wiped/.test(e.log) ? 'kl'
+          : /Reinforcements|summons/.test(e.log) ? 'sp'
+          : /mends|bolsters|quickens|marks/.test(e.log) ? 'hl' : '';
+    return '<div class="'+c+'">'+String(e.t).padStart(5,'\u00a0')+' '+e.log+'</div>';
+  }).join('');
+  l.scrollTop = l.scrollHeight;
+}
+
+function buildAttr(){
+  var a = $('attr');
+  if (!res || k < res.events.length - 1){ a.innerHTML = '<div style="color:var(--faint)">available when the fight resolves</div>'; return; }
+  var d = Object.keys(res.damageBy).map(function(n){return [n,res.damageBy[n]]})
+            .filter(function(x){return x[1]>0}).sort(function(x,y){return y[1]-x[1]});
+  var tot = d.reduce(function(s,x){return s+x[1]},0) || 1;
+  a.innerHTML = d.length ? d.map(function(x){
+    return '<div>'+x[0].padEnd(12,'\u00a0')+String(Math.round(x[1])).padStart(6,'\u00a0')
+      + String(Math.round(x[1]/tot*100)+'%').padStart(6,'\u00a0')+'</div>';
+  }).join('') : '<div class="no">no damage dealt at all</div>';
+}
+
+function hint(){
+  var h = $('hint');
+  if (!res){ h.textContent = 'Build a formation, then run an encounter.'; return; }
+  if (k < res.events.length - 1){
+    h.textContent = 'Watch the guard bar and the stack count arrive together. Low stacks at the break means your breakers outpace your appliers.';
+    return;
+  }
+  var d = Object.keys(res.damageBy).map(function(n){return [n,res.damageBy[n]]}).filter(function(x){return x[1]>0});
+  var tot = d.reduce(function(s,x){return s+x[1]},0) || 1;
+  var top = d.sort(function(a,b){return b[1]-a[1]})[0];
+  if (res.win){
+    h.textContent = (top && top[1]/tot > 0.7)
+      ? top[0]+' did '+Math.round(top[1]/tot*100)+'% of the damage. The rest of the team may be carrying nothing.'
+      : 'Cleared with damage spread across the team. Try one encounter harder.';
+  } else {
+    h.textContent = d.length
+      ? 'Lost. Check attribution \u2014 a unit at 0% is disconnected from the chain.'
+      : 'Lost with zero damage. Something in the chain has no payoff.';
+  }
+}
+
+function renderAll(){
+  buildSlots(); buildRoster(); buildCheck(); buildRibbon(); buildField(); buildStats(); buildLog(); buildAttr(); hint();
+  var last = !res || k >= res.events.length - 1;
+  $('step').disabled = last; $('play').disabled = last; $('fin').disabled = last;
+}
+
+$('go').onclick = function(){ stop(); res = runFight(team, tiles, $('enc').value); k = 0; pick = null; renderAll(); };
+$('step').onclick = function(){ stop(); k = Math.min(k+1, res.events.length-1); renderAll(); };
+$('fin').onclick = function(){ stop(); k = res.events.length-1; renderAll(); };
+$('play').onclick = function(){
+  if (timer){ stop(); renderAll(); return; }
+  $('play').textContent = 'Pause';
+  timer = setInterval(function(){
+    if (k >= res.events.length - 1){ stop(); renderAll(); return; }
+    k++; renderAll();
+  }, +$('speed').value);
+};
+$('enc').onchange = reset;
+$('preset').onchange = function(e){ team = PRESETS[e.target.value].slice(); reset(); };
+document.addEventListener('keydown', function(e){
+  if (e.target.tagName === 'SELECT') return;
+  if (e.key === ' ' && res){ e.preventDefault(); $('play').click(); }
+  if (e.key === 'ArrowRight' && res && k < res.events.length - 1) $('step').click();
+});
+renderAll();
+</script>
+</body>
+</html>

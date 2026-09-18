@@ -1,0 +1,189 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Store</title><style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#080C12;color:#E8EDF2;
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1300px;margin:0 auto;padding:24px 18px 90px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.lede{color:#9FB0BF;max-width:70ch;margin:0 0 8px}
+.rule{color:#7FD3BC;font-size:12.5px;max-width:74ch;margin:0 0 26px;
+  border-left:2px solid #2A6B5E;padding-left:11px}
+h2{font-size:15px;margin:34px 0 10px;font-weight:600}
+.cols{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.layers{flex:1;min-width:270px}
+.ly{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #16202B}
+.ly b{flex:0 0 22px;height:22px;border-radius:50%;background:#1C2B3A;color:#7FD3BC;
+  font-size:10px;display:flex;align-items:center;justify-content:center}
+.ly div span{display:block;font-size:12.5px}
+.ly div em{display:block;font-style:normal;font-size:11px;color:#5F6E7B;margin-top:1px}
+.ly.new b{background:#2A6B5E;color:#CFF5E8}
+
+/* ---------------- the board ---------------- */
+.board{width:760px;max-width:100%;aspect-ratio:4/3;border-radius:16px;padding:13px;
+  display:grid;grid-template-columns:58px 1fr;gap:12px;position:relative;
+  background:#090E16;border:1px solid #1C2B44;
+  background-image:radial-gradient(circle at 18% 22%,rgba(255,255,255,.42) .6px,transparent .7px),
+    radial-gradient(circle at 62% 14%,rgba(255,255,255,.3) .5px,transparent .6px),
+    radial-gradient(circle at 84% 58%,rgba(255,255,255,.34) .6px,transparent .7px),
+    radial-gradient(circle at 34% 72%,rgba(255,255,255,.26) .5px,transparent .6px);
+  background-size:180px 150px,140px 190px,210px 170px,160px 130px}
+.pin{position:absolute;width:19px;height:19px;border-radius:50%;background:#2A6B5E;
+  color:#CFF5E8;font-size:10px;display:flex;align-items:center;justify-content:center;
+  z-index:30;box-shadow:0 0 0 2px #090E16}
+
+/* queue */
+.queue{display:flex;flex-direction:column;gap:4px;position:relative}
+.qhd{font-size:7px;letter-spacing:.14em;color:#3F5468;margin-bottom:2px}
+.qi{height:21px;border-radius:4px;border:1px solid #2A6B5E;color:#7FD3BC;
+  display:flex;align-items:center;justify-content:space-between;padding:0 5px;
+  font-size:8.5px;font-variant-numeric:tabular-nums}
+.qi.foe{border-color:#7A3A4A;color:#E08A9E}
+.qi.now{background:#D4A45C;border-color:#D4A45C;color:#1A1204;height:27px;font-weight:600}
+.qi.brk{opacity:.45;border-style:dashed}
+.qi .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qbloom{height:21px;border-radius:4px;border:1px dashed #A89070;color:#D9B87A;
+  display:flex;align-items:center;justify-content:center;font-size:7.5px;letter-spacing:.06em}
+.qfoot{margin-top:auto;text-align:center;font-size:8px;color:#3F5468;line-height:1.5}
+.qfoot b{display:block;color:#D4A45C;font-size:12px;font-variant-numeric:tabular-nums}
+
+/* context strip */
+.ctx{display:flex;align-items:center;gap:9px;font-size:9px;color:#5F7A93;
+  margin-bottom:7px}
+.ctx .world{color:#AFCBE6;font-size:11px}
+.ctx .cond{border:1px solid #3A2A32;color:#D59AA3;border-radius:3px;padding:1px 5px;
+  font-size:8px}
+.ctx .grow{flex:1}
+.ctx .tag{border:1px solid #2A6B5E;color:#7FD3BC;border-radius:3px;padding:1px 5px;font-size:8px}
+
+/* score */
+/* the score lives in the status column, not across the field */
+.qscore{margin-top:9px;padding-top:8px;border-top:1px solid #16263C}
+.qscore .pc{font-size:15px;font-variant-numeric:tabular-nums;color:#9FBE7F;
+  text-align:center;line-height:1}
+.qscore .lbl{font-size:6.5px;color:#3F5468;text-align:center;margin-top:2px;line-height:1.3}
+.qscore .col{position:relative;height:52px;width:7px;margin:6px auto 0;border-radius:4px;
+  background:#0D141F;overflow:hidden}
+.qscore .col u{position:absolute;left:0;right:0;bottom:0;height:62%;background:#9FBE7F;
+  display:block}
+.qscore .col i{position:absolute;left:0;right:0;height:1px;background:#2B4B70;display:block}
+.qscore .col i.key{height:2px;background:#4A7A52}
+
+/* ranks */
+.rank{display:flex;gap:6px;justify-content:center;margin-bottom:7px}
+.foe{position:relative;width:68px;border:1px solid #2B4B70;border-radius:3px;
+  background:rgba(10,20,34,.78);padding:5px 3px 4px;text-align:center;line-height:1.15}
+.foe.elite{border-color:#7A3A4A}
+.foe .lv{font-size:6.5px;color:#4A6A8A}
+.foe .nm{font-size:9px;font-weight:600;color:#AFCBE6}
+.foe.elite .nm{color:#E8B4C2}
+.foe .weak{display:flex;gap:2px;justify-content:center;margin:2px 0 1px}
+.foe .weak i{width:9px;height:9px;border-radius:2px;font-size:6px;line-height:9px;
+  border:1px solid;display:block}
+.foe .weak i.off{opacity:.25}
+.foe .hp{height:2.5px;border-radius:2px;background:#0D141F;margin-top:2px;position:relative;
+  overflow:hidden}
+.foe .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.foe .sh{position:absolute;inset:-3px;border:1px solid rgba(143,184,120,.5);
+  border-radius:5px;pointer-events:none}
+.foe .sh2{position:absolute;inset:-6px;border:1px solid rgba(143,184,120,.26);
+  border-radius:7px;pointer-events:none}
+.foe .intent{position:absolute;left:50%;transform:translateX(-50%);top:-13px;
+  font-size:7px;color:#E08A9E;white-space:nowrap;background:#12080C;
+  border:1px solid #4A2028;border-radius:3px;padding:0 4px;line-height:11px}
+.foe .intent.aoe{color:#E0C48A;border-color:#4A3A20;background:#120E08}
+.foe .stk{position:absolute;right:-3px;bottom:-4px;display:flex;gap:2px}
+.foe .stk i{width:6px;height:6px;border-radius:50%;display:block}
+.foe .ibtn{position:absolute;left:0;top:0;width:26px;height:26px;color:#3F5468;
+  font-size:8px;padding:2px 0 0 3px;cursor:pointer}
+
+/* stage */
+.stage{flex:1;display:flex;align-items:center;justify-content:center;position:relative;
+  min-height:0}
+.beam{position:absolute;height:1px;background:linear-gradient(90deg,transparent,#D4A45C,transparent);
+  opacity:.55}
+.actor{width:132px;border:1px solid #6FE0C0;border-radius:4px;padding:11px 7px 9px;
+  text-align:center;background:rgba(8,26,22,.82);box-shadow:0 0 34px rgba(111,224,192,.2);
+  position:relative}
+.actor .lv{font-size:8px;color:#4E8A7C}
+.actor .nm{font-size:16px;font-weight:600;color:#CFF5E8;line-height:1.15}
+.actor .rl{font-size:9px;color:#6FA595}
+.actor .abil{margin-top:6px;font-size:8.5px;color:#9FD8C6;border-top:1px solid #1E3A33;
+  padding-top:5px}
+.actor .en{height:3px;border-radius:2px;background:#0D141F;margin-top:6px;position:relative;
+  overflow:hidden}
+.actor .en u{position:absolute;inset:0;width:82%;background:#D4A45C;display:block}
+.float{position:absolute;font-weight:700;font-size:19px;color:#fff;
+  text-shadow:0 2px 8px rgba(0,0,0,.9)}
+
+/* tray */
+.tray{border:1px solid #1C2B44;border-radius:8px;background:rgba(8,14,24,.66);padding:8px}
+.thead{display:flex;align-items:baseline;gap:7px;margin-bottom:5px}
+.thead .tl{font-size:7px;letter-spacing:.14em;color:#3F5468}
+.thead .cnt{font-size:7.5px;color:#5F7A93}
+.thead .grow{flex:1}
+.thead .trash{font-size:7.5px;color:#7A4550;border:1px dashed #4A2A32;border-radius:3px;
+  padding:1px 6px}
+.trow{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.slot{position:relative;border:1px solid #16263C;border-radius:3px;min-height:44px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  line-height:1.15;padding:3px 2px}
+.slot.empty{border-style:dashed;color:#26374A;font-size:7px}
+.slot.filled{background:rgba(10,20,34,.8);border-color:#2B4B70}
+.slot .nm{font-size:8.5px;font-weight:600;color:#AFCBE6}
+.slot .tg{font-size:7px}
+.slot .hp{position:absolute;left:3px;right:3px;bottom:3px;height:2px;border-radius:1px;
+  background:#0D141F;overflow:hidden}
+.slot .hp u{position:absolute;inset:0;background:#8FA8BE;display:block}
+.slot .dots{position:absolute;right:3px;top:3px;display:flex;gap:2px}
+.slot .dots i{width:4px;height:4px;border-radius:50%;display:block}
+.slot.ready{border-color:#D4A45C;box-shadow:0 0 10px rgba(212,164,92,.3)}
+.slot .rdy{position:absolute;left:3px;top:2px;font-size:6.5px;color:#D4A45C}
+.slot.off{min-height:36px;opacity:.82}
+.slot.down{opacity:.3}
+.tsplit{height:1px;background:#16263C;margin:7px 0 6px}
+
+/* ---------------- store ---------------- */
+.shop{display:flex;flex-direction:column;min-width:0;gap:9px}
+.crates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.crate{position:relative;border:1px solid #2B4B70;border-radius:4px;
+  background:rgba(10,20,34,.78);padding:11px 8px 10px;text-align:center}
+.crate.free{border-color:#2A6B5E;background:rgba(8,26,22,.7)}
+.crate.off{opacity:.34}
+.crate .cn{font-size:12px;font-weight:600;color:#CFE2F2}
+.crate .cd{font-size:8.5px;color:#4A6A8A;line-height:1.35;margin-top:2px}
+.crate .cp{font-size:12px;color:#D4A45C;margin-top:7px;font-variant-numeric:tabular-nums}
+.crate.free .cp{color:#7FD3BC}
+.crate .cw{position:absolute;right:6px;top:5px;font-size:7px;color:#4A6A8A}
+
+.pullbay{border:1px dashed #1C2B44;border-radius:5px;padding:10px;
+  display:flex;gap:9px;justify-content:center;min-height:126px;align-items:center}
+.pullbay.empty{color:#26374A;font-size:9.5px;letter-spacing:.04em}
+.pcard{position:relative;width:114px;border:1px solid #2B4B70;border-radius:4px;
+  background:rgba(10,20,34,.85);padding:9px 6px 7px;text-align:center}
+.pcard .ib{position:absolute;left:0;top:0;width:26px;height:26px;color:#3F5468;
+  font-size:8px;padding:2px 0 0 4px}
+.pcard .nm{font-size:13px;font-weight:600;color:#CFE2F2}
+.pcard .tg{font-size:9px}
+.pcard .dsc{font-size:8px;color:#4A6A8A;line-height:1.4;margin:4px 0 2px;min-height:22px}
+.pcard .pair{font-size:8px;color:#7FBE86;line-height:1.35;min-height:20px}
+.pcard .pair.none{color:#4A6A8A}
+.pcard .btns{display:flex;gap:5px;margin-top:7px}
+.pcard .btns button{flex:1;min-height:32px;border-radius:3px;font-family:inherit;
+  font-size:9.5px;cursor:pointer;background:rgba(8,14,24,.8)}
+.pcard .btns .k{border:1px solid #2A6B5E;color:#7FD3BC}
+.pcard .btns .s{border:1px solid #5A3038;color:#E0A9B1}
+
+.strip2{display:flex;gap:8px;align-items:stretch}
+.brow{flex:1;display:flex;align-items:center;gap:9px;border:1px solid #1C2B44;
+  border-radius:4px;background:rgba(8,14,24,.6);padding:9px 11px;min-height:46px}
+.brow .bl{font-size:11.5px;color:#CFE2F2}
+.brow .br{margin-left:auto;font-size:10px;color:#4A6A8A;text-align:right}
+.brow .br b{color:#D4A45C;font-variant-numeric:tabular-nums}
+.brow .chev{color:#3F5468;margin-left:7px}
+.brow.hot{border-color:#3A5A44}
+.brow.hot .bl{color:#9FD8B4}
+
+.hold{display:flex;gap:11px;flex-wrap:wrap;font-size:10px;color:#5F7A93;
+  border:1px solid #1C2B44;border-radius:4px;background:rgba(8,14,24,.6);padding:8px 11px}
+.hold b{font-variant-numeric:tabular-nums}
+.hold .rdy{color:#D4A45C}
+</style></head><body><div class="wrap"><h1>The quartermaster</h1><p class="lede">Same board, same column, same tray. Only the middle changes between shopping and fighting — so nothing moves under your hands when a leg begins.</p><p class="rule">The score bar has moved too. It was running full width above the enemy rank, which put a status readout in a primary position and made it compete with the cards. It is now a vertical gauge in the status column, with the band marks on it.</p><div class="cols"><div><div class="board"><span class="pin" style="left:-9px;top:74px">1</span><span class="pin" style="left:150px;top:-9px">2</span><span class="pin" style="left:150px;top:118px">3</span><span class="pin" style="right:-9px;top:262px">4</span><span class="pin" style="right:-9px;top:322px">5</span><span class="pin" style="left:150px;bottom:-9px">6</span><div class="queue"><div class="qhd">VOYAGE</div><div class="qi now" style="height:auto;padding:5px 5px;flex-direction:column;gap:1px"><span style="font-size:13px">138</span><span style="font-size:6.5px">GOLD</span></div><div class="qi" style="height:auto;padding:5px;flex-direction:column;gap:1px;border-color:#2A6B5E"><span style="font-size:13px;color:#7FBE86">74%</span><span style="font-size:6.5px;color:#4E8A7C">INTEGRITY</span></div><div class="qi" style="height:auto;padding:5px;flex-direction:column;gap:1px;border-color:#4A3A20;color:#D4A45C"><span style="font-size:13px">×3</span><span style="font-size:6.5px">STREAK</span></div><div class="qfoot" style="margin-top:auto">LEG 6 / 14<b style="color:#5F7A93;font-size:9px;font-weight:400">next +27g<br>if clean</b></div></div><div class="shop"><div class="crates"><div class="crate"><span class="cw">3 cards</span><div class="cn">Mixed</div><div class="cd">from anywhere</div><div class="cp">26g</div></div><div class="crate"><span class="cw">3 cards</span><div class="cn">Focused</div><div class="cd">leans to Assay</div><div class="cp">36g</div></div><div class="crate"><span class="cw">2 cards</span><div class="cn">Salvage</div><div class="cd">richer scrap</div><div class="cp">22g</div></div></div><div class="pullbay"><div class="pcard"><span class="ib">i</span><div class="nm">Ledger</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="dsc">answers marked targets</div><div class="pair">✓ Quill marks for you</div><div class="btns"><button class="k">Keep</button><button class="s">Strip 7</button></div></div><div class="pcard"><span class="ib">i</span><div class="nm">Bosk</div><div class="tg" style="color:#C97F9E">Ordnance</div><div class="dsc">slow, enormous, patient</div><div class="pair none">nothing aboard pairs</div><div class="btns"><button class="k">Keep</button><button class="s">Strip 7</button></div></div><div class="pcard"><span class="ib">i</span><div class="nm">Sable</div><div class="tg" style="color:#8FB878">Crew</div><div class="dsc">overheals into barrier</div><div class="pair">✓ keeps Tarn standing</div><div class="btns"><button class="k">Keep</button><button class="s">Strip 7</button></div></div></div><div class="strip2"><div class="brow hot"><span class="bl">Commission Crew</span><span class="br">1 of 4 · one short<br><b>74g</b></span><span class="chev">›</span></div><div class="brow"><span class="bl">Forge</span><span class="br">2 crystals ready<br><b>spend on 3</b></span><span class="chev">›</span></div></div><div class="hold"><span style="color:#A89070">decay <b>7</b></span><span style="color:#8F8FC9">void <b>4</b></span><span style="color:#8FB878">growth <b>11</b></span><span style="color:#7FA8C9">order <b>2</b></span><span class="rdy">◆ 2 ready</span><span style="margin-left:auto;color:#3F5468">3 shards trade for 1</span></div><div class="tray" style="margin-top:auto"><div class="thead"><span class="tl">ON FIELD</span><span class="cnt">5 of 6</span><span class="grow"></span><span class="trash">drag here to strip</span></div><div class="trow"><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Rime</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Maul</div><div class="tg" style="color:#C97F9E">Ordnance</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Tarn</div><div class="tg" style="color:#7FA8C9">Hull</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Ash</div><div class="tg" style="color:#A89070">Blight</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Quill</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot empty" style="border-color:#3A5A44;color:#5A8A68">needs Crew</div></div><div class="tsplit"></div><div class="thead"><span class="tl">OFF FIELD</span><span class="cnt">3 aboard</span></div><div class="trow"><div class="slot filled off"><div class="nm">Fen</div><div class="tg" style="color:#8FB878">Crew</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Pyre</div><div class="tg" style="color:#A89070">Blight</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off"><div class="nm">Vane</div><div class="tg" style="color:#D4A45C">Drive</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot empty off">empty</div><div class="slot empty off">empty</div><div class="slot empty off">empty</div></div></div></div></div></div><div class="layers"><h2 style="margin-top:0">What is on it</h2><div class="ly new"><b>1</b><div><span>Voyage status, same column as the battle’s queue</span><em>The screen never reorganises between phases. Gold, integrity and streak stack where the turn order sits in a fight, and the foot shows what a clean leg would pay.</em></div></div><div class="ly new"><b>2</b><div><span>Crates as the only primary action</span><em>Three tiles, card counts in the corner, price in amber. The focused crate names the tag it leans toward rather than saying “your tags”.</em></div></div><div class="ly new"><b>3</b><div><span>The bay, with Keep and Strip as buttons</span><em>32px targets, and the strip button states the shards. Tapping a card to destroy it is the kind of thing that gets done once by accident and never trusted again.</em></div></div><div class="ly new"><b>4</b><div><span>Commission, collapsed and lit when it matters</span><em>One row. It turns green and reads “one short” only when you are on a threshold — the moment it is worth 74 gold.</em></div></div><div class="ly new"><b>5</b><div><span>Forge and hold as two quiet rows</span><em>Shard counts by colour, crystals ready called out in amber, and the trade rate stated so it is never a thing you have to remember.</em></div></div><div class="ly new"><b>6</b><div><span>The same tray as combat</span><em>Identical component, so the crew you are shopping for is visible while you shop. The empty slot reads “needs Crew” rather than “empty”. The strip target lives here.</em></div></div></div></div><h2>Beside the fight, for comparison</h2><p class="note" style="color:#9FB0BF;font-size:12.5px;max-width:74ch;margin:0 0 14px">Same column, same tray, same card language. Only the middle band differs. The recovery score is now the vertical gauge in the column rather than a bar across the enemies.</p><div class="cols"><div><div class="board"><div class="queue"><div class="qhd">ORDER</div><div class="qi now"><span class="nm">Maul</span><span>now</span></div><div class="qbloom">BLOOM 3</div><div class="qi foe"><span class="nm">Maw</span><span>12</span></div><div class="qi"><span class="nm">Rime</span><span>19</span></div><div class="qi foe brk"><span class="nm">Husk</span><span>24</span></div><div class="qi"><span class="nm">Tarn</span><span>31</span></div><div class="qscore"><div class="pc">62%</div><div class="lbl">RECOVERED<br>heavy loss</div><div class="col"><u></u><i style="bottom:18%"></i><i style="bottom:42%"></i><i style="bottom:68%"></i><i class="key" style="bottom:88%"></i></div></div><div class="qfoot" style="margin-top:9px">ROUND 3 / 14<b>138g</b></div></div><div style="display:flex;flex-direction:column;min-width:0"><div class="ctx"><span class="world">Phomous</span><span>danger 4</span><span class="cond">heavy air</span><span class="cond">sterile ground</span><span class="grow"></span><span class="tag">Assay×4</span><span class="tag">Blight×2</span></div><div class="rank"><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Mite</div><div class="weak"><i class="" style="color:#7FA8C9;border-color:#7FA8C9">O</i><i class="off" style="color:#C97F9E;border-color:#C97F9E">C</i></div><div class="hp"><u style="width:64%"></u></div></div><div class="foe"><div class="intent ">→ Tarn</div><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Grub</div><div class="weak"><i class="off" style="color:#8FB878;border-color:#8FB878">G</i><i class="" style="color:#8F8FC9;border-color:#8F8FC9">V</i></div><div class="hp"><u style="width:88%"></u></div></div><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.24</div><div class="nm">Shard</div><div class="weak"><i class="" style="color:#A89070;border-color:#A89070">D</i><i class="" style="color:#D4A45C;border-color:#D4A45C">E</i></div><div class="hp"><u style="width:41%"></u></div><div class="stk"><i style="background:#A89070"></i><i style="background:#A89070"></i><i style="background:#A89070"></i></div></div><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Wisp</div><div class="weak"><i class="" style="color:#7FA8C9;border-color:#7FA8C9">O</i><i class="off" style="color:#8FB878;border-color:#8FB878">G</i></div><div class="hp"><u style="width:100%"></u></div></div><div class="foe"><div class="intent ">→ Fen</div><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.23</div><div class="nm">Thrall</div><div class="weak"><i class="off" style="color:#C97F9E;border-color:#C97F9E">C</i><i class="off" style="color:#8F8FC9;border-color:#8F8FC9">V</i></div><div class="hp"><u style="width:77%"></u></div></div><div class="foe"><div class="sh"></div><span class="ibtn">i</span><div class="lv">Lv.22</div><div class="nm">Nit</div><div class="weak"><i class="" style="color:#D4A45C;border-color:#D4A45C">E</i><i class="off" style="color:#A89070;border-color:#A89070">D</i></div><div class="hp"><u style="width:55%"></u></div><div class="stk"><i style="background:#A89070"></i></div></div></div><div class="rank"><div class="foe"><div class="sh"></div><div class="sh2"></div><span class="ibtn">i</span><div class="lv">Lv.28</div><div class="nm">Drone</div><div class="weak"><i class="" style="color:#7FA8C9;border-color:#7FA8C9">O</i><i class="" style="color:#A89070;border-color:#A89070">D</i></div><div class="hp"><u style="width:72%"></u></div></div><div class="foe elite"><div class="intent aoe">sweeps the line</div><div class="sh"></div><div class="sh2"></div><span class="ibtn">i</span><div class="lv">Lv.31</div><div class="nm">Maw</div><div class="weak"><i class="off" style="color:#C97F9E;border-color:#C97F9E">C</i><i class="" style="color:#D4A45C;border-color:#D4A45C">E</i></div><div class="hp"><u style="width:94%"></u></div></div><div class="foe"><div class="sh"></div><div class="sh2"></div><span class="ibtn">i</span><div class="lv">Lv.28</div><div class="nm">Husk</div><div class="weak"><i class="" style="color:#8FB878;border-color:#8FB878">G</i><i class="off" style="color:#8F8FC9;border-color:#8F8FC9">V</i></div><div class="hp"><u style="width:58%"></u></div><div class="stk"><i style="background:#A89070"></i><i style="background:#A89070"></i></div></div></div><div class="stage"><div class="beam" style="left:18%;right:30%;top:36%"></div><div class="float" style="left:19%;top:12%">41</div><div class="float" style="left:64%;top:22%;font-size:13px;color:#E08A9E">break</div><div class="actor"><div class="lv">Lv.25</div><div class="nm">Maul</div><div class="rl">answers a break</div><div class="abil">RIVET STORM ready</div><div class="en"><u></u></div></div></div><div class="tray"><div class="thead"><span class="tl">ON FIELD</span><span class="cnt">5 of 6</span><span class="grow"></span><span class="trash">drag here to strip</span></div><div class="trow"><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Rime</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="hp"><u style="width:96%"></u></div></div><div class="slot filled ready"><span class="rdy">READY</span><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Maul</div><div class="tg" style="color:#C97F9E">Ordnance</div><div class="hp"><u style="width:71%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Tarn</div><div class="tg" style="color:#7FA8C9">Hull</div><div class="hp"><u style="width:38%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Ash</div><div class="tg" style="color:#A89070">Blight</div><div class="hp"><u style="width:88%"></u></div></div><div class="slot filled"><div class="dots"><i style="background:#7FBE86"></i></div><div class="nm">Quill</div><div class="tg" style="color:#8F8FC9">Assay</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot empty">empty</div></div><div class="tsplit"></div><div class="thead"><span class="tl">OFF FIELD</span><span class="cnt">2 aboard · 1 down</span></div><div class="trow"><div class="slot filled off"><div class="nm">Fen</div><div class="tg" style="color:#8FB878">Crew</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off"><div class="dots"><i style="background:#D4A45C"></i></div><div class="nm">Pyre</div><div class="tg" style="color:#A89070">Blight</div><div class="hp"><u style="width:100%"></u></div></div><div class="slot filled off down"><div class="nm">Vane</div><div class="tg" style="color:#D4A45C">Drive</div><div class="hp"><u style="width:0%"></u></div></div><div class="slot empty off">empty</div><div class="slot empty off">empty</div><div class="slot empty off">empty</div></div></div></div></div></div></div><h2>One component, two phases</h2><div class="layers" style="max-width:700px"><div class="ly"><b>≡</b><div><span>Left column</span><em>Fighting: turn order, recovery gauge, round and purse. Shopping: gold, integrity, streak, leg. Same place, same shape, different contents.</em></div></div><div class="ly"><b>≡</b><div><span>Middle</span><em>Fighting: enemy ranks and the stage. Shopping: crates and the bay. This is the only region that changes.</em></div></div><div class="ly"><b>≡</b><div><span>Tray</span><em>Identical in both. It is where your crew always is, where dragging always happens, and where the strip target always lives.</em></div></div></div></div></body></html>

@@ -1,0 +1,6 @@
+world,note,speedMul,min,median,max,spread x,censored at 6.0,mix
+open,nothing unusual,1,0.4,1.58,4.41,11.03,0,swarmx9 bruiserx4 armoredx3
+murk,low visibility — everyone acts slower,0.72,0.4,1.09,3.35,8.38,0,swarmx9 bruiserx4 armoredx3
+hive,a tide of small things,1,0.4,1.85,6.07,15.18,2,swarmx18 fastx5
+fortress,a few very tough things,1,0.7,2.11,5.01,7.16,0,bruiserx3 guardianx3 armoredx2
+bloom,the Null is thick here — damage over time bites harder,1,0.42,1.94,5.54,13.19,0,swarmx10 cleanserx4 bruiserx3

@@ -1,0 +1,241 @@
+team,open,murk,hive,fortress,bloom,avg,best,worst,swing,hooks,roles at 2+,deep role,elements,duplicate elements,harmonies
+"Rime, Ferrule, Mote, Ash, Wex",4.41,3.35,5.91,5.01,4.32,4.6,5.91,3.35,2.56,10,Breakerx2 Tankx2,none,order growth energy decay order,1,21.2
+"Pyre, Ash, Mote, Rime, Vitre",3.35,2.27,6.07,3.26,5.54,4.098,6.07,2.27,3.8,11,DoTx2 Speedx2 Breakerx3,none,chaos decay energy order void,0,0
+"Ash, Fen, Sump, Rime, Ledger",3.51,2.61,5.91,4.02,4.04,4.018,5.91,2.61,3.3,10,DoTx2 Healerx2 Breakerx2,none,decay order growth order order,2,43.1
+"Sump, Ash, Rime, Mire, Maul",3.28,2.5,5.61,3.74,4.11,3.848,5.61,2.5,3.11,12,DoTx2 Healerx2 Breakerx2,none,growth decay order growth decay,2,16.5
+"Maul, Mire, Ash, Ferrule, Mote",3.35,2.29,5.01,4.11,4.18,3.788,5.01,2.29,2.72,11,DPSx2 Breakerx2 Tankx2,none,decay growth decay growth energy,2,13.3
+"Mote, Ash, Vane, Mire, Wex",3.35,2.38,4.92,3.83,3.07,3.51,4.92,2.38,2.54,10,Speedx2 Healerx3 Tankx2,none,energy decay energy growth order,1,15.1
+"Mote, Corr, Rime, Fen, Maul",2.73,1.9,5.22,3.28,4.27,3.48,5.22,1.9,3.32,6,Breakerx3 DPSx2,none,energy void order order decay,1,13.4
+"Maul, Mote, Ash, Vitre, Nettle",2.75,1.9,5.47,3.14,3.42,3.336,5.47,1.9,3.57,10,Breakerx3 Speedx3,none,decay energy decay void energy,2,24.2
+"Vane, Rime, Mire, Ballast, Ash",2.64,2.08,5.24,2.98,2.7,3.128,5.24,2.08,3.16,11,Healerx2 Tankx2,none,energy order growth growth decay,1,9.2
+"Corr, Mire, Ash, Mote, Maul",2.61,2.06,4.25,3.35,3.35,3.124,4.25,2.06,2.19,9,DPSx2 Breakerx2,none,void growth decay energy decay,1,8.7
+"Vitre, Rime, Corr, Tarn, Wex",2.64,1.78,4.43,2.94,3.42,3.042,4.43,1.78,2.65,9,Breakerx2 DPSx2 Tankx2,none,void order void chaos order,2,44.6
+"Vane, Rime, Sump, Maul, Mote",2.45,1.67,4.36,2.8,3.76,3.008,4.36,1.67,2.69,9,Speedx2 Healerx2 Breakerx3,none,energy order growth decay energy,1,15.3
+"Mote, Wex, Vitre, Maul, Pyre",2.38,1.74,4.13,2.98,3.65,2.976,4.13,1.74,2.39,8,Speedx2 Breakerx3,none,energy order void decay chaos,0,0
+"Quill, Rime, Cinder, Mote, Vitre",2.57,1.74,4.02,2.77,3.65,2.95,4.02,1.74,2.28,9,Breakerx4 DoTx2 Speedx2,Breaker,void order chaos energy void,1,29.7
+"Wex, Vitre, Halo, Rime, Maul",2.38,1.62,4.87,2.41,3.21,2.898,4.87,1.62,3.25,8,Healerx2 Breakerx3 Speedx2,none,order void energy order decay,1,17.8
+"Rime, Ferrule, Corr, Vitre, Mire",2.38,1.55,4.34,2.73,3.3,2.86,4.34,1.55,2.79,10,Breakerx2 Tankx2 DPSx2,none,order growth void void growth,2,34.9
+"Vane, Ferrule, Vitre, Ash, Ballast",2.41,1.83,4.92,2.64,2.38,2.836,4.92,1.83,3.09,11,Speedx2 Tankx2,none,energy growth void decay growth,1,5.9
+"Mote, Bosk, Vitre, Nettle, Ferrule",2.31,1.6,4.06,2.82,3.35,2.828,4.06,1.6,2.46,8,Speedx3 Breakerx2 DPSx2 Tankx2,none,energy decay void energy growth,1,34
+"Maul, Halo, Cinder, Ash, Mote",2.45,1.76,3.72,3.23,2.98,2.828,3.72,1.76,1.96,8,DPSx2 Breakerx2 Speedx2 DoTx2,none,decay energy chaos decay energy,2,13.8
+"Cinder, Tarn, Mote, Maul, Ash",2.57,1.92,3.51,3.26,2.82,2.816,3.51,1.92,1.59,10,DoTx2 DPSx3 Breakerx2,none,chaos chaos energy decay decay,2,7.7
+"Wex, Ash, Ferrule, Halo, Mire",2.82,1.97,3.74,3.49,2.04,2.812,3.74,1.97,1.77,10,Tankx3 Healerx3,none,order decay growth energy growth,1,9.1
+"Corr, Mote, Rime, Wex, Ledger",2.59,1.62,3.76,2.73,3.23,2.786,3.76,1.62,2.14,6,Speedx2 Breakerx3,none,void energy order order order,2,66.3
+"Cinder, Rime, Tarn, Quill, Ash",2.41,1.74,3.97,2.94,2.75,2.762,3.97,1.74,2.23,10,DoTx3 DPSx2 Breakerx2,none,chaos order chaos void decay,1,1.9
+"Wex, Ash, Sump, Tarn, Corr",2.57,1.99,3.07,3.42,2.75,2.76,3.42,1.99,1.43,10,Tankx2 Healerx2 DoTx2 DPSx2,none,order decay growth chaos void,0,0
+"Ballast, Ash, Ferrule, Maul, Wex",2.47,1.9,2.91,3.58,2.91,2.754,3.58,1.9,1.68,9,Tankx3 DPSx2,none,growth decay growth decay order,2,15.8
+"Vitre, Maul, Ballast, Ash, Halo",2.08,1.62,5.03,2.52,2.43,2.736,5.03,1.62,3.41,10,Breakerx2 Speedx2,none,void decay growth decay energy,1,10.5
+"Vane, Halo, Vitre, Ash, Sump",2.15,1.69,4.89,2.52,2.38,2.726,4.89,1.69,3.2,11,Speedx3 Healerx3 DoTx2,none,energy energy void decay growth,1,0
+"Ledger, Fen, Rime, Vitre, Quill",2.15,1.58,4,2.66,3.12,2.702,4,1.58,2.42,8,Breakerx4 Speedx2,Breaker,order order order void void,3,103.3
+"Vitre, Quill, Maul, Tarn, Mote",2.15,1.58,4.09,2.61,3.07,2.7,4.09,1.58,2.51,10,Breakerx4 Speedx2 DPSx2,Breaker,void void decay chaos energy,1,16
+"Rime, Tarn, Maul, Wex, Pyre",2.41,1.74,2.84,3.21,3.19,2.678,3.21,1.74,1.47,8,Breakerx2 Tankx2 DPSx2,none,order chaos decay order chaos,2,18.7
+"Mote, Ledger, Cinder, Ash, Halo",2.38,1.74,3.53,2.91,2.77,2.666,3.53,1.74,1.79,8,Speedx3 Breakerx2 DoTx2,none,energy order chaos decay energy,1,9.3
+"Ferrule, Wex, Mote, Maul, Ledger",2.57,1.85,2.41,3.47,2.98,2.656,3.47,1.85,1.62,7,Tankx2 DPSx2 Speedx2 Breakerx3,none,growth order energy decay order,1,10.4
+"Ash, Ferrule, Bosk, Pyre, Vitre",2.15,1.62,4.18,2.47,2.75,2.634,4.18,1.62,2.56,9,DoTx2 Tankx2 DPSx2,none,decay growth decay chaos void,1,12.4
+"Ballast, Ash, Ledger, Fen, Quill",2.36,1.78,3.95,2.68,2.38,2.63,3.95,1.78,2.17,8,DoTx2 Breakerx2,none,growth decay order order void,1,9
+"Ferrule, Tarn, Rime, Sump, Mote",2.38,1.58,3.65,2.31,3.1,2.604,3.65,1.58,2.07,12,Tankx2 DPSx2 Breakerx2,none,growth chaos order growth energy,1,12
+"Nettle, Ferrule, Pyre, Ash, Rime",2.15,1.62,3.93,2.41,2.91,2.604,3.93,1.62,2.31,9,DoTx2,none,energy growth chaos decay order,0,0
+"Ferrule, Corr, Vane, Mote, Ash",2.31,1.69,3.23,2.75,2.98,2.592,3.23,1.69,1.54,8,DPSx2 Speedx2,none,growth void energy energy decay,1,10.6
+"Halo, Ash, Vitre, Bosk, Mire",2.15,1.6,4.09,2.68,2.43,2.59,4.09,1.6,2.49,10,Healerx2 Speedx2 Tankx2,none,energy decay void decay growth,1,16.3
+"Tarn, Ballast, Mire, Ferrule, Wex",2.38,1.83,2.57,3.42,2.75,2.59,3.42,1.83,1.59,11,Tankx5 DPSx2 Healerx2,Tank,chaos growth growth growth order,2,28.4
+"Ash, Halo, Fen, Wex, Maul",2.41,1.85,2.91,3.14,2.57,2.576,3.14,1.85,1.29,7,Healerx3,none,decay energy order order decay,2,16.4
+"Wex, Cinder, Ballast, Ash, Ledger",2.38,1.88,2.73,3.33,2.52,2.568,3.33,1.88,1.45,8,Tankx2 DoTx2,none,order chaos growth decay order,1,7.3
+"Vane, Rime, Vitre, Quill, Mote",2.24,1.6,3.6,2.24,3.14,2.564,3.6,1.6,2,9,Speedx3 Breakerx4,Breaker,energy order void void energy,2,44.4
+"Vitre, Corr, Mote, Halo, Wex",2.24,1.58,3.6,2.41,2.87,2.54,3.6,1.58,2.02,7,Breakerx2 Speedx3 Healerx2,none,void void energy energy order,2,49
+"Vitre, Fen, Maul, Corr, Wex",2.15,1.44,3.4,3,2.68,2.534,3.4,1.44,1.96,6,Breakerx2 Healerx2 DPSx2,none,void order decay void order,2,26.1
+"Corr, Ledger, Rime, Ash, Pyre",2.24,1.58,3.53,2.43,2.82,2.52,3.53,1.58,1.95,7,Breakerx2 DoTx2,none,void order order decay chaos,1,12
+"Mote, Sump, Bosk, Rime, Tarn",2.27,1.55,3.56,2.36,2.84,2.516,3.56,1.55,2.01,10,Breakerx2 DPSx2 Tankx2,none,energy growth decay order chaos,0,0
+"Mire, Tarn, Ash, Ferrule, Ballast",2.38,1.9,2.57,3.19,2.52,2.512,3.19,1.9,1.29,13,Tankx4 DPSx2,Tank,growth chaos decay growth growth,2,11.3
+"Mire, Fen, Vitre, Mote, Nettle",2.41,1.55,3.49,2.34,2.77,2.512,3.49,1.55,1.94,10,Healerx2 Breakerx2 Speedx3,none,growth order void energy energy,1,38.1
+"Mote, Ledger, Ash, Bosk, Halo",2.15,1.62,3.81,2.47,2.41,2.492,3.81,1.62,2.19,7,Speedx3 Breakerx2,none,energy order decay decay energy,2,24.5
+"Nettle, Maul, Mote, Mire, Wex",2.29,1.74,2.24,3.21,2.91,2.478,3.21,1.74,1.47,8,Speedx2 Breakerx2 Healerx2 Tankx2,none,energy decay energy growth order,1,28.8
+"Vitre, Rime, Cinder, Fen, Ledger",1.97,1.37,3.74,2.54,2.75,2.474,3.74,1.37,2.37,8,Breakerx3 Speedx2,none,void order chaos order order,2,65.9
+"Ash, Wex, Mire, Nettle, Ledger",2.38,1.69,2.68,3.14,2.41,2.46,3.14,1.69,1.45,9,Tankx2 Healerx2 Speedx2,none,decay order growth energy order,1,9.6
+"Sump, Nettle, Ash, Wex, Corr",2.38,1.78,2.7,2.98,2.43,2.454,2.98,1.78,1.2,8,DoTx2 Healerx2,none,growth energy decay order void,0,0
+"Ballast, Fen, Vane, Ferrule, Ash",2.38,1.69,2.98,3.03,1.9,2.396,3.03,1.69,1.34,9,Tankx2 Healerx2,none,growth order energy growth decay,1,6.8
+"Pyre, Mote, Vitre, Nettle, Wex",2.22,1.51,3.3,2.27,2.68,2.396,3.3,1.51,1.79,8,Speedx3 Breakerx2,none,chaos energy void energy order,1,38
+"Mote, Maul, Sump, Fen, Tarn",2.38,1.69,2.08,3.05,2.73,2.386,3.05,1.69,1.36,10,Breakerx2 DPSx2 Healerx2,none,energy decay growth order chaos,0,0
+"Mote, Vitre, Quill, Ledger, Nettle",1.85,1.37,3.65,2.29,2.75,2.382,3.65,1.37,2.28,8,Speedx4 Breakerx4,Speed Breaker,energy void void order energy,2,49.1
+"Fen, Tarn, Ash, Pyre, Mire",2.08,1.69,2.7,2.75,2.68,2.38,2.75,1.69,1.06,11,Healerx2 Tankx2 DoTx2,none,order chaos decay chaos growth,1,1.4
+"Mote, Rime, Cinder, Tarn, Quill",1.88,1.32,3.4,2.43,2.82,2.37,3.4,1.32,2.08,9,Breakerx3 DoTx2 DPSx2,none,energy order chaos chaos void,1,2.8
+"Sump, Mote, Tarn, Nettle, Vitre",1.92,1.46,3.26,2.38,2.75,2.354,3.26,1.46,1.8,12,Speedx3 Breakerx2,none,growth energy chaos energy void,1,33.2
+"Vane, Mote, Cinder, Nettle, Ash",2.17,1.74,2.7,2.61,2.45,2.334,2.7,1.74,0.96,8,Speedx3 DoTx2,none,energy energy chaos energy decay,2,29
+"Ash, Corr, Ledger, Vitre, Pyre",1.94,1.55,3.53,2.2,2.41,2.326,3.53,1.55,1.98,8,DoTx2 Breakerx2 Speedx2,none,decay void order void chaos,1,10.4
+"Rime, Quill, Vitre, Fen, Wex",2.11,1.39,3.42,2.11,2.57,2.32,3.42,1.39,2.03,8,Breakerx3 Healerx2,none,order void void order order,3,104.6
+"Cinder, Ferrule, Mire, Mote, Maul",2.15,1.58,1.97,3.35,2.52,2.314,3.35,1.58,1.77,9,DPSx3 Tankx2 Breakerx2,none,chaos growth growth energy decay,1,2
+"Rime, Ferrule, Vitre, Vane, Mote",2.15,1.41,3.58,1.76,2.66,2.312,3.58,1.41,2.17,10,Breakerx3 Speedx3,none,order growth void energy energy,1,18.1
+"Mire, Ash, Fen, Halo, Ledger",2.15,1.69,2.57,2.91,2.06,2.276,2.91,1.69,1.22,9,Healerx3 Speedx2,none,growth decay order energy order,1,13.8
+"Ferrule, Cinder, Ballast, Corr, Ash",2.15,1.74,2.41,2.84,2.15,2.258,2.84,1.74,1.1,8,Tankx2 DPSx3 DoTx2,none,growth chaos growth void decay,1,3.3
+"Ash, Corr, Wex, Nettle, Cinder",2.15,1.74,2.36,2.8,2.24,2.258,2.8,1.74,1.06,6,DoTx2 DPSx2,none,decay void order energy chaos,0,0
+"Quill, Corr, Rime, Fen, Cinder",1.92,1.39,2.57,2.75,2.57,2.24,2.75,1.39,1.36,5,Breakerx2 DoTx2 DPSx2,none,void void order order chaos,2,35.6
+"Quill, Ash, Fen, Tarn, Ballast",2.15,1.78,2.41,2.73,2.08,2.23,2.73,1.78,0.95,10,DoTx2 Tankx2,none,void decay order chaos growth,0,0
+"Ferrule, Bosk, Nettle, Ash, Fen",2.08,1.58,2.43,2.61,2.38,2.216,2.61,1.58,1.03,7,Tankx2 DPSx2,none,growth decay energy decay order,1,16.1
+"Cinder, Mire, Rime, Halo, Maul",2.08,1.41,2.41,2.59,2.57,2.212,2.59,1.41,1.18,8,DPSx2 Healerx2 Breakerx2,none,chaos growth order energy decay,0,0
+"Fen, Ledger, Rime, Corr, Cinder",1.99,1.37,2.24,2.82,2.54,2.192,2.82,1.37,1.45,5,Breakerx2 DPSx2,none,order order order void chaos,2,49.1
+"Ferrule, Bosk, Mote, Ballast, Wex",2.17,1.55,2.29,2.41,2.5,2.184,2.5,1.55,0.95,7,Tankx4 DPSx2,Tank,growth decay energy growth order,1,9.7
+"Vitre, Ash, Bosk, Corr, Halo",1.85,1.39,3.53,2.2,1.92,2.178,3.53,1.39,2.14,7,Speedx2 DPSx2,none,void decay decay void energy,2,22.6
+"Corr, Ballast, Ledger, Ash, Maul",1.9,1.55,2.7,2.57,2.15,2.174,2.7,1.55,1.15,7,DPSx2 Breakerx2,none,void growth order decay decay,1,6.7
+"Halo, Ballast, Pyre, Mote, Ash",1.94,1.55,2.7,2.08,2.57,2.168,2.7,1.55,1.15,9,Speedx2 DoTx2,none,energy growth chaos energy decay,1,9.3
+"Ash, Ferrule, Cinder, Nettle, Tarn",2.08,1.69,2.24,2.68,2.08,2.154,2.68,1.69,0.99,10,DoTx2 Tankx2 DPSx3,none,decay growth chaos energy chaos,1,2.3
+"Maul, Pyre, Ferrule, Mote, Fen",2.15,1.48,1.85,2.8,2.47,2.15,2.8,1.48,1.32,7,DPSx2 Breakerx2,none,decay chaos growth energy order,0,0
+"Mote, Wex, Tarn, Ledger, Cinder",2.08,1.46,1.85,2.82,2.43,2.128,2.82,1.46,1.36,8,Speedx2 Breakerx2 Tankx2 DPSx2,none,energy order chaos order chaos,2,23.4
+"Cinder, Ash, Bosk, Maul, Ledger",1.85,1.58,2.24,2.75,2.22,2.128,2.75,1.58,1.17,6,DoTx2 DPSx3 Breakerx2,none,chaos decay decay decay order,2,14.2
+"Fen, Vitre, Rime, Quill, Ballast",1.88,1.28,3.17,1.85,2.34,2.104,3.17,1.28,1.89,9,Breakerx3,none,order void order void growth,2,57.5
+"Sump, Ash, Cinder, Vane, Bosk",2.08,1.58,2.34,2.45,1.92,2.074,2.45,1.58,0.87,8,DoTx3 Healerx2 DPSx2,none,growth decay chaos energy decay,1,10.9
+"Ash, Quill, Nettle, Ballast, Mire",2.04,1.58,2.29,2.52,1.92,2.07,2.52,1.58,0.94,10,DoTx2 Tankx2,none,decay void energy growth growth,1,4.3
+"Fen, Mote, Halo, Maul, Pyre",2.08,1.41,1.85,2.5,2.41,2.05,2.5,1.41,1.09,6,Healerx2 Speedx2 Breakerx2,none,order energy energy decay chaos,1,14.1
+"Mote, Vane, Rime, Ballast, Ferrule",1.94,1.23,2.94,1.71,2.41,2.046,2.94,1.23,1.71,9,Speedx2 Breakerx2 Tankx2,none,energy energy order growth growth,2,32.5
+"Ash, Ballast, Mire, Maul, Bosk",1.9,1.55,2.08,2.52,2.15,2.04,2.52,1.55,0.97,9,Tankx3 DPSx2,none,decay growth growth decay decay,3,27
+"Corr, Ash, Sump, Vane, Nettle",1.97,1.69,2.31,2.34,1.88,2.038,2.34,1.69,0.65,8,DoTx2 Healerx2 Speedx2,none,void decay growth energy energy,1,8.4
+"Ballast, Rime, Fen, Vane, Mote",1.92,1.28,2.91,1.78,2.27,2.032,2.91,1.28,1.63,8,Breakerx2 Healerx2 Speedx2,none,growth order order energy energy,2,47.4
+"Quill, Nettle, Vitre, Mote, Tarn",1.69,1.28,2.7,2.08,2.38,2.026,2.7,1.28,1.42,10,Breakerx3 Speedx3,none,void energy void energy chaos,2,47.6
+"Halo, Mire, Maul, Ash, Corr",1.9,1.41,2.11,2.57,2.08,2.014,2.57,1.41,1.16,8,Healerx2 DPSx2,none,energy growth decay decay void,1,7.8
+"Ballast, Tarn, Sump, Rime, Vitre",1.74,1.23,2.89,1.83,2.34,2.006,2.89,1.23,1.66,13,Tankx2 Breakerx2,none,growth chaos growth order void,1,13.7
+"Bosk, Maul, Tarn, Ballast, Rime",1.74,1.32,2.08,2.34,2.41,1.978,2.41,1.32,1.09,8,DPSx3 Tankx3 Breakerx2,none,decay decay chaos growth order,1,9.5
+"Quill, Ledger, Maul, Ferrule, Vitre",1.58,1.23,2.68,2.2,2.15,1.968,2.68,1.23,1.45,8,Breakerx4 Speedx2 DPSx2,Breaker,void order decay growth void,1,21.5
+"Ferrule, Vitre, Pyre, Maul, Ballast",1.62,1.23,2.45,2.34,2.17,1.962,2.45,1.23,1.22,9,Tankx2 DPSx2 Breakerx2,none,growth void chaos decay growth,1,6.3
+"Sump, Vitre, Halo, Ballast, Mote",1.78,1.16,2.73,1.83,2.29,1.958,2.73,1.16,1.57,11,Healerx2 Breakerx2 Speedx3,none,growth void energy growth energy,2,36.5
+"Ash, Vane, Fen, Ledger, Corr",1.85,1.39,2.08,2.41,1.92,1.93,2.41,1.39,1.02,6,Speedx2 Healerx2,none,decay energy order order void,1,11
+"Mote, Vane, Ferrule, Corr, Maul",1.9,1.23,1.58,2.68,2.22,1.922,2.68,1.23,1.45,6,Speedx2 Breakerx2 DPSx3,none,energy energy growth void decay,1,10.5
+"Vitre, Ledger, Rime, Sump, Vane",1.69,1.16,2.91,1.69,2.15,1.92,2.91,1.16,1.75,10,Breakerx3 Speedx3 Healerx2,none,void order order growth energy,1,27
+"Fen, Ferrule, Corr, Rime, Wex",1.76,1.16,2.24,2.08,2.34,1.916,2.34,1.16,1.18,6,Healerx2 Tankx2 DPSx2,none,order growth void order order,2,77.6
+"Quill, Cinder, Rime, Mire, Ferrule",1.74,1.07,2.24,2.36,2.15,1.912,2.36,1.07,1.29,9,Breakerx2 DoTx2 DPSx2 Tankx2,none,void chaos order growth growth,1,10.7
+"Pyre, Ash, Ballast, Nettle, Mire",1.74,1.37,2.11,2.15,2.15,1.904,2.15,1.37,0.78,10,DoTx2 Tankx2,none,chaos decay growth energy growth,1,4.2
+"Mire, Vitre, Ledger, Bosk, Maul",1.64,1.23,2.24,2.29,2.06,1.892,2.29,1.23,1.06,8,Tankx2 Breakerx3 Speedx2 DPSx2,none,growth void order decay decay,1,9.6
+"Tarn, Maul, Mote, Halo, Sump",1.74,1.37,1.58,2.57,2.15,1.882,2.57,1.37,1.2,10,DPSx2 Breakerx2 Speedx2 Healerx2,none,chaos decay energy energy growth,1,9.9
+"Corr, Wex, Mote, Cinder, Ballast",1.88,1.21,1.74,2.41,2.15,1.878,2.41,1.21,1.2,6,DPSx2 Tankx2,none,void order energy chaos growth,0,0
+"Cinder, Bosk, Ledger, Mote, Maul",1.74,1.39,1.58,2.57,2.06,1.868,2.57,1.39,1.18,5,DPSx3 Breakerx3 Speedx2,none,chaos decay order energy decay,1,5.7
+"Bosk, Corr, Ledger, Vitre, Ferrule",1.58,1.18,2.38,2.24,1.92,1.86,2.38,1.18,1.2,6,DPSx3 Tankx2 Breakerx2 Speedx2,none,decay void order void growth,1,20.9
+"Ledger, Cinder, Ferrule, Ballast, Mote",1.81,1.23,1.58,2.57,2.11,1.86,2.57,1.23,1.34,8,Breakerx2 Speedx2 DPSx2 Tankx2,none,order chaos growth growth energy,1,7.8
+"Nettle, Mire, Maul, Vitre, Tarn",1.55,1.16,2.24,2.2,2.08,1.846,2.24,1.16,1.08,11,Speedx2 Tankx2 DPSx2 Breakerx2,none,energy growth decay void chaos,0,0
+"Quill, Mire, Vitre, Ballast, Maul",1.58,1.11,2.24,2.15,2.08,1.832,2.24,1.11,1.13,10,Breakerx3 Tankx2,none,void growth void growth decay,2,32.2
+"Maul, Rime, Halo, Sump, Quill",1.76,1,2.06,2.06,2.27,1.83,2.27,1,1.27,8,Breakerx3 Healerx2 DoTx2,none,decay order energy growth void,0,0
+"Vitre, Fen, Vane, Pyre, Mote",1.74,1.16,2.68,1.55,1.99,1.824,2.68,1.16,1.52,8,Breakerx2 Speedx3 Healerx2,none,void order energy chaos energy,1,18.7
+"Maul, Cinder, Wex, Bosk, Corr",1.69,1.07,1.58,2.61,2.15,1.82,2.61,1.07,1.54,3,DPSx4 Tankx2,DPS,decay chaos order decay void,1,11.7
+"Maul, Ferrule, Cinder, Wex, Quill",1.64,0.91,1.74,2.52,2.22,1.806,2.52,0.91,1.61,6,DPSx3 Breakerx2 Tankx2 DoTx2,none,decay growth chaos order void,0,0
+"Halo, Cinder, Vitre, Nettle, Rime",1.41,1.02,2.82,1.74,2.01,1.8,2.82,1.02,1.8,8,Speedx3 Breakerx2,none,energy chaos void energy order,1,13.6
+"Pyre, Cinder, Rime, Sump, Mire",1.6,1.07,1.85,2.41,1.99,1.784,2.41,1.07,1.34,10,DoTx3 Healerx2,none,chaos chaos order growth growth,2,37.2
+"Nettle, Mire, Bosk, Ferrule, Wex",1.74,1.21,1.85,2.38,1.74,1.784,2.38,1.21,1.17,7,Healerx2 Tankx4 DPSx2,Tank,energy growth decay growth order,1,15.3
+"Sump, Maul, Pyre, Vitre, Cinder",1.41,1.09,2.24,2.2,1.92,1.772,2.24,1.09,1.15,9,DoTx3 DPSx2 Breakerx2,none,growth decay chaos void chaos,1,11.1
+"Nettle, Rime, Ledger, Sump, Vane",1.62,1,2.22,1.85,2.11,1.76,2.22,1,1.22,8,Speedx3 Breakerx2 Healerx2,none,energy order order growth energy,2,48.7
+"Cinder, Sump, Wex, Mote, Ballast",1.64,1.05,1.58,2.52,1.94,1.746,2.52,1.05,1.47,9,DoTx2 Healerx2 Tankx2,none,chaos growth order energy growth,1,21.9
+"Quill, Tarn, Bosk, Rime, Mire",1.58,1.07,2.13,1.92,1.99,1.738,2.13,1.07,1.06,9,Breakerx2 Tankx3 DPSx2,none,void chaos decay order growth,0,0
+"Pyre, Vitre, Mote, Ledger, Bosk",1.44,1.07,2.29,1.76,2.08,1.728,2.29,1.07,1.22,7,Breakerx3 Speedx3,none,chaos void energy order decay,0,0
+"Quill, Corr, Pyre, Vitre, Mire",1.41,1.09,2.24,2.06,1.83,1.726,2.24,1.09,1.15,8,Breakerx2 DoTx2,none,void void chaos void growth,2,63.6
+"Fen, Nettle, Mire, Quill, Vitre",1.55,1,2.41,1.76,1.9,1.724,2.41,1,1.41,9,Healerx2 Speedx2 Breakerx2,none,order energy growth void void,1,34.7
+"Nettle, Ledger, Mote, Pyre, Fen",1.64,1.11,1.44,2.31,2.08,1.716,2.31,1.11,1.2,6,Speedx3 Breakerx2,none,energy order energy chaos order,2,45.8
+"Maul, Corr, Vitre, Quill, Nettle",1.44,1.09,1.97,2.15,1.9,1.71,2.15,1.09,1.06,6,DPSx2 Breakerx3 Speedx2,none,decay void void void energy,2,26
+"Pyre, Halo, Ferrule, Maul, Ash",1.58,1.23,1.74,1.9,2.06,1.702,2.06,1.23,0.83,8,DoTx2 DPSx2,none,chaos energy growth decay decay,1,7.1
+"Ledger, Nettle, Vitre, Fen, Cinder",1.37,1.07,2.15,2.08,1.76,1.686,2.15,1.07,1.08,7,Breakerx2 Speedx3,none,order energy void order chaos,1,15.5
+"Rime, Pyre, Tarn, Vane, Maul",1.53,1.16,1.74,1.9,2.08,1.682,2.08,1.16,0.92,8,Breakerx2 DPSx2,none,order chaos chaos energy decay,1,1.7
+"Mote, Wex, Corr, Ferrule, Tarn",1.64,1.05,1.78,1.88,1.99,1.668,1.99,1.05,0.94,8,Tankx3 DPSx3,none,energy order void growth chaos,0,0
+"Sump, Wex, Maul, Ferrule, Quill",1.44,0.84,1.78,2.31,1.94,1.662,2.31,0.84,1.47,8,DoTx2 Healerx2 Tankx2 DPSx2 Breakerx2,none,growth order decay growth void,1,15.3
+"Cinder, Mote, Wex, Sump, Quill",1.58,0.95,1.55,2.34,1.85,1.654,2.34,0.95,1.39,8,DoTx3 Breakerx2 Healerx2,none,chaos energy order growth void,0,0
+"Tarn, Ash, Ledger, Ballast, Vane",1.69,1.34,1.85,1.94,1.44,1.652,1.94,1.34,0.6,10,Tankx2 Speedx2,none,chaos decay order growth energy,0,0
+"Vitre, Ballast, Ledger, Cinder, Wex",1.51,0.98,2.08,1.9,1.74,1.642,2.08,0.98,1.1,8,Breakerx2 Speedx2 Tankx2,none,void growth order chaos order,1,16.8
+"Maul, Ledger, Halo, Cinder, Mote",1.53,1.23,1.3,2.27,1.85,1.636,2.27,1.23,1.04,6,DPSx2 Breakerx3 Speedx3,none,decay order energy chaos energy,1,7.4
+"Rime, Pyre, Maul, Quill, Nettle",1.46,1.07,1.69,1.94,1.97,1.626,1.97,1.07,0.9,6,Breakerx3 DoTx2,none,order chaos decay void energy,0,0
+"Nettle, Bosk, Maul, Pyre, Vitre",1.32,1.07,1.9,1.94,1.85,1.616,1.94,1.07,0.87,6,Speedx2 DPSx2 Breakerx2,none,energy decay decay chaos void,1,6
+"Sump, Cinder, Nettle, Ferrule, Rime",1.46,0.98,1.58,2.2,1.85,1.614,2.2,0.98,1.22,9,DoTx2 DPSx2,none,growth chaos energy growth order,1,4.1
+"Mote, Cinder, Mire, Vane, Corr",1.55,1.11,1.41,2.24,1.76,1.614,2.24,1.11,1.13,7,Speedx2 DPSx2 Healerx2,none,energy chaos growth energy void,1,14.5
+"Corr, Ferrule, Bosk, Rime, Ballast",1.48,1.09,1.74,1.78,1.94,1.606,1.94,1.09,0.85,6,DPSx3 Tankx3,none,void growth decay order growth,1,8.3
+"Sump, Tarn, Rime, Pyre, Ferrule",1.53,1.07,1.58,1.92,1.81,1.582,1.92,1.07,0.85,11,DoTx2 Tankx2 DPSx2,none,growth chaos order chaos growth,2,24.4
+"Nettle, Cinder, Pyre, Vitre, Wex",1.34,0.98,1.74,2.08,1.74,1.576,2.08,0.98,1.1,7,Speedx2 DoTx2,none,energy chaos chaos void order,1,24.5
+"Rime, Mire, Fen, Wex, Ferrule",1.39,0.93,1.85,1.64,1.88,1.538,1.88,0.93,0.95,9,Healerx3 Tankx3,none,order growth order order growth,3,101.1
+"Ferrule, Ballast, Vitre, Sump, Ledger",1.25,0.86,2.01,1.81,1.64,1.514,2.01,0.86,1.15,11,Tankx2 Breakerx2 Speedx2,none,growth growth void growth order,2,41.1
+"Ballast, Vane, Mote, Tarn, Mire",1.44,0.95,1.44,1.99,1.64,1.492,1.99,0.95,1.04,11,Tankx3 Speedx2 Healerx2,none,growth energy energy chaos growth,2,26.5
+"Vitre, Ledger, Nettle, Mire, Bosk",1.25,0.95,1.9,1.69,1.62,1.482,1.9,0.95,0.95,8,Breakerx2 Speedx3 Tankx2,none,void order energy growth decay,0,0
+"Pyre, Corr, Mire, Maul, Fen",1.32,0.58,1.58,2.11,1.81,1.48,2.11,0.58,1.53,6,DPSx2 Healerx2,none,chaos void growth decay order,0,0
+"Mire, Tarn, Corr, Vane, Sump",1.32,1.07,1.46,2.01,1.53,1.478,2.01,1.07,0.94,10,Healerx3 Tankx2 DPSx2,none,growth chaos void energy growth,1,12.5
+"Cinder, Ferrule, Rime, Vane, Ballast",1.44,0.88,1.58,1.74,1.74,1.476,1.74,0.88,0.86,8,DPSx2 Tankx2,none,chaos growth order energy growth,1,8.6
+"Maul, Ballast, Cinder, Ledger, Fen",1.32,0.93,1.07,2.31,1.74,1.474,2.31,0.93,1.38,6,DPSx2 Breakerx2,none,decay growth chaos order order,1,14.5
+"Mote, Quill, Nettle, Cinder, Halo",1.32,1.07,1.16,2.01,1.67,1.446,2.01,1.07,0.94,6,Speedx3 Breakerx2 DoTx2,none,energy void energy chaos energy,2,44.3
+"Wex, Corr, Cinder, Pyre, Fen",1.32,0.81,1.25,2.41,1.39,1.436,2.41,0.81,1.6,4,Healerx2 DPSx2 DoTx2,none,order void chaos chaos order,2,39.4
+"Tarn, Cinder, Ferrule, Mire, Pyre",1.32,0.93,1.23,2.24,1.44,1.432,2.24,0.93,1.31,10,Tankx3 DPSx3 DoTx2,none,chaos chaos growth growth chaos,3,66.8
+"Ballast, Vane, Ledger, Rime, Tarn",1.23,0.91,1.74,1.53,1.74,1.43,1.74,0.91,0.83,9,Tankx2 Speedx2 Breakerx2,none,growth energy order order chaos,1,26.3
+"Vitre, Vane, Ballast, Mire, Corr",1.23,0.91,1.74,1.64,1.58,1.42,1.74,0.91,0.83,9,Speedx2 Healerx2 Tankx2,none,void energy growth growth void,2,38.8
+"Pyre, Quill, Ledger, Rime, Tarn",1.28,0.98,1.48,1.64,1.67,1.41,1.67,0.98,0.69,8,DoTx2 Breakerx3,none,chaos void order order chaos,2,21.7
+"Vitre, Vane, Ferrule, Nettle, Corr",1.18,0.91,1.58,1.81,1.55,1.406,1.81,0.91,0.9,7,Speedx3 DPSx2,none,void energy growth energy void,2,34.2
+"Corr, Fen, Pyre, Tarn, Cinder",1.23,1.02,1.16,2.01,1.51,1.386,2.01,1.02,0.99,6,DPSx3 DoTx2,none,void order chaos chaos chaos,2,30.6
+"Rime, Sump, Mire, Corr, Halo",1.25,0.86,1.58,1.55,1.64,1.376,1.64,0.86,0.78,9,Healerx3,none,order growth growth void energy,1,18.4
+"Sump, Halo, Rime, Wex, Cinder",1.23,0.81,1.41,1.92,1.46,1.366,1.92,0.81,1.11,8,DoTx2 Healerx3,none,growth energy order order chaos,1,16.5
+"Nettle, Bosk, Rime, Pyre, Corr",1.23,1.02,1.28,1.69,1.6,1.364,1.69,1.02,0.67,4,DPSx2,none,energy decay order chaos void,0,0
+"Quill, Vitre, Vane, Ferrule, Nettle",1.21,0.84,1.88,1.32,1.53,1.356,1.88,0.84,1.04,8,Breakerx2 Speedx3,none,void void energy growth energy,2,50.7
+"Pyre, Vitre, Cinder, Vane, Mire",1.16,0.81,1.58,1.76,1.44,1.35,1.76,0.81,0.95,9,DoTx2 Speedx2 Healerx2,none,chaos void chaos energy growth,1,25.1
+"Wex, Ledger, Ferrule, Sump, Cinder",1.32,0.79,0.98,2.43,1.23,1.35,2.43,0.79,1.64,8,Tankx2 Healerx2 DPSx2 DoTx2,none,order order growth growth chaos,2,39.1
+"Wex, Pyre, Bosk, Cinder, Fen",1.23,0.79,1.18,2.22,1.32,1.348,2.22,0.79,1.43,4,Tankx2 Healerx2 DoTx2 DPSx2,none,order chaos decay chaos order,2,45.9
+"Vane, Vitre, Ledger, Sump, Nettle",1.16,0.81,1.9,1.41,1.41,1.338,1.9,0.81,1.09,9,Speedx4 Healerx2 Breakerx2,Speed,energy void order growth energy,1,17.9
+"Mote, Pyre, Vane, Mire, Corr",1.3,0.88,1.23,1.6,1.58,1.318,1.6,0.88,0.72,7,Speedx2 Healerx2,none,energy chaos energy growth void,1,17.7
+"Vane, Corr, Ferrule, Rime, Tarn",1.25,0.86,1.55,1.34,1.58,1.316,1.58,0.86,0.72,8,DPSx3 Tankx2,none,energy void growth order chaos,0,0
+"Ledger, Corr, Ferrule, Quill, Nettle",1.23,0.91,1.02,1.92,1.46,1.308,1.92,0.91,1.01,5,Breakerx2 Speedx2 DPSx2,none,order void growth void energy,1,21
+"Tarn, Vane, Sump, Rime, Ferrule",1.23,0.88,1.62,1.25,1.55,1.306,1.62,0.88,0.74,11,Tankx2 DPSx2 Healerx2,none,chaos energy growth order growth,1,11
+"Tarn, Cinder, Vane, Rime, Ballast",1.16,0.93,1.23,1.71,1.48,1.302,1.71,0.93,0.78,9,Tankx2 DPSx2,none,chaos chaos energy order growth,1,3.1
+"Maul, Quill, Ledger, Ferrule, Mire",1.16,0.65,1.23,1.9,1.55,1.298,1.9,0.65,1.25,8,DPSx2 Breakerx3 Tankx2,none,decay void order growth growth,1,8.9
+"Vitre, Ferrule, Cinder, Vane, Nettle",1.07,0.86,1.53,1.62,1.39,1.294,1.62,0.86,0.76,8,Speedx3 DPSx2,none,void growth chaos energy energy,1,15.3
+"Halo, Ballast, Cinder, Rime, Fen",1.21,0.75,1.46,1.58,1.46,1.292,1.58,0.75,0.83,7,Healerx2,none,energy growth chaos order order,1,24.5
+"Maul, Ballast, Mire, Tarn, Halo",1.11,0.88,1.14,1.83,1.46,1.284,1.83,0.88,0.95,10,DPSx2 Tankx3 Healerx2,none,decay growth growth chaos energy,1,11.6
+"Tarn, Pyre, Bosk, Ferrule, Cinder",1.23,0.86,1.07,1.94,1.32,1.284,1.94,0.86,1.08,7,Tankx3 DPSx4 DoTx2,DPS,chaos chaos decay growth chaos,2,42.8
+"Pyre, Vitre, Wex, Nettle, Ballast",1.16,0.79,1.74,1.32,1.41,1.284,1.74,0.79,0.95,8,Speedx2 Tankx2,none,chaos void order energy growth,0,0
+"Mote, Sump, Vane, Ballast, Bosk",1.23,0.81,1.28,1.6,1.48,1.28,1.6,0.81,0.79,8,Speedx2 Healerx2 Tankx2,none,energy growth energy growth decay,2,31.8
+"Vane, Tarn, Cinder, Mire, Nettle",1.09,0.93,1.07,1.97,1.32,1.276,1.97,0.93,1.04,9,Speedx2 Healerx2 Tankx2 DPSx2,none,energy chaos chaos growth energy,2,22.1
+"Tarn, Quill, Cinder, Nettle, Fen",1.16,0.88,1.07,1.97,1.23,1.262,1.97,0.88,1.09,7,DPSx2 DoTx2,none,chaos void chaos energy order,1,6.4
+"Bosk, Quill, Vitre, Tarn, Halo",1.07,0.81,1.58,1.48,1.37,1.262,1.58,0.81,0.77,8,DPSx2 Tankx2 Breakerx2 Speedx2,none,decay void void chaos energy,1,20.9
+"Fen, Tarn, Ferrule, Nettle, Cinder",1.16,0.77,1.32,2.06,0.95,1.252,2.06,0.77,1.29,8,Tankx2 DPSx3,none,order chaos growth energy chaos,1,22.1
+"Rime, Sump, Wex, Ferrule, Vane",1.16,0.75,1.48,1.3,1.51,1.24,1.51,0.75,0.76,9,Healerx3 Tankx2,none,order growth order growth energy,2,44.2
+"Vane, Ferrule, Ballast, Sump, Rime",1.16,0.75,1.39,1.41,1.48,1.238,1.48,0.75,0.73,10,Healerx2 Tankx2,none,energy growth growth growth order,2,50
+"Cinder, Nettle, Wex, Ferrule, Ledger",1.18,0.7,0.91,2.11,1.23,1.226,2.11,0.7,1.41,6,DPSx2 Speedx2 Tankx2,none,chaos energy order growth order,1,21.3
+"Vane, Tarn, Maul, Ledger, Sump",1.07,0.77,1.02,1.85,1.34,1.21,1.85,0.77,1.08,9,Speedx2 Healerx2 DPSx2 Breakerx2,none,energy chaos decay order growth,0,0
+"Rime, Vane, Fen, Wex, Ballast",1.14,0.75,1.51,1.18,1.46,1.208,1.51,0.75,0.76,7,Healerx3 Tankx2,none,order energy order order growth,2,74.3
+"Corr, Bosk, Tarn, Vane, Fen",1.16,0.86,1.16,1.62,1.16,1.192,1.62,0.86,0.76,5,DPSx3 Tankx2 Healerx2,none,void decay chaos energy order,0,0
+"Sump, Vitre, Ferrule, Pyre, Nettle",1.02,0.7,1.53,1.41,1.28,1.188,1.53,0.7,0.83,10,DoTx2 Speedx2,none,growth void growth chaos energy,1,7.8
+"Rime, Corr, Wex, Vane, Pyre",1.07,0.72,1.51,1.25,1.39,1.188,1.51,0.72,0.79,5,Healerx2,none,order void order energy chaos,1,18.5
+"Ledger, Quill, Rime, Halo, Vane",1.07,0.75,1.41,1.21,1.39,1.166,1.41,0.75,0.66,6,Breakerx3 Speedx3 Healerx2,none,order void order energy energy,2,25.5
+"Vane, Mire, Corr, Cinder, Ballast",1.05,0.68,1,1.94,1.07,1.148,1.94,0.68,1.26,7,Healerx2 Tankx2 DPSx2,none,energy growth void chaos growth,1,16.1
+"Sump, Tarn, Nettle, Corr, Vane",1.02,0.81,0.98,1.74,1.16,1.142,1.74,0.81,0.93,8,Healerx2 DPSx2 Speedx2,none,growth chaos energy void energy,1,15.2
+"Sump, Maul, Pyre, Mire, Nettle",1.07,0.61,0.88,1.9,1.23,1.138,1.9,0.61,1.29,9,DoTx2 Healerx2,none,growth decay chaos growth energy,1,16.8
+"Tarn, Ledger, Pyre, Mire, Bosk",0.98,0.75,1.02,1.58,1.16,1.098,1.58,0.75,0.83,8,Tankx3 DPSx2,none,chaos order chaos growth decay,1,6.6
+"Corr, Tarn, Sump, Halo, Maul",0.98,0.72,1.07,1.62,1.09,1.096,1.62,0.72,0.9,8,DPSx3 Healerx2,none,void chaos growth energy decay,0,0
+"Corr, Vane, Sump, Bosk, Tarn",0.93,0.75,1.07,1.51,1.21,1.094,1.51,0.75,0.76,7,DPSx3 Healerx2 Tankx2,none,void energy growth decay chaos,0,0
+"Bosk, Maul, Tarn, Corr, Pyre",1.02,0.75,0.91,1.58,1.16,1.084,1.58,0.75,0.83,5,DPSx4 Tankx2,DPS,decay decay chaos void chaos,2,13.1
+"Ferrule, Fen, Corr, Sump, Bosk",1.07,0.63,1.14,1.44,1.09,1.074,1.44,0.63,0.81,6,Tankx2 DPSx3 Healerx2,none,growth order void growth decay,1,13.9
+"Sump, Mote, Pyre, Vane, Halo",1.07,0.63,1.16,1.28,1.23,1.074,1.28,0.63,0.65,8,DoTx2 Healerx3 Speedx3,none,growth energy chaos energy energy,2,34.2
+"Sump, Nettle, Cinder, Mire, Vane",1,0.63,0.79,1.94,1,1.072,1.94,0.63,1.31,9,DoTx2 Healerx3 Speedx2,none,growth energy chaos growth energy,2,38.2
+"Cinder, Vane, Sump, Maul, Wex",1.02,0.56,0.84,2.08,0.79,1.058,2.08,0.56,1.52,7,DoTx2 DPSx2 Healerx3,none,chaos energy growth decay order,0,0
+"Corr, Cinder, Ledger, Quill, Vane",0.98,0.75,0.75,1.74,1.07,1.058,1.74,0.75,0.99,4,DPSx2 DoTx2 Breakerx2 Speedx2,none,void chaos order void energy,1,15.1
+"Bosk, Vane, Tarn, Ledger, Sump",0.93,0.75,0.98,1.48,1.09,1.046,1.48,0.75,0.73,8,DPSx2 Tankx2 Speedx2 Healerx2,none,decay energy chaos order growth,0,0
+"Ferrule, Ledger, Pyre, Tarn, Quill",0.91,0.61,1.07,1.48,1.11,1.036,1.48,0.61,0.87,8,Tankx2 DPSx2 Breakerx2 DoTx2,none,growth order chaos chaos void,1,19
+"Quill, Sump, Ferrule, Mire, Ballast",0.98,0.63,0.88,1.71,0.98,1.036,1.71,0.63,1.08,11,DoTx2 Healerx2 Tankx3,none,void growth growth growth growth,3,81.4
+"Quill, Corr, Sump, Fen, Wex",0.98,0.58,0.91,1.64,0.98,1.018,1.64,0.58,1.06,6,DoTx2 Healerx3,none,void void growth order order,2,45
+"Mire, Cinder, Vane, Ferrule, Tarn",1,0.63,0.68,1.97,0.81,1.018,1.97,0.63,1.34,10,Healerx2 Tankx3 DPSx3,none,growth chaos energy growth chaos,2,39.9
+"Fen, Wex, Maul, Corr, Vane",0.77,0.4,1.44,1.44,0.84,0.978,1.44,0.4,1.04,4,Healerx3 DPSx2,none,order order decay void energy,1,18.3
+"Fen, Quill, Cinder, Mire, Ballast",0.91,0.58,0.75,1.71,0.86,0.962,1.71,0.58,1.13,8,Healerx2 DoTx2 Tankx2,none,order void chaos growth growth,1,22.1
+"Wex, Ledger, Ferrule, Halo, Cinder",0.95,0.54,0.72,1.64,0.84,0.938,1.64,0.54,1.1,6,Tankx2 Healerx2 Speedx2 DPSx2,none,order order growth energy chaos,1,23.8
+"Bosk, Ledger, Mire, Pyre, Ferrule",0.86,0.56,0.86,1.44,0.91,0.926,1.44,0.56,0.88,7,DPSx2 Tankx3,none,decay order growth chaos growth,1,14.3
+"Ferrule, Bosk, Halo, Corr, Ballast",0.95,0.42,1.16,1.21,0.88,0.924,1.21,0.42,0.79,5,Tankx3 DPSx3,none,growth decay energy void growth,1,8.8
+"Bosk, Ballast, Fen, Mire, Ledger",0.91,0.58,0.88,1.3,0.91,0.916,1.3,0.58,0.72,7,Tankx3 Healerx2,none,decay growth order growth order,2,50.5
+"Vane, Ledger, Cinder, Ferrule, Quill",0.86,0.56,0.79,1.51,0.84,0.912,1.51,0.56,0.95,6,Speedx2 Breakerx2 DoTx2 DPSx2,none,energy order chaos growth void,0,0
+"Quill, Ballast, Corr, Wex, Fen",0.88,0.58,0.84,1.39,0.86,0.91,1.39,0.58,0.81,5,Tankx2 Healerx2,none,void growth void order order,2,48.9
+"Halo, Cinder, Ballast, Ledger, Tarn",0.79,0.58,0.75,1.48,0.91,0.902,1.48,0.58,0.9,8,Speedx2 DPSx2 Tankx2,none,energy chaos growth order chaos,1,4.9
+"Cinder, Ledger, Ferrule, Vane, Wex",0.86,0.49,0.68,1.58,0.81,0.884,1.58,0.49,1.09,6,DPSx2 Speedx2 Tankx2 Healerx2,none,chaos order growth energy order,1,22.8
+"Ledger, Halo, Ballast, Sump, Mire",0.86,0.61,0.72,1.37,0.86,0.884,1.37,0.61,0.76,10,Speedx2 Healerx3 Tankx2,none,order energy growth growth growth,2,67.3
+"Cinder, Pyre, Wex, Vane, Sump",0.86,0.47,0.58,1.69,0.79,0.878,1.69,0.47,1.22,7,DoTx3 Healerx3,none,chaos chaos order energy growth,1,26.2
+"Ferrule, Fen, Pyre, Corr, Tarn",0.79,0.49,0.98,1.39,0.72,0.874,1.39,0.49,0.9,7,Tankx2 DPSx3,none,growth order chaos void chaos,1,26.6
+"Vane, Nettle, Tarn, Ferrule, Sump",0.79,0.49,0.72,1.3,0.86,0.832,1.3,0.49,0.81,10,Speedx2 Healerx2 Tankx2 DPSx2,none,energy energy chaos growth growth,2,33.7
+"Nettle, Quill, Cinder, Sump, Halo",0.7,0.56,0.63,1.48,0.79,0.832,1.48,0.56,0.92,7,Speedx2 DoTx3 Healerx2,none,energy void chaos growth energy,1,21.8
+"Fen, Nettle, Quill, Ferrule, Bosk",0.79,0.45,0.86,1.18,0.84,0.824,1.18,0.45,0.73,5,Tankx2 DPSx2,none,order energy void growth decay,0,0
+"Bosk, Maul, Vane, Tarn, Halo",0.75,0.61,0.75,1.11,0.88,0.82,1.11,0.61,0.5,6,DPSx3 Tankx2 Speedx2 Healerx2,none,decay decay energy chaos energy,2,13.4
+"Halo, Nettle, Ferrule, Tarn, Sump",0.75,0.47,0.7,1.23,0.81,0.792,1.23,0.47,0.76,10,Healerx2 Speedx2 Tankx2 DPSx2,none,energy energy growth chaos growth,2,35.2
+"Nettle, Ferrule, Wex, Sump, Vane",0.7,0.42,0.61,1.11,0.72,0.712,1.11,0.42,0.69,8,Speedx2 Tankx2 Healerx3,none,energy growth order growth energy,2,40.6
+"Quill, Halo, Bosk, Wex, Ledger",0.68,0.4,0.75,1.02,0.7,0.71,1.02,0.4,0.62,4,Breakerx2 Healerx2 Speedx2 Tankx2,none,void energy decay order order,1,20.5
+"Fen, Bosk, Sump, Ledger, Halo",0.7,0.42,0.7,1.02,0.7,0.708,1.02,0.42,0.6,6,Healerx3 Speedx2,none,order decay growth order energy,1,31.3
+"Nettle, Mire, Halo, Bosk, Wex",0.63,0.4,0.68,1,0.68,0.678,1,0.4,0.6,6,Speedx2 Healerx3 Tankx3,none,energy growth energy decay order,1,22.7
+"Wex, Fen, Mire, Pyre, Bosk",0.61,0.4,0.7,1.07,0.58,0.672,1.07,0.4,0.67,6,Tankx3 Healerx3,none,order order growth chaos decay,1,23.7
+"Sump, Mire, Quill, Fen, Vane",0.54,0.42,0.54,1.02,0.54,0.612,1.02,0.42,0.6,9,DoTx2 Healerx4,Healer,growth growth void order energy,1,25.1
+"Halo, Nettle, Ballast, Vane, Bosk",0.56,0.4,0.61,0.86,0.56,0.598,0.86,0.4,0.46,5,Healerx2 Speedx3 Tankx2,none,energy energy growth energy decay,2,45.4
+"Ferrule, Pyre, Tarn, Wex, Vane",0.54,0.4,0.49,0.95,0.54,0.584,0.95,0.4,0.55,8,Tankx3 DPSx2 Healerx2,none,growth chaos chaos order energy,1,24.6
+"Ferrule, Quill, Cinder, Fen, Vane",0.45,0.4,0.4,1.16,0.45,0.572,1.16,0.4,0.76,6,DPSx2 DoTx2 Healerx2,none,growth void chaos order energy,0,0
+"Halo, Vane, Sump, Bosk, Ferrule",0.49,0.4,0.54,0.84,0.52,0.558,0.84,0.4,0.44,7,Healerx3 Speedx2 DPSx2 Tankx2,none,energy energy growth decay growth,2,19.3
+"Vane, Sump, Ledger, Bosk, Halo",0.47,0.4,0.47,0.72,0.42,0.496,0.72,0.4,0.32,6,Speedx3 Healerx3,none,energy growth order decay energy,1,0
+"Vane, Wex, Ballast, Mire, Halo",0.47,0.4,0.4,0.7,0.45,0.484,0.7,0.4,0.3,8,Speedx2 Healerx4 Tankx3,Healer,energy order growth growth energy,2,26
+"Ferrule, Pyre, Fen, Bosk, Vane",0.4,0.4,0.4,0.75,0.45,0.48,0.75,0.4,0.35,5,Tankx2 DPSx2 Healerx2,none,growth chaos order decay energy,0,0
+"Fen, Ledger, Vane, Halo, Pyre",0.4,0.4,0.4,0.72,0.42,0.468,0.72,0.4,0.32,5,Healerx3 Speedx3,none,order order energy energy chaos,2,31.1

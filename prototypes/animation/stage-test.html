@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stage layout test</title>
+<style>
+:root{
+  --bg:#131A21; --panel:#1B242D; --raised:#232F3A; --line:#2E3C48;
+  --ink:#DCE4EA; --ink2:#8A98A5; --ink3:#5F6E7B;
+  --order:#7FA8C9; --chaos:#C97F9E; --growth:#8FB878; --energy:#D4A45C;
+  --stage-h:190px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
+body{padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+h1{font-size:15px;font-weight:500;margin:0 0 2px;letter-spacing:.01em}
+.sub{font-size:12px;color:var(--ink3);margin:0 0 14px}
+
+.field{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.zlabel{font-size:10px;color:var(--ink3);letter-spacing:.06em;margin-bottom:6px}
+
+.row{display:grid;gap:6px}
+.row.e3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.row.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+.unit{background:var(--raised);border:1px solid var(--line);border-radius:8px;
+  padding:7px 4px;text-align:center;position:relative;transition:border-color .12s,transform .12s,opacity .12s}
+.unit .nm{font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.unit .pips{font-size:11px;letter-spacing:2px;margin-top:2px;height:14px}
+.unit .hp{height:2px;background:#33414D;border-radius:2px;margin-top:5px;overflow:hidden}
+.unit .hp i{display:block;height:100%;background:var(--ink2);transition:width .25s}
+.unit.act{border-color:var(--energy)}
+.unit.tgt{border-color:var(--ink)}
+.unit.dim{opacity:.4}
+.unit.down{opacity:.25}
+.unit.hit{animation:jolt .22s}
+@keyframes jolt{0%,100%{transform:translateX(0)}30%{transform:translateX(4px)}65%{transform:translateX(-3px)}}
+
+/* stage */
+#stage{height:var(--stage-h);background:#0F161C;border:1px solid var(--line);border-radius:10px;
+  margin:12px 0;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.sinner{display:flex;align-items:center;gap:10px;width:100%;padding:0 14px}
+.big{flex:1;border-radius:10px;padding:26px 8px;text-align:center;background:var(--raised);border:1px solid var(--line)}
+.big.a{background:#2A3541;border-color:var(--energy)}
+.big .bn{font-size:16px;font-weight:500}
+.arrow{font-size:22px;color:var(--energy);flex:0 0 auto}
+.caption{position:absolute;bottom:12px;left:0;right:0;text-align:center}
+.caption .ab{font-size:13px;color:var(--ink)}
+.caption .vo{font-size:11px;color:var(--ink3);margin-top:3px;font-style:italic;
+  padding:0 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.enter-cut{}
+.enter-slide{animation:sl .18s ease-out}
+@keyframes sl{from{transform:translateX(26px);opacity:0}to{transform:none;opacity:1}}
+.enter-scale{animation:sc .18s ease-out}
+@keyframes sc{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+.enter-fade{animation:fd .2s ease-out}
+@keyframes fd{from{opacity:0}to{opacity:1}}
+
+#stage.ult{background:#241C10;border-color:var(--energy)}
+#stage.ult .big.a{background:#3A2C14}
+
+/* overlay variant */
+body.layout-overlay #stage{position:fixed;left:14px;right:14px;bottom:14px;height:120px;z-index:20;
+  box-shadow:0 -6px 24px rgba(0,0,0,.5)}
+body.layout-overlay #stage .big{padding:12px 8px}
+body.layout-overlay #stage .caption{bottom:6px}
+body.layout-overlay #pad{height:140px}
+body.layout-overlay .arrow{font-size:18px}
+
+/* spotlight variant */
+body.layout-spotlight #stage{display:none}
+body.layout-spotlight .unit.act,body.layout-spotlight .unit.tgt{transform:scale(1.18);z-index:5}
+body.layout-spotlight .unit.act{background:#2A3541}
+body.layout-spotlight .row{padding:10px 0}
+
+#pad{height:0}
+
+/* controls */
+.ctl{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.seg{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:10px}
+.seg button{flex:1;background:transparent;border:0;border-right:1px solid var(--line);color:var(--ink2);
+  padding:9px 4px;font-size:12px;font-family:inherit;min-height:38px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--raised);color:var(--ink)}
+.ctl label{display:block;font-size:11px;color:var(--ink3);margin:10px 0 4px}
+.sl{display:flex;align-items:center;gap:10px}
+input[type=range]{flex:1;accent-color:var(--energy);height:28px}
+.val{font-size:12px;color:var(--ink);min-width:52px;text-align:right}
+.btns{display:flex;gap:8px;margin-top:12px}
+.btns button{flex:1;background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:8px;padding:11px;font-size:13px;font-family:inherit;min-height:44px}
+.btns button:active{background:#2C3A46}
+.readout{display:flex;justify-content:space-between;font-size:12px;color:var(--ink2);
+  border-top:1px solid var(--line);margin-top:12px;padding-top:10px}
+.readout b{color:var(--ink);font-weight:500}
+</style>
+</head>
+<body class="layout-center">
+
+<h1>Stage layout test</h1>
+<p class="sub">One seeded fight. Same log every run.</p>
+
+<div class="field">
+  <div class="zlabel">Enemies</div>
+  <div class="row e3" id="foes"></div>
+
+  <div id="stage">
+    <div class="sinner" id="sinner"></div>
+    <div class="caption" id="cap"></div>
+  </div>
+
+  <div class="row c4" id="crew"></div>
+  <div class="zlabel" style="margin:6px 0 0">Crew</div>
+</div>
+
+<div id="pad"></div>
+
+<div class="ctl">
+  <div class="zlabel">Layout</div>
+  <div class="seg" id="segLayout">
+    <button data-v="center" class="on">Centre stage</button>
+    <button data-v="overlay">Overlay band</button>
+    <button data-v="spotlight">No stage</button>
+  </div>
+
+  <div class="zlabel">Entrance</div>
+  <div class="seg" id="segEnter">
+    <button data-v="cut" class="on">Cut</button>
+    <button data-v="slide">Slide</button>
+    <button data-v="scale">Scale</button>
+    <button data-v="fade">Fade</button>
+  </div>
+
+  <label>Basic <span id="lb"></span></label>
+  <div class="sl"><input type="range" id="rBasic" min="150" max="1200" step="50" value="400"><span class="val" id="vBasic">400ms</span></div>
+
+  <label>Skill and break</label>
+  <div class="sl"><input type="range" id="rSkill" min="300" max="2500" step="100" value="900"><span class="val" id="vSkill">900ms</span></div>
+
+  <label>Ultimate</label>
+  <div class="sl"><input type="range" id="rUlt" min="500" max="6000" step="250" value="2500"><span class="val" id="vUlt">2500ms</span></div>
+
+  <div class="btns">
+    <button id="bPlay">Play</button>
+    <button id="bStep">Step</button>
+    <button id="bReset">Reset</button>
+  </div>
+
+  <div class="readout">
+    <span>Action <b id="oAct">0/0</b></span>
+    <span>Projected fight <b id="oLen">—</b></span>
+  </div>
+</div>
+
+<script>
+var EL={order:'var(--order)',chaos:'var(--chaos)',growth:'var(--growth)',energy:'var(--energy)'};
+
+var FOES=[
+ {id:'drone',name:'Drone',el:'order', shield:3,max:3,hp:100},
+ {id:'husk', name:'Husk', el:'energy',shield:2,max:2,hp:100},
+ {id:'maw',  name:'Maw',  el:'growth',shield:3,max:3,hp:100}
+];
+var CREW=[
+ {id:'hammer',name:'Hammer',el:'order', hp:100},
+ {id:'vell',  name:'Vell',  el:'chaos', hp:100},
+ {id:'sable', name:'Sable', el:'growth',hp:100},
+ {id:'corr',  name:'Corr',  el:'energy',hp:100}
+];
+
+var LOG=[
+ {a:'hammer',t:'drone',ab:'Rivet strike',k:'basic',sh:1,dmg:4,vo:'Hold still, will you.'},
+ {a:'husk',  t:'sable',ab:'Lash',        k:'basic',dmg:9},
+ {a:'corr',  t:'husk', ab:'Arc tap',     k:'basic',sh:1,dmg:5,vo:'Grounding it out.'},
+ {a:'vell',  t:'maw',  ab:'Splinter',    k:'basic',dmg:3},
+ {a:'maw',   t:'hammer',ab:'Rend',       k:'basic',dmg:11},
+ {a:'sable', t:'maw',  ab:'Overgrowth',  k:'skill',sh:2,dmg:12,vo:'Let it take root.'},
+ {a:'hammer',t:'drone',ab:'Rivet strike',k:'basic',sh:1,dmg:4},
+ {a:'drone', t:'corr', ab:'Volley',      k:'basic',dmg:8},
+ {a:'corr',  t:'husk', ab:'Overload',    k:'skill',sh:1,dmg:14,brk:1,vo:'Shell is off. Go.'},
+ {a:'vell',  t:'husk', ab:'Splinter',    k:'basic',dmg:22},
+ {a:'husk',  t:'vell', ab:'Lash',        k:'basic',dmg:7},
+ {a:'hammer',t:'drone',ab:'Rivet strike',k:'basic',sh:1,dmg:5,brk:1},
+ {a:'sable', t:'drone',ab:'Overgrowth',  k:'skill',dmg:18},
+ {a:'maw',   t:'sable',ab:'Rend',        k:'basic',dmg:10},
+ {a:'vell',  t:'maw',  ab:'Unmaking',    k:'ult',  sh:3,dmg:40,brk:1,vo:'Everything comes apart eventually.'},
+ {a:'corr',  t:'maw',  ab:'Arc tap',     k:'basic',dmg:16},
+ {a:'hammer',t:'maw',  ab:'Rivet strike',k:'basic',dmg:14,vo:'That will do it.'}
+];
+
+var st={i:0,playing:false,timer:null,layout:'center',enter:'cut'};
+var live=JSON.parse(JSON.stringify({FOES:FOES,CREW:CREW}));
+
+function $(x){return document.getElementById(x)}
+function dur(k){return k==='ult'?+$('rUlt').value : k==='basic'?+$('rBasic').value : +$('rSkill').value}
+function find(id){
+  for(var i=0;i<live.FOES.length;i++) if(live.FOES[i].id===id) return live.FOES[i];
+  for(var j=0;j<live.CREW.length;j++) if(live.CREW[j].id===id) return live.CREW[j];
+}
+
+function pips(u){
+  if(u.shield===undefined) return '';
+  var s='';
+  for(var i=0;i<u.max;i++) s += (i<u.shield?'\u25C6':'\u25C7');
+  return s;
+}
+
+function drawRosters(){
+  var f=$('foes'); f.innerHTML='';
+  live.FOES.forEach(function(u){
+    var d=document.createElement('div'); d.className='unit'; d.id='u-'+u.id;
+    d.innerHTML='<div class="nm">'+u.name+'</div>'+
+      '<div class="pips" style="color:'+EL[u.el]+'">'+pips(u)+'</div>'+
+      '<div class="hp"><i style="width:'+Math.max(0,u.hp)+'%"></i></div>';
+    f.appendChild(d);
+  });
+  var c=$('crew'); c.innerHTML='';
+  live.CREW.forEach(function(u){
+    var d=document.createElement('div'); d.className='unit'; d.id='u-'+u.id;
+    d.innerHTML='<div class="nm" style="color:'+EL[u.el]+'">'+u.name+'</div>'+
+      '<div class="pips"></div>'+
+      '<div class="hp"><i style="width:'+Math.max(0,u.hp)+'%"></i></div>';
+    c.appendChild(d);
+  });
+}
+
+function clearMarks(){
+  document.querySelectorAll('.unit').forEach(function(e){
+    e.classList.remove('act','tgt','dim','hit');
+  });
+}
+
+function projected(){
+  var t=0;
+  LOG.forEach(function(x){t+=dur(x.k)});
+  return (t/1000).toFixed(1)+'s';
+}
+
+function render(step){
+  var a=find(step.a), t=find(step.t);
+  clearMarks();
+  document.querySelectorAll('.unit').forEach(function(e){
+    if(e.id!=='u-'+step.a && e.id!=='u-'+step.t) e.classList.add('dim');
+  });
+  var ae=$('u-'+step.a), te=$('u-'+step.t);
+  if(ae) ae.classList.add('act');
+  if(te){ te.classList.add('tgt'); te.classList.add('hit'); }
+
+  var cls='enter-'+st.enter;
+  var stage=$('stage');
+  stage.className = step.k==='ult' ? 'ult' : '';
+  $('sinner').innerHTML=
+    '<div class="big a '+cls+'"><div class="bn" style="color:'+EL[a.el]+'">'+a.name+'</div></div>'+
+    '<div class="arrow '+cls+'">\u2192</div>'+
+    '<div class="big '+cls+'"><div class="bn">'+t.name+'</div></div>';
+  $('cap').innerHTML='<div class="ab">'+step.ab+'</div>'+
+    (step.vo?'<div class="vo">\u201C'+step.vo+'\u201D</div>':'<div class="vo">&nbsp;</div>');
+
+  if(step.sh && t.shield!==undefined) t.shield=Math.max(0,t.shield-step.sh);
+  if(step.dmg) t.hp=Math.max(0,t.hp-step.dmg);
+
+  setTimeout(function(){
+    var pe=te?te.querySelector('.pips'):null;
+    if(pe && t.shield!==undefined) pe.textContent=pips(t);
+    var he=te?te.querySelector('.hp i'):null;
+    if(he) he.style.width=Math.max(0,t.hp)+'%';
+    if(t.hp<=0 && te) te.classList.add('down');
+  }, Math.min(200,dur(step.k)/2));
+
+  $('oAct').textContent=(st.i+1)+'/'+LOG.length;
+}
+
+function step(){
+  if(st.i>=LOG.length){ stop(); return false; }
+  render(LOG[st.i]);
+  st.i++;
+  return true;
+}
+
+function tick(){
+  var k=LOG[st.i]?LOG[st.i].k:'basic';
+  if(!step()) return;
+  if(st.playing) st.timer=setTimeout(tick,dur(k));
+}
+
+function play(){ if(st.i>=LOG.length) reset(); st.playing=true; $('bPlay').textContent='Pause'; tick(); }
+function stop(){ st.playing=false; clearTimeout(st.timer); $('bPlay').textContent='Play'; }
+function reset(){
+  stop(); st.i=0;
+  live=JSON.parse(JSON.stringify({FOES:FOES,CREW:CREW}));
+  drawRosters();
+  $('sinner').innerHTML='';
+  $('cap').innerHTML='';
+  $('stage').className='';
+  $('oAct').textContent='0/'+LOG.length;
+}
+
+$('bPlay').onclick=function(){ st.playing?stop():play(); };
+$('bStep').onclick=function(){ stop(); step(); };
+$('bReset').onclick=reset;
+
+function seg(id,fn){
+  $(id).onclick=function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    this.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
+    b.classList.add('on'); fn(b.dataset.v);
+  };
+}
+seg('segLayout',function(v){
+  st.layout=v;
+  document.body.className='layout-'+v;
+});
+seg('segEnter',function(v){ st.enter=v; });
+
+['Basic','Skill','Ult'].forEach(function(n){
+  var r=$('r'+n);
+  r.oninput=function(){ $('v'+n).textContent=r.value+'ms'; $('oLen').textContent=projected(); };
+});
+
+reset();
+$('oLen').textContent=projected();
+</script>
+</body>
+</html>
