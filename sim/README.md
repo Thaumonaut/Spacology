@@ -71,8 +71,8 @@ and no line of either engine ever reads it.
 ### What this does and does not invalidate
 
 It is a legitimate *control*: because element is identical across every team compared, it cannot
-bias a comparison between tags. So the **tag findings stand** — the breakpoint tables, the tag
-lift figures, the enemy discrimination matrix, the finding that Crew is not a build.
+bias a comparison between tags, so tag comparisons remain meaningful **once the engine itself is
+sound** — which, before the fixes below, `synergy.js` was not.
 
 What it means is that **the element axis has never been measured.** Any claim about weakness
 coverage, about spreading versus stacking elements, or about Harmony's contribution is
