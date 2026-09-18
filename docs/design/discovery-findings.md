@@ -65,64 +65,95 @@ drafted the payoff to spend it, while the cross-department verb chains pay relia
 threshold system is not the thing pushing players toward discovery, and it is not the thing
 stopping them either — it is roughly neutral, and the verbs are doing the work.
 
-## 3 · No character is mandatory — good news
+## 3 · The uniqueness rule costs nothing
 
-`diversity.js`, 260 random fives, best team with each heavily-used character banned:
-
-```
-  with everyone          5.62   Ferrule, Maul, Maul, Ash, Vitre
-  without Ash            5.39   Maul, Maul, Corr, Nettle, Corr
-  without Maul           5.01   Ash, Rime, Rime, Cinder, Bosk
-  without Nettle         5.62   (top team unaffected)
-  without Mote           5.62   (top team unaffected)
-  without Corr           5.62   (top team unaffected)
-```
-
-Banning the single most-used character costs **4%**. Banning the second costs **11%**. Neither is
-a tax worth calling mandatory, and the three teams above are mechanically distinct:
-
-- **break-answer** — shred into breaks, Maul answers them
-- **burst** — raw damage plus a cheap ally-trigger reactor, no Blight at all
-- **shred-and-seed** — area shredding with stacks, no reactor at all
-
-Three viable cores is real. This is the part of the goal that already works.
-
-## 4 · But the top end concentrates on five characters
-
-Character frequency in the top 50 teams, 250 slots, even share would be 11.9:
+`unique-teams.js`, 420 unique fives, versus the earlier run that allowed duplicates:
 
 ```
-  Ash      40  ####################
-  Maul     29  ###############
-  Nettle   18  #########
-  Mote     18  #########
-  Corr     18  #########
-  Rime     17  #########
-  Pyre     13  #######
-  ...
-  Vane      5  ###
-  Mire      5  ###
-  Ballast   3  ##
-  Sump      3  ##
+  ceiling with duplicates allowed   5.62
+  ceiling with unique teams only    5.64
 ```
 
-Ban all five of the top characters and the best remaining team scores **2.39** — dead on the 2.28
-baseline. The other sixteen characters produce nothing above average.
+**Banning duplicates costs nothing at all** — the difference is inside sampling noise. Whatever the
+duplicate teams were doing, it was not raising the ceiling. Adopt the rule freely; it is pure
+legibility gain.
 
-Greedy disjoint teams tell the same story:
+## 4 · But it exposes one mandatory character
+
+This is what the duplicates were hiding, and it is the significant finding.
+
+**Ash appears in all twelve of the top twelve unique teams** — 43 of 250 slots in the top fifty
+against an even share of 4.8%, so 3.6× over-represented and universal at the top. Best team with
+each heavily-used character banned:
 
 ```
-  1. 5.62   Ferrule, Maul, Maul, Ash, Vitre
-  2. 3.78   Corr, Nettle, Tarn, Mote, Rime
-  3. 1.39   Vane, Cinder, Ledger, Bosk, Cinder
-  4. 0.78   Wex, Mire, Mire, Mire, Mire
+  with everyone      6.80   Pyre, Ash, Corr, Rime, Maul
+  without Ash        4.29   Tarn, Vitre, Nettle, Maul, Rime     -37%
+  without Maul       6.21   Cinder, Mote, Bosk, Pyre, Ash        -9%
+  without Rime       6.09   Maul, Wex, Pyre, Ash, Cinder        -10%
+  without Mote       6.80   (top team unaffected)                 0%
+  without Cinder     6.80   (top team unaffected)                 0%
+  without all five   2.36   Sump, Bosk, Corr, Vitre, Ledger     -65%
 ```
 
-*Caveat: this is greedy, so team 3 draws from only 11 remaining characters and team 4 from 6. Some
-of that decline is forced by the method rather than by the roster.* Even so — two teams above
-baseline, then nothing.
+**Without Ash the ceiling falls 37%.** With duplicates permitted the same ban cost only 4%, because
+you could compensate by doubling another strong piece — `Maul, Maul, Corr, Nettle, Corr`. Remove
+that escape and Ash is load-bearing. Nobody else is: Maul and Rime cost roughly 10%, Mote and
+Cinder nothing.
 
-**Two genuinely different strong teams, not many.**
+Ban the top five and the best remaining team scores **2.36**, on the baseline. Sixteen of
+twenty-one characters produce nothing above average.
+
+Greedy disjoint teams:
+
+```
+  1. 6.80   Pyre, Ash, Corr, Rime, Maul
+  2. 3.21   Tarn, Mote, Cinder, Ledger, Vitre
+  3. 1.48   Wex, Sump, Nettle, Bosk, Ferrule
+```
+
+*Caveat: greedy, so team 2 draws from 16 remaining characters and team 3 from 11. Part of the
+decline is forced by the method.* Still: one strong team, one playable, then below baseline.
+
+**And Ash is mandatory for precisely the reason §6's principle fixes.** She carries three hooks
+where the roster ceiling is three — `shred` + `apply` + `aoe` — and is one of only four shredders
+and one of only three seeders. Under **enablement**, being the best producer for a scarce consumer
+makes you structurally necessary. Under **amplification**, where every applier spends its own and
+modifier characters steepen the curve, no single producer can be load-bearing. The measurement
+supports the principle rather than merely coexisting with it.
+
+### A methodology note: these numbers were censored
+
+`scoreTeam` searched difficulty over `[0.4, 6.0]`, so **5.96 was the highest value it could ever
+return** — it means "beat the hardest difficulty tried", not a breakpoint. Strong teams were
+landing there on two or three worlds of five, and the figures first reported from this run were
+censored.
+
+Re-scored with the ceiling at 24.0:
+
+```
+  world      real max   was reported as 5.96 for
+  open          6.44    4 of 10 teams
+  murk          4.43    0 of 10
+  hive          8.60    6 of 10
+  fortress      5.93    1 of 10
+  bloom         8.58    6 of 10
+```
+
+`hive`'s real maximum is **8.60 against a reported 5.96**. Two consequences:
+
+- **The top of the ranking was compressed into near-ties.** Spread between first and sixth was 0.22
+  censored and 0.84 uncensored — nearly four times more separation — and places two through four
+  reorder once it is lifted.
+- **`murk` is the only world that discriminates at the top.** It never approaches the ceiling, and
+  it is every strong team's worst column. That matches `roster-design.md`'s note that slow worlds
+  discriminate hardest, and it means the other four worlds are mostly measuring whether a team is
+  competent rather than which competent team is better.
+
+The ceiling and resolution are now optional arguments to `score()` and `scoreTeam()`, defaulting to
+the old values. **Raise the ceiling before trusting any top-end comparison.** This is the project's
+own first method rule — *"uncalibrated tests saturate and hide everything"* — and it was being
+violated in the tool itself.
 
 ## 5 · The cause: eight of seventeen verbs exist on one character
 
