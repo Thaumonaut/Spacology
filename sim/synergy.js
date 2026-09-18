@@ -14,7 +14,12 @@ const TUNE={ARMOR_PER_LAYER:14,ARMOR_MITIGATION:.55,VULN_BONUS:.35,BREAK_DELAY:.
   SHRED_SAME:.2, SHRED_ADJACENT:.3, SHRED_DISTANT:.5, SHRED_OPPOSITE:1,
   // Harmony: on a break, allies sharing the breaker's element strike too.
   // HARMONY_CAP is how many may answer; 0 turns it off.
-  HARMONY_CAP:2, HARMONY_DMG:.6};
+  HARMONY_CAP:2, HARMONY_DMG:.6,
+  // What Harmony answers. 'break' is the original design and fires rarely,
+  // because it needs someone on the team carrying armorShred. 'hit' lets any
+  // attack trigger it, which is the lever that decides whether stacking an
+  // element is a strategy or a rounding error.
+  HARMONY_ON:'break'};
 const TUNE0=Object.assign({},TUNE);
 function setTuning(o){ Object.assign(TUNE,o||{}); return Object.assign({},TUNE); }
 function resetTuning(){ Object.assign(TUNE,TUNE0); return Object.assign({},TUNE); }
@@ -116,14 +121,17 @@ function fight(chars,world,diff,seed){
       if(BON.overstrike) dmgTo(s,t,a*0.9);
       allies().filter(u=>u.procOn==='break'&&(u._r||0)<u.procMax).forEach(u=>{
         u._r=(u._r||0)+1; dmgTo(u,t,u.dmg*u.procDmg); });
-      if(TUNE.HARMONY_CAP>0){
-        allies().filter(u=>u.element===s.element&&u.id!==s.id&&!u._h)
-          .sort((a,b)=>a.av-b.av).slice(0,TUNE.HARMONY_CAP)
-          .forEach(u=>{ u._h=1; harmonies++; dmgTo(u,t,u.dmg*TUNE.HARMONY_DMG); });
-      }
+      if(TUNE.HARMONY_ON==='break') harmony(s,t);
       return true;}
     return false; }
+  function harmony(src,t){
+    if(TUNE.HARMONY_CAP<=0||!t||!t.alive) return;
+    allies().filter(u=>u.element===src.element&&u.id!==src.id&&!u._h)
+      .sort((a,b)=>a.av-b.av).slice(0,TUNE.HARMONY_CAP)
+      .forEach(u=>{ u._h=1; harmonies++; dmgTo(u,t,u.dmg*TUNE.HARMONY_DMG); });
+  }
   function afterAllyHit(src,t){
+    if(TUNE.HARMONY_ON==='hit') harmony(src,t);
     allies().filter(u=>u.procOn==='ally'&&u.id!==src.id&&
       (BON.freeReact||(u._r||0)<u.procMax)).forEach(u=>{
       const fs=foes(); if(!fs.length) return;

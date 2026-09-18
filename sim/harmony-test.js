@@ -35,22 +35,28 @@ const rows = teams.map(t => {
   const breakers = t.filter(n => CHARS[n].armorShred).length;
   S.resetTuning(); S.setTuning({ HARMONY_CAP: 0 }); const off = avg(t);
   S.resetTuning(); S.setTuning({ HARMONY_CAP: 2 }); const on = avg(t);
-  return { t, dupes, breakers, off, on, gain: off > 0.01 ? (on - off) / off : 0 };
+  S.resetTuning(); S.setTuning({ HARMONY_CAP: 2, HARMONY_ON: 'hit' }); const onHit = avg(t);
+  return { t, dupes, breakers, off, on, onHit,
+           gain: off > 0.01 ? (on - off) / off : 0,
+           gainHit: off > 0.01 ? (onHit - off) / off : 0 };
 });
 S.resetTuning();
 
 function group(rows, key, label) {
   const by = {};
   rows.forEach(r => (by[r[key]] = by[r[key]] || []).push(r));
-  console.log(`\n  ${label.padEnd(22)} teams   Harmony off    on     gain`);
+  console.log(`\n  ${label.padEnd(22)} teams   Harmony off  on break    gain   on hit     gain`);
   Object.keys(by).sort((a, b) => a - b).forEach(k => {
     const g = by[k];
     const off = g.reduce((a, r) => a + r.off, 0) / g.length;
     const on = g.reduce((a, r) => a + r.on, 0) / g.length;
     const gain = g.reduce((a, r) => a + r.gain, 0) / g.length;
+    const onHit = g.reduce((a, r) => a + r.onHit, 0) / g.length;
+    const gainHit = g.reduce((a, r) => a + r.gainHit, 0) / g.length;
     console.log('  ' + String(k).padEnd(22) + String(g.length).padStart(5) +
       off.toFixed(2).padStart(12) + on.toFixed(2).padStart(8) +
-      (gain * 100).toFixed(1).padStart(8) + '%');
+      (gain * 100).toFixed(1).padStart(8) + '%' +
+      onHit.toFixed(2).padStart(9) + (gainHit * 100).toFixed(1).padStart(8) + '%');
   });
 }
 
@@ -60,7 +66,6 @@ group(rows, 'breakers', 'characters with shred');
 
 const stacked = rows.filter(r => r.dupes >= 2);
 const spread = rows.filter(r => r.dupes === 0);
-console.log('\n  Harmony is worth ' + (stacked.reduce((a, r) => a + r.gain, 0) / stacked.length * 100).toFixed(1) +
-  '% to a team with 2+ duplicate elements');
-console.log('  and ' + (spread.reduce((a, r) => a + r.gain, 0) / spread.length * 100).toFixed(1) +
-  '% to a team with none, which is the control.');
+const m=(g,k)=>(g.reduce((a,r)=>a+r[k],0)/g.length*100).toFixed(1);
+console.log('\n  Team with 2+ duplicate elements:  on break ' + m(stacked,'gain') + '%   on hit ' + m(stacked,'gainHit') + '%');
+console.log('  Team with none (the control):    on break ' + m(spread,'gain') + '%   on hit ' + m(spread,'gainHit') + '%');
