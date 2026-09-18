@@ -17,6 +17,7 @@ document in this folder contradicts it, this one wins.
 | File | What it covers |
 |---|---|
 | `glossary.md` | The working vocabulary: roles, character properties, enemy archetypes, combat constants |
+| `measurements.md` | **Generated.** Every number from the simulation — role lift, strongest teams, the mandatory-character test, constant sensitivity, worlds, verb census |
 | `decisions.md` | The naming proposal, three bugs found checking it, and the open questions |
 | `character-construction.md` | How a character is built — the uniqueness rule, self-sufficiency versus amplification, and where the roster falls short |
 | `discovery-findings.md` | Measured: can players find combinations nobody designed? |

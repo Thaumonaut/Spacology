@@ -87,7 +87,7 @@ L.append("`cost of banning` is how far the best achievable team falls if that ch
          "removed from the pool.")
 L.append("")
 rows = [[c["name"], c["roles"], c["hooks"], c["topFreq"],
-         pct(-c["costOfBanning"]) if c["costOfBanning"] is not None else "—"]
+         ("—" if not c["costOfBanning"] else pct(-c["costOfBanning"]))]
         for c in D["characters"][:12]]
 L.append(table(["character", "roles", "hooks", "in top 50", "cost of banning"], rows,
                ["l", "l", "r", "r", "r"]))

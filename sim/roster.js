@@ -117,7 +117,7 @@ module.exports.WORLDS={
              mix:[['swarm',18],['fast',5]]},
   fortress: {note:'a few very tough things', speedMul:1,
              mix:[['bruiser',3],['guardian',3],['armored',2]]},
-  bloom:    {note:'the Null is thick here \u2014 ailments bite harder', speedMul:1,
+  bloom:    {note:'the Null is thick here \u2014 damage over time bites harder', speedMul:1,
              ailMul:1.8, mix:[['swarm',10],['cleanser',4],['bruiser',3]]},
   cascade:  {note:'everything here answers back', speedMul:1.1,
              mix:[['reflector',5],['swarm',8],['buffer',3]]}
