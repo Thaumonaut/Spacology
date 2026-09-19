@@ -139,7 +139,11 @@ walks the spine twice a shift with a tapping-hammer, and the whole ship knows th
 coming — two taps, a pause, two taps. People pick up conversations they were not having.
 
 She holds a master's in living-stone structures from Verekh and can tell you which of four thousand
-growth seams is thinning and roughly when it will open, and she is almost always right. She is also the woman who took the mess watercourse down for scheduled
+growth seams is thinning and roughly when it will open, and she is almost always right.
+
+**The yard-houses raised her**, along with a great many other children whose parents went into a
+structure that did not hold. Nobody has ever had to explain to Ilka why a thing gets serviced before
+it fails. She has never once said this out loud and would not know how to begin. She is also the woman who took the mess watercourse down for scheduled
 bed-turning on Dolores's birthday, leaving sixty people without hot water for two days. The
 maintenance calendar is pinned in the galley. Somebody drew a face on it years ago and it has been
 redrawn every time the sheet is replaced.
@@ -464,6 +468,10 @@ is mostly two decks away. Sits very still for hours. He can hear you coming from
 gallery and still startles badly when spoken to, every single time — because when he is down in the
 swarm he is not in the room at all — which is why everyone announces themselves from the doorway.
 
+He came out of the same Verekh yard-houses Ilka Voressen did, a few years behind her. They have
+approximately nothing else in common and have never discussed it, and he is one of the very few
+people aboard she does not lecture. Neither of them has noticed that, or both of them have.
+
 The motes are alive — forty drifting scouts the size of a thumb, something between a seed and a
 jellyfish — and Idris handles all forty at once from a hollow well away from the trouble. Somebody
 called him by his swarm's name in his third year and it took. He has explained, with dignity, that
@@ -553,9 +561,12 @@ He is the best-tempered person on the ship.
 **Rock skin** · Kessa — gone
 
 Compact and hard-shouldered, rock skin in dark slate, hair kept short enough to forget about, a burn
-across the back of one hand she does not cover. **Her forearms carry a wide warm ochre band from
-eleven years on the Kessa rings** — rock skin takes up the mineral character of wherever it works,
-and Kessa is gone, and there is no fossil, no ruin and no trace of it anywhere except in her. Thirty-six and tired in a way sleep does not fix. Does not
+across the back of one hand she does not cover. Rock skin takes up the mineral character of wherever it works, so a forearm is a record. Hers is a
+long quiet run of greys and slates from the yards and postings of a working life, and then **one
+line.** A single narrow band of warm ochre, four years back, where the Kessa rings ended.
+
+She looks at it. Not often, and never while anyone is watching, and it is the only thing about her
+that is not efficient. Thirty-six and tired in a way sleep does not fix. Does not
 smile much and means it when she does.
 
 She was a grower. A good one — eleven years raising living structures on the Kessa reef rings, the
@@ -567,8 +578,11 @@ rings to that structure, and every ring filled a little more of the open volume 
 flown in since before anybody built anything. Nobody was wrong and nobody ever said it out loud, and
 it was thoroughly baked into who sat where.
 
-Yusuf Benhaddou is bird folk and also from Kessa. They are the only two left. They have never
-discussed any of it and it is not clear that either of them could.
+There are thousands of Kessa survivors — anyone who happened to be off the rings when it went —
+scattered now across a dozen systems in fragments too small to be a community anywhere. Two of them
+are on this ship. At home Wren and Yusuf Benhaddou would have had almost nothing to say to each
+other; here they do not discuss it because they do not need to, and it is the only thing either of
+them never has to explain.
 
 She did not break down. She filed a transfer. She now finds where things will fail and is the one
 who puts everything into that point the instant it opens, and she asked for the name **Maul**, which
@@ -621,9 +635,15 @@ which everyone agrees is the funniest part.
 
 **Bird folk** · Kessa — gone
 
-Round-faced and warm-brown, perpetually amused, close beard going grey at the chin, an easy smile he
-deploys constantly and sincerely. Always eating something. Notices immediately when somebody else is
-not, and does something about it without making it a conversation.
+Feathered in warm browns going grey at the throat, round-faced, perpetually amused, with an easy
+smile he deploys constantly and sincerely. Always eating something. Notices immediately when somebody
+else is not, and does something about it without making it a conversation.
+
+**None of that is temperament. It is training.** Yusuf's clan held one of the Kessa rings, and he was
+raised to host — to read a room, to place people, to keep a table comfortable — because that was
+going to be the job. The clan is scattered now across systems nobody has counted, and the most
+socially skilled person on this ship has a full set of aristocratic reflexes and nothing left to be
+aristocratic about. He has never mentioned it and would be mortified if it came up.
 
 He sweeps a whole reef in one pass — lightly, indiscriminately — then moves on and never reads what
 came back. He can do it in one pass because he *flies* it: a reef void has an atmosphere and no
@@ -631,6 +651,10 @@ floor, and a flighted surveyor covers in an afternoon what a climbing team needs
 for. His position, argued well in front of people senior to him, is that the Null moves faster
 than the Census and the only honest answer is breadth: a shallow record of a thousand species beats a
 perfect record of forty. He believes somebody later will have time.
+
+It is worth knowing where that conviction comes from. A man whose own people survive as fragments
+scattered across a dozen systems would rather hold a fragment of everything than a complete account
+of one thing, because he knows precisely what happens to the rest.
 
 He is also the reason a survey party spent two days cataloguing gravel, having logged a reef under
 the wrong designation. Aurelio has apologised for it eleven times, which Yusuf finds genuinely
@@ -641,7 +665,10 @@ and barely at all.
 
 He has never been in a fight he took personally and finds the crew's intensity about the mission
 faintly adolescent. What nobody knows — because he has never said it and would deny it — is that he
-rereads the Kessa entries. Regularly. They are the only records he reads twice.
+rereads the Kessa entries. Regularly. They are the only records he reads twice, and he is not
+reading them for the biology — survivors surface in survey records as crew lists, contributor
+credits, names in the margin of somebody else's entry. He has found four people that way in eleven
+years.
 
 There is one person aboard he would not have to explain it to. Wren Adeyemi is rock skin, from the
 same rings, from the tradition that spent ten generations closing the sky his people flew in — and
