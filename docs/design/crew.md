@@ -46,6 +46,60 @@ stopped apologising.
 
 ---
 
+## Running bits
+
+The incidents above happened once. These happen every week, and they are most of what the crew
+actually *is* day to day. Each one is a trait one person has and another person plays with, and the
+best of them started as real friction and turned into something both parties would be sorry to lose.
+
+**Ilka's tools.** Ilka keeps every tool in one place, at one angle, and knows within a second of
+entering the compartment that something has moved. Imke has no post and therefore no kit of her own.
+She discovered this in her second month, and the first time was genuine — she needed a spanner.
+The second time was not.
+
+It was a real fight for about six weeks. Ilka went to have her put off the ship, got as far as the
+door, and did not go in. Nobody knows that except Ilka.
+
+What happens now: Ilka leaves one specific spanner on one specific hook, because if she does not,
+Imke takes a better one. Imke takes the spanner and returns it filthy. Ilka delivers the speech,
+which has become word-for-word identical over nine months, and which Imke can now recite along
+with her, silently, standing behind her. Both would tell you the other is insufferable. Neither
+would give it up.
+
+**The letter.** Nour's resignation letter lives laminated behind the galley counter. When Nour is
+having a bad week somebody takes it down and hands it to them without a word. Nour reads it every
+time and puts it back.
+
+**The vault.** Aurelio comes down and stands in silence whenever Reva takes out entry 0041. It began
+as objection. Somewhere in the last year Reva started *waiting* for him before she opened it.
+Neither has mentioned this and neither is going to.
+
+**The tea.** Somebody brought Sevim tea during her four-hour assay as a joke. Six years later it is
+a rota, unwritten, never lapsed, and never once acknowledged by Sevim.
+
+**The doorway.** Idris startles badly, so everyone says his name from the corridor before coming in.
+Imke does it in a different ridiculous voice each time. He has never once not startled.
+
+**The tube.** Abike took a tissue sample off a sleeping Aurel three years ago and still does not
+understand why it was a problem. She now holds up an empty sample tube when he walks into the mess,
+purely to watch him turn around. He always turns around.
+
+**The temperature.** Nour and Ekene argue about the mess hall heat daily and have done for years.
+Both have privately adjusted it in the other's favour when nobody was looking. Neither has admitted
+it. The argument continues exactly as before.
+
+**The seat.** Imke sat down opposite Beatriz once, knowing no better. She does it most days now.
+Beatriz still says almost nothing. The rest of the crew have noticed and are being extremely careful
+not to make it a thing.
+
+**Hiding from Dolores.** Everybody can recognise the particular expression she wears when she is
+looking for people to ask permission from. Alternative galleries get used. She has never noticed.
+
+**The annotations.** Nadira and Yusuf still fight through the catalogue. This one has *not* turned
+into fun, and shows no sign of doing so, and that is the point of including it.
+
+---
+
 ## Hull and protection
 
 ### **Ilka Voressen** — stone-tender · *order* · (was Wex)
@@ -65,6 +119,12 @@ she is almost always right. She is also the woman who took the mess watercourse 
 bed-turning on Dolores's birthday, leaving sixty people without hot water for two days. The
 maintenance calendar is pinned in the galley. Somebody drew a face on it years ago and it has been
 redrawn every time the sheet is replaced.
+
+Her tools live in one place at one angle and she knows the instant one has moved. Imke has been
+taking them for nine months. It was a genuine war for the first six weeks — Ilka got as far as the
+door of the placement office and did not go in, which nobody knows — and it is now the fixed point
+of both their weeks. She leaves one spanner on one hook as bait for a better one. She has a speech.
+It has not changed a word in nine months and she has no idea Imke mouths along with it.
 
 **Order: fixed, predictable, unvarying.** Her barrier is the same size every time and arrives when
 she said it would. No good nights, no bad ones. Crew who have worked with flashier protectors find
@@ -91,9 +151,10 @@ She has cracked it six times. She repairs it herself at the mess table with a tu
 enormous concentration, and the unspoken rule is that you do not offer to help, because she gets
 snappish and then feels bad about it and then it is a whole evening.
 
-Aurelio does not file objections. He simply comes down to the vault and stands there while she
-takes it out, saying nothing, every single time. She has stopped acknowledging him. He has not
-stopped coming.
+Aurelio does not file objections. He comes down to the vault and stands there while she takes it
+out, saying nothing, every single time. That began as disapproval. Somewhere in the last year she
+started waiting for him — not opening the case until he has arrived and taken up his position of
+silent protest. Neither of them has mentioned this. Neither of them is going to.
 
 **Chaos: all-or-nothing.** She holds completely or goes down in one exchange, and which is not
 really up to her. She needs somebody shielding her, she knows, and she goes anyway.
@@ -207,7 +268,9 @@ it. Somebody laminated it and it lives behind the galley counter, and when Nour 
 week people take it down and hand it to them without comment.
 
 They tend the heartwood opposite Ekene and the arrangement works because they are never in the same
-chamber. They argue about the mess temperature daily and neither will yield.
+chamber. They argue about the mess temperature daily and neither will yield, and both of them have quietly
+adjusted it in the other's favour at least once, and neither has admitted it, and the argument
+carries on exactly as it was.
 
 **Chaos: all-or-nothing.** They commit totally or not at all, and not-at-all is most of the time.
 Whatever they touch keeps burning long after they have walked away.
@@ -264,9 +327,11 @@ Rot is not a lesser discipline here. In a forest, decay is the engine: a fallen 
 nurse log and the next century stands on it. Her specialism is transmission — what jumps, when, to
 what.
 
-She is also the reason Aurel checks his arms in the morning. She took a tissue sample off him while
-he was asleep in the mess three years ago, and does not understand, still, why this was a problem,
-and has had it explained four times.
+She is also the reason Aurel checks his arms every morning. She took a tissue sample off him while
+he slept in the mess three years ago, has had it explained to her four times, and still does not
+understand the objection. She has since taken to raising an empty sample tube whenever he walks in,
+purely to watch him turn round and leave. He always turns round and leaves. They both look forward
+to it.
 
 **Growth: it gives more the longer it runs, and it spreads on death.** Nothing she does is
 impressive in the first exchange. By the sixth it is everywhere and cannot be recalled.
@@ -323,6 +388,11 @@ immediately, enthusiastically. When anybody starts a task, Imke materialises and
 She was in the mess for the flood and fell in twice, on purpose the second time. She was sealed
 into a wall by Tomás for two hours and came out apologising to *him*. Somebody called her Nettle in
 her second week and it stuck instantly and she has decided to be pleased about it.
+
+She steals Ilka Voressen's tools. Constantly, deliberately, and with great care to return them in
+the wrong condition. It started because she owns nothing and needed a spanner; it continued because
+the first time Ilka caught her was the most attention anyone aboard had paid her in a month. She
+can recite the speech now. She would rather lose the jackets.
 
 **This is not a metaphor for her combat role. It is her combat role.** Having no assigned function,
 she follows up on whatever anyone else is doing. A crew of fast cheap frequent actions makes her the
@@ -381,7 +451,9 @@ sadder than that: nobody asked her to sit down in her first month, and then it h
 now it has been nine and it would be strange.
 
 Imke sat down opposite her once, knowing no better, and talked for forty minutes about a dispute in
-the galley. Beatriz said almost nothing. She has thought about it a great deal since.
+the galley. Beatriz said almost nothing. Imke came back the next day, and the day after, and now
+does it most days without appearing to have decided anything. Beatriz still says almost nothing. The
+rest of the crew have noticed and are being very careful not to make it a thing.
 
 **Void: it negates rather than reduces.** She has thought about that more than is good for her too.
 
@@ -554,8 +626,9 @@ He is fifteen years behind on the backlog and it is Nadira's fault, and he has n
 she document less, because — he said this at the end of a long shift, once — hers are the entries he
 would save if he could only save some.
 
-He comes down to the vault and stands there while Reva takes out entry 0041. Every time. He has
-never said a word about it and he is never going to stop.
+He comes down to the vault and stands there while Reva takes out entry 0041. Every time, in
+silence, for years. He is aware that she now waits for him before opening the case. He has not
+worked out how he feels about it and has made no attempt to.
 
 ---
 
@@ -663,9 +736,9 @@ She has never worked out whether that was a compliment.
 | **Nadira ↔ Stella** | Six years, eleven contaminated reefs, unbearably polite. Opposite ends of the mess, measured |
 | **Nadira ↔ Yusuf** | Not speaking. Conduct everything through the catalogue. One exchange is pinned in the galley and neither will take it down |
 | **Aurelio → Yusuf** | Eleven apologies for a mistake that was not his |
-| **Aurelio → Reva** | Comes to the vault and stands there. Says nothing. Every time |
+| **Aurelio ↔ Reva** | He stands silently at the vault. She now waits for him before opening it. Neither has mentioned it |
 | **Aurelio → Nadira** | Fifteen years behind because of her and would not change it |
-| **Ekene ↔ Nour** | Never the same chamber. Argue about the mess temperature daily. Neither will leave while the other is there |
+| **Ekene ↔ Nour** | Never the same chamber. Argue about the mess temperature daily. Both have secretly adjusted it in the other's favour |
 | **Ojo → Ekene** | Carried her. She has not forgiven him. He would do it again |
 | **Ojo → Aurel** | Knows why he left the courier run. Has not said |
 | **Ojo → Idris** | Keeps telling him to offer his read on a fight. Idris keeps not |
@@ -675,7 +748,10 @@ She has never worked out whether that was a compliment.
 | **Nahana → Idris** | Rebuilt thirty-one motes and never said the number |
 | **Nahana → Otto** | Leaves cuttings by his door for the trays nobody mentions |
 | **Dolores → Imke** | Makes too much food. Has never said why. Almost certainly why the paperwork is unfiled |
-| **Imke → Beatriz** | Sat down opposite her once and talked for forty minutes. Beatriz thinks about it |
+| **Ilka ↔ Imke** | Nine months of stolen tools and an unchanging speech. Started as a real fight. Neither would give it up |
+| **Imke ↔ Beatriz** | Sits opposite her most days now. Beatriz still says almost nothing. Nobody is making it a thing |
+| **Abike ↔ Aurel** | She raises an empty sample tube when he enters. He always leaves. Both look forward to it |
+| **Imke → Idris** | Announces herself from the doorway in a different silly voice each time. He always startles |
 | **Navigator → Aurel** | Has never mentioned the three weeks. He finds this unbearable |
 | **the rota → Sevim** | Six years of tea, unwritten, never lapsed, never acknowledged |
 
