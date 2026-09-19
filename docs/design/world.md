@@ -1,0 +1,139 @@
+# The world
+
+**Genre: mistpunk.** Solarpunk, but temperate rainforest rather than Mediterranean — the Olympic
+Peninsula rather than a rooftop garden. Everything is wet, green, mossy and quiet. Light arrives
+filtered. Sound arrives muffled. There is always fog, and the fog is part of how things work.
+
+This is a universe where life is *abundant* — not rare, not precious, not clinging on. It is
+everywhere, it is loud, and most of it has never been looked at properly. That is the premise the
+whole game rests on, and it is why the mission matters: there is more life out there than anyone
+can possibly record, and something is erasing it faster than the survey can work.
+
+Magic is infused into everything. It is not a separate system laid over the physics; it *is* the
+physics. The six elements are the building blocks of matter, and every rock, tide and organism is
+made of them in some proportion.
+
+---
+
+## The ship
+
+The survey vessel ***Understory*** is alive.
+
+She is grown, not built — a hull of exotic living stone laid down over structural heartwood, both
+of which take vacuum, radiation and cold the way a cedar takes winter. Damage closes over. Stress
+is answered with new growth. She is somewhere between a vessel, a reef and a very large tree, and
+the crew have long since stopped trying to decide which.
+
+The understory of a rainforest is the layer beneath the canopy — the crowded, overlooked stratum
+where most of the actual life is. For a ship whose whole purpose is cataloguing the small things
+nobody has bothered with, it is a good name. The crew call her **Story**, which is better.
+
+**Inside her it rains.** Thermal management is a watercourse: coolant runs as rivers down her
+length, over falls, through pools and moss beds and root tangles, and it is clean enough to drink
+and everybody does. The mist is a byproduct of the whole system working, which is why the ship is
+permanently soft-edged and green-lit and smells of wet stone.
+
+Corridors are galleries between root buttresses. Quarters are hollows. The light comes through leaf
+canopies that double as her collectors. Half the surfaces are moss and nobody removes it because
+the moss is doing something.
+
+**She has moods.** Passages close when she decides to thicken them. Fruit appears in places that
+are not agricultural. A crewmate's quarters were colonised by a fungus that hums, and the
+consensus — after a long meeting — was to leave it, and the crewmate has moved.
+
+---
+
+## Travel: the song lanes
+
+You do not plot a course. You listen for one.
+
+Space whales migrate, and have for longer than anyone has been recording, and their song persists
+in the deep along the routes they take. The song is navigable: where it runs, passage is smooth and
+the medium is calm. Nebula jellyfish drift the same lanes in enormous slow blooms and leave their
+own fainter traces.
+
+So navigation is **listening**, and a navigator is someone who can hold a song in their head for
+forty years and hear when it changes.
+
+**A lane can go quiet.** When the whales stop using a route — because the route no longer goes
+anywhere, because what it went to is gone — the song thins and then stops, and the lane closes. A
+fading lane is the earliest warning anyone gets that the Null has taken something upstream.
+
+The *Understory* has lost eleven lanes in eleven years. Navigator can name all of them and can
+still sing four.
+
+---
+
+## Where you survey: the reefs
+
+Asteroid reefs. Rock and ice colonised until the stone is more organism than mineral — layered,
+branching, dense with things that eat light, things that eat each other, and things that have never
+been described because nobody has been out this far with time to spare.
+
+A reef is a stack of habitats: outer crust, the branching middle, and interior voids that hold
+their own atmospheres and their own entirely separate ecologies. Most of the survey's work is
+getting *into* one without destroying what is inside, which is a genuinely hard problem and the
+reason the ship carries someone whose whole post is opening things carefully.
+
+Some reef life is enormous. Some of it objects to being catalogued. That is where the fighting
+comes from — not war, never war. Fieldwork with teeth.
+
+---
+
+## The Long Census
+
+The institution is not a corporation and not a navy. It is a *project* — a multi-generational
+undertaking that people join, and the ships that carry it run on consensus.
+
+Everything aboard is decided by discussion. Everyone is heard. Everyone is extremely nice about it,
+and it takes **forever**. The proposal to reroute the third-deck watercourse has been in
+consultation for six years, and the objections are all reasonable, and there are now objections to
+the objections.
+
+Nobody has a rank. People have **posts**, and a post is something the crew agreed you should hold.
+
+The Census was designed to be slow on purpose. A four-hundred-year survey, unhurried by intent,
+because the universe was understood to be abundant and in no danger whatsoever.
+
+That was eleven years ago.
+
+---
+
+## The Null
+
+Something is unmaking the universe, and nobody knows what it is.
+
+It is not a fleet or an army or a weapon. It arrives, and afterwards there is no wreckage, no ruin,
+no remains, no evidence that anything was ever there. Not destruction — *absence*, and people who
+look at it too long lose the ability to describe what they are looking at.
+
+**Here is why this crew in particular find it obscene.** These are naturalists. They understand rot
+better than anyone alive. In a forest, death is the engine — a fallen tree becomes a nurse log, and
+the next century of growth stands on top of it, and nothing is ever wasted or lost, only moved.
+Decay is *generous*.
+
+The Null is decay that gives nothing back. It takes, and there is no soil afterwards, and nothing
+grows in what it leaves because it does not leave anything. To a crew who have built their lives
+on the idea that nothing is ever really lost, it is not merely frightening. It is a violation of
+the one thing they were sure of.
+
+The Census's official position is that the Null is a phenomenon under study.
+
+The Census's official position is also that the *Understory* is not running from it.
+
+---
+
+## Why the catalogue matters
+
+Because it is the only copy.
+
+A species the *Understory* does not reach in time does not die — dying leaves something behind.
+It is never recorded, and afterward there is no fossil, no bone, no story and no trace, and as far
+as anything that comes later is concerned it simply never happened.
+
+The catalogue is a living archive — a grown seed-vault, a coral of record. It is the largest single
+organism aboard after the ship herself.
+
+This is the weight the crew carry and they almost never mention it. They argue about taxonomy
+instead. A fifteen-year dispute about whether a thing with two mouths counts as one organism is
+easier to hold in your head than the other thing, and it is, in its way, exactly the same argument.
