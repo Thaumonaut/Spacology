@@ -75,8 +75,8 @@ as objection. Somewhere in the last year Reva started *waiting* for him before s
 Neither has mentioned this and neither is going to.
 
 **The tea.** Somebody brought tea to the four-hour assay as a joke. Six years later it is a rota,
-unwritten, never lapsed, never acknowledged. The sheet has both Aydar names at the top and nobody
-has ever written which one it is for, because the tea is the same either way.
+unwritten, never lapsed, never acknowledged, and nobody on it has ever asked anything first, because
+the tea is the same either way.
 
 **The doorway.** Idris startles badly, so everyone says his name from the corridor before coming in.
 Imke does it in a different ridiculous voice each time. He has never once not startled.
@@ -93,27 +93,26 @@ it. The argument continues exactly as before.
 Beatriz still says almost nothing. The rest of the crew have noticed and are being extremely careful
 not to make it a thing.
 
-**Getting it wrong.** Sevim and Deniz Aydar are the same person and which spirit is present is not
-marked in any way an off-worlder can point at. How each crewmate handles this is one of the more
-efficient character tests aboard.
+**Getting it wrong.** Sevim Aydar is tidal and shifts between feminine and masculine, and their
+mana turns when they do. Anyone attuned feels it instantly. Everyone else has to ask, and how each
+crewmate handles that is one of the more efficient character tests aboard.
 
 Navigator has never once been wrong and finds the difficulty baffling — to an Ossuan, a person being
 more than one person is simply Tuesday. Nahana always knows instantly and cannot explain how. Yusuf
 asks, every time, with no awkwardness whatsoever, which is the single most socially skilled thing
 anyone on this ship does. Imke asks loudly and constantly and has never once been embarrassed.
-Beatriz always knows, says nothing, and has never got it wrong in nine years; Deniz worked this out
-early and finds her restful company for exactly that reason.
+Beatriz always knows, says nothing, and has never got it wrong in nine years, and Sevim worked that
+out early and finds her restful company for exactly that reason.
 
 And then the other half. Aurel guesses confidently, is wrong about forty percent of the time, and
 does not concede — *going Cosma* covers this too. Aurelio wanted it in the record, so there is a
 field for it, and the field is always out of date, and it distresses him more than anything else in
 the catalogue. Abike asked to study it and was told no, and asked again.
 
-**Ilka is the worst and the most committed.** She cannot read it at all, has never once simply
-asked, and has instead built a system out of observable cues — posture, how the tea is held, which
-route through the galleries. She is extremely proud of this system. It performs at roughly chance.
-Deniz has started varying the cues on purpose. Sevim thinks this is beneath them and has not stopped
-Deniz doing it.
+**Ilka is the worst and the most committed.** Mana-deaf, has never once simply asked, and has
+instead built a system out of observable cues — posture, how the tea is held, which route through
+the galleries. She is extremely proud of this system. It performs at roughly chance. Sevim has
+started varying the cues on purpose and considers it beneath them and does it anyway.
 
 **Hiding from Dolores.** Everybody can recognise the particular expression she wears when she is
 looking for people to ask permission from. Alternative galleries get used. She has never noticed.
@@ -125,7 +124,7 @@ into fun, and shows no sign of doing so, and that is the point of including it.
 
 ## Hull and protection
 
-### **Ilka Voressen** — stone-tender · *order* · (was Wex)
+### **Ilka Voressen** — hull systems engineer · *order* · (was Wex)
 
 *Verekh III — orbital shipyards*
 
@@ -137,8 +136,8 @@ The hull is alive and closes her own wounds given encouragement, and Ilka is the
 walks the spine twice a shift with a tapping-hammer, and the whole ship knows the sound of her
 coming — two taps, a pause, two taps. People pick up conversations they were not having.
 
-She can tell you which of four thousand growth seams is thinning and roughly when it will open, and
-she is almost always right. She is also the woman who took the mess watercourse down for scheduled
+She holds a master's in living-stone structures from Verekh and can tell you which of four thousand
+growth seams is thinning and roughly when it will open, and she is almost always right. She is also the woman who took the mess watercourse down for scheduled
 bed-turning on Dolores's birthday, leaving sixty people without hot water for two days. The
 maintenance calendar is pinned in the galley. Somebody drew a face on it years ago and it has been
 redrawn every time the sheet is replaced.
@@ -158,7 +157,7 @@ at her.
 
 ---
 
-### **Reva Sokolovna** — deck supervisor · *chaos* · (was Tarn)
+### **Reva Sokolovna** — field operations supervisor · *chaos* · (was Tarn)
 
 *Belune III*
 
@@ -188,7 +187,7 @@ cannot stand the idea of the last of something sitting in a drawer.
 
 ---
 
-### **Tomás Iriarte** — grafter · *growth* · (was Ferrule)
+### **Tomás Iriarte** — biotic structures engineer · *growth* · (was Ferrule)
 
 *Orrowan V*
 
@@ -214,7 +213,7 @@ had to sit with him and explain, kindly, that this was a problem.
 
 ---
 
-### **Ojo Mbeki** — hold-keeper · *growth* · (was Ballast)
+### **Ojo Mbeki** — specimen containment engineer · *growth* · (was Ballast)
 
 *Tannhul VI — high gravity*
 
@@ -275,7 +274,7 @@ about everything else, and she has stopped noticing the difference between *nece
 
 ---
 
-### **Nour Bediako** — heartwood-tender · *chaos* · (was Cinder)
+### **Nour Bediako** — mana systems engineer, core · *chaos* · (was Cinder)
 
 *Sindal II*
 
@@ -304,7 +303,7 @@ this and would deny it under oath.
 
 ---
 
-### **Dolores Achterberg** — reef-opener · *chaos* · (was Pyre)
+### **Dolores Achterberg** — head of access engineering · *chaos* · (was Pyre)
 
 *Calyx IV*
 
@@ -333,7 +332,7 @@ technical.
 
 ---
 
-### **Dr. Abike Sunmonu** — rot ecology · *growth* · (was Sump)
+### **Dr. Abike Sunmonu** — decomposition ecology · *growth* · (was Sump)
 
 *Ombrea V*
 
@@ -366,7 +365,7 @@ is not a threat to her. It is an obscenity.
 
 ## Drive and tempo
 
-### **Aurel Cosma** — helm · *energy* · (was Vane)
+### **Aurel Cosma** — helm officer · *energy* · (was Vane)
 
 *Tessine IX*
 
@@ -428,7 +427,7 @@ Imke thinks it is a scheduling problem.
 
 ---
 
-### **Idris Okonjo** — mote-handler · *energy* · (was Mote)
+### **Idris Okonjo** — remote survey operator · *energy* · (was Mote)
 
 *Verekh III*
 
@@ -456,7 +455,7 @@ never formed. Ojo keeps telling him to start offering again. He says he will and
 
 ## Ordnance
 
-### **Beatriz Corriveau** — deterrent · *void* · (was Corr)
+### **Beatriz Corriveau** — hazard response officer · *void* · (was Corr)
 
 *Calyx IV*
 
@@ -487,7 +486,7 @@ right moment and which is not entirely a joke.
 
 ---
 
-### **Otaremnivas** — specimen handling · *decay* · (was Bosk)
+### **Otaremnivas** — senior specimen handler · *decay* · (was Bosk)
 
 *Cassine, of Ranohe II*
 
@@ -596,7 +595,7 @@ left to tell that he grew up there.
 
 ---
 
-### **Sevim / Deniz Aydar** — mist assay · *order* · (was Rime)
+### **Sevim Aydar** — materials assay · *order* · (was Rime)
 
 *Beluni, of Belune III*
 
@@ -604,14 +603,14 @@ Tall and very still, a white streak through dark hair since their twenties, hand
 cold. Speaks slowly enough that people finish their sentences, and waits without visible irritation
 until they have finished being wrong.
 
-They are **tidal**, which on Belune III is ordinary: two spirits, one body, one present at a time,
-turning on their own schedule. Two names given together at birth and both equally theirs —
-Sevim is a woman, Deniz is a man, and neither is the original. They are not moods, halves or stages.
-They are two people who share a life, a post, and a reputation for being impossible to hurry.
+Sevim is **tidal**, which on Belune III is ordinary: one person who shifts between feminine and
+masculine on their own schedule. Not two people, not moods, not a transition. The same person
+throughout — same memory, same grudges, same four-hour method, same refusal to be hurried — simply
+presenting differently.
 
-**Which one you are speaking to is not marked in any way an off-worlder can point at**, and the
-crew's ability to tell ranges from instant to hopeless. The polite move is to ask. About half the
-ship manages it.
+**Their mana turns when they do**, and that is the only reliable tell. Anyone attuned feels it
+across a room and finds the whole question trivially easy. The mana-deaf get no signal whatsoever
+and have to ask or guess. About half the ship manages to ask.
 
 The work does not vary. They walk the ship's own fog over a shell and wait — no cutting, no forcing;
 cooling a structure unevenly puts it under a stress that climbs for hours until it opens along its
@@ -624,16 +623,16 @@ Tides are the most reliable thing in the universe, their assay produces the same
 reef of a voyage and the last, and half the crew still cannot read them at all.
 
 Somebody brought tea during the four hours once, as a joke. Somebody else did it the following week.
-There is now an unwritten rota that has run six years and never lapsed. The sheet has both names at
-the top and nobody has ever written which. Whoever is on it brings tea without asking, because the
-tea is the same either way, and that is the closest this crew comes to saying anything out loud.
+There is now an unwritten rota that has run six years and never lapsed. Whoever is on it brings tea
+without asking anything first, because the tea is the same either way, and that is the closest this
+crew comes to saying something out loud.
 
 Their flaw is not slowness. It is that they have quietly stopped believing the Census will finish,
 and have begun optimising for the quality of the record rather than its size, and have told nobody.
 
 ---
 
-### **Aurelio Bassi** — keeper of the catalogue · *order* · (was Ledger)
+### **Aurelio Bassi** — catalogue registrar · *order* · (was Ledger)
 
 *born aboard a Census ship*
 
@@ -666,7 +665,7 @@ worked out how he feels about it and has made no attempt to.
 
 ## Crew and recovery
 
-### **Nahana** — keeper of the ship's fauna · *order* · (was Fen)
+### **Nahana** — faunal systems lead · *order* · (was Fen)
 
 *Chosokee, of Maelus IV*
 
@@ -730,7 +729,7 @@ inconvenient shape.
 
 ---
 
-### **Ekene Baptiste** — heartwood-tender · *energy* · (was Halo)
+### **Ekene Baptiste** — mana systems engineer, distribution · *energy* · (was Halo)
 
 *Orrowan V*
 
@@ -785,10 +784,10 @@ She has never worked out whether that was a compliment.
 | **Abike ↔ Aurel** | She raises an empty sample tube when he enters. He always leaves. Both look forward to it |
 | **Imke → Idris** | Announces herself from the doorway in a different silly voice each time. He always startles |
 | **Navigator → Aurel** | Has never mentioned the three weeks. He finds this unbearable |
-| **the rota → Sevim/Deniz** | Six years of tea, unwritten, never lapsed. Both names on the sheet, nobody has written which |
-| **Ilka → Deniz** | A cue-reading system performing at chance. Deniz varies the cues on purpose |
-| **Beatriz → Deniz** | Always knows, never says. He finds her restful for exactly that reason |
-| **Aurelio → Sevim/Deniz** | Added a field for it to the catalogue. The field is always wrong. It haunts him |
+| **the rota → Sevim** | Six years of tea, unwritten, never lapsed, nobody ever asks anything first |
+| **Ilka → Sevim** | A cue-reading system performing at chance. Sevim varies the cues on purpose |
+| **Beatriz → Sevim** | Always knows, never says. Sevim finds her restful for exactly that reason |
+| **Aurelio → Sevim** | Added a field for it to the catalogue. The field is always wrong. It haunts him |
 
 ---
 
@@ -812,7 +811,7 @@ She has never worked out whether that was a compliment.
 | Maul | **Wren Adeyemi** | Maul |
 | Quill | **Dr. Nadira Quill** | — |
 | Vitre | **Yusuf Benhaddou** | — |
-| Rime | **Sevim / Deniz Aydar** | Patience |
+| Rime | **Sevim Aydar** | Patience |
 | Ledger | **Aurelio Bassi** | — |
 | Fen | **Nahana** | — |
 | Mire | **Navigator** | — |
