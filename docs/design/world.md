@@ -608,6 +608,35 @@ are between peoples who have lived beside each other for ten thousand years and 
 the sore spots are. Others get on perfectly well and find the question baffling. Both are normal and
 the ship carries examples of each.
 
+### How a culture gets made
+
+**Geography first, culture second.** A mountain range, an ocean, a belt of grassland nobody wants to
+settle — put a barrier between two populations for long enough and you get two peoples, and the
+shape of the barrier decides the shape of the difference.
+
+The working method for writing them: take a real human culture as a *structural* seed — how
+apprenticeship works, how land is held, what obligation means, who owes what to whom — and then let
+this world's geography and history push it somewhere else. The seed is scaffolding, not costume.
+What comes out should be its own thing, and the parts that survive should be the parts the terrain
+would actually have produced.
+
+### Kinds of world
+
+Most are ordinary: several climates, several peoples, ice at the poles and rain somewhere.
+
+**City worlds** are built over entirely — every surface, then upward, then downward. Populations in
+the tens of billions living in stacked layers, where people from the deep levels and people from the
+canopy are effectively from different planets and mostly behave that way.
+
+**Ocean worlds** have no land worth the name. Settlement floats, or is submerged, or follows a
+current, and the amphibioid peoples are heavily represented without remotely having the place to
+themselves.
+
+**Mono worlds** — one climate, one people — do exist, but they are a *result* rather than a default.
+Usually a young colony that has not diversified yet, or a world whose conditions are severe enough
+that only one adaptation ever took, or somewhere that used to have more and does not any more. When
+you meet one it is worth asking which.
+
 ### Kessa — gone
 
 A ring of inhabited reefs rather than a planet: hundreds of linked habitats in open volume, and the
@@ -625,8 +654,13 @@ where.
 
 Then the Null took all of it, and there is no fossil, no ruin and no trace.
 
-**Two people aboard are from Kessa. One of each.** They have never discussed it. It is not clear
-that either of them could.
+**There are survivors.** Thousands of them — anyone who happened to be off the rings, on a posting,
+at a yard, aboard a ship — scattered now across a dozen systems in fragments too small to be a
+community anywhere. Kessa did not end so much as disperse, and the survivors mostly find each other
+by accident, one at a time, for the rest of their lives.
+
+**Two of them are aboard the *Understory*.** One rock skin, one bird folk, who would have had very
+little to say to each other at home. They do not discuss it. They do not need to.
 
 ### Calyx IV
 
@@ -641,15 +675,37 @@ and it is the only easy company Beatriz has.
 
 ### Maelus IV
 
-Grasslands, highland, a wet equatorial belt and ice at both poles, like anywhere else.
+The worked example, because it shows how the geography does the work.
 
-**The Chosokee keep the great fauna** — animals the size of buildings, moved along seasonal routes
-that predate any settlement. **The lowland farmers** consider a Chosokee herd to be a slow-moving
-natural disaster with a schedule, and they are not wrong, and the Chosokee are not wrong either, and
-this has been the shape of the argument for about four thousand years.
+Three populated regions, and the two barriers between them explain everything else.
 
-It is mostly low-grade. Occasionally it is not. A Chosokee abroad will describe the farmers'
-position fairly and at length and then not quite concede it.
+**The northern reach** is cold, maritime and fjorded, with the Sarran Range at its back and weather
+that closes the passes for a third of the year. The **Hadeen** live there. Isolation made them
+patient: craft is learned over decades under one master, a maker's name outranks their family's, and
+obligation is precisely tracked and never written down. They are formal in a way outsiders read as
+cold and which is actually just dense — there is a great deal being said and almost none of it out
+loud.
+
+**The southern lowlands** are temperate and riverine, easy to move through and easy to fight over,
+and the **Vellin** spent two thousand years as several dozen small polities doing exactly that.
+What came out is legalistic, argumentative and enormously good at treaties. Every Vellin town
+believes itself to be the significant one. A Vellin will tell you the history of a boundary dispute
+you did not ask about and will be genuinely hurt when you stop listening.
+
+**Between them lie the Oran Plains**, grassland nobody has ever successfully settled, bounded by the
+range to the north and the Shallow Sea to the south. This is **Chosokee** country, and they do not
+live *on* it so much as move across it, following the great fauna along seasonal routes older than
+either neighbour.
+
+Because the plains and the range sit in the middle, **the Hadeen and the Vellin have never really
+known each other.** Everything either has ever received from the other came through Chosokee hands,
+which for most of recorded history made the Chosokee rich, and which made both settled peoples
+resent them in entirely different registers.
+
+The Vellin complain, constantly and in writing: a Chosokee herd is a slow-moving natural disaster
+with a timetable, and they are not wrong, and the Chosokee are not wrong either, and it has been the
+same argument for four thousand years. The Hadeen do not complain. The Hadeen barely think about the
+Chosokee at all, which the Chosokee find considerably more insulting.
 
 ### Utora VII
 
