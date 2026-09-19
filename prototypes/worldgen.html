@@ -408,34 +408,38 @@ const CLASSNAME={cold:'cold',temperate:'temperate',dry:'arid',warm:'warm',high:'
    priorities in a parallel float array. Allocating an object per push cost
    more than the whole rest of the generator. */
 function Heap(cap){
-  this.v=new Int32Array(cap); this.p=new Float64Array(cap); this.n=0;
+  this.v=new Int32Array(cap); this.k=new Int32Array(cap);
+  this.p=new Float64Array(cap); this.n=0;
 }
 Heap.prototype._grow=function(){
-  const v=new Int32Array(this.v.length*2), p=new Float64Array(this.p.length*2);
-  v.set(this.v); p.set(this.p); this.v=v; this.p=p;
+  const v=new Int32Array(this.v.length*2), k=new Int32Array(this.k.length*2);
+  const p=new Float64Array(this.p.length*2);
+  v.set(this.v); k.set(this.k); p.set(this.p); this.v=v; this.k=k; this.p=p;
 };
-Heap.prototype.push=function(val,pri){
+Heap.prototype.push=function(val,key,pri){
   if(this.n===this.v.length) this._grow();
-  let i=this.n++; this.v[i]=val; this.p[i]=pri;
+  let i=this.n++; this.v[i]=val; this.k[i]=key; this.p[i]=pri;
   while(i>0){const par=(i-1)>>1;
     if(this.p[par]<=this.p[i])break;
     const tv=this.v[par];this.v[par]=this.v[i];this.v[i]=tv;
+    const tk=this.k[par];this.k[par]=this.k[i];this.k[i]=tk;
     const tp=this.p[par];this.p[par]=this.p[i];this.p[i]=tp; i=par}
 };
 Heap.prototype.pop=function(){
-  const top=this.v[0], topP=this.p[0];
+  const top=this.v[0]; this._lastK=this.k[0]; this._lastP=this.p[0];
   this.n--;
   if(this.n>0){
-    this.v[0]=this.v[this.n]; this.p[0]=this.p[this.n];
+    this.v[0]=this.v[this.n]; this.k[0]=this.k[this.n]; this.p[0]=this.p[this.n];
     let i=0;
     for(;;){const l=2*i+1,r=l+1; let m=i;
       if(l<this.n&&this.p[l]<this.p[m])m=l;
       if(r<this.n&&this.p[r]<this.p[m])m=r;
       if(m===i)break;
       const tv=this.v[m];this.v[m]=this.v[i];this.v[i]=tv;
+      const tk=this.k[m];this.k[m]=this.k[i];this.k[i]=tk;
       const tp=this.p[m];this.p[m]=this.p[i];this.p[i]=tp; i=m}
   }
-  this._lastP=topP; return top;
+  return top;
 };
 
 /* How liveable a biome is, 0-100. Drives population, which drives everything. */
@@ -520,11 +524,10 @@ function buildCivilisation(cfg){
     const owner=new Int16Array(N).fill(-1);
     const best=new Float64Array(N).fill(Infinity);
     const q=new Heap(1<<16);
-    seeds.forEach((s,k)=>{owner[s.i]=k;best[s.i]=0;q.push(s.i|(k<<19),0)});
+    seeds.forEach((s,k)=>{owner[s.i]=k;best[s.i]=0;q.push(s.i,k,0)});
     let guard=0, LIMIT=N*14;
     while(q.n && guard++<LIMIT){
-      const packed=q.pop(), c=q._lastP;
-      const i=packed&0x7FFFF, k=packed>>>19;
+      const i=q.pop(), k=q._lastK, c=q._lastP;
       if(c>best[i]+1e-6) continue;         // stale entry
       const x=i%W, y=(i/W)|0, seed=seeds[k];
       for(let dy=-1;dy<=1;dy++){
@@ -535,7 +538,7 @@ function buildCivilisation(cfg){
           const tot=c+cellCost(i,j,seed);
           if(tot>maxCost||tot>=best[j]) continue;
           best[j]=tot; owner[j]=k;
-          q.push(j|(k<<19),tot);
+          q.push(j,k,tot);
         }
       }
     }
