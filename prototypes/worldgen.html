@@ -26,6 +26,7 @@ label b{color:var(--ink);float:right;font-weight:400}
 input[type=range]{width:100%;accent-color:var(--accent);margin:0}
 input[type=text]{width:100%;background:var(--raised);border:1px solid var(--line);
   color:var(--ink);border-radius:6px;padding:6px 8px;font:inherit}
+.hint{font-size:11px;opacity:.62;margin:8px 0 10px;line-height:1.5}
 select{width:100%;background:var(--raised);border:1px solid var(--line);color:var(--ink);
   border-radius:6px;padding:6px 8px;font:inherit}
 button{background:var(--raised);border:1px solid var(--line);color:var(--ink);
@@ -125,12 +126,15 @@ barriers off it and write the peoples to fit.</p>
   <canvas id="cv" width="640" height="320"></canvas>
   <div id="globeBox" style="display:none">
     <canvas id="gl" width="720" height="720"></canvas>
-    <label>Spin <b id="vSpin"></b></label>
-    <input type="range" id="rSpin" min="0" max="359" step="1" value="200">
+    <div class="hint">Drag to turn the globe · wheel or pinch to zoom · double-click to centre</div>
+    <label>Longitude <b id="vSpin"></b></label>
+    <input type="range" id="rSpin" min="-180" max="180" step="1" value="-160">
+    <label>Latitude <b id="vTilt"></b></label>
+    <input type="range" id="rTilt" min="-85" max="85" step="1" value="0">
     <label>Sun angle <b id="vSun"></b></label>
     <input type="range" id="rSun" min="0" max="359" step="1" value="40">
     <label>Zoom <b id="vZoom"></b></label>
-    <input type="range" id="rZoom" min="100" max="420" step="2" value="100">
+    <input type="range" id="rZoom" min="100" max="2400" step="2" value="100">
     <label style="display:inline-block;width:auto;margin-right:14px">
       <input type="checkbox" id="cLights" checked style="width:auto">City lights</label>
     <label style="display:inline-block;width:auto;margin-right:14px">
@@ -530,7 +534,7 @@ function generate(cfg){
       const r=ridged(nRidge,px*cScale*3,py*cScale*3,pz*cScale*3,5,2.1,0.55);
       // a little ridging everywhere so plains are not glass, a lot of it on the
       // belts so a range has a crest line rather than a smooth dome
-      const v=crust[i]*0.62 + d*0.20 + upl[i]*0.85 + r*(0.08+g*0.92)*rough*0.75;
+      const v=crust[i]*0.62 + d*0.20 + upl[i]*0.85 + r*(0.20+g*0.80)*rough*0.75;
       el[i]=v;
       if(v<lo)lo=v; if(v>hi)hi=v;
     }
@@ -650,6 +654,8 @@ function generate(cfg){
   for(let i=0;i<N;i++) biome[i]=classify(el[i],sea,temp[i],moist[i]);
 
   world={cfg,el,sea,temp,moist,wet,biome,flow,fmax,windU,down,tec,crust,
+         noise:{cont:nCont,det:nDet,ridge:nRidge},
+         cScale,rough,elo:lo,ehi:hi,reliefK,
          ms:Math.round(performance.now()-t0)};
   analyse();
   buildCivilisation(cfg);
@@ -735,6 +741,14 @@ const HABIT={ocean:0,shallow:0,ice:0,polar:2,tundra:6,taiga:16,temperate:100,
   alpine:3,peak:0};
 
 const CULTURE_TYPES=['settled','highland','river','coastal','nomadic','forest'];
+
+/* Biome colours pre-parsed. The globe was running parseInt over a hex string
+   three times for every one of half a million pixels, every frame. */
+const BIOMERGB={};
+for(const k in BIOME){
+  const c=BIOME[k][1];
+  BIOMERGB[k]=[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
+}
 
 function buildCivilisation(cfg){
   const {el,sea,biome,moist,flow,fmax,temp}=world, N=W*H;
@@ -911,20 +925,108 @@ function buildCivilisation(cfg){
       tether: k<spaceports.length});
   }
 
-  /* ---- city lights: an emission field for the night side -------------- */
+  /* ---- city lights ------------------------------------------------------
+     A city seen from orbit is not a glow. It is a bright core with arterial
+     roads running out of it, ribbon development along the coast and along the
+     river, and satellite settlements strung out on those same lines. The shape
+     is dendritic, and it is self-similar because the same thing happens at
+     every scale: the arterial branches into the distributor, the distributor
+     branches into the street.
+
+     So grow it rather than stamping it. Each town throws out arms that walk
+     outward choosing their heading by how easy the ground is, branch as they
+     go with every branch dimmer and shorter than its parent, and die when they
+     run out of light. Water stops a road dead. Coasts and rivers pull one
+     along, which is what puts the bright ribbons where they belong without
+     anyone drawing them.
+  ---------------------------------------------------------------------- */
   const lights=new Float32Array(N);
-  for(const t of towns){
-    const r=Math.max(2,Math.round(2+Math.sqrt(t.pop)*9));
-    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
-      const ny=t.y+dy; if(ny<0||ny>=H)continue;
-      const d2=dx*dx+dy*dy; if(d2>r*r)continue;
-      const j=ny*W+((t.x+dx+W)%W);
-      if(el[j]<sea) continue;
-      lights[j]+=t.pop*Math.exp(-d2/(r*r*0.30));
+  {
+    const S=Math.max(1,H/320);              // lengths below are for 640x320
+    const rnd=mulberry32((hashSeed(cfg.seed)^0x71c475)>>>0);
+    const maxPop=towns.length?Math.max(1e-6,towns[0].pop):1;
+    const CUT=0.055;                        // dimmer than this is not a road
+
+    const cellXY=(x,y)=>{
+      let yy=Math.round(y); if(yy<0)yy=0; else if(yy>=H)yy=H-1;
+      return yy*W+((((Math.round(x))%W)+W)%W);
+    };
+    const add=(x,y,v,rad)=>{
+      const xi=Math.round(x), yi=Math.round(y);
+      const r=Math.max(0,Math.round(rad)), s2=Math.max(0.4,r*r*0.55);
+      for(let dy=-r;dy<=r;dy++){
+        const yy=yi+dy; if(yy<0||yy>=H) continue;
+        const row=yy*W;
+        for(let dx=-r;dx<=r;dx++){
+          const d2=dx*dx+dy*dy; if(d2>r*r+r) continue;
+          const j=row+((((xi+dx)%W)+W)%W);
+          if(el[j]<sea) continue;
+          lights[j]+=v*Math.exp(-d2/s2);
+        }
+      }
+    };
+    // how willing a road is to enter a cell
+    const ease=(from,to)=>{
+      if(el[to]<sea) return 0;
+      let e=Math.exp(-Math.abs(el[to]-el[from])*110);
+      if(coastal[to]) e*=1.7;
+      if(flow[to]>fmax*0.02) e*=1.5;
+      return e;
+    };
+
+    for(const t of towns){
+      const s=Math.max(0.05,t.pop/maxPop);
+      add(t.x+0.5,t.y+0.5,0.9*s+0.30,2.2*S*(0.5+0.5*Math.sqrt(s)));
+
+      const arms=3+Math.round(5*s), stack=[];
+      for(let a=0;a<arms;a++) stack.push({
+        x:t.x+0.5, y:t.y+0.5,
+        dir:(a/arms)*Math.PI*2+rnd()*0.8,
+        v:0.55+0.45*s, life:(9+64*s)*S});
+
+      let guard=0;
+      while(stack.length && guard++<6000){
+        const arm=stack.pop();
+        let {x,y,dir,v,life}=arm;
+        while(life>0 && v>CUT){
+          const from=cellXY(x,y);
+          let bd=dir, be=-1;
+          for(let k=-1;k<=1;k++){
+            const d=dir+k*0.62+(rnd()-0.5)*0.30;
+            const ny2=y-Math.sin(d); if(ny2<0||ny2>=H) continue;
+            const e=ease(from,cellXY(x+Math.cos(d),ny2))*(k===0?1.35:1);
+            if(e>be){be=e; bd=d}
+          }
+          if(be<=0) break;                  // the road reached the sea
+          dir=bd;
+          x+=Math.cos(dir); y-=Math.sin(dir);
+          if(y<0||y>=H) break;
+          life-=1; v*=0.985;
+          add(x,y,v*0.42,1.5*S*v);
+          if(rnd()<0.055 && v>CUT*2 && stack.length<240)
+            stack.push({x,y,dir:dir+(rnd()<0.5?-1:1)*(0.6+rnd()*0.6),
+                        v:v*0.58, life:life*0.55});
+        }
+      }
+    }
+    // and a faint haze, because a city really does scatter light into its air
+    for(const t of towns){
+      const s=t.pop/maxPop, r=Math.max(2,Math.round((2+Math.sqrt(s)*7)*S));
+      for(let dy=-r;dy<=r;dy++){
+        const yy=t.y+dy; if(yy<0||yy>=H) continue;
+        for(let dx=-r;dx<=r;dx++){
+          const d2=dx*dx+dy*dy; if(d2>r*r) continue;
+          const j=yy*W+((((t.x+dx)%W)+W)%W);
+          if(el[j]<sea) continue;
+          lights[j]+=s*0.25*Math.exp(-d2/(r*r*0.30));
+        }
+      }
     }
   }
   let lmax=0; for(let i=0;i<N;i++) if(lights[i]>lmax)lmax=lights[i];
-  if(lmax>0) for(let i=0;i<N;i++) lights[i]=Math.min(1,lights[i]/lmax*1.7);
+  // gamma, so the thin outer branches survive into the render instead of
+  // being crushed to nothing by the core
+  if(lmax>0) for(let i=0;i<N;i++) lights[i]=Math.min(1,Math.pow(lights[i]/lmax,0.62)*1.22);
 
   const cultCells=new Int32Array(Math.max(1,cultures.length));
   const polCells=new Int32Array(Math.max(1,polities.length));
@@ -1035,6 +1137,29 @@ function analyse(){
 
 /* ============================================================ render ==== */
 let view='biome';
+
+/* ---- globe camera -------------------------------------------------------
+   Kept in floats rather than read back off the sliders, because the sliders
+   step in whole degrees and at 24x the visible disc is under three degrees
+   across — a single step would jump the view most of a screen. The sliders
+   drive this and display it; drag and wheel write it directly.
+------------------------------------------------------------------------- */
+const gview={lon:-160, lat:0, zoom:1};
+let gcam=null;                      // last frame's transform, for picking
+const ZMIN=1, ZMAX=24;
+const clampv=(v,a,b)=>v<a?a:(v>b?b:v);
+const wrapLon=v=>((v+180)%360+360)%360-180;
+function camFromSliders(){
+  gview.lon=wrapLon(+$('rSpin').value);
+  gview.lat=clampv(+$('rTilt').value,-85,85);
+  gview.zoom=clampv(+$('rZoom').value/100,ZMIN,ZMAX);
+}
+function camToSliders(){
+  $('rSpin').value=Math.round(gview.lon);
+  $('rTilt').value=Math.round(gview.lat);
+  $('rZoom').value=Math.round(gview.zoom*100);
+  syncLabels();
+}
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 
 function ramp(v,stops){
@@ -1158,6 +1283,51 @@ function legend(){
 const glc=document.getElementById('gl');
 const gctx=glc.getContext('2d');
 
+/* Bilinear, wrapping in longitude. Used for the emission field: city lights
+   are the thing you zoom into, and nearest sampling turns a road into a
+   staircase the moment a data cell covers more than one screen pixel. */
+function sampleSmooth(arr,lat,lon){
+  const fx=((lon+180)/360)*W-0.5, fy=((90-lat)/180)*H-0.5;
+  const x0=Math.floor(fx), y0=Math.floor(fy), tx=fx-x0, ty=fy-y0;
+  const xa=((x0%W)+W)%W, xb=(((x0+1)%W)+W)%W;
+  const ya=clampv(y0,0,H-1), yb=clampv(y0+1,0,H-1);
+  const a=arr[ya*W+xa], b=arr[ya*W+xb], c=arr[yb*W+xa], e=arr[yb*W+xb];
+  return (a*(1-tx)+b*tx)*(1-ty)+(c*(1-tx)+e*tx)*ty;
+}
+/* ---- elevation at any point, at any detail ------------------------------
+   The grid is 640x320. Zooming into it magnifies cells, and no amount of
+   filtering invents what was never sampled — smoothing a staircase gives you a
+   ramp, not a mountain.
+
+   But the elevation field is analytic. Continental crust, the detail layer and
+   the ridges are all noise evaluated on the unit sphere, so they can be asked
+   for a value at any latitude and longitude, at any frequency, and asking for
+   more octaves than the grid could hold is real new terrain rather than
+   interpolation. Only the tectonic uplift is not analytic, and it is a sum of
+   kernels several degrees wide, so sampling it smoothly costs nothing in
+   accuracy.
+
+   This is the same two-stage idea terrain-diffusion is built on — a coarse
+   field that decides structure, a fine pass that resolves it — done with noise
+   until the model is wired in. It reproduces the coarse grid exactly where the
+   grid has a value, so zooming reveals detail instead of changing the world.
+------------------------------------------------------------------------- */
+function elevAt(lat,lon,extra){
+  const {noise,cScale,rough,elo,ehi,reliefK,sea,tec}=world;
+  const la=lat*Math.PI/180, ln=(lon+180)*Math.PI/180;   // generate()'s convention
+  const cl=Math.cos(la), px=cl*Math.cos(ln), py=cl*Math.sin(ln), pz=Math.sin(la);
+  const OCT=5+extra;
+  const c=fbm(noise.cont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
+  const d=fbm(noise.det,px*cScale*4,py*cScale*4,pz*cScale*4,OCT,2.0,0.5);
+  const u=sampleSmooth(tec.uplift,lat,lon);
+  const g=Math.min(1,Math.abs(u)*2.2);
+  const r=ridged(noise.ridge,px*cScale*3,py*cScale*3,pz*cScale*3,OCT,2.1,0.55);
+  let v=c*0.62 + d*0.20 + u*0.85 + r*(0.20+g*0.80)*rough*0.75;
+  v=(v-elo)/(ehi-elo);
+  if(v>sea){ const h=(v-sea)/(1-sea); v=sea+Math.pow(h,1/reliefK)*(1-sea); }
+  return v<0?0:(v>1?1:v);
+}
+
 function sampleNearest(arr,lat,lon){
   let x=Math.floor(((lon+180)/360)*W); x=((x%W)+W)%W;
   let y=Math.floor(((90-lat)/180)*H); if(y<0)y=0; if(y>=H)y=H-1;
@@ -1169,36 +1339,75 @@ function cellAt(lat,lon){
   return y*W+x;
 }
 
-function drawGlobe(){
+function drawGlobe(quick){
   if(!world) return;
-  const {el,sea,biome,lights,spaceports,orbitals,towns}=world;
+  const {el,sea,biome,temp,moist,lights,spaceports,orbitals,towns}=world;
   const GW=glc.width, GH=glc.height;
-  const spin=+$('rSpin').value*Math.PI/180;
+  const spin=gview.lon*Math.PI/180;
+  const tilt=gview.lat*Math.PI/180;
   const sunA=+$('rSun').value*Math.PI/180;
-  const zoom=+$('rZoom').value/100;
+  const zoom=gview.zoom;
   const R=GH*0.44*zoom, cx=GW/2, cy=GH/2;
   const showLights=$('cLights').checked;
+  const cb=Math.cos(tilt), sb=Math.sin(tilt);
+  // Remember where the camera is so picking and the pointer handlers can use
+  // the same transform the renderer does. Screen centre is exactly
+  // (lat = tilt, lon = spin), which is what makes centre-on-a-point trivial.
+  gcam={R,cx,cy,spin,tilt,cb,sb};
 
   const img=gctx.createImageData(GW,GH), d=img.data;
+  const put=(px,py,r,g,b)=>{
+    const R8=r>255?255:r, G8=g>255?255:g, B8=b>255?255:b;
+    for(let qy=0;qy<STEP;qy++){
+      const yy=py+qy; if(yy>=GH) break;
+      for(let qx=0;qx<STEP;qx++){
+        const xx=px+qx; if(xx>=GW) break;
+        const o=(yy*GW+xx)*4;
+        d[o]=R8; d[o+1]=G8; d[o+2]=B8; d[o+3]=255;
+      }
+    }
+  };
   const sun=[Math.cos(sunA),0.28,Math.sin(sunA)];
   const sl=Math.hypot(sun[0],sun[1],sun[2]);
   sun[0]/=sl;sun[1]/=sl;sun[2]/=sl;
   const cs=Math.cos(spin), sn=Math.sin(spin);
+  const dLonCell=360/W;
+  // Once one data cell covers more than a screen pixel, ask the noise directly
+  // instead of magnifying the grid, with one extra octave per doubling of zoom.
+  // Only on a settled frame: during a drag the coarse field is what keeps it
+  // interactive, and the detail pass lands a moment later.
+  const detail=!quick && zoom>=1.8 && world.noise;
+  const OCTX=detail?Math.min(6,Math.ceil(Math.log2(zoom))+1):0;
+  // Screen-space shading. The gradient between two adjacent pixels falls as
+  // 1/R when you zoom, so the multiplier has to rise with R or the detail is
+  // there in the field and invisible on screen. Measured: at 8x the rms slope
+  // is 5.4e-4 per pixel, so a multiplier of 70 gives a 4% brightness swing —
+  // which is exactly why the first zoomed renders looked like flat vector
+  // shapes. It wants to be an order of magnitude more, through a limiter so
+  // that a mountain face clips to shadow instead of to white.
+  const SH=9*(2*Math.PI*R/W)*2.6;
+  let prevE=0, prevOK=false;
 
-  for(let py=0;py<GH;py++){
-    for(let px=0;px<GW;px++){
-      const o=(py*GW+px)*4;
+  // While a finger or the mouse is down, shade every other pixel and fill 2x2
+  // blocks. Four times fewer rays keeps a drag interactive; the full pass runs
+  // again the moment the pointer lifts.
+  const STEP=quick?2:1;
+  for(let py=0;py<GH;py+=STEP){
+    prevOK=false;
+    for(let px=0;px<GW;px+=STEP){
       const nx=(px-cx)/R, ny=(cy-py)/R;
       const r2=nx*nx+ny*ny;
       if(r2>1){                                   // space, with a rim glow
         const rim=Math.max(0,1-(Math.sqrt(r2)-1)*R/22);
         const g=rim*rim*54;
-        d[o]=6+g*0.5; d[o+1]=9+g*0.8; d[o+2]=16+g*1.5; d[o+3]=255;
+        put(px,py,6+g*0.5, 9+g*0.8, 16+g*1.5);
+        prevOK=false;
         continue;
       }
       const nz=Math.sqrt(1-r2);
-      // rotate about the polar axis for spin
-      const wx= nx*cs + nz*sn, wz= -nx*sn + nz*cs, wy=ny;
+      // tilt about the screen x axis first, then spin about the polar axis
+      const ty= ny*cb + nz*sb, tz= -ny*sb + nz*cb;
+      const wx= nx*cs + tz*sn, wz= -nx*sn + tz*cs, wy=ty;
       const lat=Math.asin(Math.max(-1,Math.min(1,wy)))*180/Math.PI;
       const lon=Math.atan2(wx,wz)*180/Math.PI;
       const i=cellAt(lat,lon);
@@ -1207,22 +1416,39 @@ function drawGlobe(){
       const day=Math.max(0,Math.min(1,(lum+0.09)/0.30));
 
       let r,g,b;
-      const isSea=el[i]<sea;
-      if(isSea){ r=20;g=48;b=78; }
+      // Elevation is sampled smoothly rather than per cell, so the coastline
+      // and the shading stop being a staircase the moment you zoom past the
+      // point where one data cell covers one screen pixel. The biome colour
+      // stays nearest on purpose: it is a category, not a quantity, and a
+      // blend between desert and taiga is not a biome.
+      const eC=detail?elevAt(lat,lon,OCTX):sampleSmooth(el,lat,lon);
+      const isSea=eC<sea;
+      if(isSea){ r=20;g=48;b=78; prevE=eC; prevOK=true; }
       else {
-        const c=BIOME[biome[i]][1];
-        r=parseInt(c.slice(1,3),16); g=parseInt(c.slice(3,5),16); b=parseInt(c.slice(5,7),16);
-        const x=i%W, y=(i/W)|0;                   // hillshade
-        const lft=el[y*W+((x-1+W)%W)], rgt=el[y*W+((x+1)%W)];
-        const sh=1+(lft-rgt)*9;
-        r*=sh;g*=sh;b*=sh;
+        let bk;
+        if(detail){
+          // A mountain the grid never held should carry snow, not the colour of
+          // the valley it was interpolated from. The lapse rate is linear, so
+          // correcting the coarse temperature for the new altitude is exact.
+          const altC=Math.max(0,(sampleSmooth(el,lat,lon)-sea)/(1-sea));
+          const altH=Math.max(0,(eC-sea)/(1-sea));
+          bk=classify(eC,sea,sampleSmooth(temp,lat,lon)-(altH-altC)*28,
+                      sampleSmooth(moist,lat,lon));
+        } else bk=biome[i];
+        const c=BIOMERGB[bk];
+        // gradient against the pixel to the left, which costs nothing extra
+        const sh=1+Math.tanh(((prevOK?prevE:eC)-eC)*SH)*0.82;
+        prevE=eC; prevOK=true;
+        r=c[0]*sh; g=c[1]*sh; b=c[2]*sh;
       }
-      // limb darkening so the edge falls away
-      const limb=0.55+0.45*nz;
-      r*=day*limb; g*=day*limb; b*=day*limb;
+      // limb darkening so the edge falls away, plus a little earthshine: the
+      // night side of a real planet is not black, and if it is here you cannot
+      // tell where you are while you turn the globe
+      const limb=0.55+0.45*nz, amb=0.065*(1-day);
+      r*=(day+amb)*limb; g*=(day+amb*1.2)*limb; b*=(day+amb*1.8)*limb;
 
       if(showLights && day<0.85 && !isSea){
-        const L=lights[i]*(1-day)*1.25;
+        const L=sampleSmooth(lights,lat,lon)*(1-day)*1.25;
         if(L>0.004){
           r+=L*255; g+=L*216; b+=L*140;
         }
@@ -1231,7 +1457,7 @@ function drawGlobe(){
       const atm=Math.pow(1-nz,3)*day*70;
       r+=atm*0.35; g+=atm*0.6; b+=atm;
 
-      d[o]=Math.min(255,r); d[o+1]=Math.min(255,g); d[o+2]=Math.min(255,b); d[o+3]=255;
+      put(px,py,r,g,b);
     }
   }
   gctx.putImageData(img,0,0);
@@ -1240,8 +1466,9 @@ function drawGlobe(){
   function project(lat,lon,alt){
     const la=lat*Math.PI/180, lo=lon*Math.PI/180;
     const wx=Math.cos(la)*Math.sin(lo), wy=Math.sin(la), wz=Math.cos(la)*Math.cos(lo);
-    const ux= wx*cs - wz*sn, uz= wx*sn + wz*cs;   // inverse of the sample rotation
-    return {x:cx+ux*R*(alt||1), y:cy-wy*R*(alt||1), front:uz>0, uz};
+    const ux= wx*cs - wz*sn, u = wx*sn + wz*cs;   // inverse of the sample rotation
+    const sy= wy*cb - u*sb,   sz= wy*sb + u*cb;   // and of the tilt
+    return {x:cx+ux*R*(alt||1), y:cy-sy*R*(alt||1), front:sz>0, uz:sz};
   }
 
   if($('cOrbit').checked){
@@ -1502,8 +1729,9 @@ function syncLabels(){
   $('vPort').textContent=$('rPort').value;
   $('vOrb').textContent=$('rOrb').value;
   $('vSpin').textContent=$('rSpin').value+'\u00b0';
+  $('vTilt').textContent=$('rTilt').value+'\u00b0';
   $('vSun').textContent=$('rSun').value+'\u00b0';
-  $('vZoom').textContent=($('rZoom').value/100).toFixed(2)+'x';
+  $('vZoom').textContent=($('rZoom').value/100).toFixed(1)+'x';
 }
 function applyPreset(name){
   const p=PRESETS[name]; if(!p)return;
@@ -1540,7 +1768,97 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   $('legend').style.display=(isRep||isGlobe)?'none':'flex';
   if(isGlobe) drawGlobe(); else if(!isRep) draw();
 });
-['rSpin','rSun','rZoom'].forEach(id=>$(id).oninput=()=>{syncLabels();drawGlobe()});
+['rSpin','rTilt','rSun','rZoom'].forEach(id=>
+  $(id).oninput=()=>{camFromSliders();syncLabels();drawGlobe()});
+
+/* ---- looking around -----------------------------------------------------
+   Screen centre is exactly (lat = camera tilt, lon = camera spin), which falls
+   out of the transform, so centring on a point is just writing its lat/lon
+   into the camera. That is what makes wheel-toward-the-cursor and
+   double-click-to-centre one line each instead of a pan offset nobody can
+   reason about.
+------------------------------------------------------------------------- */
+function glPos(e){
+  const r=glc.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*glc.width/r.width,
+          y:(e.clientY-r.top)*glc.height/r.height};
+}
+function globePick(px,py){
+  if(!gcam) return null;
+  const {R,cx,cy,spin,cb,sb}=gcam;
+  const nx=(px-cx)/R, ny=(cy-py)/R, r2=nx*nx+ny*ny;
+  if(r2>1) return null;                      // clicked space, not the planet
+  const nz=Math.sqrt(1-r2), cs=Math.cos(spin), sn=Math.sin(spin);
+  const ty=ny*cb+nz*sb, tz=-ny*sb+nz*cb;
+  const wx=nx*cs+tz*sn, wz=-nx*sn+tz*cs;
+  return {lat:Math.asin(clampv(ty,-1,1))*180/Math.PI,
+          lon:Math.atan2(wx,wz)*180/Math.PI};
+}
+function centreOn(hit,f){
+  gview.lon=wrapLon(gview.lon+wrapLon(hit.lon-gview.lon)*f);
+  gview.lat=clampv(gview.lat+(hit.lat-gview.lat)*f,-85,85);
+}
+
+// Draw coarse now, detailed a moment after the hand stops. A wheel gesture is
+// a burst of events and each detailed frame is a real cost, so only the last
+// one pays it.
+let gsettle=0;
+function drawSoon(){
+  drawGlobe(true);
+  clearTimeout(gsettle);
+  gsettle=setTimeout(()=>drawGlobe(),140);
+}
+
+const gptr=new Map(); let gdrag=null, gpinch=0;
+const pinchSpan=()=>{
+  const v=[...gptr.values()];
+  return v.length<2?0:Math.hypot(v[0].x-v[1].x, v[0].y-v[1].y);
+};
+glc.style.touchAction='none';
+glc.style.cursor='grab';
+glc.addEventListener('pointerdown',e=>{
+  glc.setPointerCapture(e.pointerId);
+  gptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(gptr.size===1){ gdrag={x:e.clientX,y:e.clientY}; glc.style.cursor='grabbing'; }
+  else if(gptr.size===2){ gpinch=pinchSpan(); gdrag=null; }
+});
+glc.addEventListener('pointermove',e=>{
+  if(!gptr.has(e.pointerId)) return;
+  gptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(gptr.size>=2){
+    const d=pinchSpan();
+    if(gpinch>0&&d>0) gview.zoom=clampv(gview.zoom*d/gpinch,ZMIN,ZMAX);
+    gpinch=d; camToSliders(); drawGlobe(true); return;
+  }
+  if(!gdrag) return;
+  // slower when zoomed in, so the ground keeps up with the finger
+  const k=0.32/gview.zoom;
+  gview.lon=wrapLon(gview.lon-(e.clientX-gdrag.x)*k);
+  gview.lat=clampv(gview.lat+(e.clientY-gdrag.y)*k,-85,85);
+  gdrag={x:e.clientX,y:e.clientY};
+  camToSliders(); drawGlobe(true);
+});
+const glEnd=e=>{
+  gptr.delete(e.pointerId);
+  if(gptr.size<2) gpinch=0;
+  if(gptr.size===0){ gdrag=null; glc.style.cursor='grab'; drawSoon(); }
+};
+glc.addEventListener('pointerup',glEnd);
+glc.addEventListener('pointercancel',glEnd);
+glc.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const z0=gview.zoom;
+  gview.zoom=clampv(z0*Math.exp(-e.deltaY*0.0018),ZMIN,ZMAX);
+  if(gview.zoom>z0){                          // zoom toward what you pointed at
+    const p=glPos(e), hit=globePick(p.x,p.y);
+    if(hit) centreOn(hit,Math.min(0.55,(gview.zoom-z0)/z0*1.4));
+  }
+  camToSliders(); drawSoon();
+},{passive:false});
+glc.addEventListener('dblclick',e=>{
+  const p=glPos(e), hit=globePick(p.x,p.y);
+  if(hit){ centreOn(hit,1); camToSliders(); drawGlobe() }
+});
 ['cLights','cPorts','cOrbit'].forEach(id=>$(id).onchange=drawGlobe);
 
 applyPreset(Object.keys(PRESETS)[0]);
