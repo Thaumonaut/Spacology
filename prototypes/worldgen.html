@@ -1,0 +1,2222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spacology — world generator</title>
+<style>
+:root{
+  --bg:#12151a; --panel:#1a1f26; --raised:#222831; --line:#2e3742;
+  --ink:#d8dee6; --dim:#8b97a6; --accent:#7FA8C9; --warm:#D4A45C;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.wrap{max-width:1400px;margin:0 auto;padding:14px}
+h1{font-size:15px;margin:0 0 2px;letter-spacing:.04em}
+.sub{color:var(--dim);font-size:12px;margin:0 0 14px}
+.cols{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.zl{color:var(--dim);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  margin:14px 0 6px}
+.zl:first-child{margin-top:0}
+label{display:block;margin:8px 0 2px;font-size:12px;color:var(--dim)}
+label b{color:var(--ink);float:right;font-weight:400}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=text]{width:100%;background:var(--raised);border:1px solid var(--line);
+  color:var(--ink);border-radius:6px;padding:6px 8px;font:inherit}
+.hint{font-size:11px;opacity:.62;margin:8px 0 10px;line-height:1.5}
+select{width:100%;background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:6px;padding:6px 8px;font:inherit}
+button{background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:8px 12px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:#26313b;border-color:var(--accent);color:#fff}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+canvas{width:100%;display:block;border-radius:8px;background:#0b0e12;
+  image-rendering:pixelated}
+#gl{image-rendering:auto;background:#05070a;max-width:720px;margin:0 auto}
+#globeBox label{margin-top:10px}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button{padding:5px 10px;font-size:12px}
+.tabs button.on{background:#26313b;border-color:var(--accent)}
+pre{white-space:pre-wrap;word-break:break-word;margin:0;font-size:12px;
+  color:var(--ink);max-height:60vh;overflow:auto}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:11px;
+  color:var(--dim)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;
+  margin-right:4px;vertical-align:-1px}
+.stat{color:var(--dim);font-size:11px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Spacology — world generator</h1>
+<p class="sub">Terrain from simulation rather than from description. Generate a planet, then read the
+barriers off it and write the peoples to fit.</p>
+
+<div class="cols">
+<div class="panel">
+  <div class="zl">Preset</div>
+  <select id="preset"></select>
+
+  <div class="zl">Seed</div>
+  <input type="text" id="seed" value="orrowan-1">
+
+  <div class="zl">Planet</div>
+  <label>Ocean fraction <b id="vOcean"></b></label>
+  <input type="range" id="rOcean" min="0" max="100" step="1" value="62">
+  <label>Relief — how tall things get <b id="vRelief"></b></label>
+  <input type="range" id="rRelief" min="5" max="100" step="1" value="55">
+  <label>Continent scale <b id="vScale"></b></label>
+  <input type="range" id="rScale" min="10" max="100" step="1" value="45">
+  <label>Tectonic roughness <b id="vRough"></b></label>
+  <input type="range" id="rRough" min="0" max="100" step="1" value="55">
+  <label>Plates <b id="vPlates"></b></label>
+  <input type="range" id="rPlates" min="3" max="28" step="1" value="12">
+
+  <div class="zl">Settlement</div>
+  <label>Population density <b id="vPop"></b></label>
+  <input type="range" id="rPop" min="10" max="100" step="1" value="55">
+  <label>Number of cultures <b id="vCult"></b></label>
+  <input type="range" id="rCult" min="2" max="14" step="1" value="6">
+  <label>Number of polities <b id="vPol"></b></label>
+  <input type="range" id="rPol" min="1" max="12" step="1" value="5">
+  <label>Spaceports <b id="vPort"></b></label>
+  <input type="range" id="rPort" min="0" max="12" step="1" value="4">
+  <label>Orbital stations <b id="vOrb"></b></label>
+  <input type="range" id="rOrb" min="0" max="16" step="1" value="6">
+
+  <div class="zl">Climate</div>
+  <label>Mean temperature <b id="vTemp"></b></label>
+  <input type="range" id="rTemp" min="-30" max="45" step="1" value="14">
+  <label>Axial tilt <b id="vTilt"></b></label>
+  <input type="range" id="rTilt" min="0" max="70" step="1" value="23">
+  <label>Wind bands <b id="vBands"></b></label>
+  <input type="range" id="rBands" min="1" max="7" step="2" value="3">
+  <label>Wind strength <b id="vWind"></b></label>
+  <input type="range" id="rWind" min="0" max="100" step="1" value="50">
+  <label><input type="checkbox" id="cUni" style="width:auto;accent-color:var(--accent)">
+    One-way wind (no reversal anywhere)</label>
+
+  <div class="btns">
+    <button class="pri" id="bGen">Generate</button>
+    <button id="bRand">Random seed</button>
+    <button id="bCond" title="Five rasters for terrain-diffusion">Export conditioning</button>
+  </div>
+  <div class="stat" id="stat">—</div>
+</div>
+
+<div class="panel">
+  <div class="tabs">
+    <button data-v="biome" class="on">Biome</button>
+    <button data-v="relief">Relief</button>
+    <button data-v="plates">Plates</button>
+    <button data-v="temp">Temperature</button>
+    <button data-v="rain">Rainfall</button>
+    <button data-v="wind">Wind</button>
+    <button data-v="regions">Provinces</button>
+    <button data-v="culture">Cultures</button>
+    <button data-v="polity">Polities</button>
+    <button data-v="pop">Population</button>
+    <button data-v="globe">Globe</button>
+    <button data-v="report">Report</button>
+  </div>
+  <canvas id="cv" width="640" height="320"></canvas>
+  <div id="globeBox" style="display:none">
+    <canvas id="gl" width="720" height="720"></canvas>
+    <div class="hint">Drag to turn the globe · wheel or pinch to zoom · double-click to centre</div>
+    <label>Longitude <b id="vSpin"></b></label>
+    <input type="range" id="rSpin" min="-180" max="180" step="1" value="-160">
+    <label>Latitude <b id="vTilt"></b></label>
+    <input type="range" id="rTilt" min="-85" max="85" step="1" value="0">
+    <label>Sun angle <b id="vSun"></b></label>
+    <input type="range" id="rSun" min="0" max="359" step="1" value="40">
+    <label>Zoom <b id="vZoom"></b></label>
+    <input type="range" id="rZoom" min="100" max="2400" step="2" value="100">
+    <label style="display:inline-block;width:auto;margin-right:14px">
+      <input type="checkbox" id="cLights" checked style="width:auto">City lights</label>
+    <label style="display:inline-block;width:auto;margin-right:14px">
+      <input type="checkbox" id="cPorts" checked style="width:auto">Spaceports</label>
+    <label style="display:inline-block;width:auto">
+      <input type="checkbox" id="cOrbit" checked style="width:auto">Orbitals</label>
+  </div>
+  <div class="legend" id="legend"></div>
+  <pre id="report" style="display:none"></pre>
+</div>
+</div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================ noise ==== */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+function hashSeed(s){let h=2166136261;for(let i=0;i<s.length;i++){
+  h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+/* Classic 3D Perlin with a seeded permutation. Sampled on the unit sphere so
+   there is no seam at the antimeridian and no pinching at the poles. */
+function makeNoise(seed){
+  const rnd=mulberry32(seed), p=new Uint8Array(512), perm=[];
+  for(let i=0;i<256;i++)perm[i]=i;
+  for(let i=255;i>0;i--){const j=(rnd()*(i+1))|0;const t=perm[i];perm[i]=perm[j];perm[j]=t}
+  for(let i=0;i<512;i++)p[i]=perm[i&255];
+  const fade=t=>t*t*t*(t*(t*6-15)+10);
+  const lerp=(a,b,t)=>a+t*(b-a);
+  function grad(h,x,y,z){
+    const u=h<8?x:y, v=h<4?y:(h===12||h===14?x:z);
+    return((h&1)?-u:u)+((h&2)?-v:v);
+  }
+  return function(x,y,z){
+    const X=Math.floor(x)&255,Y=Math.floor(y)&255,Z=Math.floor(z)&255;
+    x-=Math.floor(x);y-=Math.floor(y);z-=Math.floor(z);
+    const u=fade(x),v=fade(y),w=fade(z);
+    const A=p[X]+Y,AA=p[A]+Z,AB=p[A+1]+Z,B=p[X+1]+Y,BA=p[B]+Z,BB=p[B+1]+Z;
+    return lerp(
+      lerp(lerp(grad(p[AA],x,y,z),      grad(p[BA],x-1,y,z),u),
+           lerp(grad(p[AB],x,y-1,z),    grad(p[BB],x-1,y-1,z),u),v),
+      lerp(lerp(grad(p[AA+1],x,y,z-1),  grad(p[BA+1],x-1,y,z-1),u),
+           lerp(grad(p[AB+1],x,y-1,z-1),grad(p[BB+1],x-1,y-1,z-1),u),v),w);
+  };
+}
+/* Roughness of the two terrain layers, as a gain per octave.
+
+   This is the single number that decides whether a mountain looks like a
+   mountain or like a big hill, and it was wrong. A gain of 0.5 against a
+   lacunarity of 2 is a Hurst exponent of 1, which is far smoother than real
+   ground — real terrain sits around H = 0.5 to 0.7, meaning a gain of 0.62 to
+   0.71. Over the ten octaves between continental scale and a couple of
+   kilometres, 0.5 throws away a factor of a thousand in amplitude, and the
+   measurement said so plainly: the rms slope through the middle of a collision
+   belt was 0.41 degrees, where alpine terrain runs 10 to 30.
+
+   The continental field deliberately stays at 0.5. It decides where land is,
+   and it should stay smooth; roughness belongs to the layers on top of it. */
+const DGAIN=0.70, RGAIN=0.68;
+
+/* Weights of the four terms that make an elevation. Named because they have to
+   agree between the grid pass and the analytic one, and because they are what
+   the relief spectrum is tuned against. */
+const W_CRUST=0.62, W_DETAIL=0.20, W_UPLIFT=0.85, W_RIDGE=0.75;
+
+/* Amplitude of the fine texture, in normalised elevation, applied after the
+   field has been normalised rather than before.
+
+   Raising the weights above does almost nothing, because they all go through
+   (v - lo) / (hi - lo) and raising everything raises hi - lo with it. Measured:
+   four times the weights bought twice the relief. The octaves that make a
+   mountain face steep therefore need their own amplitude, applied where it is
+   a number of metres rather than a share of a global range — which is also
+   honest, since these are precisely the octaves the grid was never able to
+   hold. Gated by the uplift, because plains really are smooth and mountains
+   really are not. */
+const W_TEX=0.15;
+/* Frequency of the texture's coarsest octave, chosen so its wavelength is
+   about 60 km — just below what a 640-wide grid can represent, so it adds to
+   the grid rather than repeating it. A Perlin field scaled by F has features
+   of roughly 1/F radians, so 57.3/F degrees. */
+const TEX_F0=106, TEX_GAIN=0.73, TEX_ANISO=3.4;
+
+function fbm(n,x,y,z,oct,lac,gain){
+  let a=1,f=1,s=0,norm=0;
+  for(let i=0;i<oct;i++){s+=a*n(x*f,y*f,z*f);norm+=a;a*=gain;f*=lac}
+  return s/norm;
+}
+function ridged(n,x,y,z,oct,lac,gain){
+  let a=1,f=1,s=0,norm=0;
+  for(let i=0;i<oct;i++){s+=a*(1-Math.abs(n(x*f,y*f,z*f)));norm+=a;a*=gain;f*=lac}
+  return s/norm;
+}
+
+/* ============================================================ biomes ==== */
+/* [name, colour, habitable?]  Habitability drives the region/barrier analysis. */
+const BIOME={
+  ocean:      ['ocean',        '#1b3a52',0],
+  shallow:    ['shelf sea',    '#24536f',0],
+  ice:        ['ice',          '#d8e4ec',0],
+  polar:      ['polar desert', '#c3ccd4',0],
+  tundra:     ['tundra',       '#7d8b7a',1],
+  taiga:      ['taiga',        '#3f5d46',1],
+  temperate:  ['temperate forest','#4a7a4e',1],
+  grass:      ['grassland',    '#7d9b4e',1],
+  steppe:     ['steppe',       '#a2a27a',1],
+  desert:     ['desert',       '#d8bc84',1],
+  savanna:    ['savanna',      '#bda85c',1],
+  seasonal:   ['seasonal forest','#5d8a4a',1],
+  rain:       ['rainforest',   '#2f6b3a',1],
+  wetland:    ['wetland',      '#5a7a63',1],
+  alpine:     ['alpine',       '#8a8f96',0],
+  peak:       ['bare rock',    '#b9bec6',0],
+};
+
+/* Whittaker, as a two-dimensional lookup rather than a ladder.
+
+   The previous version tested temperature first and returned on it: anything
+   under 6C came back tundra, taiga or ice whatever the rainfall was. That makes
+   the entire cold half of a planet a function of latitude alone, which is a
+   band by construction, and it put tundra on 25-33% of land where Earth has
+   about 8% — because boreal forest needs very little rain and the taiga branch
+   was asking for more moisture than most of our land ever has.
+
+   Moisture here is the generator's index, where 1.0 is the 88th percentile of
+   land precipitation. On Earth that percentile is around 1800 mm, so 0.11 is
+   roughly 200 mm and 0.28 roughly 500 mm — which is where these cuts come from.
+   Both axes matter at every temperature, which is the whole point of the
+   diagram. */
+function classify(el,sea,t,m){
+  if(el<sea) return (sea-el<0.06)?'shallow':'ocean';
+  const h=(el-sea)/(1-sea);              // 0..1 above sea level
+  if(h>0.86) return 'peak';
+  if(h>0.70) return 'alpine';
+  if(t<-9)  return 'ice';
+  if(t<-2)  return m<0.07?'polar':'tundra';
+  if(t<5)   return m<0.04?'polar':(m<0.08?'tundra':'taiga');
+  if(t<12){
+    if(m<0.09) return 'desert';
+    if(m<0.25) return 'steppe';
+    if(m<0.48) return 'grass';
+    return 'temperate';
+  }
+  if(t<22){
+    if(m<0.11) return 'desert';
+    if(m<0.29) return 'steppe';
+    if(m<0.46) return 'grass';
+    if(m>0.90 && h<0.07) return 'wetland';
+    return 'temperate';
+  }
+  if(m<0.12) return 'desert';
+  if(m<0.36) return 'savanna';
+  if(m<0.62) return 'seasonal';
+  if(m>0.93 && h<0.06) return 'wetland';
+  return 'rain';
+}
+
+
+/* ============================================================ world ==== */
+const W=640,H=320;
+let world=null;
+
+/* ---------------------------------------------------------------------------
+   Tectonics.
+
+   The elevation field used to gate ridged noise on wherever the continental
+   field happened to pass near zero and called those "fake plate edges". It is
+   worth being precise about why that reads as wrong, because it is the single
+   thing holding the maps back and no amount of resolution fixes it.
+
+   Real relief is not isotropic. Ranges are long arcs, not blobs. A range built
+   by subduction has a trench on one side and nothing on the other, and the
+   trench is the deepest thing on the planet sitting next to the tallest. Rifts
+   run in lines and drop. Island arcs stand offshore of nothing. Mid-ocean
+   ridges are a seam running the length of a basin. Noise produces none of that
+   at any octave, because noise has no direction and no sides.
+
+   That also settles where a terrain upscaler can help and where it cannot. A
+   diffusion model resolves the mountain it is given; it does not move it. Feed
+   it blobs and it returns beautifully eroded blobs.
+
+   So: real plates. Seeds scattered on the sphere with a domain-warped Voronoi
+   boundary, each turning about its own Euler pole the way real plates do
+   (velocity at a point is omega x p, which is why plate motion varies along a
+   single boundary and can go from convergent to transform without the plate
+   changing). Where two plates meet, the sign of relative motion along the
+   boundary normal says what kind of boundary it is, and the crust on either
+   side says what that boundary builds.
+--------------------------------------------------------------------------- */
+
+/* amplitude in raw field units, width in degrees of arc */
+const BOUNDARY={
+  // Widths are the half-life of the belt, and they were making domes. The
+  // Himalaya is 8 km tall over about 250 km of approach, not 800.
+  collide:  {amp: 0.95, wid: 2.6},   // continent meets continent: Himalaya
+  arc:      {amp: 0.82, wid: 1.7},   // ocean dives under continent: Andes
+  trench:   {amp:-0.80, wid: 0.9},   // the other side of that: Peru-Chile
+  island:   {amp: 0.48, wid: 1.1},   // ocean under ocean: Marianas arc
+  ridge:    {amp: 0.30, wid: 5.5},   // spreading ocean: mid-Atlantic swell
+  rift:     {amp:-0.36, wid: 1.5},   // continent pulling apart: East Africa
+  passive:  {amp:-0.12, wid: 3.2},   // shelf edge, no drama
+  transform:{amp: 0.14, wid: 0.8},   // sliding past: San Andreas
+};
+
+function buildTectonics(cfg, seed, crust, contLevel){
+  const N=W*H, P=cfg.plates;
+  const rnd=mulberry32(seed^0x50a7e5);
+  const nwx=makeNoise(seed^0x2f1a), nwy=makeNoise(seed^0x7c3d), nwz=makeNoise(seed^0xb19e);
+
+  /* --- plate seeds and their Euler poles ------------------------------- */
+  const sx=new Float64Array(P), sy=new Float64Array(P), sz=new Float64Array(P);
+  const ox=new Float64Array(P), oy=new Float64Array(P), oz=new Float64Array(P);
+  const GA=Math.PI*(3-Math.sqrt(5));
+  for(let k=0;k<P;k++){
+    // Fibonacci sphere, then jittered — evenly spread but not visibly regular
+    const z=1-2*(k+0.5)/P, rr=Math.sqrt(Math.max(0,1-z*z)), th=GA*k+rnd()*0.9;
+    let vx=rr*Math.cos(th)+(rnd()-0.5)*0.38,
+        vy=rr*Math.sin(th)+(rnd()-0.5)*0.38,
+        vz=z+(rnd()-0.5)*0.38;
+    const L=Math.hypot(vx,vy,vz)||1; sx[k]=vx/L; sy[k]=vy/L; sz[k]=vz/L;
+    let ax=rnd()*2-1, ay=rnd()*2-1, az=rnd()*2-1;
+    const AL=Math.hypot(ax,ay,az)||1, spd=0.30+rnd()*0.70;
+    ox[k]=ax/AL*spd; oy[k]=ay/AL*spd; oz[k]=az/AL*spd;
+  }
+
+  /* --- assign every cell to a plate ------------------------------------ */
+  const plate=new Int16Array(N);
+  const clon=new Float64Array(W), slon=new Float64Array(W);
+  for(let x=0;x<W;x++){const lon=((x+0.5)/W)*2*Math.PI; clon[x]=Math.cos(lon); slon[x]=Math.sin(lon)}
+  const cosLat=new Float64Array(H);
+  const warp=0.42;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI, cl=Math.cos(lat), sl=Math.sin(lat);
+    cosLat[y]=Math.max(0.02,cl);
+    for(let x=0;x<W;x++){
+      const px=cl*clon[x], py=cl*slon[x], pz=sl;
+      // warping the query point is what stops boundaries being straight Voronoi
+      // chords; real plate edges wander
+      const qx=px+fbm(nwx,px*1.7,py*1.7,pz*1.7,3,2.3,0.55)*warp,
+            qy=py+fbm(nwy,px*1.7,py*1.7,pz*1.7,3,2.3,0.55)*warp,
+            qz=pz+fbm(nwz,px*1.7,py*1.7,pz*1.7,3,2.3,0.55)*warp;
+      let bk=0,bd=-1e9;
+      for(let k=0;k<P;k++){
+        const dd=qx*sx[k]+qy*sy[k]+qz*sz[k];
+        if(dd>bd){bd=dd;bk=k}
+      }
+      plate[y*W+x]=bk;
+    }
+  }
+
+  /* --- classify every boundary and seed uplift -------------------------- */
+  const amp=new Float32Array(N), wid=new Float32Array(N), spc=new Float32Array(N);
+  // Strike: the compass direction the boundary runs, stored per seed as a
+  // doubled angle. Doubling is what lets these be averaged — a strike of 10
+  // degrees and one of 170 are the same line, and averaging them directly would
+  // cancel to nothing.
+  const s2c=new Float32Array(N), s2s=new Float32Array(N);
+  const bkind=new Int8Array(N).fill(-1);
+  const KINDS=['collide','arc','trench','island','ridge','rift','passive','transform'];
+  const seeds=[];
+  // Seed spacing along the boundary, which the splat normalisation needs. A
+  // boundary found across the east neighbour runs north-south, so its seeds are
+  // one row apart; one found across the south neighbour runs east-west, so they
+  // are one column apart — and a column is tiny near the poles. Getting this
+  // wrong is what made the north cap glow.
+  const dLatDeg=180/H, dLonDeg=360/W;
+  const put=(i,kind,s,run)=>{
+    const B=BOUNDARY[kind], a=B.amp*s;
+    if(bkind[i]>=0 && Math.abs(amp[i])>=Math.abs(a)) return;   // strongest wins
+    if(bkind[i]<0) seeds.push(i);
+    amp[i]=a; wid[i]=B.wid; spc[i]=run; bkind[i]=KINDS.indexOf(kind);
+  };
+  const putStrike=(i,nE,nN)=>{           // boundary runs across its own normal
+    const th=Math.atan2(nE,-nN);
+    s2c[i]=Math.cos(2*th); s2s[i]=Math.sin(2*th);
+  };
+
+  // look-back distance, ~5 degrees of arc, so it scales with resolution
+  const BACK=Math.max(2,Math.round(5*H/180));
+  const back=(x,y,n,k)=>{
+    if(n===0) return y*W+(((x+(k<0?k:k+1))%W)+W)%W;
+    const yy=Math.min(H-1,Math.max(0,y+(k<0?k:k+1)));
+    return yy*W+x;
+  };
+
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI, cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const i=y*W+x, pi=plate[i];
+      const ix=cl*clon[x], iy=cl*slon[x], iz=sl;
+      for(let n=0;n<2;n++){                       // east and south neighbour only
+        let j;
+        if(n===0) j=y*W+((x+1)%W);
+        else { if(y+1>=H) continue; j=(y+1)*W+x; }
+        const pj=plate[j]; if(pj===pi) continue;
+
+        // neighbour position
+        let jx,jy,jz;
+        if(n===0){ jx=cl*clon[(x+1)%W]; jy=cl*slon[(x+1)%W]; jz=sl; }
+        else { const l2=(0.5-(y+1.5)/H)*Math.PI, c2=Math.cos(l2);
+               jx=c2*clon[x]; jy=c2*slon[x]; jz=Math.sin(l2); }
+
+        // boundary normal, i -> j, on the tangent plane
+        let nx=jx-ix, ny=jy-iy, nz=jz-iz;
+        const NL=Math.hypot(nx,ny,nz)||1; nx/=NL; ny/=NL; nz/=NL;
+
+        // relative velocity = (omega_j - omega_i) x p, evaluated at i
+        const dx=ox[pj]-ox[pi], dy=oy[pj]-oy[pi], dz=oz[pj]-oz[pi];
+        const rx=dy*iz-dz*iy, ry=dz*ix-dx*iz, rz=dx*iy-dy*ix;
+
+        const along=rx*nx+ry*ny+rz*nz;            // >0 means j moving away
+        const conv=-along;
+        const shx=rx-along*nx, shy=ry-along*ny, shz=rz-along*nz;
+        const shear=Math.hypot(shx,shy,shz);
+        const s=Math.min(1,Math.hypot(rx,ry,rz)/1.15);
+        if(s<0.02) continue;
+
+        // What kind of crust is each plate bringing to this boundary? Asking
+        // the two adjacent cells is useless — the crust field is smooth, so
+        // they almost always agree and subduction never fires. Ask a few
+        // degrees back into each plate instead, which is the question that
+        // actually decides whether an ocean floor is diving under a continent.
+        const ci=crust[back(x,y,n,-BACK)]>contLevel,
+              cj=crust[back(x,y,n, BACK)]>contLevel;
+
+        // the normal in the local east/north frame, for the strike
+        const nE=-nx*slon[x]+ny*clon[x];
+        const nN=-nx*sl*clon[x]-ny*sl*slon[x]+nz*cl;
+        putStrike(i,nE,nN); putStrike(j,nE,nN);
+        const run=(n===0)?dLatDeg:dLonDeg*cosLat[y];
+        if(Math.abs(conv)<shear*0.65){            // mostly sliding
+          put(i,'transform',s,run); put(j,'transform',s,run);
+        } else if(conv>0){                        // closing
+          if(ci&&cj){ put(i,'collide',s,run); put(j,'collide',s,run); }
+          else if(ci&&!cj){ put(i,'arc',s,run); put(j,'trench',s,run); }
+          else if(!ci&&cj){ put(i,'trench',s,run); put(j,'arc',s,run); }
+          else {                                  // ocean under ocean: older dives
+            if(pi<pj){ put(i,'trench',s,run); put(j,'island',s,run); }
+            else     { put(i,'island',s,run); put(j,'trench',s,run); }
+          }
+        } else {                                  // opening
+          if(ci&&cj){ put(i,'rift',s,run); put(j,'rift',s,run); }
+          else if(!ci&&!cj){ put(i,'ridge',s,run); put(j,'ridge',s,run); }
+          else { put(i,'passive',s,run); put(j,'passive',s,run); }
+        }
+      }
+    }
+  }
+
+  /* --- spread each boundary's signature outward ------------------------
+     First attempt did this as one Dijkstra with nearest-boundary-wins, and it
+     was visibly wrong: at a subduction zone the arc seed (+0.82) and the
+     trench seed (-0.78) are ADJACENT cells, so the Voronoi seam between them
+     runs right down the middle and the field cliffs from +0.82 to -0.78 across
+     one pixel, fanning out into hard wedges.
+
+     Relief superimposes, it does not pick a winner. A trench beside an arc is
+     a sum, and that sum is what gives a subduction margin its real asymmetric
+     cross-section. So: splat every boundary cell's kernel additively. Each
+     seed touches only cells within 2.5 widths of it (beyond that the kernel is
+     under 2% and invisible), which keeps this a few million operations.
+
+     The per-seed normalisation is what makes the result resolution
+     independent. A boundary is a line of seeds, so the sum at its crest is
+     roughly amp * width * 1.805 / (spacing between seeds) — 1.805 being
+     the integral of exp(-|u|^1.5). Dividing by that puts the crest back at
+     amp regardless of grid size or latitude.                                */
+  const uplift=new Float32Array(N);
+  const strC=new Float32Array(N), strS=new Float32Array(N);
+  const LINE=1.805, D2R=Math.PI/180, R2D=180/Math.PI;
+  // true angular distance, not a flat-earth approximation: near a pole the
+  // approximation calls every longitude adjacent and one seed paints the whole
+  // cap. Precompute the two tables it needs.
+  const sinLat=new Float64Array(H), cosLatT=new Float64Array(H);
+  for(let y=0;y<H;y++){
+    const la=(0.5-(y+0.5)/H)*Math.PI; sinLat[y]=Math.sin(la); cosLatT[y]=Math.cos(la);
+  }
+  const cosDLon=new Float64Array(W);
+  for(let dx=0;dx<W;dx++) cosDLon[dx]=Math.cos(dx*360/W*D2R);
+
+  // Cost control. Seeds sit one per cell, so a kernel 30 cells wide gets
+  // sampled 30 times along the boundary for a result that is smooth anyway,
+  // and the splat becomes O(W^3) while everything else in the generator is
+  // O(W^2) — 18 of 22 seconds at 2048x1024. Thin the seeds by the kernel's own
+  // width, keeping about three samples across it, and scale each survivor up
+  // to carry the ones it replaced. Wide kernels are exactly the expensive ones,
+  // so this bites where it costs and leaves narrow trenches at full density.
+  const rowsPerDeg=H/180;
+  for(const s of seeds){
+    const sy=(s/W)|0, sx=s-sy*W;
+    const a=amp[s], w=wid[s], run=spc[s]; if(w<=0||run<=0) continue;
+    const stride=Math.max(1,Math.floor(w*rowsPerDeg/3));
+    if(stride>1 && (((sx*73856093)^(sy*19349663))>>>0)%stride) continue;
+    const cap=w*2.5, capR=cap*D2R;
+    const k=a*run*stride/(w*LINE);
+    const ry=Math.ceil(cap/(180/H));
+    // how far in longitude the cap reaches at this latitude; if the cap swallows
+    // the pole it genuinely does reach every longitude, and that is correct
+    const sc=Math.sin(capR), cphi=cosLatT[sy];
+    const rx=(cphi<=sc) ? (W>>1)
+           : Math.min(W>>1, Math.ceil(Math.asin(Math.min(1,sc/cphi))*R2D/(360/W))+1);
+    const ss=sinLat[sy], cs=cosLatT[sy];
+    for(let dy=-ry;dy<=ry;dy++){
+      const yy=sy+dy; if(yy<0||yy>=H) continue;
+      const row=yy*W, sy2=sinLat[yy], cy2=cosLatT[yy];
+      const base=ss*sy2, cross=cs*cy2;
+      for(let dx=-rx;dx<=rx;dx++){
+        const cd=cosDLon[dx<0?-dx:dx];
+        let c=base+cross*cd; if(c>1)c=1; else if(c<-1)c=-1;
+        const d=Math.acos(c)*R2D;
+        if(d>cap) continue;
+        const q=Math.exp(-Math.pow(d/w,1.5)), idx=row+(((sx+dx)%W)+W)%W;
+        uplift[idx] += k*q;
+        // the same kernel carries the boundary's direction outward, so the
+        // whole belt knows which way it runs, crest included
+        const qw=Math.abs(k)*q;
+        strC[idx] += qw*s2c[s]; strS[idx] += qw*s2s[s];
+      }
+    }
+  }
+  // Smooth the strike. Two boundaries meeting at an angle otherwise hand
+  // neighbouring cells directions tens of degrees apart, and since the texture
+  // is stretched along that direction the change shows up as a straight seam
+  // cutting across the range. Doubled angles average correctly, so this is just
+  // a blur on the two components.
+  {
+    const bc=new Float32Array(N), bs=new Float32Array(N), RAD=Math.max(1,Math.round(H/90));
+    for(let pass=0;pass<2;pass++){
+      const sc=pass?bc:strC, ss=pass?bs:strS, dc=pass?strC:bc, ds=pass?strS:bs;
+      const horiz=pass===0;
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+        let a=0,b=0,n2=0;
+        for(let k=-RAD;k<=RAD;k++){
+          let j;
+          if(horiz) j=y*W+((((x+k)%W)+W)%W);
+          else { const yy=y+k; if(yy<0||yy>=H) continue; j=yy*W+x; }
+          a+=sc[j]; b+=ss[j]; n2++;
+        }
+        dc[y*W+x]=a/n2; ds[y*W+x]=b/n2;
+      }
+    }
+  }
+  return {plate,uplift,strC,strS,bkind,count:P,seeds:seeds.length};
+}
+
+function generate(cfg){
+  const t0=performance.now();
+  const seed=hashSeed(cfg.seed);
+  const nCont=makeNoise(seed), nDet=makeNoise(seed^0x9e37), nRidge=makeNoise(seed^0x85eb);
+  const N=W*H;
+  const el=new Float32Array(N), temp=new Float32Array(N), moist=new Float32Array(N);
+  const wet=new Float32Array(N);   // same field unclamped, for conditioning export
+  const windU=new Float32Array(H);          // per-row zonal wind, +1 east / -1 west
+  const biome=new Array(N);
+
+  // ---- crust ------------------------------------------------------------
+  // The continental field on its own: where the crust is thick. This decides
+  // where land is. It does NOT decide where mountains are — plates do that,
+  // below — which is the whole point of separating the two.
+  const cScale=0.6+ (100-cfg.scale)/100*3.2;   // bigger slider = bigger continents
+  const rough=cfg.rough/100;
+  const crust=new Float32Array(N);
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI;          // +pi/2 .. -pi/2
+    const cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const lon=((x+0.5)/W)*2*Math.PI;
+      const px=cl*Math.cos(lon), py=cl*Math.sin(lon), pz=sl;
+      crust[y*W+x]=fbm(nCont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
+    }
+  }
+  // the crust level that will end up near the waterline, so plate boundaries
+  // get classified against the same shoreline the map will actually have
+  const cs=Float32Array.from(crust).sort();
+  const contLevel=cs[Math.min(N-1,Math.floor(cfg.ocean/100*N))];
+
+  // ---- tectonics --------------------------------------------------------
+  const tec=buildTectonics(cfg,seed,crust,contLevel);
+  const upl=tec.uplift;
+
+  // ---- elevation --------------------------------------------------------
+  let lo=Infinity, hi=-Infinity;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI;
+    const cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const i=y*W+x;
+      const lon=((x+0.5)/W)*2*Math.PI;
+      const px=cl*Math.cos(lon), py=cl*Math.sin(lon), pz=sl;
+      const d=fbm(nDet,px*cScale*4,py*cScale*4,pz*cScale*4,5,2.0,DGAIN);
+      // ridged noise belongs ON the ranges, not scattered over the whole globe.
+      // Gating it by |uplift| is what gives a mountain belt its texture while
+      // leaving a plain flat, which is the correct behaviour and also happens
+      // to be what an upscaler needs: detail where the structure says detail.
+      const g=Math.min(1,Math.abs(upl[i])*2.2);
+      const r=ridged(nRidge,px*cScale*3,py*cScale*3,pz*cScale*3,5,2.1,RGAIN);
+      // a little ridging everywhere so plains are not glass, a lot of it on the
+      // belts so a range has a crest line rather than a smooth dome
+      const v=crust[i]*W_CRUST + d*W_DETAIL + upl[i]*W_UPLIFT
+            + r*(0.20+g*0.80)*rough*W_RIDGE;
+      el[i]=v;
+      if(v<lo)lo=v; if(v>hi)hi=v;
+    }
+  }
+  for(let i=0;i<N;i++) el[i]=(el[i]-lo)/(hi-lo);
+
+  // sea level chosen so the ocean fraction is exactly what was asked for
+  const sorted=Float32Array.from(el).sort();
+  const sea=sorted[Math.min(N-1,Math.max(0,Math.floor(cfg.ocean/100*N)))];
+
+  // apply relief: compress or exaggerate land above sea level
+  const reliefK=0.25+cfg.relief/100*1.75;
+  for(let i=0;i<N;i++){
+    if(el[i]>sea){
+      const h=(el[i]-sea)/(1-sea);
+      el[i]=sea+Math.pow(h,1/reliefK)*(1-sea);
+    }
+  }
+
+  // ---- wind bands -------------------------------------------------------
+  const bands=cfg.bands, strength=cfg.wind/100;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*180;                  // +90..-90
+    if(cfg.uni){ windU[y]=1; continue; }
+    const band=Math.floor(Math.abs(lat)/(90/bands));
+    windU[y]=(band%2===0)?-1:1;                     // alternating easterly/westerly
+  }
+
+  // ---- continentality ---------------------------------------------------
+  // How far from the sea, in degrees of arc. The sea is what stops a place
+  // being extreme: it moderates the temperature and it is where the rain comes
+  // from. Without this term every climate is a function of latitude alone, and
+  // latitude alone gives you belts. Chamfer distance in two sweep pairs rather
+  // than a Dijkstra, because this only needs to be roughly right and the
+  // generator already has enough queues in it.
+  const distOcean=new Float32Array(N);
+  {
+    const cosL=new Float64Array(H);
+    for(let y=0;y<H;y++) cosL[y]=Math.max(0.02,Math.cos((0.5-(y+0.5)/H)*Math.PI));
+    const dLat=180/H, dLon=360/W;
+    for(let i=0;i<N;i++) distOcean[i]= el[i]<sea ? 0 : 1e9;
+    for(let pass=0;pass<2;pass++){
+      for(let y=0;y<H;y++){
+        const sx=dLon*cosL[y], dg=Math.hypot(sx,dLat), row=y*W, up=(y-1)*W;
+        for(let x=0;x<W;x++){
+          const i=row+x; if(distOcean[i]===0) continue;
+          let m=distOcean[i];
+          const xm=((x-1)+W)%W, xp=(x+1)%W;
+          let v=distOcean[row+xm]+sx; if(v<m)m=v;
+          if(y>0){
+            v=distOcean[up+x]+dLat;  if(v<m)m=v;
+            v=distOcean[up+xm]+dg;   if(v<m)m=v;
+            v=distOcean[up+xp]+dg;   if(v<m)m=v;
+          }
+          distOcean[i]=m;
+        }
+      }
+      for(let y=H-1;y>=0;y--){
+        const sx=dLon*cosL[y], dg=Math.hypot(sx,dLat), row=y*W, dn=(y+1)*W;
+        for(let x=W-1;x>=0;x--){
+          const i=row+x; if(distOcean[i]===0) continue;
+          let m=distOcean[i];
+          const xm=((x-1)+W)%W, xp=(x+1)%W;
+          let v=distOcean[row+xp]+sx; if(v<m)m=v;
+          if(y<H-1){
+            v=distOcean[dn+x]+dLat;  if(v<m)m=v;
+            v=distOcean[dn+xp]+dg;   if(v<m)m=v;
+            v=distOcean[dn+xm]+dg;   if(v<m)m=v;
+          }
+          distOcean[i]=m;
+        }
+      }
+    }
+  }
+
+  // ---- temperature ------------------------------------------------------
+  const tiltWiden=1+cfg.tilt/110;      // tilt widens the tropics
+  // Pole to equator. 44 put the poles at -8C, so nothing on the planet was
+  // ever cold enough to be ice and every cold place fell through to tundra —
+  // 19% of land against Earth's 8%. Earth's own land spread is around 50.
+  const SPREAD=54;
+  const nTemp=makeNoise(seed^0x7e3a1);
+  for(let y=0;y<H;y++){
+    const alat=Math.abs((0.5-(y+0.5)/H)*180);
+    const rlat=(0.5-(y+0.5)/H)*Math.PI, cl=Math.cos(rlat), sl=Math.sin(rlat);
+    const band=Math.pow(Math.cos(Math.min(89.9,alat/tiltWiden)*Math.PI/180),1.25);
+    for(let x=0;x<W;x++){
+      const i=y*W+x;
+      const alt=Math.max(0,(el[i]-sea)/(1-sea));
+      // Continentality amplifies whatever latitude was already doing: an
+      // interior runs hotter in the tropics and colder toward the poles than a
+      // coast at the same latitude. And a couple of degrees of drift, so the
+      // isotherms are not perfect circles of latitude.
+      const cont=Math.min(1,distOcean[i]/14);
+      const lon=((x+0.5)/W)*2*Math.PI;
+      const drift=fbm(nTemp,cl*Math.cos(lon)*1.35,cl*Math.sin(lon)*1.35,sl*1.35,3,2.0,0.5)*3.4;
+      temp[i]=cfg.temp + (band-0.5)*SPREAD*(1+cont*0.38) - alt*28 + drift;
+    }
+  }
+
+  // ---- moisture: advect along the wind, orographic loss on climbs -------
+  const oro=3+strength*9;
+  // The convergence zone is not a circle of latitude. It gets dragged poleward
+  // over land as the continents heat, and the subtropical highs that dry the
+  // 25-30 degree belt are cells sitting over the oceans, not a continuous ring
+  // — which is why the Sahara and humid Florida share a latitude. Doing that
+  // properly wants pressure; displacing the belt by several degrees with
+  // longitude buys most of the visible effect, which is that the deserts stop
+  // lining up into two stripes around the planet.
+  const nBelt=makeNoise(seed^0x2b17);
+  const wobLon=new Float64Array(W), itczRow=new Float64Array(W);
+  for(let x=0;x<W;x++){
+    const lon=((x+0.5)/W)*2*Math.PI;
+    wobLon[x]=fbm(nBelt,Math.cos(lon)*1.15,Math.sin(lon)*1.15,0,3,2.0,0.5)*9;
+  }
+  for(let y=0;y<H;y++){
+    const dir=windU[y]>=0?1:-1;
+    const slat=(0.5-(y+0.5)/H)*180;                 // signed latitude
+    for(let x=0;x<W;x++){
+      // heavy rain near the thermal equator, subtropical highs near 25-30,
+      // a second wet band at the polar fronts — all displaced with longitude
+      const lat=Math.abs(slat-wobLon[x]);
+      itczRow[x]=Math.exp(-Math.pow(lat/13,2))*0.55
+                -Math.exp(-Math.pow((lat-27)/11,2))*0.30
+                +Math.exp(-Math.pow((lat-52)/13,2))*0.18;
+    }
+    let m=0.6;
+    for(let pass=0;pass<3;pass++){        // three passes so wrap-around settles
+      for(let k=0;k<W;k++){
+        const x=dir>0 ? k : (W-1-k);
+        const i=y*W+x;
+        const px=(x-dir+W)%W, prev=el[y*W+px];
+        let precip;
+        if(el[i]<sea){
+          const warm=Math.max(0,Math.min(1,(temp[i]+12)/42));
+          m=Math.min(1.35, m+(1.35-m)*0.11*warm+0.015);   // evaporate
+          precip=0.55*warm;
+        }else{
+          const climb=Math.max(0,el[i]-prev)*oro;
+          precip=m*(0.055+climb*6);
+          if(precip>m*0.9) precip=m*0.9;
+          m-=precip;
+          m+=(1.0-m)*0.007;                                // land evapotranspiration
+          if(m<0) m=0;
+        }
+        // Convective rain needs moisture in the air to work with. Adding the
+        // convergence term flat across a row was what banded the map: a
+        // continental interior got the same free rainfall as the coast two
+        // thousand kilometres upwind, so the tropics were a green ring and the
+        // subtropics a tan one whatever the land underneath was doing.
+        if(pass===2) moist[i]=Math.max(0, precip
+          + itczRow[x]*0.5*(0.28+0.72*Math.min(1,m))*(el[i]>=sea?1:0.4));
+      }
+    }
+  }
+  // normalise precipitation over land, then smooth to kill speckle
+  const lv=[]; for(let i=0;i<N;i++) if(el[i]>=sea) lv.push(moist[i]);
+  lv.sort((a,b)=>a-b);
+  const p88=lv.length?lv[Math.floor(lv.length*0.88)]:1;
+  // moist is clamped to 1 because the biome classifier only needs the ordering,
+  // but clamping at the 88th percentile makes every wet place identical — which
+  // would hand a terrain model one flat value across every rainforest on the
+  // planet. Keep an unclamped copy for export.
+  if(p88>0) for(let i=0;i<N;i++){ wet[i]=moist[i]/p88; moist[i]=Math.min(1,wet[i]); }
+  const sm=new Float32Array(N), sw=new Float32Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    let a=0,b=0,c=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const ny=y+dy; if(ny<0||ny>=H)continue;
+      const j=ny*W+((x+dx+W)%W); a+=moist[j]; b+=wet[j]; c++;
+    }
+    sm[y*W+x]=a/c; sw[y*W+x]=b/c;
+  }
+  moist.set(sm); wet.set(sw);
+
+  // ---- rivers -----------------------------------------------------------
+  const order=[]; for(let i=0;i<N;i++) if(el[i]>=sea) order.push(i);
+  order.sort((a,b)=>el[b]-el[a]);
+  const flow=new Float32Array(N), down=new Int32Array(N).fill(-1);
+  for(const i of order){
+    const x=i%W, y=(i/W)|0;
+    let best=-1,bv=el[i];
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(!dx&&!dy)continue;
+      const ny=y+dy; if(ny<0||ny>=H)continue;
+      const nx=(x+dx+W)%W, j=ny*W+nx;
+      if(el[j]<bv){bv=el[j];best=j}
+    }
+    down[i]=best;
+  }
+  for(const i of order){
+    flow[i]+=Math.max(0.05,moist[i]);
+    if(down[i]>=0) flow[down[i]]+=flow[i];
+  }
+  let fmax=0; for(let i=0;i<N;i++) if(el[i]>=sea&&flow[i]>fmax)fmax=flow[i];
+
+  // ---- biomes -----------------------------------------------------------
+  for(let i=0;i<N;i++) biome[i]=classify(el[i],sea,temp[i],moist[i]);
+
+  // A ridged sum is all-positive, so left alone it would simply lift every
+  // mountain by its own mean. Measure that mean once over the sphere and
+  // subtract it, so the texture carves as much as it builds.
+  let tb=0; const tbr=mulberry32(seed^0x7e1a5), TBN=768;
+  for(let k=0;k<TBN;k++){
+    const z=2*tbr()-1, rr=Math.sqrt(Math.max(0,1-z*z)), th=tbr()*Math.PI*2;
+    tb+=texture({det:nDet,ridge:nRidge},rr*Math.cos(th),rr*Math.sin(th),z,0,0,0,0,9);
+  }
+
+  world={cfg,el,sea,temp,moist,wet,biome,flow,fmax,windU,down,tec,crust,
+         noise:{cont:nCont,det:nDet,ridge:nRidge}, texBias:tb/TBN,
+         cScale,rough,elo:lo,ehi:hi,reliefK,
+         ms:Math.round(performance.now()-t0)};
+  analyse();
+  buildCivilisation(cfg);
+  world.ms=Math.round(performance.now()-t0);
+  return world;
+}
+
+/* Coarse climate class. Flood-filling on THIS rather than on habitability is
+   what splits a continent into the provinces that actually divide cultures —
+   a temperate north, an arid middle and a wet south are three peoples, not one. */
+const CLASS={ice:'cold',polar:'cold',tundra:'cold',taiga:'cold',
+  temperate:'temperate',grass:'temperate',steppe:'temperate',
+  desert:'dry',
+  savanna:'warm',seasonal:'warm',rain:'warm',wetland:'warm',
+  alpine:'high',peak:'high',ocean:null,shallow:null};
+const CLASSNAME={cold:'cold',temperate:'temperate',dry:'arid',warm:'warm',high:'highland'};
+
+
+/* ========================================= population, culture, polity ====
+   The expansion engine below is the one genuinely clever idea in Azgaar's
+   Fantasy Map Generator (MIT, Azgaar), reimplemented on our raster grid.
+
+   Uniform-cost Dijkstra outward from seeds, where the cost of ENTERING a cell
+   is a function of the terrain AND of the expander's own type. A highland
+   culture pays almost nothing for mountains and a fortune for lowlands; a
+   naval one crosses water cheaply. Run it from culture centres and you get
+   cultures. Run it again from capitals, adding a penalty for crossing into a
+   foreign culture, and you get polities. Same loop, different cost function.
+   FMG gets cultures, states, provinces and religions out of this one pattern.
+   ======================================================================== */
+
+/* Flat binary heap. Values are (cellId | seedIndex<<19) packed into one int,
+   priorities in a parallel float array. Allocating an object per push cost
+   more than the whole rest of the generator. */
+function Heap(cap){
+  this.v=new Int32Array(cap); this.k=new Int32Array(cap);
+  this.p=new Float64Array(cap); this.n=0;
+}
+Heap.prototype._grow=function(){
+  const v=new Int32Array(this.v.length*2), k=new Int32Array(this.k.length*2);
+  const p=new Float64Array(this.p.length*2);
+  v.set(this.v); k.set(this.k); p.set(this.p); this.v=v; this.k=k; this.p=p;
+};
+Heap.prototype.push=function(val,key,pri){
+  if(this.n===this.v.length) this._grow();
+  let i=this.n++; this.v[i]=val; this.k[i]=key; this.p[i]=pri;
+  while(i>0){const par=(i-1)>>1;
+    if(this.p[par]<=this.p[i])break;
+    const tv=this.v[par];this.v[par]=this.v[i];this.v[i]=tv;
+    const tk=this.k[par];this.k[par]=this.k[i];this.k[i]=tk;
+    const tp=this.p[par];this.p[par]=this.p[i];this.p[i]=tp; i=par}
+};
+Heap.prototype.pop=function(){
+  const top=this.v[0]; this._lastK=this.k[0]; this._lastP=this.p[0];
+  this.n--;
+  if(this.n>0){
+    this.v[0]=this.v[this.n]; this.k[0]=this.k[this.n]; this.p[0]=this.p[this.n];
+    let i=0;
+    for(;;){const l=2*i+1,r=l+1; let m=i;
+      if(l<this.n&&this.p[l]<this.p[m])m=l;
+      if(r<this.n&&this.p[r]<this.p[m])m=r;
+      if(m===i)break;
+      const tv=this.v[m];this.v[m]=this.v[i];this.v[i]=tv;
+      const tk=this.k[m];this.k[m]=this.k[i];this.k[i]=tk;
+      const tp=this.p[m];this.p[m]=this.p[i];this.p[i]=tp; i=m}
+  }
+  return top;
+};
+
+/* Plate fills, and one colour per boundary kind so a glance says what built what.
+   Order matches KINDS in buildTectonics. */
+const PLATEC=['#3b4a63','#5a4a63','#3f5c52','#63523b','#4a3b5c','#3b5c63',
+              '#5c3b47','#4f633b','#63603b','#3b3f5c','#55636b','#6b5563',
+              '#41634d','#634156'];
+const BKINDC=['#ff5a4e','#ff9a3c','#1b2f6b','#ffd24a','#4ad6ff','#b06bff',
+              '#7f8fa0','#8fff7a'];
+const BKINDNAME=['collision','volcanic arc','trench','island arc',
+                 'spreading ridge','rift','passive margin','transform'];
+
+/* How liveable a biome is, 0-100. Drives population, which drives everything. */
+const HABIT={ocean:0,shallow:0,ice:0,polar:2,tundra:6,taiga:16,temperate:100,
+  grass:70,steppe:34,desert:5,savanna:46,seasonal:78,rain:60,wetland:24,
+  alpine:3,peak:0};
+
+const CULTURE_TYPES=['settled','highland','river','coastal','nomadic','forest'];
+
+/* Biome colours pre-parsed. The globe was running parseInt over a hex string
+   three times for every one of half a million pixels, every frame. */
+const BIOMERGB={};
+for(const k in BIOME){
+  const c=BIOME[k][1];
+  BIOMERGB[k]=[parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)];
+}
+
+function buildCivilisation(cfg){
+  const {el,sea,biome,moist,flow,fmax,temp}=world, N=W*H;
+
+  /* ---- population ---------------------------------------------------- */
+  const pop=new Float32Array(N);
+  const coastal=new Uint8Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x; if(el[i]<sea) continue;
+    for(let dy=-1;dy<=1&&!coastal[i];dy++)for(let dx=-1;dx<=1;dx++){
+      const ny=y+dy; if(ny<0||ny>=H)continue;
+      if(el[ny*W+((x+dx+W)%W)]<sea){coastal[i]=1;break}
+    }
+  }
+  const dens=cfg.pop/55;
+  for(let i=0;i<N;i++){
+    if(el[i]<sea) continue;
+    const h=HABIT[biome[i]]/100;
+    const river=flow[i]>fmax*0.01 ? 1.5 : 1;
+    const coast=coastal[i]?1.35:1;
+    const alt=1-Math.min(1,Math.max(0,(el[i]-sea)/(1-sea))*1.1);
+    pop[i]=h*(0.35+moist[i]*0.65)*river*coast*alt*dens;
+  }
+
+  /* ---- settlements: greedy local maxima with a separation radius ------ */
+  const cand=[]; for(let i=0;i<N;i++) if(pop[i]>0.05) cand.push(i);
+  cand.sort((a,b)=>pop[b]-pop[a]);
+  // scale to liveable land: an ocean world gets a handful, a lush one gets many
+  const maxTowns=Math.max(3,Math.min(180,Math.round(cand.length/190)));
+  const towns=[], SEP=11, GS=SEP, GX=Math.ceil(W/GS), GY=Math.ceil(H/GS);
+  const bucket=new Map();                  // spatial hash so this stays linear
+  for(const i of cand){
+    if(towns.length>=maxTowns) break;
+    const x=i%W, y=(i/W)|0;
+    const gx=(x/GS)|0, gy=(y/GS)|0;
+    let ok=true;
+    for(let ay=gy-1;ay<=gy+1&&ok;ay++){
+      if(ay<0||ay>=GY)continue;
+      for(let ax=gx-1;ax<=gx+1;ax++){
+        const key=((ax+GX)%GX)+ay*GX, list=bucket.get(key);
+        if(!list)continue;
+        for(const t of list){
+          let dx=Math.abs(t.x-x); if(dx>W/2)dx=W-dx;
+          if(dx*dx+(t.y-y)*(t.y-y)<SEP*SEP){ok=false;break}
+        }
+        if(!ok)break;
+      }
+    }
+    if(ok){
+      const t={i,x,y,pop:pop[i],lat:(0.5-(y+0.5)/H)*180,lon:((x+0.5)/W)*360-180};
+      towns.push(t);
+      const key=gx+gy*GX;
+      if(!bucket.has(key))bucket.set(key,[]);
+      bucket.get(key).push(t);
+    }
+  }
+  towns.sort((a,b)=>b.pop-a.pop);
+  towns.forEach((t,k)=>t.rank=k);
+
+  /* ---- culture type from the ground under the seed -------------------- */
+  function typeAt(i){
+    const x=i%W,y=(i/W)|0, h=(el[i]-sea)/(1-sea);
+    if(h>0.42) return 'highland';
+    if(flow[i]>fmax*0.03) return 'river';
+    if(coastal[i]) return 'coastal';
+    const b=biome[i];
+    if(b==='desert'||b==='steppe'||b==='savanna') return 'nomadic';
+    if(b==='taiga'||b==='rain'||b==='seasonal'||b==='temperate') return 'forest';
+    return 'settled';
+  }
+
+  /* ---- the expansion engine ------------------------------------------ */
+  function expand(seeds, maxCost, cellCost){
+    const owner=new Int16Array(N).fill(-1);
+    const best=new Float64Array(N).fill(Infinity);
+    const q=new Heap(1<<16);
+    seeds.forEach((s,k)=>{owner[s.i]=k;best[s.i]=0;q.push(s.i,k,0)});
+    let guard=0, LIMIT=N*14;
+    while(q.n && guard++<LIMIT){
+      const i=q.pop(), k=q._lastK, c=q._lastP;
+      if(c>best[i]+1e-6) continue;         // stale entry
+      const x=i%W, y=(i/W)|0, seed=seeds[k];
+      for(let dy=-1;dy<=1;dy++){
+        const ny=y+dy; if(ny<0||ny>=H)continue;
+        for(let dx=-1;dx<=1;dx++){
+          if(!dx&&!dy)continue;
+          const j=ny*W+((x+dx+W)%W);
+          const tot=c+cellCost(i,j,seed);
+          if(tot>maxCost||tot>=best[j]) continue;
+          best[j]=tot; owner[j]=k;
+          q.push(j,k,tot);
+        }
+      }
+    }
+    if(guard>=LIMIT) console.warn('expand hit the iteration guard');
+    return owner;
+  }
+
+  /* cultures: terrain cost modulated by the culture's own type */
+  const nCult=Math.min(cfg.cult,towns.length);
+  const cultures=[];
+  {
+    const picked=[];
+    for(const t of towns){
+      if(picked.length>=nCult) break;
+      let ok=true;
+      for(const p of picked){
+        let dx=Math.abs(p.x-t.x); if(dx>W/2)dx=W-dx;
+        if(dx*dx+(p.y-t.y)*(p.y-t.y) < (W*0.11)*(W*0.11)){ok=false;break}
+      }
+      if(ok) picked.push(t);
+    }
+    picked.forEach((t,k)=>cultures.push({i:t.i,x:t.x,y:t.y,seat:t,
+      type:typeAt(t.i), expansionism:0.7+((k*37)%13)/13*1.1, id:k}));
+  }
+  const cultureOf=expand(cultures, 4200, (from,to,c)=>{
+    if(el[to]<sea) return c.type==='coastal'?70:(c.type==='nomadic'?1400:260);
+    const b=biome[to], h=(el[to]-sea)/(1-sea);
+    let cost=14+(100-HABIT[b])*0.55;
+    if(biome[from]!==b) cost+=22;                       // crossing a biome edge
+    if(c.type==='highland') cost += h>0.34 ? -10 : 150; // hates lowland
+    if(c.type==='river')    cost += flow[to]>fmax*0.02 ? -8 : 80;
+    if(c.type==='coastal')  cost += coastal[to] ? -6 : 70;
+    if(c.type==='nomadic')  cost += (b==='temperate'||b==='rain'||b==='seasonal')?170:-8;
+    if(c.type==='forest')   cost += (b==='desert'||b==='steppe')?150:-6;
+    if(h>0.62) cost+=220;                               // mountains are a wall
+    return Math.max(2,cost)/c.expansionism;
+  });
+
+  /* polities: the same loop, plus a penalty for crossing a culture edge */
+  const nPol=Math.min(cfg.pol,towns.length);
+  const polities=towns.slice(0,nPol).map((t,k)=>({i:t.i,x:t.x,y:t.y,seat:t,
+    culture:cultureOf[t.i], expansionism:0.8+((k*53)%11)/11*0.9, id:k}));
+  const polityOf=expand(polities, 3000, (from,to,p)=>{
+    if(el[to]<sea) return 240;
+    const h=(el[to]-sea)/(1-sea);
+    let cost=16+(100-HABIT[biome[to]])*0.4;
+    if(cultureOf[to]!==p.culture) cost+=150;            // foreign culture resists
+    if(h>0.55) cost+=260;
+    cost-=Math.min(40,pop[to]*90);                      // grows toward people
+    return Math.max(3,cost)/p.expansionism;
+  });
+
+  /* ---- spaceports: big, flat, and as near the equator as you can get -- */
+  const ports=towns.map(t=>{
+    const h=(el[t.i]-sea)/(1-sea);
+    let flat=0,c=0;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      const ny=t.y+dy; if(ny<0||ny>=H)continue;
+      flat+=Math.abs(el[ny*W+((t.x+dx+W)%W)]-el[t.i]); c++;
+    }
+    flat=1-Math.min(1,(flat/c)*26);
+    const eq=1-Math.abs(t.lat)/90;                      // launch assist
+    return {t,score:t.pop*(0.4+eq*0.9)*(0.35+flat*0.65)*(h<0.5?1:0.4)};
+  }).sort((a,b)=>b.score-a.score);
+  const spaceports=[];
+  for(const p of ports){
+    if(spaceports.length>=cfg.port) break;
+    let ok=true;
+    for(const q of spaceports){
+      let dx=Math.abs(q.x-p.t.x); if(dx>W/2)dx=W-dx;
+      if(dx*dx+(q.y-p.t.y)*(q.y-p.t.y) < (W*0.13)*(W*0.13)){ok=false;break}
+    }
+    if(ok) spaceports.push({...p.t,score:p.score});
+  }
+
+  /* ---- orbitals: a ring, inclined, phased off the ports --------------- */
+  const orbitals=[];
+  for(let k=0;k<cfg.orb;k++){
+    const f=k/Math.max(1,cfg.orb);
+    orbitals.push({lon:f*360-180+((k*47)%31)-15,
+      lat:Math.sin(f*Math.PI*2+0.6)*28,
+      alt:1.16+((k*29)%17)/17*0.30,
+      tether: k<spaceports.length});
+  }
+
+  /* ---- city lights ------------------------------------------------------
+     A city seen from orbit is not a glow. It is a bright core with arterial
+     roads running out of it, ribbon development along the coast and along the
+     river, and satellite settlements strung out on those same lines. The shape
+     is dendritic, and it is self-similar because the same thing happens at
+     every scale: the arterial branches into the distributor, the distributor
+     branches into the street.
+
+     So grow it rather than stamping it. Each town throws out arms that walk
+     outward choosing their heading by how easy the ground is, branch as they
+     go with every branch dimmer and shorter than its parent, and die when they
+     run out of light. Water stops a road dead. Coasts and rivers pull one
+     along, which is what puts the bright ribbons where they belong without
+     anyone drawing them.
+  ---------------------------------------------------------------------- */
+  const lights=new Float32Array(N);
+  {
+    const S=Math.max(1,H/320);              // lengths below are for 640x320
+    const rnd=mulberry32((hashSeed(cfg.seed)^0x71c475)>>>0);
+    const maxPop=towns.length?Math.max(1e-6,towns[0].pop):1;
+    const CUT=0.055;                        // dimmer than this is not a road
+
+    const cellXY=(x,y)=>{
+      let yy=Math.round(y); if(yy<0)yy=0; else if(yy>=H)yy=H-1;
+      return yy*W+((((Math.round(x))%W)+W)%W);
+    };
+    const add=(x,y,v,rad)=>{
+      const xi=Math.round(x), yi=Math.round(y);
+      const r=Math.max(0,Math.round(rad)), s2=Math.max(0.4,r*r*0.55);
+      for(let dy=-r;dy<=r;dy++){
+        const yy=yi+dy; if(yy<0||yy>=H) continue;
+        const row=yy*W;
+        for(let dx=-r;dx<=r;dx++){
+          const d2=dx*dx+dy*dy; if(d2>r*r+r) continue;
+          const j=row+((((xi+dx)%W)+W)%W);
+          if(el[j]<sea) continue;
+          lights[j]+=v*Math.exp(-d2/s2);
+        }
+      }
+    };
+    // how willing a road is to enter a cell
+    const ease=(from,to)=>{
+      if(el[to]<sea) return 0;
+      let e=Math.exp(-Math.abs(el[to]-el[from])*110);
+      if(coastal[to]) e*=1.7;
+      if(flow[to]>fmax*0.02) e*=1.5;
+      return e;
+    };
+
+    for(const t of towns){
+      const s=Math.max(0.05,t.pop/maxPop);
+      add(t.x+0.5,t.y+0.5,0.9*s+0.30,2.2*S*(0.5+0.5*Math.sqrt(s)));
+
+      const arms=3+Math.round(5*s), stack=[];
+      for(let a=0;a<arms;a++) stack.push({
+        x:t.x+0.5, y:t.y+0.5,
+        dir:(a/arms)*Math.PI*2+rnd()*0.8,
+        v:0.55+0.45*s, life:(9+64*s)*S});
+
+      let guard=0;
+      while(stack.length && guard++<6000){
+        const arm=stack.pop();
+        let {x,y,dir,v,life}=arm;
+        while(life>0 && v>CUT){
+          const from=cellXY(x,y);
+          let bd=dir, be=-1;
+          for(let k=-1;k<=1;k++){
+            const d=dir+k*0.62+(rnd()-0.5)*0.30;
+            const ny2=y-Math.sin(d); if(ny2<0||ny2>=H) continue;
+            const e=ease(from,cellXY(x+Math.cos(d),ny2))*(k===0?1.35:1);
+            if(e>be){be=e; bd=d}
+          }
+          if(be<=0) break;                  // the road reached the sea
+          dir=bd;
+          x+=Math.cos(dir); y-=Math.sin(dir);
+          if(y<0||y>=H) break;
+          life-=1; v*=0.985;
+          add(x,y,v*0.42,1.5*S*v);
+          if(rnd()<0.055 && v>CUT*2 && stack.length<240)
+            stack.push({x,y,dir:dir+(rnd()<0.5?-1:1)*(0.6+rnd()*0.6),
+                        v:v*0.58, life:life*0.55});
+        }
+      }
+    }
+    // and a faint haze, because a city really does scatter light into its air
+    for(const t of towns){
+      const s=t.pop/maxPop, r=Math.max(2,Math.round((2+Math.sqrt(s)*7)*S));
+      for(let dy=-r;dy<=r;dy++){
+        const yy=t.y+dy; if(yy<0||yy>=H) continue;
+        for(let dx=-r;dx<=r;dx++){
+          const d2=dx*dx+dy*dy; if(d2>r*r) continue;
+          const j=yy*W+((((t.x+dx)%W)+W)%W);
+          if(el[j]<sea) continue;
+          lights[j]+=s*0.25*Math.exp(-d2/(r*r*0.30));
+        }
+      }
+    }
+  }
+  let lmax=0; for(let i=0;i<N;i++) if(lights[i]>lmax)lmax=lights[i];
+  // gamma, so the thin outer branches survive into the render instead of
+  // being crushed to nothing by the core
+  if(lmax>0) for(let i=0;i<N;i++) lights[i]=Math.min(1,Math.pow(lights[i]/lmax,0.62)*1.22);
+
+  const cultCells=new Int32Array(Math.max(1,cultures.length));
+  const polCells=new Int32Array(Math.max(1,polities.length));
+  for(let i=0;i<N;i++){
+    const c=cultureOf[i]; if(c>=0) cultCells[c]++;
+    const q=polityOf[i];  if(q>=0) polCells[q]++;
+  }
+  Object.assign(world,{pop,towns,cultures,cultureOf,polities,polityOf,
+    spaceports,orbitals,lights,coastal,cultCells,polCells});
+}
+
+/* ================================================= regions & barriers ==== */
+function analyse(){
+  const {el,sea,biome}=world, N=W*H;
+  let landCells=0;
+  const cls=new Array(N);
+  for(let i=0;i<N;i++){ cls[i]=CLASS[biome[i]]; if(el[i]>=sea) landCells++; }
+  const minCells=Math.max(60,Math.round(landCells*0.02));
+  let rejected=0;
+
+  // flood fill by CLIMATE CLASS (4-connected, wrapping in x)
+  const reg=new Int32Array(N).fill(-1); const regions=[];
+  for(let s=0;s<N;s++){
+    if(!cls[s]||reg[s]>=0)continue;
+    const c=cls[s], id=regions.length, cells=[], stack=[s]; reg[s]=id;
+    while(stack.length){
+      const i=stack.pop(); cells.push(i);
+      const x=i%W,y=(i/W)|0;
+      const nb=[[(x+1)%W,y],[(x-1+W)%W,y],[x,y-1],[x,y+1]];
+      for(const [nx,ny] of nb){
+        if(ny<0||ny>=H)continue;
+        const j=ny*W+nx;
+        if(cls[j]===c&&reg[j]<0){reg[j]=id;stack.push(j)}
+      }
+    }
+    if(cells.length<minCells||c==='high'){ rejected++; continue; }
+    regions.push({id,cells,cls:c});
+  }
+  // rebuild ids after filtering
+  regions.forEach((r,i)=>{r.id=i; for(const c of r.cells) reg[c]=i});
+  for(let i=0;i<N;i++) if(reg[i]>=0 && reg[i]>=regions.length) reg[i]=-1;
+
+  // per-region stats
+  const kmPerCell=(4*Math.PI*6371*6371)/N;   // rough, Earth-sized
+  for(const r of regions){
+    let tsum=0,msum=0,minY=H,maxY=0,cx=0,cy=0;
+    const counts={};
+    for(const i of r.cells){
+      tsum+=world.temp[i]; msum+=world.moist[i];
+      const y=(i/W)|0, x=i%W;
+      if(y<minY)minY=y; if(y>maxY)maxY=y; cy+=y; cx+=x;
+      counts[world.biome[i]]=(counts[world.biome[i]]||0)+1;
+    }
+    const n=r.cells.length;
+    r.area=Math.round(n*kmPerCell);
+    r.meanT=tsum/n; r.meanM=msum/n;
+    r.cx=cx/n; r.cy=cy/n;
+    r.latN=Math.round((0.5-minY/H)*180), r.latS=Math.round((0.5-maxY/H)*180);
+    r.dominant=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
+    r.className=CLASSNAME[r.cls]||r.cls;
+    r.mix=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,3)
+           .map(k=>`${BIOME[k][0]} ${Math.round(counts[k]/n*100)}%`);
+  }
+  regions.sort((a,b)=>b.area-a.area);
+  regions.forEach((r,i)=>r.rank=i+1);
+
+  // barriers: sample the straight line between region centroids, classify
+  const barriers=[];
+  for(let a=0;a<Math.min(regions.length,9);a++){
+    for(let b=a+1;b<Math.min(regions.length,9);b++){
+      const A=regions[a],B=regions[b];
+      let dx=B.cx-A.cx; if(dx>W/2)dx-=W; if(dx<-W/2)dx+=W;
+      const dy=B.cy-A.cy, dist=Math.hypot(dx,dy);
+      if(dist>W*0.42) continue;                    // too far to be neighbours
+      const steps=Math.max(8,Math.round(dist));
+      const tally={ocean:0,mountain:0,desert:0,ice:0,wetland:0,other:0};
+      let peak=0, deepest=0;
+      for(let s=1;s<steps;s++){
+        const t=s/steps;
+        const x=Math.round((A.cx+dx*t+W)%W), y=Math.round(A.cy+dy*t);
+        if(y<0||y>=H)continue;
+        const i=y*W+x, bm=world.biome[i];
+        if(bm==='ocean'||bm==='shallow'){tally.ocean++; deepest=Math.max(deepest,world.sea-world.el[i])}
+        else if(bm==='peak'||bm==='alpine'){tally.mountain++; peak=Math.max(peak,world.el[i])}
+        else if(bm==='desert'){tally.desert++}
+        else if(bm==='ice'){tally.ice++}
+        else if(bm==='wetland'){tally.wetland++}
+        else tally.other++;
+      }
+      const total=steps-1;
+      const main=Object.keys(tally).sort((k,j)=>tally[j]-tally[k])[0];
+      if(main==='other'||tally[main]/total<0.3) continue;
+      const km=Math.round(dist*(40075/W));
+      let desc;
+      if(main==='ocean')    desc=`${km} km of open water`;
+      else if(main==='mountain') desc=`a range peaking near ${Math.round((peak-world.sea)/(1-world.sea)*8000)} m`;
+      else if(main==='desert')   desc=`${km} km of desert`;
+      else if(main==='ice')      desc=`${km} km of permanent ice`;
+      else desc=`${km} km of wetland`;
+      barriers.push({a:A.rank,b:B.rank,kind:main,km,desc,
+        share:Math.round(tally[main]/total*100)});
+    }
+  }
+  barriers.sort((x,y)=>x.km-y.km);
+  world.regions=regions; world.reg=reg; world.barriers=barriers;
+  world.rejected=rejected; world.minCells=minCells;
+}
+
+/* ============================================================ render ==== */
+let view='biome';
+
+/* ---- globe camera -------------------------------------------------------
+   Kept in floats rather than read back off the sliders, because the sliders
+   step in whole degrees and at 24x the visible disc is under three degrees
+   across — a single step would jump the view most of a screen. The sliders
+   drive this and display it; drag and wheel write it directly.
+------------------------------------------------------------------------- */
+const gview={lon:-160, lat:0, zoom:1};
+let gcam=null;                      // last frame's transform, for picking
+const ZMIN=1, ZMAX=24;
+const clampv=(v,a,b)=>v<a?a:(v>b?b:v);
+const wrapLon=v=>((v+180)%360+360)%360-180;
+function camFromSliders(){
+  gview.lon=wrapLon(+$('rSpin').value);
+  gview.lat=clampv(+$('rTilt').value,-85,85);
+  gview.zoom=clampv(+$('rZoom').value/100,ZMIN,ZMAX);
+}
+function camToSliders(){
+  $('rSpin').value=Math.round(gview.lon);
+  $('rTilt').value=Math.round(gview.lat);
+  $('rZoom').value=Math.round(gview.zoom*100);
+  syncLabels();
+}
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+
+function ramp(v,stops){
+  v=Math.max(0,Math.min(1,v));
+  const n=stops.length-1, i=Math.min(n-1,Math.floor(v*n)), t=v*n-i;
+  const a=stops[i],b=stops[i+1];
+  return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+}
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+
+function draw(){
+  if(!world)return;
+  const {el,sea,temp,moist,biome,flow,fmax,reg,regions}=world;
+  const img=ctx.createImageData(W,H), d=img.data;
+  const REGC=['#7FA8C9','#D4A45C','#8FB878','#C97F9E','#8F8FC9','#A89070',
+              '#6fb3a8','#c98f6f','#9ab36f'];
+  for(let i=0;i<W*H;i++){
+    let r,g,b;
+    if(view==='biome'||view==='regions'){
+      [r,g,b]=hex(BIOME[biome[i]][1]);
+      if(el[i]>=sea){                                  // hillshade
+        const x=i%W,y=(i/W)|0;
+        const l=el[(y*W)+((x-1+W)%W)], rr=el[(y*W)+((x+1)%W)];
+        const u=el[Math.max(0,y-1)*W+x], dn=el[Math.min(H-1,y+1)*W+x];
+        const sh=1+((l-rr)*2.2+(u-dn)*1.4)*6;
+        r*=sh;g*=sh;b*=sh;
+      }
+      if(view==='regions'){
+        if(reg[i]>=0){const c=hex(REGC[reg[i]%REGC.length]);
+          r=(r+c[0]*2)/3;g=(g+c[1]*2)/3;b=(b+c[2]*2)/3}
+        else {r*=0.35;g*=0.35;b*=0.35}
+      }
+      if(el[i]>=sea && flow[i]>fmax*0.012){            // rivers
+        const t=Math.min(1,flow[i]/(fmax*0.18));
+        r=r*(1-t*0.8)+36*t*0.8; g=g*(1-t*0.8)+90*t*0.8; b=b*(1-t*0.8)+130*t*0.8;
+      }
+    } else if(view==='relief'){
+      if(el[i]<sea){const t=el[i]/sea; [r,g,b]=ramp(t,[[8,18,30],[30,70,100]])}
+      else {const t=(el[i]-sea)/(1-sea);
+        [r,g,b]=ramp(t,[[60,90,60],[150,140,90],[190,190,190],[255,255,255]])}
+    } else if(view==='plates'){
+      const pl=world.tec.plate[i], bk=world.tec.bkind[i];
+      const c=hex(PLATEC[pl%PLATEC.length]);
+      const land=el[i]>=sea?1:0.55;
+      r=c[0]*land; g=c[1]*land; b=c[2]*land;
+      if(bk>=0){const bc=hex(BKINDC[bk]); r=bc[0]; g=bc[1]; b=bc[2]}
+    } else if(view==='temp'){
+      [r,g,b]=ramp((temp[i]+30)/70,[[40,60,140],[70,140,190],[230,230,160],[220,120,60],[170,40,40]]);
+    } else if(view==='rain'){
+      [r,g,b]=ramp(moist[i],[[190,160,110],[200,200,140],[90,160,110],[30,90,140]]);
+    } else if(view==='culture'||view==='polity'){
+      const own=view==='culture'?world.cultureOf:world.polityOf;
+      const PAL=['#7FA8C9','#D4A45C','#8FB878','#C97F9E','#8F8FC9','#A89070',
+                 '#6fb3a8','#c98f6f','#9ab36f','#b07fc9','#c9b67f','#7fc9a4',
+                 '#c97f7f','#7f9ac9'];
+      if(el[i]<sea){r=14;g=32;b=50}
+      else{
+        const k=own[i];
+        if(k<0){r=44;g=48;b=52}
+        else{const c=hex(PAL[k%PAL.length]); r=c[0];g=c[1];b=c[2];
+          const x=i%W,y=(i/W)|0;
+          const edge=own[y*W+((x+1)%W)]!==k||own[y*W+((x-1+W)%W)]!==k||
+            (y>0&&own[(y-1)*W+x]!==k)||(y<H-1&&own[(y+1)*W+x]!==k);
+          const lft=el[y*W+((x-1+W)%W)],rgt=el[y*W+((x+1)%W)];
+          const sh=edge?0.45:(1+(lft-rgt)*5);
+          r*=sh;g*=sh;b*=sh;
+        }
+      }
+    } else if(view==='pop'){
+      if(el[i]<sea){r=12;g=26;b=42}
+      else{const t=Math.min(1,world.pop[i]*2.3);
+        [r,g,b]=ramp(t,[[34,40,36],[70,86,58],[150,150,70],[240,210,120],[255,250,220]])}
+    } else if(view==='wind'){
+      const y=(i/W)|0, u=world.windU[y];
+      [r,g,b]= u>=0?[70,120,170]:[170,110,70];
+      if(el[i]<sea){r*=0.55;g*=0.55;b*=0.55}
+    }
+    const o=i*4; d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  if(world.towns && (view==='culture'||view==='polity'||view==='pop')){
+    for(const t of world.towns){
+      const rad=Math.max(1,Math.min(4,1+Math.sqrt(t.pop)*5));
+      ctx.fillStyle='rgba(255,255,255,.82)';
+      ctx.beginPath();ctx.arc(t.x,t.y,rad,0,7);ctx.fill();
+    }
+    for(const sp of world.spaceports){
+      ctx.strokeStyle='#D4A45C';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.arc(sp.x,sp.y,5,0,7);ctx.stroke();
+    }
+  }
+  legend();
+}
+
+function legend(){
+  const L=document.getElementById('legend');
+  if(view==='biome'){
+    L.innerHTML=Object.keys(BIOME).map(k=>
+      `<span><i style="background:${BIOME[k][1]}"></i>${BIOME[k][0]}</span>`).join('');
+  } else if(view==='plates'){
+    const seen=new Set(); for(let i=0;i<world.tec.bkind.length;i++){
+      const k=world.tec.bkind[i]; if(k>=0) seen.add(k); }
+    L.innerHTML=`<span>${world.tec.count} plates</span>`+
+      [...seen].sort().map(k=>
+        `<span><i style="background:${BKINDC[k]}"></i>${BKINDNAME[k]}</span>`).join('');
+  } else if(view==='regions'){
+    L.innerHTML=world.regions.slice(0,9).map(r=>
+      `<span><i style="background:${BIOME[r.dominant][1]}"></i>#${r.rank} `+
+      `${r.className} · ${BIOME[r.dominant][0]} · ${r.area.toLocaleString()} km²</span>`).join('');
+  } else L.innerHTML='';
+}
+
+
+/* ============================================================== globe ====
+   Orthographic projection by inverse mapping: for every pixel inside the disc
+   work out the point on the unit sphere, rotate it, convert to lat/lon and
+   sample the equirectangular fields. The terminator is a dot product against
+   the sun vector; the night side is unlit except for the emission field, which
+   is what gives you city lights along the coastlines.
+   ======================================================================== */
+const glc=document.getElementById('gl');
+const gctx=glc.getContext('2d');
+
+/* Bilinear, wrapping in longitude. Used for the emission field: city lights
+   are the thing you zoom into, and nearest sampling turns a road into a
+   staircase the moment a data cell covers more than one screen pixel. */
+function sampleSmooth(arr,lat,lon){
+  const fx=((lon+180)/360)*W-0.5, fy=((90-lat)/180)*H-0.5;
+  const x0=Math.floor(fx), y0=Math.floor(fy), tx=fx-x0, ty=fy-y0;
+  const xa=((x0%W)+W)%W, xb=(((x0+1)%W)+W)%W;
+  const ya=clampv(y0,0,H-1), yb=clampv(y0+1,0,H-1);
+  const a=arr[ya*W+xa], b=arr[ya*W+xb], c=arr[yb*W+xa], e=arr[yb*W+xb];
+  return (a*(1-tx)+b*tx)*(1-ty)+(c*(1-tx)+e*tx)*ty;
+}
+/* ---- elevation at any point, at any detail ------------------------------
+   The grid is 640x320. Zooming into it magnifies cells, and no amount of
+   filtering invents what was never sampled — smoothing a staircase gives you a
+   ramp, not a mountain.
+
+   But the elevation field is analytic. Continental crust, the detail layer and
+   the ridges are all noise evaluated on the unit sphere, so they can be asked
+   for a value at any latitude and longitude, at any frequency, and asking for
+   more octaves than the grid could hold is real new terrain rather than
+   interpolation. Only the tectonic uplift is not analytic, and it is a sum of
+   kernels several degrees wide, so sampling it smoothly costs nothing in
+   accuracy.
+
+   This is the same two-stage idea terrain-diffusion is built on — a coarse
+   field that decides structure, a fine pass that resolves it — done with noise
+   until the model is wired in. It reproduces the coarse grid exactly where the
+   grid has a value, so zooming reveals detail instead of changing the world.
+------------------------------------------------------------------------- */
+/* The fine terrain, and the part that decides whether this reads as a mountain
+   range or as noise sprinkled on a dome. Three things that a plain sum of
+   octaves cannot do:
+
+   Ridged. 1 - |n| creases where the noise crosses zero, and squaring sharpens
+   the crease. Smooth noise gives lumps; this gives ridgelines.
+
+   Domain warped. The sample point is displaced by another noise field before
+   it is read, which bends what would be round blobs into the sinuous, branching
+   shapes that drainage actually makes. Without it every valley is a dimple.
+
+   Multifractal. Each octave is scaled by how high the previous one came out, so
+   detail gathers on the crests and the valley floors stay smooth — which is
+   what erosion does, and what makes a range look carved rather than crumpled.
+
+   Anisotropic. Stretched along the belt, so ridges run parallel to the range
+   instead of pointing in every direction at once.
+
+   Amplitudes are a bare power law with no normalisation, for the reason given
+   at W_TEX. */
+function texture(noise,px,py,pz,tx,ty,tz,aniso,n){
+  const wf=TEX_F0*0.5, wa=0.085/TEX_F0;
+  const qx=px+noise.ridge(px*wf+11.3,py*wf,pz*wf)*wa,
+        qy=py+noise.ridge(px*wf,py*wf+7.1,pz*wf)*wa,
+        qz=pz+noise.ridge(px*wf,py*wf,pz*wf+3.7)*wa;
+  let t=0, a=1, f=TEX_F0, w=1;
+  for(let k=0;k<n;k++){
+    let e;
+    if(aniso>0.02 && k<4){
+      // Average the noise along the strike before creasing it. Smoothing a
+      // field in one direction stretches its zero crossings that way, and the
+      // crease follows the zero crossing — so the ridges come out running with
+      // the range instead of pointing everywhere.
+      //
+      // The obvious way to do this is to stretch the sample point,
+      // s = p + a (a.p)(A-1), and it is worth writing down why that silently
+      // does nothing: a is a tangent vector at p, so a.p is exactly zero and
+      // the transform is the identity. It was in for three rounds of this.
+      const o=0.55/f;
+      const n1=noise.det((qx-tx*o)*f,(qy-ty*o)*f,(qz-tz*o)*f);
+      const n2=noise.det(qx*f,qy*f,qz*f);
+      const n3=noise.det((qx+tx*o)*f,(qy+ty*o)*f,(qz+tz*o)*f);
+      const smeared=(n1+n2+n3)*0.3333;
+      e=1-Math.abs(smeared*aniso+n2*(1-aniso));
+    } else {
+      e=1-Math.abs(noise.det(qx*f,qy*f,qz*f));
+    }
+    const s=e*e;
+    t+=a*s*w;
+    // Weight the next octave by this one, but never to zero. At w = s*2.1 a
+    // single low octave switched off every finer one beneath it, which left
+    // large patches perfectly smooth — the grey flats between the rubble.
+    w=0.38+s*1.15; if(w>1)w=1;
+    f*=2; a*=TEX_GAIN;
+  }
+  return t;
+}
+
+/* How many octaves of a layer are worth evaluating at a given ground
+   resolution. Everything finer than two pixels cannot be drawn — it aliases
+   into a crumble that buries the landforms underneath it, which is exactly what
+   made a mountain range look like sandpaper: at 16x a pixel is about 1.3 km of
+   ground, and the texture was being run down to a 230 m wavelength, five
+   octaves past anything the screen could show. */
+function octFor(baseKm,resM,cap){
+  if(!resM) return cap;
+  const n=1+Math.floor(Math.log2(Math.max(1,baseKm*1000/(2*resM))));
+  return Math.max(1,Math.min(cap,n));
+}
+
+function elevAt(lat,lon,extra,resM){
+  const {noise,cScale,rough,elo,ehi,reliefK,sea,tec}=world;
+  const la=lat*Math.PI/180, ln=(lon+180)*Math.PI/180;   // generate()'s convention
+  const cl=Math.cos(la), px=cl*Math.cos(ln), py=cl*Math.sin(ln), pz=Math.sin(la);
+  // base wavelength of each layer, in km, from 57.3/F degrees of arc
+  const KM=111.32;
+  const OCT=Math.min(11,5+extra);
+  const octD=octFor(57.3/(cScale*4)*KM,resM,OCT);
+  const octR=octFor(57.3/(cScale*3)*KM,resM,OCT);
+  const c=fbm(noise.cont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
+  const d=fbm(noise.det,px*cScale*4,py*cScale*4,pz*cScale*4,octD,2.0,DGAIN);
+  const u=sampleSmooth(tec.uplift,lat,lon);
+  const g=Math.min(1,Math.abs(u)*2.2);
+  const r=ridged(noise.ridge,px*cScale*3,py*cScale*3,pz*cScale*3,octR,2.1,RGAIN);
+  let v=c*W_CRUST + d*W_DETAIL + u*W_UPLIFT + r*(0.20+g*0.80)*rough*W_RIDGE;
+  v=(v-elo)/(ehi-elo);
+  if(v>sea){ const h=(v-sea)/(1-sea); v=sea+Math.pow(h,1/reliefK)*(1-sea); }
+  if(extra>0 && v>sea){
+    // Across-strike direction, from the gradient of the uplift field. A range
+    // runs along its belt, so its ridges run perpendicular to the direction the
+    // belt is climbing — which the tectonics already knows.
+    // Across-strike direction. The first attempt took it from the gradient of
+    // the uplift, which is zero at the crest of a belt — precisely where the
+    // mountains are — so the ranges came out with no direction at all. The
+    // tectonics now carries the boundary's own strike outward through the belt.
+    const slo=Math.sin(ln), clo=Math.cos(ln), sla=Math.sin(la), cla=Math.cos(la);
+    const ex=-slo, ey=clo;                              // local east
+    const nx2=-sla*clo, ny2=-sla*slo, nz2=cla;          // local north
+    const sc=sampleSmooth(tec.strC,lat,lon), ss=sampleSmooth(tec.strS,lat,lon);
+    // Where two ranges meet at an angle the doubled angles cancel, and a small
+    // magnitude is exactly the signal that there is no single direction here.
+    // Fade the stretching out rather than switching it, or the change shows as
+    // a straight seam cutting across the mountains.
+    const smag=Math.hypot(sc,ss);
+    let tx=0,ty=0,tz=0,aniso=clampv((smag-0.008)/0.045,0,1);
+    if(aniso>0.02){
+      const th=0.5*Math.atan2(ss,sc);                   // undo the doubling
+      const tE=Math.cos(th), tN=Math.sin(th);           // along the strike
+      tx=ex*tE+nx2*tN; ty=ey*tE+ny2*tN; tz=nz2*tN;
+      const tl=Math.hypot(tx,ty,tz);
+      if(tl>1e-9){ tx/=tl; ty/=tl; tz/=tl; aniso=1; }
+    }
+    const t=texture(noise,px,py,pz,tx,ty,tz,aniso,
+                    octFor(57.3/TEX_F0*KM,resM,Math.min(9,extra+4)));
+    // Roughness follows height as well as the boundary. Keying it to the
+    // uplift alone left everything a range had pushed up — the foothills, the
+    // plateau behind it — as smooth as a plain, because uplift falls off within
+    // a couple of degrees of the boundary while the ground it raised does not.
+    const h2=Math.max(0,(v-sea)/(1-sea));
+    const steep=Math.min(1,0.03+Math.abs(u)*1.5+h2*1.5);
+    v+=(t-world.texBias)*W_TEX*steep;
+  }
+  // No ceiling. The texture is added after the field has been normalised, so
+  // clamping at 1 shears the top off every belt it lifts past the maximum the
+  // grid happened to contain — which is what put a flat grey plateau where the
+  // range should be, with the detail surviving only around its edges.
+  return v<0?0:v;
+}
+
+function sampleNearest(arr,lat,lon){
+  let x=Math.floor(((lon+180)/360)*W); x=((x%W)+W)%W;
+  let y=Math.floor(((90-lat)/180)*H); if(y<0)y=0; if(y>=H)y=H-1;
+  return arr[y*W+x];
+}
+function cellAt(lat,lon){
+  let x=Math.floor(((lon+180)/360)*W); x=((x%W)+W)%W;
+  let y=Math.floor(((90-lat)/180)*H); if(y<0)y=0; if(y>=H)y=H-1;
+  return y*W+x;
+}
+
+function drawGlobe(quick){
+  if(!world) return;
+  const {el,sea,biome,temp,moist,lights,spaceports,orbitals,towns}=world;
+  const GW=glc.width, GH=glc.height;
+  const spin=gview.lon*Math.PI/180;
+  const tilt=gview.lat*Math.PI/180;
+  const sunA=+$('rSun').value*Math.PI/180;
+  const zoom=gview.zoom;
+  const R=GH*0.44*zoom, cx=GW/2, cy=GH/2;
+  const showLights=$('cLights').checked;
+  const cb=Math.cos(tilt), sb=Math.sin(tilt);
+  // Remember where the camera is so picking and the pointer handlers can use
+  // the same transform the renderer does. Screen centre is exactly
+  // (lat = tilt, lon = spin), which is what makes centre-on-a-point trivial.
+  gcam={R,cx,cy,spin,tilt,cb,sb};
+
+  const img=gctx.createImageData(GW,GH), d=img.data;
+  const put=(px,py,r,g,b)=>{
+    const R8=r>255?255:r, G8=g>255?255:g, B8=b>255?255:b;
+    for(let qy=0;qy<STEP;qy++){
+      const yy=py+qy; if(yy>=GH) break;
+      for(let qx=0;qx<STEP;qx++){
+        const xx=px+qx; if(xx>=GW) break;
+        const o=(yy*GW+xx)*4;
+        d[o]=R8; d[o+1]=G8; d[o+2]=B8; d[o+3]=255;
+      }
+    }
+  };
+  const sun=[Math.cos(sunA),0.28,Math.sin(sunA)];
+  const sl=Math.hypot(sun[0],sun[1],sun[2]);
+  sun[0]/=sl;sun[1]/=sl;sun[2]/=sl;
+  const cs=Math.cos(spin), sn=Math.sin(spin);
+  const dLonCell=360/W;
+  // Once one data cell covers more than a screen pixel, ask the noise directly
+  // instead of magnifying the grid, with one extra octave per doubling of zoom.
+  // Only on a settled frame: during a drag the coarse field is what keeps it
+  // interactive, and the detail pass lands a moment later.
+  const detail=!quick && zoom>=1.8 && world.noise;
+  const OCTX=detail?Math.min(6,Math.ceil(Math.log2(zoom))+1):0;
+  // Shading from the real slope of the ground rather than an arbitrary
+  // multiplier on a screen-space difference. Metres of relief over metres of
+  // ground is a number with a meaning, so the same constant works at every
+  // zoom, steep places genuinely go dark and flat places genuinely stay flat —
+  // which is what makes a mountain read as a mountain. Scaling a difference
+  // instead, and squashing it through a tanh, saturated almost every pixel at
+  // high zoom and banded the render.
+  const GPP=(180/(Math.PI*R))*111320;          // ground metres per screen pixel
+  // Metres of land relief per unit of normalised elevation. Land occupies only
+  // the top (1 - sea) of the 0..1 range — everything below is ocean — so
+  // treating 1.0 as the summit understates every slope by a factor of three.
+  const RELIEF_M=8848/Math.max(0.05,1-sea);
+  const SH=9;
+  // Shade against the pixel a fixed ground distance back rather than the one
+  // immediately left. A one-pixel difference is a high-pass filter: it only
+  // ever shows the finest thing present, so landforms never appear however
+  // well the field describes them.
+  const kBack=Math.max(3,Math.min(28,Math.round(1600/GPP)));
+  // A ring of recent rows, so the shading can use a real surface normal — a
+  // gradient across AND down — instead of an east-west difference. A 1-D
+  // difference lights only the slopes facing one way, which is why ridgelines
+  // stayed invisible in the globe while the same field showed them plainly
+  // under proper hillshading.
+  const RB=kBack+1;
+  const ring=new Float32Array(GW*RB), ringOK=new Uint8Array(GW*RB);
+  const LX=-0.55, LY=0.55, LZ=0.63;           // light from the north-west
+  let ri=0, prevE=0, prevOK=false;
+
+  // While a finger or the mouse is down, shade every other pixel and fill 2x2
+  // blocks. Four times fewer rays keeps a drag interactive; the full pass runs
+  // again the moment the pointer lifts.
+  const STEP=quick?2:1;
+  for(let py=0;py<GH;py+=STEP){
+    const slot=ri%RB, above=(ri-kBack+RB+RB)%RB, sOff=slot*GW, aOff=above*GW;
+    ringOK.fill(0,sOff,sOff+GW);
+    prevOK=false;
+    for(let px=0;px<GW;px+=STEP){
+      const nx=(px-cx)/R, ny=(cy-py)/R;
+      const r2=nx*nx+ny*ny;
+      if(r2>1){                                   // space, with a rim glow
+        const rim=Math.max(0,1-(Math.sqrt(r2)-1)*R/22);
+        const g=rim*rim*54;
+        put(px,py,6+g*0.5, 9+g*0.8, 16+g*1.5);
+        prevOK=false;
+        continue;
+      }
+      const nz=Math.sqrt(1-r2);
+      // tilt about the screen x axis first, then spin about the polar axis
+      const ty= ny*cb + nz*sb, tz= -ny*sb + nz*cb;
+      const wx= nx*cs + tz*sn, wz= -nx*sn + tz*cs, wy=ty;
+      const lat=Math.asin(Math.max(-1,Math.min(1,wy)))*180/Math.PI;
+      const lon=Math.atan2(wx,wz)*180/Math.PI;
+      const i=cellAt(lat,lon);
+
+      let lum=wx*sun[0]+wy*sun[1]+wz*sun[2];      // day/night
+      const day=Math.max(0,Math.min(1,(lum+0.09)/0.30));
+
+      let r,g,b;
+      // Elevation is sampled smoothly rather than per cell, so the coastline
+      // and the shading stop being a staircase the moment you zoom past the
+      // point where one data cell covers one screen pixel. The biome colour
+      // stays nearest on purpose: it is a category, not a quantity, and a
+      // blend between desert and taiga is not a biome.
+      const eC=detail?elevAt(lat,lon,OCTX,GPP):sampleSmooth(el,lat,lon);
+      const isSea=eC<sea;
+      if(detail){ ring[sOff+px]=eC; ringOK[sOff+px]=1; }
+      if(isSea){ r=20;g=48;b=78; prevE=eC; prevOK=true; }
+      else {
+        let bk;
+        if(detail){
+          // A mountain the grid never held should carry snow, not the colour of
+          // the valley it was interpolated from. The lapse rate is linear, so
+          // correcting the coarse temperature for the new altitude is exact.
+          const altC=Math.max(0,(sampleSmooth(el,lat,lon)-sea)/(1-sea));
+          const altH=Math.max(0,(eC-sea)/(1-sea));
+          bk=classify(eC,sea,sampleSmooth(temp,lat,lon)-(altH-altC)*28,
+                      sampleSmooth(moist,lat,lon));
+        } else bk=biome[i];
+        const c=BIOMERGB[bk];
+        // Hypsometric tint. A biome colour is flat across a whole class, so on
+        // its own it hides every ridge and valley inside one; leaning the
+        // colour with height is what makes the shape of the land readable,
+        // which is what relief maps have always done.
+        const ht=detail?clampv((eC-sea)/(1-sea)*2.6,0,1):0;
+        // gradient against the pixel to the left, which costs nothing extra
+        let sh;
+        if(detail){
+          const bx=px-kBack*STEP, run=kBack*STEP*GPP;
+          const zx=(bx>=0&&ringOK[sOff+bx])?ring[sOff+bx]:eC;
+          const zy=(ri>=kBack&&ringOK[aOff+px])?ring[aOff+px]:eC;
+          // Vertical exaggeration, as every relief map since the first one has
+          // used: true slopes are gentle enough that a physically honest normal
+          // washes the whole scene out.
+          const VE=3.2;
+          const dzdx=(eC-zx)*RELIEF_M/run*VE, dzdy=(zy-eC)*RELIEF_M/run*VE;
+          const nl=Math.sqrt(dzdx*dzdx+dzdy*dzdy+1);
+          const lam=(-dzdx*LX-dzdy*LY+LZ)/nl;
+          sh=0.30+1.15*clampv(lam,0,1);
+        } else {
+          sh=1+((prevOK?prevE:eC)-eC)*(2*Math.PI*R/W)*SH;
+        }
+        prevE=eC; prevOK=true;
+        if(detail){
+          const lift=0.80+ht*0.30;
+          r=(c[0]*0.86+26*ht)*sh*lift;
+          g=(c[1]*0.86+24*ht)*sh*lift;
+          b=(c[2]*0.86+20*ht)*sh*lift;
+        } else { r=c[0]*sh; g=c[1]*sh; b=c[2]*sh; }
+      }
+      // limb darkening so the edge falls away, plus a little earthshine: the
+      // night side of a real planet is not black, and if it is here you cannot
+      // tell where you are while you turn the globe
+      const limb=0.55+0.45*nz, amb=0.065*(1-day);
+      r*=(day+amb)*limb; g*=(day+amb*1.2)*limb; b*=(day+amb*1.8)*limb;
+
+      if(showLights && day<0.85 && !isSea){
+        const L=sampleSmooth(lights,lat,lon)*(1-day)*1.25;
+        if(L>0.004){
+          r+=L*255; g+=L*216; b+=L*140;
+        }
+      }
+      // thin atmosphere on the lit limb
+      const atm=Math.pow(1-nz,3)*day*70;
+      r+=atm*0.35; g+=atm*0.6; b+=atm;
+
+      put(px,py,r,g,b);
+    }
+    ri++;
+  }
+  gctx.putImageData(img,0,0);
+
+  // ---- overlays: spaceports on the surface, orbitals above -------------
+  function project(lat,lon,alt){
+    const la=lat*Math.PI/180, lo=lon*Math.PI/180;
+    const wx=Math.cos(la)*Math.sin(lo), wy=Math.sin(la), wz=Math.cos(la)*Math.cos(lo);
+    const ux= wx*cs - wz*sn, u = wx*sn + wz*cs;   // inverse of the sample rotation
+    const sy= wy*cb - u*sb,   sz= wy*sb + u*cb;   // and of the tilt
+    return {x:cx+ux*R*(alt||1), y:cy-sy*R*(alt||1), front:sz>0, uz:sz};
+  }
+
+  if($('cOrbit').checked){
+    gctx.lineWidth=1;
+    for(const s of world.orbitals){
+      for(const pass of [0,1]){
+        const pt=project(s.lat,s.lon,s.alt);
+        if((pass===0)!==(!pt.front)) continue;     // behind first, then in front
+        gctx.globalAlpha=pt.front?1:0.28;
+        if(s.tether){                              // a line down to the surface
+          const g2=project(s.lat,s.lon,1);
+          gctx.strokeStyle='#4d6b86';
+          gctx.beginPath();gctx.moveTo(g2.x,g2.y);gctx.lineTo(pt.x,pt.y);gctx.stroke();
+        }
+        gctx.fillStyle='#cfe3f2';
+        gctx.beginPath();gctx.arc(pt.x,pt.y,2.6,0,7);gctx.fill();
+        gctx.strokeStyle='rgba(180,214,240,.55)';
+        gctx.beginPath();gctx.arc(pt.x,pt.y,5.5,0,7);gctx.stroke();
+      }
+    }
+    gctx.globalAlpha=1;
+  }
+
+  if($('cPorts').checked){
+    gctx.font='11px ui-monospace,monospace';
+    for(const sp of world.spaceports){
+      const pt=project(sp.lat,sp.lon,1.005);
+      if(!pt.front) continue;
+      gctx.strokeStyle='#D4A45C'; gctx.lineWidth=1.4;
+      gctx.beginPath();gctx.arc(pt.x,pt.y,4.5,0,7);gctx.stroke();
+      gctx.beginPath();gctx.moveTo(pt.x,pt.y-8);gctx.lineTo(pt.x,pt.y-15);gctx.stroke();
+      gctx.fillStyle='#D4A45C';
+      gctx.fillText('port', pt.x+7, pt.y-9);
+    }
+  }
+}
+
+/* ============================================================ report ==== */
+function report(){
+  const w=world, R=w.regions, B=w.barriers;
+  const land=w.el.reduce((a,v)=>a+(v>=w.sea?1:0),0)/(W*H);
+  const counts={}; for(const b of w.biome) counts[b]=(counts[b]||0)+1;
+  const L=[];
+  L.push(`SEED  ${w.cfg.seed}`);
+  L.push(`ocean ${Math.round((1-land)*100)}%   relief ${w.cfg.relief}   `+
+         `mean temp ${w.cfg.temp}C   tilt ${w.cfg.tilt}deg   `+
+         `wind ${w.cfg.uni?'one-way':w.cfg.bands+' bands'}   (${w.ms}ms)`);
+  L.push('');
+  L.push('CLIMATE MIX');
+  Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).forEach(k=>{
+    const pc=counts[k]/(W*H)*100;
+    if(pc>0.4) L.push(`  ${BIOME[k][0].padEnd(18)} ${pc.toFixed(1).padStart(5)}%`);
+  });
+  L.push('');
+  L.push(`CLIMATE PROVINCES — ${R.length} large enough to matter `+
+         `(${w.rejected} smaller dropped)`);
+  L.push('Contiguous ground of one climate class. Each is a candidate homeland. Two provinces');
+  L.push('on one landmass are as divided as two on separate continents if what lies between');
+  L.push('them is hard enough to cross.');
+  L.push('');
+  R.slice(0,9).forEach(r=>{
+    L.push(`  #${r.rank}  ${r.className.toUpperCase().padEnd(10)} `+
+           `${r.area.toLocaleString()} km²   lat ${r.latS} to ${r.latN}`);
+    L.push(`      ${r.mix.join(' · ')}`);
+    L.push(`      mean ${r.meanT.toFixed(1)}C, rainfall ${(r.meanM*100).toFixed(0)}/100`);
+  });
+  L.push('');
+  L.push('BARRIERS — what separates whom');
+  L.push('This is the input for culture. Two regions divided by 900 km of open water develop');
+  L.push('differently from two divided by a range you can walk over in summer.');
+  L.push('');
+  if(!B.length) L.push('  (none found — regions are contiguous or too far apart to compare)');
+  B.slice(0,14).forEach(b=>{
+    L.push(`  #${b.a} | #${b.b}   ${b.desc}   (${b.share}% of the crossing)`);
+  });
+  L.push('');
+  L.push(`SETTLEMENT — ${w.towns.length} towns, ${w.cultures.length} cultures, `+
+         `${w.polities.length} polities`);
+  L.push('');
+  w.cultures.forEach((c,k)=>{
+    const share=(w.cultCells[k]/(W*H)*100).toFixed(1);
+    L.push(`  culture ${k+1}  ${c.type.padEnd(9)} seat at `+
+           `${c.seat.lat.toFixed(0)}/${c.seat.lon.toFixed(0)}   ${share}% of the surface`);
+  });
+  L.push('');
+  w.polities.forEach((p,k)=>{
+    const share=(w.polCells[k]/(W*H)*100).toFixed(1);
+    const ct=w.cultures[p.culture];
+    L.push(`  polity ${k+1}   capital ${p.seat.lat.toFixed(0)}/${p.seat.lon.toFixed(0)}   `+
+           `${share}% of the surface   ${ct?ct.type:'mixed'} culture`);
+  });
+  if(w.spaceports.length){
+    L.push('');
+    L.push('  SPACEPORTS — chosen for population, flat ground and low latitude');
+    w.spaceports.forEach((s,k)=>
+      L.push(`    ${k+1}. lat ${s.lat.toFixed(1)} lon ${s.lon.toFixed(1)}   `+
+             `in polity ${w.polityOf[s.i]+1||'—'}`));
+  }
+  if(w.orbitals.length)
+    L.push(`  ORBITALS — ${w.orbitals.length} stations, `+
+           `${w.orbitals.filter(o=>o.tether).length} tethered to a port`);
+  L.push('');
+  L.push('PROMPTS THIS MAP RAISES');
+  const qs=[];
+  if(B.some(b=>b.kind==='ocean'))
+    qs.push('Who crosses the water, and who decided it was not worth it?');
+  if(B.some(b=>b.kind==='mountain'))
+    qs.push('The range has passes. Who holds them and what do they charge?');
+  if(B.some(b=>b.kind==='desert'))
+    qs.push('Somebody crosses the desert for a reason. What is worth that?');
+  if(R.length>=4)
+    qs.push(`${R.length} habitable regions and you need ${Math.min(R.length,5)} peoples — which regions merged, and why?`);
+  const big=w.polities.map((p,k)=>({k,n:w.polCells[k]})).sort((a,b)=>b.n-a.n);
+  if(big.length>1 && big[0].n>big[1].n*2.5)
+    qs.push(`Polity ${big[0].k+1} is ${(big[0].n/big[1].n).toFixed(1)}x its nearest rival. Why has nobody stopped it?`);
+  const portless=w.polities.filter((p,k)=>!w.spaceports.some(s=>w.polityOf[s.i]===k));
+  if(portless.length && w.spaceports.length)
+    qs.push(`${portless.length} of ${w.polities.length} polities have no spaceport. What do they pay to leave?`);
+  if(R[0]&&R[1]&&R[0].area>R[1].area*3)
+    qs.push(`Region #1 is ${Math.round(R[0].area/R[1].area)}x the size of #2. That asymmetry is a history.`);
+  const dryish=Object.keys(counts).filter(k=>k==='desert'||k==='steppe')
+    .reduce((a,k)=>a+counts[k],0)/(W*H);
+  if(dryish>0.18) qs.push('This world is dry. Water rights are the whole of its law.');
+  qs.forEach(q=>L.push('  - '+q));
+  document.getElementById('report').textContent=L.join('\n');
+}
+
+/* ============================================================== ui ===== */
+const PRESETS={
+  'Orrowan V — shelf, scarp, delta':
+    {seed:'orrowan',ocean:62,relief:62,scale:45,rough:62,temp:9,tilt:23,bands:3,wind:55,uni:false},
+  'Sindal II — low relief, braided ley':
+    {seed:'sindal',ocean:45,relief:18,scale:22,rough:20,temp:16,tilt:14,bands:3,wind:40,uni:false},
+  'Tessine IX — one-way wind, 2/3 g':
+    {seed:'tessine',ocean:52,relief:88,scale:55,rough:85,temp:11,tilt:8,bands:1,wind:95,uni:true},
+  'Ombrea V — flat, wet, rotting':
+    {seed:'ombrea',ocean:58,relief:6,scale:35,rough:10,temp:25,tilt:6,bands:3,wind:30,uni:false},
+  'Belune III — funnel shelf sea, huge tides':
+    {seed:'belune',ocean:72,relief:38,scale:50,rough:45,temp:13,tilt:28,bands:3,wind:60,uni:false},
+  'Ranohe II — flood basalt staircase':
+    {seed:'ranohe',ocean:58,relief:70,scale:60,rough:30,temp:15,tilt:20,bands:3,wind:45,uni:false},
+  'Iseul III — dim red dwarf':
+    {seed:'iseul',ocean:50,relief:45,scale:40,rough:50,temp:6,tilt:2,bands:1,wind:25,uni:false},
+  'Tannhul VI — 2.4 g, rivers are roads':
+    {seed:'tannhul',ocean:48,relief:30,scale:70,rough:70,temp:12,tilt:26,bands:5,wind:70,uni:false},
+  'Casran Deep — ocean world':
+    {seed:'casran',ocean:97,relief:50,scale:40,rough:55,temp:14,tilt:18,bands:3,wind:55,uni:false},
+  'Vantage — pre-city terrain':
+    {seed:'vantage',ocean:60,relief:55,scale:38,rough:50,temp:17,tilt:22,bands:3,wind:50,uni:false},
+};
+
+const $=id=>document.getElementById(id);
+const sel=$('preset');
+Object.keys(PRESETS).forEach(k=>{const o=document.createElement('option');
+  o.textContent=k;sel.appendChild(o)});
+
+
+/* ========================================================= conditioning ====
+   terrain-diffusion does not invent a planet, it resolves one. Its input is
+   five rasters and its own inference/utils/azgaar_to_tiff.py spells out
+   exactly which, in which units:
+
+     heightmap.tif         elevation, metres, negative below sea
+     temperature.tif       mean temperature, C
+     temperature_std.tif   temperature standard deviation, C
+     precipitation.tif     annual precipitation, mm
+     precipitation_cv.tif  precipitation coefficient of variation, percent
+
+   We already simulate elevation, temperature, precipitation and biome, and the
+   last two rasters are a biome lookup in that same file. So the bridge is not a
+   fork of anything — it is writing down what the generator already knows.
+
+   What this does NOT do is convert units. It ships the raw simulation fields
+   and lets tools/cond_to_tiff.py do the physical mapping, because how many
+   metres the tallest mountain is and how many millimetres fall on the wettest
+   coast are worth re-deciding without regenerating the planet.
+========================================================================== */
+
+const COND_MAGIC='SPCOND\u0001\n';
+
+function buildConditioning(){
+  if(!world) throw new Error('generate a world first');
+  const {el,sea,temp,wet,biome,cfg,tec}=world, N=W*H;
+  const names=Object.keys(BIOME);
+  const bidx=new Uint8Array(N);
+  for(let i=0;i<N;i++){const k=names.indexOf(biome[i]); bidx[i]=k<0?0:k}
+
+  const fields=[
+    {name:'elevation', dtype:'f32', note:'0-1, sea level at header.seaLevel'},
+    {name:'temperature',dtype:'f32',note:'degrees C, already physical'},
+    {name:'precipIndex',dtype:'f32',note:'1.0 = 88th percentile of land precipitation'},
+    {name:'biome',     dtype:'u8',  note:'index into header.biomeNames'},
+  ];
+  const arrays=[el,temp,wet,bidx];
+  let off=0;
+  for(let k=0;k<fields.length;k++){
+    fields[k].offset=off;
+    fields[k].bytes=arrays[k].byteLength;
+    off+=arrays[k].byteLength;
+  }
+
+  const header={
+    format:'spacology-conditioning', version:1,
+    width:W, height:H,
+    seaLevel:sea,
+    projection:'equirectangular', lonW:-180, lonE:180, latS:-90, latN:90,
+    seed:cfg.seed, plates:tec.count,
+    generator:cfg,
+    biomeNames:names,
+    fields, dataBytes:off,
+  };
+  const hj=new TextEncoder().encode(JSON.stringify(header));
+  const magic=new TextEncoder().encode(COND_MAGIC);
+  const buf=new ArrayBuffer(magic.length+4+hj.length+off);
+  const u8=new Uint8Array(buf);
+  u8.set(magic,0);
+  new DataView(buf).setUint32(magic.length,hj.length,true);
+  u8.set(hj,magic.length+4);
+  let p=magic.length+4+hj.length;
+  for(const a of arrays){ u8.set(new Uint8Array(a.buffer,a.byteOffset,a.byteLength),p); p+=a.byteLength }
+  return {buffer:buf, header};
+}
+
+function exportConditioning(){
+  const {buffer,header}=buildConditioning();
+  const blob=new Blob([buffer],{type:'application/octet-stream'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${header.seed}-${W}x${H}.cond`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  const mb=(buffer.byteLength/1048576).toFixed(1);
+  document.getElementById('stat').textContent=
+    `conditioning written · ${W}x${H} cells · ${mb} MB · ${a.download}`;
+}
+
+function readCfg(){
+  return {seed:$('seed').value||'x', ocean:+$('rOcean').value, relief:+$('rRelief').value,
+    scale:+$('rScale').value, rough:+$('rRough').value, temp:+$('rTemp').value,
+    plates:+$('rPlates').value,
+    tilt:+$('rTilt').value, bands:+$('rBands').value, wind:+$('rWind').value,
+    uni:$('cUni').checked, pop:+$('rPop').value, cult:+$('rCult').value,
+    pol:+$('rPol').value, port:+$('rPort').value, orb:+$('rOrb').value};
+}
+function syncLabels(){
+  $('vOcean').textContent=$('rOcean').value+'%';
+  $('vRelief').textContent=$('rRelief').value;
+  $('vScale').textContent=$('rScale').value;
+  $('vRough').textContent=$('rRough').value;
+  $('vPlates').textContent=$('rPlates').value;
+  $('vTemp').textContent=$('rTemp').value+'C';
+  $('vTilt').textContent=$('rTilt').value+'°';
+  $('vBands').textContent=$('rBands').value;
+  $('vWind').textContent=$('rWind').value;
+  $('vPop').textContent=$('rPop').value;
+  $('vCult').textContent=$('rCult').value;
+  $('vPol').textContent=$('rPol').value;
+  $('vPort').textContent=$('rPort').value;
+  $('vOrb').textContent=$('rOrb').value;
+  $('vSpin').textContent=$('rSpin').value+'\u00b0';
+  $('vTilt').textContent=$('rTilt').value+'\u00b0';
+  $('vSun').textContent=$('rSun').value+'\u00b0';
+  $('vZoom').textContent=($('rZoom').value/100).toFixed(1)+'x';
+}
+function applyPreset(name){
+  const p=PRESETS[name]; if(!p)return;
+  $('seed').value=p.seed; $('rOcean').value=p.ocean; $('rRelief').value=p.relief;
+  $('rScale').value=p.scale; $('rRough').value=p.rough; $('rTemp').value=p.temp;
+  $('rTilt').value=p.tilt; $('rBands').value=p.bands; $('rWind').value=p.wind;
+  $('cUni').checked=p.uni;
+  syncLabels();
+}
+function run(){
+  generate(readCfg());
+  if(view==='globe') drawGlobe(); else draw();
+  report();
+  $('stat').textContent=
+    `${world.regions.length} provinces · ${world.towns.length} towns · `+
+    `${world.cultures.length} cultures · ${world.polities.length} polities · ${world.ms} ms`;
+}
+
+sel.onchange=()=>{applyPreset(sel.value);run()};
+['rOcean','rRelief','rScale','rRough','rPlates','rTemp','rTilt','rBands','rWind',
+ 'rPop','rCult','rPol','rPort','rOrb'].forEach(id=>$(id).oninput=syncLabels);
+$('bGen').onclick=run;
+$('bRand').onclick=()=>{
+  $('seed').value=Math.random().toString(36).slice(2,9); run();
+};
+$('bCond').onclick=exportConditioning;
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); view=b.dataset.v;
+  const isRep=view==='report', isGlobe=view==='globe';
+  cv.style.display=(isRep||isGlobe)?'none':'block';
+  $('globeBox').style.display=isGlobe?'block':'none';
+  $('report').style.display=isRep?'block':'none';
+  $('legend').style.display=(isRep||isGlobe)?'none':'flex';
+  if(isGlobe) drawGlobe(); else if(!isRep) draw();
+});
+['rSpin','rTilt','rSun','rZoom'].forEach(id=>
+  $(id).oninput=()=>{camFromSliders();syncLabels();drawGlobe()});
+
+/* ---- looking around -----------------------------------------------------
+   Screen centre is exactly (lat = camera tilt, lon = camera spin), which falls
+   out of the transform, so centring on a point is just writing its lat/lon
+   into the camera. That is what makes wheel-toward-the-cursor and
+   double-click-to-centre one line each instead of a pan offset nobody can
+   reason about.
+------------------------------------------------------------------------- */
+function glPos(e){
+  const r=glc.getBoundingClientRect();
+  return {x:(e.clientX-r.left)*glc.width/r.width,
+          y:(e.clientY-r.top)*glc.height/r.height};
+}
+function globePick(px,py){
+  if(!gcam) return null;
+  const {R,cx,cy,spin,cb,sb}=gcam;
+  const nx=(px-cx)/R, ny=(cy-py)/R, r2=nx*nx+ny*ny;
+  if(r2>1) return null;                      // clicked space, not the planet
+  const nz=Math.sqrt(1-r2), cs=Math.cos(spin), sn=Math.sin(spin);
+  const ty=ny*cb+nz*sb, tz=-ny*sb+nz*cb;
+  const wx=nx*cs+tz*sn, wz=-nx*sn+tz*cs;
+  return {lat:Math.asin(clampv(ty,-1,1))*180/Math.PI,
+          lon:Math.atan2(wx,wz)*180/Math.PI};
+}
+function centreOn(hit,f){
+  gview.lon=wrapLon(gview.lon+wrapLon(hit.lon-gview.lon)*f);
+  gview.lat=clampv(gview.lat+(hit.lat-gview.lat)*f,-85,85);
+}
+
+// Draw coarse now, detailed a moment after the hand stops. A wheel gesture is
+// a burst of events and each detailed frame is a real cost, so only the last
+// one pays it.
+let gsettle=0;
+function drawSoon(){
+  drawGlobe(true);
+  clearTimeout(gsettle);
+  gsettle=setTimeout(()=>drawGlobe(),140);
+}
+
+const gptr=new Map(); let gdrag=null, gpinch=0;
+const pinchSpan=()=>{
+  const v=[...gptr.values()];
+  return v.length<2?0:Math.hypot(v[0].x-v[1].x, v[0].y-v[1].y);
+};
+glc.style.touchAction='none';
+glc.style.cursor='grab';
+glc.addEventListener('pointerdown',e=>{
+  glc.setPointerCapture(e.pointerId);
+  gptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(gptr.size===1){ gdrag={x:e.clientX,y:e.clientY}; glc.style.cursor='grabbing'; }
+  else if(gptr.size===2){ gpinch=pinchSpan(); gdrag=null; }
+});
+glc.addEventListener('pointermove',e=>{
+  if(!gptr.has(e.pointerId)) return;
+  gptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(gptr.size>=2){
+    const d=pinchSpan();
+    if(gpinch>0&&d>0) gview.zoom=clampv(gview.zoom*d/gpinch,ZMIN,ZMAX);
+    gpinch=d; camToSliders(); drawGlobe(true); return;
+  }
+  if(!gdrag) return;
+  // slower when zoomed in, so the ground keeps up with the finger
+  const k=0.32/gview.zoom;
+  gview.lon=wrapLon(gview.lon-(e.clientX-gdrag.x)*k);
+  gview.lat=clampv(gview.lat+(e.clientY-gdrag.y)*k,-85,85);
+  gdrag={x:e.clientX,y:e.clientY};
+  camToSliders(); drawGlobe(true);
+});
+const glEnd=e=>{
+  gptr.delete(e.pointerId);
+  if(gptr.size<2) gpinch=0;
+  if(gptr.size===0){ gdrag=null; glc.style.cursor='grab'; drawSoon(); }
+};
+glc.addEventListener('pointerup',glEnd);
+glc.addEventListener('pointercancel',glEnd);
+glc.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const z0=gview.zoom;
+  gview.zoom=clampv(z0*Math.exp(-e.deltaY*0.0018),ZMIN,ZMAX);
+  if(gview.zoom>z0){                          // zoom toward what you pointed at
+    const p=glPos(e), hit=globePick(p.x,p.y);
+    if(hit) centreOn(hit,Math.min(0.55,(gview.zoom-z0)/z0*1.4));
+  }
+  camToSliders(); drawSoon();
+},{passive:false});
+glc.addEventListener('dblclick',e=>{
+  const p=glPos(e), hit=globePick(p.x,p.y);
+  if(hit){ centreOn(hit,1); camToSliders(); drawGlobe() }
+});
+['cLights','cPorts','cOrbit'].forEach(id=>$(id).onchange=drawGlobe);
+
+applyPreset(Object.keys(PRESETS)[0]);
+syncLabels();
+run();
+</script>
+</body>
+</html>
