@@ -270,6 +270,10 @@ and nobody aboard finds any of it remarkable. Worlds are named and numbered — 
 **Utora VII**, **Orrowan V** — and the numeral is the orbital position, so the full name is the
 ordinary name.
 
+**Every people here has to pass three tests, not two.** What it can do, what that costs — and
+**what happens when it is in a room with everybody else.** The third one is the one that makes a
+species into a character rather than a spec sheet, and it is usually where the comedy lives.
+
 **This list is a sample, not a census.** Life is everywhere, so there are hundreds of peoples and
 the *Understory* carries a fair share of them. What follows is the ones who matter to the story.
 Adding more is expected; the test each one has to pass is below.
@@ -321,6 +325,10 @@ cannot move at all, which every Cassine knows and plans around.
 
 A new name at each size threshold, each longer than the last. Using an earlier one is rude.
 
+Their chairs get replaced every few years, and the outgrown one is passed down to somebody smaller,
+which means a long-serving Cassine has furnished half a residential hall without noticing. People
+are sentimental about this and the Cassine find that baffling.
+
 ### The Ossuan — Iseul III
 
 Tall, slender, hairless, pale silver-grey, eyes almost entirely pupil — a dim red sun, so most ships
@@ -328,6 +336,10 @@ are painfully bright and they work in darkened compartments by preference.
 
 **No personal names, only posts.** The post *is* the name. When the function changes so does the
 name, and the previous holder — who was them — is a separate person in every way that matters.
+
+This makes introductions a minefield. You cannot say *you remember Navigator* to somebody who has
+since become something else, because as far as they are concerned you are asking them to vouch for a
+stranger. They answer accordingly, and the room goes quiet.
 
 ### The Oni
 
@@ -341,6 +353,9 @@ Their daily grievance is furniture. Almost everything aboard was built for small
 ceilings and narrower shoulders, and the accumulated indignity of doorways is a running complaint
 that nobody has ever successfully budgeted for.
 
+Everybody hands an oni the jar. Every time. They all hate it, they all do it, and an oni who has
+been aboard long enough will open it without breaking off the sentence.
+
 ### Rock skins
 
 Mineral skin — not armour plate, more like dense patterned stone over an otherwise ordinary frame.
@@ -352,6 +367,10 @@ cold face for an hour taking notes.
 environments they spend time in, so an old rock skin is a travel log — a band of ochre from two
 years on one world, a grey seam from a long survey somewhere cold. Reading someone's forearm is
 considered forward but not rude, roughly like asking where somebody grew up.
+
+People knock on them. It started as a joke somewhere and never stopped, and among some crews it has
+become an actual greeting. Rock skins are divided on this, strongly, and you cannot tell in advance
+which kind you have.
 
 ### Mana dwellers
 
@@ -368,6 +387,10 @@ and near the Null — which unmakes — they are in direct physical danger, and 
 some distance before the instruments can. Nobody has decided yet whether that makes them the best
 possible early warning or a cruelty to bring along.
 
+They do not photograph. Every survey team portrait on the wall of the third concourse has one person
+in it who is a smear of light, and there is a long tradition of arranging the group so that the smear
+is doing something funny.
+
 ### Amphibioids
 
 Mostly human on dry land — smooth-skinned, slightly cool to the touch, webbing between the fingers
@@ -381,6 +404,10 @@ coolant loops, falls, deep pools — where nobody else can go comfortably, and t
 transit, swimming between decks while everyone else takes the galleries. The permanent mist the rest
 of the crew treat as atmosphere is, for them, a necessity, and dry compartments are genuinely
 hostile. There is a standing argument with Life Systems about humidity in the archive.
+
+They arrive at meetings wet, because the watercourse is faster than the gallery and they will not
+pretend otherwise. Whether this is acceptable has been discussed at length, the discussion is not
+over, and they keep doing it.
 
 ### The Tesk
 
@@ -397,6 +424,10 @@ that is real. Worse is not being *seen*: a Tesk in a crowded concourse is steppe
 and served last, not out of malice but because people's eyes are at the wrong height. The ones who
 last aboard tend to be extremely loud on purpose.
 
+Whether you may pick one up is an intensely personal question with no general answer, and the only
+way to find out is to ask, which people are frequently too embarrassed to do. This has produced some
+of the worst first impressions in the ship's history.
+
 ### The Vesh
 
 They live about thirty years and have built everything around knowing it.
@@ -411,6 +442,11 @@ still be working in forty years is a particular flavour of tiring that they most
 
 The cost is not subtle. They lose their people constantly, they carry no long institutional memory,
 and a Vesh who begins a twenty-year project is making a bet about somebody else finishing it.
+
+The recurring social disaster is the birthday. Somebody organises a surprise fortieth for a
+colleague, works out afterwards that the Vesh in the room will not see thirty, and spends the rest
+of the evening trying to be normal. The Vesh in question generally finds this much funnier than
+anyone else does.
 
 ### The deep-sighted
 
@@ -428,6 +464,9 @@ about for a very long time and is not close to resolved.
 
 Ordinary ship lighting is, to them, a shout.
 
+In conversation they point at nothing and say *that*, constantly, with total confidence, and are
+visibly disappointed every single time by the response.
+
 ### The sunfed
 
 Photosynthetic. Green-blooded, slow-metabolised, and fed mostly by light — which makes the
@@ -442,37 +481,52 @@ predictably, and a sunfed crewmate who has gone under cannot be woken by anythin
 emergency. Departments plan around it. Rotas have a column for it. Somebody's dormancy landing in
 the middle of a survey window is an ordinary shipboard disaster.
 
-### The sleepless
+People move them into the light. Without asking, mid-conversation, the way you would shift a plant
+on a windowsill, and most sunfed have given up objecting because most of the time they wanted to be
+moved.
 
-They do not sleep. There is no cycle to interrupt, no reset, and no unconsciousness — just a long
-continuous day that runs the length of a life.
+### The Duet
 
-Operationally this is gold, and everybody knows it: the sleepless hold the watches nobody else can,
-and a ship that never stops running has a great many of those.
+Two people, one body, and a shift pattern.
 
-**What it costs them is company.** Every eight hours the people they live with vanish, and they are
-awake for all of it — every night of their life, in a ship full of empty galleries, while everyone
-they care about is unconscious. The ones who cope find each other. The ones who do not develop a
-particular kind of quiet that other people notice and rarely ask about.
+A duet shares control. While one is awake and running things the other is asleep, and the handover
+comes several times a day — usually at a sensible moment, occasionally mid-sentence. Both can be
+awake at once, which is loud, and which they ration. Both can be asleep at once, which is rare, and
+which is the only time a duet is genuinely vulnerable.
 
-They also have nowhere to put a bad day. Everyone else gets to stop.
+The university adores them. A duet holds watches nobody else can and works a double without
+fatigue, because the body never actually stops.
 
-### Choirs
+**Socially it is far more complicated, because they are two different people.** Different opinions,
+different handwriting, different friends. You can like one and find the other insufferable, and both
+of them will know, and one of them will bring it up.
 
-One person, several bodies. A choir is a single individual who happens to be distributed — shared
-memory, one point of view, one signature at the bottom of an entry — and the bodies are no more
-separate people than your two hands are.
+They leave each other notes. In their own body, in their own handwriting, propped where the other
+will find them, and the notes range from affectionate to extremely pointed. The standing comedy is
+that one of them agrees to things the other then has to do: feuds started by one half and conducted
+by the other, invitations accepted by somebody who will not be there, and on one occasion a
+committee chairmanship that has never been forgiven.
 
-For a survey this is transformative. A choir works a reef from four sides at once, and its account
-is genuinely one account rather than four that have to be reconciled.
+### The Made
 
-**The university has never resolved what to do when one body dies.** It is not a death and it is not
-an injury and the forms have space for neither, and the medical faculty and the registrar have been
-politely at war over it for two decades. Choirs themselves tend to find the question morbid and the
-paperwork funny.
+Built as people by the deaf worlds, long enough ago that they now build their own and nobody thinks
+of them as manufactured.
 
-They are, as a rule, the worst people aboard to try to keep a secret from, and they know it, and
-several of them trade on it shamelessly.
+They need parts, and that is the whole of their fragility — not trivial on a ship three galaxies
+from a foundry. An older Made whose components stopped being produced two generations back lives
+with a slow specific dread that most of the crew never sees.
+
+**Some of them hear mana.** Their makers could not, nobody engineered it, and nobody has an
+explanation. The deaf worlds built instruments to hear it, then machines to shape it, then people —
+and some of those people simply hear. The Made who do tend to be quiet about it around anyone from
+the old worlds, because the reaction is complicated and usually emotional.
+
+Two things follow them around. The first is that nobody can agree whether they are medicine's
+problem or engineering's, so a Made with a fault waits while two faculties are extremely polite at
+each other; the current record is eight months. The second is sharper: **a ship whose entire purpose
+is recording life has never settled whether the Made are life.** Some of them think this is the
+funniest thing aboard and cite their own catalogue entry number in arguments. Others do not think it
+is funny at all.
 
 ### Angels
 
@@ -481,8 +535,12 @@ time ago and which stuck the way these things do.
 
 **Whether they can actually fly depends on which deck you catch them on.** An arcology's gravity
 varies from the hub outward, so an angel is airborne in the low-gravity cores, awkward in the mid
-rings, and grounded on the outer decks like everybody else. They plan routes around this. The lifts
-are for other people.
+rings, and grounded on the outer decks like everybody else. They plan routes around this, sometimes
+absurdly, to avoid being seen taking a lift.
+
+In a crowded gallery the wings are a menace and they know it. Every angel aboard has swept a tray
+off a table, and every angel aboard has a specific practised apology for it that they can deliver
+without looking round.
 
 ---
 
@@ -510,6 +568,10 @@ over-excitation — usually before the alarm, and reliably before anyone else in
 
 Much of the engineering faculty has quietly stopped trusting the alarm and just asks.
 
+The social cost is that they hear everything. A feline in a refectory can follow four private
+conversations at once whether or not they want to, and the polite ones spend a great deal of energy
+pretending they cannot, and everyone eventually works out that they can.
+
 ### Bird folk
 
 Hollow-boned, feathered, flighted where the gravity permits — and in an arcology with galleries
@@ -523,6 +585,10 @@ serious medical problem rather than an embarrassing one.
 **Their song is complex and they take it seriously.** Whatever mana actually is, everyone who
 perceives it reaches for the vocabulary of music, and bird folk are the only people aboard who were
 already fluent in it.
+
+They moult, seasonally and messily, and for about three weeks a year you can tell exactly where a
+bird folk crewmate has been all day. They also perch rather than sit — on chair backs, rail tops,
+the edges of tables — and no amount of furniture design has ever changed this.
 
 ---
 
