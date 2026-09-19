@@ -270,6 +270,10 @@ and nobody aboard finds any of it remarkable. Worlds are named and numbered — 
 **Utora VII**, **Orrowan V** — and the numeral is the orbital position, so the full name is the
 ordinary name.
 
+**This list is a sample, not a census.** Life is everywhere, so there are hundreds of peoples and
+the *Understory* carries a fair share of them. What follows is the ones who matter to the story.
+Adding more is expected; the test each one has to pass is below.
+
 **The principle that keeps this from being lazy: a species is a body, a people is a culture, and
 they are separate axes.** Being feline does not make you playful. Two canids raised on different
 worlds may have nothing whatever in common. What a species gives you is a set of physical and
@@ -377,6 +381,98 @@ coolant loops, falls, deep pools — where nobody else can go comfortably, and t
 transit, swimming between decks while everyone else takes the galleries. The permanent mist the rest
 of the crew treat as atmosphere is, for them, a necessity, and dry compartments are genuinely
 hostile. There is a standing argument with Life Systems about humidity in the archive.
+
+### The Tesk
+
+Forty centimetres standing, and the reason anything aboard ever gets serviced. A transmana manifold
+is a lattice with a hand's width of clearance inside it, and a Tesk engineer simply climbs in with a
+lamp and does the work that everyone else does blind, through an access port, with mirrors and
+swearing.
+
+They are not children and the distinction matters to them enormously. An adult Tesk is an adult.
+
+**The cost is everything else.** The ship was built by and for people four times their size — every
+bench, every handle, every step, every lecture-hall seat — and the accumulated daily indignity of
+that is real. Worse is not being *seen*: a Tesk in a crowded concourse is stepped on, spoken over,
+and served last, not out of malice but because people's eyes are at the wrong height. The ones who
+last aboard tend to be extremely loud on purpose.
+
+### The Vesh
+
+They live about thirty years and have built everything around knowing it.
+
+A Vesh reads at two, holds a degree at eight, is doing original work at twelve and running something
+by twenty. This is not precocity. It is the ordinary shape of a Vesh life, and the university — where
+advancement is by readiness rather than age — suits them better than anywhere else they have found.
+
+**They are routinely mistaken for gifted children, and they find it exhausting and slightly
+insulting.** A Vesh at ten is a colleague. Being praised for being *so young* by somebody who will
+still be working in forty years is a particular flavour of tiring that they mostly absorb politely.
+
+The cost is not subtle. They lose their people constantly, they carry no long institutional memory,
+and a Vesh who begins a twenty-year project is making a bet about somebody else finishing it.
+
+### The deep-sighted
+
+They see well past the range everyone else has agreed to call visible — into the heat end, into the
+short wavelengths, and a little way into whatever it is that mana does to light.
+
+On a survey ship that is an enormous advantage. Reef life that is invisible to every other observer
+is simply *there* for them, and a deep-sighted surveyor will stop in a passage nobody has ever found
+interesting and start taking notes.
+
+**It also causes a genuine problem for the catalogue**, which is not a small one: they describe
+things that no instrument aboard can corroborate and no other surveyor can confirm. An entry that
+rests on one person's eyes is an entry the record does not know how to hold. This has been argued
+about for a very long time and is not close to resolved.
+
+Ordinary ship lighting is, to them, a shout.
+
+### The sunfed
+
+Photosynthetic. Green-blooded, slow-metabolised, and fed mostly by light — which makes the
+*Understory*'s leaf canopies and green filtered galleries a far more comfortable place than most
+ships.
+
+They eat very little, endure isolation and short rations that would break anyone else, and are
+therefore disproportionately represented on long solo postings and deep reef work.
+
+**They go dormant.** Not sleep — genuine dormancy, days to weeks, usually seasonally and not always
+predictably, and a sunfed crewmate who has gone under cannot be woken by anything short of a medical
+emergency. Departments plan around it. Rotas have a column for it. Somebody's dormancy landing in
+the middle of a survey window is an ordinary shipboard disaster.
+
+### The sleepless
+
+They do not sleep. There is no cycle to interrupt, no reset, and no unconsciousness — just a long
+continuous day that runs the length of a life.
+
+Operationally this is gold, and everybody knows it: the sleepless hold the watches nobody else can,
+and a ship that never stops running has a great many of those.
+
+**What it costs them is company.** Every eight hours the people they live with vanish, and they are
+awake for all of it — every night of their life, in a ship full of empty galleries, while everyone
+they care about is unconscious. The ones who cope find each other. The ones who do not develop a
+particular kind of quiet that other people notice and rarely ask about.
+
+They also have nowhere to put a bad day. Everyone else gets to stop.
+
+### Choirs
+
+One person, several bodies. A choir is a single individual who happens to be distributed — shared
+memory, one point of view, one signature at the bottom of an entry — and the bodies are no more
+separate people than your two hands are.
+
+For a survey this is transformative. A choir works a reef from four sides at once, and its account
+is genuinely one account rather than four that have to be reconciled.
+
+**The university has never resolved what to do when one body dies.** It is not a death and it is not
+an injury and the forms have space for neither, and the medical faculty and the registrar have been
+politely at war over it for two decades. Choirs themselves tend to find the question morbid and the
+paperwork funny.
+
+They are, as a rule, the worst people aboard to try to keep a secret from, and they know it, and
+several of them trade on it shamelessly.
 
 ### Angels
 
