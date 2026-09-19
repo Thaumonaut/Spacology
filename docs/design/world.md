@@ -137,3 +137,65 @@ organism aboard after the ship herself.
 This is the weight the crew carry and they almost never mention it. They argue about taxonomy
 instead. A fifteen-year dispute about whether a thing with two mouths counts as one organism is
 easier to hold in your head than the other thing, and it is, in its way, exactly the same argument.
+
+---
+
+## Peoples and worlds
+
+Life is abundant, so people are too. The crew come from a dozen worlds and several peoples, and
+where someone is from shows — in colouring, in markings, in how they wear their hair, in what they
+consider normal.
+
+Worlds are named and numbered: **Maelus IV**, **Utora VII**, **Orrowan V**. The numeral is the
+orbital position and everybody uses it, so the full name is the ordinary name.
+
+### The Chosokee — Maelus IV
+
+Rich tan skin and white hair from childhood — not age, colouring. Fine pale **markings** across
+the cheekbones, the shoulders and the forearms, which are partly inherited and partly earned: a
+Chosokee gains new lines as they take on responsibility for something living, and reading someone's
+forearms tells you what they have charge of.
+
+Maelus IV is a world of enormous slow fauna and the people who have lived alongside them for long
+enough to be good at it. Chosokee go out as beast-keepers, herders and handlers more than as
+anything else, and the Census competes for them.
+
+They use single names. A Chosokee is *Nahana of the Chosokee*, and a surname would strike her as an
+odd thing to need.
+
+### The Utorans — Utora VII
+
+Deep brown to near-black skin, and **braided hair worn in patterns that mean something** — family
+on one side, discipline on the other, rebraided when either changes. An Utoran scientist's head is
+a readable CV, which they find practical and everyone else finds slightly intimidating.
+
+Utora VII is a wet, heavily forested world with a long scholarly tradition, and it sends more
+people into the sciences than any other world the Census recruits from.
+
+### The Cassine — Ranohe II
+
+They grow their entire lives and never stop. Skin thickens with age into something closer to
+weathered bark, laid down in visible ridges, so a Cassine's arm reads like a cut trunk. Deep-set
+amber eyes. An elder is enormous and slow and eventually cannot move at all, which every Cassine
+knows and plans around.
+
+A Cassine takes a new name at each size threshold, and each is longer than the last, so the name
+tells you roughly how old and how large they are. Using an earlier one is rude.
+
+### The Ossuan — Iseul III
+
+Tall, slender, hairless, with pale silver-grey skin and eyes that are mostly pupil — they evolved
+under a dim sun and find most ships painfully bright.
+
+**No personal names, only posts.** The post *is* the name. When an Ossuan's function changes their
+name changes, and they do not regard the previous holder — who was themselves — as the same person
+in any sense worth arguing about.
+
+### Elsewhere
+
+**Kessa** was a ring of inhabited reefs and the best shipwright tradition in reach. The Null took
+it four years ago. Two of the crew are from there and only one of them talks about it.
+
+Others aboard come from **Verekh III** (orbital yards, pale and indoor), **Belune III**,
+**Orrowan V**, **Sindal II**, **Tessine IX**, **Calyx IV**, **Ombrea V** and **Tannhul VI**, a
+high-gravity world that produces people built like doors.
