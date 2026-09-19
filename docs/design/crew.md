@@ -1,15 +1,48 @@
 # The crew of the *Understory*
 
-All 21 — name, people, homeworld, appearance and history. Replaces the one-line bios in
-`sim/roster.js`.
+All 21 — who they are, what they look like, where they came from, and what they have done to each
+other. Replaces the one-line bios in `sim/roster.js`.
 
-**Read `world.md` first** for the setting and the peoples. The short version: mistpunk, the ship is
-alive and it rains inside her, travel follows whale song, magic is what matter is made of, and
-everyone here is a naturalist or keeps a living ship running for naturalists. Nobody is a soldier.
-The fighting is fieldwork with teeth.
+`world.md` is the foundation. This is the story.
 
 Elements follow `sim/roster.js`; where the prototype disagrees, the roster wins. Previous roster
 name in brackets.
+
+---
+
+## Things that happened
+
+The crew have a shared past, and most of it is other people's mistakes. These come up constantly —
+at meals, mid-fight, whenever somebody needs taking down a peg. New crew learn them in the first
+month whether they want to or not.
+
+**The flood.** Nour went in to clear an overgrowth choking the heartwood feed and cut the wrong
+root. Coolant came down the third-deck stair into the mess at dinner, ankle-deep and then
+knee-deep, and half the crew spent the evening standing on the tables holding their bowls. It was
+warm, it was clean, and Imke was so delighted she fell in twice. There are watermarks on the mess
+wall and nobody has removed them.
+
+**Going the wrong way.** Aurel took the helm for nine days while Navigator was ill, read a lane's
+song backwards, and put them three weeks in the wrong direction before anyone noticed. The crew's
+word for any confident error is now *"going Cosma."* He uses it himself. Navigator has never once
+mentioned it.
+
+**Two days on a rock.** Yusuf logged a reef under the wrong designation and Aurelio, who does not
+question the record, sent a full survey party. They catalogued gravel for two days. Aurelio has
+apologised eleven times and Yusuf has told him to stop, and he has not.
+
+**The plaster.** Abike took a tissue sample from Aurel while he was asleep in the mess. He found
+the plaster on his arm in the morning and worked out what it was over about four seconds. That was
+three years ago and he brings it up roughly monthly.
+
+**Don't let Ojo carry you.** Ekene emptied herself entirely during a long engagement and sat down
+against a root buttress, and Ojo picked her up and carried her to the medical hollow in front of
+everybody. She was so angry she could not speak. It is now the standard warning for anyone working
+past their limit.
+
+**The alcove.** Tomás sealed Imke into a wall recess mid-fight for her own protection, grafted it
+shut, and forgot. She was in there two hours. She has never held it against him and he has never
+stopped apologising.
 
 ---
 
@@ -20,28 +53,25 @@ name in brackets.
 *Verekh III — orbital shipyards*
 
 Pale, freckled across the nose and shoulders, with grey hair cropped short at thirty-four — it went
-early and she refuses to discuss it. Short, square-built, forearms like a rock climber's. She wears
-the same patched work coat every day and has resisted three separate attempts to replace it.
+early and she refuses to discuss it. Short and square-built, forearms like a rock climber's. Same
+patched work coat every day; three people have tried to replace it and all three failed.
 
-The *Understory*'s hull is alive and closes her own wounds given time and encouragement. Ilka is
-the encouragement. She walks the ship's spine twice a shift with a tapping-hammer and a kit of
-grafts, listening to the stone, and she can tell you which of four thousand growth seams is
-thinning and roughly when it will open. She is almost always right.
+The hull is alive and closes her own wounds given encouragement, and Ilka is the encouragement. She
+walks the spine twice a shift with a tapping-hammer, and the whole ship knows the sound of her
+coming — two taps, a pause, two taps. People pick up conversations they were not having.
 
-She was raised in the Verekh yards where ships are *grown* rather than repaired, and she came to
-the Census because a living hull was the only interesting thing left to do.
+She can tell you which of four thousand growth seams is thinning and roughly when it will open, and
+she is almost always right. She is also the woman who took the mess watercourse down for scheduled
+bed-turning on Dolores's birthday, leaving sixty people without hot water for two days. The
+maintenance calendar is pinned in the galley. Somebody drew a face on it years ago and it has been
+redrawn every time the sheet is replaced.
 
-**Her flaw costs the ship real damage.** She tends on schedule — on *the* schedule, the one she
-wrote — and does not accept that a crisis is a reason to defer it. She has taken a whole watercourse
-out of flow mid-engagement because the beds were due for turning, and she will do it again, and the
-maddening part is that the beds *were* due.
+**Order: fixed, predictable, unvarying.** Her barrier is the same size every time and arrives when
+she said it would. No good nights, no bad ones. Crew who have worked with flashier protectors find
+her dull for two fights and then never want to work without her.
 
-**Order, exactly as the element means it:** fixed, predictable, unvarying. Her barrier is the same
-size every time and arrives when she said it would. No good nights and no bad ones. Crew who have
-worked with flashier protectors find her boring for about two fights and then never want to work
-without her.
-
-She does not understand why anyone would want a surprise.
+She does not understand why anyone would want a surprise, and she has said so, and people quote it
+at her.
 
 ---
 
@@ -49,28 +79,28 @@ She does not understand why anyone would want a surprise.
 
 *Belune III*
 
-Small and wiry, with dark curls she cuts herself badly, a nose broken twice, and forearms mapped
-with thin silver scars she cannot account for individually. She moves faster than anyone expects
-and is always slightly out of breath.
+Small and wiry, dark curls she cuts herself badly, a nose broken twice, forearms mapped with thin
+silver scars she cannot account for individually. Moves faster than anyone expects and is always
+slightly out of breath.
 
-What she wears into every engagement is catalogue entry 0041: the display carapace of a reef animal
-the survey logged nineteen years ago, from a reef that is no longer there. It is iridescent, it
-shifts green to violet as she turns, it is the last one anywhere, and **it is not armour.** It was
-grown to be looked at. It was never meant to stop anything.
+What she wears into a fight is catalogue entry 0041 — the display carapace of a reef animal from a
+reef that is no longer there. Iridescent, green to violet as she turns, the last one anywhere, and
+**it is not armour.** It was grown to be looked at.
 
-She takes it out of the vault before every fight and puts it back afterwards, usually cracked
-somewhere new. Aurelio has filed eleven formal objections. Reva has read none of them.
+She has cracked it six times. She repairs it herself at the mess table with a tube of resin and
+enormous concentration, and the unspoken rule is that you do not offer to help, because she gets
+snappish and then feels bad about it and then it is a whole evening.
 
-She steps in front of things. That is the entirety of her tactical philosophy and she is
-unembarrassed by it. She is not durable — she is thinner than she looks and the shell does nothing
-— but a thing hitting Reva is not hitting anyone else, and whatever hits her gets hurt doing it.
+Aurelio does not file objections. He simply comes down to the vault and stands there while she
+takes it out, saying nothing, every single time. She has stopped acknowledging him. He has not
+stopped coming.
 
-**Chaos: all-or-nothing.** She holds completely or goes down in a single exchange, and which is not
-really up to her. She needs somebody shielding her, she knows it, and she goes anyway.
+**Chaos: all-or-nothing.** She holds completely or goes down in one exchange, and which is not
+really up to her. She needs somebody shielding her, she knows, and she goes anyway.
 
-Ask why the shell and she will say it is the only one left and it should be worn. Ask why it should
-be worn and she changes the subject. Reva is not a mystic and would be offended by the suggestion.
-She cannot stand the idea of the last of something sitting in a drawer.
+Ask why the shell and she says it is the only one left and it should be worn. Ask why it should be
+worn and she changes the subject. She is not a mystic and would be offended by the suggestion. She
+cannot stand the idea of the last of something sitting in a drawer.
 
 ---
 
@@ -78,26 +108,25 @@ She cannot stand the idea of the last of something sitting in a drawer.
 
 *Orrowan V*
 
-Broad, weathered, fifty-odd, with a grey-streaked beard he keeps meaning to deal with and hands
-permanently stained amber from sap. Sawdust in everything he owns. A laugh you can hear two
-galleries away.
+Broad and weathered, fifty-odd, grey-streaked beard he keeps meaning to deal with, hands stained
+permanently amber with sap. Sawdust in everything he owns. A laugh you can hear two galleries away.
 
-The cambium is the thin living layer under bark that does all the actual growing, and Tomás is the
-ship's. He grafts during fights — not metaphorically. He brings the kit, gets in between two failing
-members while things are happening, and splices living wood into the gap. Whoever is nearest gets
-bark thrown over them whether they asked or not, and if you are standing in the wrong place you
-will be partially grown into a bulkhead for your own protection. Several people have been.
+He grafts during fights. Not metaphorically — he brings the kit, gets between two failing members
+while things are happening, and splices living wood into the gap. Whoever is nearest gets bark
+thrown over them whether they asked or not, which is how Imke ended up sealed in a wall for two
+hours and why he now counts people out loud before he closes anything.
+
+He talks the entire time. Mostly about the watercourses, in detail, to nobody. He learned young that
+a frightened crew works better with somebody narrating something boring, and it has become so
+automatic that he does it when he is alone.
 
 **Growth: it starts at almost nothing and gets larger the longer it is left unbroken.** His first
 pass is a smear of sap. By the fourth he has built something structural, and all of it assumes
-nobody interrupts him. Interrupted, it was worth nothing.
+nobody interrupts him.
 
-He talks constantly and says very little, which is deliberate — he learned early that a nervous
-crew does better work with somebody narrating something boring. He has an encyclopaedic knowledge
-of the ship's watercourses and will share it mid-engagement.
-
-His flaw is that he cannot stop improving things. He has twice modified equipment that was working
-perfectly, in ways that were genuinely better and that nobody else could subsequently operate.
+He cannot stop improving things. He has twice rebuilt equipment that was working perfectly, in ways
+that were genuinely better and that nobody else could subsequently operate, and both times somebody
+had to sit with him and explain, kindly, that this was a problem.
 
 ---
 
@@ -105,29 +134,28 @@ perfectly, in ways that were genuinely better and that nobody else could subsequ
 
 *Tannhul VI — high gravity*
 
-The largest human aboard: a head taller than anyone and built to a different specification, with
-very dark skin, a close-shaved head, and the unhurried heaviness of somebody raised under a
-gravity that punishes sudden movement. A calm, wide face that gives nothing away.
+A head taller than anyone and built to a different specification: very dark skin, close-shaved
+head, the unhurried heaviness of a man raised where sudden movement is punished. A wide calm face
+that gives nothing away.
 
 During the Kessa venting, with the grove decompressing and the order given, Ojo refused to leave
-because there was a live seedling crate at the back and nobody had checked it. He was right. There
-was. It is in the aft grove now, eleven metres tall, and it is the only type specimen for an entire
-order of life.
+because there was a live seedling crate at the back nobody had checked. He was right. There was.
+It is in the aft grove now, eleven metres tall, and it is the only type specimen for an entire order
+of life.
 
-The crew have called him Ballast ever since and he is completely at peace with it — ballast is the
-weight you carry for no purpose except to stop the ship rolling, and he considers that accurate and
-flattering.
+He visits it. He says he is checking the moisture. He talks to it — not much, and not in any way he
+would admit — and the crew have collectively decided never to mention this, which is the most
+coordinated thing they have ever done.
 
 He is the slowest thing in any fight. He arrives late, absorbs whatever is going, and keeps going.
-Things that hit him feed him. He does not dodge, and asked about it has said more than once that
-dodging is how you end up somewhere you did not plan to be.
+He does not dodge, and asked about it has said more than once that dodging is how you end up
+somewhere you did not plan to be.
 
-**Growth: he gets harder to deal with the longer he is left alone.** Early, he is a slow man. Late,
-he is a problem.
+**Growth: harder to deal with the longer he is left alone.** Early, a slow man. Late, a problem.
 
 He took the post because hold work is hold work and the berth was warm. He has no feelings about
-the mission and finds people who do exhausting. He is also the person the younger crew go to, and
-he pretends not to have noticed.
+the mission and finds people who do exhausting. He is also who the younger crew go to, and he
+pretends not to have noticed, and carried Ekene to the medical hollow when nobody else would.
 
 ---
 
@@ -137,30 +165,29 @@ he pretends not to have noticed.
 
 *Utora VII*
 
-Deep brown skin and long braided hair worn in the Utoran way — patterns that record family on one
-side and discipline on the other, rebraided whenever either changes. Hers have been rebraided twice
-since she made lead and she is quietly proud of both. Tall, unhurried, with the habit of finishing
-your sentence correctly and waiting for you to catch up.
+Deep brown skin and long braided hair worn the Utoran way — family on one side, discipline on the
+other, rebraided whenever either changes. Hers have been redone twice since she made lead and she is
+quietly, visibly pleased about both. Tall and unhurried, with the habit of finishing your sentence
+correctly and then waiting for you to catch up.
 
-She runs the discipline, which on a ship this size means eleven people and the single largest claim
-on the catalogue's capacity. She got it at thirty-nine, the youngest anyone has, and she has not
-put a foot wrong since, which is its own kind of problem.
+She runs eleven people and the single largest claim on the catalogue. She made lead at thirty-nine,
+the youngest anyone has, and she has not put a foot wrong since, which is its own kind of problem.
 
-**Her method is reagent mist.** Release into a reef interior, let the atmosphere do the mixing, read
-what comes back. It characterises an unknown biosphere in an hour where careful sampling takes a
-week. It also permanently alters everything within a kilometre, and there is a standing rule aboard
-— never formally agreed, because agreeing it would mean naming her — that when Stella is working a
-reef you stay upwind.
+Her method is reagent mist: release it into a reef interior, let the atmosphere do the mixing, read
+what comes back. An hour instead of a week. It also permanently alters everything within a
+kilometre, and once — badly — it got into the ship's own circulation and the *Understory* smelled of
+burnt sugar for three weeks. People still say *"is that Stella"* about any unexplained smell.
 
-**Decay, exactly as the element means it: front-loaded and permanent.** What she does happens at
-once and does not wear off. No reef she has worked goes back to what it was.
+**Decay: front-loaded and permanent.** What she does happens at once and does not wear off. No reef
+she has worked goes back to what it was.
 
-This is not recklessness; it is policy, and she is senior enough to set it. Her position is that the
-Null is moving faster than the Census and a contaminated record beats no record. She is right. Being
-right about this has made her careless about everything else, and she has stopped noticing the
-difference between *necessary* and *convenient*.
+She and Nadira Quill have been fighting for six years over eleven contaminated sites. They are
+scrupulously polite to each other, which everyone finds far worse than shouting, and they sit at
+opposite ends of the mess with the deliberateness of people who have measured it.
 
-She and Nadira Quill have been at war for six years, and both of them would be sorry if it stopped.
+She is right that a contaminated record beats no record. Being right about it has made her careless
+about everything else, and she has stopped noticing the difference between *necessary* and
+*convenient*.
 
 ---
 
@@ -168,27 +195,26 @@ She and Nadira Quill have been at war for six years, and both of them would be s
 
 *Sindal II*
 
-Lean and restless, head shaved at the sides, with pale burn-scars laddering both forearms from
-reaching into the bloom without waiting for it to settle. Rings on every finger. Never sits all
-the way down in a chair.
+Lean and restless, head shaved at the sides, pale burn-ladders up both forearms from reaching into
+the bloom before it settled. Rings on every finger. Never sits all the way down in a chair.
 
-They have been about to leave for eleven years. They have written the letter. They have shown
-people the letter. The quantity has halved at regular intervals and has never reached zero, and the
-crew stopped taking it seriously around year four.
+**Nour flooded the mess.** Went in to clear an overgrowth choking the heartwood feed, cut the wrong
+root, and put coolant down the third-deck stair at dinner. Knee-deep. Warm and clean and
+catastrophic. They have apologised exactly once, in a tone that suggested the root had it coming.
 
-Nour tends the heartwood opposite Ekene, and the arrangement functions because the two of them are
-never in the same chamber. Ekene gives away exactly what she can spare, carefully. Nour does
-everything in one irreversible go and deals with what is left. Whatever they touch keeps burning
-long after they have walked away — which is true of the heartwood work and a fair summary of their
-interpersonal life.
+They have been about to leave for eleven years. The resignation letter exists. Everybody has read
+it. Somebody laminated it and it lives behind the galley counter, and when Nour is having a bad
+week people take it down and hand it to them without comment.
+
+They tend the heartwood opposite Ekene and the arrangement works because they are never in the same
+chamber. They argue about the mess temperature daily and neither will yield.
 
 **Chaos: all-or-nothing.** They commit totally or not at all, and not-at-all is most of the time.
+Whatever they touch keeps burning long after they have walked away.
 
 The reason they have not left is not the mission, which they regard as a filing exercise conducted
-during a housefire. It is that Ekene would have to tend the heartwood alone, and Nour has run the
-numbers on that, and the numbers are bad. They have never told her and would deny it under oath.
-
-Nour is very funny in a way that makes people uncomfortable about an hour later.
+during a housefire. It is that Ekene would have to tend the heartwood alone. They have never said
+this and would deny it under oath.
 
 ---
 
@@ -196,26 +222,28 @@ Nour is very funny in a way that makes people uncomfortable about an hour later.
 
 *Calyx IV*
 
-Small, round, sixty-one, with a silver bob and reading glasses on a cord. She looks like somebody's
-extremely competent aunt and is in fact the person who opens moons.
+Small, round, sixty-one, silver bob, reading glasses on a cord. She looks like somebody's extremely
+competent aunt and is in fact the person who opens moons.
 
-You cannot survey the inside of a reef without opening it. Dolores opens them, and **she will not
-open anything without agreed consent.** Not *should* not — will not. She has stood at a set charge
-for forty minutes with something large coming up the gallery behind her, waiting on a consensus she
-had every reason to expect, and she got it, and she has never once been refused, because nobody on
-this ship has the nerve to be the person who told Dolores no.
+She asks permission. Not in the abstract — she finds you, personally, wherever you are, and asks
+whether you have any objection to her opening a reef, and waits for an actual answer. This takes
+about an hour. Crew have learned the specific expression she wears while looking for people and
+have been known to take an alternative gallery.
 
-Her crewmates find this maddening and rely on it absolutely. A woman who will not open a reef
-without agreement is a woman who has never once opened the wrong reef.
+She once asked Ojo while he was asleep, got no answer, waited, and asked again when he woke up. She
+did not consider this remarkable.
 
 **Chaos in the all-or-nothing sense.** She waits, and waits, and lets the pile get large, and then
-there is one event and it is finished. Her work has no middle: either nothing is happening or
-everything already has.
+there is one event and it is finished. Either nothing is happening or everything already has.
 
-She is warm, endlessly chatty, and fond of the younger crew — she is the one who noticed Nettle was
-not eating properly. Her flaw is not the paperwork. It is that she has developed a taste for the
-size of the pile, and now waits slightly longer than the job needs, for reasons she describes as
-technical and which are not technical.
+She is warm, endlessly chatty, and fond of the younger crew — she noticed Imke was not eating
+properly and started making too much of everything at dinner without ever mentioning why. She is
+also, everybody suspects, the reason Imke's placement paperwork keeps not getting filed, and
+everybody has decided not to look into it.
+
+Her flaw is not the asking. It is that she has developed a taste for the size of the pile, and now
+waits slightly longer than the job needs, for reasons she calls technical and which are not
+technical.
 
 ---
 
@@ -223,30 +251,28 @@ technical and which are not technical.
 
 *Ombrea V*
 
-Tall and angular, with locs tied back out of the way and a permanent faint dampness about her — she
-works in the seeps and does not entirely dry out between shifts. Soil under the nails, always. A
-slow, delighted smile that arrives about a second late.
+Tall and angular, locs tied back out of the way, permanently faintly damp — she works the seeps and
+does not entirely dry out between shifts, and you can tell which chair she has been in. Soil under
+the nails, always. A slow delighted smile that arrives about a second late.
 
 The first person to mispronounce Sunmonu did it within a day of her boarding, and Abike — who
-studies seeps, rot-pools and everything that lives in what the rest of the forest discards —
-decided **Sump** was too appropriate to correct. She now introduces herself that way. The personnel
-record has been amended. She thinks it is the funniest thing that has ever happened to her and she
-is nearly alone in that.
+studies seeps, rot-pools and everything that lives in what the forest discards — decided **Sump**
+was too appropriate to correct. She introduces herself that way now. She thinks it is the funniest
+thing that has ever happened to her and she is nearly alone in that.
 
-Rot ecology is a senior discipline here, not a lesser one. In a forest, decay is the engine: a
-fallen trunk becomes a nurse log and the next century stands on it. Her specialism is
-*transmission* — what jumps, when, to what — and she works on the principle that a contagion is a
-courier and the interesting question is always the route.
+Rot is not a lesser discipline here. In a forest, decay is the engine: a fallen trunk becomes a
+nurse log and the next century stands on it. Her specialism is transmission — what jumps, when, to
+what.
+
+She is also the reason Aurel checks his arms in the morning. She took a tissue sample off him while
+he was asleep in the mess three years ago, and does not understand, still, why this was a problem,
+and has had it explained four times.
 
 **Growth: it gives more the longer it runs, and it spreads on death.** Nothing she does is
 impressive in the first exchange. By the sixth it is everywhere and cannot be recalled.
 
-She is kind, patient, and slightly frightening to stand near, because she is visibly interested in
-what is about to happen to you. She has taken samples from crewmates without asking. It has been
-explained to her four times.
-
-She takes the Null more personally than anyone aboard and says so least. Rot that gives nothing
-back is, to her, not a threat. It is an obscenity.
+She takes the Null more personally than anyone aboard and says so least. Rot that gives nothing back
+is not a threat to her. It is an obscenity.
 
 ---
 
@@ -256,24 +282,28 @@ back is, to her, not a threat. It is an obscenity.
 
 *Tessine IX*
 
-Sharp-featured and long-limbed, with black hair tied back badly and hands that never stop moving
-while he talks. Handsome in a way he is fully aware of. Forty-one and dresses like someone with
-somewhere better to be.
+Sharp-featured and long-limbed, black hair tied back badly, hands that never stop moving while he
+talks. Handsome in a way he is entirely aware of. Forty-one, and dresses like a man with somewhere
+better to be.
 
-He reads a fight better than anyone aboard. From the first exchange he can tell you how it will go,
-who is about to be in trouble, and where the opening will be. His read on *direction* is uncanny
-and the crew have learned to move on it without asking why.
+He reads a fight better than anyone aboard. From the first exchange he can tell you how it goes,
+who is about to be in trouble, and where the opening will be, and the crew move on his call without
+asking why.
 
-He is frequently wrong about *when*, and will not concede these are different skills. Told his call
-was early, Aurel explains that it was correct — which it was — and the conversation ends there, and
-the same thing happens the following week.
+**He also took them three weeks in the wrong direction.** Nine days at the helm while Navigator was
+ill, a lane's song read backwards, and nobody noticed until the fourth day. *Going Cosma* is now
+the ship's word for any confident error and he uses it himself, cheerfully, which is the only
+reason it stayed funny. Navigator has never mentioned it. Not once. He has decided this is worse.
+
+He is frequently wrong about *when* and will not concede that timing and direction are different
+skills. Told his call was early, he explains that it was correct — which it was — and the
+conversation ends there, and the same thing happens the following week.
 
 **Energy: immediate, and it converts straight into tempo.** What he gives is not strength, it is
-*sooner*. He shoves people into a fight ahead of their turn, and a crew that acts early is a crew
-that acts at all. Nothing about him is over time. It lands now or not at all.
+*sooner*. Nothing about him is over time.
 
-He came off a courier run on the outer lanes, which he will tell you was more exciting and which he
-left for reasons he calls personal. Ojo knows what they are. Ojo has not said.
+He came off a courier run and left it for reasons he calls personal. Ojo knows what they are. Ojo
+has not said.
 
 ---
 
@@ -281,30 +311,27 @@ left for reasons he calls personal. Ojo knows what they are. Ojo has not said.
 
 *origin unrecorded*
 
-Eighteen or nineteen, small, all elbows, with reddish hair hacked off at the jaw and a sunburn she
-should not be able to get indoors. Wears three jackets, none of them hers. Moves like a bird that
-has just heard something.
+Eighteen or nineteen, small, all elbows, reddish hair hacked off at the jaw, and a sunburn she
+should not be able to get indoors. Three jackets, none of them hers. Moves like a bird that has
+just heard something.
 
-**Imke's posting was never agreed.** She came aboard at a reef station eleven months ago on a berth
-reassigned in transit, and the placement meeting has been deferred four times — twice for genuinely
-good reasons and twice because the agenda ran long. She holds no post, draws no allocation, and
-cannot be put off the ship because there is nowhere within reach to put her.
+Her posting was never agreed. She boarded eleven months ago on a berth reassigned in transit, her
+records were on a station that is no longer anywhere, and the paperwork has simply never been
+filed. She holds no post and draws no allocation, so she does everything instead — badly,
+immediately, enthusiastically. When anybody starts a task, Imke materialises and joins in.
 
-So she does everything. Badly, immediately, enthusiastically. She has assisted at the heartwood, in
-the medical hollow, in the specimen grove and in the galley, all untrained, all in one afternoon.
-When anybody aboard starts a task, Imke materialises and joins in. Somebody called her Nettle in
-the second week and it stuck instantly, which she has decided to be pleased about.
+She was in the mess for the flood and fell in twice, on purpose the second time. She was sealed
+into a wall by Tomás for two hours and came out apologising to *him*. Somebody called her Nettle in
+her second week and it stuck instantly and she has decided to be pleased about it.
 
 **This is not a metaphor for her combat role. It is her combat role.** Having no assigned function,
-she follows up on whatever anyone else is doing. A crew of fast, cheap, frequent actions makes her
-the most dangerous thing on the field. A crew of slow deliberate specialists leaves her standing
-about.
+she follows up on whatever anyone else is doing. A crew of fast cheap frequent actions makes her the
+most dangerous thing on the field; a crew of slow specialists leaves her standing about.
 
-Her records were on a station that is no longer anywhere, which is why her origin line is blank and
-why nobody has pushed. The crew have quietly agreed to keep deferring the meeting, because resolving
-it means sending her somewhere, and there is nowhere.
+Dolores makes too much food at dinner and has never said why. Nobody has filed Imke's paperwork and
+nobody is going to, because filing it means sending her somewhere, and there is nowhere.
 
-Imke does not know this. Imke thinks it is a scheduling problem.
+Imke thinks it is a scheduling problem.
 
 ---
 
@@ -312,25 +339,25 @@ Imke does not know this. Imke thinks it is a scheduling problem.
 
 *Verekh III*
 
-Slight, indoor-pale, with locs pulled up off his neck and the half-focused gaze of somebody whose
-attention is mostly two decks away. Sits very still for hours. Startles badly when spoken to.
+Slight and indoor-pale, locs pulled up off his neck, the half-focused gaze of somebody whose
+attention is mostly two decks away. Sits very still for hours. Startles badly when spoken to, every
+time, and everyone has learned to announce themselves from the doorway.
 
-The motes are alive: forty drifting scouts the size of a thumb, grown for the purpose, something
-between a seed and a jellyfish. Idris handles all forty at once from a hollow well away from
-whatever is happening, and after the third year somebody called him by his swarm's name and it
-took. He hated it. He has explained, with dignity, that he is the handler and not the swarm. This
-has had the effect you would expect.
+The motes are alive — forty drifting scouts the size of a thumb, something between a seed and a
+jellyfish — and Idris handles all forty at once from a hollow well away from the trouble. Somebody
+called him by his swarm's name in his third year and it took. He has explained, with dignity, that
+he is the handler and not the swarm, which had the effect you would expect.
 
-He is never physically present in a fight, which makes him the only crewmate who has never been
-hit and the only one who watches every engagement from above with the whole reef laid out. He sees
-everything and can do very little about most of it — forty motes can find the soft seam on an
-entire enemy line in under a second and can apply almost no force to any of it.
+He flew thirty-one of them into a bloom once and lost all thirty-one. Nahana rebuilt them over four
+days and has never mentioned it, and he knows she knows, and neither of them has found a way to
+bring it up.
 
-**Energy: immediate, wide, and gone.** His entire contribution is in the first instant.
+**Energy: immediate, wide, and gone.** Forty motes can find the soft seam on an entire enemy line in
+under a second and can apply almost no force to any of it. His whole contribution is the first
+instant.
 
 He is the best tactical mind aboard and nobody asks him, because he is two decks down and the habit
-never formed. He has stopped offering. Ojo keeps telling him to start again. He says he will and
-does not.
+never formed. Ojo keeps telling him to start offering again. He says he will and does not.
 
 ---
 
@@ -340,30 +367,28 @@ does not.
 
 *Calyx IV*
 
-Tall, grey-eyed, olive-skinned, with iron-coloured hair pinned back severely and a way of standing
-completely still that people find difficult. She keeps her hands visible. It is a habit she
-developed on purpose and has never explained.
+Tall, grey-eyed, olive-skinned, iron-coloured hair pinned back severely, and a way of standing
+completely still that people find difficult. She keeps her hands visible. It is deliberate and she
+has never explained it.
 
-Here is the uncomfortable thing about Beatriz, which everybody aboard has felt and nobody has said
-to her: **what she does is a small, deliberate, well-aimed version of what the Null does.**
+Hers is the only post of its kind, because some reef life is enormous and does not wish to be
+catalogued. What she carries does not wound. There is no damaged version of what Beatriz does and no
+partial success — a thing she uses it on stops being there, and afterwards there is nothing left to
+record.
 
-Hers is the only post of its kind, created because some reef life is enormous and does not wish to
-be catalogued. What she carries does not wound. There is no damaged version of what Beatriz does
-and no partial success — a thing she uses it on stops being there, and afterwards there is nothing
-left to record.
+On a ship of naturalists that is a difficult thing to be. She is not disliked. It is simpler and
+sadder than that: nobody asked her to sit down in her first month, and then it had been a year, and
+now it has been nine and it would be strange.
 
-On a ship of naturalists, in a culture built on the belief that nothing is ever truly lost, that
-makes her quietly radioactive. She is not disliked. She is *avoided*, in a way nobody would admit
-to and everybody participates in.
+Imke sat down opposite her once, knowing no better, and talked for forty minutes about a dispute in
+the galley. Beatriz said almost nothing. She has thought about it a great deal since.
 
-**Void: it negates rather than reduces.** She has thought about this more than is good for her.
+**Void: it negates rather than reduces.** She has thought about that more than is good for her too.
 
-She has used it eleven times in nine years. She can tell you about each one, in order, with dates,
-and has never once been asked.
-
-She is the most powerful individual aboard and she eats alone. New crew routinely do not learn she
-exists until something goes badly; several have assumed the post is automated. She has a dry line
-about that which she deploys at the right moment and which is not entirely a joke.
+She has used it eleven times in nine years, can tell you about each one in order with dates, and has
+never been asked. New crew routinely do not learn she exists until something goes badly, and several
+have assumed the post is automated. She has a dry line about that which she deploys at exactly the
+right moment and which is not entirely a joke.
 
 ---
 
@@ -371,28 +396,27 @@ about that which she deploys at the right moment and which is not entirely a jok
 
 *Cassine, of Ranohe II*
 
-Four metres of patient unhurried mass. Cassine skin thickens with age into something closer to
-weathered bark, laid down in visible ridges, so his forearms read like a cut trunk and anyone who
-knows how to count them knows exactly how old he is. Deep-set amber eyes. He ducks through every
-doorway on the ship and has stopped resenting it.
+Four metres of patient unhurried mass. Cassine skin thickens with age into something like weathered
+bark laid down in visible ridges, so his forearms read like a cut trunk and anyone who can count
+them knows exactly how old he is. Deep-set amber eyes. He ducks through every doorway on the ship
+and stopped resenting it decades ago.
 
 He is on his fourth name and there will not be a fifth, because the fifth threshold is one most
-Cassine do not reach and Otaremnivas has done the arithmetic. His people grow their whole lives and
-never stop, which sounds like a gift and is a schedule: every year a little larger, a little
-slower, and there is a point past which he will not be able to move himself at all. He knows
-roughly when that is.
+Cassine do not reach and he has done the arithmetic. His people grow their whole lives and never
+stop, which sounds like a gift and is a schedule.
 
-**Decay is his element and he would tell you it is simply accurate: it starts enormous and it
-shrinks.** He hits harder than anything else aboard and he hits late, and the arc runs one
-direction only.
+The crew call him **Otto**, a shortening of a name that is supposed to get longer, which is mildly
+rude and which he permits because he likes them. There is one rule — nobody discusses his sizing —
+and he has enforced it exactly once, and the crewmate concerned left at the next station.
 
-The crew call him **Otto**, a shortening of a name that is supposed to get longer, which is
-therefore mildly rude, and which he permits because he likes them. He handles specimens because he
-can lift what nobody else can and because he is careful, and the two together are rarer than
-either.
+He grows things in his quarters. The smallest plants he can find, in shallow trays, dozens of them,
+tended with instruments made for hands a quarter the size of his. Everybody knows. Nobody comments.
+Nahana brings him cuttings and leaves them by the door.
 
-He is the best-tempered person on the ship. He has one rule — nobody discusses his sizing — and he
-has enforced it exactly once, and the crewmate concerned left at the next station.
+**Decay: it starts enormous and it shrinks.** He hits harder than anything else aboard and he hits
+late, and the arc runs one direction only. He would tell you this is simply accurate.
+
+He is the best-tempered person on the ship.
 
 ---
 
@@ -400,27 +424,25 @@ has enforced it exactly once, and the crewmate concerned left at the next statio
 
 *Kessa — gone*
 
-Compact and hard-shouldered, dark-skinned, hair kept short enough to forget about, with a burn
-across the back of one hand she does not cover. Thirty-six and looks tired in a way that sleep does
-not fix. Does not smile much, and means it when she does.
+Compact and hard-shouldered, dark-skinned, hair kept short enough to forget about, a burn across the
+back of one hand she does not cover. Thirty-six and tired in a way sleep does not fix. Does not
+smile much and means it when she does.
 
-She was a grower. A good one — she raised living structures on the Kessa reef rings for eleven
-years, the slow craft of coaxing stone and heartwood into shapes that hold, on a track that ended
-with something enormous carrying her mark. Then the Null took Kessa, and every structure she had
-raised went from *standing* to *never having been*.
+She was a grower. A good one — eleven years raising living structures on the Kessa reef rings, the
+slow craft of coaxing stone and heartwood into shapes that hold. Then the Null took Kessa and every
+structure she had raised went from *standing* to *never having been*.
 
-She did not break down. She filed a transfer. She now does structural analysis, which means she
-looks at a thing and finds where it will fail, and then she is the one who puts everything into that
-point the instant it opens. She asked for the name Maul, which is unusual, and people noticed.
+She did not break down. She filed a transfer. She now finds where things will fail and is the one
+who puts everything into that point the instant it opens, and she asked for the name **Maul**, which
+is unusual, and people noticed.
 
-**Decay: front-loaded, permanent, no second attempt.** She waits for a break and commits
-absolutely. Nothing she hits recovers, and she carries nothing into the next exchange, because it
-is spent.
+**Decay: front-loaded, permanent, no second attempt.** She waits for a break and commits absolutely.
+Nothing she hits recovers and she carries nothing into the next exchange, because it is spent.
 
-She is not bitter and it would be easier if she were. She is *efficient*, in a way that has
-hollowed out the parts of the work she used to love. She has not grown anything in four years.
-Tomás noticed, and started asking her opinion on grafts she is wildly overqualified for, and she
-has started giving it.
+She has not grown anything in four years. Tomás noticed and started asking her opinion on grafts she
+is wildly overqualified for — badly disguised, entirely transparent, and she let him get away with
+it. Last month she corrected him before he asked. He made a very large show of not making a show of
+it and she told him to shut up, and that was the best either of them had felt in a while.
 
 ---
 
@@ -430,27 +452,25 @@ has started giving it.
 
 *Sindal II*
 
-Small and exact, sixty, with a greying braid wound tight and spectacles she pushes up constantly.
-Always holding a stylus, frequently pointing with it. Dresses for fieldwork even at dinner.
+Small and exact, sixty, greying braid wound tight, spectacles she pushes up constantly. Always
+holding a stylus and frequently pointing with it. Dresses for fieldwork at dinner.
 
-Nadira logs every specimen before she touches it. Every one, without exception, including ones
-visibly in the act of coming at her — she will finish an entry while a thing is closing, because an
-unlogged specimen is, to her, not yet real, and she does not act on things that are not real.
+She logs every specimen before she touches it. Every one, without exception, including ones visibly
+in the act of coming at her. There is a recording of her completing an entry while something has
+hold of her forearm and it has been watched by everybody aboard, several times, at parties.
 
-**This is the flaw and it has nearly killed her twice.** It has also produced the most complete
-survey record in the Census's history. Her marks are why half the ship's tactics function at all:
-once Nadira has written a thing down, everyone knows exactly where it is soft.
+An unlogged specimen is, to her, not yet real, and she does not act on things that are not real.
+**This has nearly killed her twice** and has also produced the most complete survey record in the
+Census's history — her marks are why half the ship's tactics work at all.
 
-**Void: it negates.** What she marks does not become weaker — its protection stops applying. There
-is a difference and she will explain it at length.
+**Void: it negates.** What she marks does not become weaker; its protection stops applying. There is
+a difference and she will explain it at length.
 
-She has two wars. The first is with Stella Anuye, who has permanently altered eleven of her reefs
-and treats the objection as precious; six years in, both of them would be sorry if it stopped. The
-second is colder. Yusuf Benhaddou logs everything, reads none of it, and Nadira regards him as an
-active vandal — his entries are complete, compliant, and in her assessment worthless, and the
-catalogue counts them exactly the same as hers.
-
-That last part is what actually keeps her awake.
+She and Stella Anuye are six years into a war over eleven contaminated reefs and are unbearably
+polite about it. She and Yusuf Benhaddou are colder — they have not spoken directly in two years and
+conduct everything through the catalogue's annotation field. Somebody printed one of the exchanges
+and pinned it in the galley. It has been up for eight months. Neither of them has taken it down,
+which everyone agrees is the funniest part.
 
 ---
 
@@ -458,22 +478,21 @@ That last part is what actually keeps her awake.
 
 *Kessa — gone*
 
-Round-faced, warm-brown, perpetually amused, with a close beard going grey at the chin and an easy
-smile he deploys constantly and sincerely. Always eating something. The most immediately likeable
-person aboard.
+Round-faced and warm-brown, perpetually amused, close beard going grey at the chin, an easy smile he
+deploys constantly and sincerely. Always eating something. Notices immediately when somebody else is
+not, and does something about it without making it a conversation.
 
-He sweeps an entire reef in one pass — lightly, indiscriminately — and then moves on and does not
-go back to read what came in. His position, which he has argued well in front of people senior to
-him, is that the Null is moving faster than the Census and the only honest answer is breadth. A
-shallow record of a thousand species beats a perfect record of forty. He logs everything. He reads
-almost none of it. He sincerely believes somebody later will have time.
+He sweeps a whole reef in one pass — lightly, indiscriminately — then moves on and never reads what
+came back. His position, argued well in front of people senior to him, is that the Null moves faster
+than the Census and the only honest answer is breadth: a shallow record of a thousand species beats a
+perfect record of forty. He believes somebody later will have time.
 
-Nadira Quill thinks he is destroying the thing he claims to be saving. They have not spoken
-directly in two years and communicate through the catalogue's annotation field, at a level of
-politeness that frightens onlookers.
+He is also the reason a survey party spent two days cataloguing gravel, having logged a reef under
+the wrong designation. Aurelio has apologised for it eleven times, which Yusuf finds genuinely
+funny, because it was not Aurelio's mistake.
 
-**Void, the same as Nadira, at the opposite scale:** he strips protection from the whole line at
-once and barely at all. Broad, shallow, exactly as much as he intended.
+**Void, the same as Nadira, at the opposite scale:** he strips protection from the whole line at once
+and barely at all.
 
 He has never been in a fight he took personally and finds the crew's intensity about the mission
 faintly adolescent. What nobody knows — because he has never said it and would deny it — is that he
@@ -486,29 +505,27 @@ left to tell that he grew up there.
 
 *Belune III*
 
-Tall and very still, with a white streak through dark hair that she has had since her twenties and
-hands that are always cold. Speaks slowly enough that people finish her sentences, and waits,
-without visible irritation, until they are done being wrong.
+Tall and very still, a white streak through dark hair since her twenties, hands that are always
+cold. Speaks slowly enough that people finish her sentences, and waits without visible irritation
+until they have finished being wrong.
 
-Sevim works with the ship's own fog. She walks it over a shell and waits. She does not cut, crack
-or force anything — cooling a structure unevenly puts it under a stress that climbs for hours until
-it opens along its own weakest grain, and the seam it chooses tells you more than any hole you
-could have made. It is the most elegant technique aboard. On a ship racing an erasure front it is
-also almost indefensible.
+She works with the ship's own fog: walks it over a shell and waits. No cutting, no forcing — cooling
+a structure unevenly puts it under a stress that climbs for hours until it opens along its own
+weakest grain, and the seam it chooses tells you more than any hole you could have made. It is the
+most elegant technique aboard and it takes four hours.
 
-She defends it every year at review and wins, because her results are not comparable to anybody
-else's. Four hours, and she has been called **Patience** since the first person asked her to hurry.
+She has been called **Patience** since the first person asked her to hurry.
 
-**Order in the truest sense the element has:** fixed, predictable, identical every time. Her
-contribution does not vary with circumstance. She produces the same result on the first reef of a
-voyage and the last.
+Somebody brought her tea during the four hours once, as a joke. Somebody else did it the following
+week. There is now a rota, unwritten, that has run for six years and has never lapsed, and Sevim has
+never acknowledged it and has never once been without tea. Imke joined the rota in her third week
+without being told it existed.
 
-She is by some distance the only person aboard actually living up to the name on the hull, and she
-has pointed this out at three consecutive gatherings.
+**Order: fixed, predictable, identical every time.** She produces the same result on the first reef
+of a voyage and the last.
 
-Her flaw is not slowness — she is right about slowness. It is that she has quietly stopped believing
-the Census will finish, and has begun optimising for the *quality* of the record rather than its
-size, and has told nobody that this is what she is doing.
+Her flaw is not slowness. It is that she has quietly stopped believing the Census will finish, and
+has begun optimising for the quality of the record rather than its size, and has told nobody.
 
 ---
 
@@ -516,30 +533,29 @@ size, and has told nobody that this is what she is doing.
 
 *born aboard a Census ship*
 
-Narrow, neat, forty-eight, with thinning hair combed flat and ink on the side of his right hand
-that never entirely washes off. Third generation Census; he has never lived anywhere that was not
-moving. Never sits down if he can help it.
+Narrow and neat, forty-eight, thinning hair combed flat, ink on the side of his right hand that
+never entirely washes off. Third generation; he has never lived anywhere that was not moving. Does
+not sit down if he can help it.
 
-The catalogue is the largest single organism aboard after the ship — a grown archive, a coral of
-record, every entry laid down in living matter. Somebody has to keep it. Aurelio keeps it, and he
-is fluent in its practice in a way that makes other people's competence look like guessing.
+The catalogue is the largest organism aboard after the ship — a grown archive, every entry laid down
+in living matter — and Aurelio keeps it, fluently, in a way that makes other people's competence look
+like guessing.
 
-He is fast and precise, and when something is in the record he acts on it *instantly*, without
-hesitation, which is his great strength and the thing that makes him dangerous. **Because he acts
-on what is written, not on what is true.** Aurelio has followed a bad entry into a bad decision and
-defended it afterwards on the grounds that the entry said so. He was not being stubborn — he has no
-mechanism for the record being wrong. It is not scepticism he lacks. It is the *category*.
+When something is in the record he acts on it *instantly*, which is his great strength and the thing
+that makes him dangerous, **because he acts on what is written rather than what is true.** He sent a
+party to survey gravel for two days on a bad designation and then defended the decision, because the
+entry said so. He has no mechanism for the record being wrong. It is not scepticism he lacks, it is
+the *category*.
 
-**Order: a rule followed exactly.** Give him a marked target and he answers it, every time, at the
+**Order: a rule followed exactly.** Give him a marked target and he answers it every time, at the
 same strength, without deliberation.
 
-He is fifteen years behind on the backlog and it is Nadira's fault. She documents at a depth nobody
-asked for and all of it comes to him, and he has never once suggested she do less, because — and he
-said this once, at the end of a long shift — hers are the entries he would save if he could only
-save some.
+He is fifteen years behind on the backlog and it is Nadira's fault, and he has never once suggested
+she document less, because — he said this at the end of a long shift, once — hers are the entries he
+would save if he could only save some.
 
-He has filed eleven objections to Reva removing entry 0041 from the vault. He will file a twelfth.
-He knows exactly how this goes.
+He comes down to the vault and stands there while Reva takes out entry 0041. Every time. He has
+never said a word about it and he is never going to stop.
 
 ---
 
@@ -549,28 +565,31 @@ He knows exactly how this goes.
 
 *Chosokee, of Maelus IV*
 
-Rich tan skin and the white hair of her people — colouring, not age, and she wears it long and
-loose because the animals settle better when it moves. Fine pale **markings** across her cheekbones
-and down both forearms, in the Chosokee pattern: partly inherited, partly earned, gained as a
-keeper takes charge of something living. Hers run further than almost anyone's her age, and every
-Chosokee who has seen them has understood immediately what that means and said nothing.
+Rich tan skin and the white hair of her people — colouring, not age — worn long and loose because
+the animals settle better when it moves. Fine pale **markings** across her cheekbones and down both
+forearms in the Chosokee pattern: partly inherited, partly earned, gained as a keeper takes charge
+of something living. Hers run further than almost anyone's her age, and every Chosokee who has seen
+them understood immediately and said nothing.
 
-The *Understory* is alive, and things live in her. Nahana keeps them: the grove herds, the pollinating
-swarms, the six large browsers in the aft hold that process what the watercourses cannot, and the
-motes when Idris has damaged them. She was raised on Maelus IV alongside animals the size of
-buildings, and she came to the Census because a whole ship of fauna nobody understood was the most
-interesting offer she had ever had.
+The ship is alive and things live in her. Nahana keeps them — the grove herds, the pollinating
+swarms, the six big browsers in the aft hold that process what the watercourses cannot, and Idris's
+motes when he has damaged them, which she rebuilds without ever mentioning the number.
 
-She treats the crew the same way she treats the herds — steadily, without hurry, with an
-unsentimental physical kindness that people find disarming and then rely on.
+She was raised on Maelus IV alongside animals the size of buildings. There is usually something
+following her. The galley has a standing rule about it that nobody enforces.
 
-**Order: a fixed amount, every turn, reliably.** She does not produce miracles and does not attempt
-them. She produces the same competent care at the same rate indefinitely, and has kept more people
-standing than anyone aboard by the simple method of never gambling.
+She treats the crew exactly as she treats the herds: steadily, without hurry, with an unsentimental
+physical kindness people find disarming and then depend on.
 
-Her flaw is that she will not triage. Told that one of two things can be saved, Nahana will attempt
-both, every time, and has lost both more than once. She knows. She has been spoken to. She cannot
-do it and has stopped pretending she is working on it.
+**Order: a fixed amount, every turn, reliably.** No miracles and no attempts at them — the same
+competent care at the same rate indefinitely, which has kept more people standing than anything else
+aboard.
+
+**She will not triage.** During one bad engagement she went back for the browsers and reached the
+medical hollow forty minutes late. Nobody died. She has never been late since and has also never
+agreed that she was wrong, and when it comes up she goes quiet in a way that ends the conversation.
+
+She leaves cuttings outside Otto's door for the trays he thinks nobody knows about.
 
 ---
 
@@ -578,30 +597,31 @@ do it and has stopped pretending she is working on it.
 
 *Ossuan, of Iseul III*
 
-Tall and slender, hairless, with the pale silver-grey skin of her people and eyes that are almost
-entirely pupil — Iseul III turns under a dim red sun and she finds most of the ship painfully
-bright. She works in a darkened hollow near the prow and keeps it that way.
+Tall and slender, hairless, pale silver-grey skin, eyes almost entirely pupil — Iseul III turns
+under a dim red sun and she finds most of the ship painfully bright. She works in a darkened hollow
+near the prow and keeps it that way.
 
-Ossuan have no personal names, only posts, and the post *is* the name. When it changes, so does she,
-and the previous holder — who was her — is a separate person in every way that matters, a position
-Ossuan hold sincerely and are tired of explaining. Before Navigator she was something else. She
-will discuss it in the third person if pressed and would rather not be pressed.
+Ossuan have no personal names, only posts, and the post *is* the name. Before Navigator she was
+something else; she will discuss it in the third person if pressed and would rather not be. She has
+held this post for forty-one years, which is most of the ship's life and longer than anyone else
+aboard has been anything.
 
-She has held the post for forty-one years, which is most of the *Understory*'s life and longer than
-anyone else aboard has been anything. She was there at the growing, when the Census was four
-hundred years long and the ship's name was a gentle joke about how much time there was.
+**Navigation means listening.** The lanes are whale song, sung into the deep by migrations older
+than any record, and a navigator is someone who can hold a song in her head for four decades and
+hear the day it thins. **She has lost eleven lanes in eleven years. She can name all of them. She
+can still sing four.**
 
-**Navigation means listening.** The lanes are whale song — routes the great migrations have sung
-into the deep for longer than anyone has been recording — and a navigator is someone who can hold a
-song in her head for four decades and hear the day it thins. **She has lost eleven lanes in eleven
-years. She can name all of them. She can still sing four.**
+She sings them in the dark, alone, and the acoustics of the prow gallery carry it further than she
+realises. People sit outside. Not many and not often, and never together, and nobody has ever said
+anything about it. She knows. That is also not something anyone has said.
 
-Nothing reaches her quickly. She is calm to a degree that reads as inattention until you have
-watched her work, and she hits back without appearing to have noticed she was hit.
+Aurel reversed one of her lanes while she was ill and cost the ship three weeks. She has never
+mentioned it and never will, and she does not consider it interesting enough to mention, which is
+not something he has ever been able to make himself believe.
 
-**Growth: the longer it runs, the more she gives.** She is the worst person on this crew to have in
-a short fight and the best in a long one, and has an Ossuan's complete indifference to that being
-an inconvenient shape.
+**Growth: the longer it runs, the more she gives.** The worst person on this crew to have in a short
+fight and the best in a long one, and she has an Ossuan's complete indifference to that being an
+inconvenient shape.
 
 ---
 
@@ -609,24 +629,27 @@ an inconvenient shape.
 
 *Orrowan V*
 
-Small and quick, dark-skinned, with hair cropped close and gone prematurely white — the bloom does
-that, and she was twenty-eight when it started. Always cold. Wears more layers than the ship
-requires and holds her tea with both hands.
+Small and quick, dark-skinned, hair cropped close and gone prematurely white — the bloom does that,
+and she was twenty-eight when it started. Always cold. Wears more layers than the ship requires and
+holds her tea with both hands.
 
-The heartwood blooms when it is working: a slow shell of light in the deep chamber, and Ekene
-spends more hours inside it than anyone thinks is wise. Her work is distribution — deciding, moment
-to moment, who gets what the heartwood is giving and who waits. She is extremely good at it. She is
-also, structurally, a person whose entire function is handing things to other people, and she has
-never developed a mechanism for stopping.
+The heartwood blooms when it is working, a slow shell of light in the deep chamber, and Ekene spends
+more hours inside it than anyone thinks is wise. Her work is distribution: who gets what the
+heartwood is giving, and who waits. She is extremely good at it, and she is structurally a person
+whose entire function is handing things to other people, and she has never developed a mechanism for
+stopping.
 
-**Energy: an instant burst and nothing over time.** What Ekene gives arrives now, in full, with no
-residue — and once given, she has nothing. She runs cold. Crew who have worked a long engagement
-with her have watched her go from the most valuable person on the field to a woman sitting against
-a root buttress, entirely spent, inside two exchanges.
+**Energy: an instant burst and nothing over time.** What she gives arrives now, in full, with no
+residue — and once given she has nothing. She runs cold.
 
-She tends opposite Nour and the arrangement works because they are never in the same chamber. She
-thinks Nour is reckless. She is right. Nour thinks she will burn herself out inside five years.
-Nour is also right, and said so once, badly, and it did not land.
+She emptied herself completely during a long engagement, sat down against a root buttress, and Ojo
+picked her up and carried her to the medical hollow in front of the entire crew. She was too angry to
+speak for a day and a half. *Don't let Ojo carry you* is now the ship's standard warning to anybody
+working past their limit, and she hates it, and she uses it.
+
+She tends opposite Nour and they are never in the same chamber. They argue about the mess temperature
+every single day. Nour thinks she will burn out inside five years and said so once, badly, and it did
+not land.
 
 She is aboard because the Census offered her a heartwood at twenty-six and nobody else would have.
 She has never worked out whether that was a compliment.
@@ -635,34 +658,32 @@ She has never worked out whether that was a compliment.
 
 ## The web
 
-The crew are not twenty-one separate people with twenty-one separate pasts. Most of what makes them
-legible runs between them.
-
 | | |
 |---|---|
-| **Nadira ↔ Stella** | Eleven altered reefs, six years. The oldest grievance aboard and the one both parties enjoy most |
-| **Nadira ↔ Yusuf** | Depth against breadth. Two years without speaking directly; they fight in the catalogue's annotation field |
-| **Yusuf → Kessa** | He grew up there. Nobody knows. He rereads the entries |
-| **Wren → Kessa** | Everything she raised was on those rings. Everyone knows |
-| **Aurelio ↔ Nadira** | His fifteen-year backlog is her fault and he would not change it |
-| **Aurelio ↔ Reva** | Eleven objections to a woman wearing entry 0041 into a fight |
-| **Ekene ↔ Nour** | Same heartwood, opposite temperaments, never the same chamber. Each has privately run the numbers on the other leaving |
+| **Nadira ↔ Stella** | Six years, eleven contaminated reefs, unbearably polite. Opposite ends of the mess, measured |
+| **Nadira ↔ Yusuf** | Not speaking. Conduct everything through the catalogue. One exchange is pinned in the galley and neither will take it down |
+| **Aurelio → Yusuf** | Eleven apologies for a mistake that was not his |
+| **Aurelio → Reva** | Comes to the vault and stands there. Says nothing. Every time |
+| **Aurelio → Nadira** | Fifteen years behind because of her and would not change it |
+| **Ekene ↔ Nour** | Never the same chamber. Argue about the mess temperature daily. Neither will leave while the other is there |
+| **Ojo → Ekene** | Carried her. She has not forgiven him. He would do it again |
 | **Ojo → Aurel** | Knows why he left the courier run. Has not said |
 | **Ojo → Idris** | Keeps telling him to offer his read on a fight. Idris keeps not |
-| **Tomás → Wren** | Asks her opinion on grafts she is far too good for, on purpose |
-| **Nahana → Idris** | Repairs the motes he damages and has never once mentioned how often |
-| **Dolores → Imke** | Noticed she was not eating properly. Did something about it quietly |
-| **Everyone → Beatriz** | Nobody dislikes her. Everybody avoids her, and nobody will say why out loud |
-| **Everyone → Imke** | A quiet agreement to keep deferring the placement meeting, because resolving it means sending her somewhere, and there is nowhere |
+| **Ojo → the seedling** | Visits. Says it is the moisture. Nobody mentions it |
+| **Tomás → Wren** | Asks her opinion on grafts he does not need help with. She lets him |
+| **Tomás → Imke** | Sealed her in a wall. Counts people out loud now |
+| **Nahana → Idris** | Rebuilt thirty-one motes and never said the number |
+| **Nahana → Otto** | Leaves cuttings by his door for the trays nobody mentions |
+| **Dolores → Imke** | Makes too much food. Has never said why. Almost certainly why the paperwork is unfiled |
+| **Imke → Beatriz** | Sat down opposite her once and talked for forty minutes. Beatriz thinks about it |
+| **Navigator → Aurel** | Has never mentioned the three weeks. He finds this unbearable |
+| **the rota → Sevim** | Six years of tea, unwritten, never lapsed, never acknowledged |
 
 ---
 
 ## Name map
 
-Every character now has a personal name. A few also carry a crew nickname, kept where it was earned
-and worth keeping.
-
-| Old roster | Now | Nickname |
+| Old roster | Now | Called |
 |---|---|---|
 | Wex | **Ilka Voressen** | — |
 | Tarn | **Reva Sokolovna** | — |
@@ -685,9 +706,6 @@ and worth keeping.
 | Fen | **Nahana** | — |
 | Mire | **Navigator** | — |
 | Halo | **Ekene Baptiste** | — |
-
-Peoples represented: Chosokee (1), Utoran (1), Cassine (1), Ossuan (1), and fourteen worlds between
-the rest. Two crew are from Kessa, which is gone.
 
 Still open: the ten element conflicts between `sim/roster.js` and the prototype are resolved here in
 favour of the roster. Neither file has been edited yet.

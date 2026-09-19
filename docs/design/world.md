@@ -83,19 +83,21 @@ comes from — not war, never war. Fieldwork with teeth.
 ## The Long Census
 
 The institution is not a corporation and not a navy. It is a *project* — a multi-generational
-undertaking that people join, and the ships that carry it run on consensus.
+undertaking that people join because they want to, and a ship carrying it is closer to a village
+than a command.
 
-Everything aboard is decided by discussion. Everyone is heard. Everyone is extremely nice about it,
-and it takes **forever**. The proposal to reroute the third-deck watercourse has been in
-consultation for six years, and the objections are all reasonable, and there are now objections to
-the objections.
-
-Nobody has a rank. People have **posts**, and a post is something the crew agreed you should hold.
+Nobody has a rank. People have **posts**, which means everyone knows what everyone else is for, and
+the rest is worked out at meals. Disagreements are settled the way they are settled in a village:
+slowly, in public, and mostly about something else.
 
 The Census was designed to be slow on purpose. A four-hundred-year survey, unhurried by intent,
 because the universe was understood to be abundant and in no danger whatsoever.
 
 That was eleven years ago.
+
+**The institution is the foundation, not the story.** The story is the twenty-one people living in
+a wet green ship a long way from anywhere — what they did, what they broke, who they are not
+speaking to this week, and what they still do for each other anyway.
 
 ---
 
