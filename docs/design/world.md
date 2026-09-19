@@ -13,9 +13,20 @@ Magic is infused into everything. It is not a separate system laid over the phys
 physics. The six elements are the building blocks of matter, and every rock, tide and organism is
 made of them in some proportion.
 
+And it is **ordinary**. Nothing here is arcane, secret or forbidden. Fixing a broken relay and
+rematrixing a thermomaga array for better ley harmonies are the same size of job, done on the same
+shift, by people who would be equally bored describing either.
+
 ---
 
 ## The ship
+
+> **⚠ This whole section is contradicted and under discussion.** The ship is **not alive**, though
+> it can have a personality. It is organic *and* inorganic. It is an archaeology vessel, it is
+> faster-than-light and closer to a Star Trek ship in structure, it mixes public and private space,
+> and it is vastly larger than what is described below — moon-dwarfing, crewing thousands to
+> millions. The twenty-one in `crew.md` are therefore a survey team, not the ship's complement.
+> Nothing below has been rewritten yet. Do not build on it.
 
 The survey vessel ***Understory*** is alive.
 
@@ -40,6 +51,69 @@ the moss is doing something.
 **She has moods.** Passages close when she decides to thicken them. Fruit appears in places that
 are not agricultural. A crewmate's quarters were colonised by a fungus that hums, and
 everybody agreed it should stay, and the crewmate moved instead.
+
+---
+
+## Ley, and the two ways of using it
+
+**Ley** is the medium. It runs in currents through everything — through stone, through hulls,
+through people — and the six elements are what it is made of. It is not summoned or cast. It is
+simply there, the way weather is there, and like weather it is stronger in some places than others
+and it changes as you travel.
+
+**Ley is heard, not seen.** Everyone who perceives it describes it in the language of sound:
+harmony, pitch, beat, a thing being *in tune* with where it sits. A system that runs well is
+harmonised to the local current. Move the ship into a new lane and everything aboard has to be
+retuned, which is most of what maintenance actually is.
+
+The whale song lanes are ley. That is what the whales are singing along.
+
+### Hearing it
+
+Some people hear ley and some do not, and it has nothing to do with intelligence, training or
+worth.
+
+**The attuned** hear it directly. They tune by ear, feel a structure's harmony with their hands,
+and mostly cannot explain what they are doing. Push an attuned engineer for a procedure and you
+get an irritated shrug.
+
+**The deaf** hear nothing at all, ever, and no amount of practice changes it. Whole worlds are
+deaf — **Earth** is the famous one — and the crew's shorthand is simply *"they hear it"* or
+*"they don't."* It is not an insult in either direction and is asked as casually as handedness.
+
+### What the deaf built
+
+This is the part that made the modern galaxy, and it deserves to be said plainly: **the deaf worlds
+did not lose.**
+
+Unable to perceive ley, they spent centuries mastering everything else — mechanics, electronics,
+metallurgy, mathematics, programming — and then turned all of it on the problem. They built
+instruments that could hear what they could not. Then instruments that could measure it. Then
+machines that could *shape* it.
+
+A **thermomaga array** is the canonical example: a lattice that takes raw ley current and renders it
+as heat, light and power, and does it identically every time on a dial anyone can read.
+**Rematrixing** one is the routine job of retuning its lattice to a new ley environment, and it is
+fiddly, unglamorous and constant.
+
+So there are two complete traditions, and both work:
+
+| | **Attuned** | **Instrumented** |
+|---|---|---|
+| How | by ear, by feel | by instrument, by machine |
+| Best at | subtlety, novelty, things nobody has catalogued | precision, repeatability, scale |
+| Worst at | explaining, teaching, consistency | anything the instrument was not built for |
+| Fails by | having an off day | being out of calibration |
+
+An attuned tuner can harmonise a strange reef nobody has ever surveyed, by ear, in an afternoon,
+and cannot write down how. An instrumented crew can harmonise four hundred identical relays to
+tolerance and will get the same answer at the end of a double shift as at the start. A ship this
+size needs both and has both, and the argument about which is *properly* engineering is the oldest
+and friendliest argument aboard.
+
+There is a third group who barely come into it at all: people whose work does not touch ley in
+either direction. A grafter splicing living wood, a hold-keeper carrying something heavy, a
+physician setting a bone. Craft and hands and years. Nobody has ever thought this needed a name.
 
 ---
 
