@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spacology — world generator</title>
+<style>
+:root{
+  --bg:#12151a; --panel:#1a1f26; --raised:#222831; --line:#2e3742;
+  --ink:#d8dee6; --dim:#8b97a6; --accent:#7FA8C9; --warm:#D4A45C;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace}
+.wrap{max-width:1400px;margin:0 auto;padding:14px}
+h1{font-size:15px;margin:0 0 2px;letter-spacing:.04em}
+.sub{color:var(--dim);font-size:12px;margin:0 0 14px}
+.cols{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
+@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.zl{color:var(--dim);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  margin:14px 0 6px}
+.zl:first-child{margin-top:0}
+label{display:block;margin:8px 0 2px;font-size:12px;color:var(--dim)}
+label b{color:var(--ink);float:right;font-weight:400}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0}
+input[type=text]{width:100%;background:var(--raised);border:1px solid var(--line);
+  color:var(--ink);border-radius:6px;padding:6px 8px;font:inherit}
+select{width:100%;background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:6px;padding:6px 8px;font:inherit}
+button{background:var(--raised);border:1px solid var(--line);color:var(--ink);
+  border-radius:7px;padding:8px 12px;font:inherit;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.pri{background:#26313b;border-color:var(--accent);color:#fff}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+canvas{width:100%;display:block;border-radius:8px;background:#0b0e12;
+  image-rendering:pixelated}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button{padding:5px 10px;font-size:12px}
+.tabs button.on{background:#26313b;border-color:var(--accent)}
+pre{white-space:pre-wrap;word-break:break-word;margin:0;font-size:12px;
+  color:var(--ink);max-height:60vh;overflow:auto}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;font-size:11px;
+  color:var(--dim)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;
+  margin-right:4px;vertical-align:-1px}
+.stat{color:var(--dim);font-size:11px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Spacology — world generator</h1>
+<p class="sub">Terrain from simulation rather than from description. Generate a planet, then read the
+barriers off it and write the peoples to fit.</p>
+
+<div class="cols">
+<div class="panel">
+  <div class="zl">Preset</div>
+  <select id="preset"></select>
+
+  <div class="zl">Seed</div>
+  <input type="text" id="seed" value="orrowan-1">
+
+  <div class="zl">Planet</div>
+  <label>Ocean fraction <b id="vOcean"></b></label>
+  <input type="range" id="rOcean" min="0" max="100" step="1" value="62">
+  <label>Relief — how tall things get <b id="vRelief"></b></label>
+  <input type="range" id="rRelief" min="5" max="100" step="1" value="55">
+  <label>Continent scale <b id="vScale"></b></label>
+  <input type="range" id="rScale" min="10" max="100" step="1" value="45">
+  <label>Tectonic roughness <b id="vRough"></b></label>
+  <input type="range" id="rRough" min="0" max="100" step="1" value="55">
+
+  <div class="zl">Climate</div>
+  <label>Mean temperature <b id="vTemp"></b></label>
+  <input type="range" id="rTemp" min="-30" max="45" step="1" value="14">
+  <label>Axial tilt <b id="vTilt"></b></label>
+  <input type="range" id="rTilt" min="0" max="70" step="1" value="23">
+  <label>Wind bands <b id="vBands"></b></label>
+  <input type="range" id="rBands" min="1" max="7" step="2" value="3">
+  <label>Wind strength <b id="vWind"></b></label>
+  <input type="range" id="rWind" min="0" max="100" step="1" value="50">
+  <label><input type="checkbox" id="cUni" style="width:auto;accent-color:var(--accent)">
+    One-way wind (no reversal anywhere)</label>
+
+  <div class="btns">
+    <button class="pri" id="bGen">Generate</button>
+    <button id="bRand">Random seed</button>
+  </div>
+  <div class="stat" id="stat">—</div>
+</div>
+
+<div class="panel">
+  <div class="tabs">
+    <button data-v="biome" class="on">Biome</button>
+    <button data-v="relief">Relief</button>
+    <button data-v="temp">Temperature</button>
+    <button data-v="rain">Rainfall</button>
+    <button data-v="wind">Wind</button>
+    <button data-v="regions">Habitable regions</button>
+    <button data-v="report">Report</button>
+  </div>
+  <canvas id="cv" width="640" height="320"></canvas>
+  <div class="legend" id="legend"></div>
+  <pre id="report" style="display:none"></pre>
+</div>
+</div>
+</div>
+
+<script>
+'use strict';
+
+/* ============================================================ noise ==== */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+function hashSeed(s){let h=2166136261;for(let i=0;i<s.length;i++){
+  h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+/* Classic 3D Perlin with a seeded permutation. Sampled on the unit sphere so
+   there is no seam at the antimeridian and no pinching at the poles. */
+function makeNoise(seed){
+  const rnd=mulberry32(seed), p=new Uint8Array(512), perm=[];
+  for(let i=0;i<256;i++)perm[i]=i;
+  for(let i=255;i>0;i--){const j=(rnd()*(i+1))|0;const t=perm[i];perm[i]=perm[j];perm[j]=t}
+  for(let i=0;i<512;i++)p[i]=perm[i&255];
+  const fade=t=>t*t*t*(t*(t*6-15)+10);
+  const lerp=(a,b,t)=>a+t*(b-a);
+  function grad(h,x,y,z){
+    const u=h<8?x:y, v=h<4?y:(h===12||h===14?x:z);
+    return((h&1)?-u:u)+((h&2)?-v:v);
+  }
+  return function(x,y,z){
+    const X=Math.floor(x)&255,Y=Math.floor(y)&255,Z=Math.floor(z)&255;
+    x-=Math.floor(x);y-=Math.floor(y);z-=Math.floor(z);
+    const u=fade(x),v=fade(y),w=fade(z);
+    const A=p[X]+Y,AA=p[A]+Z,AB=p[A+1]+Z,B=p[X+1]+Y,BA=p[B]+Z,BB=p[B+1]+Z;
+    return lerp(
+      lerp(lerp(grad(p[AA],x,y,z),      grad(p[BA],x-1,y,z),u),
+           lerp(grad(p[AB],x,y-1,z),    grad(p[BB],x-1,y-1,z),u),v),
+      lerp(lerp(grad(p[AA+1],x,y,z-1),  grad(p[BA+1],x-1,y,z-1),u),
+           lerp(grad(p[AB+1],x,y-1,z-1),grad(p[BB+1],x-1,y-1,z-1),u),v),w);
+  };
+}
+function fbm(n,x,y,z,oct,lac,gain){
+  let a=1,f=1,s=0,norm=0;
+  for(let i=0;i<oct;i++){s+=a*n(x*f,y*f,z*f);norm+=a;a*=gain;f*=lac}
+  return s/norm;
+}
+function ridged(n,x,y,z,oct,lac,gain){
+  let a=1,f=1,s=0,norm=0;
+  for(let i=0;i<oct;i++){s+=a*(1-Math.abs(n(x*f,y*f,z*f)));norm+=a;a*=gain;f*=lac}
+  return s/norm;
+}
+
+/* ============================================================ biomes ==== */
+/* [name, colour, habitable?]  Habitability drives the region/barrier analysis. */
+const BIOME={
+  ocean:      ['ocean',        '#1b3a52',0],
+  shallow:    ['shelf sea',    '#24536f',0],
+  ice:        ['ice',          '#d8e4ec',0],
+  polar:      ['polar desert', '#c3ccd4',0],
+  tundra:     ['tundra',       '#7d8b7a',1],
+  taiga:      ['taiga',        '#3f5d46',1],
+  temperate:  ['temperate forest','#4a7a4e',1],
+  grass:      ['grassland',    '#8a9a5b',1],
+  steppe:     ['steppe',       '#9c9464',1],
+  desert:     ['desert',       '#c2a878',1],
+  savanna:    ['savanna',      '#a8a054',1],
+  seasonal:   ['seasonal forest','#5d8a4a',1],
+  rain:       ['rainforest',   '#2f6b3a',1],
+  wetland:    ['wetland',      '#5a7a63',1],
+  alpine:     ['alpine',       '#8a8f96',0],
+  peak:       ['bare rock',    '#b9bec6',0],
+};
+
+function classify(el,sea,t,m){
+  if(el<sea) return (sea-el<0.06)?'shallow':'ocean';
+  const h=(el-sea)/(1-sea);              // 0..1 above sea level
+  if(h>0.86) return 'peak';
+  if(h>0.70) return 'alpine';
+  if(t<-14)  return 'ice';
+  if(t<-6)   return m<0.18?'polar':'ice';
+  if(t<1)    return 'tundra';
+  if(t<6)    return m>0.35?'taiga':'tundra';
+  if(m<0.16) return 'desert';
+  if(t>23){
+    if(m>0.72) return 'rain';
+    if(m>0.42) return 'seasonal';
+    if(m>0.24) return 'savanna';
+    return 'desert';
+  }
+  if(m>0.80 && h<0.10) return 'wetland';
+  if(m>0.50) return 'temperate';
+  if(m>0.30) return 'grass';
+  return 'steppe';
+}
+
+/* ============================================================ world ==== */
+const W=640,H=320;
+let world=null;
+
+function generate(cfg){
+  const t0=performance.now();
+  const seed=hashSeed(cfg.seed);
+  const nCont=makeNoise(seed), nDet=makeNoise(seed^0x9e37), nRidge=makeNoise(seed^0x85eb);
+  const N=W*H;
+  const el=new Float32Array(N), temp=new Float32Array(N), moist=new Float32Array(N);
+  const windU=new Float32Array(H);          // per-row zonal wind, +1 east / -1 west
+  const biome=new Array(N);
+
+  // ---- elevation --------------------------------------------------------
+  const cScale=0.6+ (100-cfg.scale)/100*3.2;   // bigger slider = bigger continents
+  const rough=cfg.rough/100;
+  let lo=Infinity, hi=-Infinity;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI;          // +pi/2 .. -pi/2
+    const cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const lon=((x+0.5)/W)*2*Math.PI;
+      const px=cl*Math.cos(lon), py=cl*Math.sin(lon), pz=sl;
+      const c=fbm(nCont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
+      const d=fbm(nDet,px*cScale*4,py*cScale*4,pz*cScale*4,5,2.0,0.5);
+      // ridges gated to where the continental field is steep-ish — fake plate edges
+      const gate=Math.max(0,1-Math.abs(c)*2.2);
+      const r=ridged(nRidge,px*cScale*3,py*cScale*3,pz*cScale*3,5,2.1,0.55);
+      let v=c*0.62 + d*0.22 + r*gate*rough*0.9;
+      el[y*W+x]=v;
+      if(v<lo)lo=v; if(v>hi)hi=v;
+    }
+  }
+  for(let i=0;i<N;i++) el[i]=(el[i]-lo)/(hi-lo);
+
+  // sea level chosen so the ocean fraction is exactly what was asked for
+  const sorted=Float32Array.from(el).sort();
+  const sea=sorted[Math.min(N-1,Math.max(0,Math.floor(cfg.ocean/100*N)))];
+
+  // apply relief: compress or exaggerate land above sea level
+  const reliefK=0.25+cfg.relief/100*1.75;
+  for(let i=0;i<N;i++){
+    if(el[i]>sea){
+      const h=(el[i]-sea)/(1-sea);
+      el[i]=sea+Math.pow(h,1/reliefK)*(1-sea);
+    }
+  }
+
+  // ---- wind bands -------------------------------------------------------
+  const bands=cfg.bands, strength=cfg.wind/100;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*180;                  // +90..-90
+    if(cfg.uni){ windU[y]=1; continue; }
+    const band=Math.floor(Math.abs(lat)/(90/bands));
+    windU[y]=(band%2===0)?-1:1;                     // alternating easterly/westerly
+  }
+
+  // ---- temperature ------------------------------------------------------
+  const tiltWiden=1+cfg.tilt/110;      // tilt widens the tropics
+  const SPREAD=44;                     // pole-to-equator range, degrees C
+  for(let y=0;y<H;y++){
+    const lat=Math.abs((0.5-(y+0.5)/H)*180);
+    const band=Math.pow(Math.cos(Math.min(89.9,lat/tiltWiden)*Math.PI/180),1.25);
+    for(let x=0;x<W;x++){
+      const i=y*W+x;
+      const alt=Math.max(0,(el[i]-sea)/(1-sea));
+      temp[i]=cfg.temp + (band-0.5)*SPREAD - alt*28;   // lapse rate on altitude
+    }
+  }
+
+  // ---- moisture: advect along the wind, orographic loss on climbs -------
+  const oro=3+strength*9;
+  for(let y=0;y<H;y++){
+    const dir=windU[y]>=0?1:-1;
+    const lat=Math.abs((0.5-(y+0.5)/H)*180);
+    // intertropical convergence: heavy rain near the thermal equator,
+    // subtropical highs near 25-30 degrees, a second wet band at the fronts
+    const itcz=Math.exp(-Math.pow(lat/13,2))*0.55
+              - Math.exp(-Math.pow((lat-27)/11,2))*0.30
+              + Math.exp(-Math.pow((lat-52)/13,2))*0.18;
+    let m=0.6;
+    for(let pass=0;pass<3;pass++){        // three passes so wrap-around settles
+      for(let k=0;k<W;k++){
+        const x=dir>0 ? k : (W-1-k);
+        const i=y*W+x;
+        const px=(x-dir+W)%W, prev=el[y*W+px];
+        let precip;
+        if(el[i]<sea){
+          const warm=Math.max(0,Math.min(1,(temp[i]+12)/42));
+          m=Math.min(1.35, m+(1.35-m)*0.11*warm+0.015);   // evaporate
+          precip=0.55*warm;
+        }else{
+          const climb=Math.max(0,el[i]-prev)*oro;
+          precip=m*(0.055+climb*6);
+          if(precip>m*0.9) precip=m*0.9;
+          m-=precip;
+          m+=(1.0-m)*0.007;                                // land evapotranspiration
+          if(m<0) m=0;
+        }
+        if(pass===2) moist[i]=Math.max(0,precip+itcz*0.5*(el[i]>=sea?1:0.4));
+      }
+    }
+  }
+  // normalise precipitation over land, then smooth to kill speckle
+  const lv=[]; for(let i=0;i<N;i++) if(el[i]>=sea) lv.push(moist[i]);
+  lv.sort((a,b)=>a-b);
+  const p88=lv.length?lv[Math.floor(lv.length*0.88)]:1;
+  if(p88>0) for(let i=0;i<N;i++) moist[i]=Math.min(1,moist[i]/p88);
+  const sm=new Float32Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    let a=0,c=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      const ny=y+dy; if(ny<0||ny>=H)continue;
+      a+=moist[ny*W+((x+dx+W)%W)]; c++;
+    }
+    sm[y*W+x]=a/c;
+  }
+  moist.set(sm);
+
+  // ---- rivers -----------------------------------------------------------
+  const order=[]; for(let i=0;i<N;i++) if(el[i]>=sea) order.push(i);
+  order.sort((a,b)=>el[b]-el[a]);
+  const flow=new Float32Array(N), down=new Int32Array(N).fill(-1);
+  for(const i of order){
+    const x=i%W, y=(i/W)|0;
+    let best=-1,bv=el[i];
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+      if(!dx&&!dy)continue;
+      const ny=y+dy; if(ny<0||ny>=H)continue;
+      const nx=(x+dx+W)%W, j=ny*W+nx;
+      if(el[j]<bv){bv=el[j];best=j}
+    }
+    down[i]=best;
+  }
+  for(const i of order){
+    flow[i]+=Math.max(0.05,moist[i]);
+    if(down[i]>=0) flow[down[i]]+=flow[i];
+  }
+  let fmax=0; for(let i=0;i<N;i++) if(el[i]>=sea&&flow[i]>fmax)fmax=flow[i];
+
+  // ---- biomes -----------------------------------------------------------
+  for(let i=0;i<N;i++) biome[i]=classify(el[i],sea,temp[i],moist[i]);
+
+  world={cfg,el,sea,temp,moist,biome,flow,fmax,windU,down,
+         ms:Math.round(performance.now()-t0)};
+  analyse();
+  return world;
+}
+
+/* Coarse climate class. Flood-filling on THIS rather than on habitability is
+   what splits a continent into the provinces that actually divide cultures —
+   a temperate north, an arid middle and a wet south are three peoples, not one. */
+const CLASS={ice:'cold',polar:'cold',tundra:'cold',taiga:'cold',
+  temperate:'temperate',grass:'temperate',steppe:'temperate',
+  desert:'dry',
+  savanna:'warm',seasonal:'warm',rain:'warm',wetland:'warm',
+  alpine:'high',peak:'high',ocean:null,shallow:null};
+const CLASSNAME={cold:'cold',temperate:'temperate',dry:'arid',warm:'warm',high:'highland'};
+
+/* ================================================= regions & barriers ==== */
+function analyse(){
+  const {el,sea,biome}=world, N=W*H;
+  let landCells=0;
+  const cls=new Array(N);
+  for(let i=0;i<N;i++){ cls[i]=CLASS[biome[i]]; if(el[i]>=sea) landCells++; }
+  const minCells=Math.max(60,Math.round(landCells*0.02));
+  let rejected=0;
+
+  // flood fill by CLIMATE CLASS (4-connected, wrapping in x)
+  const reg=new Int32Array(N).fill(-1); const regions=[];
+  for(let s=0;s<N;s++){
+    if(!cls[s]||reg[s]>=0)continue;
+    const c=cls[s], id=regions.length, cells=[], stack=[s]; reg[s]=id;
+    while(stack.length){
+      const i=stack.pop(); cells.push(i);
+      const x=i%W,y=(i/W)|0;
+      const nb=[[(x+1)%W,y],[(x-1+W)%W,y],[x,y-1],[x,y+1]];
+      for(const [nx,ny] of nb){
+        if(ny<0||ny>=H)continue;
+        const j=ny*W+nx;
+        if(cls[j]===c&&reg[j]<0){reg[j]=id;stack.push(j)}
+      }
+    }
+    if(cells.length<minCells||c==='high'){ rejected++; continue; }
+    regions.push({id,cells,cls:c});
+  }
+  // rebuild ids after filtering
+  regions.forEach((r,i)=>{r.id=i; for(const c of r.cells) reg[c]=i});
+  for(let i=0;i<N;i++) if(reg[i]>=0 && reg[i]>=regions.length) reg[i]=-1;
+
+  // per-region stats
+  const kmPerCell=(4*Math.PI*6371*6371)/N;   // rough, Earth-sized
+  for(const r of regions){
+    let tsum=0,msum=0,minY=H,maxY=0,cx=0,cy=0;
+    const counts={};
+    for(const i of r.cells){
+      tsum+=world.temp[i]; msum+=world.moist[i];
+      const y=(i/W)|0, x=i%W;
+      if(y<minY)minY=y; if(y>maxY)maxY=y; cy+=y; cx+=x;
+      counts[world.biome[i]]=(counts[world.biome[i]]||0)+1;
+    }
+    const n=r.cells.length;
+    r.area=Math.round(n*kmPerCell);
+    r.meanT=tsum/n; r.meanM=msum/n;
+    r.cx=cx/n; r.cy=cy/n;
+    r.latN=Math.round((0.5-minY/H)*180), r.latS=Math.round((0.5-maxY/H)*180);
+    r.dominant=Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
+    r.className=CLASSNAME[r.cls]||r.cls;
+    r.mix=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).slice(0,3)
+           .map(k=>`${BIOME[k][0]} ${Math.round(counts[k]/n*100)}%`);
+  }
+  regions.sort((a,b)=>b.area-a.area);
+  regions.forEach((r,i)=>r.rank=i+1);
+
+  // barriers: sample the straight line between region centroids, classify
+  const barriers=[];
+  for(let a=0;a<Math.min(regions.length,9);a++){
+    for(let b=a+1;b<Math.min(regions.length,9);b++){
+      const A=regions[a],B=regions[b];
+      let dx=B.cx-A.cx; if(dx>W/2)dx-=W; if(dx<-W/2)dx+=W;
+      const dy=B.cy-A.cy, dist=Math.hypot(dx,dy);
+      if(dist>W*0.42) continue;                    // too far to be neighbours
+      const steps=Math.max(8,Math.round(dist));
+      const tally={ocean:0,mountain:0,desert:0,ice:0,wetland:0,other:0};
+      let peak=0, deepest=0;
+      for(let s=1;s<steps;s++){
+        const t=s/steps;
+        const x=Math.round((A.cx+dx*t+W)%W), y=Math.round(A.cy+dy*t);
+        if(y<0||y>=H)continue;
+        const i=y*W+x, bm=world.biome[i];
+        if(bm==='ocean'||bm==='shallow'){tally.ocean++; deepest=Math.max(deepest,world.sea-world.el[i])}
+        else if(bm==='peak'||bm==='alpine'){tally.mountain++; peak=Math.max(peak,world.el[i])}
+        else if(bm==='desert'){tally.desert++}
+        else if(bm==='ice'){tally.ice++}
+        else if(bm==='wetland'){tally.wetland++}
+        else tally.other++;
+      }
+      const total=steps-1;
+      const main=Object.keys(tally).sort((k,j)=>tally[j]-tally[k])[0];
+      if(main==='other'||tally[main]/total<0.3) continue;
+      const km=Math.round(dist*(40075/W));
+      let desc;
+      if(main==='ocean')    desc=`${km} km of open water`;
+      else if(main==='mountain') desc=`a range peaking near ${Math.round((peak-world.sea)/(1-world.sea)*8000)} m`;
+      else if(main==='desert')   desc=`${km} km of desert`;
+      else if(main==='ice')      desc=`${km} km of permanent ice`;
+      else desc=`${km} km of wetland`;
+      barriers.push({a:A.rank,b:B.rank,kind:main,km,desc,
+        share:Math.round(tally[main]/total*100)});
+    }
+  }
+  barriers.sort((x,y)=>x.km-y.km);
+  world.regions=regions; world.reg=reg; world.barriers=barriers;
+  world.rejected=rejected; world.minCells=minCells;
+}
+
+/* ============================================================ render ==== */
+let view='biome';
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+
+function ramp(v,stops){
+  v=Math.max(0,Math.min(1,v));
+  const n=stops.length-1, i=Math.min(n-1,Math.floor(v*n)), t=v*n-i;
+  const a=stops[i],b=stops[i+1];
+  return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+}
+const hex=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+
+function draw(){
+  if(!world)return;
+  const {el,sea,temp,moist,biome,flow,fmax,reg,regions}=world;
+  const img=ctx.createImageData(W,H), d=img.data;
+  const REGC=['#7FA8C9','#D4A45C','#8FB878','#C97F9E','#8F8FC9','#A89070',
+              '#6fb3a8','#c98f6f','#9ab36f'];
+  for(let i=0;i<W*H;i++){
+    let r,g,b;
+    if(view==='biome'||view==='regions'){
+      [r,g,b]=hex(BIOME[biome[i]][1]);
+      if(el[i]>=sea){                                  // hillshade
+        const x=i%W,y=(i/W)|0;
+        const l=el[(y*W)+((x-1+W)%W)], rr=el[(y*W)+((x+1)%W)];
+        const u=el[Math.max(0,y-1)*W+x], dn=el[Math.min(H-1,y+1)*W+x];
+        const sh=1+((l-rr)*2.2+(u-dn)*1.4)*6;
+        r*=sh;g*=sh;b*=sh;
+      }
+      if(view==='regions'){
+        if(reg[i]>=0){const c=hex(REGC[reg[i]%REGC.length]);
+          r=(r+c[0]*2)/3;g=(g+c[1]*2)/3;b=(b+c[2]*2)/3}
+        else {r*=0.35;g*=0.35;b*=0.35}
+      }
+      if(el[i]>=sea && flow[i]>fmax*0.012){            // rivers
+        const t=Math.min(1,flow[i]/(fmax*0.18));
+        r=r*(1-t*0.8)+36*t*0.8; g=g*(1-t*0.8)+90*t*0.8; b=b*(1-t*0.8)+130*t*0.8;
+      }
+    } else if(view==='relief'){
+      if(el[i]<sea){const t=el[i]/sea; [r,g,b]=ramp(t,[[8,18,30],[30,70,100]])}
+      else {const t=(el[i]-sea)/(1-sea);
+        [r,g,b]=ramp(t,[[60,90,60],[150,140,90],[190,190,190],[255,255,255]])}
+    } else if(view==='temp'){
+      [r,g,b]=ramp((temp[i]+30)/70,[[40,60,140],[70,140,190],[230,230,160],[220,120,60],[170,40,40]]);
+    } else if(view==='rain'){
+      [r,g,b]=ramp(moist[i],[[190,160,110],[200,200,140],[90,160,110],[30,90,140]]);
+    } else if(view==='wind'){
+      const y=(i/W)|0, u=world.windU[y];
+      [r,g,b]= u>=0?[70,120,170]:[170,110,70];
+      if(el[i]<sea){r*=0.55;g*=0.55;b*=0.55}
+    }
+    const o=i*4; d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);
+  legend();
+}
+
+function legend(){
+  const L=document.getElementById('legend');
+  if(view==='biome'){
+    L.innerHTML=Object.keys(BIOME).map(k=>
+      `<span><i style="background:${BIOME[k][1]}"></i>${BIOME[k][0]}</span>`).join('');
+  } else if(view==='regions'){
+    L.innerHTML=world.regions.slice(0,9).map(r=>
+      `<span><i style="background:${BIOME[r.dominant][1]}"></i>#${r.rank} `+
+      `${r.className} · ${BIOME[r.dominant][0]} · ${r.area.toLocaleString()} km²</span>`).join('');
+  } else L.innerHTML='';
+}
+
+/* ============================================================ report ==== */
+function report(){
+  const w=world, R=w.regions, B=w.barriers;
+  const land=w.el.reduce((a,v)=>a+(v>=w.sea?1:0),0)/(W*H);
+  const counts={}; for(const b of w.biome) counts[b]=(counts[b]||0)+1;
+  const L=[];
+  L.push(`SEED  ${w.cfg.seed}`);
+  L.push(`ocean ${Math.round((1-land)*100)}%   relief ${w.cfg.relief}   `+
+         `mean temp ${w.cfg.temp}C   tilt ${w.cfg.tilt}deg   `+
+         `wind ${w.cfg.uni?'one-way':w.cfg.bands+' bands'}   (${w.ms}ms)`);
+  L.push('');
+  L.push('CLIMATE MIX');
+  Object.keys(counts).sort((a,b)=>counts[b]-counts[a]).forEach(k=>{
+    const pc=counts[k]/(W*H)*100;
+    if(pc>0.4) L.push(`  ${BIOME[k][0].padEnd(18)} ${pc.toFixed(1).padStart(5)}%`);
+  });
+  L.push('');
+  L.push(`CLIMATE PROVINCES — ${R.length} large enough to matter `+
+         `(${w.rejected} smaller dropped)`);
+  L.push('Contiguous ground of one climate class. Each is a candidate homeland. Two provinces');
+  L.push('on one landmass are as divided as two on separate continents if what lies between');
+  L.push('them is hard enough to cross.');
+  L.push('');
+  R.slice(0,9).forEach(r=>{
+    L.push(`  #${r.rank}  ${r.className.toUpperCase().padEnd(10)} `+
+           `${r.area.toLocaleString()} km²   lat ${r.latS} to ${r.latN}`);
+    L.push(`      ${r.mix.join(' · ')}`);
+    L.push(`      mean ${r.meanT.toFixed(1)}C, rainfall ${(r.meanM*100).toFixed(0)}/100`);
+  });
+  L.push('');
+  L.push('BARRIERS — what separates whom');
+  L.push('This is the input for culture. Two regions divided by 900 km of open water develop');
+  L.push('differently from two divided by a range you can walk over in summer.');
+  L.push('');
+  if(!B.length) L.push('  (none found — regions are contiguous or too far apart to compare)');
+  B.slice(0,14).forEach(b=>{
+    L.push(`  #${b.a} | #${b.b}   ${b.desc}   (${b.share}% of the crossing)`);
+  });
+  L.push('');
+  L.push('PROMPTS THIS MAP RAISES');
+  const qs=[];
+  if(B.some(b=>b.kind==='ocean'))
+    qs.push('Who crosses the water, and who decided it was not worth it?');
+  if(B.some(b=>b.kind==='mountain'))
+    qs.push('The range has passes. Who holds them and what do they charge?');
+  if(B.some(b=>b.kind==='desert'))
+    qs.push('Somebody crosses the desert for a reason. What is worth that?');
+  if(R.length>=4)
+    qs.push(`${R.length} habitable regions and you need ${Math.min(R.length,5)} peoples — which regions merged, and why?`);
+  if(R[0]&&R[1]&&R[0].area>R[1].area*3)
+    qs.push(`Region #1 is ${Math.round(R[0].area/R[1].area)}x the size of #2. That asymmetry is a history.`);
+  const dryish=Object.keys(counts).filter(k=>k==='desert'||k==='steppe')
+    .reduce((a,k)=>a+counts[k],0)/(W*H);
+  if(dryish>0.18) qs.push('This world is dry. Water rights are the whole of its law.');
+  qs.forEach(q=>L.push('  - '+q));
+  document.getElementById('report').textContent=L.join('\n');
+}
+
+/* ============================================================== ui ===== */
+const PRESETS={
+  'Orrowan V — shelf, scarp, delta':
+    {seed:'orrowan',ocean:62,relief:62,scale:45,rough:62,temp:9,tilt:23,bands:3,wind:55,uni:false},
+  'Sindal II — low relief, braided ley':
+    {seed:'sindal',ocean:45,relief:18,scale:22,rough:20,temp:16,tilt:14,bands:3,wind:40,uni:false},
+  'Tessine IX — one-way wind, 2/3 g':
+    {seed:'tessine',ocean:52,relief:88,scale:55,rough:85,temp:11,tilt:8,bands:1,wind:95,uni:true},
+  'Ombrea V — flat, wet, rotting':
+    {seed:'ombrea',ocean:58,relief:6,scale:35,rough:10,temp:25,tilt:6,bands:3,wind:30,uni:false},
+  'Belune III — funnel shelf sea, huge tides':
+    {seed:'belune',ocean:72,relief:38,scale:50,rough:45,temp:13,tilt:28,bands:3,wind:60,uni:false},
+  'Ranohe II — flood basalt staircase':
+    {seed:'ranohe',ocean:58,relief:70,scale:60,rough:30,temp:15,tilt:20,bands:3,wind:45,uni:false},
+  'Iseul III — dim red dwarf':
+    {seed:'iseul',ocean:50,relief:45,scale:40,rough:50,temp:6,tilt:2,bands:1,wind:25,uni:false},
+  'Tannhul VI — 2.4 g, rivers are roads':
+    {seed:'tannhul',ocean:48,relief:30,scale:70,rough:70,temp:12,tilt:26,bands:5,wind:70,uni:false},
+  'Casran Deep — ocean world':
+    {seed:'casran',ocean:97,relief:50,scale:40,rough:55,temp:14,tilt:18,bands:3,wind:55,uni:false},
+  'Vantage — pre-city terrain':
+    {seed:'vantage',ocean:60,relief:55,scale:38,rough:50,temp:17,tilt:22,bands:3,wind:50,uni:false},
+};
+
+const $=id=>document.getElementById(id);
+const sel=$('preset');
+Object.keys(PRESETS).forEach(k=>{const o=document.createElement('option');
+  o.textContent=k;sel.appendChild(o)});
+
+function readCfg(){
+  return {seed:$('seed').value||'x', ocean:+$('rOcean').value, relief:+$('rRelief').value,
+    scale:+$('rScale').value, rough:+$('rRough').value, temp:+$('rTemp').value,
+    tilt:+$('rTilt').value, bands:+$('rBands').value, wind:+$('rWind').value,
+    uni:$('cUni').checked};
+}
+function syncLabels(){
+  $('vOcean').textContent=$('rOcean').value+'%';
+  $('vRelief').textContent=$('rRelief').value;
+  $('vScale').textContent=$('rScale').value;
+  $('vRough').textContent=$('rRough').value;
+  $('vTemp').textContent=$('rTemp').value+'C';
+  $('vTilt').textContent=$('rTilt').value+'°';
+  $('vBands').textContent=$('rBands').value;
+  $('vWind').textContent=$('rWind').value;
+}
+function applyPreset(name){
+  const p=PRESETS[name]; if(!p)return;
+  $('seed').value=p.seed; $('rOcean').value=p.ocean; $('rRelief').value=p.relief;
+  $('rScale').value=p.scale; $('rRough').value=p.rough; $('rTemp').value=p.temp;
+  $('rTilt').value=p.tilt; $('rBands').value=p.bands; $('rWind').value=p.wind;
+  $('cUni').checked=p.uni;
+  syncLabels();
+}
+function run(){
+  generate(readCfg());
+  draw(); report();
+  $('stat').textContent=
+    `${world.regions.length} provinces · ${world.barriers.length} barriers · ${world.ms} ms`;
+}
+
+sel.onchange=()=>{applyPreset(sel.value);run()};
+['rOcean','rRelief','rScale','rRough','rTemp','rTilt','rBands','rWind']
+  .forEach(id=>$(id).oninput=syncLabels);
+$('bGen').onclick=run;
+$('bRand').onclick=()=>{
+  $('seed').value=Math.random().toString(36).slice(2,9); run();
+};
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); view=b.dataset.v;
+  const isRep=view==='report';
+  cv.style.display=isRep?'none':'block';
+  $('report').style.display=isRep?'block':'none';
+  $('legend').style.display=isRep?'none':'flex';
+  if(!isRep) draw();
+});
+
+applyPreset(Object.keys(PRESETS)[0]);
+syncLabels();
+run();
+</script>
+</body>
+</html>
