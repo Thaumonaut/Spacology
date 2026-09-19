@@ -126,10 +126,12 @@ into fun, and shows no sign of doing so, and that is the point of including it.
 
 ### **Ilka Voressen** — hull systems engineer · *order* · (was Wex)
 
-*Verekh III — orbital shipyards*
+**Feline** · Verekh III — orbital shipyards
 
-Pale, freckled across the nose and shoulders, with grey hair cropped short at thirty-four — it went
-early and she refuses to discuss it. Short and square-built, forearms like a rock climber's. Same
+Short, square-built and grey-furred, gone silver early around the muzzle at thirty-four, which she
+refuses to discuss. Forearms like a rock climber's. Her ears are the working part of her: she taps
+the hull and *listens*, and a feline can place a sound in three dimensions through a bulkhead, which
+is how a mana-deaf woman became the best structural diagnostician aboard. Same
 patched work coat every day; three people have tried to replace it and all three failed.
 
 The hull is alive and closes her own wounds given encouragement, and Ilka is the encouragement. She
@@ -159,15 +161,20 @@ at her.
 
 ### **Reva Sokolovna** — field operations supervisor · *chaos* · (was Tarn)
 
-*Belune III*
+**Bird folk** · Belune III
 
-Small and wiry, dark curls she cuts herself badly, a nose broken twice, forearms mapped with thin
-silver scars she cannot account for individually. Moves faster than anyone expects and is always
+Small and light-boned, feathered in dark barred greys she keeps badly trimmed, forearms mapped with
+thin silver scars she cannot account for individually. Moves faster than anyone expects and is always
 slightly out of breath.
 
 What she wears into a fight is catalogue entry 0041 — the display carapace of a reef animal from a
 reef that is no longer there. Iridescent, green to violet as she turns, the last one anywhere, and
 **it is not armour.** It was grown to be looked at.
+
+She steps in front of things. That is the entirety of her tactical philosophy and she is
+unembarrassed by it. She is not durable — she is bird folk, her bones are hollow, and the shell does
+nothing — but a thing hitting Reva is not hitting anybody else, and whatever hits her gets hurt
+doing it.
 
 She has cracked it six times. She repairs it herself at the mess table with a tube of resin and
 enormous concentration, and the unspoken rule is that you do not offer to help, because she gets
@@ -189,7 +196,7 @@ cannot stand the idea of the last of something sitting in a drawer.
 
 ### **Tomás Iriarte** — biotic structures engineer · *growth* · (was Ferrule)
 
-*Orrowan V*
+**Human** · Orrowan V
 
 Broad and weathered, fifty-odd, grey-streaked beard he keeps meaning to deal with, hands stained
 permanently amber with sap. Sawdust in everything he owns. A laugh you can hear two galleries away.
@@ -215,10 +222,11 @@ had to sit with him and explain, kindly, that this was a problem.
 
 ### **Ojo Mbeki** — specimen containment engineer · *growth* · (was Ballast)
 
-*Tannhul VI — high gravity*
+**Rock skin** · Tannhul VI — high gravity
 
-A head taller than anyone and built to a different specification: very dark skin, close-shaved
-head, the unhurried heaviness of a man raised where sudden movement is punished. A wide calm face
+A head taller than anyone and built to a different specification: rock skin in deep basalt tones,
+banded at the forearms with the pale grey of somewhere cold he worked for two years and will not
+discuss, and the unhurried heaviness of a man raised where sudden movement is punished. A wide calm face
 that gives nothing away.
 
 During the Kessa venting, with the grove decompressing and the order given, Ojo refused to leave
@@ -246,15 +254,19 @@ pretends not to have noticed, and carried Ekene to the medical hollow when nobod
 
 ### **Dr. Stella Anuye** — lead, xenobiochemistry · *decay* · (was Ash)
 
-*Utora VII*
+**Oni**, raised Utoran · Utora VII
 
-Deep brown skin and long braided hair worn the Utoran way — family on one side, discipline on the
-other, rebraided whenever either changes. Hers have been redone twice since she made lead and she is
+Oni, raised Utoran, and she carries both plainly: deep brown skin, a heavy frame, two short
+backswept horns, and long braided hair worked around them in the Utoran way — family on one side,
+discipline on the other, rebraided whenever either changes. Hers have been redone twice since she made lead and she is
 quietly, visibly pleased about both. Tall and unhurried, with the habit of finishing your sentence
 correctly and then waiting for you to catch up.
 
-She runs eleven people and the single largest claim on the catalogue. She made lead at thirty-nine,
-the youngest anyone has, and she has not put a foot wrong since, which is its own kind of problem.
+**She is also mana-deaf, which for an oni is close to unheard of.** Oni horns conduct; most of her
+people hear mana whether they want to or not. Stella hears nothing, never has, and built an entire
+career on the instrumented tradition because it was the only door open to her. She runs eleven people
+and the largest single claim on the catalogue, made lead at thirty-nine — the youngest anyone has —
+and has not put a foot wrong since, which is its own kind of problem.
 
 Her method is reagent mist: release it into a reef interior, let the atmosphere do the mixing, read
 what comes back. An hour instead of a week. It also permanently alters everything within a
@@ -276,10 +288,15 @@ about everything else, and she has stopped noticing the difference between *nece
 
 ### **Nour Bediako** — mana systems engineer, core · *chaos* · (was Cinder)
 
-*Sindal II*
+**Mana dweller** · Sindal II
 
-Lean and restless, head shaved at the sides, pale burn-ladders up both forearms from reaching into
-the bloom before it settled. Rings on every finger. Never sits all the way down in a chair.
+Lean and restless, a mana dweller, faintly luminous under the skin in a way that worsens near the
+core and never photographs properly. Head shaved at the sides, rings on every finger, pale
+burn-ladders up both forearms from reaching into the bloom before it settled. Never sits all the way
+down in a chair.
+
+The heartwood is the strongest current aboard, and a mana dweller does not merely work in a current
+— they are *in* it. Eleven years of that has cost them something nobody has measured.
 
 **Nour flooded the mess.** Went in to clear an overgrowth choking the heartwood feed, cut the wrong
 root, and put coolant down the third-deck stair at dinner. Knee-deep. Warm and clean and
@@ -305,7 +322,7 @@ this and would deny it under oath.
 
 ### **Dolores Achterberg** — head of access engineering · *chaos* · (was Pyre)
 
-*Calyx IV*
+**Human** · Calyx IV
 
 Small, round, sixty-one, silver bob, reading glasses on a cord. She looks like somebody's extremely
 competent aunt and is in fact the person who opens moons.
@@ -334,10 +351,12 @@ technical.
 
 ### **Dr. Abike Sunmonu** — decomposition ecology · *growth* · (was Sump)
 
-*Ombrea V*
+**Amphibioid** · Ombrea V
 
-Tall and angular, locs tied back out of the way, permanently faintly damp — she works the seeps and
-does not entirely dry out between shifts, and you can tell which chair she has been in. Soil under
+Tall and angular, amphibioid, smooth-skinned and cool to the touch with webbed fingers and a faint
+iridescence up the forearms. Locs tied back out of the way. Permanently faintly damp — she works the
+seeps, swims the watercourses between decks rather than walking them, and you can always tell which
+chair she has been in. Soil under
 the nails, always. A slow delighted smile that arrives about a second late.
 
 The first person to mispronounce Sunmonu did it within a day of her boarding, and Abike — who
@@ -367,10 +386,12 @@ is not a threat to her. It is an obscenity.
 
 ### **Aurel Cosma** — helm officer · *energy* · (was Vane)
 
-*Tessine IX*
+**Angel** · Tessine IX
 
-Sharp-featured and long-limbed, black hair tied back badly, hands that never stop moving while he
-talks. Handsome in a way he is entirely aware of. Forty-one, and dresses like a man with somewhere
+Sharp-featured and long-limbed, black hair tied back badly, luminous-eyed and winged — which means
+he flies on the inner decks, walks like everybody else on the outer rings, and has arranged a
+remarkable amount of his life around being seen on the inner decks. Handsome in a way he is entirely
+aware of. Forty-one, and dresses like a man with somewhere
 better to be.
 
 He reads a fight better than anyone aboard. From the first exchange he can tell you how it goes,
@@ -396,10 +417,12 @@ has not said.
 
 ### **Imke Rask** — unplaced · *energy* · (called Nettle)
 
-*origin unrecorded*
+**Canid** · origin unrecorded
 
-Eighteen or nineteen, small, all elbows, reddish hair hacked off at the jaw, and a sunburn she
-should not be able to get indoors. Three jackets, none of them hers. Moves like a bird that has
+Eighteen or nineteen, small, all elbows, canid, with a reddish coat she keeps hacking at herself and
+a tail that broadcasts her entire interior life to anybody in the room. She has no idea it does
+this. Everyone else has known exactly how she feels about everything since the day she arrived.
+Three jackets, none of them hers, all with the tail-hole in slightly the wrong place. Moves like a bird that has
 just heard something.
 
 Her posting was never agreed. She boarded eleven months ago on a berth reassigned in transit, her
@@ -429,11 +452,12 @@ Imke thinks it is a scheduling problem.
 
 ### **Idris Okonjo** — remote survey operator · *energy* · (was Mote)
 
-*Verekh III*
+**Feline** · Verekh III
 
-Slight and indoor-pale, locs pulled up off his neck, the half-focused gaze of somebody whose
-attention is mostly two decks away. Sits very still for hours. Startles badly when spoken to, every
-time, and everyone has learned to announce themselves from the doorway.
+Slight, short-furred and indoor-pale, feline, with the half-focused gaze of somebody whose attention
+is mostly two decks away. Sits very still for hours. He can hear you coming from the far end of the
+gallery and still startles badly when spoken to, every single time — because when he is down in the
+swarm he is not in the room at all — which is why everyone announces themselves from the doorway.
 
 The motes are alive — forty drifting scouts the size of a thumb, something between a seed and a
 jellyfish — and Idris handles all forty at once from a hollow well away from the trouble. Somebody
@@ -457,10 +481,12 @@ never formed. Ojo keeps telling him to start offering again. He says he will and
 
 ### **Beatriz Corriveau** — hazard response officer · *void* · (was Corr)
 
-*Calyx IV*
+**Oni** · Calyx IV
 
-Tall, grey-eyed, olive-skinned, iron-coloured hair pinned back severely, and a way of standing
-completely still that people find difficult. She keeps her hands visible. It is deliberate and she
+Tall and heavy-framed, oni, grey-eyed, with long horns swept back flat against iron-coloured hair
+pinned severely behind them, and a way of standing completely still that people find difficult. Oni
+horns conduct. She feels every unmaking she performs, from the inside, and has never mentioned it to
+anyone. She keeps her hands visible. It is deliberate and she
 has never explained it.
 
 Hers is the only post of its kind, because some reef life is enormous and does not wish to be
@@ -488,7 +514,7 @@ right moment and which is not entirely a joke.
 
 ### **Otaremnivas** — senior specimen handler · *decay* · (was Bosk)
 
-*Cassine, of Ranohe II*
+**Cassine** · Ranohe II
 
 Four metres of patient unhurried mass. Cassine skin thickens with age into something like weathered
 bark laid down in visible ridges, so his forearms read like a cut trunk and anyone who can count
@@ -516,10 +542,12 @@ He is the best-tempered person on the ship.
 
 ### **Wren Adeyemi** — structural analysis · *decay* · (was Maul)
 
-*Kessa — gone*
+**Rock skin** · Kessa — gone
 
-Compact and hard-shouldered, dark-skinned, hair kept short enough to forget about, a burn across the
-back of one hand she does not cover. Thirty-six and tired in a way sleep does not fix. Does not
+Compact and hard-shouldered, rock skin in dark slate, hair kept short enough to forget about, a burn
+across the back of one hand she does not cover. **Her forearms carry a wide warm ochre band from
+eleven years on the Kessa rings** — rock skin takes up the mineral character of wherever it works,
+and Kessa is gone, and there is no fossil, no ruin and no trace of it anywhere except in her. Thirty-six and tired in a way sleep does not fix. Does not
 smile much and means it when she does.
 
 She was a grower. A good one — eleven years raising living structures on the Kessa reef rings, the
@@ -544,10 +572,15 @@ it and she told him to shut up, and that was the best either of them had felt in
 
 ### **Dr. Nadira Quill** — xenobotany · *void*
 
-*Sindal II*
+**Canid** · Sindal II
 
-Small and exact, sixty, greying braid wound tight, spectacles she pushes up constantly. Always
+Small and exact, sixty, canid, greying at the muzzle, spectacles she pushes up constantly. Always
 holding a stylus and frequently pointing with it. Dresses for fieldwork at dinner.
+
+**She can smell what a thing is and will not accept it until it is written down.** A canid nose
+characterises a biosphere in the time an instrumented team needs to unpack. Nadira's tells her the
+answer immediately and she logs the full entry anyway, because a thing she has only smelled is not
+yet real.
 
 She logs every specimen before she touches it. Every one, without exception, including ones visibly
 in the act of coming at her. There is a recording of her completing an entry while something has
@@ -570,14 +603,16 @@ which everyone agrees is the funniest part.
 
 ### **Yusuf Benhaddou** — reef survey · *void* · (was Vitre)
 
-*Kessa — gone*
+**Bird folk** · Kessa — gone
 
 Round-faced and warm-brown, perpetually amused, close beard going grey at the chin, an easy smile he
 deploys constantly and sincerely. Always eating something. Notices immediately when somebody else is
 not, and does something about it without making it a conversation.
 
 He sweeps a whole reef in one pass — lightly, indiscriminately — then moves on and never reads what
-came back. His position, argued well in front of people senior to him, is that the Null moves faster
+came back. He can do it in one pass because he *flies* it: a reef void has an atmosphere and no
+floor, and a flighted surveyor covers in an afternoon what a climbing team needs two days to rig
+for. His position, argued well in front of people senior to him, is that the Null moves faster
 than the Census and the only honest answer is breadth: a shallow record of a thousand species beats a
 perfect record of forty. He believes somebody later will have time.
 
@@ -597,7 +632,7 @@ left to tell that he grew up there.
 
 ### **Sevim Aydar** — materials assay · *order* · (was Rime)
 
-*Beluni, of Belune III*
+**Beluni** · Belune III
 
 Tall and very still, a white streak through dark hair since their twenties, hands that are always
 cold. Speaks slowly enough that people finish their sentences, and waits without visible irritation
@@ -634,11 +669,14 @@ and have begun optimising for the quality of the record rather than its size, an
 
 ### **Aurelio Bassi** — catalogue registrar · *order* · (was Ledger)
 
-*born aboard a Census ship*
+**Angel** · born aboard a Census ship
 
 Narrow and neat, forty-eight, thinning hair combed flat, ink on the side of his right hand that
-never entirely washes off. Third generation; he has never lived anywhere that was not moving. Does
-not sit down if he can help it.
+never entirely washes off. Third generation; he has never lived anywhere that was not moving.
+
+He is an angel, and the catalogue sits on an outer ring at full gravity — twenty-six years in the
+one part of the ship where his wings are furniture. Asked about it, he says the archive is where the
+archive needs to be.
 
 The catalogue is the largest organism aboard after the ship — a grown archive, every entry laid down
 in living matter — and Aurelio keeps it, fluently, in a way that makes other people's competence look
@@ -667,7 +705,7 @@ worked out how he feels about it and has made no attempt to.
 
 ### **Nahana** — faunal systems lead · *order* · (was Fen)
 
-*Chosokee, of Maelus IV*
+**Chosokee** · Maelus IV
 
 Rich tan skin and the white hair of her people — colouring, not age — worn long and loose because
 the animals settle better when it moves. Fine pale **markings** across her cheekbones and down both
@@ -699,7 +737,7 @@ She leaves cuttings outside Otto's door for the trays he thinks nobody knows abo
 
 ### **Navigator** — navigation · *growth* · (was Mire)
 
-*Ossuan, of Iseul III*
+**Ossuan** · Iseul III
 
 Tall and slender, hairless, pale silver-grey skin, eyes almost entirely pupil — Iseul III turns
 under a dim red sun and she finds most of the ship painfully bright. She works in a darkened hollow
@@ -731,10 +769,11 @@ inconvenient shape.
 
 ### **Ekene Baptiste** — mana systems engineer, distribution · *energy* · (was Halo)
 
-*Orrowan V*
+**Mana dweller** · Orrowan V
 
-Small and quick, dark-skinned, hair cropped close and gone prematurely white — the bloom does that,
-and she was twenty-eight when it started. Always cold. Wears more layers than the ship requires and
+Small and quick, a mana dweller, dark-skinned with the faint underlit quality of her people, hair
+cropped close and gone prematurely white — the bloom does that, and she was twenty-eight when it
+started. Always cold, which for a mana dweller is a reading rather than a preference. Wears more layers than the ship requires and
 holds her tea with both hands.
 
 The heartwood blooms when it is working, a slow shell of light in the deep chamber, and Ekene spends
@@ -752,7 +791,8 @@ speak for a day and a half. *Don't let Ojo carry you* is now the ship's standard
 working past their limit, and she hates it, and she uses it.
 
 She tends opposite Nour and they are never in the same chamber. They argue about the mess temperature
-every single day. Nour thinks she will burn out inside five years and said so once, badly, and it did
+every single day. Nour thinks she will burn out inside five years — for a mana dweller a clinical prediction rather
+than a figure of speech — and said so once, badly, and it did
 not land.
 
 She is aboard because the Census offered her a heartwood at twenty-six and nobody else would have.
@@ -816,6 +856,49 @@ She has never worked out whether that was a compliment.
 | Fen | **Nahana** | — |
 | Mire | **Navigator** | — |
 | Halo | **Ekene Baptiste** | — |
+
+## Species mix
+
+**Two humans, thirteen semi-humans, six demi-humans.**
+
+| | |
+|---|---|
+| **Human** | Tomás Iriarte, Dolores Achterberg |
+| **Oni** | Stella Anuye (mana-deaf, which for an oni is close to unheard of), Beatriz Corriveau |
+| **Rock skin** | Ojo Mbeki, Wren Adeyemi |
+| **Mana dweller** | Nour Bediako, Ekene Baptiste — both on the heartwood, which is costing them |
+| **Angel** | Aurel Cosma, Aurelio Bassi |
+| **Amphibioid** | Abike Sunmonu |
+| **Cassine** | Otaremnivas |
+| **Beluni** | Sevim Aydar |
+| **Chosokee** | Nahana |
+| **Ossuan** | Navigator |
+| **Feline** | Ilka Voressen, Idris Okonjo |
+| **Bird folk** | Reva Sokolovna, Yusuf Benhaddou |
+| **Canid** | Imke Rask, Nadira Quill |
+
+Each assignment explains something the character already did rather than being pinned on. Ilka taps
+the hull and listens — that is feline hearing, and it is how a mana-deaf woman became the best
+diagnostician aboard. Reva's shell "does nothing" because her bones are hollow. Yusuf sweeps a reef
+in one pass because he flies it. Aurelio is a winged man who has spent twenty-six years working the
+one deck where his wings are furniture.
+
+---
+
+## Not yet written
+
+Four characters discussed and not drafted. None has a mechanical slot yet.
+
+- **Roonie Baelk**, 16, amphibioid — builds robots in his own time, crawls ducts to fix
+  over-excited transmana manifolds
+- **The prodigy**, 10, holds a degree, no peers anywhere — too advanced for children, too young for
+  adults. Otto is the obvious guardian
+- **The perpetual student**, failed the same examinations eight years running and still turning up;
+  probably excellent at the practical work and hopeless at the paper
+- **The singer**, weekly performance, likely bird folk — whatever mana is, everyone reaches for the
+  vocabulary of music to describe it, and bird folk were already fluent
+
+---
 
 Still open: the ten element conflicts between `sim/roster.js` and the prototype are resolved here in
 favour of the roster. Neither file has been edited yet.

@@ -279,7 +279,11 @@ treats any of it as exotic.
 
 ---
 
-## Human peoples
+## Semi-humans
+
+Human body plan, different everything else. You could put them in the same clothes. Most people
+aboard are semi-human of one kind or another; **baseline humans — Earth-descended and similar — are
+a minority**, and are simply called human when it comes up, which is rarely.
 
 ### The Chosokee — Maelus IV
 
@@ -303,12 +307,6 @@ Beluni have never found this remarkable. Some Beluni are **tidal** — one perso
 one life, shifting between feminine and masculine on their own schedule. Not two people, not moods,
 not a transition. **Their mana turns when they do**, which is the only reliable tell, so anyone
 attuned finds the question trivial and the mana-deaf have to ask.
-
----
-
-## Semi-humans
-
-Human body plan, different everything else. You could put them in the same clothes.
 
 ### The Cassine — Ranohe II
 
@@ -366,6 +364,20 @@ and near the Null — which unmakes — they are in direct physical danger, and 
 some distance before the instruments can. Nobody has decided yet whether that makes them the best
 possible early warning or a cruelty to bring along.
 
+### Amphibioids
+
+Mostly human on dry land — smooth-skinned, slightly cool to the touch, webbing between the fingers
+and a faint iridescence along the forearms that people mistake for a tattoo. **In water they change
+over**: gill slits open along the neck and ribs, fins unfold from the forearms and calves, and a
+person who was walking around a moment ago becomes something considerably better at swimming than
+you are.
+
+On this ship that is not a limitation, it is a qualification. **They work inside the watercourses** —
+coolant loops, falls, deep pools — where nobody else can go comfortably, and they use them as
+transit, swimming between decks while everyone else takes the galleries. The permanent mist the rest
+of the crew treat as atmosphere is, for them, a necessity, and dry compartments are genuinely
+hostile. There is a standing argument with Life Systems about humidity in the archive.
+
 ### Angels
 
 Winged, luminous-eyed, and mildly embarrassed about the name, which somebody else gave them a long
@@ -380,8 +392,8 @@ are for other people.
 
 ## Demi-humans
 
-Animal body plans — muzzles, digitigrade legs, tails, fur or feathers or damp skin as the primary
-covering.
+Animal body plans — muzzles, digitigrade legs, tails, fur or feathers as the primary covering. A
+minority aboard, but not a small one.
 
 ### Canids
 
@@ -401,17 +413,6 @@ hear a bearing going, a structure taking load it should not, a manifold climbing
 over-excitation — usually before the alarm, and reliably before anyone else in the compartment.
 
 Much of the engineering faculty has quietly stopped trusting the alarm and just asks.
-
-### Amphibioids
-
-Damp-skinned and built for water, which on this ship is not a limitation but a qualification.
-**They work inside the watercourses** — the coolant loops, the falls, the deep pools — where nobody
-else can go comfortably, and they use them as transit, swimming between decks while everyone else
-takes the galleries.
-
-The permanent mist that the rest of the crew treat as atmosphere is, for them, a necessity. Dry
-compartments are genuinely hostile and there is a standing argument with Life Systems about
-humidity in the archive.
 
 ### Bird folk
 
