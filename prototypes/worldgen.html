@@ -183,6 +183,44 @@ function makeNoise(seed){
            lerp(grad(p[AB+1],x,y-1,z-1),grad(p[BB+1],x-1,y-1,z-1),u),v),w);
   };
 }
+/* Roughness of the two terrain layers, as a gain per octave.
+
+   This is the single number that decides whether a mountain looks like a
+   mountain or like a big hill, and it was wrong. A gain of 0.5 against a
+   lacunarity of 2 is a Hurst exponent of 1, which is far smoother than real
+   ground — real terrain sits around H = 0.5 to 0.7, meaning a gain of 0.62 to
+   0.71. Over the ten octaves between continental scale and a couple of
+   kilometres, 0.5 throws away a factor of a thousand in amplitude, and the
+   measurement said so plainly: the rms slope through the middle of a collision
+   belt was 0.41 degrees, where alpine terrain runs 10 to 30.
+
+   The continental field deliberately stays at 0.5. It decides where land is,
+   and it should stay smooth; roughness belongs to the layers on top of it. */
+const DGAIN=0.70, RGAIN=0.68;
+
+/* Weights of the four terms that make an elevation. Named because they have to
+   agree between the grid pass and the analytic one, and because they are what
+   the relief spectrum is tuned against. */
+const W_CRUST=0.62, W_DETAIL=0.20, W_UPLIFT=0.85, W_RIDGE=0.75;
+
+/* Amplitude of the fine texture, in normalised elevation, applied after the
+   field has been normalised rather than before.
+
+   Raising the weights above does almost nothing, because they all go through
+   (v - lo) / (hi - lo) and raising everything raises hi - lo with it. Measured:
+   four times the weights bought twice the relief. The octaves that make a
+   mountain face steep therefore need their own amplitude, applied where it is
+   a number of metres rather than a share of a global range — which is also
+   honest, since these are precisely the octaves the grid was never able to
+   hold. Gated by the uplift, because plains really are smooth and mountains
+   really are not. */
+const W_TEX=0.15;
+/* Frequency of the texture's coarsest octave, chosen so its wavelength is
+   about 60 km — just below what a 640-wide grid can represent, so it adds to
+   the grid rather than repeating it. A Perlin field scaled by F has features
+   of roughly 1/F radians, so 57.3/F degrees. */
+const TEX_F0=106, TEX_GAIN=0.73;
+
 function fbm(n,x,y,z,oct,lac,gain){
   let a=1,f=1,s=0,norm=0;
   for(let i=0;i<oct;i++){s+=a*n(x*f,y*f,z*f);norm+=a;a*=gain;f*=lac}
@@ -215,27 +253,48 @@ const BIOME={
   peak:       ['bare rock',    '#b9bec6',0],
 };
 
+/* Whittaker, as a two-dimensional lookup rather than a ladder.
+
+   The previous version tested temperature first and returned on it: anything
+   under 6C came back tundra, taiga or ice whatever the rainfall was. That makes
+   the entire cold half of a planet a function of latitude alone, which is a
+   band by construction, and it put tundra on 25-33% of land where Earth has
+   about 8% — because boreal forest needs very little rain and the taiga branch
+   was asking for more moisture than most of our land ever has.
+
+   Moisture here is the generator's index, where 1.0 is the 88th percentile of
+   land precipitation. On Earth that percentile is around 1800 mm, so 0.11 is
+   roughly 200 mm and 0.28 roughly 500 mm — which is where these cuts come from.
+   Both axes matter at every temperature, which is the whole point of the
+   diagram. */
 function classify(el,sea,t,m){
   if(el<sea) return (sea-el<0.06)?'shallow':'ocean';
   const h=(el-sea)/(1-sea);              // 0..1 above sea level
   if(h>0.86) return 'peak';
   if(h>0.70) return 'alpine';
-  if(t<-14)  return 'ice';
-  if(t<-6)   return m<0.18?'polar':'ice';
-  if(t<1)    return 'tundra';
-  if(t<6)    return m>0.35?'taiga':'tundra';
-  if(m<0.16) return 'desert';
-  if(t>23){
-    if(m>0.72) return 'rain';
-    if(m>0.42) return 'seasonal';
-    if(m>0.24) return 'savanna';
-    return 'desert';
+  if(t<-9)  return 'ice';
+  if(t<-2)  return m<0.07?'polar':'tundra';
+  if(t<5)   return m<0.04?'polar':(m<0.08?'tundra':'taiga');
+  if(t<12){
+    if(m<0.09) return 'desert';
+    if(m<0.25) return 'steppe';
+    if(m<0.48) return 'grass';
+    return 'temperate';
   }
-  if(m>0.80 && h<0.10) return 'wetland';
-  if(m>0.50) return 'temperate';
-  if(m>0.30) return 'grass';
-  return 'steppe';
+  if(t<22){
+    if(m<0.11) return 'desert';
+    if(m<0.29) return 'steppe';
+    if(m<0.46) return 'grass';
+    if(m>0.90 && h<0.07) return 'wetland';
+    return 'temperate';
+  }
+  if(m<0.12) return 'desert';
+  if(m<0.36) return 'savanna';
+  if(m<0.62) return 'seasonal';
+  if(m>0.93 && h<0.06) return 'wetland';
+  return 'rain';
 }
+
 
 /* ============================================================ world ==== */
 const W=640,H=320;
@@ -525,16 +584,17 @@ function generate(cfg){
       const i=y*W+x;
       const lon=((x+0.5)/W)*2*Math.PI;
       const px=cl*Math.cos(lon), py=cl*Math.sin(lon), pz=sl;
-      const d=fbm(nDet,px*cScale*4,py*cScale*4,pz*cScale*4,5,2.0,0.5);
+      const d=fbm(nDet,px*cScale*4,py*cScale*4,pz*cScale*4,5,2.0,DGAIN);
       // ridged noise belongs ON the ranges, not scattered over the whole globe.
       // Gating it by |uplift| is what gives a mountain belt its texture while
       // leaving a plain flat, which is the correct behaviour and also happens
       // to be what an upscaler needs: detail where the structure says detail.
       const g=Math.min(1,Math.abs(upl[i])*2.2);
-      const r=ridged(nRidge,px*cScale*3,py*cScale*3,pz*cScale*3,5,2.1,0.55);
+      const r=ridged(nRidge,px*cScale*3,py*cScale*3,pz*cScale*3,5,2.1,RGAIN);
       // a little ridging everywhere so plains are not glass, a lot of it on the
       // belts so a range has a crest line rather than a smooth dome
-      const v=crust[i]*0.62 + d*0.20 + upl[i]*0.85 + r*(0.20+g*0.80)*rough*0.75;
+      const v=crust[i]*W_CRUST + d*W_DETAIL + upl[i]*W_UPLIFT
+            + r*(0.20+g*0.80)*rough*W_RIDGE;
       el[i]=v;
       if(v<lo)lo=v; if(v>hi)hi=v;
     }
@@ -563,29 +623,104 @@ function generate(cfg){
     windU[y]=(band%2===0)?-1:1;                     // alternating easterly/westerly
   }
 
+  // ---- continentality ---------------------------------------------------
+  // How far from the sea, in degrees of arc. The sea is what stops a place
+  // being extreme: it moderates the temperature and it is where the rain comes
+  // from. Without this term every climate is a function of latitude alone, and
+  // latitude alone gives you belts. Chamfer distance in two sweep pairs rather
+  // than a Dijkstra, because this only needs to be roughly right and the
+  // generator already has enough queues in it.
+  const distOcean=new Float32Array(N);
+  {
+    const cosL=new Float64Array(H);
+    for(let y=0;y<H;y++) cosL[y]=Math.max(0.02,Math.cos((0.5-(y+0.5)/H)*Math.PI));
+    const dLat=180/H, dLon=360/W;
+    for(let i=0;i<N;i++) distOcean[i]= el[i]<sea ? 0 : 1e9;
+    for(let pass=0;pass<2;pass++){
+      for(let y=0;y<H;y++){
+        const sx=dLon*cosL[y], dg=Math.hypot(sx,dLat), row=y*W, up=(y-1)*W;
+        for(let x=0;x<W;x++){
+          const i=row+x; if(distOcean[i]===0) continue;
+          let m=distOcean[i];
+          const xm=((x-1)+W)%W, xp=(x+1)%W;
+          let v=distOcean[row+xm]+sx; if(v<m)m=v;
+          if(y>0){
+            v=distOcean[up+x]+dLat;  if(v<m)m=v;
+            v=distOcean[up+xm]+dg;   if(v<m)m=v;
+            v=distOcean[up+xp]+dg;   if(v<m)m=v;
+          }
+          distOcean[i]=m;
+        }
+      }
+      for(let y=H-1;y>=0;y--){
+        const sx=dLon*cosL[y], dg=Math.hypot(sx,dLat), row=y*W, dn=(y+1)*W;
+        for(let x=W-1;x>=0;x--){
+          const i=row+x; if(distOcean[i]===0) continue;
+          let m=distOcean[i];
+          const xm=((x-1)+W)%W, xp=(x+1)%W;
+          let v=distOcean[row+xp]+sx; if(v<m)m=v;
+          if(y<H-1){
+            v=distOcean[dn+x]+dLat;  if(v<m)m=v;
+            v=distOcean[dn+xp]+dg;   if(v<m)m=v;
+            v=distOcean[dn+xm]+dg;   if(v<m)m=v;
+          }
+          distOcean[i]=m;
+        }
+      }
+    }
+  }
+
   // ---- temperature ------------------------------------------------------
   const tiltWiden=1+cfg.tilt/110;      // tilt widens the tropics
-  const SPREAD=44;                     // pole-to-equator range, degrees C
+  // Pole to equator. 44 put the poles at -8C, so nothing on the planet was
+  // ever cold enough to be ice and every cold place fell through to tundra —
+  // 19% of land against Earth's 8%. Earth's own land spread is around 50.
+  const SPREAD=54;
+  const nTemp=makeNoise(seed^0x7e3a1);
   for(let y=0;y<H;y++){
-    const lat=Math.abs((0.5-(y+0.5)/H)*180);
-    const band=Math.pow(Math.cos(Math.min(89.9,lat/tiltWiden)*Math.PI/180),1.25);
+    const alat=Math.abs((0.5-(y+0.5)/H)*180);
+    const rlat=(0.5-(y+0.5)/H)*Math.PI, cl=Math.cos(rlat), sl=Math.sin(rlat);
+    const band=Math.pow(Math.cos(Math.min(89.9,alat/tiltWiden)*Math.PI/180),1.25);
     for(let x=0;x<W;x++){
       const i=y*W+x;
       const alt=Math.max(0,(el[i]-sea)/(1-sea));
-      temp[i]=cfg.temp + (band-0.5)*SPREAD - alt*28;   // lapse rate on altitude
+      // Continentality amplifies whatever latitude was already doing: an
+      // interior runs hotter in the tropics and colder toward the poles than a
+      // coast at the same latitude. And a couple of degrees of drift, so the
+      // isotherms are not perfect circles of latitude.
+      const cont=Math.min(1,distOcean[i]/14);
+      const lon=((x+0.5)/W)*2*Math.PI;
+      const drift=fbm(nTemp,cl*Math.cos(lon)*1.35,cl*Math.sin(lon)*1.35,sl*1.35,3,2.0,0.5)*3.4;
+      temp[i]=cfg.temp + (band-0.5)*SPREAD*(1+cont*0.38) - alt*28 + drift;
     }
   }
 
   // ---- moisture: advect along the wind, orographic loss on climbs -------
   const oro=3+strength*9;
+  // The convergence zone is not a circle of latitude. It gets dragged poleward
+  // over land as the continents heat, and the subtropical highs that dry the
+  // 25-30 degree belt are cells sitting over the oceans, not a continuous ring
+  // — which is why the Sahara and humid Florida share a latitude. Doing that
+  // properly wants pressure; displacing the belt by several degrees with
+  // longitude buys most of the visible effect, which is that the deserts stop
+  // lining up into two stripes around the planet.
+  const nBelt=makeNoise(seed^0x2b17);
+  const wobLon=new Float64Array(W), itczRow=new Float64Array(W);
+  for(let x=0;x<W;x++){
+    const lon=((x+0.5)/W)*2*Math.PI;
+    wobLon[x]=fbm(nBelt,Math.cos(lon)*1.15,Math.sin(lon)*1.15,0,3,2.0,0.5)*9;
+  }
   for(let y=0;y<H;y++){
     const dir=windU[y]>=0?1:-1;
-    const lat=Math.abs((0.5-(y+0.5)/H)*180);
-    // intertropical convergence: heavy rain near the thermal equator,
-    // subtropical highs near 25-30 degrees, a second wet band at the fronts
-    const itcz=Math.exp(-Math.pow(lat/13,2))*0.55
-              - Math.exp(-Math.pow((lat-27)/11,2))*0.30
-              + Math.exp(-Math.pow((lat-52)/13,2))*0.18;
+    const slat=(0.5-(y+0.5)/H)*180;                 // signed latitude
+    for(let x=0;x<W;x++){
+      // heavy rain near the thermal equator, subtropical highs near 25-30,
+      // a second wet band at the polar fronts — all displaced with longitude
+      const lat=Math.abs(slat-wobLon[x]);
+      itczRow[x]=Math.exp(-Math.pow(lat/13,2))*0.55
+                -Math.exp(-Math.pow((lat-27)/11,2))*0.30
+                +Math.exp(-Math.pow((lat-52)/13,2))*0.18;
+    }
     let m=0.6;
     for(let pass=0;pass<3;pass++){        // three passes so wrap-around settles
       for(let k=0;k<W;k++){
@@ -605,7 +740,13 @@ function generate(cfg){
           m+=(1.0-m)*0.007;                                // land evapotranspiration
           if(m<0) m=0;
         }
-        if(pass===2) moist[i]=Math.max(0,precip+itcz*0.5*(el[i]>=sea?1:0.4));
+        // Convective rain needs moisture in the air to work with. Adding the
+        // convergence term flat across a row was what banded the map: a
+        // continental interior got the same free rainfall as the coast two
+        // thousand kilometres upwind, so the tropics were a green ring and the
+        // subtropics a tan one whatever the land underneath was doing.
+        if(pass===2) moist[i]=Math.max(0, precip
+          + itczRow[x]*0.5*(0.28+0.72*Math.min(1,m))*(el[i]>=sea?1:0.4));
       }
     }
   }
@@ -1318,13 +1459,27 @@ function elevAt(lat,lon,extra){
   const cl=Math.cos(la), px=cl*Math.cos(ln), py=cl*Math.sin(ln), pz=Math.sin(la);
   const OCT=5+extra;
   const c=fbm(noise.cont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
-  const d=fbm(noise.det,px*cScale*4,py*cScale*4,pz*cScale*4,OCT,2.0,0.5);
+  const d=fbm(noise.det,px*cScale*4,py*cScale*4,pz*cScale*4,OCT,2.0,DGAIN);
   const u=sampleSmooth(tec.uplift,lat,lon);
   const g=Math.min(1,Math.abs(u)*2.2);
-  const r=ridged(noise.ridge,px*cScale*3,py*cScale*3,pz*cScale*3,OCT,2.1,0.55);
-  let v=c*0.62 + d*0.20 + u*0.85 + r*(0.20+g*0.80)*rough*0.75;
+  const r=ridged(noise.ridge,px*cScale*3,py*cScale*3,pz*cScale*3,OCT,2.1,RGAIN);
+  let v=c*W_CRUST + d*W_DETAIL + u*W_UPLIFT + r*(0.20+g*0.80)*rough*W_RIDGE;
   v=(v-elo)/(ehi-elo);
   if(v>sea){ const h=(v-sea)/(1-sea); v=sea+Math.pow(h,1/reliefK)*(1-sea); }
+  if(extra>0 && v>sea){
+    // Summed WITHOUT the 1/sum-of-amplitudes that fbm applies. That division
+    // is why raising octave counts or weights kept doing nothing: it holds the
+    // total fixed, so every octave added makes all the others quieter. Here the
+    // amplitudes are a bare power law, gain 0.73 per octave, which is a Hurst
+    // exponent near 0.45 — what real ground measures, against the 0.83 this
+    // terrain had. The first octave therefore carries its full amplitude and
+    // each finer one is a fixed fraction of it, so relief at every scale comes
+    // out where it should instead of being squeezed toward the coarse end.
+    let t=0, f=TEX_F0, a=1;
+    const n=Math.min(9,extra+4);
+    for(let k=0;k<n;k++){ t+=a*noise.det(px*f,py*f,pz*f); f*=2; a*=TEX_GAIN; }
+    v+=t*W_TEX*Math.min(1,0.07+Math.abs(u)*1.9);
+  }
   return v<0?0:(v>1?1:v);
 }
 
@@ -1378,14 +1533,19 @@ function drawGlobe(quick){
   // interactive, and the detail pass lands a moment later.
   const detail=!quick && zoom>=1.8 && world.noise;
   const OCTX=detail?Math.min(6,Math.ceil(Math.log2(zoom))+1):0;
-  // Screen-space shading. The gradient between two adjacent pixels falls as
-  // 1/R when you zoom, so the multiplier has to rise with R or the detail is
-  // there in the field and invisible on screen. Measured: at 8x the rms slope
-  // is 5.4e-4 per pixel, so a multiplier of 70 gives a 4% brightness swing —
-  // which is exactly why the first zoomed renders looked like flat vector
-  // shapes. It wants to be an order of magnitude more, through a limiter so
-  // that a mountain face clips to shadow instead of to white.
-  const SH=9*(2*Math.PI*R/W)*2.6;
+  // Shading from the real slope of the ground rather than an arbitrary
+  // multiplier on a screen-space difference. Metres of relief over metres of
+  // ground is a number with a meaning, so the same constant works at every
+  // zoom, steep places genuinely go dark and flat places genuinely stay flat —
+  // which is what makes a mountain read as a mountain. Scaling a difference
+  // instead, and squashing it through a tanh, saturated almost every pixel at
+  // high zoom and banded the render.
+  const GPP=(180/(Math.PI*R))*111320;          // ground metres per screen pixel
+  // Metres of land relief per unit of normalised elevation. Land occupies only
+  // the top (1 - sea) of the 0..1 range — everything below is ocean — so
+  // treating 1.0 as the summit understates every slope by a factor of three.
+  const RELIEF_M=8848/Math.max(0.05,1-sea);
+  const SH=9;
   let prevE=0, prevOK=false;
 
   // While a finger or the mouse is down, shade every other pixel and fill 2x2
@@ -1437,7 +1597,10 @@ function drawGlobe(quick){
         } else bk=biome[i];
         const c=BIOMERGB[bk];
         // gradient against the pixel to the left, which costs nothing extra
-        const sh=1+Math.tanh(((prevOK?prevE:eC)-eC)*SH)*0.82;
+        const g0=(prevOK?prevE:eC)-eC;
+        const sh=detail
+          ? 1+clampv(g0*RELIEF_M/GPP*2.4,-0.85,0.85)
+          : 1+g0*(2*Math.PI*R/W)*SH;
         prevE=eC; prevOK=true;
         r=c[0]*sh; g=c[1]*sh; b=c[2]*sh;
       }
