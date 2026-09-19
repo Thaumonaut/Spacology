@@ -35,6 +35,8 @@ button.pri{background:#26313b;border-color:var(--accent);color:#fff}
 .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 canvas{width:100%;display:block;border-radius:8px;background:#0b0e12;
   image-rendering:pixelated}
+#gl{image-rendering:auto;background:#05070a;max-width:720px;margin:0 auto}
+#globeBox label{margin-top:10px}
 .tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .tabs button{padding:5px 10px;font-size:12px}
 .tabs button.on{background:#26313b;border-color:var(--accent)}
@@ -71,6 +73,18 @@ barriers off it and write the peoples to fit.</p>
   <label>Tectonic roughness <b id="vRough"></b></label>
   <input type="range" id="rRough" min="0" max="100" step="1" value="55">
 
+  <div class="zl">Settlement</div>
+  <label>Population density <b id="vPop"></b></label>
+  <input type="range" id="rPop" min="10" max="100" step="1" value="55">
+  <label>Number of cultures <b id="vCult"></b></label>
+  <input type="range" id="rCult" min="2" max="14" step="1" value="6">
+  <label>Number of polities <b id="vPol"></b></label>
+  <input type="range" id="rPol" min="1" max="12" step="1" value="5">
+  <label>Spaceports <b id="vPort"></b></label>
+  <input type="range" id="rPort" min="0" max="12" step="1" value="4">
+  <label>Orbital stations <b id="vOrb"></b></label>
+  <input type="range" id="rOrb" min="0" max="16" step="1" value="6">
+
   <div class="zl">Climate</div>
   <label>Mean temperature <b id="vTemp"></b></label>
   <input type="range" id="rTemp" min="-30" max="45" step="1" value="14">
@@ -97,10 +111,29 @@ barriers off it and write the peoples to fit.</p>
     <button data-v="temp">Temperature</button>
     <button data-v="rain">Rainfall</button>
     <button data-v="wind">Wind</button>
-    <button data-v="regions">Habitable regions</button>
+    <button data-v="regions">Provinces</button>
+    <button data-v="culture">Cultures</button>
+    <button data-v="polity">Polities</button>
+    <button data-v="pop">Population</button>
+    <button data-v="globe">Globe</button>
     <button data-v="report">Report</button>
   </div>
   <canvas id="cv" width="640" height="320"></canvas>
+  <div id="globeBox" style="display:none">
+    <canvas id="gl" width="720" height="720"></canvas>
+    <label>Spin <b id="vSpin"></b></label>
+    <input type="range" id="rSpin" min="0" max="359" step="1" value="200">
+    <label>Sun angle <b id="vSun"></b></label>
+    <input type="range" id="rSun" min="0" max="359" step="1" value="40">
+    <label>Zoom <b id="vZoom"></b></label>
+    <input type="range" id="rZoom" min="100" max="420" step="2" value="100">
+    <label style="display:inline-block;width:auto;margin-right:14px">
+      <input type="checkbox" id="cLights" checked style="width:auto">City lights</label>
+    <label style="display:inline-block;width:auto;margin-right:14px">
+      <input type="checkbox" id="cPorts" checked style="width:auto">Spaceports</label>
+    <label style="display:inline-block;width:auto">
+      <input type="checkbox" id="cOrbit" checked style="width:auto">Orbitals</label>
+  </div>
   <div class="legend" id="legend"></div>
   <pre id="report" style="display:none"></pre>
 </div>
@@ -342,6 +375,8 @@ function generate(cfg){
   world={cfg,el,sea,temp,moist,biome,flow,fmax,windU,down,
          ms:Math.round(performance.now()-t0)};
   analyse();
+  buildCivilisation(cfg);
+  world.ms=Math.round(performance.now()-t0);
   return world;
 }
 
@@ -354,6 +389,262 @@ const CLASS={ice:'cold',polar:'cold',tundra:'cold',taiga:'cold',
   savanna:'warm',seasonal:'warm',rain:'warm',wetland:'warm',
   alpine:'high',peak:'high',ocean:null,shallow:null};
 const CLASSNAME={cold:'cold',temperate:'temperate',dry:'arid',warm:'warm',high:'highland'};
+
+
+/* ========================================= population, culture, polity ====
+   The expansion engine below is the one genuinely clever idea in Azgaar's
+   Fantasy Map Generator (MIT, Azgaar), reimplemented on our raster grid.
+
+   Uniform-cost Dijkstra outward from seeds, where the cost of ENTERING a cell
+   is a function of the terrain AND of the expander's own type. A highland
+   culture pays almost nothing for mountains and a fortune for lowlands; a
+   naval one crosses water cheaply. Run it from culture centres and you get
+   cultures. Run it again from capitals, adding a penalty for crossing into a
+   foreign culture, and you get polities. Same loop, different cost function.
+   FMG gets cultures, states, provinces and religions out of this one pattern.
+   ======================================================================== */
+
+/* Flat binary heap. Values are (cellId | seedIndex<<19) packed into one int,
+   priorities in a parallel float array. Allocating an object per push cost
+   more than the whole rest of the generator. */
+function Heap(cap){
+  this.v=new Int32Array(cap); this.p=new Float64Array(cap); this.n=0;
+}
+Heap.prototype._grow=function(){
+  const v=new Int32Array(this.v.length*2), p=new Float64Array(this.p.length*2);
+  v.set(this.v); p.set(this.p); this.v=v; this.p=p;
+};
+Heap.prototype.push=function(val,pri){
+  if(this.n===this.v.length) this._grow();
+  let i=this.n++; this.v[i]=val; this.p[i]=pri;
+  while(i>0){const par=(i-1)>>1;
+    if(this.p[par]<=this.p[i])break;
+    const tv=this.v[par];this.v[par]=this.v[i];this.v[i]=tv;
+    const tp=this.p[par];this.p[par]=this.p[i];this.p[i]=tp; i=par}
+};
+Heap.prototype.pop=function(){
+  const top=this.v[0], topP=this.p[0];
+  this.n--;
+  if(this.n>0){
+    this.v[0]=this.v[this.n]; this.p[0]=this.p[this.n];
+    let i=0;
+    for(;;){const l=2*i+1,r=l+1; let m=i;
+      if(l<this.n&&this.p[l]<this.p[m])m=l;
+      if(r<this.n&&this.p[r]<this.p[m])m=r;
+      if(m===i)break;
+      const tv=this.v[m];this.v[m]=this.v[i];this.v[i]=tv;
+      const tp=this.p[m];this.p[m]=this.p[i];this.p[i]=tp; i=m}
+  }
+  this._lastP=topP; return top;
+};
+
+/* How liveable a biome is, 0-100. Drives population, which drives everything. */
+const HABIT={ocean:0,shallow:0,ice:0,polar:2,tundra:6,taiga:16,temperate:100,
+  grass:70,steppe:34,desert:5,savanna:46,seasonal:78,rain:60,wetland:24,
+  alpine:3,peak:0};
+
+const CULTURE_TYPES=['settled','highland','river','coastal','nomadic','forest'];
+
+function buildCivilisation(cfg){
+  const {el,sea,biome,moist,flow,fmax,temp}=world, N=W*H;
+
+  /* ---- population ---------------------------------------------------- */
+  const pop=new Float32Array(N);
+  const coastal=new Uint8Array(N);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const i=y*W+x; if(el[i]<sea) continue;
+    for(let dy=-1;dy<=1&&!coastal[i];dy++)for(let dx=-1;dx<=1;dx++){
+      const ny=y+dy; if(ny<0||ny>=H)continue;
+      if(el[ny*W+((x+dx+W)%W)]<sea){coastal[i]=1;break}
+    }
+  }
+  const dens=cfg.pop/55;
+  for(let i=0;i<N;i++){
+    if(el[i]<sea) continue;
+    const h=HABIT[biome[i]]/100;
+    const river=flow[i]>fmax*0.01 ? 1.5 : 1;
+    const coast=coastal[i]?1.35:1;
+    const alt=1-Math.min(1,Math.max(0,(el[i]-sea)/(1-sea))*1.1);
+    pop[i]=h*(0.35+moist[i]*0.65)*river*coast*alt*dens;
+  }
+
+  /* ---- settlements: greedy local maxima with a separation radius ------ */
+  const cand=[]; for(let i=0;i<N;i++) if(pop[i]>0.05) cand.push(i);
+  cand.sort((a,b)=>pop[b]-pop[a]);
+  // scale to liveable land: an ocean world gets a handful, a lush one gets many
+  const maxTowns=Math.max(3,Math.min(180,Math.round(cand.length/190)));
+  const towns=[], SEP=11, GS=SEP, GX=Math.ceil(W/GS), GY=Math.ceil(H/GS);
+  const bucket=new Map();                  // spatial hash so this stays linear
+  for(const i of cand){
+    if(towns.length>=maxTowns) break;
+    const x=i%W, y=(i/W)|0;
+    const gx=(x/GS)|0, gy=(y/GS)|0;
+    let ok=true;
+    for(let ay=gy-1;ay<=gy+1&&ok;ay++){
+      if(ay<0||ay>=GY)continue;
+      for(let ax=gx-1;ax<=gx+1;ax++){
+        const key=((ax+GX)%GX)+ay*GX, list=bucket.get(key);
+        if(!list)continue;
+        for(const t of list){
+          let dx=Math.abs(t.x-x); if(dx>W/2)dx=W-dx;
+          if(dx*dx+(t.y-y)*(t.y-y)<SEP*SEP){ok=false;break}
+        }
+        if(!ok)break;
+      }
+    }
+    if(ok){
+      const t={i,x,y,pop:pop[i],lat:(0.5-(y+0.5)/H)*180,lon:((x+0.5)/W)*360-180};
+      towns.push(t);
+      const key=gx+gy*GX;
+      if(!bucket.has(key))bucket.set(key,[]);
+      bucket.get(key).push(t);
+    }
+  }
+  towns.sort((a,b)=>b.pop-a.pop);
+  towns.forEach((t,k)=>t.rank=k);
+
+  /* ---- culture type from the ground under the seed -------------------- */
+  function typeAt(i){
+    const x=i%W,y=(i/W)|0, h=(el[i]-sea)/(1-sea);
+    if(h>0.42) return 'highland';
+    if(flow[i]>fmax*0.03) return 'river';
+    if(coastal[i]) return 'coastal';
+    const b=biome[i];
+    if(b==='desert'||b==='steppe'||b==='savanna') return 'nomadic';
+    if(b==='taiga'||b==='rain'||b==='seasonal'||b==='temperate') return 'forest';
+    return 'settled';
+  }
+
+  /* ---- the expansion engine ------------------------------------------ */
+  function expand(seeds, maxCost, cellCost){
+    const owner=new Int16Array(N).fill(-1);
+    const best=new Float64Array(N).fill(Infinity);
+    const q=new Heap(1<<16);
+    seeds.forEach((s,k)=>{owner[s.i]=k;best[s.i]=0;q.push(s.i|(k<<19),0)});
+    let guard=0, LIMIT=N*14;
+    while(q.n && guard++<LIMIT){
+      const packed=q.pop(), c=q._lastP;
+      const i=packed&0x7FFFF, k=packed>>>19;
+      if(c>best[i]+1e-6) continue;         // stale entry
+      const x=i%W, y=(i/W)|0, seed=seeds[k];
+      for(let dy=-1;dy<=1;dy++){
+        const ny=y+dy; if(ny<0||ny>=H)continue;
+        for(let dx=-1;dx<=1;dx++){
+          if(!dx&&!dy)continue;
+          const j=ny*W+((x+dx+W)%W);
+          const tot=c+cellCost(i,j,seed);
+          if(tot>maxCost||tot>=best[j]) continue;
+          best[j]=tot; owner[j]=k;
+          q.push(j|(k<<19),tot);
+        }
+      }
+    }
+    if(guard>=LIMIT) console.warn('expand hit the iteration guard');
+    return owner;
+  }
+
+  /* cultures: terrain cost modulated by the culture's own type */
+  const nCult=Math.min(cfg.cult,towns.length);
+  const cultures=[];
+  {
+    const picked=[];
+    for(const t of towns){
+      if(picked.length>=nCult) break;
+      let ok=true;
+      for(const p of picked){
+        let dx=Math.abs(p.x-t.x); if(dx>W/2)dx=W-dx;
+        if(dx*dx+(p.y-t.y)*(p.y-t.y) < (W*0.11)*(W*0.11)){ok=false;break}
+      }
+      if(ok) picked.push(t);
+    }
+    picked.forEach((t,k)=>cultures.push({i:t.i,x:t.x,y:t.y,seat:t,
+      type:typeAt(t.i), expansionism:0.7+((k*37)%13)/13*1.1, id:k}));
+  }
+  const cultureOf=expand(cultures, 4200, (from,to,c)=>{
+    if(el[to]<sea) return c.type==='coastal'?70:(c.type==='nomadic'?1400:260);
+    const b=biome[to], h=(el[to]-sea)/(1-sea);
+    let cost=14+(100-HABIT[b])*0.55;
+    if(biome[from]!==b) cost+=22;                       // crossing a biome edge
+    if(c.type==='highland') cost += h>0.34 ? -10 : 150; // hates lowland
+    if(c.type==='river')    cost += flow[to]>fmax*0.02 ? -8 : 80;
+    if(c.type==='coastal')  cost += coastal[to] ? -6 : 70;
+    if(c.type==='nomadic')  cost += (b==='temperate'||b==='rain'||b==='seasonal')?170:-8;
+    if(c.type==='forest')   cost += (b==='desert'||b==='steppe')?150:-6;
+    if(h>0.62) cost+=220;                               // mountains are a wall
+    return Math.max(2,cost)/c.expansionism;
+  });
+
+  /* polities: the same loop, plus a penalty for crossing a culture edge */
+  const nPol=Math.min(cfg.pol,towns.length);
+  const polities=towns.slice(0,nPol).map((t,k)=>({i:t.i,x:t.x,y:t.y,seat:t,
+    culture:cultureOf[t.i], expansionism:0.8+((k*53)%11)/11*0.9, id:k}));
+  const polityOf=expand(polities, 3000, (from,to,p)=>{
+    if(el[to]<sea) return 240;
+    const h=(el[to]-sea)/(1-sea);
+    let cost=16+(100-HABIT[biome[to]])*0.4;
+    if(cultureOf[to]!==p.culture) cost+=150;            // foreign culture resists
+    if(h>0.55) cost+=260;
+    cost-=Math.min(40,pop[to]*90);                      // grows toward people
+    return Math.max(3,cost)/p.expansionism;
+  });
+
+  /* ---- spaceports: big, flat, and as near the equator as you can get -- */
+  const ports=towns.map(t=>{
+    const h=(el[t.i]-sea)/(1-sea);
+    let flat=0,c=0;
+    for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+      const ny=t.y+dy; if(ny<0||ny>=H)continue;
+      flat+=Math.abs(el[ny*W+((t.x+dx+W)%W)]-el[t.i]); c++;
+    }
+    flat=1-Math.min(1,(flat/c)*26);
+    const eq=1-Math.abs(t.lat)/90;                      // launch assist
+    return {t,score:t.pop*(0.4+eq*0.9)*(0.35+flat*0.65)*(h<0.5?1:0.4)};
+  }).sort((a,b)=>b.score-a.score);
+  const spaceports=[];
+  for(const p of ports){
+    if(spaceports.length>=cfg.port) break;
+    let ok=true;
+    for(const q of spaceports){
+      let dx=Math.abs(q.x-p.t.x); if(dx>W/2)dx=W-dx;
+      if(dx*dx+(q.y-p.t.y)*(q.y-p.t.y) < (W*0.13)*(W*0.13)){ok=false;break}
+    }
+    if(ok) spaceports.push({...p.t,score:p.score});
+  }
+
+  /* ---- orbitals: a ring, inclined, phased off the ports --------------- */
+  const orbitals=[];
+  for(let k=0;k<cfg.orb;k++){
+    const f=k/Math.max(1,cfg.orb);
+    orbitals.push({lon:f*360-180+((k*47)%31)-15,
+      lat:Math.sin(f*Math.PI*2+0.6)*28,
+      alt:1.16+((k*29)%17)/17*0.30,
+      tether: k<spaceports.length});
+  }
+
+  /* ---- city lights: an emission field for the night side -------------- */
+  const lights=new Float32Array(N);
+  for(const t of towns){
+    const r=Math.max(2,Math.round(2+Math.sqrt(t.pop)*9));
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){
+      const ny=t.y+dy; if(ny<0||ny>=H)continue;
+      const d2=dx*dx+dy*dy; if(d2>r*r)continue;
+      const j=ny*W+((t.x+dx+W)%W);
+      if(el[j]<sea) continue;
+      lights[j]+=t.pop*Math.exp(-d2/(r*r*0.30));
+    }
+  }
+  let lmax=0; for(let i=0;i<N;i++) if(lights[i]>lmax)lmax=lights[i];
+  if(lmax>0) for(let i=0;i<N;i++) lights[i]=Math.min(1,lights[i]/lmax*1.7);
+
+  const cultCells=new Int32Array(Math.max(1,cultures.length));
+  const polCells=new Int32Array(Math.max(1,polities.length));
+  for(let i=0;i<N;i++){
+    const c=cultureOf[i]; if(c>=0) cultCells[c]++;
+    const q=polityOf[i];  if(q>=0) polCells[q]++;
+  }
+  Object.assign(world,{pop,towns,cultures,cultureOf,polities,polityOf,
+    spaceports,orbitals,lights,coastal,cultCells,polCells});
+}
 
 /* ================================================= regions & barriers ==== */
 function analyse(){
@@ -498,6 +789,28 @@ function draw(){
       [r,g,b]=ramp((temp[i]+30)/70,[[40,60,140],[70,140,190],[230,230,160],[220,120,60],[170,40,40]]);
     } else if(view==='rain'){
       [r,g,b]=ramp(moist[i],[[190,160,110],[200,200,140],[90,160,110],[30,90,140]]);
+    } else if(view==='culture'||view==='polity'){
+      const own=view==='culture'?world.cultureOf:world.polityOf;
+      const PAL=['#7FA8C9','#D4A45C','#8FB878','#C97F9E','#8F8FC9','#A89070',
+                 '#6fb3a8','#c98f6f','#9ab36f','#b07fc9','#c9b67f','#7fc9a4',
+                 '#c97f7f','#7f9ac9'];
+      if(el[i]<sea){r=14;g=32;b=50}
+      else{
+        const k=own[i];
+        if(k<0){r=44;g=48;b=52}
+        else{const c=hex(PAL[k%PAL.length]); r=c[0];g=c[1];b=c[2];
+          const x=i%W,y=(i/W)|0;
+          const edge=own[y*W+((x+1)%W)]!==k||own[y*W+((x-1+W)%W)]!==k||
+            (y>0&&own[(y-1)*W+x]!==k)||(y<H-1&&own[(y+1)*W+x]!==k);
+          const lft=el[y*W+((x-1+W)%W)],rgt=el[y*W+((x+1)%W)];
+          const sh=edge?0.45:(1+(lft-rgt)*5);
+          r*=sh;g*=sh;b*=sh;
+        }
+      }
+    } else if(view==='pop'){
+      if(el[i]<sea){r=12;g=26;b=42}
+      else{const t=Math.min(1,world.pop[i]*2.3);
+        [r,g,b]=ramp(t,[[34,40,36],[70,86,58],[150,150,70],[240,210,120],[255,250,220]])}
     } else if(view==='wind'){
       const y=(i/W)|0, u=world.windU[y];
       [r,g,b]= u>=0?[70,120,170]:[170,110,70];
@@ -506,6 +819,17 @@ function draw(){
     const o=i*4; d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=255;
   }
   ctx.putImageData(img,0,0);
+  if(world.towns && (view==='culture'||view==='polity'||view==='pop')){
+    for(const t of world.towns){
+      const rad=Math.max(1,Math.min(4,1+Math.sqrt(t.pop)*5));
+      ctx.fillStyle='rgba(255,255,255,.82)';
+      ctx.beginPath();ctx.arc(t.x,t.y,rad,0,7);ctx.fill();
+    }
+    for(const sp of world.spaceports){
+      ctx.strokeStyle='#D4A45C';ctx.lineWidth=1.3;
+      ctx.beginPath();ctx.arc(sp.x,sp.y,5,0,7);ctx.stroke();
+    }
+  }
   legend();
 }
 
@@ -519,6 +843,138 @@ function legend(){
       `<span><i style="background:${BIOME[r.dominant][1]}"></i>#${r.rank} `+
       `${r.className} · ${BIOME[r.dominant][0]} · ${r.area.toLocaleString()} km²</span>`).join('');
   } else L.innerHTML='';
+}
+
+
+/* ============================================================== globe ====
+   Orthographic projection by inverse mapping: for every pixel inside the disc
+   work out the point on the unit sphere, rotate it, convert to lat/lon and
+   sample the equirectangular fields. The terminator is a dot product against
+   the sun vector; the night side is unlit except for the emission field, which
+   is what gives you city lights along the coastlines.
+   ======================================================================== */
+const glc=document.getElementById('gl');
+const gctx=glc.getContext('2d');
+
+function sampleNearest(arr,lat,lon){
+  let x=Math.floor(((lon+180)/360)*W); x=((x%W)+W)%W;
+  let y=Math.floor(((90-lat)/180)*H); if(y<0)y=0; if(y>=H)y=H-1;
+  return arr[y*W+x];
+}
+function cellAt(lat,lon){
+  let x=Math.floor(((lon+180)/360)*W); x=((x%W)+W)%W;
+  let y=Math.floor(((90-lat)/180)*H); if(y<0)y=0; if(y>=H)y=H-1;
+  return y*W+x;
+}
+
+function drawGlobe(){
+  if(!world) return;
+  const {el,sea,biome,lights,spaceports,orbitals,towns}=world;
+  const GW=glc.width, GH=glc.height;
+  const spin=+$('rSpin').value*Math.PI/180;
+  const sunA=+$('rSun').value*Math.PI/180;
+  const zoom=+$('rZoom').value/100;
+  const R=GH*0.44*zoom, cx=GW/2, cy=GH/2;
+  const showLights=$('cLights').checked;
+
+  const img=gctx.createImageData(GW,GH), d=img.data;
+  const sun=[Math.cos(sunA),0.28,Math.sin(sunA)];
+  const sl=Math.hypot(sun[0],sun[1],sun[2]);
+  sun[0]/=sl;sun[1]/=sl;sun[2]/=sl;
+  const cs=Math.cos(spin), sn=Math.sin(spin);
+
+  for(let py=0;py<GH;py++){
+    for(let px=0;px<GW;px++){
+      const o=(py*GW+px)*4;
+      const nx=(px-cx)/R, ny=(cy-py)/R;
+      const r2=nx*nx+ny*ny;
+      if(r2>1){                                   // space, with a rim glow
+        const rim=Math.max(0,1-(Math.sqrt(r2)-1)*R/22);
+        const g=rim*rim*54;
+        d[o]=6+g*0.5; d[o+1]=9+g*0.8; d[o+2]=16+g*1.5; d[o+3]=255;
+        continue;
+      }
+      const nz=Math.sqrt(1-r2);
+      // rotate about the polar axis for spin
+      const wx= nx*cs + nz*sn, wz= -nx*sn + nz*cs, wy=ny;
+      const lat=Math.asin(Math.max(-1,Math.min(1,wy)))*180/Math.PI;
+      const lon=Math.atan2(wx,wz)*180/Math.PI;
+      const i=cellAt(lat,lon);
+
+      let lum=wx*sun[0]+wy*sun[1]+wz*sun[2];      // day/night
+      const day=Math.max(0,Math.min(1,(lum+0.09)/0.30));
+
+      let r,g,b;
+      const isSea=el[i]<sea;
+      if(isSea){ r=20;g=48;b=78; }
+      else {
+        const c=BIOME[biome[i]][1];
+        r=parseInt(c.slice(1,3),16); g=parseInt(c.slice(3,5),16); b=parseInt(c.slice(5,7),16);
+        const x=i%W, y=(i/W)|0;                   // hillshade
+        const lft=el[y*W+((x-1+W)%W)], rgt=el[y*W+((x+1)%W)];
+        const sh=1+(lft-rgt)*9;
+        r*=sh;g*=sh;b*=sh;
+      }
+      // limb darkening so the edge falls away
+      const limb=0.55+0.45*nz;
+      r*=day*limb; g*=day*limb; b*=day*limb;
+
+      if(showLights && day<0.85 && !isSea){
+        const L=lights[i]*(1-day)*1.25;
+        if(L>0.004){
+          r+=L*255; g+=L*216; b+=L*140;
+        }
+      }
+      // thin atmosphere on the lit limb
+      const atm=Math.pow(1-nz,3)*day*70;
+      r+=atm*0.35; g+=atm*0.6; b+=atm;
+
+      d[o]=Math.min(255,r); d[o+1]=Math.min(255,g); d[o+2]=Math.min(255,b); d[o+3]=255;
+    }
+  }
+  gctx.putImageData(img,0,0);
+
+  // ---- overlays: spaceports on the surface, orbitals above -------------
+  function project(lat,lon,alt){
+    const la=lat*Math.PI/180, lo=lon*Math.PI/180;
+    const wx=Math.cos(la)*Math.sin(lo), wy=Math.sin(la), wz=Math.cos(la)*Math.cos(lo);
+    const ux= wx*cs - wz*sn, uz= wx*sn + wz*cs;   // inverse of the sample rotation
+    return {x:cx+ux*R*(alt||1), y:cy-wy*R*(alt||1), front:uz>0, uz};
+  }
+
+  if($('cOrbit').checked){
+    gctx.lineWidth=1;
+    for(const s of world.orbitals){
+      for(const pass of [0,1]){
+        const pt=project(s.lat,s.lon,s.alt);
+        if((pass===0)!==(!pt.front)) continue;     // behind first, then in front
+        gctx.globalAlpha=pt.front?1:0.28;
+        if(s.tether){                              // a line down to the surface
+          const g2=project(s.lat,s.lon,1);
+          gctx.strokeStyle='#4d6b86';
+          gctx.beginPath();gctx.moveTo(g2.x,g2.y);gctx.lineTo(pt.x,pt.y);gctx.stroke();
+        }
+        gctx.fillStyle='#cfe3f2';
+        gctx.beginPath();gctx.arc(pt.x,pt.y,2.6,0,7);gctx.fill();
+        gctx.strokeStyle='rgba(180,214,240,.55)';
+        gctx.beginPath();gctx.arc(pt.x,pt.y,5.5,0,7);gctx.stroke();
+      }
+    }
+    gctx.globalAlpha=1;
+  }
+
+  if($('cPorts').checked){
+    gctx.font='11px ui-monospace,monospace';
+    for(const sp of world.spaceports){
+      const pt=project(sp.lat,sp.lon,1.005);
+      if(!pt.front) continue;
+      gctx.strokeStyle='#D4A45C'; gctx.lineWidth=1.4;
+      gctx.beginPath();gctx.arc(pt.x,pt.y,4.5,0,7);gctx.stroke();
+      gctx.beginPath();gctx.moveTo(pt.x,pt.y-8);gctx.lineTo(pt.x,pt.y-15);gctx.stroke();
+      gctx.fillStyle='#D4A45C';
+      gctx.fillText('port', pt.x+7, pt.y-9);
+    }
+  }
 }
 
 /* ============================================================ report ==== */
@@ -560,6 +1016,32 @@ function report(){
     L.push(`  #${b.a} | #${b.b}   ${b.desc}   (${b.share}% of the crossing)`);
   });
   L.push('');
+  L.push(`SETTLEMENT — ${w.towns.length} towns, ${w.cultures.length} cultures, `+
+         `${w.polities.length} polities`);
+  L.push('');
+  w.cultures.forEach((c,k)=>{
+    const share=(w.cultCells[k]/(W*H)*100).toFixed(1);
+    L.push(`  culture ${k+1}  ${c.type.padEnd(9)} seat at `+
+           `${c.seat.lat.toFixed(0)}/${c.seat.lon.toFixed(0)}   ${share}% of the surface`);
+  });
+  L.push('');
+  w.polities.forEach((p,k)=>{
+    const share=(w.polCells[k]/(W*H)*100).toFixed(1);
+    const ct=w.cultures[p.culture];
+    L.push(`  polity ${k+1}   capital ${p.seat.lat.toFixed(0)}/${p.seat.lon.toFixed(0)}   `+
+           `${share}% of the surface   ${ct?ct.type:'mixed'} culture`);
+  });
+  if(w.spaceports.length){
+    L.push('');
+    L.push('  SPACEPORTS — chosen for population, flat ground and low latitude');
+    w.spaceports.forEach((s,k)=>
+      L.push(`    ${k+1}. lat ${s.lat.toFixed(1)} lon ${s.lon.toFixed(1)}   `+
+             `in polity ${w.polityOf[s.i]+1||'—'}`));
+  }
+  if(w.orbitals.length)
+    L.push(`  ORBITALS — ${w.orbitals.length} stations, `+
+           `${w.orbitals.filter(o=>o.tether).length} tethered to a port`);
+  L.push('');
   L.push('PROMPTS THIS MAP RAISES');
   const qs=[];
   if(B.some(b=>b.kind==='ocean'))
@@ -570,6 +1052,12 @@ function report(){
     qs.push('Somebody crosses the desert for a reason. What is worth that?');
   if(R.length>=4)
     qs.push(`${R.length} habitable regions and you need ${Math.min(R.length,5)} peoples — which regions merged, and why?`);
+  const big=w.polities.map((p,k)=>({k,n:w.polCells[k]})).sort((a,b)=>b.n-a.n);
+  if(big.length>1 && big[0].n>big[1].n*2.5)
+    qs.push(`Polity ${big[0].k+1} is ${(big[0].n/big[1].n).toFixed(1)}x its nearest rival. Why has nobody stopped it?`);
+  const portless=w.polities.filter((p,k)=>!w.spaceports.some(s=>w.polityOf[s.i]===k));
+  if(portless.length && w.spaceports.length)
+    qs.push(`${portless.length} of ${w.polities.length} polities have no spaceport. What do they pay to leave?`);
   if(R[0]&&R[1]&&R[0].area>R[1].area*3)
     qs.push(`Region #1 is ${Math.round(R[0].area/R[1].area)}x the size of #2. That asymmetry is a history.`);
   const dryish=Object.keys(counts).filter(k=>k==='desert'||k==='steppe')
@@ -612,7 +1100,8 @@ function readCfg(){
   return {seed:$('seed').value||'x', ocean:+$('rOcean').value, relief:+$('rRelief').value,
     scale:+$('rScale').value, rough:+$('rRough').value, temp:+$('rTemp').value,
     tilt:+$('rTilt').value, bands:+$('rBands').value, wind:+$('rWind').value,
-    uni:$('cUni').checked};
+    uni:$('cUni').checked, pop:+$('rPop').value, cult:+$('rCult').value,
+    pol:+$('rPol').value, port:+$('rPort').value, orb:+$('rOrb').value};
 }
 function syncLabels(){
   $('vOcean').textContent=$('rOcean').value+'%';
@@ -623,6 +1112,14 @@ function syncLabels(){
   $('vTilt').textContent=$('rTilt').value+'°';
   $('vBands').textContent=$('rBands').value;
   $('vWind').textContent=$('rWind').value;
+  $('vPop').textContent=$('rPop').value;
+  $('vCult').textContent=$('rCult').value;
+  $('vPol').textContent=$('rPol').value;
+  $('vPort').textContent=$('rPort').value;
+  $('vOrb').textContent=$('rOrb').value;
+  $('vSpin').textContent=$('rSpin').value+'\u00b0';
+  $('vSun').textContent=$('rSun').value+'\u00b0';
+  $('vZoom').textContent=($('rZoom').value/100).toFixed(2)+'x';
 }
 function applyPreset(name){
   const p=PRESETS[name]; if(!p)return;
@@ -634,14 +1131,16 @@ function applyPreset(name){
 }
 function run(){
   generate(readCfg());
-  draw(); report();
+  if(view==='globe') drawGlobe(); else draw();
+  report();
   $('stat').textContent=
-    `${world.regions.length} provinces · ${world.barriers.length} barriers · ${world.ms} ms`;
+    `${world.regions.length} provinces · ${world.towns.length} towns · `+
+    `${world.cultures.length} cultures · ${world.polities.length} polities · ${world.ms} ms`;
 }
 
 sel.onchange=()=>{applyPreset(sel.value);run()};
-['rOcean','rRelief','rScale','rRough','rTemp','rTilt','rBands','rWind']
-  .forEach(id=>$(id).oninput=syncLabels);
+['rOcean','rRelief','rScale','rRough','rTemp','rTilt','rBands','rWind',
+ 'rPop','rCult','rPol','rPort','rOrb'].forEach(id=>$(id).oninput=syncLabels);
 $('bGen').onclick=run;
 $('bRand').onclick=()=>{
   $('seed').value=Math.random().toString(36).slice(2,9); run();
@@ -649,12 +1148,15 @@ $('bRand').onclick=()=>{
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); view=b.dataset.v;
-  const isRep=view==='report';
-  cv.style.display=isRep?'none':'block';
+  const isRep=view==='report', isGlobe=view==='globe';
+  cv.style.display=(isRep||isGlobe)?'none':'block';
+  $('globeBox').style.display=isGlobe?'block':'none';
   $('report').style.display=isRep?'block':'none';
-  $('legend').style.display=isRep?'none':'flex';
-  if(!isRep) draw();
+  $('legend').style.display=(isRep||isGlobe)?'none':'flex';
+  if(isGlobe) drawGlobe(); else if(!isRep) draw();
 });
+['rSpin','rSun','rZoom'].forEach(id=>$(id).oninput=()=>{syncLabels();drawGlobe()});
+['cLights','cPorts','cOrbit'].forEach(id=>$(id).onchange=drawGlobe);
 
 applyPreset(Object.keys(PRESETS)[0]);
 syncLabels();
