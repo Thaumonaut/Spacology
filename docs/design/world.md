@@ -263,65 +263,176 @@ in your head than the other thing, and it is, in its way, exactly the same argum
 
 ---
 
-## Peoples and worlds
+## Peoples
 
-Life is abundant, so people are too. Where someone is from shows — in colouring, in markings, in how
-they wear their hair, in what they consider normal. Worlds are named and numbered: **Maelus IV**,
-**Utora VII**, **Orrowan V**. The numeral is the orbital position and everyone uses it.
+Life is abundant, so people are too. The ship carries humans, **semi-humans** and **demi-humans**,
+and nobody aboard finds any of it remarkable. Worlds are named and numbered — **Maelus IV**,
+**Utora VII**, **Orrowan V** — and the numeral is the orbital position, so the full name is the
+ordinary name.
+
+**The principle that keeps this from being lazy: a species is a body, a people is a culture, and
+they are separate axes.** Being feline does not make you playful. Two canids raised on different
+worlds may have nothing whatever in common. What a species gives you is a set of physical and
+sensory facts, and those facts are *professionally relevant* on a ship whose entire purpose is
+looking closely at things — which is why the faculties recruit the way they do, and why nobody
+treats any of it as exotic.
+
+---
+
+## Human peoples
 
 ### The Chosokee — Maelus IV
 
 Rich tan skin and white hair from childhood — colouring, not age. Fine pale **markings** across the
 cheekbones, shoulders and forearms, partly inherited and partly earned: a Chosokee gains new lines
-as they take charge of something living, so reading someone's forearms tells you what they have
-responsibility for. Maelus IV is a world of enormous slow fauna and people who have lived alongside
-it long enough to be extremely good at it.
-
-They use single names. A surname would strike them as an odd thing to need.
+as they take charge of something living, so reading someone's forearms tells you what they are
+responsible for. Maelus IV is a world of enormous slow fauna and people who have lived alongside it
+long enough to be extremely good at it. They use single names; a surname would strike them as an odd
+thing to need.
 
 ### The Utorans — Utora VII
 
 Deep brown to near-black skin, and **braided hair in patterns that mean something** — family on one
 side, discipline on the other, rebraided when either changes. An Utoran scholar's head is a readable
-record, which they find practical and everyone else finds slightly intimidating. A wet, forested
-world with a long scholarly tradition.
+record, which they find practical and everyone else finds slightly intimidating.
 
 ### The Beluni — Belune III
 
-Belune III has the largest tides anywhere surveyed. Twice a day the same ground is a different
-place, and the Beluni have never found this remarkable.
+The largest tides anywhere surveyed: twice a day the same ground is a different place, and the
+Beluni have never found this remarkable. Some Beluni are **tidal** — one person, one personality,
+one life, shifting between feminine and masculine on their own schedule. Not two people, not moods,
+not a transition. **Their mana turns when they do**, which is the only reliable tell, so anyone
+attuned finds the question trivial and the mana-deaf have to ask.
 
-Some Beluni are **tidal**: one person, one personality, one life — who shifts between feminine and
-masculine on their own schedule. Not two people, not moods, not a transition. The same person, the
-same memories and jokes and grudges, presenting differently.
+---
 
-**Their mana changes when they turn**, which is the only reliable tell. Anyone attuned feels it
-immediately and finds the whole question trivially easy. The mana-deaf get no signal at all and have
-to either ask or guess, and how somebody handles that says a great deal about them.
+## Semi-humans
+
+Human body plan, different everything else. You could put them in the same clothes.
 
 ### The Cassine — Ranohe II
 
 They grow their entire lives and never stop. Skin thickens with age into something like weathered
-bark laid down in visible ridges, so a Cassine's arm reads like a cut trunk. Deep-set amber eyes. An
-elder is enormous, slow, and eventually cannot move at all, which every Cassine knows and plans
-around.
+bark laid down in visible ridges, so a Cassine's arm reads like a cut trunk and anyone who can count
+them knows exactly how old they are. Deep-set amber eyes. An elder is enormous, slow, and eventually
+cannot move at all, which every Cassine knows and plans around.
 
-A Cassine takes a new name at each size threshold and each is longer than the last, so the name
-tells you roughly how old and how large they are. Using an earlier one is rude.
+A new name at each size threshold, each longer than the last. Using an earlier one is rude.
 
 ### The Ossuan — Iseul III
 
-Tall, slender, hairless, pale silver-grey skin, eyes almost entirely pupil — they evolved under a
-dim sun and find most ships painfully bright.
+Tall, slender, hairless, pale silver-grey, eyes almost entirely pupil — a dim red sun, so most ships
+are painfully bright and they work in darkened compartments by preference.
 
-**No personal names, only posts.** The post *is* the name. When an Ossuan's function changes their
-name changes, and they do not regard the previous holder — who was themselves — as the same person
-in any sense worth arguing about.
+**No personal names, only posts.** The post *is* the name. When the function changes so does the
+name, and the previous holder — who was them — is a separate person in every way that matters.
 
-### Elsewhere
+### The Oni
+
+Big, heavy-framed, skin in deep saturated colours, and **horned** — and the horns are not
+decoration. They are mana-conductive, which makes oni disproportionately likely to be strongly
+attuned, and which means an oni standing near a badly-tuned manifold gets a headache before any
+instrument notices. Several engineering faculties have an oni on the walkround for exactly this
+reason and are slightly embarrassed about it.
+
+Their daily grievance is furniture. Almost everything aboard was built for smaller hands, lower
+ceilings and narrower shoulders, and the accumulated indignity of doorways is a running complaint
+that nobody has ever successfully budgeted for.
+
+### Rock skins
+
+Mineral skin — not armour plate, more like dense patterned stone over an otherwise ordinary frame.
+Tough, slow to injure, and comfortable in conditions that would put anybody else in a suit, which
+makes them extraordinary at reef work: a reef is colonised stone, and a rock skin can sit against a
+cold face for an hour taking notes.
+
+**Their colouring records where they have been.** Skin takes up the mineral character of the
+environments they spend time in, so an old rock skin is a travel log — a band of ochre from two
+years on one world, a grey seam from a long survey somewhere cold. Reading someone's forearm is
+considered forward but not rude, roughly like asking where somebody grew up.
+
+### Mana dwellers
+
+Partly current rather than entirely matter. They are solid, they are people, they eat and sleep and
+file reports — but something about them is *flow*, and it shows: a faint luminosity under the skin,
+a tendency to come out wrong in recordings.
+
+They do not hear mana. They are **in** it, the way a fish is not listening to water, which makes
+them the most naturally capable people aboard and the worst at explaining anything. Ask a mana
+dweller how they did it and you will get a description of a feeling.
+
+The cost is real. A strong ley current is weather for everyone else and a *medical event* for them,
+and near the Null — which unmakes — they are in direct physical danger, and they can feel it coming
+some distance before the instruments can. Nobody has decided yet whether that makes them the best
+possible early warning or a cruelty to bring along.
+
+### Angels
+
+Winged, luminous-eyed, and mildly embarrassed about the name, which somebody else gave them a long
+time ago and which stuck the way these things do.
+
+**Whether they can actually fly depends on which deck you catch them on.** An arcology's gravity
+varies from the hub outward, so an angel is airborne in the low-gravity cores, awkward in the mid
+rings, and grounded on the outer decks like everybody else. They plan routes around this. The lifts
+are for other people.
+
+---
+
+## Demi-humans
+
+Animal body plans — muzzles, digitigrade legs, tails, fur or feathers or damp skin as the primary
+covering.
+
+### Canids
+
+Scent-led. A canid can characterise a biosphere by nose in the time it takes an instrumented team to
+unpack, which makes them superb field naturalists and puts them in permanent methodological rivalry
+with instrumented chemistry — same information, two routes, both correct, neither able to show its
+working to the other's satisfaction.
+
+**The tail is the problem.** It is not fully under conscious control, so everybody can read a
+canid's mood whether the canid wants it read or not. This is a lifelong social disadvantage and the
+source of a great deal of shipboard comedy, most of it affectionate and some of it not.
+
+### Felines
+
+Directional hearing, precise enough to place a sound in three dimensions through a bulkhead. They
+hear a bearing going, a structure taking load it should not, a manifold climbing toward
+over-excitation — usually before the alarm, and reliably before anyone else in the compartment.
+
+Much of the engineering faculty has quietly stopped trusting the alarm and just asks.
+
+### Amphibioids
+
+Damp-skinned and built for water, which on this ship is not a limitation but a qualification.
+**They work inside the watercourses** — the coolant loops, the falls, the deep pools — where nobody
+else can go comfortably, and they use them as transit, swimming between decks while everyone else
+takes the galleries.
+
+The permanent mist that the rest of the crew treat as atmosphere is, for them, a necessity. Dry
+compartments are genuinely hostile and there is a standing argument with Life Systems about
+humidity in the archive.
+
+### Bird folk
+
+Hollow-boned, feathered, flighted where the gravity permits — and in an arcology with galleries
+hundreds of metres deep, that is real transit. They go straight up. Inside a reef void, where there
+is an atmosphere and no floor, a flighted surveyor can reach places a climbing team needs two days
+to rig for.
+
+The cost is fragility. Hollow bones break, and a bird folk surveyor who misjudges a descent is a
+serious medical problem rather than an embarrassing one.
+
+**Their song is complex and they take it seriously.** Whatever mana actually is, everyone who
+perceives it reaches for the vocabulary of music, and bird folk are the only people aboard who were
+already fluent in it.
+
+---
+
+## Worlds named elsewhere
 
 **Kessa** was a ring of inhabited reefs and the best shipwright tradition in reach. The Null took it
-four years ago.
+four years ago, and two of the crew are from there — one of whom talks about it.
 
 Others aboard come from **Verekh III** (orbital yards), **Orrowan V**, **Sindal II**, **Tessine
 IX**, **Calyx IV**, **Ombrea V**, and **Tannhul VI**, a high-gravity world that produces people
