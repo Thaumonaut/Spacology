@@ -219,7 +219,7 @@ const W_TEX=0.15;
    about 60 km — just below what a 640-wide grid can represent, so it adds to
    the grid rather than repeating it. A Perlin field scaled by F has features
    of roughly 1/F radians, so 57.3/F degrees. */
-const TEX_F0=106, TEX_GAIN=0.73;
+const TEX_F0=106, TEX_GAIN=0.73, TEX_ANISO=3.4;
 
 function fbm(n,x,y,z,oct,lac,gain){
   let a=1,f=1,s=0,norm=0;
@@ -242,10 +242,10 @@ const BIOME={
   tundra:     ['tundra',       '#7d8b7a',1],
   taiga:      ['taiga',        '#3f5d46',1],
   temperate:  ['temperate forest','#4a7a4e',1],
-  grass:      ['grassland',    '#8a9a5b',1],
-  steppe:     ['steppe',       '#9c9464',1],
-  desert:     ['desert',       '#c2a878',1],
-  savanna:    ['savanna',      '#a8a054',1],
+  grass:      ['grassland',    '#7d9b4e',1],
+  steppe:     ['steppe',       '#a2a27a',1],
+  desert:     ['desert',       '#d8bc84',1],
+  savanna:    ['savanna',      '#bda85c',1],
   seasonal:   ['seasonal forest','#5d8a4a',1],
   rain:       ['rainforest',   '#2f6b3a',1],
   wetland:    ['wetland',      '#5a7a63',1],
@@ -330,8 +330,10 @@ let world=null;
 
 /* amplitude in raw field units, width in degrees of arc */
 const BOUNDARY={
-  collide:  {amp: 0.95, wid: 3.4},   // continent meets continent: Himalaya
-  arc:      {amp: 0.82, wid: 2.2},   // ocean dives under continent: Andes
+  // Widths are the half-life of the belt, and they were making domes. The
+  // Himalaya is 8 km tall over about 250 km of approach, not 800.
+  collide:  {amp: 0.95, wid: 2.6},   // continent meets continent: Himalaya
+  arc:      {amp: 0.82, wid: 1.7},   // ocean dives under continent: Andes
   trench:   {amp:-0.80, wid: 0.9},   // the other side of that: Peru-Chile
   island:   {amp: 0.48, wid: 1.1},   // ocean under ocean: Marianas arc
   ridge:    {amp: 0.30, wid: 5.5},   // spreading ocean: mid-Atlantic swell
@@ -388,6 +390,11 @@ function buildTectonics(cfg, seed, crust, contLevel){
 
   /* --- classify every boundary and seed uplift -------------------------- */
   const amp=new Float32Array(N), wid=new Float32Array(N), spc=new Float32Array(N);
+  // Strike: the compass direction the boundary runs, stored per seed as a
+  // doubled angle. Doubling is what lets these be averaged — a strike of 10
+  // degrees and one of 170 are the same line, and averaging them directly would
+  // cancel to nothing.
+  const s2c=new Float32Array(N), s2s=new Float32Array(N);
   const bkind=new Int8Array(N).fill(-1);
   const KINDS=['collide','arc','trench','island','ridge','rift','passive','transform'];
   const seeds=[];
@@ -402,6 +409,10 @@ function buildTectonics(cfg, seed, crust, contLevel){
     if(bkind[i]>=0 && Math.abs(amp[i])>=Math.abs(a)) return;   // strongest wins
     if(bkind[i]<0) seeds.push(i);
     amp[i]=a; wid[i]=B.wid; spc[i]=run; bkind[i]=KINDS.indexOf(kind);
+  };
+  const putStrike=(i,nE,nN)=>{           // boundary runs across its own normal
+    const th=Math.atan2(nE,-nN);
+    s2c[i]=Math.cos(2*th); s2s[i]=Math.sin(2*th);
   };
 
   // look-back distance, ~5 degrees of arc, so it scales with resolution
@@ -452,6 +463,10 @@ function buildTectonics(cfg, seed, crust, contLevel){
         const ci=crust[back(x,y,n,-BACK)]>contLevel,
               cj=crust[back(x,y,n, BACK)]>contLevel;
 
+        // the normal in the local east/north frame, for the strike
+        const nE=-nx*slon[x]+ny*clon[x];
+        const nN=-nx*sl*clon[x]-ny*sl*slon[x]+nz*cl;
+        putStrike(i,nE,nN); putStrike(j,nE,nN);
         const run=(n===0)?dLatDeg:dLonDeg*cosLat[y];
         if(Math.abs(conv)<shear*0.65){            // mostly sliding
           put(i,'transform',s,run); put(j,'transform',s,run);
@@ -491,6 +506,7 @@ function buildTectonics(cfg, seed, crust, contLevel){
      the integral of exp(-|u|^1.5). Dividing by that puts the crest back at
      amp regardless of grid size or latitude.                                */
   const uplift=new Float32Array(N);
+  const strC=new Float32Array(N), strS=new Float32Array(N);
   const LINE=1.805, D2R=Math.PI/180, R2D=180/Math.PI;
   // true angular distance, not a flat-earth approximation: near a pole the
   // approximation calls every longitude adjacent and one seed paints the whole
@@ -533,11 +549,38 @@ function buildTectonics(cfg, seed, crust, contLevel){
         let c=base+cross*cd; if(c>1)c=1; else if(c<-1)c=-1;
         const d=Math.acos(c)*R2D;
         if(d>cap) continue;
-        uplift[row+(((sx+dx)%W)+W)%W] += k*Math.exp(-Math.pow(d/w,1.5));
+        const q=Math.exp(-Math.pow(d/w,1.5)), idx=row+(((sx+dx)%W)+W)%W;
+        uplift[idx] += k*q;
+        // the same kernel carries the boundary's direction outward, so the
+        // whole belt knows which way it runs, crest included
+        const qw=Math.abs(k)*q;
+        strC[idx] += qw*s2c[s]; strS[idx] += qw*s2s[s];
       }
     }
   }
-  return {plate,uplift,bkind,count:P,seeds:seeds.length};
+  // Smooth the strike. Two boundaries meeting at an angle otherwise hand
+  // neighbouring cells directions tens of degrees apart, and since the texture
+  // is stretched along that direction the change shows up as a straight seam
+  // cutting across the range. Doubled angles average correctly, so this is just
+  // a blur on the two components.
+  {
+    const bc=new Float32Array(N), bs=new Float32Array(N), RAD=Math.max(1,Math.round(H/90));
+    for(let pass=0;pass<2;pass++){
+      const sc=pass?bc:strC, ss=pass?bs:strS, dc=pass?strC:bc, ds=pass?strS:bs;
+      const horiz=pass===0;
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+        let a=0,b=0,n2=0;
+        for(let k=-RAD;k<=RAD;k++){
+          let j;
+          if(horiz) j=y*W+((((x+k)%W)+W)%W);
+          else { const yy=y+k; if(yy<0||yy>=H) continue; j=yy*W+x; }
+          a+=sc[j]; b+=ss[j]; n2++;
+        }
+        dc[y*W+x]=a/n2; ds[y*W+x]=b/n2;
+      }
+    }
+  }
+  return {plate,uplift,strC,strS,bkind,count:P,seeds:seeds.length};
 }
 
 function generate(cfg){
@@ -794,8 +837,17 @@ function generate(cfg){
   // ---- biomes -----------------------------------------------------------
   for(let i=0;i<N;i++) biome[i]=classify(el[i],sea,temp[i],moist[i]);
 
+  // A ridged sum is all-positive, so left alone it would simply lift every
+  // mountain by its own mean. Measure that mean once over the sphere and
+  // subtract it, so the texture carves as much as it builds.
+  let tb=0; const tbr=mulberry32(seed^0x7e1a5), TBN=768;
+  for(let k=0;k<TBN;k++){
+    const z=2*tbr()-1, rr=Math.sqrt(Math.max(0,1-z*z)), th=tbr()*Math.PI*2;
+    tb+=texture({det:nDet,ridge:nRidge},rr*Math.cos(th),rr*Math.sin(th),z,0,0,0,0,9);
+  }
+
   world={cfg,el,sea,temp,moist,wet,biome,flow,fmax,windU,down,tec,crust,
-         noise:{cont:nCont,det:nDet,ridge:nRidge},
+         noise:{cont:nCont,det:nDet,ridge:nRidge}, texBias:tb/TBN,
          cScale,rough,elo:lo,ehi:hi,reliefK,
          ms:Math.round(performance.now()-t0)};
   analyse();
@@ -1453,34 +1505,133 @@ function sampleSmooth(arr,lat,lon){
    until the model is wired in. It reproduces the coarse grid exactly where the
    grid has a value, so zooming reveals detail instead of changing the world.
 ------------------------------------------------------------------------- */
-function elevAt(lat,lon,extra){
+/* The fine terrain, and the part that decides whether this reads as a mountain
+   range or as noise sprinkled on a dome. Three things that a plain sum of
+   octaves cannot do:
+
+   Ridged. 1 - |n| creases where the noise crosses zero, and squaring sharpens
+   the crease. Smooth noise gives lumps; this gives ridgelines.
+
+   Domain warped. The sample point is displaced by another noise field before
+   it is read, which bends what would be round blobs into the sinuous, branching
+   shapes that drainage actually makes. Without it every valley is a dimple.
+
+   Multifractal. Each octave is scaled by how high the previous one came out, so
+   detail gathers on the crests and the valley floors stay smooth — which is
+   what erosion does, and what makes a range look carved rather than crumpled.
+
+   Anisotropic. Stretched along the belt, so ridges run parallel to the range
+   instead of pointing in every direction at once.
+
+   Amplitudes are a bare power law with no normalisation, for the reason given
+   at W_TEX. */
+function texture(noise,px,py,pz,tx,ty,tz,aniso,n){
+  const wf=TEX_F0*0.5, wa=0.085/TEX_F0;
+  const qx=px+noise.ridge(px*wf+11.3,py*wf,pz*wf)*wa,
+        qy=py+noise.ridge(px*wf,py*wf+7.1,pz*wf)*wa,
+        qz=pz+noise.ridge(px*wf,py*wf,pz*wf+3.7)*wa;
+  let t=0, a=1, f=TEX_F0, w=1;
+  for(let k=0;k<n;k++){
+    let e;
+    if(aniso>0.02 && k<4){
+      // Average the noise along the strike before creasing it. Smoothing a
+      // field in one direction stretches its zero crossings that way, and the
+      // crease follows the zero crossing — so the ridges come out running with
+      // the range instead of pointing everywhere.
+      //
+      // The obvious way to do this is to stretch the sample point,
+      // s = p + a (a.p)(A-1), and it is worth writing down why that silently
+      // does nothing: a is a tangent vector at p, so a.p is exactly zero and
+      // the transform is the identity. It was in for three rounds of this.
+      const o=0.55/f;
+      const n1=noise.det((qx-tx*o)*f,(qy-ty*o)*f,(qz-tz*o)*f);
+      const n2=noise.det(qx*f,qy*f,qz*f);
+      const n3=noise.det((qx+tx*o)*f,(qy+ty*o)*f,(qz+tz*o)*f);
+      const smeared=(n1+n2+n3)*0.3333;
+      e=1-Math.abs(smeared*aniso+n2*(1-aniso));
+    } else {
+      e=1-Math.abs(noise.det(qx*f,qy*f,qz*f));
+    }
+    const s=e*e;
+    t+=a*s*w;
+    // Weight the next octave by this one, but never to zero. At w = s*2.1 a
+    // single low octave switched off every finer one beneath it, which left
+    // large patches perfectly smooth — the grey flats between the rubble.
+    w=0.38+s*1.15; if(w>1)w=1;
+    f*=2; a*=TEX_GAIN;
+  }
+  return t;
+}
+
+/* How many octaves of a layer are worth evaluating at a given ground
+   resolution. Everything finer than two pixels cannot be drawn — it aliases
+   into a crumble that buries the landforms underneath it, which is exactly what
+   made a mountain range look like sandpaper: at 16x a pixel is about 1.3 km of
+   ground, and the texture was being run down to a 230 m wavelength, five
+   octaves past anything the screen could show. */
+function octFor(baseKm,resM,cap){
+  if(!resM) return cap;
+  const n=1+Math.floor(Math.log2(Math.max(1,baseKm*1000/(2*resM))));
+  return Math.max(1,Math.min(cap,n));
+}
+
+function elevAt(lat,lon,extra,resM){
   const {noise,cScale,rough,elo,ehi,reliefK,sea,tec}=world;
   const la=lat*Math.PI/180, ln=(lon+180)*Math.PI/180;   // generate()'s convention
   const cl=Math.cos(la), px=cl*Math.cos(ln), py=cl*Math.sin(ln), pz=Math.sin(la);
-  const OCT=5+extra;
+  // base wavelength of each layer, in km, from 57.3/F degrees of arc
+  const KM=111.32;
+  const OCT=Math.min(11,5+extra);
+  const octD=octFor(57.3/(cScale*4)*KM,resM,OCT);
+  const octR=octFor(57.3/(cScale*3)*KM,resM,OCT);
   const c=fbm(noise.cont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
-  const d=fbm(noise.det,px*cScale*4,py*cScale*4,pz*cScale*4,OCT,2.0,DGAIN);
+  const d=fbm(noise.det,px*cScale*4,py*cScale*4,pz*cScale*4,octD,2.0,DGAIN);
   const u=sampleSmooth(tec.uplift,lat,lon);
   const g=Math.min(1,Math.abs(u)*2.2);
-  const r=ridged(noise.ridge,px*cScale*3,py*cScale*3,pz*cScale*3,OCT,2.1,RGAIN);
+  const r=ridged(noise.ridge,px*cScale*3,py*cScale*3,pz*cScale*3,octR,2.1,RGAIN);
   let v=c*W_CRUST + d*W_DETAIL + u*W_UPLIFT + r*(0.20+g*0.80)*rough*W_RIDGE;
   v=(v-elo)/(ehi-elo);
   if(v>sea){ const h=(v-sea)/(1-sea); v=sea+Math.pow(h,1/reliefK)*(1-sea); }
   if(extra>0 && v>sea){
-    // Summed WITHOUT the 1/sum-of-amplitudes that fbm applies. That division
-    // is why raising octave counts or weights kept doing nothing: it holds the
-    // total fixed, so every octave added makes all the others quieter. Here the
-    // amplitudes are a bare power law, gain 0.73 per octave, which is a Hurst
-    // exponent near 0.45 — what real ground measures, against the 0.83 this
-    // terrain had. The first octave therefore carries its full amplitude and
-    // each finer one is a fixed fraction of it, so relief at every scale comes
-    // out where it should instead of being squeezed toward the coarse end.
-    let t=0, f=TEX_F0, a=1;
-    const n=Math.min(9,extra+4);
-    for(let k=0;k<n;k++){ t+=a*noise.det(px*f,py*f,pz*f); f*=2; a*=TEX_GAIN; }
-    v+=t*W_TEX*Math.min(1,0.07+Math.abs(u)*1.9);
+    // Across-strike direction, from the gradient of the uplift field. A range
+    // runs along its belt, so its ridges run perpendicular to the direction the
+    // belt is climbing — which the tectonics already knows.
+    // Across-strike direction. The first attempt took it from the gradient of
+    // the uplift, which is zero at the crest of a belt — precisely where the
+    // mountains are — so the ranges came out with no direction at all. The
+    // tectonics now carries the boundary's own strike outward through the belt.
+    const slo=Math.sin(ln), clo=Math.cos(ln), sla=Math.sin(la), cla=Math.cos(la);
+    const ex=-slo, ey=clo;                              // local east
+    const nx2=-sla*clo, ny2=-sla*slo, nz2=cla;          // local north
+    const sc=sampleSmooth(tec.strC,lat,lon), ss=sampleSmooth(tec.strS,lat,lon);
+    // Where two ranges meet at an angle the doubled angles cancel, and a small
+    // magnitude is exactly the signal that there is no single direction here.
+    // Fade the stretching out rather than switching it, or the change shows as
+    // a straight seam cutting across the mountains.
+    const smag=Math.hypot(sc,ss);
+    let tx=0,ty=0,tz=0,aniso=clampv((smag-0.008)/0.045,0,1);
+    if(aniso>0.02){
+      const th=0.5*Math.atan2(ss,sc);                   // undo the doubling
+      const tE=Math.cos(th), tN=Math.sin(th);           // along the strike
+      tx=ex*tE+nx2*tN; ty=ey*tE+ny2*tN; tz=nz2*tN;
+      const tl=Math.hypot(tx,ty,tz);
+      if(tl>1e-9){ tx/=tl; ty/=tl; tz/=tl; aniso=1; }
+    }
+    const t=texture(noise,px,py,pz,tx,ty,tz,aniso,
+                    octFor(57.3/TEX_F0*KM,resM,Math.min(9,extra+4)));
+    // Roughness follows height as well as the boundary. Keying it to the
+    // uplift alone left everything a range had pushed up — the foothills, the
+    // plateau behind it — as smooth as a plain, because uplift falls off within
+    // a couple of degrees of the boundary while the ground it raised does not.
+    const h2=Math.max(0,(v-sea)/(1-sea));
+    const steep=Math.min(1,0.03+Math.abs(u)*1.5+h2*1.5);
+    v+=(t-world.texBias)*W_TEX*steep;
   }
-  return v<0?0:(v>1?1:v);
+  // No ceiling. The texture is added after the field has been normalised, so
+  // clamping at 1 shears the top off every belt it lifts past the maximum the
+  // grid happened to contain — which is what put a flat grey plateau where the
+  // range should be, with the detail surviving only around its edges.
+  return v<0?0:v;
 }
 
 function sampleNearest(arr,lat,lon){
@@ -1546,13 +1697,28 @@ function drawGlobe(quick){
   // treating 1.0 as the summit understates every slope by a factor of three.
   const RELIEF_M=8848/Math.max(0.05,1-sea);
   const SH=9;
-  let prevE=0, prevOK=false;
+  // Shade against the pixel a fixed ground distance back rather than the one
+  // immediately left. A one-pixel difference is a high-pass filter: it only
+  // ever shows the finest thing present, so landforms never appear however
+  // well the field describes them.
+  const kBack=Math.max(3,Math.min(28,Math.round(1600/GPP)));
+  // A ring of recent rows, so the shading can use a real surface normal — a
+  // gradient across AND down — instead of an east-west difference. A 1-D
+  // difference lights only the slopes facing one way, which is why ridgelines
+  // stayed invisible in the globe while the same field showed them plainly
+  // under proper hillshading.
+  const RB=kBack+1;
+  const ring=new Float32Array(GW*RB), ringOK=new Uint8Array(GW*RB);
+  const LX=-0.55, LY=0.55, LZ=0.63;           // light from the north-west
+  let ri=0, prevE=0, prevOK=false;
 
   // While a finger or the mouse is down, shade every other pixel and fill 2x2
   // blocks. Four times fewer rays keeps a drag interactive; the full pass runs
   // again the moment the pointer lifts.
   const STEP=quick?2:1;
   for(let py=0;py<GH;py+=STEP){
+    const slot=ri%RB, above=(ri-kBack+RB+RB)%RB, sOff=slot*GW, aOff=above*GW;
+    ringOK.fill(0,sOff,sOff+GW);
     prevOK=false;
     for(let px=0;px<GW;px+=STEP){
       const nx=(px-cx)/R, ny=(cy-py)/R;
@@ -1581,8 +1747,9 @@ function drawGlobe(quick){
       // point where one data cell covers one screen pixel. The biome colour
       // stays nearest on purpose: it is a category, not a quantity, and a
       // blend between desert and taiga is not a biome.
-      const eC=detail?elevAt(lat,lon,OCTX):sampleSmooth(el,lat,lon);
+      const eC=detail?elevAt(lat,lon,OCTX,GPP):sampleSmooth(el,lat,lon);
       const isSea=eC<sea;
+      if(detail){ ring[sOff+px]=eC; ringOK[sOff+px]=1; }
       if(isSea){ r=20;g=48;b=78; prevE=eC; prevOK=true; }
       else {
         let bk;
@@ -1596,13 +1763,35 @@ function drawGlobe(quick){
                       sampleSmooth(moist,lat,lon));
         } else bk=biome[i];
         const c=BIOMERGB[bk];
+        // Hypsometric tint. A biome colour is flat across a whole class, so on
+        // its own it hides every ridge and valley inside one; leaning the
+        // colour with height is what makes the shape of the land readable,
+        // which is what relief maps have always done.
+        const ht=detail?clampv((eC-sea)/(1-sea)*2.6,0,1):0;
         // gradient against the pixel to the left, which costs nothing extra
-        const g0=(prevOK?prevE:eC)-eC;
-        const sh=detail
-          ? 1+clampv(g0*RELIEF_M/GPP*2.4,-0.85,0.85)
-          : 1+g0*(2*Math.PI*R/W)*SH;
+        let sh;
+        if(detail){
+          const bx=px-kBack*STEP, run=kBack*STEP*GPP;
+          const zx=(bx>=0&&ringOK[sOff+bx])?ring[sOff+bx]:eC;
+          const zy=(ri>=kBack&&ringOK[aOff+px])?ring[aOff+px]:eC;
+          // Vertical exaggeration, as every relief map since the first one has
+          // used: true slopes are gentle enough that a physically honest normal
+          // washes the whole scene out.
+          const VE=3.2;
+          const dzdx=(eC-zx)*RELIEF_M/run*VE, dzdy=(zy-eC)*RELIEF_M/run*VE;
+          const nl=Math.sqrt(dzdx*dzdx+dzdy*dzdy+1);
+          const lam=(-dzdx*LX-dzdy*LY+LZ)/nl;
+          sh=0.30+1.15*clampv(lam,0,1);
+        } else {
+          sh=1+((prevOK?prevE:eC)-eC)*(2*Math.PI*R/W)*SH;
+        }
         prevE=eC; prevOK=true;
-        r=c[0]*sh; g=c[1]*sh; b=c[2]*sh;
+        if(detail){
+          const lift=0.80+ht*0.30;
+          r=(c[0]*0.86+26*ht)*sh*lift;
+          g=(c[1]*0.86+24*ht)*sh*lift;
+          b=(c[2]*0.86+20*ht)*sh*lift;
+        } else { r=c[0]*sh; g=c[1]*sh; b=c[2]*sh; }
       }
       // limb darkening so the edge falls away, plus a little earthshine: the
       // night side of a real planet is not black, and if it is here you cannot
@@ -1622,6 +1811,7 @@ function drawGlobe(quick){
 
       put(px,py,r,g,b);
     }
+    ri++;
   }
   gctx.putImageData(img,0,0);
 
