@@ -72,6 +72,8 @@ barriers off it and write the peoples to fit.</p>
   <input type="range" id="rScale" min="10" max="100" step="1" value="45">
   <label>Tectonic roughness <b id="vRough"></b></label>
   <input type="range" id="rRough" min="0" max="100" step="1" value="55">
+  <label>Plates <b id="vPlates"></b></label>
+  <input type="range" id="rPlates" min="3" max="28" step="1" value="12">
 
   <div class="zl">Settlement</div>
   <label>Population density <b id="vPop"></b></label>
@@ -108,6 +110,7 @@ barriers off it and write the peoples to fit.</p>
   <div class="tabs">
     <button data-v="biome" class="on">Biome</button>
     <button data-v="relief">Relief</button>
+    <button data-v="plates">Plates</button>
     <button data-v="temp">Temperature</button>
     <button data-v="rain">Rainfall</button>
     <button data-v="wind">Wind</button>
@@ -233,6 +236,246 @@ function classify(el,sea,t,m){
 const W=640,H=320;
 let world=null;
 
+/* ---------------------------------------------------------------------------
+   Tectonics.
+
+   The elevation field used to gate ridged noise on wherever the continental
+   field happened to pass near zero and called those "fake plate edges". It is
+   worth being precise about why that reads as wrong, because it is the single
+   thing holding the maps back and no amount of resolution fixes it.
+
+   Real relief is not isotropic. Ranges are long arcs, not blobs. A range built
+   by subduction has a trench on one side and nothing on the other, and the
+   trench is the deepest thing on the planet sitting next to the tallest. Rifts
+   run in lines and drop. Island arcs stand offshore of nothing. Mid-ocean
+   ridges are a seam running the length of a basin. Noise produces none of that
+   at any octave, because noise has no direction and no sides.
+
+   That also settles where a terrain upscaler can help and where it cannot. A
+   diffusion model resolves the mountain it is given; it does not move it. Feed
+   it blobs and it returns beautifully eroded blobs.
+
+   So: real plates. Seeds scattered on the sphere with a domain-warped Voronoi
+   boundary, each turning about its own Euler pole the way real plates do
+   (velocity at a point is omega x p, which is why plate motion varies along a
+   single boundary and can go from convergent to transform without the plate
+   changing). Where two plates meet, the sign of relative motion along the
+   boundary normal says what kind of boundary it is, and the crust on either
+   side says what that boundary builds.
+--------------------------------------------------------------------------- */
+
+/* amplitude in raw field units, width in degrees of arc */
+const BOUNDARY={
+  collide:  {amp: 0.95, wid: 3.4},   // continent meets continent: Himalaya
+  arc:      {amp: 0.82, wid: 2.2},   // ocean dives under continent: Andes
+  trench:   {amp:-0.80, wid: 0.9},   // the other side of that: Peru-Chile
+  island:   {amp: 0.48, wid: 1.1},   // ocean under ocean: Marianas arc
+  ridge:    {amp: 0.30, wid: 5.5},   // spreading ocean: mid-Atlantic swell
+  rift:     {amp:-0.36, wid: 1.5},   // continent pulling apart: East Africa
+  passive:  {amp:-0.12, wid: 3.2},   // shelf edge, no drama
+  transform:{amp: 0.14, wid: 0.8},   // sliding past: San Andreas
+};
+
+function buildTectonics(cfg, seed, crust, contLevel){
+  const N=W*H, P=cfg.plates;
+  const rnd=mulberry32(seed^0x50a7e5);
+  const nwx=makeNoise(seed^0x2f1a), nwy=makeNoise(seed^0x7c3d), nwz=makeNoise(seed^0xb19e);
+
+  /* --- plate seeds and their Euler poles ------------------------------- */
+  const sx=new Float64Array(P), sy=new Float64Array(P), sz=new Float64Array(P);
+  const ox=new Float64Array(P), oy=new Float64Array(P), oz=new Float64Array(P);
+  const GA=Math.PI*(3-Math.sqrt(5));
+  for(let k=0;k<P;k++){
+    // Fibonacci sphere, then jittered — evenly spread but not visibly regular
+    const z=1-2*(k+0.5)/P, rr=Math.sqrt(Math.max(0,1-z*z)), th=GA*k+rnd()*0.9;
+    let vx=rr*Math.cos(th)+(rnd()-0.5)*0.38,
+        vy=rr*Math.sin(th)+(rnd()-0.5)*0.38,
+        vz=z+(rnd()-0.5)*0.38;
+    const L=Math.hypot(vx,vy,vz)||1; sx[k]=vx/L; sy[k]=vy/L; sz[k]=vz/L;
+    let ax=rnd()*2-1, ay=rnd()*2-1, az=rnd()*2-1;
+    const AL=Math.hypot(ax,ay,az)||1, spd=0.30+rnd()*0.70;
+    ox[k]=ax/AL*spd; oy[k]=ay/AL*spd; oz[k]=az/AL*spd;
+  }
+
+  /* --- assign every cell to a plate ------------------------------------ */
+  const plate=new Int16Array(N);
+  const clon=new Float64Array(W), slon=new Float64Array(W);
+  for(let x=0;x<W;x++){const lon=((x+0.5)/W)*2*Math.PI; clon[x]=Math.cos(lon); slon[x]=Math.sin(lon)}
+  const cosLat=new Float64Array(H);
+  const warp=0.42;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI, cl=Math.cos(lat), sl=Math.sin(lat);
+    cosLat[y]=Math.max(0.02,cl);
+    for(let x=0;x<W;x++){
+      const px=cl*clon[x], py=cl*slon[x], pz=sl;
+      // warping the query point is what stops boundaries being straight Voronoi
+      // chords; real plate edges wander
+      const qx=px+fbm(nwx,px*1.7,py*1.7,pz*1.7,3,2.3,0.55)*warp,
+            qy=py+fbm(nwy,px*1.7,py*1.7,pz*1.7,3,2.3,0.55)*warp,
+            qz=pz+fbm(nwz,px*1.7,py*1.7,pz*1.7,3,2.3,0.55)*warp;
+      let bk=0,bd=-1e9;
+      for(let k=0;k<P;k++){
+        const dd=qx*sx[k]+qy*sy[k]+qz*sz[k];
+        if(dd>bd){bd=dd;bk=k}
+      }
+      plate[y*W+x]=bk;
+    }
+  }
+
+  /* --- classify every boundary and seed uplift -------------------------- */
+  const amp=new Float32Array(N), wid=new Float32Array(N), spc=new Float32Array(N);
+  const bkind=new Int8Array(N).fill(-1);
+  const KINDS=['collide','arc','trench','island','ridge','rift','passive','transform'];
+  const seeds=[];
+  // Seed spacing along the boundary, which the splat normalisation needs. A
+  // boundary found across the east neighbour runs north-south, so its seeds are
+  // one row apart; one found across the south neighbour runs east-west, so they
+  // are one column apart — and a column is tiny near the poles. Getting this
+  // wrong is what made the north cap glow.
+  const dLatDeg=180/H, dLonDeg=360/W;
+  const put=(i,kind,s,run)=>{
+    const B=BOUNDARY[kind], a=B.amp*s;
+    if(bkind[i]>=0 && Math.abs(amp[i])>=Math.abs(a)) return;   // strongest wins
+    if(bkind[i]<0) seeds.push(i);
+    amp[i]=a; wid[i]=B.wid; spc[i]=run; bkind[i]=KINDS.indexOf(kind);
+  };
+
+  // look-back distance, ~5 degrees of arc, so it scales with resolution
+  const BACK=Math.max(2,Math.round(5*H/180));
+  const back=(x,y,n,k)=>{
+    if(n===0) return y*W+(((x+(k<0?k:k+1))%W)+W)%W;
+    const yy=Math.min(H-1,Math.max(0,y+(k<0?k:k+1)));
+    return yy*W+x;
+  };
+
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI, cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const i=y*W+x, pi=plate[i];
+      const ix=cl*clon[x], iy=cl*slon[x], iz=sl;
+      for(let n=0;n<2;n++){                       // east and south neighbour only
+        let j;
+        if(n===0) j=y*W+((x+1)%W);
+        else { if(y+1>=H) continue; j=(y+1)*W+x; }
+        const pj=plate[j]; if(pj===pi) continue;
+
+        // neighbour position
+        let jx,jy,jz;
+        if(n===0){ jx=cl*clon[(x+1)%W]; jy=cl*slon[(x+1)%W]; jz=sl; }
+        else { const l2=(0.5-(y+1.5)/H)*Math.PI, c2=Math.cos(l2);
+               jx=c2*clon[x]; jy=c2*slon[x]; jz=Math.sin(l2); }
+
+        // boundary normal, i -> j, on the tangent plane
+        let nx=jx-ix, ny=jy-iy, nz=jz-iz;
+        const NL=Math.hypot(nx,ny,nz)||1; nx/=NL; ny/=NL; nz/=NL;
+
+        // relative velocity = (omega_j - omega_i) x p, evaluated at i
+        const dx=ox[pj]-ox[pi], dy=oy[pj]-oy[pi], dz=oz[pj]-oz[pi];
+        const rx=dy*iz-dz*iy, ry=dz*ix-dx*iz, rz=dx*iy-dy*ix;
+
+        const along=rx*nx+ry*ny+rz*nz;            // >0 means j moving away
+        const conv=-along;
+        const shx=rx-along*nx, shy=ry-along*ny, shz=rz-along*nz;
+        const shear=Math.hypot(shx,shy,shz);
+        const s=Math.min(1,Math.hypot(rx,ry,rz)/1.15);
+        if(s<0.02) continue;
+
+        // What kind of crust is each plate bringing to this boundary? Asking
+        // the two adjacent cells is useless — the crust field is smooth, so
+        // they almost always agree and subduction never fires. Ask a few
+        // degrees back into each plate instead, which is the question that
+        // actually decides whether an ocean floor is diving under a continent.
+        const ci=crust[back(x,y,n,-BACK)]>contLevel,
+              cj=crust[back(x,y,n, BACK)]>contLevel;
+
+        const run=(n===0)?dLatDeg:dLonDeg*cosLat[y];
+        if(Math.abs(conv)<shear*0.65){            // mostly sliding
+          put(i,'transform',s,run); put(j,'transform',s,run);
+        } else if(conv>0){                        // closing
+          if(ci&&cj){ put(i,'collide',s,run); put(j,'collide',s,run); }
+          else if(ci&&!cj){ put(i,'arc',s,run); put(j,'trench',s,run); }
+          else if(!ci&&cj){ put(i,'trench',s,run); put(j,'arc',s,run); }
+          else {                                  // ocean under ocean: older dives
+            if(pi<pj){ put(i,'trench',s,run); put(j,'island',s,run); }
+            else     { put(i,'island',s,run); put(j,'trench',s,run); }
+          }
+        } else {                                  // opening
+          if(ci&&cj){ put(i,'rift',s,run); put(j,'rift',s,run); }
+          else if(!ci&&!cj){ put(i,'ridge',s,run); put(j,'ridge',s,run); }
+          else { put(i,'passive',s,run); put(j,'passive',s,run); }
+        }
+      }
+    }
+  }
+
+  /* --- spread each boundary's signature outward ------------------------
+     First attempt did this as one Dijkstra with nearest-boundary-wins, and it
+     was visibly wrong: at a subduction zone the arc seed (+0.82) and the
+     trench seed (-0.78) are ADJACENT cells, so the Voronoi seam between them
+     runs right down the middle and the field cliffs from +0.82 to -0.78 across
+     one pixel, fanning out into hard wedges.
+
+     Relief superimposes, it does not pick a winner. A trench beside an arc is
+     a sum, and that sum is what gives a subduction margin its real asymmetric
+     cross-section. So: splat every boundary cell's kernel additively. Each
+     seed touches only cells within 2.5 widths of it (beyond that the kernel is
+     under 2% and invisible), which keeps this a few million operations.
+
+     The per-seed normalisation is what makes the result resolution
+     independent. A boundary is a line of seeds, so the sum at its crest is
+     roughly amp * width * 1.805 / (spacing between seeds) — 1.805 being
+     the integral of exp(-|u|^1.5). Dividing by that puts the crest back at
+     amp regardless of grid size or latitude.                                */
+  const uplift=new Float32Array(N);
+  const LINE=1.805, D2R=Math.PI/180, R2D=180/Math.PI;
+  // true angular distance, not a flat-earth approximation: near a pole the
+  // approximation calls every longitude adjacent and one seed paints the whole
+  // cap. Precompute the two tables it needs.
+  const sinLat=new Float64Array(H), cosLatT=new Float64Array(H);
+  for(let y=0;y<H;y++){
+    const la=(0.5-(y+0.5)/H)*Math.PI; sinLat[y]=Math.sin(la); cosLatT[y]=Math.cos(la);
+  }
+  const cosDLon=new Float64Array(W);
+  for(let dx=0;dx<W;dx++) cosDLon[dx]=Math.cos(dx*360/W*D2R);
+
+  // Cost control. Seeds sit one per cell, so a kernel 30 cells wide gets
+  // sampled 30 times along the boundary for a result that is smooth anyway,
+  // and the splat becomes O(W^3) while everything else in the generator is
+  // O(W^2) — 18 of 22 seconds at 2048x1024. Thin the seeds by the kernel's own
+  // width, keeping about three samples across it, and scale each survivor up
+  // to carry the ones it replaced. Wide kernels are exactly the expensive ones,
+  // so this bites where it costs and leaves narrow trenches at full density.
+  const rowsPerDeg=H/180;
+  for(const s of seeds){
+    const sy=(s/W)|0, sx=s-sy*W;
+    const a=amp[s], w=wid[s], run=spc[s]; if(w<=0||run<=0) continue;
+    const stride=Math.max(1,Math.floor(w*rowsPerDeg/3));
+    if(stride>1 && (((sx*73856093)^(sy*19349663))>>>0)%stride) continue;
+    const cap=w*2.5, capR=cap*D2R;
+    const k=a*run*stride/(w*LINE);
+    const ry=Math.ceil(cap/(180/H));
+    // how far in longitude the cap reaches at this latitude; if the cap swallows
+    // the pole it genuinely does reach every longitude, and that is correct
+    const sc=Math.sin(capR), cphi=cosLatT[sy];
+    const rx=(cphi<=sc) ? (W>>1)
+           : Math.min(W>>1, Math.ceil(Math.asin(Math.min(1,sc/cphi))*R2D/(360/W))+1);
+    const ss=sinLat[sy], cs=cosLatT[sy];
+    for(let dy=-ry;dy<=ry;dy++){
+      const yy=sy+dy; if(yy<0||yy>=H) continue;
+      const row=yy*W, sy2=sinLat[yy], cy2=cosLatT[yy];
+      const base=ss*sy2, cross=cs*cy2;
+      for(let dx=-rx;dx<=rx;dx++){
+        const cd=cosDLon[dx<0?-dx:dx];
+        let c=base+cross*cd; if(c>1)c=1; else if(c<-1)c=-1;
+        const d=Math.acos(c)*R2D;
+        if(d>cap) continue;
+        uplift[row+(((sx+dx)%W)+W)%W] += k*Math.exp(-Math.pow(d/w,1.5));
+      }
+    }
+  }
+  return {plate,uplift,bkind,count:P,seeds:seeds.length};
+}
+
 function generate(cfg){
   const t0=performance.now();
   const seed=hashSeed(cfg.seed);
@@ -242,23 +485,51 @@ function generate(cfg){
   const windU=new Float32Array(H);          // per-row zonal wind, +1 east / -1 west
   const biome=new Array(N);
 
-  // ---- elevation --------------------------------------------------------
+  // ---- crust ------------------------------------------------------------
+  // The continental field on its own: where the crust is thick. This decides
+  // where land is. It does NOT decide where mountains are — plates do that,
+  // below — which is the whole point of separating the two.
   const cScale=0.6+ (100-cfg.scale)/100*3.2;   // bigger slider = bigger continents
   const rough=cfg.rough/100;
-  let lo=Infinity, hi=-Infinity;
+  const crust=new Float32Array(N);
   for(let y=0;y<H;y++){
     const lat=(0.5-(y+0.5)/H)*Math.PI;          // +pi/2 .. -pi/2
     const cl=Math.cos(lat), sl=Math.sin(lat);
     for(let x=0;x<W;x++){
       const lon=((x+0.5)/W)*2*Math.PI;
       const px=cl*Math.cos(lon), py=cl*Math.sin(lon), pz=sl;
-      const c=fbm(nCont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
+      crust[y*W+x]=fbm(nCont,px*cScale,py*cScale,pz*cScale,5,2.0,0.5);
+    }
+  }
+  // the crust level that will end up near the waterline, so plate boundaries
+  // get classified against the same shoreline the map will actually have
+  const cs=Float32Array.from(crust).sort();
+  const contLevel=cs[Math.min(N-1,Math.floor(cfg.ocean/100*N))];
+
+  // ---- tectonics --------------------------------------------------------
+  const tec=buildTectonics(cfg,seed,crust,contLevel);
+  const upl=tec.uplift;
+
+  // ---- elevation --------------------------------------------------------
+  let lo=Infinity, hi=-Infinity;
+  for(let y=0;y<H;y++){
+    const lat=(0.5-(y+0.5)/H)*Math.PI;
+    const cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const i=y*W+x;
+      const lon=((x+0.5)/W)*2*Math.PI;
+      const px=cl*Math.cos(lon), py=cl*Math.sin(lon), pz=sl;
       const d=fbm(nDet,px*cScale*4,py*cScale*4,pz*cScale*4,5,2.0,0.5);
-      // ridges gated to where the continental field is steep-ish — fake plate edges
-      const gate=Math.max(0,1-Math.abs(c)*2.2);
+      // ridged noise belongs ON the ranges, not scattered over the whole globe.
+      // Gating it by |uplift| is what gives a mountain belt its texture while
+      // leaving a plain flat, which is the correct behaviour and also happens
+      // to be what an upscaler needs: detail where the structure says detail.
+      const g=Math.min(1,Math.abs(upl[i])*2.2);
       const r=ridged(nRidge,px*cScale*3,py*cScale*3,pz*cScale*3,5,2.1,0.55);
-      let v=c*0.62 + d*0.22 + r*gate*rough*0.9;
-      el[y*W+x]=v;
+      // a little ridging everywhere so plains are not glass, a lot of it on the
+      // belts so a range has a crest line rather than a smooth dome
+      const v=crust[i]*0.62 + d*0.20 + upl[i]*0.85 + r*(0.08+g*0.92)*rough*0.75;
+      el[i]=v;
       if(v<lo)lo=v; if(v>hi)hi=v;
     }
   }
@@ -372,7 +643,7 @@ function generate(cfg){
   // ---- biomes -----------------------------------------------------------
   for(let i=0;i<N;i++) biome[i]=classify(el[i],sea,temp[i],moist[i]);
 
-  world={cfg,el,sea,temp,moist,biome,flow,fmax,windU,down,
+  world={cfg,el,sea,temp,moist,biome,flow,fmax,windU,down,tec,crust,
          ms:Math.round(performance.now()-t0)};
   analyse();
   buildCivilisation(cfg);
@@ -441,6 +712,16 @@ Heap.prototype.pop=function(){
   }
   return top;
 };
+
+/* Plate fills, and one colour per boundary kind so a glance says what built what.
+   Order matches KINDS in buildTectonics. */
+const PLATEC=['#3b4a63','#5a4a63','#3f5c52','#63523b','#4a3b5c','#3b5c63',
+              '#5c3b47','#4f633b','#63603b','#3b3f5c','#55636b','#6b5563',
+              '#41634d','#634156'];
+const BKINDC=['#ff5a4e','#ff9a3c','#1b2f6b','#ffd24a','#4ad6ff','#b06bff',
+              '#7f8fa0','#8fff7a'];
+const BKINDNAME=['collision','volcanic arc','trench','island arc',
+                 'spreading ridge','rift','passive margin','transform'];
 
 /* How liveable a biome is, 0-100. Drives population, which drives everything. */
 const HABIT={ocean:0,shallow:0,ice:0,polar:2,tundra:6,taiga:16,temperate:100,
@@ -788,6 +1069,12 @@ function draw(){
       if(el[i]<sea){const t=el[i]/sea; [r,g,b]=ramp(t,[[8,18,30],[30,70,100]])}
       else {const t=(el[i]-sea)/(1-sea);
         [r,g,b]=ramp(t,[[60,90,60],[150,140,90],[190,190,190],[255,255,255]])}
+    } else if(view==='plates'){
+      const pl=world.tec.plate[i], bk=world.tec.bkind[i];
+      const c=hex(PLATEC[pl%PLATEC.length]);
+      const land=el[i]>=sea?1:0.55;
+      r=c[0]*land; g=c[1]*land; b=c[2]*land;
+      if(bk>=0){const bc=hex(BKINDC[bk]); r=bc[0]; g=bc[1]; b=bc[2]}
     } else if(view==='temp'){
       [r,g,b]=ramp((temp[i]+30)/70,[[40,60,140],[70,140,190],[230,230,160],[220,120,60],[170,40,40]]);
     } else if(view==='rain'){
@@ -841,6 +1128,12 @@ function legend(){
   if(view==='biome'){
     L.innerHTML=Object.keys(BIOME).map(k=>
       `<span><i style="background:${BIOME[k][1]}"></i>${BIOME[k][0]}</span>`).join('');
+  } else if(view==='plates'){
+    const seen=new Set(); for(let i=0;i<world.tec.bkind.length;i++){
+      const k=world.tec.bkind[i]; if(k>=0) seen.add(k); }
+    L.innerHTML=`<span>${world.tec.count} plates</span>`+
+      [...seen].sort().map(k=>
+        `<span><i style="background:${BKINDC[k]}"></i>${BKINDNAME[k]}</span>`).join('');
   } else if(view==='regions'){
     L.innerHTML=world.regions.slice(0,9).map(r=>
       `<span><i style="background:${BIOME[r.dominant][1]}"></i>#${r.rank} `+
@@ -1102,6 +1395,7 @@ Object.keys(PRESETS).forEach(k=>{const o=document.createElement('option');
 function readCfg(){
   return {seed:$('seed').value||'x', ocean:+$('rOcean').value, relief:+$('rRelief').value,
     scale:+$('rScale').value, rough:+$('rRough').value, temp:+$('rTemp').value,
+    plates:+$('rPlates').value,
     tilt:+$('rTilt').value, bands:+$('rBands').value, wind:+$('rWind').value,
     uni:$('cUni').checked, pop:+$('rPop').value, cult:+$('rCult').value,
     pol:+$('rPol').value, port:+$('rPort').value, orb:+$('rOrb').value};
@@ -1111,6 +1405,7 @@ function syncLabels(){
   $('vRelief').textContent=$('rRelief').value;
   $('vScale').textContent=$('rScale').value;
   $('vRough').textContent=$('rRough').value;
+  $('vPlates').textContent=$('rPlates').value;
   $('vTemp').textContent=$('rTemp').value+'C';
   $('vTilt').textContent=$('rTilt').value+'°';
   $('vBands').textContent=$('rBands').value;
@@ -1142,7 +1437,7 @@ function run(){
 }
 
 sel.onchange=()=>{applyPreset(sel.value);run()};
-['rOcean','rRelief','rScale','rRough','rTemp','rTilt','rBands','rWind',
+['rOcean','rRelief','rScale','rRough','rPlates','rTemp','rTilt','rBands','rWind',
  'rPop','rCult','rPol','rPort','rOrb'].forEach(id=>$(id).oninput=syncLabels);
 $('bGen').onclick=run;
 $('bRand').onclick=()=>{
