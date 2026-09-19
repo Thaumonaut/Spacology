@@ -103,3 +103,74 @@ That is the integration point. It also settles the earlier language question: th
 was never "rewrite the generator faster." The generator produces the coarse field, which
 is small by construction, and the resolution comes from a model with O(1) random access
 that only ever renders the tile you are looking at.
+
+---
+
+## The bridge, built
+
+`prototypes/worldgen.html` has an **Export conditioning** button; `tools/cond_to_tiff.py`
+turns what it writes into the five GeoTIFFs above.
+
+The split is deliberate. The browser ships the raw simulation fields — normalised
+elevation, temperature in °C, an unclamped precipitation index, and a biome index — and
+does no unit conversion at all. How many metres the tallest mountain is and how many
+millimetres fall on the wettest coast are worth re-deciding without regenerating the
+planet, and they are flags on the Python side.
+
+```
+# what will this cost before I ask for it
+python3 tools/cond_to_tiff.py world.cond --report
+
+# write the conditioning folder
+python3 tools/cond_to_tiff.py world.cond out/
+
+# one region, at 30 m (note the = form, the value starts with a minus)
+python3 tools/cond_to_tiff.py world.cond out/ --region=-30,20,10,55 --native-resolution 30
+
+python -m terrain_diffusion.inference.tiff_export \
+    xandergos/terrain-diffusion-90m out/ terrain.tif --device mps
+```
+
+One change was needed upstream of the export: the precipitation field was clamped to the
+88th percentile, because the biome classifier only needs the ordering. Handing that to a
+terrain model would give it one flat value across every rainforest on the planet, so the
+generator now keeps an unclamped copy for export only. Biomes are unaffected.
+
+### The number that decides how big your planet is
+
+terrain-diffusion renders **256 output pixels per conditioning cell**. With the model's
+native resolution that fixes the ground size of a cell, and therefore the size of the
+world — nothing in the file says "planet", so it is easy to ask for a moon by accident.
+
+| model | km per cell | cells for an Earth | our generate time |
+|---|---|---|---|
+| 90 m | 23.04 | **1739 × 870** | **5.2 s** |
+| 30 m | 7.68 | 5218 × 2609 | ~45 s, ~700 MB |
+
+Measured, not estimated: 1739 × 870 generates in 5.2 s and reports back as 40,067 km
+around, radius 6,377 km against Earth's 6,371. **The 90 m model at 1739 × 870 is the
+Earth-sized option and it sits comfortably inside what the generator already does.**
+
+Full output at that size would be 445,184 × 222,720 px — 198 GB as int16. That is not a
+failure, it is the point: you never render a planet, you render the part you are looking
+at, which is what O(1) random access buys. `--report` prints the number so nobody
+discovers it the hard way, and `--region` crops.
+
+### Hypsometry is matched by rank, not by a curve
+
+Elevation is remapped onto Earth's real elevation distribution instead of through a power
+curve, because a noise-derived field is unimodal and Earth's is not — 76% of the sea floor
+is abyssal plain between 3 and 6 km. Measured on our own output, a single power curve gave
+a mean ocean depth of 560 m against Earth's 3,682, and even a near-step curve only reached
+2,078. Matching by rank lands it at 3,740, with land mean 938 m (Earth 840) and land
+precipitation 700 mm (Earth 715).
+
+This also keeps the conditioning inside the distribution the model was trained on, which
+matters more than the realism: feeding it a planet whose hypsometry Earth never had is
+asking it to extrapolate. `--hypsometry power` is there for when that is the point.
+
+### Known limitation
+
+The conditioning is equirectangular and the model has no idea what latitude is, so cells
+near the poles are stretched on the ground but rendered as if square. Terrain within about
+60° of the equator is honest; beyond that it is progressively smeared in longitude.

@@ -102,6 +102,7 @@ barriers off it and write the peoples to fit.</p>
   <div class="btns">
     <button class="pri" id="bGen">Generate</button>
     <button id="bRand">Random seed</button>
+    <button id="bCond" title="Five rasters for terrain-diffusion">Export conditioning</button>
   </div>
   <div class="stat" id="stat">—</div>
 </div>
@@ -482,6 +483,7 @@ function generate(cfg){
   const nCont=makeNoise(seed), nDet=makeNoise(seed^0x9e37), nRidge=makeNoise(seed^0x85eb);
   const N=W*H;
   const el=new Float32Array(N), temp=new Float32Array(N), moist=new Float32Array(N);
+  const wet=new Float32Array(N);   // same field unclamped, for conditioning export
   const windU=new Float32Array(H);          // per-row zonal wind, +1 east / -1 west
   const biome=new Array(N);
 
@@ -607,17 +609,21 @@ function generate(cfg){
   const lv=[]; for(let i=0;i<N;i++) if(el[i]>=sea) lv.push(moist[i]);
   lv.sort((a,b)=>a-b);
   const p88=lv.length?lv[Math.floor(lv.length*0.88)]:1;
-  if(p88>0) for(let i=0;i<N;i++) moist[i]=Math.min(1,moist[i]/p88);
-  const sm=new Float32Array(N);
+  // moist is clamped to 1 because the biome classifier only needs the ordering,
+  // but clamping at the 88th percentile makes every wet place identical — which
+  // would hand a terrain model one flat value across every rainforest on the
+  // planet. Keep an unclamped copy for export.
+  if(p88>0) for(let i=0;i<N;i++){ wet[i]=moist[i]/p88; moist[i]=Math.min(1,wet[i]); }
+  const sm=new Float32Array(N), sw=new Float32Array(N);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-    let a=0,c=0;
+    let a=0,b=0,c=0;
     for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
       const ny=y+dy; if(ny<0||ny>=H)continue;
-      a+=moist[ny*W+((x+dx+W)%W)]; c++;
+      const j=ny*W+((x+dx+W)%W); a+=moist[j]; b+=wet[j]; c++;
     }
-    sm[y*W+x]=a/c;
+    sm[y*W+x]=a/c; sw[y*W+x]=b/c;
   }
-  moist.set(sm);
+  moist.set(sm); wet.set(sw);
 
   // ---- rivers -----------------------------------------------------------
   const order=[]; for(let i=0;i<N;i++) if(el[i]>=sea) order.push(i);
@@ -643,7 +649,7 @@ function generate(cfg){
   // ---- biomes -----------------------------------------------------------
   for(let i=0;i<N;i++) biome[i]=classify(el[i],sea,temp[i],moist[i]);
 
-  world={cfg,el,sea,temp,moist,biome,flow,fmax,windU,down,tec,crust,
+  world={cfg,el,sea,temp,moist,wet,biome,flow,fmax,windU,down,tec,crust,
          ms:Math.round(performance.now()-t0)};
   analyse();
   buildCivilisation(cfg);
@@ -1392,6 +1398,86 @@ const sel=$('preset');
 Object.keys(PRESETS).forEach(k=>{const o=document.createElement('option');
   o.textContent=k;sel.appendChild(o)});
 
+
+/* ========================================================= conditioning ====
+   terrain-diffusion does not invent a planet, it resolves one. Its input is
+   five rasters and its own inference/utils/azgaar_to_tiff.py spells out
+   exactly which, in which units:
+
+     heightmap.tif         elevation, metres, negative below sea
+     temperature.tif       mean temperature, C
+     temperature_std.tif   temperature standard deviation, C
+     precipitation.tif     annual precipitation, mm
+     precipitation_cv.tif  precipitation coefficient of variation, percent
+
+   We already simulate elevation, temperature, precipitation and biome, and the
+   last two rasters are a biome lookup in that same file. So the bridge is not a
+   fork of anything — it is writing down what the generator already knows.
+
+   What this does NOT do is convert units. It ships the raw simulation fields
+   and lets tools/cond_to_tiff.py do the physical mapping, because how many
+   metres the tallest mountain is and how many millimetres fall on the wettest
+   coast are worth re-deciding without regenerating the planet.
+========================================================================== */
+
+const COND_MAGIC='SPCOND\u0001\n';
+
+function buildConditioning(){
+  if(!world) throw new Error('generate a world first');
+  const {el,sea,temp,wet,biome,cfg,tec}=world, N=W*H;
+  const names=Object.keys(BIOME);
+  const bidx=new Uint8Array(N);
+  for(let i=0;i<N;i++){const k=names.indexOf(biome[i]); bidx[i]=k<0?0:k}
+
+  const fields=[
+    {name:'elevation', dtype:'f32', note:'0-1, sea level at header.seaLevel'},
+    {name:'temperature',dtype:'f32',note:'degrees C, already physical'},
+    {name:'precipIndex',dtype:'f32',note:'1.0 = 88th percentile of land precipitation'},
+    {name:'biome',     dtype:'u8',  note:'index into header.biomeNames'},
+  ];
+  const arrays=[el,temp,wet,bidx];
+  let off=0;
+  for(let k=0;k<fields.length;k++){
+    fields[k].offset=off;
+    fields[k].bytes=arrays[k].byteLength;
+    off+=arrays[k].byteLength;
+  }
+
+  const header={
+    format:'spacology-conditioning', version:1,
+    width:W, height:H,
+    seaLevel:sea,
+    projection:'equirectangular', lonW:-180, lonE:180, latS:-90, latN:90,
+    seed:cfg.seed, plates:tec.count,
+    generator:cfg,
+    biomeNames:names,
+    fields, dataBytes:off,
+  };
+  const hj=new TextEncoder().encode(JSON.stringify(header));
+  const magic=new TextEncoder().encode(COND_MAGIC);
+  const buf=new ArrayBuffer(magic.length+4+hj.length+off);
+  const u8=new Uint8Array(buf);
+  u8.set(magic,0);
+  new DataView(buf).setUint32(magic.length,hj.length,true);
+  u8.set(hj,magic.length+4);
+  let p=magic.length+4+hj.length;
+  for(const a of arrays){ u8.set(new Uint8Array(a.buffer,a.byteOffset,a.byteLength),p); p+=a.byteLength }
+  return {buffer:buf, header};
+}
+
+function exportConditioning(){
+  const {buffer,header}=buildConditioning();
+  const blob=new Blob([buffer],{type:'application/octet-stream'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${header.seed}-${W}x${H}.cond`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  const mb=(buffer.byteLength/1048576).toFixed(1);
+  document.getElementById('stat').textContent=
+    `conditioning written · ${W}x${H} cells · ${mb} MB · ${a.download}`;
+}
+
 function readCfg(){
   return {seed:$('seed').value||'x', ocean:+$('rOcean').value, relief:+$('rRelief').value,
     scale:+$('rScale').value, rough:+$('rRough').value, temp:+$('rTemp').value,
@@ -1443,6 +1529,7 @@ $('bGen').onclick=run;
 $('bRand').onclick=()=>{
   $('seed').value=Math.random().toString(36).slice(2,9); run();
 };
+$('bCond').onclick=exportConditioning;
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on'); view=b.dataset.v;
