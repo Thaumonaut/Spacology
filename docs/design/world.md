@@ -22,8 +22,9 @@ shift, by people who would be equally bored describing either.
 ## The ship
 
 > **⚠ This whole section is contradicted and under discussion.** The ship is **not alive**, though
-> it can have a personality. It is organic *and* inorganic. It is an archaeology vessel, it is
-> faster-than-light and closer to a Star Trek ship in structure, it mixes public and private space,
+> it can have a personality. It is organic *and* inorganic. It is an **arcology** — a self-contained
+> city — that is also faster-than-light and closer to a Star Trek ship in structure, and it mixes
+> public and private space,
 > and it is vastly larger than what is described below — moon-dwarfing, crewing thousands to
 > millions. The twenty-one in `crew.md` are therefore a survey team, not the ship's complement.
 > Nothing below has been rewritten yet. Do not build on it.
