@@ -339,7 +339,12 @@ did not consider this remarkable.
 there is one event and it is finished. Either nothing is happening or everything already has.
 
 She is warm, endlessly chatty, and fond of the younger crew — she noticed Imke was not eating
-properly and started making too much of everything at dinner without ever mentioning why. She is
+properly and started making too much of everything at dinner without ever mentioning why.
+
+She also talks to Beatriz Corriveau like an ordinary person, which almost nobody aboard manages, and
+it is neither kindness nor effort. They are both from Calyx IV, where oni and humans have shared a
+world long enough that nobody can remember it being otherwise, and an oni at your table is not a
+story. Dolores has simply never understood what everyone else finds difficult. She is
 also, everybody suspects, the reason Imke's placement paperwork keeps not getting filed, and
 everybody has decided not to look into it.
 
@@ -498,6 +503,9 @@ On a ship of naturalists that is a difficult thing to be. She is not disliked. I
 sadder than that: nobody asked her to sit down in her first month, and then it had been a year, and
 now it has been nine and it would be strange.
 
+The exception is Dolores, who is also from Calyx IV, where this would not be remarkable, and who has
+talked to her exactly the same way for nine years without appearing to notice she was doing anything.
+
 Imke sat down opposite her once, knowing no better, and talked for forty minutes about a dispute in
 the galley. Beatriz said almost nothing. Imke came back the next day, and the day after, and now
 does it most days without appearing to have decided anything. Beatriz still says almost nothing. The
@@ -553,6 +561,14 @@ smile much and means it when she does.
 She was a grower. A good one — eleven years raising living structures on the Kessa reef rings, the
 slow craft of coaxing stone and heartwood into shapes that hold. Then the Null took Kessa and every
 structure she had raised went from *standing* to *never having been*.
+
+**She is rock skin, and on Kessa the rock skins were the builders.** Ten generations of them added
+rings to that structure, and every ring filled a little more of the open volume the bird folk had
+flown in since before anybody built anything. Nobody was wrong and nobody ever said it out loud, and
+it was thoroughly baked into who sat where.
+
+Yusuf Benhaddou is bird folk and also from Kessa. They are the only two left. They have never
+discussed any of it and it is not clear that either of them could.
 
 She did not break down. She filed a transfer. She now finds where things will fail and is the one
 who puts everything into that point the instant it opens, and she asked for the name **Maul**, which
@@ -625,8 +641,12 @@ and barely at all.
 
 He has never been in a fight he took personally and finds the crew's intensity about the mission
 faintly adolescent. What nobody knows — because he has never said it and would deny it — is that he
-rereads the Kessa entries. Regularly. They are the only records he reads twice, and there is nobody
-left to tell that he grew up there.
+rereads the Kessa entries. Regularly. They are the only records he reads twice.
+
+There is one person aboard he would not have to explain it to. Wren Adeyemi is rock skin, from the
+same rings, from the tradition that spent ten generations closing the sky his people flew in — and
+he has never raised it, and she has never raised it, and they are the last two who remember any of
+it either way.
 
 ---
 

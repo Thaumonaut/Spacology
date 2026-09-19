@@ -592,11 +592,90 @@ the edges of tables — and no amount of furniture design has ever changed this.
 
 ---
 
-## Worlds named elsewhere
+## Worlds
 
-**Kessa** was a ring of inhabited reefs and the best shipwright tradition in reach. The Null took it
-four years ago, and two of the crew are from there — one of whom talks about it.
+**A world is a world, not a species.** Earth alone has dozens of peoples, every climate there is,
+and several thousand years of them getting on each other's nerves, and there is no reason whatever
+to expect anywhere else to be simpler. A planet with one people, one culture and one weather is a
+planet somebody has not actually visited.
 
-Others aboard come from **Verekh III** (orbital yards), **Orrowan V**, **Sindal II**, **Tessine
-IX**, **Calyx IV**, **Ombrea V**, and **Tannhul VI**, a high-gravity world that produces people
-built like doors.
+So: most worlds hold several peoples. Most have ice at the poles and rain somewhere and desert
+somewhere else. "The Chosokee world" is shorthand used by people who have only met Chosokee, and
+the Chosokee themselves would find it a strange way to describe home.
+
+**And sharing a homeworld is not the same as being kin.** Some of the sharpest divisions anywhere
+are between peoples who have lived beside each other for ten thousand years and know precisely where
+the sore spots are. Others get on perfectly well and find the question baffling. Both are normal and
+the ship carries examples of each.
+
+### Kessa — gone
+
+A ring of inhabited reefs rather than a planet: hundreds of linked habitats in open volume, and the
+finest shipwright tradition anywhere in reach.
+
+**The rock skins built it.** Ten generations of them, growing and cutting and joining the rings into
+the most beautiful structures the Census ever recorded — and every ring they added filled a little
+more of the open volume that **the bird folk** had flown in since before anyone was building
+anything.
+
+Nobody was wrong. The builders were making homes for their children. The fliers watched the sky
+close a ring at a time, over lifetimes, with no villain to point at and no argument that would have
+sounded reasonable said out loud. By the end it was old, unspoken, and thoroughly baked into who sat
+where.
+
+Then the Null took all of it, and there is no fossil, no ruin and no trace.
+
+**Two people aboard are from Kessa. One of each.** They have never discussed it. It is not clear
+that either of them could.
+
+### Calyx IV
+
+Oni and humans, sharing a temperate world for long enough that nobody can remember it being
+otherwise, and the arrangement is completely unremarkable — which is the whole point of including it
+here. Not every shared world is a grievance. On Calyx an oni and a human at the same table is not a
+story.
+
+This is why Dolores Achterberg talks to Beatriz Corriveau like an ordinary person when almost nobody
+else aboard manages it. It is not kindness and it is not an effort. It is simply how she was raised,
+and it is the only easy company Beatriz has.
+
+### Maelus IV
+
+Grasslands, highland, a wet equatorial belt and ice at both poles, like anywhere else.
+
+**The Chosokee keep the great fauna** — animals the size of buildings, moved along seasonal routes
+that predate any settlement. **The lowland farmers** consider a Chosokee herd to be a slow-moving
+natural disaster with a schedule, and they are not wrong, and the Chosokee are not wrong either, and
+this has been the shape of the argument for about four thousand years.
+
+It is mostly low-grade. Occasionally it is not. A Chosokee abroad will describe the farmers'
+position fairly and at length and then not quite concede it.
+
+### Utora VII
+
+Wet, heavily forested, and home to humans, oni and several others — **and its divisions have nothing
+to do with species.** Utoran factionalism is regional and academic: which school, which coast, whose
+reading of a text three centuries old.
+
+Utorans consider this a more civilised way to fall out with people. Everyone else finds it
+exhausting, because the fault lines are invisible to outsiders and stepping on one is
+extraordinarily easy.
+
+Stella Anuye is an oni, raised Utoran, and would tell you the second fact is the one that explains
+her.
+
+### Verekh III
+
+Not a homeworld at all. Verekh is orbital yards — a working world people came *to*, from everywhere,
+to build ships, and its population is an immigration rather than an ancestry.
+
+So the peoples there are mixed and recent and share a trade instead of a history, which produces its
+own kind of friction: nobody has deep roots, everybody's family arrived within memory, and status is
+measured entirely in what you can do. Ilka Voressen and Idris Okonjo are both from Verekh and both
+feline, and have approximately nothing else in common.
+
+### Elsewhere
+
+**Orrowan V**, **Sindal II**, **Tessine IX**, **Ombrea V**, **Belune III**, **Ranohe II**, **Iseul
+III** and **Tannhul VI** — a high-gravity world that produces people built like doors — are all
+carrying more peoples than the crew list suggests, and are undeveloped rather than empty.
