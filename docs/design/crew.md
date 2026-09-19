@@ -74,8 +74,9 @@ time and puts it back.
 as objection. Somewhere in the last year Reva started *waiting* for him before she opened it.
 Neither has mentioned this and neither is going to.
 
-**The tea.** Somebody brought Sevim tea during her four-hour assay as a joke. Six years later it is
-a rota, unwritten, never lapsed, and never once acknowledged by Sevim.
+**The tea.** Somebody brought tea to the four-hour assay as a joke. Six years later it is a rota,
+unwritten, never lapsed, never acknowledged. The sheet has both Aydar names at the top and nobody
+has ever written which one it is for, because the tea is the same either way.
 
 **The doorway.** Idris startles badly, so everyone says his name from the corridor before coming in.
 Imke does it in a different ridiculous voice each time. He has never once not startled.
@@ -91,6 +92,28 @@ it. The argument continues exactly as before.
 **The seat.** Imke sat down opposite Beatriz once, knowing no better. She does it most days now.
 Beatriz still says almost nothing. The rest of the crew have noticed and are being extremely careful
 not to make it a thing.
+
+**Getting it wrong.** Sevim and Deniz Aydar are the same person and which spirit is present is not
+marked in any way an off-worlder can point at. How each crewmate handles this is one of the more
+efficient character tests aboard.
+
+Navigator has never once been wrong and finds the difficulty baffling — to an Ossuan, a person being
+more than one person is simply Tuesday. Nahana always knows instantly and cannot explain how. Yusuf
+asks, every time, with no awkwardness whatsoever, which is the single most socially skilled thing
+anyone on this ship does. Imke asks loudly and constantly and has never once been embarrassed.
+Beatriz always knows, says nothing, and has never got it wrong in nine years; Deniz worked this out
+early and finds her restful company for exactly that reason.
+
+And then the other half. Aurel guesses confidently, is wrong about forty percent of the time, and
+does not concede — *going Cosma* covers this too. Aurelio wanted it in the record, so there is a
+field for it, and the field is always out of date, and it distresses him more than anything else in
+the catalogue. Abike asked to study it and was told no, and asked again.
+
+**Ilka is the worst and the most committed.** She cannot read it at all, has never once simply
+asked, and has instead built a system out of observable cues — posture, how the tea is held, which
+route through the galleries. She is extremely proud of this system. It performs at roughly chance.
+Deniz has started varying the cues on purpose. Sevim thinks this is beneath them and has not stopped
+Deniz doing it.
 
 **Hiding from Dolores.** Everybody can recognise the particular expression she wears when she is
 looking for people to ask permission from. Alternative galleries get used. She has never noticed.
@@ -573,31 +596,40 @@ left to tell that he grew up there.
 
 ---
 
-### **Dr. Sevim Aydar** — mist assay · *order* · (was Rime)
+### **Sevim / Deniz Aydar** — mist assay · *order* · (was Rime)
 
-*Belune III*
+*Beluni, of Belune III*
 
-Tall and very still, a white streak through dark hair since her twenties, hands that are always
-cold. Speaks slowly enough that people finish her sentences, and waits without visible irritation
+Tall and very still, a white streak through dark hair since their twenties, hands that are always
+cold. Speaks slowly enough that people finish their sentences, and waits without visible irritation
 until they have finished being wrong.
 
-She works with the ship's own fog: walks it over a shell and waits. No cutting, no forcing — cooling
-a structure unevenly puts it under a stress that climbs for hours until it opens along its own
-weakest grain, and the seam it chooses tells you more than any hole you could have made. It is the
-most elegant technique aboard and it takes four hours.
+They are **tidal**, which on Belune III is ordinary: two spirits, one body, one present at a time,
+turning on their own schedule. Two names given together at birth and both equally theirs —
+Sevim is a woman, Deniz is a man, and neither is the original. They are not moods, halves or stages.
+They are two people who share a life, a post, and a reputation for being impossible to hurry.
 
-She has been called **Patience** since the first person asked her to hurry.
+**Which one you are speaking to is not marked in any way an off-worlder can point at**, and the
+crew's ability to tell ranges from instant to hopeless. The polite move is to ask. About half the
+ship manages it.
 
-Somebody brought her tea during the four hours once, as a joke. Somebody else did it the following
-week. There is now a rota, unwritten, that has run for six years and has never lapsed, and Sevim has
-never acknowledged it and has never once been without tea. Imke joined the rota in her third week
-without being told it existed.
+The work does not vary. They walk the ship's own fog over a shell and wait — no cutting, no forcing;
+cooling a structure unevenly puts it under a stress that climbs for hours until it opens along its
+own weakest grain, and the seam it chooses tells you more than any hole you could have made. It is
+the most elegant technique aboard and it takes four hours. They have been called **Patience** since
+the first person asked them to hurry, and the name is the one thing everybody gets right.
 
-**Order: fixed, predictable, identical every time.** She produces the same result on the first reef
-of a voyage and the last.
+**Order: fixed, predictable, identical every time.** Which is the joke, and they know it is the joke.
+Tides are the most reliable thing in the universe, their assay produces the same result on the first
+reef of a voyage and the last, and half the crew still cannot read them at all.
 
-Her flaw is not slowness. It is that she has quietly stopped believing the Census will finish, and
-has begun optimising for the quality of the record rather than its size, and has told nobody.
+Somebody brought tea during the four hours once, as a joke. Somebody else did it the following week.
+There is now an unwritten rota that has run six years and never lapsed. The sheet has both names at
+the top and nobody has ever written which. Whoever is on it brings tea without asking, because the
+tea is the same either way, and that is the closest this crew comes to saying anything out loud.
+
+Their flaw is not slowness. It is that they have quietly stopped believing the Census will finish,
+and have begun optimising for the quality of the record rather than its size, and have told nobody.
 
 ---
 
@@ -753,7 +785,10 @@ She has never worked out whether that was a compliment.
 | **Abike ↔ Aurel** | She raises an empty sample tube when he enters. He always leaves. Both look forward to it |
 | **Imke → Idris** | Announces herself from the doorway in a different silly voice each time. He always startles |
 | **Navigator → Aurel** | Has never mentioned the three weeks. He finds this unbearable |
-| **the rota → Sevim** | Six years of tea, unwritten, never lapsed, never acknowledged |
+| **the rota → Sevim/Deniz** | Six years of tea, unwritten, never lapsed. Both names on the sheet, nobody has written which |
+| **Ilka → Deniz** | A cue-reading system performing at chance. Deniz varies the cues on purpose |
+| **Beatriz → Deniz** | Always knows, never says. He finds her restful for exactly that reason |
+| **Aurelio → Sevim/Deniz** | Added a field for it to the catalogue. The field is always wrong. It haunts him |
 
 ---
 
@@ -777,7 +812,7 @@ She has never worked out whether that was a compliment.
 | Maul | **Wren Adeyemi** | Maul |
 | Quill | **Dr. Nadira Quill** | — |
 | Vitre | **Yusuf Benhaddou** | — |
-| Rime | **Dr. Sevim Aydar** | Patience |
+| Rime | **Sevim / Deniz Aydar** | Patience |
 | Ledger | **Aurelio Bassi** | — |
 | Fen | **Nahana** | — |
 | Mire | **Navigator** | — |

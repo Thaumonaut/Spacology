@@ -38,8 +38,8 @@ canopies that double as her collectors. Half the surfaces are moss and nobody re
 the moss is doing something.
 
 **She has moods.** Passages close when she decides to thicken them. Fruit appears in places that
-are not agricultural. A crewmate's quarters were colonised by a fungus that hums, and the
-consensus — after a long meeting — was to leave it, and the crewmate has moved.
+are not agricultural. A crewmate's quarters were colonised by a fungus that hums, and
+everybody agreed it should stay, and the crewmate moved instead.
 
 ---
 
@@ -173,6 +173,31 @@ a readable CV, which they find practical and everyone else finds slightly intimi
 
 Utora VII is a wet, heavily forested world with a long scholarly tradition, and it sends more
 people into the sciences than any other world the Census recruits from.
+
+### The Beluni — Belune III
+
+Belune III has the largest tides anywhere the Census has surveyed. Twice a day the same ground is a
+different place, and the Beluni have never found this remarkable, which is the key to understanding
+them.
+
+Some Beluni are **tidal**: two spirits, one body, one present at a time, turning on their own
+schedule the way everything on that world turns. It is ordinary there. It is not a condition, not a
+transition and not a secret, and a Beluni asked to explain it tends to look at you the way you would
+look at someone who wanted the sea explained.
+
+**A tidal Beluni carries two names**, one for each spirit, given together at birth and both equally
+theirs. Using the right one is simple courtesy and requires knowing which spirit is present.
+
+**Not everyone can tell.** Beluni almost always can, and cannot explain how. Off-worlders vary
+enormously — some read it instantly and could not tell you what they are reading, some are
+completely blind to it and stay that way for years. There is no reliable outward sign, which is
+precisely why the ones who cannot tell keep constructing systems that do not work.
+
+The polite move, universally, is to ask. Some people manage this easily. Some would rather guess
+wrong forever than admit they cannot tell, and both types are aboard.
+
+*Writing convention in these documents: **they** for the whole person, and the name and pronoun of
+whichever spirit a particular moment concerns.*
 
 ### The Cassine — Ranohe II
 
