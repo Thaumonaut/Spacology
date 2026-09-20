@@ -69,12 +69,13 @@ pauses while its view or browser tab is hidden.
 
 ## spacology-v0.1.0.html
 
-The first playable vertical slice of Spacology. Open it directly in a browser and play the complete
-voyage flow:
+The first playable vertical slice of Spacology. Open it directly in a browser and play the Ops room
+setup, pack decisions, and full animated battlefield:
 
-`Title → briefing → Ops room → consignment pack → card triage → destination → formation → animated combat → recovery report → voyage summary`
+`Ops room v5 → pack opening → inventory / formation setup → fieldwork → animated combat`
 
 The prototype uses the current progression assumptions: four starting character slots, one required
 on-field character, one ship equipment slot, pack prices in the 26–30 gold range, explicit keep/strip
-card decisions, and a fixed rising enemy pressure curve. The flow navigator is included for testing,
-but every primary action can be played in sequence.
+card decisions, and a fixed rising enemy pressure curve. Continue from the v5 Ops room to open the
+animated battlefield; the combat screen runs the watchable fight simulation with turn order,
+breaks, follow-ups, ultimates, injuries, carry-over, and replay controls.
