@@ -185,15 +185,20 @@ input[type=range]{width:100%;accent-color:var(--energy);height:26px}
 #fab{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));
   width:54px;height:54px;border-radius:50%;background:var(--energy);color:#131A21;
   border:0;font-size:19px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.5)}
-.sessionbar{display:none}.session-return{display:none;width:100%;margin-top:10px;background:var(--energy);color:#131A21;border:0;border-radius:8px;padding:13px;font:700 12px inherit}
-body.session-mode{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 260px;grid-template-rows:auto auto 1fr;gap:10px;padding:12px;background:#070b11}
-body.session-mode>h1,body.session-mode>.sub{display:none}body.session-mode .sessionbar{display:flex;grid-column:1/3;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:#101820}
-.sessionbar b{font-size:12px}.sessionbar span{font-size:9px;color:var(--ink3)}body.session-mode #board{grid-column:1;grid-row:2/4;margin:0}body.session-mode #battleRecord{grid-column:2;grid-row:2/4;margin:0;display:flex;flex-direction:column}body.session-mode #battleRecord .log{height:auto;min-height:280px;flex:1}body.session-mode #labControls{display:none}body.session-mode #fab{display:none}body.session-mode .session-return.show{display:block}@media(max-width:800px){body.session-mode{grid-template-columns:1fr;display:block}body.session-mode .sessionbar{margin-bottom:10px}body.session-mode #board,body.session-mode #battleRecord{margin-bottom:10px}}
+.sessionbar{display:none}.session-return{display:none;width:100%;margin-top:10px;background:var(--energy);color:#211605;border:0;border-radius:5px;padding:13px;font:800 9px inherit;letter-spacing:.05em}
+body.session-mode{--bg:#05090e;--panel:#09131c;--raised:#0d1924;--line:#1c3042;--ink:#edf3f4;--ink2:#8da2b1;--ink3:#51697a;--ghost:#dc7d8f;--energy:#e9b45e;min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 218px;grid-template-rows:76px 1fr;gap:0;padding:0;background:#020406}
+body.session-mode>h1,body.session-mode>.sub{display:none}body.session-mode .sessionbar{display:grid;grid-template-columns:265px 1fr 230px;grid-column:1/3;align-items:center;border-bottom:1px solid var(--line);padding:0 14px;background:#071018}
+.session-status .eyebrow{font-size:7px;color:#70d5b2;letter-spacing:.13em}.session-status b{display:block;font-size:14px;margin:3px 0}.session-status>span{display:block;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:7px;color:var(--ink3)}
+.session-route{display:flex;align-items:flex-start;justify-content:center}.session-node{width:78px;text-align:center;position:relative;color:var(--ink3)}.session-node:not(:last-child):after{content:"";position:absolute;height:1px;width:53px;background:var(--line);left:52px;top:12px}.session-node.done:not(:last-child):after{background:#70d5b2}.session-node i{width:25px;height:25px;border:1px solid #33536e;border-radius:50%;display:grid;place-items:center;margin:auto;background:#09141e;font-style:normal;font-size:7px;position:relative;z-index:1}.session-node.done i{border-color:#70d5b2;color:#70d5b2;background:#0a211b}.session-node.current i{border-color:var(--energy);background:var(--energy);color:#251805;box-shadow:0 0 14px rgba(233,180,94,.22)}.session-node b{display:block;font-size:6px;margin-top:4px}.session-node.current b{color:var(--energy)}
+.session-run{text-align:right}.session-run>b{display:block;color:#8ebddd;font-size:9px}.session-run>span{display:block;font-size:6px;color:var(--ink3);margin:2px 0 5px}.session-resources{display:flex;justify-content:flex-end;gap:11px}.session-resources em{font-style:normal;font-size:7px;color:var(--ink2)}.session-resources strong{color:#70d5b2;font-size:10px}.session-resources em:last-child strong{color:var(--energy)}
+body.session-mode #board{grid-column:1;grid-row:2;margin:10px 9px 10px 10px;border-radius:7px;padding:11px;background:rgba(9,19,28,.94)}body.session-mode #battleRecord{grid-column:2;grid-row:2;margin:10px 10px 10px 0;border-radius:7px;padding:10px;display:flex;flex-direction:column;background:#071018}body.session-mode #battleRecord .log{height:auto;min-height:280px;flex:1;background:#050b11;border-radius:5px}body.session-mode #labControls{display:none}body.session-mode #fab{display:none}body.session-mode .session-return.show{display:block}
+body.session-mode #stage{background:#050b11;border-color:#1c3042}body.session-mode .rc{background:#0c1823;border-color:#33536e;border-radius:5px}body.session-mode .rc.acting{background:#172231;border-color:var(--energy)}body.session-mode .tk{background:#0c1823;border-color:#1c3042;border-radius:4px}body.session-mode .tk.now{background:#18160f;border-color:var(--energy)}body.session-mode .btns button{background:#101e2b;border-color:#33536e;border-radius:4px;color:#8ebddd;font-size:9px}body.session-mode .hdr{height:24px;align-items:center;border-bottom:1px solid var(--line);margin-bottom:8px}body.session-mode .rowkey,body.session-mode .zlabel{font-size:7px;letter-spacing:.1em}body.session-mode .stats{background:#050b11;border-color:var(--line);border-radius:5px}
+@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 190px}.session-node{width:61px}.session-node:not(:last-child):after{width:39px;left:42px}}@media(max-width:760px){body.session-mode{grid-template-columns:1fr;display:block}body.session-mode .sessionbar{display:flex;height:70px;margin-bottom:8px}.session-route{display:none}body.session-mode #board,body.session-mode #battleRecord{margin:8px}body.session-mode #battleRecord{min-height:260px}}
 </style>
 </head>
 <body>
 
-<header class="sessionbar"><div><b id="sessionTitle">Spacology · Fieldwork</b><br><span id="sessionCrew">Formation linked from Ops</span></div><div><b id="sessionRound">Round 1 / 6</b><br><span id="sessionPressure">Enemy pressure 70%</span></div></header>
+<header class="sessionbar"><div class="session-status"><div class="eyebrow">FIELDWORK</div><b id="sessionTitle">Phomous · Compound Motion</b><span id="sessionCrew">Formation linked from Ops</span></div><nav class="session-route" aria-label="Round progress"><div class="session-node done"><i>✓</i><b>OPS</b></div><div class="session-node current"><i>●</i><b>FIELDWORK</b></div><div class="session-node"><i>3</i><b>SPECIMEN</b></div><div class="session-node"><i>4</i><b>RECOVER</b></div></nav><div class="session-run"><b id="sessionRound">ROUND 1 / 6</b><span id="sessionPressure">Enemy pressure 70%</span><div class="session-resources"><em><strong id="sessionIntegrity">74%</strong> INTEGRITY</em><em><strong id="sessionGold">102</strong> GOLD</em></div></div></header>
 
 <h1>Watchable fight</h1>
 <p class="sub">Same sim, played at full ceremony.</p>
@@ -2235,10 +2240,12 @@ function loadSpacologySession(){
   POOL=8+(state.round-1);
   MAXROUND=14;
   $('rPool').value=POOL;$('vPool').textContent=POOL;
-  $('sessionTitle').textContent='Spacology · Phomous fieldwork';
+  $('sessionTitle').textContent='Phomous · Compound Motion';
   $('sessionCrew').textContent=state.field.join(', ')+' on field · '+state.support.join(', ')+' off field';
-  $('sessionRound').textContent='Round '+state.round+' / '+state.maxRounds;
+  $('sessionRound').textContent='ROUND '+state.round+' / '+state.maxRounds;
   $('sessionPressure').textContent='Enemy pressure '+Math.round(OPS_PRESSURE*100)+'%';
+  $('sessionIntegrity').textContent=state.integrity+'%';
+  $('sessionGold').textContent=state.gold;
   $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
   build('ops','spread');
   return true;
