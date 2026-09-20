@@ -193,7 +193,10 @@ body.session-mode>h1,body.session-mode>.sub{display:none}body.session-mode .sess
 .session-run{text-align:right}.session-run>b{display:block;color:#8ebddd;font-size:9px}.session-run>span{display:block;font-size:6px;color:var(--ink3);margin:2px 0 5px}.session-resources{display:flex;justify-content:flex-end;gap:11px}.session-resources em{font-style:normal;font-size:7px;color:var(--ink2)}.session-resources strong{color:#70d5b2;font-size:10px}.session-resources em:last-child strong{color:var(--energy)}
 body.session-mode #board{grid-column:1;grid-row:2;margin:10px 9px 10px 10px;border-radius:7px;padding:11px;background:rgba(9,19,28,.94)}body.session-mode #battleRecord{grid-column:2;grid-row:2;margin:10px 10px 10px 0;border-radius:7px;padding:10px;display:flex;flex-direction:column;background:#071018}body.session-mode #battleRecord .log{height:auto;min-height:280px;flex:1;background:#050b11;border-radius:5px}body.session-mode #labControls{display:none}body.session-mode #fab{display:none}body.session-mode .session-return.show{display:block}
 body.session-mode #stage{background:#050b11;border-color:#1c3042}body.session-mode .rc{background:#0c1823;border-color:#33536e;border-radius:5px}body.session-mode .rc.acting{background:#172231;border-color:var(--energy)}body.session-mode .tk{background:#0c1823;border-color:#1c3042;border-radius:4px}body.session-mode .tk.now{background:#18160f;border-color:var(--energy)}body.session-mode .btns button{background:#101e2b;border-color:#33536e;border-radius:4px;color:#8ebddd;font-size:9px}body.session-mode .hdr{height:24px;align-items:center;border-bottom:1px solid var(--line);margin-bottom:8px}body.session-mode .rowkey,body.session-mode .zlabel{font-size:7px;letter-spacing:.1em}body.session-mode .stats{background:#050b11;border-color:var(--line);border-radius:5px}
-@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 190px}.session-node{width:61px}.session-node:not(:last-child):after{width:39px;left:42px}}@media(max-width:760px){body.session-mode{grid-template-columns:1fr;display:block}body.session-mode .sessionbar{display:flex;height:70px;margin-bottom:8px}.session-route{display:none}body.session-mode #board,body.session-mode #battleRecord{margin:8px}body.session-mode #battleRecord{min-height:260px}}
+body.session-mode .ribbon{display:flex;justify-content:center;align-items:stretch;gap:5px;min-height:92px}
+body.session-mode .ribbon .rc{flex:0 0 78px;width:78px;min-width:78px;min-height:92px;padding:5px 4px}
+body.session-mode .ribbon .rn{font-size:7px}body.session-mode .ribbon .re{font-size:6px}body.session-mode .ribbon .rt{font-size:6px}body.session-mode .ribbon .wk{gap:2px}body.session-mode .ribbon .wk span{width:10px;font-size:7px}
+@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 190px}.session-node{width:61px}.session-node:not(:last-child):after{width:39px;left:42px}}@media(max-width:980px){body.session-mode{grid-template-columns:1fr;display:block}body.session-mode .sessionbar{display:flex;height:70px;margin-bottom:8px}.session-route{display:none}body.session-mode #board,body.session-mode #battleRecord{margin:8px}body.session-mode #battleRecord{min-height:260px}}@media(max-width:760px){body.session-mode #board{padding:6px}body.session-mode .tcol{flex-basis:44px;min-width:44px}}
 </style>
 </head>
 <body>
@@ -649,7 +652,7 @@ function burstAt(id,c,n,spread){
       g:.22,drag:.94,life:240+Math.random()*180}); } }
 
 /* ============ state ============ */
-var G=null, MODE='full', playing=false, busy=false, chain=[];
+var G=null, MODE='full', playing=false, busy=false, chain=[], sessionAutoTimer=null;
 function at(ms,f){chain.push(setTimeout(f,ms))}
 function clr(){chain.forEach(clearTimeout);chain=[];}
 function tr(e,ms,tf){e.style.transition='all '+ms+'ms '+(tf||'ease')}
@@ -2152,11 +2155,12 @@ function finish(msg){
 /* ============ controls ============ */
 function step(){ if(busy||G.over) return; busy=true;
   playAction(function(){ busy=false; if(playing) step(); }); }
-$('bStep').onclick=function(){ playing=false; $('bPlay').textContent='Play'; step(); };
-$('bPlay').onclick=function(){ if(playing){ playing=false; this.textContent='Play'; return; }
+function cancelSessionAutostart(){if(sessionAutoTimer){clearTimeout(sessionAutoTimer);sessionAutoTimer=null;}}
+$('bStep').onclick=function(){cancelSessionAutostart(); playing=false; $('bPlay').textContent='Play'; step(); };
+$('bPlay').onclick=function(){cancelSessionAutostart(); if(playing){ playing=false; this.textContent='Play'; return; }
   playing=true; this.textContent='Pause'; step(); };
 $('fab').onclick=function(){ $('bPlay').click(); };
-$('bReset').onclick=function(){ build(G.team,G.planet); };
+$('bReset').onclick=function(){cancelSessionAutostart(); build(G.team,G.planet); };
 function pick(id,fn){ $(id).onclick=function(e){
   var b=e.target.closest('button'); if(!b) return;
   this.querySelectorAll('button').forEach(function(x){x.classList.remove('on')});
@@ -2248,6 +2252,7 @@ function loadSpacologySession(){
   $('sessionGold').textContent=state.gold;
   $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
   build('ops','spread');
+  sessionAutoTimer=setTimeout(function(){sessionAutoTimer=null;if(G&&!G.over&&!playing)$('bPlay').click();},350);
   return true;
 }
 
