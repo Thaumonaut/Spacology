@@ -9,6 +9,7 @@ const runState={
   equipped:{Tarn:['Ballast Plate'],Ash:['Recoil Spring','Fracture Lens'],Quill:[],Maul:['Bore Bit']},
   scrap:18,crystals:4,selected:null,drag:null,openedThisRound:false,battlesWon:0,observations:0
 };
+try{const saved=JSON.parse(localStorage.getItem('spacologyRunV010'));if(saved)Object.assign(runState,saved,{selected:null,drag:null})}catch(_){}
 
 const crewFallback={
   Ledger:['Assay · Order','Surveyor','Marks specimens and exposes weak points.'],
@@ -282,7 +283,8 @@ function finishBattle(won,message){
 function enterBattle(){
   if(runState.field.length<1){toastMessage('Place at least one character on field');return}
   if(deployed().length<1){toastMessage('Deploy a crew before launch');return}
-  overlay.classList.remove('open');setupBattle();battleView.classList.add('open');
+  localStorage.setItem('spacologyRunV010',JSON.stringify(runState));
+  location.href=`watchable-fight.html?spacology=1&round=${runState.round}`;
 }
 $('continueButton').onclick=enterBattle;
 $('battlePlay').onclick=()=>{if(battle.over)return;battle.playing=!battle.playing;$('battlePlay').textContent=battle.playing?'PAUSE':'RESUME';if(battle.playing)battleStep();else clearTimeout(battle.timer)};
@@ -295,7 +297,15 @@ $('resultContinue').onclick=()=>{
   if(runState.round>runState.maxRounds){const grade=runState.integrity>=85?'A':runState.integrity>=70?'B':'C';$('voyageGrade').textContent=grade;$('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${runState.maxRounds} encounters recovered · ${runState.observations} observations completed.`;$('voyageEnd').classList.add('open');return}
   runState.openedThisRound=false;renderOps();toastMessage(`Round ${runState.round} ready. Enemy pressure will increase.`)
 };
-$('newVoyage').onclick=()=>location.reload();
+$('newVoyage').onclick=()=>{localStorage.removeItem('spacologyRunV010');localStorage.removeItem('spacologyBattleResult');location.reload()};
 
-installPackTargets();renderOps();
+function applyBattleResult(){
+  let result=null;try{result=JSON.parse(localStorage.getItem('spacologyBattleResult'))}catch(_){}
+  if(!result||result.round!==runState.round)return;
+  localStorage.removeItem('spacologyBattleResult');runState.gold+=result.gold;runState.integrity=Math.max(0,Math.min(100,runState.integrity+result.integrity));
+  if(result.won)runState.battlesWon++;if(result.observation)runState.observations++;runState.round++;
+  localStorage.setItem('spacologyRunV010',JSON.stringify(runState));
+  if(runState.round>runState.maxRounds){const grade=runState.integrity>=85?'A':runState.integrity>=70?'B':'C';$('voyageGrade').textContent=grade;$('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${runState.maxRounds} encounters recovered · ${runState.observations} observations completed.`;$('voyageEnd').classList.add('open')}else setTimeout(()=>toastMessage(`Round ${runState.round} ready · ${result.won?'fieldwork recovered':'partial recovery'}`),80);
+}
+installPackTargets();applyBattleResult();renderOps();
 })();

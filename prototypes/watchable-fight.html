@@ -185,9 +185,15 @@ input[type=range]{width:100%;accent-color:var(--energy);height:26px}
 #fab{position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));
   width:54px;height:54px;border-radius:50%;background:var(--energy);color:#131A21;
   border:0;font-size:19px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.5)}
+.sessionbar{display:none}.session-return{display:none;width:100%;margin-top:10px;background:var(--energy);color:#131A21;border:0;border-radius:8px;padding:13px;font:700 12px inherit}
+body.session-mode{min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 260px;grid-template-rows:auto auto 1fr;gap:10px;padding:12px;background:#070b11}
+body.session-mode>h1,body.session-mode>.sub{display:none}body.session-mode .sessionbar{display:flex;grid-column:1/3;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:#101820}
+.sessionbar b{font-size:12px}.sessionbar span{font-size:9px;color:var(--ink3)}body.session-mode #board{grid-column:1;grid-row:2/4;margin:0}body.session-mode #battleRecord{grid-column:2;grid-row:2/4;margin:0;display:flex;flex-direction:column}body.session-mode #battleRecord .log{height:auto;min-height:280px;flex:1}body.session-mode #labControls{display:none}body.session-mode #fab{display:none}body.session-mode .session-return.show{display:block}@media(max-width:800px){body.session-mode{grid-template-columns:1fr;display:block}body.session-mode .sessionbar{margin-bottom:10px}body.session-mode #board,body.session-mode #battleRecord{margin-bottom:10px}}
 </style>
 </head>
 <body>
+
+<header class="sessionbar"><div><b id="sessionTitle">Spacology · Fieldwork</b><br><span id="sessionCrew">Formation linked from Ops</span></div><div><b id="sessionRound">Round 1 / 6</b><br><span id="sessionPressure">Enemy pressure 70%</span></div></header>
 
 <h1>Watchable fight</h1>
 <p class="sub">Same sim, played at full ceremony.</p>
@@ -228,13 +234,14 @@ input[type=range]{width:100%;accent-color:var(--energy);height:26px}
 
 <button id="fab" aria-label="Play">&#9654;</button>
 
-<div class="field">
+<div class="field" id="battleRecord">
   <div class="zlabel" style="margin-top:0">Battle log</div>
   <div class="log" id="log"></div>
   <div class="stats" id="stats"></div>
+  <button class="session-return" id="sessionReturn">RETURN TO OPS</button>
 </div>
 
-<div class="field">
+<div class="field" id="labControls">
   <div class="zlabel" style="margin-top:0">Team</div>
   <div class="seg" id="sTeam">
     <button data-v="bloom" class="on">Bloom &mdash; Blight&times;5</button>
@@ -515,7 +522,7 @@ var AIMODE='profile', RETARGET='random', CHAINCAP=12, CHAINSTAGE=2;
 var ELITES=[{n:'Drone',sp:88,hp:150,dmg:18},{n:'Husk',sp:104,hp:120,dmg:22},
             {n:'Maw',sp:76,hp:190,dmg:30}];
 var CHAFFNAMES=['Mite','Grub','Shard','Wisp','Thrall','Spore','Nit','Cyst','Rime'];
-var FIELD=6, POOL=12;
+var FIELD=6, POOL=12, OPS_PRESSURE=1;
 
 /* ============ particles ============ */
 var PX={cv:null,ctx:null,bl:null,blx:null,list:[],raf:null,dpr:1,W:0,H:0,canFilter:false};
@@ -672,7 +679,7 @@ function build(team,planet){
   for(var q=0;q<POOL;q++){
     var elite=q<3;
     var base=elite?ELITES[q]:{n:CHAFFNAMES[(q-3)%CHAFFNAMES.length],sp:98,hp:46,dmg:9};
-    G.pool.push({n:base.n,sp:base.sp,hp:base.hp,dmg:base.dmg,elite:elite,
+    G.pool.push({n:base.n,sp:base.sp,hp:Math.round(base.hp*OPS_PRESSURE),dmg:Math.round(base.dmg*OPS_PRESSURE),elite:elite,
       weak:pl.weak[q%pl.weak.length].slice(), layers:elite?SHLAYERS:1});
   }
   spawnFoes();
@@ -2124,6 +2131,17 @@ function finish(msg){
     'evenness <b>'+Math.max(0,Math.round((1-spread)*100))+'%</b> &middot; '+
     names.map(function(n){return n+' '+Math.round(G.dealt[n]/tot*100)+'%'}).join(' &middot; ')+
     '<div class="spark">'+bars+'</div>';
+  if(window.SPACOLOGY_SESSION){
+    var won=msg==='Crew wins';
+    var observation=G.breaks>=2||G.chains>=2;
+    var result={round:window.SPACOLOGY_SESSION.round,won:won,
+      integrity:won?(observation?5:2):-8,
+      gold:won?20+window.SPACOLOGY_SESSION.round*5:8,
+      observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains};
+    localStorage.setItem('spacologyBattleResult',JSON.stringify(result));
+    $('sessionReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
+    $('sessionReturn').classList.add('show');
+  }
 }
 
 /* ============ controls ============ */
@@ -2190,8 +2208,44 @@ function injNote(){
   $(p[0]).oninput=function(){$(p[1]).textContent=this.value+p[2]};
   $(p[1]).textContent=$(p[0]).value+p[2]; });
 
+function loadSpacologySession(){
+  if(new URLSearchParams(location.search).get('spacology')!=='1') return false;
+  var state=null;
+  try{state=JSON.parse(localStorage.getItem('spacologyRunV010'));}catch(e){}
+  if(!state||!state.field||!state.support) return false;
+  window.SPACOLOGY_SESSION=state;
+  document.body.classList.add('session-mode');
+  var library={};
+  Object.keys(TEAMS).forEach(function(key){TEAMS[key].crew.forEach(function(c){if(!library[c.n])library[c.n]=c;});});
+  var aliases={Coda:'Vane',Morrow:'Ash',Spore:'Sump',Latch:'Nettle'};
+  var all=state.field.concat(state.support);
+  var crew=all.map(function(name){
+    var source=library[name]||library[aliases[name]]||library.Corr;
+    var c=JSON.parse(JSON.stringify(source));
+    c.n=name;c.row=state.field.indexOf(name)>=0?'front':'back';
+    var gear=(state.equipped&&state.equipped[name])||[];
+    c.dmg=Math.round(c.dmg*(1+gear.length*.08));
+    if(gear.indexOf('Quick Latch')>=0)c.sp=Math.round(c.sp*1.08);
+    if(gear.indexOf('Ballast Plate')>=0)c.hp=(c.hp||100)+28;
+    return c;
+  });
+  TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew};
+  OPS_PRESSURE=.70+(state.round-1)*.13;
+  FIELD=state.round<3?3:4;
+  POOL=8+(state.round-1);
+  MAXROUND=14;
+  $('rPool').value=POOL;$('vPool').textContent=POOL;
+  $('sessionTitle').textContent='Spacology · Phomous fieldwork';
+  $('sessionCrew').textContent=state.field.join(', ')+' on field · '+state.support.join(', ')+' off field';
+  $('sessionRound').textContent='Round '+state.round+' / '+state.maxRounds;
+  $('sessionPressure').textContent='Enemy pressure '+Math.round(OPS_PRESSURE*100)+'%';
+  $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
+  build('ops','spread');
+  return true;
+}
+
 pxInit();
-build('bloom','spread');
+if(!loadSpacologySession()) build('bloom','spread');
 window.addEventListener('resize',pxResize);
 </script>
 </body>

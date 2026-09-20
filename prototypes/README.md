@@ -78,4 +78,6 @@ The prototype uses the current progression assumptions: four starting character 
 on-field character, one ship equipment slot, pack prices in the 26–30 gold range, explicit keep/strip
 card decisions, and a fixed rising enemy pressure curve. Ops and combat share one session state.
 Characters and equipment can be dragged to their destinations, packs have a Take All action, and a
-six-encounter voyage runs through scaling battles to a final archive report.
+six-encounter voyage runs through scaling battles to a final archive report. Battles use the original
+`watchable-fight.html` engine and its complete animation choreography; the configured Ops formation,
+rows, Gear, round pressure, and results pass between the two full-page views through saved run state.
