@@ -76,6 +76,6 @@ setup, pack decisions, and full animated battlefield:
 
 The prototype uses the current progression assumptions: four starting character slots, one required
 on-field character, one ship equipment slot, pack prices in the 26–30 gold range, explicit keep/strip
-card decisions, and a fixed rising enemy pressure curve. Continue from the v5 Ops room to open the
-animated battlefield; the combat screen runs the watchable fight simulation with turn order,
-breaks, follow-ups, ultimates, injuries, carry-over, and replay controls.
+card decisions, and a fixed rising enemy pressure curve. Ops and combat share one session state.
+Characters and equipment can be dragged to their destinations, packs have a Take All action, and a
+six-encounter voyage runs through scaling battles to a final archive report.
