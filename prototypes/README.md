@@ -27,3 +27,54 @@ The architecture worth keeping: `resolveAction()` resolves an entire action agai
 state and returns a plain event object; `playAction()` then animates that event. The
 simulation never depends on the animation, which means fights can be run headlessly for
 balance testing and replayed deterministically.
+
+## worldgen.html
+
+A tectonic world editor with a separate alien environment layer. Open the file in
+a browser; no server or dependencies are required.
+
+- Expand **Terrain & climate settings** to choose plate count, relief, ocean level
+  and climate, then **Generate terrain**. Generating terrain resets environment edits.
+- **Plates** shows collision belts, subduction trenches, volcanic arcs, spreading
+  ridges, rifts and transform boundaries. This is a procedural approximation of
+  plate interactions, not a time-stepped geological simulation.
+- **Environment** shows lava fields, neutrino seas, glass deserts and luminous
+  forests. **Place environments** deterministically distributes them according to
+  abundance, coherent spatial variation and terrain suitability. Abundance is a
+  placement threshold, not a target percentage of the world.
+- Choose a brush and drag on the map. Suitability limits lava to volcanic belts,
+  neutrino seas to ocean/low ground, glass to dry land, and forests to moist land.
+  Turn suitability off to author exceptions. Erase restores the underlying climate
+  biome; **Undo edit** restores one of the last twelve layer edits.
+- The neutrino-sea animation is an illustrative material study. Globe rendering
+  includes emissive materials; neither view simulates fluid physics or rain zones.
+- **Save world / Load world** round-trips the seed, terrain configuration and painted
+  cells in a versioned JSON document. Loading rebuilds terrain with `tectonics-v1`;
+  future changes to terrain generation must bump that identifier or migrate saves.
+  Keep these JSON files as source assets. **Export map PNG** exports the current map
+  or globe; the report and material study are not part of the image.
+- Environment edits never mutate elevation, drainage, climate or climate biomes.
+  Existing settlement generation and reports still describe the underlying climate;
+  alien hazards do not yet affect settlement, battles or research mechanics.
+- **Export conditioning** retains the existing Terrain Diffusion bridge through
+  `tools/cond_to_tiff.py`. This prototype does not execute Terrain Diffusion or import
+  Azgaar maps. The world JSON preserves the alien layer separately from physical
+  conditioning, so fictional sea materials are not interpreted as water/climate data.
+
+Browser verification covers terrain invariance after environment changes, undo,
+seeded save/load reconstruction, invalid-save rejection, zero abundance, pointer
+painting, downloaded-save reloading, independent globe latitude/climate tilt,
+and tablet overflow. The animated study respects reduced-motion preferences and
+pauses while its view or browser tab is hidden.
+
+## spacology-v0.1.0.html
+
+The first playable vertical slice of Spacology. Open it directly in a browser and play the complete
+voyage flow:
+
+`Title → briefing → Ops room → consignment pack → card triage → destination → formation → animated combat → recovery report → voyage summary`
+
+The prototype uses the current progression assumptions: four starting character slots, one required
+on-field character, one ship equipment slot, pack prices in the 26–30 gold range, explicit keep/strip
+card decisions, and a fixed rising enemy pressure curve. The flow navigator is included for testing,
+but every primary action can be played in sequence.

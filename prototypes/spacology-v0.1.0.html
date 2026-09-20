@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>Spacology v0.1.0 — Playable Voyage Prototype</title>
+<style>
+  :root{
+    --void:#070b11;--panel:#0d141e;--panel2:#101a27;--line:#1d2d40;--line2:#2d4660;
+    --ink:#e8edf2;--muted:#8ca0b2;--dim:#526579;--blue:#96bddc;--green:#71d1b2;
+    --amber:#e0ad5a;--red:#df7d91;--violet:#a997d4;--growth:#92bd7c;--decay:#b49877;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;min-height:100%;background:#030508;color:var(--ink);font:14px/1.4 Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+  button{font:inherit;color:inherit}
+  button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  .app{min-height:100vh;display:grid;place-items:center;padding:18px;background:
+    radial-gradient(circle at 24% 12%,rgba(58,92,122,.16),transparent 32%),
+    radial-gradient(circle at 82% 76%,rgba(40,105,87,.11),transparent 30%),#030508}
+  .frame{width:min(1180px,100%);aspect-ratio:4/3;max-height:calc(100vh - 36px);position:relative;overflow:hidden;
+    border:1px solid #22354b;border-radius:18px;background:var(--void);box-shadow:0 26px 80px #000,0 0 0 1px rgba(255,255,255,.025) inset}
+  .starfield,.starfield:before{position:absolute;inset:0;pointer-events:none;content:"";opacity:.35;background-image:
+    radial-gradient(circle at 12% 22%,#fff 0 1px,transparent 1.2px),radial-gradient(circle at 72% 14%,#fff 0 .7px,transparent 1px),
+    radial-gradient(circle at 40% 77%,#fff 0 .7px,transparent 1px),radial-gradient(circle at 89% 63%,#fff 0 1px,transparent 1.2px);
+    background-size:240px 190px,310px 240px,270px 210px,340px 280px}
+  .screen{position:absolute;inset:0;display:none}.screen.active{display:flex}
+  .eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--green)}
+  h1,h2,h3,p{margin-top:0}.display{font-family:Georgia,"Times New Roman",serif;font-weight:400;letter-spacing:-.025em}
+  .primary,.secondary,.quiet{min-height:44px;border-radius:6px;padding:0 20px;cursor:pointer}
+  .primary{border:0;background:var(--amber);color:#211605;font-weight:700;box-shadow:0 8px 28px rgba(224,173,90,.18)}
+  .secondary{border:1px solid var(--line2);background:#111c28;color:var(--blue)}
+  .quiet{border:1px solid transparent;background:transparent;color:var(--muted)}
+  .primary:hover{background:#efbd6b}.secondary:hover{border-color:var(--blue)}
+  button:disabled{opacity:.42;cursor:not-allowed;box-shadow:none}
+
+  /* Prototype-only navigator */
+  .flow-toggle{position:absolute;z-index:90;right:14px;top:13px;min-height:40px;border:1px solid #32485d;border-radius:20px;
+    background:rgba(7,11,17,.9);color:var(--muted);padding:0 15px;cursor:pointer;font-size:11px;letter-spacing:.08em}
+  .flow-panel{position:absolute;z-index:89;right:12px;top:60px;width:226px;padding:12px;border:1px solid #2a4158;border-radius:10px;
+    background:rgba(7,11,17,.97);box-shadow:0 16px 46px #000;display:none}.flow-panel.open{display:block}
+  .flow-panel p{font-size:9px;color:var(--dim);letter-spacing:.13em;margin:0 0 9px;text-transform:uppercase}
+  .flow-list{display:grid;gap:4px}.flow-list button{min-height:31px;text-align:left;border:0;border-radius:4px;background:transparent;color:var(--muted);font-size:11px;padding:0 9px;cursor:pointer}
+  .flow-list button:hover,.flow-list button.current{background:#132131;color:var(--ink)}
+  .flow-list b{display:inline-block;width:20px;color:var(--green);font-size:9px}
+
+  /* Cover and briefing */
+  .cover{align-items:stretch;overflow:hidden;background:linear-gradient(90deg,rgba(5,9,14,.96) 0 46%,rgba(5,9,14,.35) 72%),
+    radial-gradient(ellipse at 78% 50%,rgba(92,161,177,.25),transparent 34%),#07101a}
+  .cover-copy{width:53%;display:flex;flex-direction:column;justify-content:center;padding:8% 7%;position:relative;z-index:2}
+  .mark{width:52px;height:52px;border:1px solid var(--green);transform:rotate(45deg);position:relative;margin:0 0 34px}
+  .mark:before,.mark:after{content:"";position:absolute;border:1px solid var(--blue);inset:8px}.mark:after{inset:16px;border-color:var(--amber)}
+  .cover h1{font-size:68px;line-height:.88;margin-bottom:22px}.cover .deck{max-width:430px;color:var(--muted);font-size:17px}
+  .cover-actions{display:flex;gap:10px;margin-top:30px}
+  .planet-art{position:absolute;width:46%;aspect-ratio:1;right:1%;top:16%;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#87a5a0 0 2%,#455f60 5%,#172b34 36%,#09111a 66%);
+    box-shadow:-45px 0 100px rgba(85,161,160,.16),inset 30px -20px 70px #020406}
+  .planet-art:after{content:"";position:absolute;inset:25% 6% 25% -30%;border:1px solid rgba(151,190,210,.18);border-radius:50%;transform:rotate(-12deg)}
+  .save-line{color:var(--dim);font-size:11px;margin-top:17px}
+  .briefing{padding:7% 8%;align-items:center;justify-content:center;background:linear-gradient(120deg,#07101a,#080d14)}
+  .brief-grid{width:100%;display:grid;grid-template-columns:1.1fr .9fr;gap:70px;align-items:center;position:relative;z-index:2}
+  .briefing h1{font-size:48px;line-height:1.02}.briefing .intro{font-size:17px;color:var(--muted);max-width:520px}
+  .rules{margin-top:28px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.rule-card{padding:14px;border-top:1px solid var(--line2);background:linear-gradient(180deg,rgba(20,32,46,.6),transparent)}
+  .rule-card b{display:block;color:var(--blue);font-size:20px}.rule-card span{color:var(--muted);font-size:11px}
+  .manifest{border:1px solid var(--line2);border-radius:10px;background:rgba(12,20,30,.76);padding:25px}
+  .manifest h3{font-size:12px;letter-spacing:.16em;color:var(--green);margin-bottom:20px}.manifest-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line)}
+  .manifest-row span{color:var(--muted)}.manifest-row b{font-weight:500}.manifest .primary{width:100%;margin-top:24px}
+
+  /* Shared in-run shell */
+  .game{display:grid!important;grid-template-columns:104px 1fr;grid-template-rows:1fr 132px;background:#070c13}
+  .game:not(.active){display:none!important}
+  .rail{grid-row:1/3;padding:18px 12px 14px;border-right:1px solid var(--line);background:#080e16;display:flex;flex-direction:column;gap:8px;z-index:3}
+  .rail-title{font-size:8px;letter-spacing:.18em;color:var(--dim);margin-bottom:4px}.rail-stat{border:1px solid var(--line);border-radius:5px;padding:8px 7px;text-align:center;background:#0a121c}
+  .rail-stat strong{display:block;font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}.rail-stat span{font-size:7px;letter-spacing:.1em;color:var(--dim)}
+  .rail-stat.good strong{color:var(--green)}.rail-stat.gold strong{color:var(--amber)}.rail-stat.power strong{color:var(--blue)}
+  .rail-line{height:1px;background:var(--line);margin:3px 0}.leg-dots{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+  .leg-dots i{height:4px;border-radius:3px;background:#172333}.leg-dots i.done{background:#376e62}.leg-dots i.now{background:var(--amber)}
+  .rail-bottom{margin-top:auto;text-align:center;color:var(--dim);font-size:8px}.rail-bottom b{display:block;color:var(--amber);font-size:15px}
+  .main{grid-column:2;grid-row:1;min-width:0;padding:18px 20px 12px;display:flex;flex-direction:column;position:relative;z-index:2}
+  .topline{height:39px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--line);margin-bottom:14px;padding-right:90px}
+  .topline h2{font-size:15px;margin:0;font-weight:600}.topline .context{color:var(--dim);font-size:10px}.topline .grow{flex:1}
+  .chip{font-size:8px;letter-spacing:.05em;border:1px solid var(--line2);border-radius:3px;color:var(--muted);padding:2px 6px}.chip.active{border-color:#2c6c5b;color:var(--green)}
+  .content{flex:1;min-height:0;display:flex;flex-direction:column}
+  .tray{grid-column:2;grid-row:2;border-top:1px solid var(--line);padding:10px 20px 12px;background:rgba(7,12,19,.96);z-index:3}
+  .tray-head{height:22px;display:flex;align-items:flex-start;color:var(--dim);font-size:8px;letter-spacing:.1em}.tray-head .grow{flex:1}.tray-head b{color:var(--green);font-weight:500}
+  .crew-row{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}.crew-card{height:84px;border:1px solid var(--line2);border-radius:5px;background:#0d1723;padding:8px 6px;position:relative;cursor:pointer;overflow:hidden}
+  .crew-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tag,var(--blue))}.crew-card .rarity{position:absolute;right:5px;top:5px;color:var(--amber);font-size:7px}
+  .crew-card b{display:block;font-size:11px;margin-top:8px}.crew-card span{font-size:8px;color:var(--tag,var(--blue))}.crew-card small{display:block;color:var(--dim);font-size:7px;margin-top:5px}.crew-card.ready{border-color:var(--amber);box-shadow:0 0 16px rgba(224,173,90,.16)}.crew-card.selected{border-color:var(--amber);background:#151a1b;box-shadow:0 0 0 1px rgba(224,173,90,.35),0 0 18px rgba(224,173,90,.1)}
+  .crew-card.ready:after{content:"READY";position:absolute;right:5px;bottom:4px;color:var(--amber);font-size:6px}.crew-card.off{opacity:.45}
+
+  /* Ops */
+  .panel{border:1px solid var(--line);border-radius:7px;background:rgba(12,20,30,.78);padding:14px}
+  .ops-nav{display:flex;align-items:center;gap:3px;margin-left:18px}.ops-nav button{height:30px;border:0;border-radius:4px;background:transparent;color:var(--dim);padding:0 10px;font-size:8px;letter-spacing:.1em;cursor:pointer}.ops-nav button.active{background:#132231;color:var(--green)}.ops-nav i{display:inline-grid;place-items:center;min-width:16px;height:16px;margin-left:4px;border-radius:8px;background:#26384a;color:var(--ink);font-style:normal;font-size:7px}
+  .ops-workspace{display:grid;grid-template-columns:minmax(0,1fr) 244px 224px;gap:11px;flex:1;min-height:0}.ops-workspace>.panel{min-width:0}
+  .ops-section-head{display:flex;align-items:baseline;gap:8px;margin-bottom:11px}.ops-section-head b{font-size:11px}.ops-section-head span{font-size:8px;color:var(--dim)}.ops-section-head .grow{flex:1}
+  .engine-panel{display:flex;flex-direction:column}.engine-title{display:flex;align-items:flex-end;gap:12px;padding:5px 0 14px}.engine-title h3{font:400 25px/1.05 Georgia,serif;margin:0}.engine-title p{font-size:8px;color:var(--muted);max-width:180px;margin:0}.engine-power{margin-left:auto;text-align:right}.engine-power b{display:block;color:var(--blue);font-size:24px;line-height:1}.engine-power span{font-size:7px;color:var(--dim);letter-spacing:.08em}
+  .chain{display:grid;grid-template-columns:1fr 18px 1fr 18px 1fr;align-items:stretch;margin-bottom:12px}.chain-node{min-height:104px;border:1px solid var(--line2);border-radius:5px;background:#0b1520;padding:11px 9px;position:relative}.chain-node:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tag,var(--blue))}.chain-node span{font-size:7px;color:var(--tag,var(--blue));letter-spacing:.08em}.chain-node b{display:block;font-size:13px;margin:5px 0}.chain-node small{display:block;color:var(--muted);font-size:8px;line-height:1.35}.chain-arrow{display:grid;place-items:center;color:var(--green);font-size:14px}
+  .thresholds{display:grid;gap:6px}.threshold{display:grid;grid-template-columns:74px 1fr auto;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--line);border-radius:4px;background:#0a121c}.threshold .name{font-size:9px}.threshold .effect{font-size:8px;color:var(--muted)}.threshold .effect b{color:var(--green);font-weight:500}.pips{display:flex;gap:3px}.pips i{width:11px;height:4px;border-radius:2px;background:#1d2c3c}.pips i.on{background:var(--green)}.pips i.next{background:var(--amber)}
+  .engine-foot{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:10px;color:var(--dim);font-size:8px}.engine-foot b{color:var(--green);font-weight:500}.engine-foot .grow{flex:1}
+  .crew-detail{display:flex;flex-direction:column}.crew-portrait{height:116px;display:grid;place-items:center;margin:-2px -2px 12px;border-radius:5px;background:radial-gradient(circle,rgba(223,125,145,.18),transparent 42%),repeating-radial-gradient(circle,transparent 0 14px,rgba(223,125,145,.08) 15px 16px)}.crew-sigil{width:58px;height:58px;border:1px solid var(--red);transform:rotate(45deg);display:grid;place-items:center}.crew-sigil:after{content:"";width:28px;height:28px;border:1px solid var(--amber)}
+  .crew-name{display:flex;align-items:baseline;gap:7px}.crew-name h3{font-size:19px;margin-bottom:2px}.crew-name span{font-size:8px;color:var(--red)}.crew-role{font-size:9px;color:var(--muted);margin-bottom:10px}.detail-block{padding:8px 0;border-top:1px solid var(--line)}.detail-block label{display:block;color:var(--dim);font-size:7px;letter-spacing:.1em;margin-bottom:3px}.detail-block p{font-size:9px;color:var(--muted);margin:0}.detail-block b{color:var(--green);font-weight:500}.promotion{margin-top:auto}.promotion-track{height:4px;border-radius:2px;background:#172333;margin:5px 0 3px;overflow:hidden}.promotion-track i{display:block;height:100%;width:100%;background:var(--amber)}.promotion small{font-size:7px;color:var(--amber)}
+  .decision-rail{display:flex;flex-direction:column;gap:8px}.decision-rail>.ops-section-head{margin:0 0 1px}.decision-card{border:1px solid var(--line);border-radius:6px;background:#0b1520;padding:11px}.decision-card.featured{border-color:#725b2f;background:linear-gradient(150deg,rgba(63,48,25,.32),#0b1520 62%)}.decision-card .kicker{font-size:7px;letter-spacing:.11em;color:var(--dim)}.decision-card h3{font-size:13px;margin:5px 0 3px}.decision-card p{font-size:8px;color:var(--muted);margin:0 0 8px}.decision-card .signal{color:var(--amber)}.decision-card button{width:100%;min-height:38px;padding:0 10px}.launch-card{margin-top:auto;border:1px solid #355f52;border-radius:6px;background:#0b1a18;padding:12px}.launch-card span{font-size:7px;letter-spacing:.1em;color:var(--green)}.launch-card h3{font-size:14px;margin:5px 0 3px}.launch-card p{font-size:8px;color:#79a99a}.launch-card .primary{width:100%;margin-top:5px}
+
+  /* Pack selection and opening */
+  .pack-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1;align-items:stretch}.pack{border:1px solid var(--line2);border-radius:8px;padding:18px;background:linear-gradient(160deg,#101c29,#0a111a);position:relative;display:flex;flex-direction:column}
+  .pack.recommended{border-color:#3d806d}.pack .pack-art{height:92px;margin:-4px -4px 16px;border-radius:5px;background:radial-gradient(circle at 50% 45%,rgba(113,209,178,.32),transparent 35%),repeating-radial-gradient(circle at 50% 50%,transparent 0 12px,rgba(113,209,178,.16) 13px 14px)}
+  .pack:nth-child(2) .pack-art{background:radial-gradient(circle at 50% 45%,rgba(169,151,212,.3),transparent 35%),repeating-linear-gradient(65deg,transparent 0 13px,rgba(169,151,212,.12) 14px 15px)}
+  .pack:nth-child(3) .pack-art{background:radial-gradient(circle at 50% 45%,rgba(224,173,90,.32),transparent 35%),repeating-linear-gradient(-45deg,transparent 0 13px,rgba(224,173,90,.1) 14px 15px)}
+  .pack h3{font-size:18px;margin-bottom:4px}.pack p{font-size:10px;color:var(--muted)}.pack .fit{font-size:9px;color:var(--green);margin-top:auto;padding-top:8px}.pack .price{display:flex;justify-content:space-between;align-items:center;margin-top:12px}.pack .price b{color:var(--amber);font-size:16px}
+  .pack .primary{padding:0 15px}.recommended-label{position:absolute;right:12px;top:10px;font-size:7px;letter-spacing:.1em;color:var(--green)}
+  .cards-ten{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;flex:1;min-height:0}.pull-card{border:1px solid var(--line2);border-radius:5px;background:#0c1622;padding:8px 7px 6px;display:flex;flex-direction:column;position:relative;min-height:106px}
+  .pull-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--type,#46627a)}.pull-card.keep{border-color:#3d806d;background:#0c201b}.pull-card.strip{opacity:.48}.pull-card .type{font-size:6px;letter-spacing:.13em;color:var(--dim)}
+  .pull-card b{font-size:11px;margin:5px 0 1px}.pull-card .tag{font-size:8px;color:var(--tag,var(--blue))}.pull-card p{font-size:7px;color:var(--muted);margin:4px 0;flex:1}.pull-card small{font-size:7px;color:var(--dim)}
+  .card-actions{display:flex;gap:4px;margin-top:5px}.card-actions button{flex:1;min-height:26px;padding:0;border:1px solid var(--line2);border-radius:3px;background:#101c28;color:var(--muted);font-size:7px;cursor:pointer}.card-actions button:hover{color:var(--ink)}
+  .pack-tally{display:flex;align-items:center;gap:18px;margin-top:10px;border-top:1px solid var(--line);padding-top:10px}.tally-item b{display:block;font-size:14px}.tally-item span{font-size:7px;color:var(--dim);letter-spacing:.08em}.pack-tally .grow{flex:1}.pack-tally .primary{min-width:150px}
+
+  /* Formation */
+  .formation{display:grid;grid-template-columns:1fr 260px;gap:16px;flex:1;min-height:0}.formation-board{display:grid;grid-template-rows:1fr 1fr;gap:11px;padding:12px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(90deg,rgba(35,54,70,.19),transparent)}
+  .formation-row{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;position:relative}.formation-row:before{content:attr(data-label);position:absolute;left:4px;top:4px;color:var(--dim);font-size:7px;letter-spacing:.12em}
+  .slot{border:1px dashed #2d4256;border-radius:5px;display:flex;align-items:center;justify-content:center;min-width:0;color:#293c50;font-size:9px;cursor:pointer;position:relative}.slot.filled{border-style:solid;background:#0d1723;color:var(--ink)}
+  .slot.filled:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--tag,var(--blue))}.slot b{font-size:10px}.slot small{position:absolute;bottom:7px;color:var(--dim);font-size:7px}.slot.selected{border-color:var(--amber);box-shadow:0 0 16px rgba(224,173,90,.13)}
+  .formation-note h3{font-size:12px}.formation-note p{font-size:10px;color:var(--muted)}.consequence{border-left:2px solid var(--green);padding:9px 10px;background:#0b1719;font-size:9px;color:#9bc8bb;margin:14px 0}.formation-note .primary{width:100%;margin-top:12px}
+  .tag-stack{display:grid;gap:6px}.tag-line{display:flex;justify-content:space-between;padding:7px 8px;border:1px solid var(--line);border-radius:4px;font-size:9px}.tag-line span{color:var(--muted)}.tag-line b{color:var(--green)}
+
+  /* Destinations */
+  .destinations{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex:1}.world{border:1px solid var(--line2);border-radius:8px;background:#0b141f;overflow:hidden;display:flex;flex-direction:column;position:relative;cursor:pointer}
+  .world.selected{border-color:var(--amber);box-shadow:0 0 24px rgba(224,173,90,.12)}.world-art{height:105px;background:radial-gradient(ellipse at 50% 100%,#55726e 0 12%,#1a3038 35%,transparent 37%),linear-gradient(#111e2b,#080d14)}
+  .world:nth-child(2) .world-art{background:radial-gradient(ellipse at 50% 100%,#71635c 0 15%,#352b2c 38%,transparent 40%),linear-gradient(#221b22,#080d14)}
+  .world:nth-child(3) .world-art{background:radial-gradient(ellipse at 50% 100%,#445270 0 15%,#202944 38%,transparent 40%),linear-gradient(#11172b,#080d14)}
+  .world-body{padding:13px;display:flex;flex-direction:column;flex:1}.world h3{font-size:18px;margin-bottom:2px}.danger{color:var(--red);font-size:10px;letter-spacing:.08em}.danger i{font-style:normal;color:#452936}.danger i.on{color:var(--red)}
+  .conditions{display:flex;gap:5px;flex-wrap:wrap;margin:10px 0}.condition{font-size:8px;border:1px solid #583843;color:#d693a0;border-radius:3px;padding:3px 5px}.match{margin-top:auto;font-size:9px;color:var(--muted)}.match b{display:block;color:var(--green);font-size:12px;margin-top:3px}
+  .dest-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:11px}
+
+  /* Combat */
+  .combat-grid{display:grid;grid-template-rows:80px 1fr 80px;gap:9px;flex:1;min-height:0}.rank{display:flex;justify-content:center;gap:8px}.unit{width:88px;border:1px solid var(--line2);border-radius:5px;background:#0c1621;text-align:center;padding:8px 5px;position:relative}
+  .unit.enemy{border-color:#623544}.unit b{display:block;font-size:10px}.unit span{font-size:7px;color:var(--muted)}.bar{height:3px;background:#182534;margin-top:6px;border-radius:2px;overflow:hidden}.bar i{display:block;height:100%;background:var(--blue)}.enemy .bar i{background:var(--red)}
+  .intent{position:absolute;left:50%;top:-10px;transform:translateX(-50%);white-space:nowrap;font-size:7px;color:var(--red);background:#180c12;border:1px solid #532938;border-radius:3px;padding:1px 5px}.stage{border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;place-items:center;position:relative;background:radial-gradient(circle,rgba(224,173,90,.07),transparent 42%);overflow:hidden}
+  .stage:before{content:"";position:absolute;width:180px;height:180px;border:1px solid rgba(224,173,90,.16);border-radius:50%;opacity:0;transform:scale(.65)}.stage.playing:before{opacity:1;animation:scan-pulse 1.8s ease-out infinite}.acting{width:165px;text-align:center;border:1px solid var(--amber);border-radius:6px;padding:18px;background:#17160f;box-shadow:0 0 48px rgba(224,173,90,.13);position:relative;z-index:1}.acting .ability{font-size:9px;color:var(--amber);margin-top:5px}.acting.pulse{animation:actor-pulse .55s ease-in-out 2}.score-float{position:absolute;right:8%;top:20%;font-size:23px;color:white;font-weight:700;opacity:0}.score-float.show{animation:score-rise .9s ease-out forwards}.recovery{position:absolute;left:8%;right:8%;bottom:76px;display:flex;align-items:center;gap:10px}.recovery label{font-size:8px;color:var(--dim);width:70px}.recovery-track{height:6px;flex:1;background:#172334;position:relative;border-radius:4px}.recovery-track i{display:block;width:76%;height:100%;background:var(--growth);border-radius:4px;transition:width .5s ease}.recovery-track b{position:absolute;top:-3px;width:1px;height:12px;background:#69829b}.fight-controls{position:absolute;right:16px;bottom:12px;display:flex;gap:8px}.combat-beat{position:absolute;left:50%;top:16%;transform:translateX(-50%);color:var(--muted);font-size:8px;letter-spacing:.13em;text-transform:uppercase;opacity:.8}.combat-beat strong{color:var(--amber);font-weight:600}.combat-grid.playing .unit.target{animation:target-lock .7s ease-in-out 2}.combat-grid.playing .unit.hit{animation:hit-flash .5s ease-out}.combat-grid.playing .unit.answer{animation:answer-flash .55s ease-out}
+  @keyframes scan-pulse{0%{transform:scale(.65);opacity:0}35%{opacity:1}100%{transform:scale(1.35);opacity:0}}@keyframes actor-pulse{50%{transform:scale(1.035);box-shadow:0 0 70px rgba(224,173,90,.3)}}@keyframes score-rise{0%{opacity:0;transform:translateY(16px) scale(.8)}35%{opacity:1}100%{opacity:0;transform:translateY(-28px) scale(1.08)}}@keyframes target-lock{50%{border-color:var(--amber);box-shadow:0 0 22px rgba(224,173,90,.3)}}@keyframes hit-flash{25%{border-color:#fff;box-shadow:0 0 26px rgba(255,255,255,.38)}100%{border-color:#623544;box-shadow:none}}@keyframes answer-flash{50%{border-color:var(--green);box-shadow:0 0 22px rgba(113,209,178,.28)}}
+
+  /* Results and end */
+  .result-grid{display:grid;grid-template-columns:.8fr 1.2fr;gap:18px;align-items:center;flex:1}.result-score{text-align:center}.result-score .big{font-size:82px;line-height:1;color:var(--growth);font-family:Georgia,serif}.result-score h3{font-size:18px;font-weight:400}.result-score p{color:var(--muted);font-size:10px}.delta{display:inline-flex;gap:9px;align-items:center;border:1px solid #315846;border-radius:5px;padding:7px 12px;color:var(--green)}
+  .haul{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.haul-card{border:1px solid var(--line);border-radius:5px;padding:13px;background:#0c1621}.haul-card span{font-size:8px;color:var(--dim)}.haul-card b{display:block;font-size:20px;margin-top:2px}.lesson{margin-top:12px;padding:12px;border-left:2px solid var(--amber);background:#16140e;color:#ceb880;font-size:10px}
+  .end{align-items:center;justify-content:center;text-align:center;background:radial-gradient(circle at 50% 44%,rgba(82,151,136,.17),transparent 36%),#070c13}.end-inner{width:min(620px,80%);position:relative;z-index:2}.end .grade{font-family:Georgia,serif;font-size:120px;line-height:.8;color:var(--green)}.end h1{font-size:34px;margin:21px 0 8px}.end p{color:var(--muted)}.end-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:26px 0}.end-stat{border-top:1px solid var(--line2);padding:11px}.end-stat b{display:block;font-size:19px}.end-stat span{font-size:8px;color:var(--dim)}
+
+  @media(max-width:850px){.app{padding:0}.frame{width:100vw;height:100vh;max-height:none;aspect-ratio:auto;border:0;border-radius:0}.crew-row{grid-template-columns:repeat(4,1fr)}.crew-card:nth-child(n+5){display:none}.offer-list{grid-template-columns:1fr}.mini-pack:nth-child(n+2){display:none}.cards-ten{grid-template-columns:repeat(3,1fr)}.pull-card:nth-child(n+7){display:none}.brief-grid{gap:24px}.cover h1{font-size:52px}}
+</style>
+</head>
+<body>
+<div class="app"><div class="frame">
+  <div class="starfield"></div>
+  <button class="flow-toggle" id="flowToggle" aria-expanded="false">FLOW · <span id="flowCount">1 / 10</span></button>
+  <aside class="flow-panel" id="flowPanel"><p>Prototype navigation</p><div class="flow-list" id="flowList"></div></aside>
+
+  <section class="screen cover active" data-screen="title">
+    <div class="cover-copy"><div class="mark"></div><div class="eyebrow">Spacology v0.1.0 · Survey vessel Nacre</div><h1 class="display">Spacology</h1>
+      <p class="deck">Catalogue a dying star system. Build a crew, choose the danger, and bring home the clearest record you can.</p>
+      <div class="cover-actions"><button class="primary" data-go="briefing">New voyage</button><button class="secondary" data-go="ops">Resume · leg 1</button></div>
+      <div class="save-line">Last autosave · Phomous orbit · 74% recovery</div>
+    </div><div class="planet-art"></div>
+  </section>
+
+  <section class="screen briefing" data-screen="briefing">
+    <div class="brief-grid"><div><div class="eyebrow">Voyage 08 · mission briefing</div><h1 class="display">Recover what the Null erased.</h1>
+      <p class="intro">Fourteen legs. Every world holds part of the record, and every choice trades safety for a better return.</p>
+      <div class="rules"><div class="rule-card"><b>70%</b><span>starting data integrity</span></div><div class="rule-card"><b>14</b><span>legs before return</span></div><div class="rule-card"><b>0</b><span>purchases or timers outside a voyage</span></div></div>
+    </div><div class="manifest"><h3>INITIAL MANIFEST</h3><div class="manifest-row"><span>Research lead</span><b>Rime · Assay</b></div><div class="manifest-row"><span>Vessel support</span><b>Tarn · Hull</b></div><div class="manifest-row"><span>Field specialist</span><b>Fen · Crew</b></div><div class="manifest-row"><span>Starting purse</span><b>70 gold</b></div><button class="primary" data-go="ops">Enter ops room</button></div></div>
+  </section>
+
+  <section class="screen game" data-screen="ops"><div class="rail-slot"></div><main class="main"><header class="topline"><h2>Ops room</h2><span class="context">quiet orbit · leg 1 preparation</span><nav class="ops-nav"><button class="active">BUILD</button><button data-go="pack-select">CONSIGNMENTS <i>3</i></button></nav><span class="grow"></span><span class="chip active">4 / 4 characters · 1 ship slot</span></header>
+    <div class="content"><div class="ops-workspace">
+      <section class="panel engine-panel"><div class="ops-section-head"><b>Current build</b><span>the crew's plan, in order</span><span class="grow"></span><span>3 active systems</span></div>
+        <div class="engine-title"><div><h3>Mark → Break → Answer</h3><p>Rime creates the opening. Ash and Quill turn it into tempo before the enemy reforms.</p></div><div class="engine-power"><b>286</b><span>CREW POWER</span></div></div>
+        <div class="chain"><article class="chain-node" style="--tag:var(--violet)"><span>SETUP · ASSAY</span><b>Rime</b><small>marks the full enemy line</small></article><div class="chain-arrow">→</div><article class="chain-node" style="--tag:var(--red)"><span>PAYOFF · ORDNANCE</span><b>Ash</b><small>breaks a marked target</small></article><div class="chain-arrow">→</div><article class="chain-node" style="--tag:var(--violet)"><span>FOLLOW-UP · ASSAY</span><b>Quill</b><small>answers before guard returns</small></article></div>
+        <div class="thresholds"><div class="threshold"><span class="name">Assay</span><span class="effect"><b>4 · Dissection active</b> · breaks cost two turns</span><span class="pips"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span></div><div class="threshold"><span class="name">Hull</span><span class="effect"><b>2 · barriers +45%</b> · two more unlock Ammunition</span><span class="pips"><i class="on"></i><i class="on"></i><i></i><i></i></span></div><div class="threshold"><span class="name">Ordnance</span><span class="effect"><b>2 · damage +20%</b> · two more unlock Overstrike</span><span class="pips"><i class="on"></i><i class="on"></i><i></i><i></i></span></div></div>
+        <div class="engine-foot"><b>Strongest next step</b><span>add one breaker or promote Rime</span><span class="grow"></span><span>select crew below to inspect</span></div>
+      </section>
+      <aside class="panel crew-detail"><div class="ops-section-head"><b>Selected crew</b><span class="grow"></span><span id="crewRarity">RARE</span></div><div class="crew-portrait"><div class="crew-sigil"></div></div><div class="crew-name"><h3 id="crewName">Ash</h3><span id="crewTag">ORDNANCE · CHAOS</span></div><div class="crew-role" id="crewRole">Break payoff · front row</div><div class="detail-block"><label>DOES</label><p id="crewDoes">Breaks a marked target and advances Quill.</p></div><div class="detail-block"><label>PLAYS WITH</label><p id="crewPairs"><b>Rime</b> gives marks · <b>Quill</b> answers breaks</p></div><div class="detail-block"><label>FITTING</label><p id="crewFitting">Recoil Spring · follow-ups hit 30% harder</p></div><div class="promotion"><label>CHAOS SHARDS</label><div class="promotion-track"><i id="crewProgress"></i></div><small id="crewPromotion">24 / 24 · promotion ready</small></div></aside>
+      <aside class="decision-rail"><div class="ops-section-head"><b>Next actions</b><span class="grow"></span><span>before launch</span></div><article class="decision-card featured"><div class="kicker">3 CONSIGNMENTS · FREE REFRESH</div><h3>The prime is off-plan.</h3><p><span class="signal">Order &amp; Chaos</span> shows a Prime. Tempo &amp; Follow-up fits your crew better.</p><button class="secondary" data-go="pack-select">Compare consignments</button></article><article class="decision-card"><div class="kicker">2 CRYSTALS READY</div><h3>Rime can promote.</h3><p>One promotion this visit. It adds more to the current chain than a new common.</p><button class="secondary" id="reviewPromotion">Review promotion</button></article><article class="launch-card"><span>READY FOR LEG 1</span><h3>Choose the next world</h3><p>Compare danger, conditions, and reward against this build.</p><button class="primary" data-go="destinations">Choose destination</button></article></aside>
+    </div></div></main><div class="tray-slot"></div></section>
+
+  <section class="screen game" data-screen="pack-select"><div class="rail-slot"></div><main class="main"><header class="topline"><h2>Choose a consignment</h2><span class="context">the offer is known · the contents are not</span></header><div class="content"><div class="pack-grid">
+    <article class="pack"><div class="pack-art"></div><div class="eyebrow">Mechanic</div><h3>Rot &amp; Bloom</h3><p>Leans toward crews that apply lasting ailments and cash them out together.</p><div class="fit">No direct pairing aboard · opens a new line</div><div class="price"><b>28g</b><button class="secondary" data-go="pack-open">Open</button></div></article>
+    <article class="pack recommended"><span class="recommended-label">BEST FIT</span><div class="pack-art"></div><div class="eyebrow">Element pair</div><h3>Order &amp; Chaos</h3><p>Two opposed methods: exact control and high-risk bursts.</p><div class="fit">Rime and Fen benefit · contains 1 Prime</div><div class="price"><b>30g</b><button class="primary" data-go="pack-open">Open</button></div></article>
+    <article class="pack"><div class="pack-art"></div><div class="eyebrow">Mechanic</div><h3>Tempo &amp; Follow-up</h3><p>Acts early, interrupts often, and turns one opening into a chain.</p><div class="fit">Ash starts this chain · Tarn sustains it</div><div class="price"><b>26g</b><button class="secondary" data-go="pack-open">Open</button></div></article>
+  </div><div class="dest-footer"><button class="quiet" data-go="ops">Back to ops</button></div></div></main><div class="tray-slot"></div></section>
+
+  <section class="screen game" data-screen="pack-open"><div class="rail-slot"></div><main class="main"><header class="topline"><h2>Order &amp; Chaos</h2><span class="context">10 cards · room for 4 crew</span><span class="grow"></span><span class="chip active">Tap explicit actions · confirm once</span></header><div class="content">
+    <div class="cards-ten" id="pullCards"></div><div class="pack-tally"><div class="tally-item"><b id="keepCount" style="color:var(--green)">0</b><span>KEEPING</span></div><div class="tally-item"><b id="stripCount" style="color:var(--red)">0</b><span>STRIPPING</span></div><div class="tally-item"><b id="shardCount" style="color:var(--violet)">+0</b><span>SHARDS</span></div><span class="grow"></span><button class="quiet" data-go="pack-select">Cancel</button><button class="primary" id="confirmPack" data-go="ops" disabled>Decide 8 cards</button></div>
+  </div></main><div class="tray-slot"></div></section>
+
+  <section class="screen game" data-screen="formation"><div class="rail-slot"></div><main class="main"><header class="topline"><h2>Arrange crew for Phomous</h2><span class="context">heavy air · sterile ground</span><span class="grow"></span><span class="chip active">4 / 4 fielded · 1 on-field required</span></header><div class="content"><div class="formation">
+    <div class="formation-board"><div class="formation-row" data-label="FRONT · TAKES FIRE"><div class="slot filled" style="--tag:var(--blue)"><b>Tarn</b><small>draws fire</small></div><div class="slot filled selected" style="--tag:var(--red)"><b>Ash</b><small>follows breaks</small></div><div class="slot">empty</div><div class="slot">empty</div><div class="slot">empty</div><div class="slot">empty</div></div>
+    <div class="formation-row" data-label="BACK · SHELTERED"><div class="slot filled" style="--tag:var(--violet)"><b>Rime</b><small>marks line</small></div><div class="slot filled" style="--tag:var(--violet)"><b>Quill</b><small>answers marks</small></div><div class="slot">empty</div><div class="slot">empty</div><div class="slot">empty</div><div class="slot">empty</div></div></div>
+    <aside class="formation-note panel"><h3>Ash · front row</h3><p>Ash survives two expected hits here. Moving behind Tarn reduces pressure, but breaks your left-to-right follow-up order.</p><div class="consequence">Current consequence: Maw targets Tarn. Ash remains available to answer its break.</div><div class="tag-stack"><div class="tag-line"><span>Assay</span><b>4 · Dissection</b></div><div class="tag-line"><span>Hull</span><b>2 · +45% barrier</b></div><div class="tag-line"><span>Ordnance</span><b>2 · +20% damage</b></div></div><button class="primary" data-go="fight">Launch for Phomous</button></aside>
+  </div></div></main><div class="tray-slot"></div></section>
+
+  <section class="screen game" data-screen="destinations"><div class="rail-slot"></div><main class="main"><header class="topline"><h2>Choose a destination</h2><span class="context">choosing where to go is choosing the difficulty</span><span class="grow"></span><span class="chip active">Crew power 286</span></header><div class="content"><div class="destinations" id="worlds">
+    <article class="world" data-world><div class="world-art"></div><div class="world-body"><h3>Cairn</h3><div class="danger">DANGER <i class="on">◆</i><i>◆</i><i>◆</i><i>◆</i><i>◆</i></div><div class="conditions"><span class="condition">slow weather</span></div><div class="match">Expected power 218<b>Comfortable · +4% integrity</b></div></div></article>
+    <article class="world selected" data-world><div class="world-art"></div><div class="world-body"><h3>Phomous</h3><div class="danger">DANGER <i class="on">◆</i><i class="on">◆</i><i class="on">◆</i><i>◆</i><i>◆</i></div><div class="conditions"><span class="condition">heavy air</span><span class="condition">sterile ground</span></div><div class="match">Expected power 279<b>Close match · +9% integrity</b></div></div></article>
+    <article class="world" data-world><div class="world-art"></div><div class="world-body"><h3>The Hollows</h3><div class="danger">DANGER <i class="on">◆</i><i class="on">◆</i><i class="on">◆</i><i class="on">◆</i><i class="on">◆</i></div><div class="conditions"><span class="condition">sealed wounds</span><span class="condition">hungry shield</span><span class="condition">short clock</span></div><div class="match">Expected power 402<b style="color:var(--red)">Severe risk · +13% integrity</b></div></div></article>
+  </div><div class="dest-footer"><button class="secondary" data-go="ops">Back to ops</button><button class="primary" data-go="formation">Prepare for Phomous</button></div></div></main><div class="tray-slot"></div></section>
+
+  <section class="screen game" data-screen="fight"><div class="rail-slot fight-rail"></div><main class="main"><header class="topline"><h2>Phomous</h2><span class="context">danger 3</span><span class="chip">heavy air</span><span class="chip">sterile ground</span><span class="grow"></span><span class="chip active">Assay ×4</span></header><div class="content"><div class="combat-grid">
+    <div class="rank"><div class="unit enemy target" id="enemyMaw"><span class="intent">→ Tarn</span><b>Maw</b><span>weak: order · void</span><div class="bar"><i style="width:62%"></i></div></div><div class="unit enemy"><b>Grub</b><span>weak: growth · chaos</span><div class="bar"><i style="width:81%"></i></div></div><div class="unit enemy"><span class="intent">all crew</span><b>Shard</b><span>weak: decay · energy</span><div class="bar"><i style="width:43%"></i></div></div><div class="unit enemy"><b>Wisp</b><span>weak: order · growth</span><div class="bar"><i style="width:100%"></i></div></div></div>
+    <div class="stage" id="combatStage"><div class="combat-beat" id="combatBeat">TARGET LOCK · <strong>MAW</strong></div><div class="acting" id="actingCard"><div class="eyebrow">Ash acts now</div><h3 style="margin:7px 0 0">Faultline</h3><div class="ability" id="abilityText">breaks a marked target · advances Quill</div></div><div class="score-float" id="scoreFloat">1,248</div><div class="recovery"><label>RECOVERY 76%</label><div class="recovery-track"><i id="recoveryFill"></i><b style="left:18%"></b><b style="left:42%"></b><b style="left:68%"></b><b style="left:88%"></b></div></div><div class="fight-controls"><button class="secondary" id="speedButton">×2 speed</button><button class="primary" id="resolveFight" disabled>Resolve fight</button></div></div>
+    <div class="rank"><div class="unit"><b>Tarn</b><span>barrier 42</span><div class="bar"><i style="width:58%"></i></div></div><div class="unit"><b>Ash</b><span>focus 84</span><div class="bar"><i style="width:77%"></i></div></div><div class="unit"><b>Rime</b><span>energy 68</span><div class="bar"><i style="width:89%"></i></div></div><div class="unit"><b>Fen</b><span>ready</span><div class="bar"><i style="width:100%"></i></div></div></div>
+  </div></div></main><div class="tray-slot"></div></section>
+
+  <section class="screen game" data-screen="result"><div class="rail-slot"></div><main class="main"><header class="topline"><h2>Recovery report</h2><span class="context">Phomous · danger 3 · leg 1 complete</span></header><div class="content"><div class="result-grid"><section class="result-score"><div class="big">91%</div><h3>Slight shortfall</h3><p>Ten of eleven board points recovered.</p><div class="delta"><span>Data integrity</span><b>74% → 74%</b></div></section><section><div class="haul"><div class="haul-card"><span>PAYMENT</span><b style="color:var(--amber)">+43g</b></div><div class="haul-card"><span>CLEAN STREAK</span><b style="color:var(--green)">×4</b></div><div class="haul-card"><span>CREW LOST</span><b>0</b></div></div><div class="lesson">What paid off: Rime marked the rear rank, Ash broke Maw, and Quill answered before the short clock expired.</div><div class="dest-footer"><button class="secondary" data-go="fight">Watch replay</button><button class="primary" data-go="ops">Return to ops</button></div></section></div></div></main><div class="tray-slot"></div></section>
+
+  <section class="screen end" data-screen="end"><div class="end-inner"><div class="eyebrow">Voyage complete · archive accepted</div><div class="grade">A</div><h1 class="display">A clear record came home.</h1><p>Your final integrity is the score. Everything else explains how you got there.</p><div class="end-stats"><div class="end-stat"><b>87%</b><span>FINAL INTEGRITY</span></div><div class="end-stat"><b>9</b><span>PERFECT LEGS</span></div><div class="end-stat"><b>4</b><span>PRIMES FOUND</span></div><div class="end-stat"><b>4</b><span>CREW RETURNED</span></div></div><button class="primary" data-go="briefing">Begin another voyage</button><button class="quiet" data-go="title">Return to title</button></div></section>
+</div></div>
+
+<template id="railTemplate"><aside class="rail"><div class="rail-title">VOYAGE STATUS</div><div class="rail-stat gold"><strong>102</strong><span>GOLD</span></div><div class="rail-stat good"><strong>74%</strong><span>INTEGRITY</span></div><div class="rail-stat power"><strong>286</strong><span>CREW POWER</span></div><div class="rail-line"></div><div class="leg-dots"><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="done"></i><i class="now"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="rail-bottom">CLEAN STREAK<b>×3</b>LEG 1 / 12</div></aside></template>
+<template id="fightRailTemplate"><aside class="rail"><div class="rail-title">TURN ORDER</div><div class="rail-stat gold"><strong>Ash</strong><span>NOW · FAULTLINE</span></div><div class="rail-stat"><strong>Maw</strong><span>12 AV</span></div><div class="rail-stat power"><strong>Rime</strong><span>19 AV</span></div><div class="rail-stat"><strong>Shard</strong><span>24 AV</span></div><div class="rail-stat power"><strong>Quill</strong><span>31 AV</span></div><div class="rail-bottom">ROUND<b>7 / 14</b>76% recovered</div></aside></template>
+<template id="trayTemplate"><section class="tray"><div class="tray-head">CREW · ON FIELD <b>&nbsp;4 / 4</b><span class="grow"></span>tap a card to inspect · drag to arrange</div><div class="crew-row">
+  <div class="crew-card" style="--tag:var(--blue)"><span class="rarity">◆◆</span><b>Tarn</b><span>Hull</span><small>draws fire · front</small></div><div class="crew-card ready" style="--tag:var(--red)"><span class="rarity">◆◆◆</span><b>Ash</b><span>Ordnance</span><small>break payoff · front</small></div><div class="crew-card" style="--tag:var(--violet)"><span class="rarity">◆◆</span><b>Rime</b><span>Assay</span><small>marks a line · back</small></div><div class="crew-card" style="--tag:var(--violet)"><span class="rarity">◆◆</span><b>Quill</b><span>Assay</span><small>answers marks · back</small></div>
+</div></section></template>
+<script>
+const order=[['title','Title / resume'],['briefing','Voyage briefing'],['ops','Ops overview'],['pack-select','Consignment choice'],['pack-open','Pack triage'],['destinations','Destination choice'],['formation','Crew arrangement'],['fight','Combat'],['result','Recovery result'],['end','Voyage summary']];
+const screens=[...document.querySelectorAll('[data-screen]')];
+const flowList=document.getElementById('flowList');
+order.forEach(([id,label],i)=>{const b=document.createElement('button');b.innerHTML=`<b>${String(i+1).padStart(2,'0')}</b>${label}`;b.dataset.go=id;flowList.appendChild(b)});
+document.querySelectorAll('.rail-slot').forEach(slot=>slot.replaceWith((slot.classList.contains('fight-rail')?document.getElementById('fightRailTemplate'):document.getElementById('railTemplate')).content.cloneNode(true)));
+document.querySelectorAll('.tray-slot').forEach(slot=>slot.replaceWith(document.getElementById('trayTemplate').content.cloneNode(true)));
+const crewData={
+  Tarn:{rarity:'UNCOMMON',tag:'HULL · GROWTH',role:'Anchor · front row',does:'Draws fire and plates the crew after each hit.',pairs:'<b>Fen</b> repairs damage · <b>Sable</b> turns overheal into barrier',fitting:'Ballast Plate · barriers 30% larger',progress:75,promotion:'18 / 24 · 6 shards short',color:'#96bddc'},
+  Ash:{rarity:'RARE',tag:'ORDNANCE · CHAOS',role:'Break payoff · front row',does:'Breaks a marked target and advances Quill.',pairs:'<b>Rime</b> gives marks · <b>Quill</b> answers breaks',fitting:'Recoil Spring · follow-ups hit 30% harder',progress:100,promotion:'24 / 24 · promotion ready',color:'#df7d91'},
+  Rime:{rarity:'RARE',tag:'ASSAY · ORDER',role:'Line setup · back row',does:'Marks the full enemy line and strips guard.',pairs:'<b>Ash</b> breaks marks · <b>Quill</b> answers the opening',fitting:'Ranging Sight · area attacks reach one more',progress:100,promotion:'24 / 24 · promotion ready',color:'#a997d4'},
+  Fen:{rarity:'COMMON',tag:'CREW · ORDER',role:'Sustain · back row',does:'Mends the lowest ally before damage compounds.',pairs:'<b>Tarn</b> holds attention · <b>Sable</b> converts excess healing',fitting:'Slow Fuse · ultimate charges 25% faster',progress:46,promotion:'11 / 24 · 13 shards short',color:'#71d1b2'},
+  Quill:{rarity:'UNCOMMON',tag:'ASSAY · VOID',role:'Follow-up · back row',does:'Answers a break before the enemy reforms.',pairs:'<b>Rime</b> supplies marks · <b>Ash</b> supplies breaks',fitting:'Bore Bit · shreds shields 40% faster',progress:67,promotion:'16 / 24 · 8 shards short',color:'#a997d4'},
+  Sable:{rarity:'COMMON',tag:'CREW · GROWTH',role:'Barrier sustain · back row',does:'Turns healing beyond full health into barrier.',pairs:'<b>Fen</b> supplies healing · <b>Tarn</b> absorbs pressure',fitting:'Ballast Plate · barriers 30% larger',progress:54,promotion:'13 / 24 · 11 shards short',color:'#92bd7c'},
+  Wick:{rarity:'COMMON',tag:'ORDNANCE · ENERGY',role:'Burst · back row',does:'Spends the opening on immediate damage.',pairs:'<b>Rime</b> exposes targets · <b>Ash</b> creates break windows',fitting:'Recoil Spring · follow-ups hit 30% harder',progress:33,promotion:'8 / 24 · 16 shards short',color:'#df7d91'},
+  Maul:{rarity:'COMMON',tag:'HULL · DECAY',role:'Reserve anchor · front row',does:'Shreds guard while absorbing pressure.',pairs:'<b>Fen</b> keeps it standing · look for another Hull',fitting:'Counterweight · draws fire twice as often',progress:25,promotion:'6 / 24 · 18 shards short',color:'#96bddc'}
+};
+const opsScreen=document.querySelector('[data-screen="ops"]');
+function selectCrew(name){const d=crewData[name];if(!d)return;opsScreen.querySelectorAll('.crew-card').forEach(card=>card.classList.toggle('selected',card.querySelector('b').textContent===name));document.getElementById('crewRarity').textContent=d.rarity;document.getElementById('crewName').textContent=name;document.getElementById('crewTag').textContent=d.tag;document.getElementById('crewTag').style.color=d.color;document.getElementById('crewRole').textContent=d.role;document.getElementById('crewDoes').textContent=d.does;document.getElementById('crewPairs').innerHTML=d.pairs;document.getElementById('crewFitting').textContent=d.fitting;document.getElementById('crewProgress').style.width=d.progress+'%';document.getElementById('crewPromotion').textContent=d.promotion;opsScreen.querySelector('.crew-sigil').style.borderColor=d.color}
+opsScreen.querySelectorAll('.crew-card').forEach(card=>card.addEventListener('click',()=>selectCrew(card.querySelector('b').textContent)));
+document.getElementById('reviewPromotion').onclick=()=>selectCrew('Rime');
+function go(id){screens.forEach(s=>s.classList.toggle('active',s.dataset.screen===id));const n=order.findIndex(x=>x[0]===id);document.getElementById('flowCount').textContent=`${n+1} / ${order.length}`;document.querySelectorAll('#flowList button').forEach(b=>b.classList.toggle('current',b.dataset.go===id));document.getElementById('flowPanel').classList.remove('open');document.getElementById('flowToggle').setAttribute('aria-expanded','false')}
+document.addEventListener('click',e=>{const goButton=e.target.closest('[data-go]');if(goButton)go(goButton.dataset.go)});
+document.getElementById('flowToggle').onclick=()=>{const p=document.getElementById('flowPanel');p.classList.toggle('open');document.getElementById('flowToggle').setAttribute('aria-expanded',p.classList.contains('open'))};
+const pulls=[
+  ['CREW','Ledger','Assay','answers marked targets','6 order','var(--blue)'],['SALVAGE','34 gold','','automatic return','—','var(--amber)'],['CREW','Vitre','Assay','paints the whole line','5 chaos','var(--blue)'],['FITTING','Ranging Sight','','area attacks reach one more','4 void','var(--violet)'],['CREW','Bosk','Ordnance','slow, enormous, patient','7 decay','var(--blue)'],
+  ['FITTING','Slow Fuse','','ultimate charges 25% faster','4 energy','var(--violet)'],['CREW','Mite','Hull','plates on every swing','5 growth','var(--blue)'],['SALVAGE','18 gold','','automatic return','—','var(--amber)'],['CREW','Wick','Ordnance','fast and impatient','6 chaos','var(--blue)'],['CREW','Sable','Crew','overheals into barrier','6 growth','var(--blue)']
+];
+const bay=document.getElementById('pullCards');
+pulls.forEach((c,i)=>{const el=document.createElement('article');el.className='pull-card';el.style.setProperty('--type',c[5]);el.innerHTML=`<span class="type">${c[0]}</span><b>${c[1]}</b><span class="tag">${c[2]}</span><p>${c[3]}</p><small>strip → ${c[4]}</small>${c[0]==='SALVAGE'?'':`<div class="card-actions"><button data-choice="keep">KEEP</button><button data-choice="strip">STRIP</button></div>`}`;el.dataset.kind=c[0];el.dataset.shards=parseInt(c[4])||0;bay.appendChild(el)});
+function updateTally(){const cards=[...document.querySelectorAll('.pull-card')],actionable=cards.filter(c=>c.dataset.kind!=='SALVAGE');const keep=cards.filter(c=>c.classList.contains('keep')).length,strip=cards.filter(c=>c.classList.contains('strip')).length,shards=cards.filter(c=>c.classList.contains('strip')).reduce((a,c)=>a+(+c.dataset.shards),0),unresolved=actionable.filter(c=>!c.classList.contains('keep')&&!c.classList.contains('strip')).length,crewKept=cards.filter(c=>c.dataset.kind==='CREW'&&c.classList.contains('keep')).length,confirm=document.getElementById('confirmPack');document.getElementById('keepCount').textContent=keep;document.getElementById('stripCount').textContent=strip;document.getElementById('shardCount').textContent='+'+shards;if(crewKept>4){confirm.disabled=true;confirm.textContent=`Remove ${crewKept-4} crew`}else if(unresolved){confirm.disabled=true;confirm.textContent=`Decide ${unresolved} card${unresolved===1?'':'s'}`}else{confirm.disabled=false;confirm.textContent='Confirm choices'}}
+bay.addEventListener('click',e=>{const b=e.target.closest('[data-choice]');if(!b)return;const card=b.closest('.pull-card');card.classList.remove('keep','strip');card.classList.add(b.dataset.choice);updateTally()});
+document.getElementById('worlds').addEventListener('click',e=>{const w=e.target.closest('[data-world]');if(!w)return;document.querySelectorAll('[data-world]').forEach(x=>x.classList.toggle('selected',x===w))});
+document.querySelectorAll('.formation-board .slot').forEach(s=>s.addEventListener('click',()=>{document.querySelectorAll('.formation-board .slot').forEach(x=>x.classList.remove('selected'));s.classList.add('selected')}));
+selectCrew('Ash');
+
+const combatScreen=document.querySelector('[data-screen="fight"]');
+const combatStage=document.getElementById('combatStage');
+const resolveFight=document.getElementById('resolveFight');
+const combatBeat=document.getElementById('combatBeat')||(()=>{const el=document.createElement('div');el.className='combat-beat';el.id='combatBeat';combatStage.prepend(el);return el})();
+const actingCard=document.getElementById('actingCard');
+const scoreFloat=document.getElementById('scoreFloat');
+const recoveryFill=document.getElementById('recoveryFill');
+let combatTimer=[];
+function clearCombatTimers(){combatTimer.forEach(clearTimeout);combatTimer=[]}
+function playCombat(){
+  clearCombatTimers();
+  const grid=combatScreen.querySelector('.combat-grid'),target=combatScreen.querySelector('.unit.enemy');
+  grid.classList.remove('playing'); combatStage.classList.remove('playing'); actingCard.classList.remove('pulse'); scoreFloat.classList.remove('show'); target.classList.remove('target','hit');
+  resolveFight.disabled=true; combatBeat.innerHTML='TARGET LOCK · <strong>MAW</strong>'; actingCard.querySelector('.eyebrow').textContent='Ash acts now'; document.getElementById('abilityText').textContent='breaks a marked target · advances Quill'; recoveryFill.style.width='76%';
+  requestAnimationFrame(()=>{grid.classList.add('playing');combatStage.classList.add('playing');target.classList.add('target')});
+  combatTimer.push(setTimeout(()=>{combatBeat.innerHTML='FAULTLINE · <strong>BREAK</strong>';actingCard.classList.add('pulse');target.classList.remove('target');target.classList.add('hit');scoreFloat.classList.add('show');document.getElementById('abilityText').textContent='marked target breaks · guard removed';recoveryFill.style.width='79%'},850));
+  combatTimer.push(setTimeout(()=>{combatBeat.innerHTML='QUILL · <strong>FOLLOW-UP</strong>';actingCard.classList.remove('pulse');document.getElementById('abilityText').textContent='answers the break · next action advances 8 AV';const ally=combatScreen.querySelector('.rank:last-child .unit:nth-child(3)');if(ally)ally.classList.add('answer');recoveryFill.style.width='82%'},1700));
+  combatTimer.push(setTimeout(()=>{combatBeat.innerHTML='CHAIN RESOLVED · <strong>READY TO REVIEW</strong>';grid.classList.remove('playing');combatStage.classList.remove('playing');resolveFight.disabled=false},2550));
+}
+const navigate=go;
+go=function(id){navigate(id);if(id==='fight')playCombat()};
+resolveFight.removeAttribute('data-go');resolveFight.addEventListener('click',()=>go('result'));
+document.querySelector('[data-screen="result"] .dest-footer').insertAdjacentHTML('beforeend','<button class="primary" data-go="end">Complete voyage</button>');
+const resultOps=document.querySelector('[data-screen="result"] .dest-footer [data-go="ops"]');if(resultOps)resultOps.className='secondary';
+go('title');
+</script>
+</body>
+</html>

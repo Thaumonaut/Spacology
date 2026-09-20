@@ -1,5 +1,14 @@
 # Spacology
 
+## Play the prototype
+
+The current playable build is **Spacology v0.1.0**. Once GitHub Pages finishes its first deployment,
+open the repository's Pages URL to launch it directly:
+
+`https://thaumonaut.github.io/Spacology/`
+
+The root page redirects to [`prototypes/spacology-v0.1.0.html`](prototypes/spacology-v0.1.0.html).
+
 An auto-battler about cataloguing life in a star system before the plague reaches it.
 
 You crew a research vessel. Each leg offers three destinations with independently rolled danger
