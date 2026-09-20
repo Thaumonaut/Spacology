@@ -34,6 +34,7 @@ const inventoryHost=$('inventoryItems');
 const battleView=$('battleView');
 let inventoryTab='characters';
 let battle=null;
+let touchSuppressUntil=0;
 
 function toastMessage(message){showToast(message);setTimeout(()=>toast.classList.remove('show'),2400)}
 function crewInfo(name){return unitData[name]||crewFallback[name]||['Crew · Order','Specialist','A newly catalogued crew member.']}
@@ -129,6 +130,31 @@ document.addEventListener('dragover',e=>{const zone=e.target.closest('.drop-zone
 document.addEventListener('dragleave',e=>{const zone=e.target.closest('.drag-over');if(zone)zone.classList.remove('drag-over')});
 document.addEventListener('drop',e=>{const zone=e.target.closest('.drop-zone,.inventory,.unit,.pack-action-drop');if(!zone)return;e.preventDefault();document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));let data=runState.drag;try{data=JSON.parse(e.dataTransfer.getData('text/plain'))||data}catch(_){}handleDrop(data,zone);runState.drag=null});
 
+let touchDrag=null;
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse')return;
+  const source=e.target.closest('[draggable="true"]');if(!source)return;
+  touchDrag={source,payload:payloadFrom(source),startX:e.clientX,startY:e.clientY,active:false,ghost:null,zone:null,pointerId:e.pointerId};
+  try{source.setPointerCapture?.(e.pointerId)}catch(_){}
+},{passive:true});
+document.addEventListener('pointermove',e=>{
+  if(!touchDrag||e.pointerId!==touchDrag.pointerId)return;
+  const distance=Math.hypot(e.clientX-touchDrag.startX,e.clientY-touchDrag.startY);
+  if(!touchDrag.active&&distance<9)return;
+  if(!touchDrag.active){touchDrag.active=true;touchDrag.ghost=touchDrag.source.cloneNode(true);Object.assign(touchDrag.ghost.style,{position:'fixed',zIndex:'300',width:`${touchDrag.source.getBoundingClientRect().width}px`,opacity:'.86',pointerEvents:'none',transform:'scale(.94)',boxShadow:'0 14px 40px #000'});document.body.appendChild(touchDrag.ghost)}
+  e.preventDefault();touchDrag.ghost.style.left=`${e.clientX+12}px`;touchDrag.ghost.style.top=`${e.clientY+12}px`;
+  document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+  touchDrag.zone=document.elementFromPoint(e.clientX,e.clientY)?.closest('.drop-zone,.inventory,.unit,.pack-action-drop')||null;
+  touchDrag.zone?.classList.add('drag-over');
+},{passive:false});
+function finishTouchDrag(e){
+  if(!touchDrag||e.pointerId!==touchDrag.pointerId)return;
+  if(touchDrag.active){e.preventDefault();touchSuppressUntil=Date.now()+400;if(touchDrag.zone)handleDrop(touchDrag.payload,touchDrag.zone)}
+  touchDrag.ghost?.remove();document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));touchDrag=null;
+}
+document.addEventListener('pointerup',finishTouchDrag,{passive:false});
+document.addEventListener('pointercancel',finishTouchDrag,{passive:false});
+
 function handleDrop(data,zone){
   if(!data)return;
   if(zone.dataset.packAction){if(data.from==='pack')resolveCard(data.index,zone.dataset.packAction);return}
@@ -141,6 +167,7 @@ function handleDrop(data,zone){
 }
 
 document.addEventListener('click',e=>{
+  if(Date.now()<touchSuppressUntil){e.preventDefault();e.stopImmediatePropagation();return}
   const unit=e.target.closest('.unit');
   if(unit){const name=unit.dataset.unit,info=crewInfo(name),gear=runState.equipped[name]||[];showModal(`<div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="lede">${info[1]} · ${info[2]}</p><div class="modal-grid"><div class="modal-card"><label>GEAR SLOT 1</label><b>${gear[0]||'Empty'}</b></div><div class="modal-card"><label>GEAR SLOT 2</label><b>${gear[1]||'Empty'}</b></div></div><div class="modal-actions"><button data-place="field" data-name="${name}">MOVE ON FIELD</button><button data-place="support" data-name="${name}">MOVE OFF FIELD</button><button data-return="${name}">RETURN TO INVENTORY</button></div>`);return}
   const slot=e.target.closest('.slot');if(slot){showCrewPicker(slot.dataset.row);return}
