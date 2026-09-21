@@ -211,6 +211,7 @@ body.session-mode .bmain{position:absolute;left:85px;right:10px;top:0;bottom:0;m
 body.session-mode #stage{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(690px,calc(100% - 30px));height:214px;margin:0;border:0;background:transparent;box-shadow:none;z-index:20}.session-mode #stage .ptag{font-size:8px}.session-mode #stage .cap{font-size:18px}
 .crew-dock-live{position:absolute;left:50%;bottom:11px;transform:translateX(-50%);width:min(770px,calc(100% - 12px));z-index:10;padding:9px 12px 10px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.93);box-shadow:0 12px 28px rgba(0,0,0,.34)}.crew-dock-live:before{left:-11px;top:75px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.crew-dock-live:after{right:-11px;top:75px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}.crew-live-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:5px;min-height:96px}.crew-live-row+.crew-live-row{margin-top:5px}.crew-live-row>span{display:flex;flex-direction:column;justify-content:center;color:#51697a;font-size:7px;letter-spacing:.06em}.crew-live-row>span b{color:#edf3f4;font-size:8px;margin-bottom:2px}.session-objective{position:absolute;right:0;top:12px;width:180px;z-index:30;border:1px solid #426c5e;border-radius:4px;background:rgba(8,25,21,.93);padding:8px 9px}.session-objective b{display:block;color:#70d5b2;font-size:8px}.session-objective span{font-size:7px;color:#8da2b1}
 body.session-mode .ribbon{display:flex;justify-content:center;align-items:stretch;gap:5px;min-height:92px}body.session-mode .ribbon .rc{height:92px;min-height:92px}body.session-mode .crew-live-row .ribbon{min-width:0;justify-content:flex-start}.session-mode .btns{display:none}
+body.session-mode .rc.crew-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 3px #000,0 0 7px #000}body.session-mode .rc.crew-portrait .rn{font-weight:800}body.session-mode .rc.crew-portrait .re,body.session-mode .rc.crew-portrait .rt{color:#edf3f4!important}.sc.crew-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 4px #000,0 0 8px #000}.sc.crew-portrait:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.48));z-index:0}.sc.crew-portrait>*{z-index:1}
 body.session-mode #battleRecord{display:none!important;position:fixed;top:64px;right:0;bottom:0;width:285px;z-index:90;margin:0;padding:12px;border:0;border-left:1px solid #33536e;border-radius:0;background:rgba(7,16,24,.98);box-shadow:-18px 0 45px rgba(0,0,0,.45)}body.session-mode #battleRecord.open{display:flex!important}body.session-mode #battleRecord>.zlabel{font-size:9px;color:#edf3f4}body.session-mode #battleRecord .log{font-size:10px}body.session-mode #battleRecord .stats{font-size:9px}
 @media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 175px auto}.session-mode .session-route{display:none}.session-mode .bmain{left:68px}.session-mode .tcol{width:48px;min-width:48px}.session-mode .session-objective{width:155px}.crew-dock-live{width:calc(100% - 6px);padding-left:7px;padding-right:7px}.crew-live-row{grid-template-columns:48px minmax(0,1fr)}}
 @media(max-width:760px){body.session-mode #board{padding:0}.session-mode .sessionbar{display:grid;height:64px;margin:0;grid-template-columns:1fr auto}.session-mode .session-status>span,.session-mode .session-route,.session-mode .session-run{display:none}.session-mode .bmain{left:58px;right:4px}.session-mode .tcol{left:6px;width:44px;min-width:44px}.crew-dock-live{left:calc(50% - 12px);width:calc(100vw - 64px)}.crew-live-row{grid-template-columns:0 minmax(0,1fr);gap:0}.crew-live-row>span{display:none}.crew-live-row .ribbon{grid-column:2}.session-mode .session-objective{display:none}.session-controls button{padding:0 8px}}
@@ -776,6 +777,8 @@ function spawnFoes(){
   return added;
 }
 function U(id){ for(var i=0;i<G.units.length;i++) if(G.units[i].id===id) return G.units[i]; }
+var CREW_PORTRAITS={Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'};
+function applyCrewPortrait(el,u){if(u.side==='ally'&&CREW_PORTRAITS[u.n]){el.classList.add('crew-portrait');el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.18),rgba(4,8,12,.78)),url("'+CREW_PORTRAITS[u.n]+'")'}}
 function log(t,c){ var d=document.createElement('div'); if(c)d.className=c;
   d.innerHTML=t; $('log').appendChild(d); $('log').scrollTop=$('log').scrollHeight; }
 
@@ -794,6 +797,7 @@ function ribbons(){
       return u.side===p[1] && (!p[2]||u.row===p[2])
         && (u.side==='ally' || u.alive || u.retiring); }).forEach(function(u){
       var d=document.createElement('div'); d.className='rc holo'; d.id='r-'+u.id;
+      applyCrewPortrait(d,u);
       d.innerHTML='<div class="rn">'+u.n+'</div>'+
         (u.side==='foe'?'<div class="wk" id="wk-'+u.id+'"></div>'
           :'<div class="re" style="color:'+EL[u.e]+'">'+u.e+'</div>')+
@@ -813,7 +817,7 @@ function paintAll(){ G.units.forEach(function(u){ paintUnit(u) });
   var objective=document.querySelector('.session-objective');
   if(objective&&window.SPACOLOGY_SESSION){var progress=Math.max(Math.min(2,G.breaks||0),Math.min(2,G.chains||0));objective.querySelector('b').textContent='COMPOUND FRACTURE · '+progress+' / 2';}
 }
-function paintUnit(u){
+function paintUnit(u,silent){
   var rc=$('r-'+u.id); if(!rc) return;
   rc.classList.toggle('down',!u.alive);
   var pct=Math.max(0,u.hp/u.max*100);
@@ -840,7 +844,7 @@ function paintUnit(u){
     var wasCharged=rc.classList.contains('charged');
     var nowCharged=u.en>=EN.cost && !!u.ult;
     rc.classList.toggle('charged', nowCharged);
-    if(nowCharged && !wasCharged && MODE!=='none')
+    if(nowCharged && !wasCharged && MODE!=='none' && !silent)
       floater(u.id,'charged','#D4A45C',{tag:1});
   } else {
     var fr=$('fr-'+u.id);
@@ -909,7 +913,9 @@ function reflowFoes(){
   host.querySelectorAll('.rc').forEach(function(e){
     before[e.id]=e.getBoundingClientRect().left; });
   ribbons();
-  G.units.forEach(function(u){ if(u.side==='foe') paintUnit(u); });
+  // ribbons() rebuilds both sides, so repaint both sides before the next frame.
+  // Repainting only foes briefly reset ally energy bars to zero.
+  G.units.forEach(function(u){ paintUnit(u,true); });
   if(MODE==='none') return;
   var moved=[];
   host.querySelectorAll('.rc').forEach(function(e){
@@ -961,23 +967,24 @@ function ultPolicy(u){
   var foes=G.units.filter(function(x){return x.side==='foe'&&x.alive});
   if(!foes.length) return null;
   var k=u.ult.kind;
+  var forced=u.heldFor>4?'charge cannot be held any longer':null;
 
   if(k==='mend'){
     var hurt=G.units.filter(function(a){
       return a.side==='ally'&&a.alive&&a.hp/a.max<0.55; });
     if(hurt.length>=2) return 'the crew is hurt';
     if(hurt.some(function(a){return a.hp/a.max<0.3})) return 'someone is about to fall';
-    return null;
+    return forced;
   }
   if(k==='lash'){
     if(u.taken>=Math.round(u.max*0.55)) return 'enough stored to hurt';
-    return null;
+    return forced;
   }
   if(k==='aoe'){
     if(foes.length>=3) return 'the board is full';
     if(foes.filter(function(f){return !f.broken&&f.shL>0}).length>=3)
       return 'shields everywhere';
-    return null;
+    return forced;
   }
   // a single-target ultimate waits for a target worth spending it on
   var best=null;
@@ -991,7 +998,7 @@ function ultPolicy(u){
   });
   if(best) return best;
   // otherwise hold, unless charge would be wasted sitting at full
-  if(u.heldFor>4) return 'no better moment coming';
+  if(forced) return forced;
   return null;
 }
 function nextUltimate(){
@@ -1115,6 +1122,7 @@ function makeStageCard(st,id,g,role,pad){
   d.id='sc-'+id; d.dataset.role=role;
   d.style.left=g.x+'px'; d.style.top=g.y+'px';
   d.style.width=g.w+'px'; d.style.height=g.h+'px';
+  applyCrewPortrait(d,u);
 
   var foil=document.createElement('div');
   foil.className='foil holo'; foil.id='fc-'+id;

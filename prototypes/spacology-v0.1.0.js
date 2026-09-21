@@ -40,6 +40,18 @@ const crewKits={
   Spore:{role:'Ailment spread',basic:['Culture','Applies a Growth ailment to one specimen.'],skill:['Cross-contaminate','Copies one ailment to adjacent specimens.'],passive:['Airborne','When an afflicted specimen acts, spread its oldest ailment once.'],plan:'Best for spread and detonation observations. Avoid too much control when the objective needs enemies to act.'}
 };
 
+const crewPositions={
+  Tarn:'field',Ash:'both',Quill:'support',Maul:'support',
+  Bosk:'field',Coda:'support',Morrow:'both',Spore:'support',
+  Ledger:'both',Vitre:'field',Latch:'support'
+};
+const crewPortraits={
+  Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',
+  Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',
+  Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',
+  Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'
+};
+
 const $=id=>document.getElementById(id);
 const board=document.querySelector('.board');
 const inventoryHost=$('inventoryItems');
@@ -52,16 +64,47 @@ function toastMessage(message){showToast(message);setTimeout(()=>toast.classList
 function crewInfo(name){return unitData[name]||crewFallback[name]||['Crew · Order','Specialist','A newly catalogued crew member.']}
 function crewTone(name){const tag=crewInfo(name)[0];if(tag.includes('Hull'))return 'var(--blue)';if(tag.includes('Follow'))return 'var(--red)';if(tag.includes('Assay'))return 'var(--violet)';if(tag.includes('Growth'))return 'var(--green)';return 'var(--decay)'}
 function deployed(){return [...runState.field,...runState.support]}
+function crewPosition(name){return crewPositions[name]||'both'}
+function positionLabel(name){return crewPosition(name)==='field'?'ON FIELD ONLY':crewPosition(name)==='support'?'OFF FIELD ONLY':'ON OR OFF FIELD'}
+function canPlace(name,row){return crewPosition(name)==='both'||crewPosition(name)===row}
+function positionBadge(name){const position=crewPosition(name),kind=position==='field'?'front':position==='support'?'back':'both',label=positionLabel(name);return `<span class="position-badge ${kind}" title="${label}" aria-label="${label}"><i aria-hidden="true"></i><i aria-hidden="true"></i></span>`}
+function portraitMarkup(name,className){const image=crewPortraits[name];return `<div class="${className}${image?' has-art':''}"${image?` style="background-image:url('${image}')"`:''}>${name[0]||''}</div>`}
+function normalizeCrewPositions(){
+  const old={field:[...runState.field],support:[...runState.support],reserve:[...runState.reserve]};
+  const owned=[...new Set([...old.field,...old.support,...old.reserve])];
+  const assignment=new Map();
+  owned.forEach(name=>{
+    if(old.field.includes(name)&&canPlace(name,'field'))assignment.set(name,'field');
+    else if(old.support.includes(name)&&canPlace(name,'support'))assignment.set(name,'support');
+    else if(old.reserve.includes(name))assignment.set(name,'reserve');
+    else if(old.field.includes(name)&&canPlace(name,'support'))assignment.set(name,'support');
+    else if(old.support.includes(name)&&canPlace(name,'field'))assignment.set(name,'field');
+    else assignment.set(name,'reserve');
+  });
+  const uniqueFor=(row,order)=>[...new Set(order)].filter(name=>assignment.get(name)===row);
+  runState.field=uniqueFor('field',[...old.field,...old.support,...old.reserve]);
+  runState.support=uniqueFor('support',[...old.support,...old.field,...old.reserve]);
+  runState.reserve=uniqueFor('reserve',[...old.reserve,...old.field,...old.support]);
+  if(runState.field.length===0){
+    const reserveIndex=runState.reserve.findIndex(name=>canPlace(name,'field'));
+    if(reserveIndex>=0){
+      const displaced=[];while(runState.support.length>=runState.capacity&&runState.support.length)displaced.unshift(runState.support.pop());runState.reserve.push(...displaced);
+      if(runState.support.length<runState.capacity)runState.field.push(runState.reserve.splice(reserveIndex,1)[0]);
+    }
+    if(runState.field.length===0){const supportIndex=runState.support.findIndex(name=>canPlace(name,'field'));if(supportIndex>=0)runState.field.push(runState.support.splice(supportIndex,1)[0])}
+  }
+}
+normalizeCrewPositions();
 function characterDetails(name,location){
   const info=crewInfo(name),stats=battleStats[name]||{hp:92,dmg:15,speed:9},kit=crewKits[name]||{role:info[1],basic:['Basic attack','Deals damage to one specimen.'],skill:['Special action',info[2]],passive:['Field trait','Supports the crew through its listed Harmonies.'],plan:info[2]};
   const gear=(runState.equipped[name]||[]).filter(Boolean);
   const lastAction=location==='inventory'?`<button class="sell-action" data-sell-character="${name}">SELL · +14 GOLD</button><button class="danger" data-scrap-character="${name}">DISMANTLE · +7 SCRAP</button>`:`<button data-return="${name}">RETURN TO INVENTORY</button>`;
-  return `<div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="lede"><strong>${kit.role}</strong> · ${info[2]}</p><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div><div class="kit-grid"><div class="kit-move"><label>BASIC</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>SPECIAL</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div><div class="modal-actions"><button data-place="field" data-name="${name}">MOVE ON FIELD</button><button data-place="support" data-name="${name}">MOVE OFF FIELD</button>${lastAction}</div>`;
+  return `<div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="lede"><strong>${kit.role}</strong> · ${info[2]}</p><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>POSITION</span><b>${positionLabel(name)}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div><div class="kit-grid"><div class="kit-move"><label>BASIC</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>SPECIAL</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div><div class="modal-actions"><button data-place="field" data-name="${name}" ${canPlace(name,'field')?'':'disabled'}>MOVE ON FIELD</button><button data-place="support" data-name="${name}" ${canPlace(name,'support')?'':'disabled'}>MOVE OFF FIELD</button>${lastAction}</div>`;
 }
 
 function unitMarkup(name,row){
   const info=crewInfo(name),gear=runState.equipped[name]||[];
-  return `<article class="unit" draggable="true" data-unit="${name}" data-source-row="${row}" style="--tone:${crewTone(name)}"><div class="portrait">${name[0]}</div><b>${name}</b><span>${info[0]}</span><div class="gear-slots"><i class="drop-zone" data-gear-owner="${name}" data-gear-index="0">${gear[0]?'◆':''}</i><i class="drop-zone ${gear[1]?'':'empty'}" data-gear-owner="${name}" data-gear-index="1">${gear[1]?'◆':''}</i></div></article>`;
+  return `<article class="unit" draggable="true" data-unit="${name}" data-source-row="${row}" style="--tone:${crewTone(name)}">${positionBadge(name)}${portraitMarkup(name,'portrait')}<b>${name}</b><span>${info[0]}</span><div class="gear-slots"><i class="drop-zone" data-gear-owner="${name}" data-gear-index="0">${gear[0]?'◆':''}</i><i class="drop-zone ${gear[1]?'':'empty'}" data-gear-owner="${name}" data-gear-index="1">${gear[1]?'◆':''}</i></div></article>`;
 }
 
 function renderFormation(){
@@ -89,7 +132,7 @@ function inventoryEntries(type){
 renderInventory=function(type){
   inventoryTab=type;
   document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===type));
-  inventoryHost.innerHTML=inventoryEntries(type).map((x,i)=>`<article class="item ${type==='characters'?'character':type==='materials'?'material':''}" draggable="${type!=='materials'}" data-item="${x[0]}" data-type="${type}"><span class="lock">${i===0?'◆':''}</span><span class="qty">${type==='materials'?x[1]:'×1'}</span><div class="item-icon"></div><b>${x[0]}</b><span>${x[1]}</span></article>`).join('');
+  inventoryHost.innerHTML=inventoryEntries(type).map((x,i)=>`<article class="item ${type==='characters'?'character':type==='materials'?'material':''}" draggable="${type!=='materials'}" data-item="${x[0]}" data-type="${type}">${type==='characters'?positionBadge(x[0]):`<span class="lock">${i===0?'◆':''}</span>`}<span class="qty">${type==='materials'?x[1]:'×1'}</span>${type==='characters'?portraitMarkup(x[0],'item-icon'):'<div class="item-icon"></div>'}<b>${x[0]}</b><span>${x[1]}</span></article>`).join('');
 };
 
 function renderShip(){
@@ -116,6 +159,8 @@ function removeCrew(name){
 }
 function placeCrew(name,row){
   if(!crewInfo(name))return false;
+  if(!canPlace(name,row)){toastMessage(`${name} is ${positionLabel(name).toLowerCase()}`);return false}
+  if(row==='support'&&runState.field.includes(name)&&runState.field.length===1){toastMessage('One on-field character is required');return false}
   const already=deployed().includes(name);
   if(!already&&deployed().length>=runState.capacity){toastMessage(`Team capacity ${runState.capacity} reached`);return false}
   removeCrew(name);
@@ -180,7 +225,7 @@ function handleDrop(data,zone){
   if(!data)return;
   if(zone.dataset.packAction){if(data.from==='pack')resolveCard(data.index,zone.dataset.packAction);return}
   const row=zone.dataset.row||(zone.closest('.crew-row')?.querySelector('.row-label b')?.textContent.startsWith('ON')?'field':'support');
-  if(data.kind==='crew'&&(zone.dataset.row||zone.classList.contains('slot'))){placeCrew(data.name,zone.dataset.row||row);if(data.from==='pack')resolveCard(data.index,'field');return}
+  if(data.kind==='crew'&&(zone.dataset.row||zone.classList.contains('slot'))){const placed=placeCrew(data.name,zone.dataset.row||row);if(placed&&data.from==='pack')resolveCard(data.index,'field');return}
   if(data.kind==='gear'&&zone.dataset.gearOwner){equipGear(zone.dataset.gearOwner,data.name,Number(zone.dataset.gearIndex));if(data.from==='pack')resolveCard(data.index,'equipped');return}
   if(data.kind==='ship'&&zone.dataset.shipIndex!==undefined){equipShip(data.name,Number(zone.dataset.shipIndex));if(data.from==='pack')resolveCard(data.index,'equipped');return}
   if(zone.classList.contains('inventory')){if(data.from==='formation')returnCrew(data.name);else if(data.from==='pack')resolveCard(data.index,'inventory');return}
@@ -195,8 +240,8 @@ document.addEventListener('click',e=>{
 },{capture:true});
 
 function showCrewPicker(row){
-  const choices=runState.reserve.map(n=>`<button data-place="${row}" data-name="${n}">${n}</button>`).join('');
-  showModal(`<div class="eyebrow">PLACE CREW · ${deployed().length} / ${runState.capacity}</div><h2>${row==='field'?'On field':'Off field'}</h2><p class="lede">Drag a crew card here or choose one below.</p><div class="modal-actions">${choices||'<span>No reserve crew available.</span>'}</div>`)
+  const choices=runState.reserve.map(n=>`<button data-place="${row}" data-name="${n}" ${canPlace(n,row)?'':'disabled'}>${n}<small>${positionLabel(n)}</small></button>`).join('');
+  showModal(`<div class="eyebrow">PLACE CREW · ${deployed().length} / ${runState.capacity}</div><h2>${row==='field'?'On field':'Off field'}</h2><p class="lede">Drag a crew card here or choose one below. Dimmed crew cannot use this position.</p><div class="modal-actions">${choices||'<span>No reserve crew available.</span>'}</div>`)
 }
 modalBody.addEventListener('click',e=>{const place=e.target.closest('[data-place]');if(place){if(placeCrew(place.dataset.name,place.dataset.place))overlay.classList.remove('open');return}const ret=e.target.closest('[data-return]');if(ret){returnCrew(ret.dataset.return);overlay.classList.remove('open');return}const sell=e.target.closest('[data-sell-character]');if(sell){const name=sell.dataset.sellCharacter;if(runState.reserve.includes(name)){removeCrew(name);delete runState.equipped[name];runState.gold+=14;renderOps();toastMessage(`${name} sold for 14 gold`)}overlay.classList.remove('open');return}const scrap=e.target.closest('[data-scrap-character]');if(scrap){const name=scrap.dataset.scrapCharacter;if(runState.reserve.includes(name)){removeCrew(name);delete runState.equipped[name];runState.scrap+=7;renderOps();toastMessage(`${name} dismantled for 7 Scrap`)}overlay.classList.remove('open')}});
 inventoryHost.onclick=e=>{const item=e.target.closest('[data-item]');if(!item)return;const name=item.dataset.item,type=item.dataset.type;if(type==='characters')showModal(characterDetails(name,'inventory'));else showModal(`<div class="eyebrow">${type.toUpperCase()}</div><h2>${name}</h2><p class="lede">Drag this item onto a compatible slot. Drop Gear on a character and ship equipment on the vessel.</p>`)};
@@ -215,7 +260,7 @@ openPack=function(key){
 };
 renderPack=function(){
   const p=packs[activePack];if(!p)return;
-  packCards.innerHTML=p.cards.map((c,i)=>`<button class="reward-card ${i===selectedIndex?'selected':''} ${resolved[i]?'resolved':''} ${c[3]==='AUTO'?'auto':''}" draggable="${i>1&&!resolved[i]}" style="--tone:${c[4]}" data-card="${i}" data-resolution="${c[3]==='AUTO'?'CLAIMED':resolved[i]?'RESOLVED':''}"><span class="type">${c[0]}</span><b>${c[1]}</b><span>${c[2]}</span><span class="delta">${i>1&&!resolved[i]?'DRAG OR TAP':c[3]}</span></button>`).join('');
+  packCards.innerHTML=p.cards.map((c,i)=>`<button class="reward-card ${c[0]==='CREW'?'has-position has-portrait':''} ${i===selectedIndex?'selected':''} ${resolved[i]?'resolved':''} ${c[3]==='AUTO'?'auto':''}" draggable="${i>1&&!resolved[i]}" style="--tone:${c[4]}" data-card="${i}" data-resolution="${c[3]==='AUTO'?'CLAIMED':resolved[i]?'RESOLVED':''}">${c[0]==='CREW'?positionBadge(c[1])+portraitMarkup(c[1],'reward-portrait'):''}<span class="type">${c[0]}</span><b>${c[1]}</b><span>${c[2]}</span><span class="delta">${i>1&&!resolved[i]?'DRAG OR TAP':c[3]}</span></button>`).join('');
   const left=resolved.filter((x,i)=>!x&&i>1).length;$('resolveCount').textContent=`2 claimed · ${left} unresolved`;finishPack.disabled=left>0;
   if(selectedIndex>=2&&!resolved[selectedIndex]){$('selectedCard').textContent=p.cards[selectedIndex][1];$('selectedDesc').textContent='Drag directly to inventory, a field slot, a character, dismantle, or sell.'}else{$('selectedCard').textContent='Choose or drag a card';$('selectedDesc').textContent='Drop it directly on its destination.'}
 };
