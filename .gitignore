@@ -6,3 +6,12 @@ counters.csv
 counters-rel.csv
 ladder.csv
 node_modules/
+
+# Local terrain inference outputs and Python caches
+artifacts/terrain-diffusion/
+__pycache__/
+
+
+/output
+/.playwright-cli
+.DS_Store

@@ -16,7 +16,7 @@ html,body{margin:0;background:var(--bg);color:var(--ink);
 h1{font-size:15px;margin:0 0 2px;letter-spacing:.04em}
 .sub{color:var(--dim);font-size:12px;margin:0 0 14px}
 .cols{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
-@media(max-width:900px){.cols{grid-template-columns:1fr}}
+@media(max-width:700px){.cols{grid-template-columns:1fr}}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
 .zl{color:var(--dim);font-size:11px;letter-spacing:.09em;text-transform:uppercase;
   margin:14px 0 6px}
@@ -48,22 +48,28 @@ pre{white-space:pre-wrap;word-break:break-word;margin:0;font-size:12px;
 .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;
   margin-right:4px;vertical-align:-1px}
 .stat{color:var(--dim);font-size:11px;margin-top:8px}
+details{margin-top:16px} summary{cursor:pointer;color:var(--dim)}
+.encounter{display:grid;grid-template-columns:1fr 1.3fr;gap:20px;border-top:1px solid var(--line);margin-top:18px;padding-top:16px}
+.encounter h2{font:20px/1.3 ui-sans-serif,system-ui;margin:8px 0;color:#d6f6f2}
+.encounter p{color:var(--dim);font-size:12px}.encounter canvas{image-rendering:auto;align-self:center}
+#cv{touch-action:none;image-rendering:auto}#environmentInfo[hidden]{display:none}
+@media(max-width:1000px){.encounter{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>Spacology — world generator</h1>
-<p class="sub">Terrain from simulation rather than from description. Generate a planet, then read the
-barriers off it and write the peoples to fit.</p>
+<p class="sub">Build the geology. Make it alien. Paint environments without moving a mountain.</p>
 
 <div class="cols">
 <div class="panel">
   <div class="zl">Preset</div>
-  <select id="preset"></select>
+  <select id="preset"><option value="" disabled>Loaded world · custom</option></select>
 
   <div class="zl">Seed</div>
   <input type="text" id="seed" value="orrowan-1">
 
+  <details><summary>Terrain &amp; climate settings</summary>
   <div class="zl">Planet</div>
   <label>Ocean fraction <b id="vOcean"></b></label>
   <input type="range" id="rOcean" min="0" max="100" step="1" value="62">
@@ -76,6 +82,8 @@ barriers off it and write the peoples to fit.</p>
   <label>Plates <b id="vPlates"></b></label>
   <input type="range" id="rPlates" min="3" max="28" step="1" value="12">
 
+  <details>
+  <summary>Life &amp; settlements</summary>
   <div class="zl">Settlement</div>
   <label>Population density <b id="vPop"></b></label>
   <input type="range" id="rPop" min="10" max="100" step="1" value="55">
@@ -88,6 +96,7 @@ barriers off it and write the peoples to fit.</p>
   <label>Orbital stations <b id="vOrb"></b></label>
   <input type="range" id="rOrb" min="0" max="16" step="1" value="6">
 
+  </details>
   <div class="zl">Climate</div>
   <label>Mean temperature <b id="vTemp"></b></label>
   <input type="range" id="rTemp" min="-30" max="45" step="1" value="14">
@@ -101,16 +110,35 @@ barriers off it and write the peoples to fit.</p>
     One-way wind (no reversal anywhere)</label>
 
   <div class="btns">
-    <button class="pri" id="bGen">Generate</button>
+    <button class="pri" id="bGen">Generate terrain</button>
     <button id="bRand">Random seed</button>
     <button id="bCond" title="Five rasters for terrain-diffusion">Export conditioning</button>
   </div>
-  <div class="stat" id="stat">—</div>
+  <div class="hint">New terrain resets environment edits. Convergence builds mountains and subduction trenches; divergence builds rifts and ocean ridges.</div>
+  </details>
+  <div class="stat" id="stat" role="status">—</div>
+  <div class="zl">Environment · terrain stays fixed</div>
+  <label for="rAlien">Alien abundance <b id="vAlien">45%</b></label>
+  <input type="range" id="rAlien" min="0" max="100" value="45">
+  <div class="btns"><button id="bAlien">Place environments</button><button id="bClear">Clear layer</button></div>
+  <label for="alienBrush">Map tool</label>
+  <select id="alienBrush">
+    <option value="inspect">Inspect</option><option value="1">Paint lava field</option>
+    <option value="2">Paint neutrino sea</option><option value="3">Paint glass desert</option>
+    <option value="4">Paint luminous forest</option><option value="0">Erase to climate biome</option>
+  </select>
+  <label for="rBrush">Brush radius <b id="vBrush">6 cells</b></label>
+  <input type="range" id="rBrush" min="1" max="24" value="6">
+  <label><input type="checkbox" id="cSuit" checked> Follow terrain suitability</label>
+  <div class="hint">Lava follows volcanic belts; neutrino seas occupy ocean and low ground. Uncheck to paint anywhere. Drag on Environment to paint.</div>
+  <div class="btns"><button id="bUndo">Undo edit</button><button id="bSave">Save world</button><button id="bLoad">Load world</button><button id="bPng">Export map PNG</button></div>
+  <input id="worldFile" type="file" accept=".json" hidden>
 </div>
 
 <div class="panel">
   <div class="tabs">
-    <button data-v="biome" class="on">Biome</button>
+    <button data-v="environment" class="on">Environment</button>
+    <button data-v="biome">Climate biomes</button>
     <button data-v="relief">Relief</button>
     <button data-v="plates">Plates</button>
     <button data-v="temp">Temperature</button>
@@ -123,14 +151,22 @@ barriers off it and write the peoples to fit.</p>
     <button data-v="globe">Globe</button>
     <button data-v="report">Report</button>
   </div>
-  <canvas id="cv" width="640" height="320"></canvas>
+  <canvas id="cv" width="640" height="320" aria-label="World map. Use the environment brush to paint."></canvas>
+  <div id="environmentInfo">
+    <div id="cellInfo" class="stat" role="status">Move over the map to inspect the surface.</div>
+    <div class="encounter"><div><div class="zl">Surface study · neutrino sea</div>
+      <h2>A sea that falls upward</h2><p>Liquid gathers in basins. Buoyant droplets rise, unfurl into veils, then return as glittering rain.</p>
+      <p class="hint">Animated material study, not a simulation of the selected map cell. Rain zones and gameplay effects are future layers.</p>
+      <label><input type="checkbox" id="cAnimate" checked> Animate surface study</label></div>
+      <canvas id="seaStudy" width="640" height="260" aria-label="Neutrino sea material study"></canvas></div>
+  </div>
   <div id="globeBox" style="display:none">
     <canvas id="gl" width="720" height="720"></canvas>
     <div class="hint">Drag to turn the globe · wheel or pinch to zoom · double-click to centre</div>
     <label>Longitude <b id="vSpin"></b></label>
     <input type="range" id="rSpin" min="-180" max="180" step="1" value="-160">
-    <label>Latitude <b id="vTilt"></b></label>
-    <input type="range" id="rTilt" min="-85" max="85" step="1" value="0">
+    <label>Latitude <b id="vLatitude"></b></label>
+    <input type="range" id="rLatitude" min="-85" max="85" step="1" value="0">
     <label>Sun angle <b id="vSun"></b></label>
     <input type="range" id="rSun" min="0" max="359" step="1" value="40">
     <label>Zoom <b id="vZoom"></b></label>
@@ -1329,7 +1365,7 @@ function analyse(){
 }
 
 /* ============================================================ render ==== */
-let view='biome';
+let view='environment';
 
 /* ---- globe camera -------------------------------------------------------
    Kept in floats rather than read back off the sliders, because the sliders
@@ -1344,12 +1380,12 @@ const clampv=(v,a,b)=>v<a?a:(v>b?b:v);
 const wrapLon=v=>((v+180)%360+360)%360-180;
 function camFromSliders(){
   gview.lon=wrapLon(+$('rSpin').value);
-  gview.lat=clampv(+$('rTilt').value,-85,85);
+  gview.lat=clampv(+$('rLatitude').value,-85,85);
   gview.zoom=clampv(+$('rZoom').value/100,ZMIN,ZMAX);
 }
 function camToSliders(){
   $('rSpin').value=Math.round(gview.lon);
-  $('rTilt').value=Math.round(gview.lat);
+  $('rLatitude').value=Math.round(gview.lat);
   $('rZoom').value=Math.round(gview.zoom*100);
   syncLabels();
 }
@@ -1371,13 +1407,14 @@ function draw(){
               '#6fb3a8','#c98f6f','#9ab36f'];
   for(let i=0;i<W*H;i++){
     let r,g,b;
-    if(view==='biome'||view==='regions'){
+    if(view==='biome'||view==='environment'||view==='regions'){
       [r,g,b]=hex(BIOME[biome[i]][1]);
       if(el[i]>=sea){                                  // hillshade
         const x=i%W,y=(i/W)|0;
         const l=el[(y*W)+((x-1+W)%W)], rr=el[(y*W)+((x+1)%W)];
         const u=el[Math.max(0,y-1)*W+x], dn=el[Math.min(H-1,y+1)*W+x];
-        const sh=1+((l-rr)*2.2+(u-dn)*1.4)*6;
+        const rawShade=1+((l-rr)*2.2+(u-dn)*1.4)*6;
+        const sh=view==='environment'?clampv(rawShade,.55,1.28):rawShade;
         r*=sh;g*=sh;b*=sh;
       }
       if(view==='regions'){
@@ -1430,6 +1467,7 @@ function draw(){
       [r,g,b]= u>=0?[70,120,170]:[170,110,70];
       if(el[i]<sea){r*=0.55;g*=0.55;b*=0.55}
     }
+    if(view==='environment' && world.alien?.[i]) [r,g,b]=alienColour(i,r,g,b);
     const o=i*4; d[o]=r; d[o+1]=g; d[o+2]=b; d[o+3]=255;
   }
   ctx.putImageData(img,0,0);
@@ -1449,7 +1487,9 @@ function draw(){
 
 function legend(){
   const L=document.getElementById('legend');
-  if(view==='biome'){
+  if(view==='environment'){
+    L.innerHTML=Object.values(ALIEN).map(a=>`<span><i style="background:${a.color}"></i>${a.name}</span>`).join('')+'<span>Unpainted: climate biome</span>';
+  } else if(view==='biome'){
     L.innerHTML=Object.keys(BIOME).map(k=>
       `<span><i style="background:${BIOME[k][1]}"></i>${BIOME[k][0]}</span>`).join('');
   } else if(view==='plates'){
@@ -1793,6 +1833,7 @@ function drawGlobe(quick){
           b=(c[2]*0.86+20*ht)*sh*lift;
         } else { r=c[0]*sh; g=c[1]*sh; b=c[2]*sh; }
       }
+      if(world.alien?.[i]) [r,g,b]=alienColour(i,r,g,b);
       // limb darkening so the edge falls away, plus a little earthshine: the
       // night side of a real planet is not black, and if it is here you cannot
       // tell where you are while you turn the globe
@@ -1804,6 +1845,10 @@ function drawGlobe(quick){
         if(L>0.004){
           r+=L*255; g+=L*216; b+=L*140;
         }
+      }
+      if(world.alien?.[i]){
+        const material=ALIEN[world.alien[i]], glow=material.emission*(1-day)*limb;
+        r+=material.rgb[0]*glow; g+=material.rgb[1]*glow; b+=material.rgb[2]*glow;
       }
       // thin atmosphere on the lit limb
       const atm=Math.pow(1-nz,3)*day*70;
@@ -2082,12 +2127,13 @@ function syncLabels(){
   $('vPort').textContent=$('rPort').value;
   $('vOrb').textContent=$('rOrb').value;
   $('vSpin').textContent=$('rSpin').value+'\u00b0';
-  $('vTilt').textContent=$('rTilt').value+'\u00b0';
+  $('vLatitude').textContent=$('rLatitude').value+'\u00b0';
   $('vSun').textContent=$('rSun').value+'\u00b0';
   $('vZoom').textContent=($('rZoom').value/100).toFixed(1)+'x';
 }
 function applyPreset(name){
   const p=PRESETS[name]; if(!p)return;
+  sel.value=name;
   $('seed').value=p.seed; $('rOcean').value=p.ocean; $('rRelief').value=p.relief;
   $('rScale').value=p.scale; $('rRough').value=p.rough; $('rTemp').value=p.temp;
   $('rTilt').value=p.tilt; $('rBands').value=p.bands; $('rWind').value=p.wind;
@@ -2096,6 +2142,9 @@ function applyPreset(name){
 }
 function run(){
   generate(readCfg());
+  initEnvironment();
+  placeEnvironments();
+  $('bUndo').disabled=true;
   if(view==='globe') drawGlobe(); else draw();
   report();
   $('stat').textContent=
@@ -2116,12 +2165,13 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
   b.classList.add('on'); view=b.dataset.v;
   const isRep=view==='report', isGlobe=view==='globe';
   cv.style.display=(isRep||isGlobe)?'none':'block';
+  $('environmentInfo').hidden=view!=='environment';
   $('globeBox').style.display=isGlobe?'block':'none';
   $('report').style.display=isRep?'block':'none';
   $('legend').style.display=(isRep||isGlobe)?'none':'flex';
   if(isGlobe) drawGlobe(); else if(!isRep) draw();
 });
-['rSpin','rTilt','rSun','rZoom'].forEach(id=>
+['rSpin','rLatitude','rSun','rZoom'].forEach(id=>
   $(id).oninput=()=>{camFromSliders();syncLabels();drawGlobe()});
 
 /* ---- looking around -----------------------------------------------------
@@ -2214,9 +2264,228 @@ glc.addEventListener('dblclick',e=>{
 });
 ['cLights','cPorts','cOrbit'].forEach(id=>$(id).onchange=drawGlobe);
 
+/* Alien materials are an independent categorical layer. They never write to
+   elevation, climate, drainage or the climate biome used by conditioning. */
+const ALIEN={
+  1:{name:'Lava field',color:'#ed703d',rgb:[237,112,61],emission:.6,
+     note:'Molten channels and cooled crust · extreme heat · geothermal research'},
+  2:{name:'Neutrino sea',color:'#63e9df',rgb:[99,233,223],emission:.7,
+     note:'Buoyant luminous liquid · rising veils · glittering rain'},
+  3:{name:'Glass desert',color:'#b591c4',rgb:[181,145,196],emission:0,
+     note:'Vitrified ground · sharp fractured sheets · mineral research'},
+  4:{name:'Luminous forest',color:'#53b8a0',rgb:[83,184,160],emission:.18,
+     note:'Light-emitting canopy · wet ground · biological research'}
+};
+let environmentUndo=[], stroke=null, paintFrame=0;
+function initEnvironment(){
+  const N=W*H;
+  world.alien=new Uint8Array(N);
+  world.alienTexture=new Float32Array(N);
+  world.alienDistribution=new Float32Array(N);
+  world.heat=new Float32Array(N);
+  environmentUndo=[];
+  const noise=makeNoise(hashSeed(world.cfg.seed)^0x6ae11);
+  for(let y=0;y<H;y++){
+    const lat=(.5-(y+.5)/H)*Math.PI, cl=Math.cos(lat), sl=Math.sin(lat);
+    for(let x=0;x<W;x++){
+      const lon=(x+.5)/W*Math.PI*2, i=y*W+x;
+      world.alienDistribution[i]=fbm(noise,cl*Math.cos(lon)*3.2,cl*Math.sin(lon)*3.2,sl*3.2,2,2,.3);
+      world.alienTexture[i]=fbm(noise,cl*Math.cos(lon)*15,cl*Math.sin(lon)*15,sl*15,3,2,.5);
+      // Volcanism at arcs, island arcs, spreading ridges and continental rifts.
+      if(![1,3,4,5].includes(world.tec.bkind[i])) continue;
+      const rx=Math.min(22,Math.ceil(6/Math.max(.25,cl)));
+      for(let dy=-6;dy<=6;dy++){
+        const yy=y+dy;if(yy<0||yy>=H)continue;
+        for(let dx=-rx;dx<=rx;dx++){
+          const q=(dx*cl)**2+dy*dy;if(q>36)continue;
+          const j=yy*W+(x+dx+W)%W;
+          world.heat[j]=Math.max(world.heat[j],Math.exp(-q/12));
+        }
+      }
+    }
+  }
+}
+function alienSuitable(i,kind){
+  const h=(world.el[i]-world.sea)/Math.max(.001,1-world.sea);
+  if(kind===1)return h>=0&&world.heat[i]>.12;
+  if(kind===2)return h<.08;
+  if(kind===3)return h>=0&&world.moist[i]<.4;
+  if(kind===4)return h>=0&&h<.65&&world.moist[i]>.35;
+  return true;
+}
+function rememberEnvironment(){
+  environmentUndo.push(world.alien.slice());
+  if(environmentUndo.length>12)environmentUndo.shift();
+}
+function placeEnvironments(){
+  const coverage=+$('rAlien').value/100;
+  world.alien.fill(0);
+  if(coverage===0)return;
+  for(let i=0;i<W*H;i++){
+    const n=world.alienDistribution[i], cutoff=.42-coverage*.7;
+    if(n<cutoff)continue;
+    if(alienSuitable(i,1)&&world.heat[i]>.28)world.alien[i]=1;
+    else if(alienSuitable(i,2))world.alien[i]=2;
+    else if(alienSuitable(i,3))world.alien[i]=3;
+    else if(alienSuitable(i,4))world.alien[i]=4;
+  }
+}
+function alienColour(i,r,g,b){
+  const k=world.alien[i], n=world.alienTexture[i], a=ALIEN[k];
+  if(!a)return [r,g,b];
+  const x=i%W,y=(i/W)|0;
+  const slope=(world.el[y*W+(x-1+W)%W]-world.el[y*W+(x+1)%W])*14+
+    (world.el[Math.max(0,y-1)*W+x]-world.el[Math.min(H-1,y+1)*W+x])*9;
+  const shade=clampv(.85+slope+n*.32,.4,1.35);
+  if(k===1){
+    const fissure=Math.pow(Math.max(0,1-Math.abs(n+.03)*24),3);
+    return [38*shade+217*fissure,29*shade+122*fissure,36*shade+28*fissure];
+  }
+  if(k===2){
+    const band=.5+.5*Math.sin(n*9);
+    return [32+band*60,100+band*120,143+band*100];
+  }
+  if(k===3){const glint=Math.pow(Math.max(0,Math.cos(n*55)),18);
+    return [a.rgb[0]*shade+glint*35,a.rgb[1]*shade+glint*48,a.rgb[2]*shade+glint*45];}
+  return a.rgb.map(c=>c*shade);
+}
+function redrawEnvironment(){
+  if(view==='globe')drawGlobe();else if(view!=='report')draw();
+  let count=0;for(const k of world.alien)if(k)count++;
+  $('stat').textContent=`${world.tec.count} plates · ${Math.round(count/world.alien.length*100)}% of map cells alien · terrain unchanged`;
+  $('bUndo').disabled=!environmentUndo.length;
+}
+function showEnvironment(){document.querySelector('[data-v="environment"]').click();}
+$('rAlien').oninput=()=>{$('vAlien').textContent=$('rAlien').value+'%'};
+$('rBrush').oninput=()=>{$('vBrush').textContent=$('rBrush').value+' cells'};
+$('bAlien').onclick=()=>{rememberEnvironment();placeEnvironments();redrawEnvironment()};
+$('bClear').onclick=()=>{rememberEnvironment();world.alien.fill(0);redrawEnvironment()};
+$('bUndo').onclick=()=>{if(environmentUndo.length){world.alien=environmentUndo.pop();redrawEnvironment()}};
+$('alienBrush').onchange=()=>{showEnvironment();cv.style.cursor=$('alienBrush').value==='inspect'?'crosshair':'cell'};
+function mapPoint(e){
+  const rect=cv.getBoundingClientRect();
+  return {x:clampv((e.clientX-rect.left)/rect.width*W,0,W-1),y:clampv((e.clientY-rect.top)/rect.height*H,0,H-1)};
+}
+function inspectEnvironment(p){
+  const i=Math.floor(p.y)*W+Math.floor(p.x), a=ALIEN[world.alien[i]];
+  $('cellInfo').textContent=`Plate ${world.tec.plate[i]+1} · ${a?a.name:BIOME[world.biome[i]][0]} · ${world.temp[i].toFixed(0)}°C`+(a?' · '+a.note:'');
+}
+function paintAt(p){
+  const k=+$('alienBrush').value, radius=+$('rBrush').value;
+  for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
+    if(dx*dx+dy*dy>radius*radius)continue;
+    const y=Math.floor(p.y)+dy;if(y<0||y>=H)continue;
+    const i=y*W+(Math.floor(p.x)+dx+W)%W;
+    if(!$('cSuit').checked||alienSuitable(i,k))world.alien[i]=k;
+  }
+  if(!paintFrame)paintFrame=requestAnimationFrame(()=>{paintFrame=0;redrawEnvironment()});
+}
+cv.addEventListener('pointerdown',e=>{
+  if(view!=='environment'||e.button!==0)return;
+  const p=mapPoint(e);inspectEnvironment(p);
+  if($('alienBrush').value==='inspect')return;
+  rememberEnvironment();stroke={...p,id:e.pointerId};cv.setPointerCapture(e.pointerId);paintAt(p);
+});
+cv.addEventListener('pointermove',e=>{
+  if(view!=='environment')return;
+  const p=mapPoint(e);inspectEnvironment(p);
+  if(!stroke||stroke.id!==e.pointerId)return;
+  const dx=p.x-stroke.x,dy=p.y-stroke.y,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/2));
+  for(let j=1;j<=steps;j++)paintAt({x:stroke.x+dx*j/steps,y:stroke.y+dy*j/steps});
+  stroke={...p,id:e.pointerId};
+});
+for(const type of ['pointerup','pointercancel','lostpointercapture'])cv.addEventListener(type,()=>{stroke=null});
+function downloadWorldBlob(blob,name){
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+function worldDocument(){
+  return {format:'spacology-world',version:1,generator:'tectonics-v1',width:W,height:H,
+    cfg:world.cfg,coverage:+$('rAlien').value,alien:Array.from(world.alien),
+    materials:ALIEN,notes:'Environment overlay only; climate and terrain regenerate from the stored configuration. Fictional material properties are descriptive, not combat rules.'};
+}
+$('bSave').onclick=()=>downloadWorldBlob(new Blob([JSON.stringify(worldDocument())],{type:'application/json'}),`${world.cfg.seed}.world.json`);
+function loadWorldDocument(data){
+  if(data.format!=='spacology-world'||data.version!==1||data.generator!=='tectonics-v1'||data.width!==W||data.height!==H)
+    throw Error('This is not a supported Spacology world save.');
+  if(!Array.isArray(data.alien)||data.alien.length!==W*H||data.alien.some(k=>!Number.isInteger(k)||k<0||k>4))
+    throw Error('The environment layer is incomplete or invalid.');
+  const cfg=data.cfg;
+  if(!cfg||typeof cfg.seed!=='string'||cfg.seed.length>256||typeof cfg.uni!=='boolean')throw Error('Invalid world settings.');
+  const controls={ocean:'rOcean',relief:'rRelief',scale:'rScale',rough:'rRough',plates:'rPlates',temp:'rTemp',tilt:'rTilt',bands:'rBands',wind:'rWind',pop:'rPop',cult:'rCult',pol:'rPol',port:'rPort',orb:'rOrb'};
+  for(const [key,id] of Object.entries(controls)){
+    const input=$(id),v=cfg[key];
+    if(!Number.isFinite(v)||v<+input.min||v>+input.max||(v-Number(input.min))%Number(input.step||1)!==0)throw Error(`Invalid ${key} setting.`);
+  }
+  if(!Number.isInteger(data.coverage)||data.coverage<0||data.coverage>100)throw Error('Invalid environment coverage.');
+  // Validate completely before replacing the open world.
+  generate({...cfg});initEnvironment();world.alien=Uint8Array.from(data.alien);
+  for(const [key,id] of Object.entries(controls))$(id).value=cfg[key];
+  $('seed').value=cfg.seed;$('cUni').checked=cfg.uni;$('rAlien').value=data.coverage;$('rAlien').oninput();
+  $('preset').value='';syncLabels();report();redrawEnvironment();
+}
+$('bLoad').onclick=()=>$('worldFile').click();
+$('worldFile').onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  try{if(file.size>5000000)throw Error('World save is too large.');loadWorldDocument(JSON.parse(await file.text()));}
+  catch(error){$('stat').textContent='Could not load world: '+error.message;}
+  finally{e.target.value='';}
+};
+$('bPng').onclick=()=>{
+  const source=view==='globe'?glc:cv;
+  if(view==='report'){ $('stat').textContent='Select a map view before exporting.';return; }
+  source.toBlob(blob=>{if(blob)downloadWorldBlob(blob,`${world.cfg.seed}-${view}.png`)});
+};
+
+/* A separate small material study keeps animation off the expensive world render. */
+const study=$('seaStudy'), studyCtx=study.getContext('2d');
+let studyFrame=0;
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+$('cAnimate').checked=!reducedMotion.matches;
+function drawSeaStudy(time){
+  const c=studyCtx,w=study.width,h=study.height,t=time/1000;
+  c.clearRect(0,0,w,h);
+  const sky=c.createLinearGradient(0,0,0,h);sky.addColorStop(0,'#090e20');sky.addColorStop(1,'#234851');c.fillStyle=sky;c.fillRect(0,0,w,h);
+  c.fillStyle='#182632';c.beginPath();c.moveTo(0,190);
+  for(let x=0;x<=w;x+=8)c.lineTo(x,145+Math.sin(x*.013)*24+Math.sin(x*.043)*13);
+  c.lineTo(w,h);c.lineTo(0,h);c.fill();
+  const sea=c.createLinearGradient(0,175,0,h);sea.addColorStop(0,'#73e4d3');sea.addColorStop(.13,'#287f96');sea.addColorStop(1,'#103047');
+  c.fillStyle=sea;c.beginPath();c.moveTo(0,208);
+  for(let x=0;x<=w;x+=4)c.lineTo(x,205+Math.sin(x*.018+t*.5)*8+Math.sin(x*.043-t*.4)*3);
+  c.lineTo(w,h);c.lineTo(0,h);c.fill();
+  c.save();c.globalCompositeOperation='screen';
+  for(let j=0;j<9;j++){
+    const phase=(t*.065+j*.117)%1,x=38+j*70+Math.sin(phase*5+j)*16,y=211-phase*155;
+    const spread=phase>.6?1+(phase-.6)*12:1,alpha=Math.sin(phase*Math.PI)*.7;
+    c.globalAlpha=alpha;c.fillStyle=j%2?'#8feeda':'#91bfff';c.shadowColor='#68ecdd';c.shadowBlur=15;
+    c.beginPath();c.ellipse(x,y,(5+j%3)*spread,Math.max(2,(12+j%4)*(1-phase)),Math.sin(j)*.2,0,Math.PI*2);c.fill();
+    if(phase>.55){c.shadowBlur=4;for(let k=0;k<14;k++){
+      const f=(phase*2+k*.071)%1,xx=x+Math.sin(k*17+j)*spread*9,yy=y+f*(215-y);
+      c.globalAlpha=alpha*(1-f);c.fillRect(xx,yy,1.4,2.5);
+    }}
+  }
+  c.restore();
+  c.strokeStyle='rgba(133,250,233,.3)';
+  for(let j=0;j<8;j++){c.beginPath();const y=219+j*5;c.moveTo(50+Math.sin(j+t*.2)*30,y);c.lineTo(w-60-Math.cos(j)*40,y);c.stroke();}
+}
+function animateStudy(time){
+  studyFrame=0;
+  if(document.hidden||view!=='environment'||!$('cAnimate').checked)return;
+  drawSeaStudy(time);studyFrame=requestAnimationFrame(animateStudy);
+}
+function startStudy(){
+  if(studyFrame)cancelAnimationFrame(studyFrame);studyFrame=0;
+  drawSeaStudy(6000);
+  if(!document.hidden&&view==='environment'&&$('cAnimate').checked)studyFrame=requestAnimationFrame(animateStudy);
+}
+$('cAnimate').onchange=startStudy;
+document.addEventListener('visibilitychange',startStudy);
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',startStudy));
+
 applyPreset(Object.keys(PRESETS)[0]);
 syncLabels();
 run();
+startStudy();
 </script>
 </body>
 </html>
