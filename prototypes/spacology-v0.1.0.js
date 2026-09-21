@@ -29,6 +29,17 @@ const battleStats={
   Latch:{hp:86,dmg:14,speed:14,color:'#70d5b2'}
 };
 
+const crewKits={
+  Tarn:{role:'Front-line anchor',basic:['Brace Strike','Deals light damage and gains 8 Barrier.'],skill:['Bulwark Protocol','Redirects the next on-field hit to Tarn and reduces it.'],passive:['Load-bearing','When Barrier breaks, applies one Decay stack to the attacker.'],plan:'Keep Tarn on field when survival observations matter. Hull and Decay both reward sustained pressure.'},
+  Ash:{role:'Break payoff',basic:['Sparkshot','Deals damage and extra guard damage to fractured targets.'],skill:['Reprisal','Immediately follows an ally who breaks a specimen.'],passive:['Flashpoint','Deals increased damage below 50% target health.'],plan:'Pair with fast breakers and Follow-up bonuses. Ash wants another crew member to create the break first.'},
+  Quill:{role:'Off-field relay',basic:['Needlecast','Marks a specimen and exposes its weakest element.'],skill:['Survey Relay','Answers a marked ally attack with an off-field follow-up.'],passive:['Echo Mark','Every third follow-up grants team Energy.'],plan:'Keep Quill off field beside frequent attackers. Quick Latch increases how often Survey Relay can answer.'},
+  Maul:{role:'Guard pressure',basic:['Ram','Deals damage and heavy guard damage.'],skill:['Bore Through','Hits every remaining guard layer on one specimen.'],passive:['Pressure Seal','Off-field attacks gain power while an on-field ally has Barrier.'],plan:'Build around Hull characters and multi-element breaks. Maul contributes safely from the support row.'},
+  Bosk:{role:'Slow burst',basic:['Shell Burst','Heavy single-target damage with a slow recovery.'],skill:['Slow Fuse','Plants a charge that detonates after two allied actions.'],passive:['Overpressure','Detonations gain damage for each Decay stack.'],plan:'Use with Morrow or Tarn to seed Decay before the charge resolves. Speed Gear helps Bosk set up earlier.'},
+  Coda:{role:'Follow-up battery',basic:['Pulse','Deals light Energy damage and advances the next responder.'],skill:['Refrain','Repeats the last allied follow-up at reduced power.'],passive:['Relay Chorus','Follow-up attacks grant 6 Energy to their source.'],plan:'Coda turns an existing Follow-up pair into an engine. Place off field unless an objective needs Energy actions.'},
+  Morrow:{role:'Decay seeder',basic:['Inoculate','Applies one Decay stack.'],skill:['Scar Tissue','Increases the next Decay detonation without consuming stacks.'],passive:['Persistent Culture','Decay remains for one additional specimen action.'],plan:'Use with Bosk for delayed burst or Spore for wide application. Morrow needs time more than raw Attack.'},
+  Spore:{role:'Ailment spread',basic:['Culture','Applies a Growth ailment to one specimen.'],skill:['Cross-contaminate','Copies one ailment to adjacent specimens.'],passive:['Airborne','When an afflicted specimen acts, spread its oldest ailment once.'],plan:'Best for spread and detonation observations. Avoid too much control when the objective needs enemies to act.'}
+};
+
 const $=id=>document.getElementById(id);
 const board=document.querySelector('.board');
 const inventoryHost=$('inventoryItems');
@@ -41,6 +52,12 @@ function toastMessage(message){showToast(message);setTimeout(()=>toast.classList
 function crewInfo(name){return unitData[name]||crewFallback[name]||['Crew · Order','Specialist','A newly catalogued crew member.']}
 function crewTone(name){const tag=crewInfo(name)[0];if(tag.includes('Hull'))return 'var(--blue)';if(tag.includes('Follow'))return 'var(--red)';if(tag.includes('Assay'))return 'var(--violet)';if(tag.includes('Growth'))return 'var(--green)';return 'var(--decay)'}
 function deployed(){return [...runState.field,...runState.support]}
+function characterDetails(name,location){
+  const info=crewInfo(name),stats=battleStats[name]||{hp:92,dmg:15,speed:9},kit=crewKits[name]||{role:info[1],basic:['Basic attack','Deals damage to one specimen.'],skill:['Special action',info[2]],passive:['Field trait','Supports the crew through its listed Harmonies.'],plan:info[2]};
+  const gear=(runState.equipped[name]||[]).filter(Boolean);
+  const lastAction=location==='inventory'?`<button class="sell-action" data-sell-character="${name}">SELL · +14 GOLD</button><button class="danger" data-scrap-character="${name}">DISMANTLE · +7 SCRAP</button>`:`<button data-return="${name}">RETURN TO INVENTORY</button>`;
+  return `<div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="lede"><strong>${kit.role}</strong> · ${info[2]}</p><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div><div class="kit-grid"><div class="kit-move"><label>BASIC</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>SPECIAL</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div><div class="modal-actions"><button data-place="field" data-name="${name}">MOVE ON FIELD</button><button data-place="support" data-name="${name}">MOVE OFF FIELD</button>${lastAction}</div>`;
+}
 
 function unitMarkup(name,row){
   const info=crewInfo(name),gear=runState.equipped[name]||[];
@@ -89,6 +106,7 @@ function renderOps(){
   document.querySelector('.room span').textContent=`VOYAGE ${String(runState.round).padStart(2,'0')} · PHOMOUS`;
   document.querySelector('.run-meta b').textContent=`ROUND ${runState.round} · CONTAINMENT`;
   renderFormation();renderShip();renderInventory(inventoryTab);
+  localStorage.setItem('spacologyRunV010',JSON.stringify(runState));
 }
 
 function removeCrew(name){
@@ -140,7 +158,9 @@ document.addEventListener('pointerdown',e=>{
 },{passive:true});
 document.addEventListener('pointermove',e=>{
   if(!touchDrag||e.pointerId!==touchDrag.pointerId)return;
-  const distance=Math.hypot(e.clientX-touchDrag.startX,e.clientY-touchDrag.startY);
+  const dx=e.clientX-touchDrag.startX,dy=e.clientY-touchDrag.startY;
+  const distance=Math.hypot(dx,dy);
+  if(!touchDrag.active&&touchDrag.source.closest('.inventory')&&distance>=6&&Math.abs(dx)>Math.abs(dy)){touchDrag=null;return}
   if(!touchDrag.active&&distance<9)return;
   if(!touchDrag.active){touchDrag.active=true;touchDrag.ghost=touchDrag.source.cloneNode(true);Object.assign(touchDrag.ghost.style,{position:'fixed',zIndex:'300',width:`${touchDrag.source.getBoundingClientRect().width}px`,opacity:'.86',pointerEvents:'none',transform:'scale(.94)',boxShadow:'0 14px 40px #000'});document.body.appendChild(touchDrag.ghost)}
   e.preventDefault();touchDrag.ghost.style.left=`${e.clientX+12}px`;touchDrag.ghost.style.top=`${e.clientY+12}px`;
@@ -170,7 +190,7 @@ function handleDrop(data,zone){
 document.addEventListener('click',e=>{
   if(Date.now()<touchSuppressUntil){e.preventDefault();e.stopImmediatePropagation();return}
   const unit=e.target.closest('.unit');
-  if(unit){const name=unit.dataset.unit,info=crewInfo(name),gear=runState.equipped[name]||[];showModal(`<div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="lede">${info[1]} · ${info[2]}</p><div class="modal-grid"><div class="modal-card"><label>GEAR SLOT 1</label><b>${gear[0]||'Empty'}</b></div><div class="modal-card"><label>GEAR SLOT 2</label><b>${gear[1]||'Empty'}</b></div></div><div class="modal-actions"><button data-place="field" data-name="${name}">MOVE ON FIELD</button><button data-place="support" data-name="${name}">MOVE OFF FIELD</button><button data-return="${name}">RETURN TO INVENTORY</button></div>`);return}
+  if(unit){showModal(characterDetails(unit.dataset.unit,'formation'));return}
   const slot=e.target.closest('.slot');if(slot){showCrewPicker(slot.dataset.row);return}
 },{capture:true});
 
@@ -178,8 +198,8 @@ function showCrewPicker(row){
   const choices=runState.reserve.map(n=>`<button data-place="${row}" data-name="${n}">${n}</button>`).join('');
   showModal(`<div class="eyebrow">PLACE CREW · ${deployed().length} / ${runState.capacity}</div><h2>${row==='field'?'On field':'Off field'}</h2><p class="lede">Drag a crew card here or choose one below.</p><div class="modal-actions">${choices||'<span>No reserve crew available.</span>'}</div>`)
 }
-modalBody.addEventListener('click',e=>{const place=e.target.closest('[data-place]');if(place){if(placeCrew(place.dataset.name,place.dataset.place))overlay.classList.remove('open');return}const ret=e.target.closest('[data-return]');if(ret){returnCrew(ret.dataset.return);overlay.classList.remove('open')}});
-inventoryHost.onclick=e=>{const item=e.target.closest('[data-item]');if(!item)return;const name=item.dataset.item,type=item.dataset.type;if(type==='characters'){const info=crewInfo(name);showModal(`<div class="eyebrow">CHARACTER · INVENTORY</div><h2>${name}</h2><p class="lede">${info[0]} · ${info[2]}</p><div class="modal-actions"><button data-place="field" data-name="${name}">PLACE ON FIELD</button><button data-place="support" data-name="${name}">PLACE OFF FIELD</button></div>`)}else showModal(`<div class="eyebrow">${type.toUpperCase()}</div><h2>${name}</h2><p class="lede">Drag this item onto a compatible slot. Drop Gear on a character and ship equipment on the vessel.</p>`)};
+modalBody.addEventListener('click',e=>{const place=e.target.closest('[data-place]');if(place){if(placeCrew(place.dataset.name,place.dataset.place))overlay.classList.remove('open');return}const ret=e.target.closest('[data-return]');if(ret){returnCrew(ret.dataset.return);overlay.classList.remove('open');return}const sell=e.target.closest('[data-sell-character]');if(sell){const name=sell.dataset.sellCharacter;if(runState.reserve.includes(name)){removeCrew(name);delete runState.equipped[name];runState.gold+=14;renderOps();toastMessage(`${name} sold for 14 gold`)}overlay.classList.remove('open');return}const scrap=e.target.closest('[data-scrap-character]');if(scrap){const name=scrap.dataset.scrapCharacter;if(runState.reserve.includes(name)){removeCrew(name);delete runState.equipped[name];runState.scrap+=7;renderOps();toastMessage(`${name} dismantled for 7 Scrap`)}overlay.classList.remove('open')}});
+inventoryHost.onclick=e=>{const item=e.target.closest('[data-item]');if(!item)return;const name=item.dataset.item,type=item.dataset.type;if(type==='characters')showModal(characterDetails(name,'inventory'));else showModal(`<div class="eyebrow">${type.toUpperCase()}</div><h2>${name}</h2><p class="lede">Drag this item onto a compatible slot. Drop Gear on a character and ship equipment on the vessel.</p>`)};
 
 function installPackTargets(){
   if($('takeAll'))return;

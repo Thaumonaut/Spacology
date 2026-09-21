@@ -197,11 +197,28 @@ body.session-mode .ribbon{display:flex;justify-content:center;align-items:stretc
 body.session-mode .ribbon .rc{flex:0 0 78px;width:78px;min-width:78px;min-height:92px;padding:5px 4px}
 body.session-mode .ribbon .rn{font-size:7px}body.session-mode .ribbon .re{font-size:6px}body.session-mode .ribbon .rt{font-size:6px}body.session-mode .ribbon .wk{gap:2px}body.session-mode .ribbon .wk span{width:10px;font-size:7px}
 @media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 190px}.session-node{width:61px}.session-node:not(:last-child):after{width:39px;left:42px}}@media(max-width:980px){body.session-mode{grid-template-columns:1fr;display:block}body.session-mode .sessionbar{display:flex;height:70px;margin-bottom:8px}.session-route{display:none}body.session-mode #board,body.session-mode #battleRecord{margin:8px}body.session-mode #battleRecord{min-height:260px}}@media(max-width:760px){body.session-mode #board{padding:6px}body.session-mode .tcol{flex-basis:44px;min-width:44px}}
+/* Voyage battle shell. The animation engine keeps its original IDs and
+   geometry; these rules place it inside the approved battlefield composition. */
+body.session-mode{display:grid;grid-template-columns:1fr;grid-template-rows:64px minmax(0,1fr);height:100vh;min-height:0;overflow:hidden;background:#020406}
+body.session-mode .sessionbar{grid-column:1;grid-row:1;display:grid;height:64px;grid-template-columns:255px 1fr 185px auto;gap:10px;padding:0 12px;margin:0;background:rgba(7,16,24,.98);z-index:80}
+body.session-mode .session-status .eyebrow{font-size:8px}body.session-mode .session-status b{font-size:15px}body.session-mode .session-status>span{font-size:8px}
+body.session-mode .session-run>b{font-size:10px}body.session-mode .session-run>span{font-size:8px}.session-controls{display:none}.session-mode .session-controls{display:flex;align-items:center;gap:5px}.session-controls button{height:36px;border:1px solid #33536e;border-radius:4px;background:#101e2b;color:#8ebddd;padding:0 11px;font:700 8px inherit;white-space:nowrap}.session-controls #bPlay{background:var(--energy);border-color:var(--energy);color:#251805}.session-controls .session-return{width:auto;margin:0;padding:0 11px;height:36px}
+body.session-mode #board{grid-column:1;grid-row:2;position:relative;margin:0;border:0;border-radius:0;padding:0;min-height:0;overflow:hidden;background:radial-gradient(circle at 12% 82%,rgba(61,185,183,.28),transparent 31%),radial-gradient(circle at 88% 16%,rgba(113,83,202,.32),transparent 35%),linear-gradient(120deg,#17344e 0%,#18253e 47%,#123635 100%)}
+body.session-mode #board:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+body.session-mode #floats{z-index:50}body.session-mode .hdr{position:absolute;left:10px;top:10px;width:132px;height:29px;margin:0;padding:0 8px;z-index:31;border:1px solid #33536e;border-radius:4px;background:rgba(7,16,24,.9);font-size:8px}
+body.session-mode .boardrow{position:absolute;inset:0;display:block;height:auto}.session-mode .tcol{position:absolute;left:10px;top:52px;width:65px;min-width:65px;z-index:32}.session-mode .tcol .zlabel{font-size:8px;color:#d8ebef}.session-mode .track{gap:3px}.session-mode .tk{min-height:27px;border-radius:3px;background:rgba(5,12,18,.86)}.session-mode .tk .tn{font-size:7px}.session-mode .tk .tw{font-size:7px}
+body.session-mode .bmain{position:absolute;left:85px;right:10px;top:0;bottom:0;min-width:0}.enemy-dock-live{position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:10;padding:10px 14px 11px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.92);box-shadow:0 12px 28px rgba(0,0,0,.34)}.enemy-dock-live>.zlabel{position:absolute;left:14px;top:-10px;margin:0;padding:2px 6px;border:1px solid #33536e;border-radius:3px;background:#071018;font-size:7px}.enemy-dock-live:before,.enemy-dock-live:after,.crew-dock-live:before,.crew-dock-live:after{content:"";position:absolute;width:20px;height:20px;background:inherit;transform:rotate(45deg);z-index:-1}.enemy-dock-live:before{left:-11px;top:35px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.enemy-dock-live:after{right:-11px;top:35px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}
+body.session-mode #stage{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(690px,calc(100% - 30px));height:214px;margin:0;border:0;background:transparent;box-shadow:none;z-index:20}.session-mode #stage .ptag{font-size:8px}.session-mode #stage .cap{font-size:18px}
+.crew-dock-live{position:absolute;left:50%;bottom:11px;transform:translateX(-50%);width:min(770px,calc(100% - 12px));z-index:10;padding:9px 12px 10px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.93);box-shadow:0 12px 28px rgba(0,0,0,.34)}.crew-dock-live:before{left:-11px;top:75px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.crew-dock-live:after{right:-11px;top:75px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}.crew-live-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:5px;min-height:96px}.crew-live-row+.crew-live-row{margin-top:5px}.crew-live-row>span{display:flex;flex-direction:column;justify-content:center;color:#51697a;font-size:7px;letter-spacing:.06em}.crew-live-row>span b{color:#edf3f4;font-size:8px;margin-bottom:2px}.session-objective{position:absolute;right:0;top:12px;width:180px;z-index:30;border:1px solid #426c5e;border-radius:4px;background:rgba(8,25,21,.93);padding:8px 9px}.session-objective b{display:block;color:#70d5b2;font-size:8px}.session-objective span{font-size:7px;color:#8da2b1}
+body.session-mode .ribbon{display:flex;justify-content:center;align-items:stretch;gap:5px;min-height:92px}body.session-mode .ribbon .rc{height:92px;min-height:92px}body.session-mode .crew-live-row .ribbon{min-width:0;justify-content:flex-start}.session-mode .btns{display:none}
+body.session-mode #battleRecord{display:none!important;position:fixed;top:64px;right:0;bottom:0;width:285px;z-index:90;margin:0;padding:12px;border:0;border-left:1px solid #33536e;border-radius:0;background:rgba(7,16,24,.98);box-shadow:-18px 0 45px rgba(0,0,0,.45)}body.session-mode #battleRecord.open{display:flex!important}body.session-mode #battleRecord>.zlabel{font-size:9px;color:#edf3f4}body.session-mode #battleRecord .log{font-size:10px}body.session-mode #battleRecord .stats{font-size:9px}
+@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 175px auto}.session-mode .session-route{display:none}.session-mode .bmain{left:68px}.session-mode .tcol{width:48px;min-width:48px}.session-mode .session-objective{width:155px}.crew-dock-live{width:calc(100% - 6px);padding-left:7px;padding-right:7px}.crew-live-row{grid-template-columns:48px minmax(0,1fr)}}
+@media(max-width:760px){body.session-mode #board{padding:0}.session-mode .sessionbar{display:grid;height:64px;margin:0;grid-template-columns:1fr auto}.session-mode .session-status>span,.session-mode .session-route,.session-mode .session-run{display:none}.session-mode .bmain{left:58px;right:4px}.session-mode .tcol{left:6px;width:44px;min-width:44px}.crew-dock-live{left:calc(50% - 12px);width:calc(100vw - 64px)}.crew-live-row{grid-template-columns:0 minmax(0,1fr);gap:0}.crew-live-row>span{display:none}.crew-live-row .ribbon{grid-column:2}.session-mode .session-objective{display:none}.session-controls button{padding:0 8px}}
 </style>
 </head>
 <body>
 
-<header class="sessionbar"><div class="session-status"><div class="eyebrow">FIELDWORK</div><b id="sessionTitle">Phomous · Compound Motion</b><span id="sessionCrew">Formation linked from Ops</span></div><nav class="session-route" aria-label="Round progress"><div class="session-node done"><i>✓</i><b>OPS</b></div><div class="session-node current"><i>●</i><b>FIELDWORK</b></div><div class="session-node"><i>3</i><b>SPECIMEN</b></div><div class="session-node"><i>4</i><b>RECOVER</b></div></nav><div class="session-run"><b id="sessionRound">ROUND 1 / 6</b><span id="sessionPressure">Enemy pressure 70%</span><div class="session-resources"><em><strong id="sessionIntegrity">74%</strong> INTEGRITY</em><em><strong id="sessionGold">102</strong> GOLD</em></div></div></header>
+<header class="sessionbar"><div class="session-status"><div class="eyebrow">FIELDWORK</div><b id="sessionTitle">Phomous · Compound Motion</b><span id="sessionCrew">Formation linked from Ops</span></div><nav class="session-route" aria-label="Round progress"><div class="session-node done"><i>✓</i><b>OPS</b></div><div class="session-node current"><i>●</i><b>FIELDWORK</b></div><div class="session-node"><i>3</i><b>SPECIMEN</b></div><div class="session-node"><i>4</i><b>RECOVER</b></div></nav><div class="session-run"><b id="sessionRound">ROUND 1 / 6</b><span id="sessionPressure">Enemy pressure 70%</span><div class="session-resources"><em><strong id="sessionIntegrity">74%</strong> INTEGRITY</em><em><strong id="sessionGold">102</strong> GOLD</em></div></div><div class="session-controls" id="sessionControls"><button id="sessionLogToggle" aria-expanded="false">COMBAT LOG</button></div></header>
 
 <h1>Watchable fight</h1>
 <p class="sub">Same sim, played at full ceremony.</p>
@@ -218,18 +235,15 @@ body.session-mode .ribbon .rn{font-size:7px}body.session-mode .ribbon .re{font-s
       <div class="track" id="track"></div>
     </div>
     <div class="bmain">
-      <div class="zlabel" style="margin-top:0">Enemies</div>
-      <div class="ribbon" id="foes"></div>
+      <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div>
+      <div class="enemy-dock-live"><div class="zlabel">SPECIMENS</div><div class="ribbon" id="foes"></div></div>
 
       <div id="stage">
         <div class="ptag" id="ptag">idle</div>
         <div class="cap" id="cap">&nbsp;</div>
       </div>
 
-      <div class="ribbon" id="crewFront"></div>
-      <div class="ribbon" id="crewBack" style="margin-top:6px"></div>
-      <div class="rowkey"><span>Front &mdash; takes the hits</span>
-        <span>Back &mdash; shielded while the front holds</span></div>
+      <div class="crew-dock-live"><div class="crew-live-row"><span><b>ON FIELD</b>takes hits</span><div class="ribbon" id="crewFront"></div></div><div class="crew-live-row"><span><b>OFF FIELD</b>supported</span><div class="ribbon" id="crewBack"></div></div></div>
     </div>
   </div>
 
@@ -795,7 +809,10 @@ function ribbons(){
       host.appendChild(d); }); }); }
 function paintAll(){ G.units.forEach(function(u){ paintUnit(u) });
   $('hRound').textContent=G.round; $('hMax').textContent=G.limit;
-  $('hMax').style.color=G.limit<MAXROUND?'#E88':''; }
+  $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
+  var objective=document.querySelector('.session-objective');
+  if(objective&&window.SPACOLOGY_SESSION){var progress=Math.max(Math.min(2,G.breaks||0),Math.min(2,G.chains||0));objective.querySelector('b').textContent='COMPOUND FRACTURE · '+progress+' / 2';}
+}
 function paintUnit(u){
   var rc=$('r-'+u.id); if(!rc) return;
   rc.classList.toggle('down',!u.alive);
@@ -2156,9 +2173,9 @@ function finish(msg){
 function step(){ if(busy||G.over) return; busy=true;
   playAction(function(){ busy=false; if(playing) step(); }); }
 function cancelSessionAutostart(){if(sessionAutoTimer){clearTimeout(sessionAutoTimer);sessionAutoTimer=null;}}
-$('bStep').onclick=function(){cancelSessionAutostart(); playing=false; $('bPlay').textContent='Play'; step(); };
-$('bPlay').onclick=function(){cancelSessionAutostart(); if(playing){ playing=false; this.textContent='Play'; return; }
-  playing=true; this.textContent='Pause'; step(); };
+$('bStep').onclick=function(){cancelSessionAutostart(); playing=false; $('bPlay').textContent='Play'; $('hState').textContent='step'; step(); };
+$('bPlay').onclick=function(){cancelSessionAutostart(); if(playing){ playing=false; this.textContent='Play'; $('hState').textContent='paused'; return; }
+  playing=true; this.textContent='Pause'; $('hState').textContent='running'; step(); };
 $('fab').onclick=function(){ $('bPlay').click(); };
 $('bReset').onclick=function(){cancelSessionAutostart(); build(G.team,G.planet); };
 function pick(id,fn){ $(id).onclick=function(e){
@@ -2252,6 +2269,9 @@ function loadSpacologySession(){
   $('sessionGold').textContent=state.gold;
   $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
   build('ops','spread');
+  var controls=$('sessionControls'),play=$('bPlay'),logToggle=$('sessionLogToggle'),record=$('battleRecord');
+  controls.insertBefore(play,logToggle);controls.appendChild($('sessionReturn'));
+  logToggle.onclick=function(){var open=record.classList.toggle('open');this.setAttribute('aria-expanded',open?'true':'false');this.textContent=open?'CLOSE LOG':'COMBAT LOG';};
   sessionAutoTimer=setTimeout(function(){sessionAutoTimer=null;if(G&&!G.over&&!playing)$('bPlay').click();},350);
   return true;
 }
