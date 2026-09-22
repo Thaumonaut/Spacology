@@ -270,6 +270,9 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 
 .recovery-progress{display:none}.session-mode .recovery-progress{display:block;width:100%;padding:10px 12px;border:1px solid #456378;border-radius:8px;background:#0c1923;color:#e8edf1;text-align:left;cursor:pointer;font:13px/1.4 system-ui}
 .recovery-progress>span{font-size:11px;color:#a8cadd}.recovery-progress>b{float:right;font-size:16px}.recovery-progress strong{display:block;font-size:15px;margin-top:8px;color:var(--recovery-color,#efbd68)}.recovery-progress small{display:block;font-size:11px;color:#a8cadd;margin-top:3px}.recovery-track{position:relative;height:10px;margin:12px 0 6px;background:#253743;border-radius:4px;overflow:hidden}.recovery-track>i:first-child{display:block;height:100%;width:0;background:var(--recovery-color,#efbd68)}.recovery-track .tick{position:absolute;top:0;bottom:0;width:1px;background:#f1f4f6aa}.recovery-track .tick.safe{width:3px;background:#8fe0c1}.recovery-progress:focus-visible{outline:3px solid #e9b45e;outline-offset:3px}
+
+.session-mode .tcol{flex:0 0 124px;min-width:124px}.session-mode .tcol .battle-deadline{position:static;width:100%;padding:10px;text-align:left;cursor:pointer;color:#abc6d4}.session-mode .battle-deadline b{font-size:28px}.session-mode .battle-deadline:focus-visible{outline:3px solid #e9b45e}.session-mode .track{max-height:380px;overflow:auto;overscroll-behavior:contain;padding:2px 3px 6px 0}.session-mode .tk{min-height:34px;padding:6px;display:flex;align-items:center;justify-content:space-between;gap:4px}.session-mode .tk .tn{font-size:12px;text-align:left}.session-mode .tk .tw{font-size:11px;flex-shrink:0}.session-mode .tk.round-marker{background:#253329;border:1px solid #6ca88a;color:#bcf0d5;min-height:40px}.session-mode .tk.extraction{background:#3b2a16;border-color:#c29751;color:#ffe2a4}.session-mode .tk.round-marker .tn{white-space:normal;font-weight:700}.session-mode .tk.round-marker .tw{color:inherit}.timeline-edge{display:none}.session-mode .timeline-edge{display:block;padding:8px 2px;font-size:12px;line-height:1.4;color:#aed4c3}.session-mode .tk.advanced{box-shadow:inset 3px 0 #8fe0c1}.session-mode .tk.advanced .tw{color:#8fe0c1}.session-mode .tcol .zlabel{font-size:11px;margin:12px 0 7px}.summary-tempo{font-size:14px;line-height:1.6;color:#b7d2da;margin:12px 0}.summary-tempo strong{color:#8fe0c1}
+@media(max-width:900px){.session-mode .tcol{flex-basis:110px;min-width:110px}.session-mode .tk .tn{font-size:11px}.session-mode .track{max-height:420px}}
 </style>
 <style>.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
 </head>
@@ -288,11 +291,11 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
   </div>
   <div class="boardrow">
     <div class="tcol">
-      <div class="zlabel" style="margin:0 0 5px">Order</div>
-      <div class="track" id="track"></div>
+      <button type="button" class="battle-deadline" id="battleDeadline" aria-label="View combat round rules"><span id="deadlineLabel">ROUND 1 / 5</span><b id="deadlineRemaining">5</b><small>ROUNDS LEFT</small><progress id="deadlineBar" max="100" value="100" aria-label="Current round progress"></progress><small id="deadlineBudget">Advance to act sooner</small></button><div class="zlabel">TURN ORDER · AV</div>
+      <div class="track" id="track" aria-label="Upcoming actions and round boundaries"></div><div class="timeline-edge" id="timelineEdge"></div>
     </div>
     <div class="bmain">
-      <div class="battle-sidebar"><aside class="battle-deadline" id="battleDeadline" aria-label="Combat deadline"><span id="deadlineLabel">TIME LEFT</span><b id="deadlineRemaining">5.0 rounds</b><progress id="deadlineBar" max="500" value="500" aria-label="Combat time remaining"></progress><small id="deadlineBudget">5-round limit</small></aside>
+      <div class="battle-sidebar">
       <button type="button" class="recovery-progress" id="recoveryProgress" aria-label="View recovery scoring"><span>RECOVERY</span><b id="recoveryPercent">0%</b><div class="recovery-track"><i id="recoveryFill"></i><i class="tick" style="left:18%"></i><i class="tick" style="left:42%"></i><i class="tick" style="left:68%"></i><i class="tick safe" style="left:88%"></i></div><strong id="recoveryDelta">−8 integrity</strong><small>If battle ends now</small><small id="recoveryNext"></small></button>
       <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div></div>
       <div class="enemy-dock-live"><div class="zlabel" id="enemyCounter">WAVE 1 / 2 · 6 REMAINING</div><div class="ribbon" id="foes"></div></div>
@@ -311,7 +314,7 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
     <button id="bPlay">Play</button>
     <button id="bReset">Reset</button>
   </div>
-  <section class="session-summary" id="sessionSummary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle"><div class="summary-panel"><div class="eyebrow">RECOVERY REPORT</div><h2 id="summaryTitle">Fieldwork complete</h2><p id="summaryCopy">The crew recovered the encounter and its field record.</p><div class="summary-rewards"><div><b id="summaryGold">+0g</b><span>GOLD EARNED</span></div><div><b id="summaryIntegrity">+0%</b><span>INTEGRITY</span></div><div><b id="summaryObservation">PARTIAL</b><span>OBSERVATION</span></div></div><div class="summary-stats"><div><b id="summaryActions">0</b><span>ACTIONS</span></div><div><b id="summaryBreaks">0</b><span>BREAKS</span></div><div><b id="summaryChains">0</b><span>CHAINS</span></div><div><b id="summaryUltimates">0</b><span>ULTIMATES</span></div><div><b id="summaryDamage">0</b><span>TOTAL DAMAGE</span></div><div><b id="summaryRounds">0</b><span>ROUNDS</span></div></div><div class="summary-drop" id="summaryDrop"></div><button class="summary-return" id="summaryReturn">RECOVER TO OPS</button></div></section>
+  <section class="session-summary" id="sessionSummary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle"><div class="summary-panel"><div class="eyebrow">RECOVERY REPORT</div><h2 id="summaryTitle">Fieldwork complete</h2><p id="summaryCopy">The crew recovered the encounter and its field record.</p><div class="summary-rewards"><div><b id="summaryGold">+0g</b><span>GOLD EARNED</span></div><div><b id="summaryIntegrity">+0%</b><span>INTEGRITY</span></div><div><b id="summaryObservation">PARTIAL</b><span>OBSERVATION</span></div></div><div class="summary-stats"><div><b id="summaryActions">0</b><span>ACTIONS</span></div><div><b id="summaryBreaks">0</b><span>BREAKS</span></div><div><b id="summaryChains">0</b><span>CHAINS</span></div><div><b id="summaryUltimates">0</b><span>ULTIMATES</span></div><div><b id="summaryDamage">0</b><span>TOTAL DAMAGE</span></div><div><b id="summaryRounds">0</b><span>ROUNDS</span></div></div><p class="summary-tempo" id="summaryTempo"></p><div class="summary-drop" id="summaryDrop"></div><button class="summary-return" id="summaryReturn">RECOVER TO OPS</button></div></section>
 </div>
 
 <dialog id="enemyDetails" class="enemy-details" aria-labelledby="enemyDetailTitle"><div id="enemyDetailBody"></div><form method="dialog"><button>BACK TO BATTLE</button></form></dialog>
@@ -606,9 +609,9 @@ var PROFILES={
 var UNIFORM={focus:2.6,kill:2.0,brk:2.0,vuln:1.6,threat:1.2,bulk:0.8,waste:1.4,match:1.2,
              piled:1.8,label:'balanced'};
 var AIMODE='profile', RETARGET='random', CHAINCAP=12, CHAINSTAGE=2;
-var ELITES=[{n:'Warden',sp:98,hp:165,dmg:19,layers:3,guard:22,trait:'Fortified'},
+var ELITES=[{n:'Warden',sp:98,hp:150,dmg:19,layers:3,guard:22,trait:'Fortified'},
             {n:'Anchor',sp:120,hp:135,dmg:22,layers:2,guard:20,haste:.1,cap:4,trait:'Accelerates'},
-            {n:'Bulwark',sp:82,hp:210,dmg:26,layers:4,guard:24,trait:'Heavy armor'}];
+            {n:'Bulwark',sp:82,hp:185,dmg:26,layers:3,guard:24,trait:'Heavy armor'}];
 var ENEMY_KITS={
   Chaff:{n:'Chaff',sp:100,hp:52,dmg:11,layers:1,guard:18,trait:'Soldier'},
   Bruiser:{n:'Bruiser',sp:90,hp:66,dmg:15,layers:1,guard:20,haste:.12,cap:5,trait:'Accelerates'},
@@ -755,7 +758,7 @@ function build(team,planet){
   $('stats').innerHTML='';
   var t=TEAMS[team], pl=PLANETS[planet];
   G={team:team,planet:planet,round:1,av:0,over:false,units:[],wave:0,totalWaves:Math.ceil(POOL/FIELD),ship:Object.assign({},t.ship||{}),
-     breaks:0,chains:0,longest:1,supp:0,foeTurns:0,foeAttacks:0,recoveries:0,dealt:{},actions:0,
+     allyTurns:0,advances:0,advanceSaved:0,shieldedHits:0,alliedHits:0,breaks:0,chains:0,longest:1,supp:0,foeTurns:0,foeAttacks:0,recoveries:0,dealt:{},actions:0,
      limit:MAXROUND,deaths:0,heals:0,drains:0,lowest:100,downed:[],ults:0,biggest:0,
      pending:null,react:{},follows:0,doubles:0};
   t.crew.forEach(function(c,i){
@@ -780,12 +783,12 @@ function build(team,planet){
     var elite=slot===FIELD-1&&(wave===G.totalWaves||OPS_RUN_ROUND>=3);
     var eliteTier=elite?1+Math.floor((OPS_RUN_ROUND-1)/2)+Math.floor((wave-1)/2):0;
     var base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:ENEMY_KITS[CHAFFNAMES[(q+OPS_RUN_ROUND-1)%CHAFFNAMES.length]];
-    var eliteScale=elite?1+(eliteTier-1)*.16:1;
+    var eliteScale=elite?1+(eliteTier-1)*.10:1;
     G.pool.push({n:elite&&eliteTier>=3?'Prime '+base.n:base.n,sp:Math.round(base.sp*OPS_SPEED),
       hp:Math.round(base.hp*OPS_HP*eliteScale),dmg:Math.round(base.dmg*OPS_DMG*(elite?1+(eliteTier-1)*.1:1)),
       elite:elite,eliteTier:eliteTier,wave:wave,
       guard:Math.round(base.guard*OPS_GUARD),haste:base.haste||0,hasteCap:base.cap||0,cleanse:base.cleanse||0,trait:base.trait,
-      weak:pl.weak[q%pl.weak.length].slice(), layers:base.layers+(elite?Math.floor((eliteTier-1)/2):0)});
+      weak:pl.weak[q%pl.weak.length].slice(), layers:base.layers+(elite?Math.min(1,Math.floor((eliteTier-1)/2)):0)});
   }
   spawnFoes();
   var cov=coverage(team,planet);
@@ -951,14 +954,17 @@ $('recoveryProgress').onclick=function(){
   openBattleDetails('<h2 id="enemyDetailTitle">Recovery thresholds</h2><p>'+score.earned+' / '+score.total+' enemy points recovered across <b>every wave</b>. Chaff: 1 point; other regular enemies: 2; elites: 4. Points count when an enemy is defeated, not damaged.</p><dl>'+SpacologyRecovery.bands.map(function(b){return '<dt>'+b.minimum+'%'+(b.minimum===88?' · no loss':'')+'</dt><dd>'+signedIntegrity(b.delta)+(b.minimum===100?' / +5 with observation':'')+' integrity</dd>';}).join('')+'</dl><p><b>If battle ends now: '+signedIntegrity(projectedIntegrity(score))+' integrity.</b> At 88% you lose nothing, even if time expires. Full recovery is +2, or +5 when the observation is complete. Integrity stays between 0 and 100.</p>');
 };
 function paintDeadline(){
-  var remaining=Math.max(0,G.limit*100-G.av),urgent=remaining<=100;
+  var remaining=Math.max(0,G.limit*100-G.av),left=Math.ceil(remaining/100),urgent=left<=1;
   $('battleDeadline').classList.toggle('urgent',urgent);
-  $('deadlineLabel').textContent=remaining===0?'TIME EXPIRED':urgent?'FINAL ROUND':'TIME LEFT';
-  $('deadlineRemaining').textContent=(Math.ceil(remaining/10)/10).toFixed(1);
-  $('deadlineBudget').textContent='rounds · '+G.limit+' total';
-  $('deadlineRemaining').setAttribute('aria-label',(Math.ceil(remaining/10)/10).toFixed(1)+' combat rounds remaining');
-  $('deadlineBar').max=G.limit*100;$('deadlineBar').value=remaining;
+  $('deadlineLabel').textContent=remaining===0?'EXTRACTION':urgent?'FINAL ROUND':'ROUND '+G.round+' / '+G.limit;
+  $('deadlineRemaining').textContent=left;
+  $('deadlineBudget').textContent='Advances: '+Math.round(G.advanceSaved||0)+' AV';
+  $('deadlineRemaining').setAttribute('aria-label',left+' rounds remaining, including this round');
+  $('deadlineBar').max=100;$('deadlineBar').value=remaining?100-G.av%100:0;
 }
+$('battleDeadline').onclick=function(){
+  openBattleDetails('<h2 id="enemyDetailTitle">Win before extraction</h2><p>Each round spans <b>100 Action Value (AV)</b> on this turn order. The round markers keep moving regardless of who acts. At the final marker the battle ends.</p><p><b>Speed</b> shortens the wait between turns. <b>Action advances</b> pull a crewmate ahead of the next marker, fitting more attacks into the same rounds. Ultimates and follow-ups resolve without spending another turn. Enemy delays give you safer attack windows; they do not add rounds.</p><p>Animation speed and pausing never spend rounds. '+(G.allyTurns||0)+' crew turns so far; '+(G.advances||0)+' advances have removed '+Math.round(G.advanceSaved||0)+' AV of waiting. This is combined crew waiting saved, not extra battle time.</p>');
+};
 function paintAll(){ paintDeadline();paintRecovery();G.units.forEach(function(u){ paintUnit(u) });
   $('hRound').textContent=G.round; $('hMax').textContent=G.limit;
   $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
@@ -1174,20 +1180,29 @@ function bloomReady(){
 }
 function project(n){
   var sim=G.units.filter(function(u){return u.alive})
-    .map(function(u){return {u:u,av:u.av}});
-  var out=[];
+    .map(function(u){return {u:u,av:G.pending&&G.pending.id===u.id?G.pending.av:u.av}});
+  var out=[],elapsed=0;
   for(var k=0;k<n;k++){ sim.sort(function(a,b){return a.av-b.av});
-    var t=sim[0]; if(!t) break; var adv=t.av;
+    var t=sim[0]; if(!t) break; var adv=Math.max(0,t.av);elapsed+=adv;
     sim.forEach(function(x){x.av-=adv});
-    out.push({u:t.u,wait:Math.round(adv)}); t.av=10000/t.u.sp; }
-  return out; }
+    out.push({u:t.u,wait:elapsed}); t.av=10000/t.u.sp; }
+  return out;
+}
+function timelineEntries(){
+  var end=Math.max(0,G.limit*100-G.av),horizon=Math.min(end,(Math.floor(G.av/100)+2)*100-G.av),q=project(128).filter(function(sl){return sl.wait<horizon});
+  if(G.bloom&&G.bloom.live&&bloomReady()&&G.bloom.av<horizon)q.push({bloom:1,wait:G.bloom.av});
+  var boundary=(Math.floor(G.av/100)+1)*100;
+  // Markers win exact ties, matching the resolver's exclusive final deadline.
+  for(var at=boundary;at<=G.av+horizon;at+=100)q.push({roundMarker:1,round:at/100+1,extraction:at===G.limit*100,wait:at-G.av});
+  return q.sort(function(a,b){return a.wait-b.wait||(b.roundMarker||0)-(a.roundMarker||0)});
+}
 function track(){
   var el=$('track');
   var before={};
   el.querySelectorAll('.tk').forEach(function(e){
     before[e.dataset.k]=e.getBoundingClientRect().top; });
 
-  var q=project(10);
+  var q=timelineEntries();
   var seen={};
   el.innerHTML='';
   var ready=G.units.filter(function(u){
@@ -1200,12 +1215,14 @@ function track(){
       '</div><div class="tw">any time</div>';
     el.appendChild(rd);
   }
-  if(G.bloom&&G.bloom.live){
-    var pos=q.length;
-    for(var bi=0;bi<q.length;bi++){ if(q[bi].wait>G.bloom.av){pos=bi;break;} }
-    q=q.slice(0,pos).concat([{bloom:1,wait:G.bloom.av}],q.slice(pos)).slice(0,10);
-  }
+  var nextBoundary=(Math.floor(G.av/100)+1)*100-G.av;
+  var beforeBoundary=q.filter(function(sl){return !sl.roundMarker&&sl.wait<nextBoundary}).length;
+  $('timelineEdge').textContent=G.av>=G.limit*100?'Extraction reached':beforeBoundary+' queued actions before '+(G.round===G.limit?'extraction':'round '+(G.round+1));
   q.forEach(function(sl,i){
+    if(sl.roundMarker){
+      var marker=document.createElement('div');marker.className='tk round-marker'+(sl.extraction?' extraction':'');marker.dataset.k='ROUND-'+sl.round;marker.dataset.wait=sl.wait;
+      marker.innerHTML='<div class="tn">'+(sl.extraction?'EXTRACTION':'ROUND '+sl.round)+'</div><div class="tw">'+Math.ceil(sl.wait)+'</div>';el.appendChild(marker);return;
+    }
     if(sl.bloom){
       var bd=document.createElement('div');
       bd.className='tk bloomtok'+(bloomReady()?' hot':'');
@@ -1218,11 +1235,11 @@ function track(){
     seen[u.id]=(seen[u.id]||0)+1;
     var key=u.id+'#'+seen[u.id];
     var d=document.createElement('div');
-    d.className='tk'+(i===0?' now':'')+(i>6?' fade':'')+(u.broken?' brk':'');
-    d.dataset.k=key;
+    d.className='tk'+(i===0?' now':'')+(u.broken?' brk':'')+(u.lastAdvanceAt===G.av?' advanced':'');
+    d.dataset.k=key;d.dataset.wait=sl.wait;
     d.innerHTML='<div class="tn" style="color:'+
       (u.side==='foe'?EL[u.e]:'var(--ink)')+'">'+u.n+'</div>'+
-      '<div class="tw">'+(i===0?'now':Math.round(sl.wait))+'</div>';
+      '<div class="tw">'+(u.lastAdvanceAt===G.av?'↑ ':'')+Math.ceil(sl.wait)+'</div>';
     el.appendChild(d);
   });
 
@@ -1517,6 +1534,14 @@ function accelerateEnemy(u,damage){
   u.hasteStacks++;
   setEnemySpeed(u,Math.round(u.baseSp*(1+u.haste*u.hasteStacks)));
 }
+function advanceAlly(u,amount){
+  var pending=G.pending&&G.pending.id===u.id,wait=pending?G.pending.av:u.av;
+  var saved=Math.min(Math.max(0,wait-1),Math.max(0,amount));
+  if(!saved)return 0;
+  if(pending)G.pending.av-=saved;else u.av-=saved;
+  G.advances=(G.advances||0)+1;G.advanceSaved=(G.advanceSaved||0)+saved;u.lastAdvanceAt=G.av;
+  return saved;
+}
 function queueReset(u){ G.pending={id:u.id,av:10000/u.sp}; }
 function applyReset(){
   if(!G||!G.pending) return false;
@@ -1611,6 +1636,7 @@ function resolveAction(){
   var act=alive[0], adv=act.av;
   var oldRound=G.round;
   if(advanceCombat(adv))return {end:'Out of time'};
+  if(act.side==='ally')G.allyTurns=(G.allyTurns||0)+1;
   var ev={actor:act,hits:[],chains:[],notes:[],roundStart:G.round>oldRound?G.round:null,suppressed:false};
 
   var fresh=spawnFoes();
@@ -1707,7 +1733,7 @@ function resolveAction(){
     if(need.length){
       var kt=need[0];
       kt.en=Math.min(EN.cost,kt.en+34);
-      kt.av=Math.max(1,kt.av-(10000/kt.sp)*0.3);
+      advanceAlly(kt,(10000/kt.sp)*0.3);
       act.en=Math.min(EN.cost,act.en+EN.act+12);
       ev.kindle={src:act.id,tgt:kt.id,name:kt.n,full:kt.en>=EN.cost};
       queueReset(act); return ev;
@@ -1760,7 +1786,7 @@ function resolveAction(){
       return u.side==='ally'&&u.alive&&u.follow&&u.id!==act.id})
       .sort(function(a,b){return a.av-b.av});
     if(q.length){ var nx=q[0];
-      nx.av=Math.max(1,nx.av-(10000/nx.sp)*0.5);
+      advanceAlly(nx,(10000/nx.sp)*0.5);
       ev.advanced={id:nx.id,name:nx.n}; } }
   ev.hits.push(hit(act,tgt,scale===1?undefined:scale));
   if(act.extraTargets){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,.7))})}
@@ -1874,9 +1900,9 @@ function cascade(ev,src,cur,events){
       return m.side==='ally'&&m.alive&&m.onFollow;
     }).forEach(function(m){
       var nx=G.units.filter(function(u){
-        return u.side==='ally'&&u.alive&&u.id!==m.id})
+        return u.side==='ally'&&u.alive&&u.id!==m.id&&(!ev.actor||ev.interrupt||u.id!==ev.actor.id)})
         .sort(function(a,b){return a.av-b.av})[0];
-      if(nx){ nx.av=Math.max(1,nx.av-(10000/nx.sp)*0.45);
+      if(nx){ advanceAlly(nx,(10000/nx.sp)*0.45);
         ev.advanced={id:nx.id,name:nx.n,by:m.n}; }
     });
   });
@@ -1908,7 +1934,7 @@ function hit(src,tgt,scale){
   var d=Math.round(amt*mult);
   if(tgt.side==='ally'&&G.ship&&G.ship.brace>0){d=Math.max(1,Math.round(d*.6));G.ship.brace--;}
   G.biggest=Math.max(G.biggest,d);
-  if(src.side==='ally') G.dealt[src.n]=(G.dealt[src.n]||0)+d;
+  if(src.side==='ally'){G.dealt[src.n]=(G.dealt[src.n]||0)+d;G.alliedHits=(G.alliedHits||0)+1;if(soaked)G.shieldedHits=(G.shieldedHits||0)+1;}
   var rawIn=d;
   if(tgt.side==='ally'&&tgt.bar>0){
     var soak2=Math.min(tgt.bar,d); tgt.bar-=soak2; d-=soak2;
@@ -2358,6 +2384,18 @@ function logHit(h,why){
 }
 
 /* ============ finish ============ */
+function battleAnalysis(){
+  var remaining=G.units.filter(function(u){return u.side==='foe'&&u.alive});
+  var unspawned=Math.max(0,G.pool.length-G.spawned),shieldShare=G.alliedHits?Math.round(G.shieldedHits/G.alliedHits*100):0;
+  var notes=[];
+  if(unspawned)notes.push(unspawned+' enemies in later waves were not reached.');
+  if(remaining.length)notes.push(remaining.length+' enemies still active'+(remaining.length===1?': '+remaining[0].n+' at '+Math.ceil(remaining[0].hp/remaining[0].max*100)+'% health':'')+'.');
+  if(shieldShare>=50)notes.push(shieldShare+'% of your hits landed into shields; matched elements and guard damage can open longer damage windows.');
+  if(G.deaths)notes.push(G.deaths+' crew went down, reducing your available actions.');
+  if(G.recoveries>=3)notes.push(G.recoveries+' enemy recoveries closed break windows; coordinate burst or delay their turns.');
+  if(!notes.length)notes.push('Compare damage per turn with crew turns to choose between stronger hits and faster rotations.');
+  return {crewTurns:G.allyTurns||0,advances:G.advances||0,savedAV:Math.round(G.advanceSaved||0),shieldShare:shieldShare,remaining:remaining.length+unspawned,notes:notes};
+}
 function finish(msg){
   G.over=true; playing=false; clr();paintDeadline();paintRecovery();clearRibbonMarks();clearStage();
   $('bPlay').textContent='Play'; $('hState').textContent=msg;
@@ -2398,7 +2436,8 @@ function finish(msg){
     var modifierEffects=SpacologyExpedition.effects(window.SPACOLOGY_SESSION);
     var baseGold=(won?Math.round((28+window.SPACOLOGY_SESSION.round*6)*modifierEffects.reward):10)+modifierEffects.flatGold;
     var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*.2):0;
-    var result={reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
+    var analysis=battleAnalysis();
+    var result={analysis:analysis,reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
       recovery:recovery,integrity:Math.max(0,Math.min(100,window.SPACOLOGY_SESSION.integrity+recovery.integrity))-window.SPACOLOGY_SESSION.integrity,
       gold:baseGold+surveyBonus,
       observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
@@ -2415,6 +2454,7 @@ function finish(msg){
     $('summaryChains').textContent=G.chains;$('summaryUltimates').textContent=G.ults;
     $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=(Math.round(G.av)/100).toFixed(2)+' / '+G.limit;
     var recovered=[];if(rareItem)recovered.push(rareItem.name);if(crystals)recovered.push('Bloom crystal ×'+crystals);if(surveyBonus)recovered.push('Survey bonus +'+surveyBonus+'g');
+    $('summaryTempo').textContent=analysis.crewTurns+' crew turns · '+analysis.advances+' advances · '+analysis.savedAV+' AV of crew waiting saved. '+analysis.notes.join(' ');
     $('summaryDrop').textContent=recovered.length?'RARE RECOVERY · '+recovered.join(' · '):'No rare recovery this encounter.';
     $('summaryReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
     $('sessionSummary').classList.add('show');

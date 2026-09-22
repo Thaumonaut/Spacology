@@ -47,3 +47,5 @@ Port 4174 is the isolated original-roster playtest used for the [recorded tuning
 `owned-attunement.cjs` checks token upgrades, rank caps, placement, recruitment and combat stats. `gear-crafting.cjs` checks scrap costs, equipped ingredients, cancellation, gear removal and tablet detail layouts. `crystal-controls.cjs` checks crystal selection and held touch-drag confirmation. All three run headlessly.
 
 Copy progression replaces rank purchases: `owned-attunement.cjs` now covers copy payment, 3/9-copy merges and the field-level gate. `reserve-packs.cjs` covers six-slot capacity, direct deployment, Take All retry and maxed-only disposal. `voyage-return.cjs` plays all six encounters and checks crystal-crafted effects and immediate Ops return. Pure progression/migration tests: `node tests/unit/crew-progression.cjs`.
+
+`round-timeline.cjs` checks fixed round markers, cumulative AV, tempo turns, advances, report/inbox diagnostics and tablet layout. Optional balance sampling: `tests/balance/round-timeline.cjs`.
