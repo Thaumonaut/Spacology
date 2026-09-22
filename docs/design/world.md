@@ -69,7 +69,7 @@ both, and which counts as *properly* engineering is the oldest and friendliest a
 
 ## The ship
 
-The ***Understory*** is an **arcology** — a self-contained city, built as one structure, that also
+***ARC 017 - Star Singer*** is an **arcology** — a self-contained city, built as one structure, that also
 happens to travel faster than light.
 
 She is not alive. This matters and people get it wrong: she has no mind, wants nothing, and is not a
@@ -202,7 +202,7 @@ forty years and hear the day it changes.
 song thins, then stops, and the lane closes. A fading lane is the earliest warning anyone gets that
 the Null has taken something upstream.
 
-The *Understory* has lost eleven lanes in eleven years.
+*ARC 017 - Star Singer* has lost eleven lanes in eleven years.
 
 ---
 
@@ -242,7 +242,7 @@ is ever truly lost, it is not merely frightening. It is a violation of the one t
 of.
 
 The Census's official position is that the Null is a phenomenon under study. The Census's official
-position is also that the *Understory* is not running from it.
+position is also that *ARC 017 - Star Singer* is not running from it.
 
 ---
 
@@ -250,7 +250,7 @@ position is also that the *Understory* is not running from it.
 
 Because it is the only copy.
 
-A species the *Understory* does not reach in time does not die — dying leaves something behind. It
+A species *ARC 017 - Star Singer* does not reach in time does not die — dying leaves something behind. It
 is never recorded, and afterwards there is no fossil, no bone, no story and no trace, and as far as
 anything that comes later is concerned it simply never happened.
 
@@ -275,7 +275,7 @@ ordinary name.
 species into a character rather than a spec sheet, and it is usually where the comedy lives.
 
 **This list is a sample, not a census.** Life is everywhere, so there are hundreds of peoples and
-the *Understory* carries a fair share of them. What follows is the ones who matter to the story.
+*ARC 017 - Star Singer* carries a fair share of them. What follows is the ones who matter to the story.
 Adding more is expected; the test each one has to pass is below.
 
 **The principle that keeps this from being lazy: a species is a body, a people is a culture, and
@@ -470,7 +470,7 @@ visibly disappointed every single time by the response.
 ### The sunfed
 
 Photosynthetic. Green-blooded, slow-metabolised, and fed mostly by light — which makes the
-*Understory*'s leaf canopies and green filtered galleries a far more comfortable place than most
+*ARC 017 - Star Singer*'s leaf canopies and green filtered galleries a far more comfortable place than most
 ships.
 
 They eat very little, endure isolation and short rations that would break anyone else, and are
@@ -659,7 +659,7 @@ at a yard, aboard a ship — scattered now across a dozen systems in fragments t
 community anywhere. Kessa did not end so much as disperse, and the survivors mostly find each other
 by accident, one at a time, for the rest of their lives.
 
-**Two of them are aboard the *Understory*.** One rock skin, one bird folk, who would have had very
+**Two of them are aboard *ARC 017 - Star Singer*.** One rock skin, one bird folk, who would have had very
 little to say to each other at home. They do not discuss it. They do not need to.
 
 ### Calyx IV

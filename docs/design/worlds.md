@@ -583,7 +583,7 @@ Two things are slightly wrong, and they are the same thing. The channel is carry
 
 Nobody has put the two observations together, because the Senthe do not write things down and no school tells the other school anything.
 
-Off-world, the lane serving Casran has thinned at the far end. Two of the eleven the *Understory* has lost were upstream of here, and the song past the system is fainter than when the survey came through.
+Off-world, the lane serving Casran has thinned at the far end. Two of the eleven *ARC 017 - Star Singer* has lost were upstream of here, and the song past the system is fainter than when the survey came through.
 
 She came once, spent four months over the Rise, added nine hundred and forty entries and signed eleven Casrani aboard. She is not expected back.
 
@@ -592,7 +592,7 @@ She came once, spent four months over the Rise, added nine hundred and forty ent
 Things a character from here carries:
 
 - The two calluses — base of the right thumb, outside edge of the left forefinger, from a shackle key. Another Rhevani spots them across a room and says so immediately, as an opener, before a name.
-- The four-second gap before answering. It is echo discipline, not disapproval, and on a ship where everyone fills a silence a Senthe gets talked over about forty times a day and has stopped expecting otherwise. The *Understory*'s watercourse also runs at very nearly the Mat's note, so a Senthe aboard either cannot sleep at all or sleeps better than they ever have, and finds out which in the first week.
+- The four-second gap before answering. It is echo discipline, not disapproval, and on a ship where everyone fills a silence a Senthe gets talked over about forty times a day and has stopped expecting otherwise. *ARC 017 - Star Singer*'s watercourse also runs at very nearly the Mat's note, so a Senthe aboard either cannot sleep at all or sleeps better than they ever have, and finds out which in the first week.
 - Asking leave to cross someone's work — a bench, a bay, a line of sight through a scope. A Rhevani does it on day one, gets a strange look, does it again on day two, and it takes about four years before the compartment starts asking back without noticing it has started.
 - Nine-year credit. An Okolu writes down a favour and means to settle it in nine years and will, exactly, to the item, and the other party will have forgotten entirely by then and will find the whole thing frightening.
 - Everything they own has a handle. A Korveth will give you a thing you admired, on the spot, with no ceremony, be confused by the thanks, and has no idea this is unusual anywhere.
@@ -958,7 +958,7 @@ Things a character from here carries:
 
 A Dareme postgraduate spent a fortnight on the Ghal quietly turning every settling jar in an assay shed, because she cannot leave standing water alone and did not notice she was doing it. She had been introduced as very senior. The Ghalen assumed it was a technique, adopted it, and were still doing it two years later when somebody finally asked her what it was for.
 
-Somebody on the *Understory* stood a spare shovel upright in the aft grove to mark where the seedlings were. Three Ombreans saw it before anyone thought to explain. One of them wrote home about it.
+Somebody on *ARC 017 - Star Singer* stood a spare shovel upright in the aft grove to mark where the seedlings were. Three Ombreans saw it before anyone thought to explain. One of them wrote home about it.
 
 And a second-year from the Ghal, asked by a lecturer to introduce herself, gave her name, her voucher, her voucher's voucher and the year her face runs out, because she assumed the question was the one it would have been at home. The lecturer said thank you. Other people have introduced her that way ever since, and she has decided to find it funny.
 
@@ -1124,7 +1124,7 @@ Nothing has come near it, and the way you can tell is the calendar.
 
 The Bight tables run four hundred and forty years forward and the Chain's window list six hundred, both worked out by hand, both checked against the water at every low for as long as there have been lists. No entry in either has been found wrong by more than four minutes. A Beluni child learns lows that will happen when they are ninety. A Uvane parting names a window, and a fair number of those windows are decades out, and nobody treats this as a figure of speech.
 
-That is the one thing Belune III has that the *Understory* does not. The catalogue can describe anything that exists and cannot describe an afternoon four hundred years from now.
+That is the one thing Belune III has that *ARC 017 - Star Singer* does not. The catalogue can describe anything that exists and cannot describe an afternoon four hundred years from now.
 
 Sevim Aydar keeps a Bight table in the drawer under the assay bench, unremarkably, the way anyone keeps a tide table. People come down and ask to look at it. Two of them are from Kessa. Sevim has never asked why, hands it over, and goes back to work, and it is the only thing they own that anyone has ever wanted to borrow.
 
@@ -1651,14 +1651,14 @@ The Null has not come near Vantage, and nobody there considers it a subject — 
 
 One thing has changed. Since the Census post opened sixty years ago, ordinary people have been turning up at it asking to have things entered. Not the biology, which is what the post is for. The drop consents. The crew names. The charges and the section liabilities and the forty-one exchanges. All of it held in living memory, none of it written anywhere, all of it precisely the sort of thing that leaves nothing behind. Records has never worked out what to do about this and has never once said no, and there is now a wing of the post that exists entirely because of it.
 
-Eleven Vantage people joined the *Understory* at the last call. Nine were Sekkeri.
+Eleven Vantage people joined *ARC 017 - Star Singer* at the last call. Nine were Sekkeri.
 
 ### Hooks
 
 Things a character from here carries:
 
 - Anyone from Vantage can tell you whether a structure is loaded correctly by listening to it for about ten seconds. Any stratum, any trade, no training — you grow up under forty billion tonnes and you learn what a building sounds like when it is unhappy. On a ship with a grown hull that is either the most useful instinct aboard or a source of constant unnecessary alarm, and which one depends on the week.
-- Aboard the Understory nobody knows what the numbers mean. A Vantage crewmate gives the rating in the first sentence out of reflex, watches the face, and gets nothing back — no adjustment, no second look, no polite question about staging times. It is the single most restful thing about the ship and not one of them has found a way to say so.
+- Aboard ARC 017 - Star Singer nobody knows what the numbers mean. A Vantage crewmate gives the rating in the first sentence out of reflex, watches the face, and gets nothing back — no adjustment, no second look, no polite question about staging times. It is the single most restful thing about the ship and not one of them has found a way to say so.
 - An Ilmeth knows their own mass to the hundred grams and picks things up to find out what they weigh. Your things. Mid-sentence, without asking. They also catch anything falling, always, without looking, because in the canopy a dropped object is four kilometres of falling and lands on somebody — so they catch things other people have not dropped yet, and apologise, and do it again.
 - A Kovrasi will not alter anything shared without finding everyone it touches and asking them. Not a vent, not a lamp, not the position of a bench in a gallery. Somebody rerouting a duct because it was quicker genuinely upsets them, and they cannot explain why at a volume that sounds proportionate, because to them it is not a principle. It is what a shared thing is.
 - A Haskin gives the crew before the name and has no useful answer to what do you do, because in the deeps that is not a question asked of one person. It reads as modesty or evasion and is neither. The other tell is on the hands — fine pale mottling across the backs of both, off twenty years wet at fifty-five degrees — which deep-run Haskin spot on each other across a refectory instantly and never mention.
@@ -1723,4 +1723,3 @@ and Ranohe II are weak as a pair — the same vertical section.
 
 **Strongest:** Sindal II — three peoples, the only world whose geography is overhead rather than
 underfoot.
-

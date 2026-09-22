@@ -1,4 +1,4 @@
-# The crew of the *Understory*
+# The crew of *ARC 017 - Star Singer*
 
 All 21 — who they are, what they look like, where they came from, and what they have done to each
 other. Replaces the one-line bios in `sim/roster.js`.
@@ -274,7 +274,7 @@ and has not put a foot wrong since, which is its own kind of problem.
 
 Her method is reagent mist: release it into a reef interior, let the atmosphere do the mixing, read
 what comes back. An hour instead of a week. It also permanently alters everything within a
-kilometre, and once — badly — it got into the ship's own circulation and the *Understory* smelled of
+kilometre, and once — badly — it got into the ship's own circulation and *ARC 017 - Star Singer* smelled of
 burnt sugar for three weeks. People still say *"is that Stella"* about any unexplained smell.
 
 **Decay: front-loaded and permanent.** What she does happens at once and does not wear off. No reef
