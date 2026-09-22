@@ -403,6 +403,7 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 <script src="voyage-settings.js"></script>
 <script src="recovery-scoring.js"></script>
 <script src="expedition-rules.js"></script>
+<script src="crew-progression.js"></script>
 <script>
 /* ============ data ============ */
 var EL={order:'#7FA8C9',chaos:'#C97F9E',growth:'#8FB878',
@@ -2388,7 +2389,8 @@ function finish(msg){
     var observation=SpacologyExpedition.observed(window.SPACOLOGY_SESSION,G,won);
     var recovery=SpacologyRecovery.score(G.pool,G.units,observation);
     var pity=window.SPACOLOGY_SESSION.rarePity||0;
-    var crystals=won&&(Math.random()<.22||pity>=3)?1:0;
+    var bonusCrystal=won&&(Math.random()<.22||pity>=3)?1:0;
+    var crystals=won?1+bonusCrystal:0;
     var rarePool=[{type:'gear',name:'Bore Bit'},{type:'gear',name:'Recoil Spring'},
       {type:'gear',name:'Ballast Plate'},{type:'ship',name:'Survey Prism'},
       {type:'ship',name:'Brace Matrix'}];
@@ -2401,7 +2403,7 @@ function finish(msg){
       gold:baseGold+surveyBonus,
       observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
       actions:G.actions,enemyAttacks:G.foeAttacks,enemyRecoveries:G.recoveries,deaths:G.deaths,ultimates:G.ults,totalDamage:Math.round(tot),crystals:crystals,item:rareItem,
-      rarePity:crystals?0:pity+(won?1:0)};
+      rarePity:bonusCrystal?0:pity+(won?1:0)};
     localStorage.setItem('spacologyBattleResult',JSON.stringify(result));
     $('summaryTitle').textContent=won?'Fieldwork recovered':msg==='Out of time'?'Time expired':'Partial recovery';
     $('summaryCopy').textContent=won?'The crew secured the encounter and returned its field record.':msg==='Out of time'?'The '+G.limit+'-round deadline expired before every wave was cleared. Partial data and recovery gold were retained.':'Extraction preserved the data gathered before the crew fell back.';
@@ -2507,8 +2509,8 @@ function loadSpacologySession(){
     var canonical=state.combatStats&&state.combatStats[name];
     if(canonical){c.hp=canonical.hp;c.dmg=canonical.dmg;c.sp=canonical.speed*10;}
     var rank=(state.crewUpgrades&&state.crewUpgrades[name])||0;
-    c.hp=Math.round((c.hp||100)*(1+rank*.15)*planetHealth);
-    c.dmg=Math.round(c.dmg*(1+rank*.1)*modifierEffects.crewDamage);
+    c.hp=Math.round((c.hp||100)*SpacologyCrew.bonuses(rank).hp*planetHealth);
+    c.dmg=Math.round(c.dmg*SpacologyCrew.bonuses(rank).attack*modifierEffects.crewDamage);
     var gear=(state.equipped&&state.equipped[name])||[];
     gear.forEach(function(item){
       if(item==='Tuning Fork'&&c.frac)c.frac++;
@@ -2528,6 +2530,7 @@ function loadSpacologySession(){
   var ship={brace:0,survey:false};
   (state.shipEquipped||[]).filter(Boolean).forEach(function(item){
     if(item==='Culture Bed')crew.forEach(function(c){if(c.frac)c.frac++});
+    if(item==='Prismatic Dynamo')crew.forEach(function(c){c.startEnergy=(c.startEnergy||0)+30});
     if(item==='Exact Clock')crew.forEach(function(c){c.startEnergy=(c.startEnergy||0)+20});
     if(item==='Fast Clock')crew.forEach(function(c){c.startAdvance=(c.startAdvance||0)+8});
     if(item==='Brace Matrix')ship.brace++;
@@ -2553,8 +2556,8 @@ function loadSpacologySession(){
   var routeHost=document.querySelector('.session-route');if(routeHost)routeHost.innerHTML=rules.route.map(function(name,i){return '<div class="session-node '+(i+1<state.round?'done':i+1===state.round?'current':'')+'"><i>'+(i+1<state.round?'✓':i+1)+'</i><b>'+(i===5?'EXTRACT':'SURVEY')+'</b></div>'}).join('');
   $('sessionIntegrity').textContent=state.integrity+'%';
   $('sessionGold').textContent=state.gold;
-  $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
-  $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
+  $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'};
+  $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'};
   build('ops','spread');
   var controls=$('sessionControls'),play=$('bPlay'),logToggle=$('sessionLogToggle'),record=$('battleRecord');
   controls.insertBefore(play,logToggle);controls.appendChild($('sessionReturn'));

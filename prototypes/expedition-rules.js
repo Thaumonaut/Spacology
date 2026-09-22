@@ -24,6 +24,7 @@
     {star:'Iseul',name:'Iseul III',x:52,y:43,peoples:'Ossuan and human orbital communities.',landscape:'Survey networks linking planetary and orbital settlements.',status:'Existing world; birthplace and ancestral affiliation are distinct.'}
   ];
   const recipes = [
+    {name:'Lumen Conduit',inputs:[],scrap:12,crystals:2,effect:'Begin battle with 35 extra Energy; ultimate damage increases by 20%.',stats:{startEnergy:35,ultMul:1.2}},
     {name:'Resonance Coil', inputs:['Tuning Fork','Spore Sling'], effect:'Applications add 1 stack; spread reaches 1 additional specimen.', stats:{frac:1,spreadExtra:1}},
     {name:'Survey Lance', inputs:['Ranging Sight','Bore Bit'], effect:'Attacks hit 1 additional specimen and deal 40% more guard damage.', stats:{extraTargets:1,guardMul:1.4}},
     {name:'Counterweight', inputs:['Loaded Die','Recoil Spring'], effect:'First attack deals 20% more damage; follow-ups deal 30% more.', stats:{openingBoost:.2,followMul:1.3}},

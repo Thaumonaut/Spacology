@@ -53,6 +53,8 @@ body{padding:0}.frame{width:100vw;height:100vh;max-height:none;aspect-ratio:auto
 @media(max-width:800px){.inventory .item[draggable=true]{touch-action:pan-x}}
 </style>
 <link rel="stylesheet" href="ops-room.css">
+<style>.returning-to-ops #titleScreen{display:none!important}</style>
+<script>if(new URLSearchParams(location.search).get('return')==='1')document.documentElement.classList.add('returning-to-ops');</script>
 </head>
 <body><div class="frame">
   <section class="title-screen" id="titleScreen" aria-label="Spacology title screen"><div class="title-copy"><div class="eyebrow">ARC 017 - STAR SINGER · VOYAGE 01</div><h1>Spacology</h1><p>Build a field crew, study an impossible ecology, and bring a record home before the Null erases it.</p><div class="title-actions"><button class="primary" id="enterOps">ENTER OPS ROOM</button><a href="art-gallery.html">OPEN ART ARCHIVE</a></div></div></section>
@@ -82,7 +84,7 @@ body{padding:0}.frame{width:100vw;height:100vh;max-height:none;aspect-ratio:auto
 
   <aside class="ship"><div class="ship-head"><div><div class="eyebrow">VESSEL</div><b>Ship equipment</b></div><span>1 / 3</span></div><article class="ship-slot" data-ship="Survey Prism"><div class="ship-icon">◫</div><b>Survey Prism</b><span>Observations fill 20% faster.</span></article><button class="ship-slot empty" data-ship="empty">+ EQUIP SHIP ITEM</button><button class="ship-slot empty" data-ship="empty">+ EQUIP SHIP ITEM</button><div class="ship-note">Ship items affect the whole expedition. Character Gear occupies the two diamonds on each crew card.</div></aside>
 
-  <section class="inventory"><div class="inv-controls"><div class="inv-top"><b>Inventory</b><button data-info="manage">MANAGE</button></div><div class="inv-tabs"><button class="active" data-tab="characters"><b>♙</b>CREW</button><button data-tab="gear"><b>◈</b>GEAR</button><button data-tab="ship"><b>▣</b>SHIP</button><button data-tab="materials"><b>◆</b>MATERIALS</button></div><div class="craft-actions"><button data-info="forge">FORGE</button><button data-info="attune">ATTUNE</button><button data-info="barracks">BARRACKS</button></div><div class="inv-hint">Tap any card for its full effect, compatible slots, and crew build details.</div></div><div class="inv-items" id="inventoryItems"></div></section>
+  <section class="inventory"><div class="inv-controls"><div class="inv-top"><b>Inventory</b><button data-info="manage">MANAGE</button></div><div class="inv-tabs"><button class="active" data-tab="characters"><b>♙</b>CREW</button><button data-tab="gear"><b>◈</b>GEAR</button><button data-tab="ship"><b>▣</b>SHIP</button><button data-tab="materials"><b>◆</b>MATERIALS</button></div><div class="craft-actions"><button data-info="forge">FORGE</button><button data-info="attune">ATTUNE</button></div><div class="inv-hint">Tap any card for its full effect, compatible slots, and crew build details.</div></div><div class="inv-items" id="inventoryItems"></div></section>
 
   <aside class="departure"><div class="eyebrow">NEXT NODE · FIELDWORK</div><div class="destination"><b>Compound Motion</b><span>Observe a Quickstep acting twice · +5 Fidelity</span></div><div class="round-settings"><button class="setting" data-info="calls">CALLS · 2</button><button class="setting" data-info="next-settings">⚙ SETTINGS</button></div><button class="continue" id="continueButton">CONTINUE TO FIELDWORK</button></aside>
 
@@ -116,6 +118,7 @@ document.getElementById('closeModal').onclick=()=>overlay.classList.remove('open
 </script>
 <script src="voyage-settings.js"></script>
 <script src="expedition-rules.js"></script>
+<script src="crew-progression.js"></script>
 <script src="spacology-v0.1.0.js"></script>
 <script>document.getElementById('enterOps').onclick=()=>document.getElementById('titleScreen').hidden=true;</script>
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('../sw.js');</script>

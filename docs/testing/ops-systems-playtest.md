@@ -9,9 +9,9 @@ This working build extends `f6fa566` plus the integrity/difficulty work. It is n
 - Ask / auto-scrap / auto-sell for owned crew in new packs. The original character and equipment remain untouched. Items still resolve manually; keeping a duplicate converts it to scrap.
 - Material counters show real quantities, without the hardcoded attunement progress or overlapping descriptions.
 - Basic gear costs 6 scrap. Five advanced recipes combine two gear items plus 8 scrap. Drag ingredients in Forge or select a recipe to preview and confirm. Equipped ingredients are eligible; the result replaces the first equipped ingredient, with all sources shown before payment. Inputs are consumed only when the recipe is valid and the output is unowned. Character details show portraits, gear effects, and removal to inventory. Crafted effects are applied by the live battle loader.
-- Crew upgrades cost 8 scrap + 1 crystal per rank, capped at rank III. Each rank adds 15% base health and 10% base attack.
-- Attunements cost 12 scrap + 1 crystal and recruit a chosen unowned character of that element, or upgrade an owned character by one rank through rank III without any further payment. Only elements represented by playable crew are offered.
-- Barracks recruits an unowned named character for 32 gold, once per encounter. Ledger is now available through Barracks or Order attunement, using the existing engine kit and Aurelio portrait.
+- Copy-based progression replaces material-paid ranks and Barracks. See [current rules and migration](copy-progression.md).
+- Attunement spends 2 crystals for one copy of owned crew. New characters come from packs.
+- Reserves hold six characters/copies. Three matching copies merge; ★★★ unlocks at field level 5.
 - Recovery inbox records already-applied encounter rewards, rare items, duplicate conversion, actual integrity change and goal bonuses. Reading a receipt cannot claim it again. Final-report reload and inbox access work.
 - Six route nodes update from the actual encounter index. The separate star atlas describes proposed homeworld systems, not those six encounter locations.
 - One optional modifier before first launch, one at encounter four, category caps, and one removal from encounter three for 8 gold. Reinforced specimens: +25% enemy health / +20% victory gold; Volatile atmosphere: +20% crew and enemy direct attack damage; Salvage contract: packs +2 gold / completed encounters +6 gold. Effects apply to the live battle and reward calculations. Modifiers cannot change while a pack is open.
