@@ -1,0 +1,227 @@
+{
+  "completed": [
+    "Fresh run: three reserve crew, empty field, empty-field launch blocked",
+    "Purchased first pack and kept all rewards through visible controls",
+    "Six real encounters completed with earned packs/upgrades, rewards applied once, final voyage report shown"
+  ],
+  "gaps": [
+    "Harmony rail displays active breakpoints with zero deployed crew",
+    {
+      "control": "manage",
+      "status": "Description only; no interactive control",
+      "text": "INVENTORY\nManage and filter\n\nFilter by equippable now, harmony breakpoint, fieldwork fit, duplicates, upgrade-ready, and unlocked."
+    },
+    {
+      "control": "forge",
+      "status": "Description only; no interactive control",
+      "text": "CRAFTING\nForge and upgrade\n\nSpend Scrap and discovered recipes to upgrade Gear, ship items, or characters. Crafting broadens builds without permanent voyage stats."
+    },
+    {
+      "control": "attune",
+      "status": "Description only; no interactive control",
+      "text": "CRAFTING\nCraft an attunement\n\nCombine 20 matching fragments to create a targeted attunement pack for that element or mechanic. It narrows the pool without guaranteeing one character."
+    },
+    {
+      "control": "barracks",
+      "status": "Description only; no interactive control",
+      "text": "EXPERIMENTAL\nBarracks · 120 gold\n\nRecruit from three discovered characters once per voyage. This keeps uncertainty while offering an expensive recovery option."
+    },
+    {
+      "control": "calls",
+      "status": "Description only; no interactive control",
+      "text": "NEXT ROUND\nCalls loaded\n\nFocus and Hold are equipped. Each can be used once in the next fight."
+    },
+    {
+      "control": "next-settings",
+      "status": "Description only; no interactive control",
+      "text": "NEXT ROUND\nRound settings\n\nReview Calls, combat speed, auto-pause on observation progress, and target-priority behaviour."
+    },
+    {
+      "control": "modifiers",
+      "status": "Description only; no interactive control",
+      "text": "SURVEY III\nDifficulty and modifiers\n\nSpecimens use advanced behaviour. Scarce Salvage reduces automatic returns by 20%."
+    },
+    {
+      "control": "map",
+      "status": "Description only; no interactive control",
+      "text": "ROUND MAP\nRoute detail\n\nCompleted nodes remain visible. Upcoming nodes reveal encounter type, fieldwork, and major specimens without revealing rewards."
+    },
+    "Harmony rail unchanged after deploying real crew",
+    "Reloading completed voyage hides final report and exposes round 7 launch",
+    {
+      "status": "Reload loses unresolved paid pack cards",
+      "lostCards": 5,
+      "goldBefore": 42,
+      "goldAfter": 35
+    },
+    "UNDO dismisses toast without reversing field upgrade"
+  ],
+  "encounters": [
+    {
+      "round": 1,
+      "won": true,
+      "integrity": 5,
+      "gold": 34,
+      "observation": true,
+      "rounds": 4,
+      "breaks": 6,
+      "chains": 0,
+      "actions": 16,
+      "ultimates": 2,
+      "totalDamage": 451,
+      "crystals": 1,
+      "item": null,
+      "rarePity": 0,
+      "wave": 2,
+      "totalWaves": 2,
+      "spawned": 6,
+      "pool": 6,
+      "crew": [
+        "Ash",
+        "Morrow",
+        "Quill",
+        "Coda"
+      ]
+    },
+    {
+      "round": 2,
+      "won": true,
+      "integrity": 5,
+      "gold": 40,
+      "observation": true,
+      "rounds": 3,
+      "breaks": 4,
+      "chains": 0,
+      "actions": 15,
+      "ultimates": 2,
+      "totalDamage": 351,
+      "crystals": 0,
+      "item": null,
+      "rarePity": 1,
+      "wave": 2,
+      "totalWaves": 2,
+      "spawned": 6,
+      "pool": 6,
+      "crew": [
+        "Ash",
+        "Morrow",
+        "Quill",
+        "Coda",
+        "Spore"
+      ]
+    },
+    {
+      "round": 3,
+      "won": true,
+      "integrity": 5,
+      "gold": 46,
+      "observation": true,
+      "rounds": 3,
+      "breaks": 5,
+      "chains": 0,
+      "actions": 20,
+      "ultimates": 3,
+      "totalDamage": 632,
+      "crystals": 0,
+      "item": null,
+      "rarePity": 2,
+      "wave": 2,
+      "totalWaves": 2,
+      "spawned": 8,
+      "pool": 8,
+      "crew": [
+        "Ash",
+        "Morrow",
+        "Quill",
+        "Coda",
+        "Spore"
+      ]
+    },
+    {
+      "round": 4,
+      "won": true,
+      "integrity": 5,
+      "gold": 52,
+      "observation": true,
+      "rounds": 4,
+      "breaks": 7,
+      "chains": 1,
+      "actions": 39,
+      "ultimates": 10,
+      "totalDamage": 1256,
+      "crystals": 0,
+      "item": null,
+      "rarePity": 3,
+      "wave": 3,
+      "totalWaves": 3,
+      "spawned": 12,
+      "pool": 12,
+      "crew": [
+        "Ash",
+        "Morrow",
+        "Quill",
+        "Coda",
+        "Spore",
+        "Maul"
+      ]
+    },
+    {
+      "round": 5,
+      "won": true,
+      "integrity": 5,
+      "gold": 58,
+      "observation": true,
+      "rounds": 3,
+      "breaks": 9,
+      "chains": 0,
+      "actions": 34,
+      "ultimates": 9,
+      "totalDamage": 1706,
+      "crystals": 1,
+      "item": null,
+      "rarePity": 0,
+      "wave": 3,
+      "totalWaves": 3,
+      "spawned": 15,
+      "pool": 15,
+      "crew": [
+        "Ash",
+        "Morrow",
+        "Quill",
+        "Coda",
+        "Spore",
+        "Maul"
+      ]
+    },
+    {
+      "round": 6,
+      "won": true,
+      "integrity": 5,
+      "gold": 64,
+      "observation": true,
+      "rounds": 4,
+      "breaks": 11,
+      "chains": 2,
+      "actions": 39,
+      "ultimates": 11,
+      "totalDamage": 2875,
+      "crystals": 1,
+      "item": null,
+      "rarePity": 0,
+      "wave": 3,
+      "totalWaves": 3,
+      "spawned": 18,
+      "pool": 18,
+      "crew": [
+        "Ash",
+        "Morrow",
+        "Tarn",
+        "Quill",
+        "Coda",
+        "Spore",
+        "Maul"
+      ]
+    }
+  ],
+  "errors": []
+}

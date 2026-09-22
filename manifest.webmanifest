@@ -1,0 +1,15 @@
+{
+  "name": "Spacology",
+  "short_name": "Spacology",
+  "description": "A playable autochess fieldwork prototype.",
+  "start_url": "./prototypes/spacology-v0.1.0.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#020406",
+  "theme_color": "#071018",
+  "icons": [
+    {"src": "./assets/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "./assets/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

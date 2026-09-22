@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="../assets/app-icon-192.png">
+<meta name="theme-color" content="#071018">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Spacology">
 <title>Watchable fight</title>
 <style>
 :root{
@@ -103,6 +109,8 @@ h1{font-size:15px;font-weight:500;margin:0 0 2px}
 .sc .wk{margin-top:4px}
 .rc.acting{border-color:var(--energy);background:#2E3A47;transform:translateY(-4px)}
 .rc.vacated{opacity:.2;border-style:dashed;background:transparent}
+.rc.targeted{outline:2px solid var(--energy);outline-offset:2px;box-shadow:0 0 18px rgba(212,164,92,.7)!important}
+.rc.targeted .rn:before{content:'⌖ ';color:var(--energy)}
 .rc.down{opacity:.26}
 
 #stage{height:214px;background:#0F161C;border:1px solid var(--line);border-radius:10px;
@@ -207,14 +215,46 @@ body.session-mode #board{grid-column:1;grid-row:2;position:relative;margin:0;bor
 body.session-mode #board:before{content:"";position:absolute;inset:0;background:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
 body.session-mode #floats{z-index:50}body.session-mode .hdr{position:absolute;left:10px;top:10px;width:132px;height:29px;margin:0;padding:0 8px;z-index:31;border:1px solid #33536e;border-radius:4px;background:rgba(7,16,24,.9);font-size:8px}
 body.session-mode .boardrow{position:absolute;inset:0;display:block;height:auto}.session-mode .tcol{position:absolute;left:10px;top:52px;width:65px;min-width:65px;z-index:32}.session-mode .tcol .zlabel{font-size:8px;color:#d8ebef}.session-mode .track{gap:3px}.session-mode .tk{min-height:27px;border-radius:3px;background:rgba(5,12,18,.86)}.session-mode .tk .tn{font-size:7px}.session-mode .tk .tw{font-size:7px}
-body.session-mode .bmain{position:absolute;left:85px;right:10px;top:0;bottom:0;min-width:0}.enemy-dock-live{position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:10;padding:10px 14px 11px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.92);box-shadow:0 12px 28px rgba(0,0,0,.34)}.enemy-dock-live>.zlabel{position:absolute;left:14px;top:-10px;margin:0;padding:2px 6px;border:1px solid #33536e;border-radius:3px;background:#071018;font-size:7px}.enemy-dock-live:before,.enemy-dock-live:after,.crew-dock-live:before,.crew-dock-live:after{content:"";position:absolute;width:20px;height:20px;background:inherit;transform:rotate(45deg);z-index:-1}.enemy-dock-live:before{left:-11px;top:35px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.enemy-dock-live:after{right:-11px;top:35px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}
-body.session-mode #stage{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(690px,calc(100% - 30px));height:214px;margin:0;border:0;background:transparent;box-shadow:none;z-index:20}.session-mode #stage .ptag{font-size:8px}.session-mode #stage .cap{font-size:18px}
+body.session-mode .bmain{position:absolute;left:85px;right:10px;top:0;bottom:0;min-width:0}.enemy-dock-live{position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:10;width:min(620px,calc(100% - 390px));min-width:360px;min-height:116px;padding:10px 14px 11px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.92);box-shadow:0 12px 28px rgba(0,0,0,.34)}.enemy-dock-live>.zlabel{position:absolute;left:14px;top:-10px;margin:0;padding:2px 6px;border:1px solid #33536e;border-radius:3px;background:#071018;font-size:7px}.enemy-dock-live:before,.enemy-dock-live:after,.crew-dock-live:before,.crew-dock-live:after{content:"";position:absolute;width:20px;height:20px;background:inherit;transform:rotate(45deg);z-index:-1}.enemy-dock-live:before{left:-11px;top:35px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.enemy-dock-live:after{right:-11px;top:35px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}
+body.session-mode #stage{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(690px,calc(100% - 30px));height:214px;margin:0;border:0;background:transparent;box-shadow:none;z-index:20}.session-mode #stage .ptag{display:none}.session-mode #stage .cap{top:calc(100% + 8px);bottom:auto;font-size:15px;padding:4px 9px;border:1px solid #33536e;border-radius:4px;background:rgba(7,16,24,.9);width:max-content;max-width:90%;margin:auto}
 .crew-dock-live{position:absolute;left:50%;bottom:11px;transform:translateX(-50%);width:min(770px,calc(100% - 12px));z-index:10;padding:9px 12px 10px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.93);box-shadow:0 12px 28px rgba(0,0,0,.34)}.crew-dock-live:before{left:-11px;top:75px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.crew-dock-live:after{right:-11px;top:75px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}.crew-live-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:5px;min-height:96px}.crew-live-row+.crew-live-row{margin-top:5px}.crew-live-row>span{display:flex;flex-direction:column;justify-content:center;color:#51697a;font-size:7px;letter-spacing:.06em}.crew-live-row>span b{color:#edf3f4;font-size:8px;margin-bottom:2px}.session-objective{position:absolute;right:0;top:12px;width:180px;z-index:30;border:1px solid #426c5e;border-radius:4px;background:rgba(8,25,21,.93);padding:8px 9px}.session-objective b{display:block;color:#70d5b2;font-size:8px}.session-objective span{font-size:7px;color:#8da2b1}
-body.session-mode .ribbon{display:flex;justify-content:center;align-items:stretch;gap:5px;min-height:92px}body.session-mode .ribbon .rc{height:92px;min-height:92px}body.session-mode .crew-live-row .ribbon{min-width:0;justify-content:flex-start}.session-mode .btns{display:none}
-body.session-mode .rc.crew-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 3px #000,0 0 7px #000}body.session-mode .rc.crew-portrait .rn{font-weight:800}body.session-mode .rc.crew-portrait .re,body.session-mode .rc.crew-portrait .rt{color:#edf3f4!important}.sc.crew-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 4px #000,0 0 8px #000}.sc.crew-portrait:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.48));z-index:0}.sc.crew-portrait>*{z-index:1}
+body.session-mode .ribbon{display:flex;justify-content:center;align-items:flex-end;gap:5px;min-height:104px}body.session-mode .ribbon .rc{flex:0 0 78px;width:78px;min-width:78px;height:92px;min-height:92px}body.session-mode .ribbon .rc.elite{flex-basis:96px;width:96px;min-width:96px;height:104px;min-height:104px;border-width:2px;background:#151827}.session-mode .rc.elite .rn:after{content:' · ELITE';color:var(--energy);font-size:5px}.session-mode .crew-live-row .ribbon{min-width:0;min-height:92px;align-items:stretch;justify-content:flex-start}.session-mode .btns{display:none}
+body.session-mode .rc.crew-portrait,body.session-mode .rc.enemy-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 3px #000,0 0 7px #000}body.session-mode .rc.crew-portrait .rn,body.session-mode .rc.enemy-portrait .rn{font-weight:800}body.session-mode .rc.crew-portrait .re,body.session-mode .rc.crew-portrait .rt,body.session-mode .rc.enemy-portrait .rt{color:#edf3f4!important}.sc.crew-portrait,.sc.enemy-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 4px #000,0 0 8px #000}.sc.crew-portrait:after,.sc.enemy-portrait:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.58));z-index:0}.sc.crew-portrait>*,.sc.enemy-portrait>*{z-index:1}.session-mode .sc.act .sn{font-size:15px;font-weight:800}.session-mode .sc.act .se{font-size:10px}.session-mode .sc.act .sb{height:6px;margin-top:8px}.session-mode .sc.act.elite .sn{font-size:17px}.session-mode .sc.act.elite{border-width:2px;box-shadow:0 0 34px rgba(233,180,94,.28)}
 body.session-mode #battleRecord{display:none!important;position:fixed;top:64px;right:0;bottom:0;width:285px;z-index:90;margin:0;padding:12px;border:0;border-left:1px solid #33536e;border-radius:0;background:rgba(7,16,24,.98);box-shadow:-18px 0 45px rgba(0,0,0,.45)}body.session-mode #battleRecord.open{display:flex!important}body.session-mode #battleRecord>.zlabel{font-size:9px;color:#edf3f4}body.session-mode #battleRecord .log{font-size:10px}body.session-mode #battleRecord .stats{font-size:9px}
+.session-summary{display:none}.session-mode .session-summary.show{position:fixed;inset:64px 0 0;z-index:110;display:grid;place-items:center;padding:28px;background:rgba(2,5,8,.72);backdrop-filter:blur(7px)}.summary-panel{width:min(680px,92vw);border:1px solid #33536e;border-radius:8px;padding:24px;background:#071018;box-shadow:0 24px 80px #000}.summary-panel .eyebrow{font-size:9px;color:var(--energy);letter-spacing:.16em}.summary-panel h2{margin:6px 0 4px;font:34px Georgia,serif}.summary-panel>p{margin:0 0 18px;color:var(--ink2);font-size:12px}.summary-rewards,.summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.summary-rewards div,.summary-stats div{min-height:68px;border:1px solid var(--line);border-radius:5px;padding:10px;background:#0c1823}.summary-rewards b,.summary-stats b{display:block;margin-bottom:5px;color:#edf3f4;font-size:18px}.summary-rewards span,.summary-stats span{color:var(--ink3);font-size:8px;letter-spacing:.12em}.summary-rewards b{color:var(--energy)}.summary-return{width:100%;height:46px;margin-top:12px;border:1px solid var(--energy);border-radius:4px;background:var(--energy);color:#251805;font-weight:800}.summary-drop{margin-top:10px;color:#8fb878;font-size:11px;min-height:16px}
 @media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:230px 1fr 175px auto}.session-mode .session-route{display:none}.session-mode .bmain{left:68px}.session-mode .tcol{width:48px;min-width:48px}.session-mode .session-objective{width:155px}.crew-dock-live{width:calc(100% - 6px);padding-left:7px;padding-right:7px}.crew-live-row{grid-template-columns:48px minmax(0,1fr)}}
 @media(max-width:760px){body.session-mode #board{padding:0}.session-mode .sessionbar{display:grid;height:64px;margin:0;grid-template-columns:1fr auto}.session-mode .session-status>span,.session-mode .session-route,.session-mode .session-run{display:none}.session-mode .bmain{left:58px;right:4px}.session-mode .tcol{left:6px;width:44px;min-width:44px}.crew-dock-live{left:calc(50% - 12px);width:calc(100vw - 64px)}.crew-live-row{grid-template-columns:0 minmax(0,1fr);gap:0}.crew-live-row>span{display:none}.crew-live-row .ribbon{grid-column:2}.session-mode .session-objective{display:none}.session-controls button{padding:0 8px}}
+
+/* Portraits have their own space; combat labels sit on a solid footer. */
+.session-mode #stage .cap:empty{display:none}
+.session-mode .rc,.session-mode .sc{--card-footer:29px;text-shadow:none}
+.session-mode .sc{--card-footer:48px}
+.session-mode .sc.help{--card-footer:36px}
+.session-mode .rc>.battle-art,.session-mode .sc>.battle-art{position:absolute;inset:0 0 var(--card-footer);z-index:0;border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;background-image:var(--card-art);background-size:cover;background-position:center 25%;pointer-events:none}
+.session-mode .rc{position:relative}
+.session-mode .rc>.card-footer,.session-mode .sc>.card-footer{position:absolute;inset:auto 0 0;height:var(--card-footer);z-index:2;padding:3px 5px;background:#0b1620;border-top:1px solid #33536e;border-radius:0 0 4px 4px;text-align:left;color:var(--ink)}
+body.session-mode .rc .rn{font-size:10px;line-height:12px;font-weight:700}
+body.session-mode .rc.elite .rn:after{content:''}
+body.session-mode .rc .rb{height:4px;margin-top:2px}
+body.session-mode .rc .en,body.session-mode .rc .bar2,body.session-mode .rc .sq{height:2px;margin-top:2px}
+body.session-mode .rc .bar2{position:absolute;left:5px;right:5px;bottom:9px;margin:0;background:transparent;opacity:.9}
+body.session-mode .rc .bar2 u{background:#8ebddd}
+.session-mode .rc>.re,.session-mode .rc>.wk,.session-mode .rc>.rt,.session-mode .rc>.fr,.session-mode .rc>.sv{position:absolute;z-index:2;margin:0;max-width:calc(100% - 6px);padding:1px 3px;border-radius:3px;background:rgba(5,12,18,.86);height:auto;line-height:10px;text-shadow:none}
+.session-mode .rc>.re,.session-mode .rc>.wk{top:3px;left:3px}
+.session-mode .rc>.rt{top:18px;left:3px;font-size:7px}
+.session-mode .rc.crew-portrait>.rt{display:none}
+.session-mode .rc>.fr{bottom:calc(var(--card-footer) + 3px);left:3px;font-size:7px}
+.session-mode .rc>.sv{top:3px;right:3px;font-size:7px;letter-spacing:0}
+.session-mode .rc>.fr:empty,.session-mode .rc>.sv:empty{display:none}
+body.session-mode .sc.crew-portrait:after,body.session-mode .sc.enemy-portrait:after{display:none}
+body.session-mode .sc .sn{font-size:12px;font-weight:700;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.session-mode .sc.act .sn,body.session-mode .sc.act.elite .sn{font-size:14px}
+body.session-mode .sc .se{font-size:9px;line-height:11px;margin:0}
+body.session-mode .sc .wk{height:11px;justify-content:flex-start;gap:3px;margin:0}
+body.session-mode .sc .sb,body.session-mode .sc.act .sb{width:100%;height:4px;margin:3px 0 0}
+body.session-mode .sc.help .sn{font-size:10px;line-height:12px}
+body.session-mode .sc.help .se{font-size:8px;line-height:9px}
+
 </style>
 </head>
 <body>
@@ -237,7 +277,7 @@ body.session-mode #battleRecord{display:none!important;position:fixed;top:64px;r
     </div>
     <div class="bmain">
       <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div>
-      <div class="enemy-dock-live"><div class="zlabel">SPECIMENS</div><div class="ribbon" id="foes"></div></div>
+      <div class="enemy-dock-live"><div class="zlabel" id="enemyCounter">WAVE 1 / 2 · 6 REMAINING</div><div class="ribbon" id="foes"></div></div>
 
       <div id="stage">
         <div class="ptag" id="ptag">idle</div>
@@ -253,6 +293,7 @@ body.session-mode #battleRecord{display:none!important;position:fixed;top:64px;r
     <button id="bPlay">Play</button>
     <button id="bReset">Reset</button>
   </div>
+  <section class="session-summary" id="sessionSummary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle"><div class="summary-panel"><div class="eyebrow">RECOVERY REPORT</div><h2 id="summaryTitle">Fieldwork complete</h2><p id="summaryCopy">The crew recovered the encounter and its field record.</p><div class="summary-rewards"><div><b id="summaryGold">+0g</b><span>GOLD EARNED</span></div><div><b id="summaryIntegrity">+0%</b><span>INTEGRITY</span></div><div><b id="summaryObservation">PARTIAL</b><span>OBSERVATION</span></div></div><div class="summary-stats"><div><b id="summaryActions">0</b><span>ACTIONS</span></div><div><b id="summaryBreaks">0</b><span>BREAKS</span></div><div><b id="summaryChains">0</b><span>CHAINS</span></div><div><b id="summaryUltimates">0</b><span>ULTIMATES</span></div><div><b id="summaryDamage">0</b><span>TOTAL DAMAGE</span></div><div><b id="summaryRounds">0</b><span>ROUNDS</span></div></div><div class="summary-drop" id="summaryDrop"></div><button class="summary-return" id="summaryReturn">RECOVER TO OPS</button></div></section>
 </div>
 
 <button id="fab" aria-label="Play">&#9654;</button>
@@ -542,10 +583,10 @@ var PROFILES={
 var UNIFORM={focus:2.6,kill:2.0,brk:2.0,vuln:1.6,threat:1.2,bulk:0.8,waste:1.4,match:1.2,
              piled:1.8,label:'balanced'};
 var AIMODE='profile', RETARGET='random', CHAINCAP=12, CHAINSTAGE=2;
-var ELITES=[{n:'Drone',sp:88,hp:150,dmg:18},{n:'Husk',sp:104,hp:120,dmg:22},
-            {n:'Maw',sp:76,hp:190,dmg:30}];
-var CHAFFNAMES=['Mite','Grub','Shard','Wisp','Thrall','Spore','Nit','Cyst','Rime'];
-var FIELD=6, POOL=12, OPS_PRESSURE=1;
+var ELITES=[{n:'Warden',sp:88,hp:150,dmg:18},{n:'Anchor',sp:104,hp:120,dmg:22},
+            {n:'Bulwark',sp:76,hp:190,dmg:30}];
+var CHAFFNAMES=['Chaff','Bruiser','Cleanser','Reflector','Quickstep','Chaff','Bruiser','Cleanser','Reflector'];
+var FIELD=6, POOL=12, OPS_PRESSURE=1, OPS_HP=1, OPS_DMG=1, OPS_WAVES=2, OPS_RUN_ROUND=1;
 
 /* ============ particles ============ */
 var PX={cv:null,ctx:null,bl:null,blx:null,list:[],raf:null,dpr:1,W:0,H:0,canFilter:false};
@@ -681,29 +722,37 @@ function build(team,planet){
   $('bPlay').textContent='Play'; $('hState').textContent='ready'; $('log').innerHTML='';
   $('stats').innerHTML='';
   var t=TEAMS[team], pl=PLANETS[planet];
-  G={team:team,planet:planet,round:1,av:0,over:false,units:[],
+  G={team:team,planet:planet,round:1,av:0,over:false,units:[],wave:0,totalWaves:Math.ceil(POOL/FIELD),ship:Object.assign({},t.ship||{}),
      breaks:0,chains:0,longest:1,supp:0,foeTurns:0,dealt:{},actions:0,
      limit:MAXROUND,deaths:0,heals:0,drains:0,lowest:100,downed:[],ults:0,biggest:0,
      pending:null,react:{},follows:0,doubles:0};
   t.crew.forEach(function(c,i){
     var hurt = CARRY && INJURED[c.n];
+    var unitHp=window.SPACOLOGY_SESSION?(c.hp||100):100;
     G.units.push({id:'a'+i,side:'ally',n:c.n,e:c.e,sp:c.sp,
       dmg:Math.round(c.dmg*(hurt?INJURY:1)), heal:c.heal||0, drain:c.drain||0,
       p:c.p||'breaker', aoe:c.aoe||0, frac:c.frac||0, shred:c.shred||0,
       consume:c.consume||0, follow:c.follow||0, reflect:c.reflect||0, taunt:c.taunt||1,
       marks:c.marks||0, react:c.react||0, dbl:c.dbl||0, onFollow:c.onFollow||0,
       trig:c.trig||null, ratio:c.ratio||0.7, hits:c.hits||1, tags:c.tags||[],
+      barrierMul:c.barrierMul||1,ultMul:c.ultMul||1,guardMul:c.guardMul||1,
+      extraTargets:c.extraTargets||0,spreadExtra:c.spreadExtra||0,openingBoost:c.openingBoost||0,followMul:c.followMul||1,
       bio:c.bio||'', row:c.row||'front', over:c.over||0, kindle:c.kindle||0, bar:0,
-      ult:c.ult||null, en:0, taken:0,
-      hurt:!!hurt, hp:100,max:100,av:10000/c.sp,alive:true});
+      ult:c.ult||null, en:c.startEnergy||0, taken:0,
+      hurt:!!hurt, hp:unitHp,max:unitHp,av:Math.max(1,10000/c.sp-(c.startAdvance||0)),alive:true});
     G.dealt[c.n]=0; });
   G.pool=[]; G.spawned=0;
   G.units=G.units.filter(function(u){return u.side!=='foe'});
   for(var q=0;q<POOL;q++){
-    var elite=q<3;
-    var base=elite?ELITES[q]:{n:CHAFFNAMES[(q-3)%CHAFFNAMES.length],sp:98,hp:46,dmg:9};
-    G.pool.push({n:base.n,sp:base.sp,hp:Math.round(base.hp*OPS_PRESSURE),dmg:Math.round(base.dmg*OPS_PRESSURE),elite:elite,
-      weak:pl.weak[q%pl.weak.length].slice(), layers:elite?SHLAYERS:1});
+    var wave=Math.floor(q/FIELD)+1,slot=q%FIELD;
+    var elite=slot===FIELD-1&&(wave===G.totalWaves||OPS_RUN_ROUND>=3);
+    var eliteTier=elite?1+Math.floor((OPS_RUN_ROUND-1)/2)+Math.floor((wave-1)/2):0;
+    var base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:{n:CHAFFNAMES[q%CHAFFNAMES.length],sp:98,hp:46,dmg:9};
+    var eliteScale=elite?1+(eliteTier-1)*.16:1;
+    G.pool.push({n:elite&&eliteTier>=3?'Prime '+base.n:base.n,sp:base.sp,
+      hp:Math.round(base.hp*OPS_HP*eliteScale),dmg:Math.round(base.dmg*OPS_DMG*(elite?1+(eliteTier-1)*.1:1)),
+      elite:elite,eliteTier:eliteTier,wave:wave,
+      weak:pl.weak[q%pl.weak.length].slice(), layers:elite?Math.min(4,SHLAYERS+Math.floor(eliteTier/2)):1});
   }
   spawnFoes();
   var cov=coverage(team,planet);
@@ -766,19 +815,24 @@ function tagNote(){
 function spawnFoes(){
   var live=G.units.filter(function(u){return u.side==='foe'&&u.alive}).length;
   var added=[];
-  while(live<FIELD && G.spawned<G.pool.length){
+  if(live||G.spawned>=G.pool.length) return added;
+  G.wave=G.pool[G.spawned].wave;
+  while(live<FIELD && G.spawned<G.pool.length&&G.pool[G.spawned].wave===G.wave){
     var p=G.pool[G.spawned];
     G.units.push({id:'f'+G.spawned,side:'foe',n:p.n,weak:p.weak.slice(),e:p.weak[0],
-      sp:p.sp,dmg:p.dmg,elite:p.elite,hp:p.hp,max:p.hp,
+      sp:p.sp,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
       av:10000/p.sp*(0.5+Math.random()*0.5),alive:true,frac:0,struck:false,survey:0,
       shMax:p.layers,shL:p.layers,shC:SHPER,broken:false,regen:0,vuln:0});
     added.push('f'+G.spawned); G.spawned++; live++;
   }
+  updateEnemyCounter();
   return added;
 }
 function U(id){ for(var i=0;i<G.units.length;i++) if(G.units[i].id===id) return G.units[i]; }
 var CREW_PORTRAITS={Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'};
-function applyCrewPortrait(el,u){if(u.side==='ally'&&CREW_PORTRAITS[u.n]){el.classList.add('crew-portrait');el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.18),rgba(4,8,12,.78)),url("'+CREW_PORTRAITS[u.n]+'")'}}
+function applyCrewPortrait(el,u){if(u.side==='ally'&&CREW_PORTRAITS[u.n]){el.classList.add('crew-portrait');el.style.setProperty('--card-art','url("'+CREW_PORTRAITS[u.n]+'")');if(!window.SPACOLOGY_SESSION)el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.18),rgba(4,8,12,.78)),url("'+CREW_PORTRAITS[u.n]+'")'}}
+var ENEMY_PORTRAITS={Chaff:'../assets/enemies/chaff-v1.webp',Bruiser:'../assets/enemies/bruiser-v1.webp',Warden:'../assets/enemies/warden-v1.webp',Cleanser:'../assets/enemies/cleanser-v1.webp',Reflector:'../assets/enemies/reflector-v1.webp',Anchor:'../assets/enemies/anchor-v1.webp',Bulwark:'../assets/enemies/bulwark-v1.webp',Quickstep:'../assets/enemies/quickstep-v1.webp'};
+function applyEnemyPortrait(el,u){var name=u.n.replace(/^Prime /,'');if(u.side==='foe'&&ENEMY_PORTRAITS[name]){el.classList.add('enemy-portrait');el.style.setProperty('--card-art','url("'+ENEMY_PORTRAITS[name]+'")');if(!window.SPACOLOGY_SESSION)el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.8)),url("'+ENEMY_PORTRAITS[name]+'")'}}
 function log(t,c){ var d=document.createElement('div'); if(c)d.className=c;
   d.innerHTML=t; $('log').appendChild(d); $('log').scrollTop=$('log').scrollHeight; }
 
@@ -796,8 +850,9 @@ function ribbons(){
     G.units.filter(function(u){
       return u.side===p[1] && (!p[2]||u.row===p[2])
         && (u.side==='ally' || u.alive || u.retiring); }).forEach(function(u){
-      var d=document.createElement('div'); d.className='rc holo'; d.id='r-'+u.id;
+      var d=document.createElement('div'); d.className='rc holo'+(u.elite?' elite':''); d.id='r-'+u.id;
       applyCrewPortrait(d,u);
+      applyEnemyPortrait(d,u);
       d.innerHTML='<div class="rn">'+u.n+'</div>'+
         (u.side==='foe'?'<div class="wk" id="wk-'+u.id+'"></div>'
           :'<div class="re" style="color:'+EL[u.e]+'">'+u.e+'</div>')+
@@ -810,16 +865,29 @@ function ribbons(){
             (u.hurt?'recovering':(AIMODE==='profile'?u.p:(u.heal?'mender':'')))+'</div>'+
             '<div class="bar2" id="bar-'+u.id+'"><u></u></div>'+
             '<div class="en" id="en-'+u.id+'"><u></u></div>');
+      if(window.SPACOLOGY_SESSION){
+        var art=document.createElement('div');art.className='battle-art';art.setAttribute('aria-hidden','true');
+        var footer=document.createElement('div');footer.className='card-footer';
+        ['.rn','.rb','.sq','.bar2','.en'].forEach(function(selector){var node=d.querySelector(selector);if(node)footer.appendChild(node)});
+        d.prepend(art);d.appendChild(footer);
+      }
       host.appendChild(d); }); }); }
 function paintAll(){ G.units.forEach(function(u){ paintUnit(u) });
   $('hRound').textContent=G.round; $('hMax').textContent=G.limit;
   $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
   var objective=document.querySelector('.session-objective');
   if(objective&&window.SPACOLOGY_SESSION){var progress=Math.max(Math.min(2,G.breaks||0),Math.min(2,G.chains||0));objective.querySelector('b').textContent='COMPOUND FRACTURE · '+progress+' / 2';}
+  updateEnemyCounter();
+}
+function updateEnemyCounter(){
+  var enemyCounter=$('enemyCounter');if(!enemyCounter||!G)return;
+  var alive=G.units.filter(function(u){return u.side==='foe'&&u.alive}).length;
+  enemyCounter.textContent='WAVE '+Math.max(1,G.wave)+' / '+G.totalWaves+' · '+(alive+G.pool.length-G.spawned)+' REMAINING';
 }
 function paintUnit(u,silent){
   var rc=$('r-'+u.id); if(!rc) return;
   rc.classList.toggle('down',!u.alive);
+  rc.title=u.n+' · '+Math.max(0,Math.round(u.hp))+' / '+u.max+' HP · '+(u.side==='ally'?u.e+' · '+Math.round(u.en)+' Energy':(u.broken?'broken':u.shL+' shield layers'));
   var pct=Math.max(0,u.hp/u.max*100);
   var i=rc.querySelector('.rb i'), b=rc.querySelector('.rb b');
   if(i) i.style.width=pct+'%';
@@ -1118,11 +1186,12 @@ function clearStage(){
 function makeStageCard(st,id,g,role,pad){
   var u=U(id); if(!u||!g||!u.n) return null;
   var d=document.createElement('div');
-  d.className='sc'+(role==='actor'?' act':'')+(role==='helper'?' help':'');
+  d.className='sc'+(role==='actor'?' act':'')+(role==='helper'?' help':'')+(u.elite?' elite':'');
   d.id='sc-'+id; d.dataset.role=role;
   d.style.left=g.x+'px'; d.style.top=g.y+'px';
   d.style.width=g.w+'px'; d.style.height=g.h+'px';
   applyCrewPortrait(d,u);
+  applyEnemyPortrait(d,u);
 
   var foil=document.createElement('div');
   foil.className='foil holo'; foil.id='fc-'+id;
@@ -1135,6 +1204,12 @@ function makeStageCard(st,id,g,role,pad){
       :(tiny?'':'<div class="se" style="color:'+EL[u.e]+'">'+u.e+'</div>'))+
     '<div class="sb"><div class="gh"></div><div class="fx"></div></div>');
 
+  if(window.SPACOLOGY_SESSION){
+    var art=document.createElement('div');art.className='battle-art';art.setAttribute('aria-hidden','true');
+    var footer=document.createElement('div');footer.className='card-footer';
+    ['.sn','.se','.wk','.sb'].forEach(function(selector){var node=face.querySelector(selector);if(node)footer.appendChild(node)});
+    face.prepend(art);face.appendChild(footer);
+  }
   if(u.side==='foe') applyRings(face,u,g);
 
   var m=document.createElement('div'); m.className='mk'; m.id='mk-'+id;
@@ -1205,6 +1280,18 @@ function buildStage(actorId,targetIds,support,helperIds){
     layout(lanes.ally,ALLY_Y,actor&&actor.side==='ally'?62:58,112);
   }
 
+  // The acting card is the battlefield's focal point. Its fixed portrait-sized
+  // geometry keeps actions readable without making the docks reflow.
+  if(actor){
+    var actorW=Math.min(actor.elite?184:164,Math.max(132,W*.42));
+    var actorH=actor.elite?198:184;
+    geo[actorId]={x:(W-actorW)/2,y:(H-actorH)/2,w:actorW,h:actorH,step:4,rp:8};
+  }
+  hp.slice(0,2).forEach(function(id,index){
+    var helperW=Math.min(92,Math.max(68,W*.2)),helperH=116;
+    geo[id]={x:index===0?8:W-helperW-8,y:(H-helperH)/2,w:helperW,h:helperH,step:3,rp:6};
+  });
+
   [actorId].concat(hp).concat(tg).forEach(function(id){
     if(!geo[id]) return;
     var role = id===actorId?'actor':(hp.indexOf(id)>=0?'helper':'target');
@@ -1270,7 +1357,7 @@ function stageOut(id,ms){ var d=$('sc-'+id); if(!d||d.dataset.dead) return;
   d.style.opacity='0'; }
 function clearRibbonMarks(){ G.units.forEach(function(u){
   var rc=$('r-'+u.id);
-  if(rc) rc.classList.remove('acting','vacated','answering'); }); }
+  if(rc) rc.classList.remove('acting','vacated','answering','targeted'); }); }
 
 function hitVisual(id,power,color){
   var d=$('sc-'+id), fc=d;
@@ -1351,7 +1438,7 @@ function resolveAction(){
     var u2=au.ult;
     var fs2=G.units.filter(function(x){return x.side==='foe'&&x.alive});
     if(u2.kind==='aoe'){
-      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,u2.mult));
+      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,u2.mult*(au.ultMul||1)));
         if(u2.frac) x.frac=Math.min(12,(x.frac||0)+u2.frac+((G.bon&&G.bon.stackUp)||0));
         if(u2.survey){ x.survey=u2.survey; ev1.surveyedAll=true; } });
     } else if(u2.kind==='nuke'){
@@ -1360,17 +1447,18 @@ function resolveAction(){
         if(sc2>bw2){bw2=sc2;bt2=x;} });
       if(bt2){ var m2=u2.mult+(u2.eat&&bt2.frac?u2.eat*bt2.frac:0);
         if(u2.eat) bt2.frac=0;
-        ev1.hits.push(hit(au,bt2,m2)); }
+        ev1.hits.push(hit(au,bt2,m2*(au.ultMul||1))); }
     } else if(u2.kind==='mend'){
       G.units.filter(function(x){return x.side==='ally'&&x.alive}).forEach(function(a){
         var b4=a.hp; a.hp=Math.min(a.max,a.hp+u2.amt);
-        if(u2.barrier) a.bar=Math.min(160,a.bar+u2.barrier);
+        var barrier2=u2.barrier?Math.round(u2.barrier*(a.barrierMul||1)):0;
+        if(barrier2) a.bar=Math.min(160,a.bar+barrier2);
         if(u2.charge) a.en=Math.min(EN.cost,a.en+u2.charge);
         ev1.mends=ev1.mends||[];
-        ev1.mends.push({tgt:a.id,amt:a.hp-b4,bar:u2.barrier||0,ch:u2.charge||0}); });
+        ev1.mends.push({tgt:a.id,amt:a.hp-b4,bar:barrier2,ch:u2.charge||0}); });
     } else if(u2.kind==='lash'){
       var pool4=au.taken*u2.mult/Math.max(1,fs2.length);
-      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,pool4/Math.max(1,au.dmg))); });
+      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,(pool4/Math.max(1,au.dmg))*(au.ultMul||1))); });
       ev1.lashed=Math.round(au.taken); au.taken=0;
     }
     return ev1;      // note: no queueReset, so nobody loses a turn
@@ -1448,7 +1536,7 @@ function resolveAction(){
     ev.ult={name:u.name,kind:u.kind};
     var foes=G.units.filter(function(x){return x.side==='foe'&&x.alive});
     if(u.kind==='aoe'){
-      foes.forEach(function(x){ ev.hits.push(hit(act,x,u.mult));
+      foes.forEach(function(x){ ev.hits.push(hit(act,x,u.mult*(act.ultMul||1)));
         if(u.frac) x.frac=Math.min(12,(x.frac||0)+u.frac+((G.bon&&G.bon.stackUp)||0));
         if(u.survey){ x.survey=u.survey; ev.surveyedAll=true; } });
     } else if(u.kind==='nuke'){
@@ -1457,17 +1545,18 @@ function resolveAction(){
         if(sc>bw){bw=sc;bt=x} });
       if(bt){ var m=u.mult+(u.eat&&bt.frac?u.eat*bt.frac:0);
         if(u.eat) bt.frac=0;
-        ev.hits.push(hit(act,bt,m)); }
+        ev.hits.push(hit(act,bt,m*(act.ultMul||1))); }
     } else if(u.kind==='mend'){
       G.units.filter(function(x){return x.side==='ally'&&x.alive}).forEach(function(a){
         var b4=a.hp; a.hp=Math.min(a.max,a.hp+u.amt);
-        if(u.barrier) a.bar=Math.min(60,a.bar+u.barrier);
+        var barrier=u.barrier?Math.round(u.barrier*(a.barrierMul||1)):0;
+        if(barrier) a.bar=Math.min(60,a.bar+barrier);
         if(u.charge) a.en=Math.min(EN.cost,a.en+u.charge);
         ev.mends=ev.mends||[];
-        ev.mends.push({tgt:a.id,amt:a.hp-b4,bar:u.barrier||0,ch:u.charge||0}); });
+        ev.mends.push({tgt:a.id,amt:a.hp-b4,bar:barrier,ch:u.charge||0}); });
     } else if(u.kind==='lash'){
       var pool2=act.taken*u.mult/Math.max(1,foes.length);
-      foes.forEach(function(x){ ev.hits.push(hit(act,x,pool2/Math.max(1,act.dmg))); });
+      foes.forEach(function(x){ ev.hits.push(hit(act,x,(pool2/Math.max(1,act.dmg))*(act.ultMul||1))); });
       ev.lashed=Math.round(act.taken); act.taken=0;
     }
     queueReset(act); return ev;
@@ -1482,10 +1571,10 @@ function resolveAction(){
       pt.hp+=gain;
       gain=Math.round(gain*((G.bon&&G.bon.healMul)||1));
       if(act.over&&spill>0){ pt.bar=Math.min(90,
-        pt.bar+Math.round(spill*0.8*((G.bon&&G.bon.barrier)||1))); }
+        pt.bar+Math.round(spill*0.8*((G.bon&&G.bon.barrier)||1)*(pt.barrierMul||1))); }
       G.heals++;
       act.en=Math.min(EN.cost,act.en+EN.act+18);
-      ev.heal={src:act.id,tgt:pt.id,amt:gain,bar:act.over?Math.round(spill*0.8):0,
+      ev.heal={src:act.id,tgt:pt.id,amt:gain,bar:act.over?Math.round(spill*0.8*(pt.barrierMul||1)):0,
                clutch:before2<=18};
       queueReset(act); return ev;
     }
@@ -1513,7 +1602,7 @@ function resolveAction(){
     ev.aoe=true;
     all.forEach(function(x){
       if(!x.broken&&x.shL>0){
-        var b0=x.shL, p0=act.shred*(isWeak(x,act.e)?1:0.5)*((G.bon&&G.bon.shredMul)||1);
+        var b0=x.shL, p0=act.shred*(isWeak(x,act.e)?1:0.5)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
         while(p0>0&&x.shL>0){ if(p0>=x.shC){p0-=x.shC;x.shL--;x.shC=x.shL>0?SHPER:0}
           else{x.shC-=p0;p0=0} }
         if(b0>x.shL) (ev.shreds=ev.shreds||[]).push({id:x.id,from:b0,to:x.shL});
@@ -1530,7 +1619,7 @@ function resolveAction(){
 
   if(!tgt.broken&&tgt.shL>0){
     var before=tgt.shL, match=isWeak(tgt,act.e);
-    var p=act.dmg*(match?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1);
+    var p=act.dmg*(match?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
     while(p>0&&tgt.shL>0){ if(p>=tgt.shC){p-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?SHPER:0}
       else{tgt.shC-=p;p=0} }
     ev.shield={id:tgt.id,from:before,to:tgt.shL,match:match};
@@ -1543,13 +1632,14 @@ function resolveAction(){
       var al=G.units.filter(function(u){
         return u.side==='ally'&&u.alive&&u.e===act.e&&u.id!==act.id});
       if(al.length){ G.chains++; G.longest=Math.max(G.longest,al.length+1);
-        al.forEach(function(a){ ev.chains.push(hit(a,tgt,HARM)); }); }
+        al.forEach(function(a){ ev.chains.push(hit(a,tgt,HARM*(a.followMul||1))); }); }
       cascade(ev,act,tgt,['break']);
     }
   }
   if(act.marks){ tgt.survey=act.marks; ev.surveyed=tgt.id; }
   if(act.frac){ tgt.frac=Math.min(12,(tgt.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
-    ev.fracs=[tgt.id]; }
+    ev.fracs=[tgt.id];
+    if(act.spreadExtra){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.spreadExtra).forEach(function(x){x.frac=Math.min(12,(x.frac||0)+act.frac);ev.fracs.push(x.id)})} }
   var scale=1;
   if(act.consume&&tgt.frac){ scale += act.consume*tgt.frac/Math.max(1,act.dmg); tgt.frac=0;
     ev.consumed=true; }
@@ -1561,6 +1651,7 @@ function resolveAction(){
       nx.av=Math.max(1,nx.av-(10000/nx.sp)*0.5);
       ev.advanced={id:nx.id,name:nx.n}; } }
   ev.hits.push(hit(act,tgt,scale===1?undefined:scale));
+  if(act.extraTargets){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,.7))})}
   if(act.dbl && tgt.survey>0 && tgt.alive){
     var h2=hit(act,tgt,0.7); h2.dbl=true; ev.chains.push(h2); G.doubles++; }
   tgt.struck=true;
@@ -1659,7 +1750,7 @@ function cascade(ev,src,cur,events){
     for(var k=0;k<(r.hits||1);k++){
       var t2=retarget(t); if(!t2) break;
       if(t2.survey>0) t2.survey--;
-      var h=hit(r,t2,r.ratio); h.follow=true; h.depth=ev.chains.length;
+      var h=hit(r,t2,r.ratio*(r.followMul||1)); h.follow=true; h.depth=ev.chains.length;
       ev.chains.push(h);
       ev.touched=ev.touched||{}; ev.touched[t2.id]=1;
       var evs=['ally'];
@@ -1698,10 +1789,12 @@ function weightedPick(pool){
 }
 function hit(src,tgt,scale){
   var amt=src.dmg*(scale||1);
+  if(src.side==='ally'&&src.openingBoost&&!src.openingUsed){amt*=1+src.openingBoost;src.openingUsed=true;}
   var mult=1+(tgt.vuln>0?BRK.vuln:0)+(tgt.frac||0)*0.12;
   var soaked=false, absorbed=0;
   if(tgt.side==='foe'&&!tgt.broken&&tgt.shL>0){ mult*=SOAK; soaked=true; }
   var d=Math.round(amt*mult);
+  if(tgt.side==='ally'&&G.ship&&G.ship.brace>0){d=Math.max(1,Math.round(d*.6));G.ship.brace--;}
   G.biggest=Math.max(G.biggest,d);
   if(src.side==='ally') G.dealt[src.n]=(G.dealt[src.n]||0)+d;
   var rawIn=d;
@@ -1741,6 +1834,7 @@ function playAction(done){
   G.actions++;
   G.maxChain=Math.max(G.maxChain||0,ev.chains?ev.chains.length:0);
   if(ev.roundStart) log('Round '+ev.roundStart,'rnd');
+  if(ev.reinforced&&ev.reinforced.length)log('<b>Wave '+G.wave+' / '+G.totalWaves+'</b> enters the field','rnd');
   ev.notes.forEach(function(n){ log('&nbsp;&nbsp;'+n); });
 
   // the Bloom has no actor, so it has to be handled before anything reads one
@@ -1798,6 +1892,11 @@ function playAction(done){
     if(!isUlt&&!ev.broke2) targets=[];
   }
   else if(big&&ev.hits.length) targets=[ev.hits[0].tgt];
+  if(!targets.length&&ev.hits.length){
+    var direct={};
+    ev.hits.forEach(function(h){if(U(h.tgt)&&U(h.tgt).side!==act.side&&!direct[h.tgt]){direct[h.tgt]=1;targets.push(h.tgt);}});
+    targets=targets.slice(0,FIELD);
+  }
   if(isSupport) c=HEALC;
 
   if(MODE==='none'){
@@ -1823,7 +1922,10 @@ function playAction(done){
   var pendingHelpers = helpers; helpers = [];
 
   clearRibbonMarks();
-  buildStage(act.id,targets,isSupport,helpers);
+  // Only actors enter the centre stage. Recipients remain in their dock so
+  // position stays readable while their hit/heal reaction animates in place.
+  buildStage(act.id,[],isSupport,helpers);
+  targets.forEach(function(id){var rc=$('r-'+id);if(rc)rc.classList.add('targeted');});
   $('cap').textContent = ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
     : ev.interrupt ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()+' \u00b7 out of turn'
     : ev.suppressed ? 'suppressed'
@@ -1839,8 +1941,8 @@ function playAction(done){
   at(t,function(){ tag.textContent='read'; });
   t+=D(150);
   if(targets.length){
-    at(t,function(){ tag.textContent='target'; targets.forEach(function(id){stageIn(id,D(170))}); });
-    t+=D(170)+D(140);
+    at(t,function(){ tag.textContent='target'; });
+    t+=D(180);
   }
 
   if(ev.suppressed){
@@ -2167,13 +2269,33 @@ function finish(msg){
   if(window.SPACOLOGY_SESSION){
     var won=msg==='Crew wins';
     var observation=G.breaks>=2||G.chains>=2;
+    var pity=window.SPACOLOGY_SESSION.rarePity||0;
+    var crystals=won&&(Math.random()<.22||pity>=3)?1:0;
+    var rarePool=[{type:'gear',name:'Bore Bit'},{type:'gear',name:'Recoil Spring'},
+      {type:'gear',name:'Ballast Plate'},{type:'ship',name:'Survey Prism'},
+      {type:'ship',name:'Brace Matrix'}];
+    var rareItem=won&&Math.random()<.1?rarePool[Math.floor(Math.random()*rarePool.length)]:null;
+    var baseGold=won?28+window.SPACOLOGY_SESSION.round*6:10;
+    var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*.2):0;
     var result={round:window.SPACOLOGY_SESSION.round,won:won,
       integrity:won?(observation?5:2):-8,
-      gold:won?20+window.SPACOLOGY_SESSION.round*5:8,
-      observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains};
+      gold:baseGold+surveyBonus,
+      observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
+      actions:G.actions,ultimates:G.ults,totalDamage:Math.round(tot),crystals:crystals,item:rareItem,
+      rarePity:crystals?0:pity+(won?1:0)};
     localStorage.setItem('spacologyBattleResult',JSON.stringify(result));
-    $('sessionReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
-    $('sessionReturn').classList.add('show');
+    $('summaryTitle').textContent=won?'Fieldwork recovered':'Partial recovery';
+    $('summaryCopy').textContent=won?'The crew secured the encounter and returned its field record.':'Extraction preserved the data gathered before the crew fell back.';
+    $('summaryGold').textContent='+'+result.gold+'g';
+    $('summaryIntegrity').textContent=(result.integrity>=0?'+':'')+result.integrity+'%';
+    $('summaryObservation').textContent=observation?'COMPLETE':'PARTIAL';
+    $('summaryActions').textContent=G.actions;$('summaryBreaks').textContent=G.breaks;
+    $('summaryChains').textContent=G.chains;$('summaryUltimates').textContent=G.ults;
+    $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=G.round;
+    var recovered=[];if(rareItem)recovered.push(rareItem.name);if(crystals)recovered.push('Bloom crystal ×'+crystals);if(surveyBonus)recovered.push('Survey bonus +'+surveyBonus+'g');
+    $('summaryDrop').textContent=recovered.length?'RARE RECOVERY · '+recovered.join(' · '):'No rare recovery this encounter.';
+    $('summaryReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
+    $('sessionSummary').classList.add('show');
   }
 }
 
@@ -2252,30 +2374,53 @@ function loadSpacologySession(){
   var library={};
   Object.keys(TEAMS).forEach(function(key){TEAMS[key].crew.forEach(function(c){if(!library[c.n])library[c.n]=c;});});
   var aliases={Coda:'Vane',Morrow:'Ash',Spore:'Sump',Latch:'Nettle'};
-  var all=state.field.concat(state.support);
+  var all=state.field.concat(state.support).filter(Boolean);
   var crew=all.map(function(name){
     var source=library[name]||library[aliases[name]]||library.Corr;
     var c=JSON.parse(JSON.stringify(source));
     c.n=name;c.row=state.field.indexOf(name)>=0?'front':'back';
+    var canonical=state.combatStats&&state.combatStats[name];
+    if(canonical){c.hp=canonical.hp;c.dmg=canonical.dmg;c.sp=canonical.speed*10;}
     var gear=(state.equipped&&state.equipped[name])||[];
-    c.dmg=Math.round(c.dmg*(1+gear.length*.08));
-    if(gear.indexOf('Quick Latch')>=0)c.sp=Math.round(c.sp*1.08);
-    if(gear.indexOf('Ballast Plate')>=0)c.hp=(c.hp||100)+28;
+    gear.forEach(function(item){
+      if(item==='Tuning Fork'&&c.frac)c.frac++;
+      if(item==='Spore Sling')c.spreadExtra=(c.spreadExtra||0)+1;
+      if(item==='Ranging Sight')c.extraTargets=(c.extraTargets||0)+1;
+      if(item==='Loaded Die')c.openingBoost=(c.openingBoost||0)+.2;
+      if(item==='Recoil Spring')c.followMul=(c.followMul||1)*1.3;
+      if(item==='Quick Latch')c.startAdvance=(c.startAdvance||0)+8;
+      if(item==='Ballast Plate')c.barrierMul=(c.barrierMul||1)*1.3;
+      if(item==='Slow Fuse')c.ultMul=(c.ultMul||1)*1.25;
+      if(item==='Bore Bit')c.guardMul=(c.guardMul||1)*1.4;
+    });
     return c;
   });
-  TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew};
-  OPS_PRESSURE=.70+(state.round-1)*.13;
-  FIELD=state.round<3?3:4;
-  POOL=8+(state.round-1);
+  var ship={brace:0,survey:false};
+  (state.shipEquipped||[]).filter(Boolean).forEach(function(item){
+    if(item==='Culture Bed')crew.forEach(function(c){if(c.frac)c.frac++});
+    if(item==='Exact Clock')crew.forEach(function(c){c.startEnergy=(c.startEnergy||0)+20});
+    if(item==='Fast Clock')crew.forEach(function(c){c.startAdvance=(c.startAdvance||0)+8});
+    if(item==='Brace Matrix')ship.brace++;
+    if(item==='Survey Prism')ship.survey=true;
+  });
+  TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew,ship:ship};
+  OPS_RUN_ROUND=state.round;
+  OPS_HP=.82+(state.round-1)*.16;
+  OPS_DMG=.76+(state.round-1)*.12;
+  OPS_PRESSURE=OPS_HP;
+  FIELD=[3,3,4,4,5,6][Math.min(5,state.round-1)];
+  OPS_WAVES=[2,2,2,3,3,3][Math.min(5,state.round-1)];
+  POOL=FIELD*OPS_WAVES;
   MAXROUND=14;
   $('rPool').value=POOL;$('vPool').textContent=POOL;
   $('sessionTitle').textContent='Phomous · Compound Motion';
-  $('sessionCrew').textContent=state.field.join(', ')+' on field · '+state.support.join(', ')+' off field';
+  $('sessionCrew').textContent=state.field.filter(Boolean).join(', ')+' on field · '+state.support.filter(Boolean).join(', ')+' off field';
   $('sessionRound').textContent='ROUND '+state.round+' / '+state.maxRounds;
   $('sessionPressure').textContent='Enemy pressure '+Math.round(OPS_PRESSURE*100)+'%';
   $('sessionIntegrity').textContent=state.integrity+'%';
   $('sessionGold').textContent=state.gold;
   $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
+  $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
   build('ops','spread');
   var controls=$('sessionControls'),play=$('bPlay'),logToggle=$('sessionLogToggle'),record=$('battleRecord');
   controls.insertBefore(play,logToggle);controls.appendChild($('sessionReturn'));
@@ -2287,6 +2432,7 @@ function loadSpacologySession(){
 pxInit();
 if(!loadSpacologySession()) build('bloom','spread');
 window.addEventListener('resize',pxResize);
+if('serviceWorker'in navigator)navigator.serviceWorker.register('../sw.js');
 </script>
 </body>
 </html>

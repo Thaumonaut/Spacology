@@ -75,9 +75,11 @@ setup, pack decisions, and full animated battlefield:
 `Ops room v5 → pack opening → inventory / formation setup → fieldwork → animated combat`
 
 The prototype uses the current progression assumptions: four starting character slots, one required
-on-field character, one ship equipment slot, pack prices in the 26–30 gold range, explicit keep/strip
-card decisions, and a fixed rising enemy pressure curve. Ops and combat share one session state.
+on-field character, one ship equipment slot, pack prices in the 11–14 gold range, direct keep/sell/scrap
+card decisions, and rising enemy health, field size, and wave counts. Ops and combat share one session state.
 Characters and equipment can be dragged to their destinations, packs have a Take All action, and a
 six-encounter voyage runs through scaling battles to a final archive report. Battles use the original
 `watchable-fight.html` engine and its complete animation choreography; the configured Ops formation,
 rows, Gear, round pressure, and results pass between the two full-page views through saved run state.
+
+Current limitations and verification evidence are recorded in [the systems audit](../docs/testing/spacology-v0.1.0-systems-audit.md). Crafting, Calls, modifier selection, and some Ops descriptions remain unfinished; this playable slice is not a complete implementation of the design.
