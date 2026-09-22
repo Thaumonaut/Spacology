@@ -1,4 +1,4 @@
-const CACHE='spacology-v010-recovery-progress-9';
+const CACHE='spacology-v010-crafting-attunement-10';
 const CORE=[
   './','./index.html','./manifest.webmanifest',
   './prototypes/spacology-v0.1.0.html','./prototypes/spacology-v0.1.0.js','./prototypes/recovery-scoring.js','./prototypes/voyage-settings.js','./prototypes/expedition-rules.js','./prototypes/ops-room.css','./prototypes/star-atlas.html','./prototypes/watchable-fight.html','./prototypes/art-gallery.html',

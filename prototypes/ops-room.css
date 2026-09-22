@@ -19,3 +19,8 @@ body{padding:0;display:block}.frame{width:min(1440px,100%);height:100svh;min-hei
 /* Keep the launch deadline and button inside the tablet departure panel. */
 .departure{display:grid;grid-template-rows:auto minmax(0,1fr) 44px 48px;gap:6px;padding:8px}
 .departure .eyebrow{margin:0}.departure .destination{min-height:0;overflow:auto}.departure .continue{margin:0;width:100%}
+
+.material-counter[draggable=true]{touch-action:none}
+
+.crew-detail-header{display:grid;grid-template-columns:160px minmax(0,1fr);gap:22px;align-items:center;margin-bottom:20px}.crew-detail-portrait{height:200px;border:1px solid var(--line2);border-radius:10px;background-size:cover;background-position:center 25%;display:grid;place-items:center;font-size:48px}.crew-detail-portrait.has-art{font-size:0}.crew-detail-header .crew-origin{line-height:1.5}.crew-rank{color:var(--green)}.character-gear{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 20px}.character-gear .modal-card{border:1px solid var(--line2);border-radius:8px}.modal-actions small,.forge-inventory small{display:block;margin-top:5px}.recipe-inputs{border-block:1px solid var(--line2);padding:8px 0}
+@media(max-width:540px){.crew-detail-header{grid-template-columns:100px minmax(0,1fr);gap:12px}.crew-detail-portrait{height:140px}.character-gear{grid-template-columns:1fr}}

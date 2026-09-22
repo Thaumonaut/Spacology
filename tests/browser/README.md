@@ -43,3 +43,5 @@ SPACOLOGY_BASE_URL=http://127.0.0.1:4174 node /Users/jek/.agents/skills/playwrig
 Port 4174 is the isolated original-roster playtest used for the [recorded tuning comparison](../../docs/testing/enemy-pressure-playtest.md). Port 4173 follows workspace edits, including the concurrent roster expansion. Sampling a different roster/rule revision requires a new comparison; do not label it the recorded baseline. Run browser scripts sequentially to avoid native pointer interference.
 
 `recovery-progress.cjs` covers weighted recovery bands, partial-wave accounting, threshold details, applied integrity and receipt persistence. See [Pages release scoring](../../docs/testing/recovery-progress.md).
+
+`owned-attunement.cjs` checks token upgrades, rank caps, placement, recruitment and combat stats. `gear-crafting.cjs` checks scrap costs, equipped ingredients, cancellation, gear removal and tablet detail layouts. `crystal-controls.cjs` checks crystal selection and held touch-drag confirmation. All three run headlessly.
