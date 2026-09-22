@@ -49,3 +49,5 @@ Port 4174 is the isolated original-roster playtest used for the [recorded tuning
 Copy progression replaces rank purchases: `owned-attunement.cjs` now covers copy payment, 3/9-copy merges and the field-level gate. `reserve-packs.cjs` covers six-slot capacity, direct deployment, Take All retry and maxed-only disposal. `voyage-return.cjs` plays all six encounters and checks crystal-crafted effects and immediate Ops return. Pure progression/migration tests: `node tests/unit/crew-progression.cjs`.
 
 `round-timeline.cjs` checks fixed round markers, cumulative AV, tempo turns, advances, report/inbox diagnostics and tablet layout. Optional balance sampling: `tests/balance/round-timeline.cjs`.
+
+`typed-disposal.cjs` checks character-only gold, equipment-only scrap, bulk/mouse/touch pack resolution, ranked sale values, migration and pack cash-out bounds.

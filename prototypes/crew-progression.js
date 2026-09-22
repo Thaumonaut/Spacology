@@ -5,6 +5,7 @@
   const owned=(s,n)=>names(s).includes(n);
   const slots=s=>(s.reserve||[]).length+(s.crewCopies||[]).length;
   const rank=(s,n)=>Math.max(0,Math.min(MAX_RANK,Number(s.crewUpgrades?.[n])||0));
+  const saleValue=r=>3*3**Math.max(0,Math.min(MAX_RANK,Number(r)||0));
   const stars=r=>'★'.repeat(r+1);
   const bonuses=r=>({hp:[1,1.35,1.8][Math.max(0,Math.min(2,r))],attack:[1,1.25,1.6][Math.max(0,Math.min(2,r))]});
   const total=(s,n)=>(owned(s,n)?3**rank(s,n):0)+(s.crewCopies||[]).filter(c=>c.name===n).reduce((sum,c)=>sum+3**c.rank,0);
@@ -42,7 +43,7 @@
     if(owned(next,name))next.crewCopies.push({id:'copy-'+next.nextCopyId++,name,rank:0});
     else {next.reserve.push(name);next.crewUpgrades[name]=0;}
     merge(next,name);
-    if(slots(next)>RESERVE_LIMIT&&slots(next)>=slots(state))return {error:'Reserve full · deploy, sell or dismantle a character first'};
+    if(slots(next)>RESERVE_LIMIT&&slots(next)>=slots(state))return {error:'Reserve full · deploy or sell a character first'};
     return {state:next};
   }
   function apply(target,source){['field','support','reserve','crewCopies','crewUpgrades','nextCopyId','copyProgression'].forEach(k=>target[k]=source[k]);}
@@ -51,7 +52,7 @@
     const best=s.crewCopies.filter(c=>c.name===name).sort((a,b)=>b.rank-a.rank)[0];
     if(best){s.crewCopies=s.crewCopies.filter(c=>c.id!==best.id);s.reserve.push(name);s.crewUpgrades[name]=best.rank;merge(s,name);}
   }
-  const api={RESERVE_LIMIT,MAX_RANK,FINAL_LEVEL,COPY_CRYSTALS,names,owned,slots,rank,stars,bonuses,total,merge,normalize,receive,apply,disposeMain};
+  const api={RESERVE_LIMIT,MAX_RANK,FINAL_LEVEL,COPY_CRYSTALS,names,owned,slots,rank,saleValue,stars,bonuses,total,merge,normalize,receive,apply,disposeMain};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.SpacologyCrew=Object.freeze(api);
 })(typeof window!=='undefined'?window:globalThis);
