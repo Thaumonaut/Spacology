@@ -255,7 +255,23 @@ body.session-mode .sc .sb,body.session-mode .sc.act .sb{width:100%;height:4px;ma
 body.session-mode .sc.help .sn{font-size:10px;line-height:12px}
 body.session-mode .sc.help .se{font-size:8px;line-height:9px}
 
+
+.enemy-details{width:min(520px,calc(100vw - 32px));max-height:85svh;overflow:auto;padding:24px;border:1px solid #638797;border-radius:14px;background:#101e29;color:#edf3f4;font:16px/1.55 system-ui;box-shadow:0 20px 70px #0009}
+.enemy-details::backdrop{background:#03090fbb}.enemy-details h2{margin:0 0 12px;font-size:24px}.enemy-details p{margin:12px 0}.enemy-details button{font:inherit;min-height:44px;padding:10px 16px;cursor:pointer}.enemy-details dl{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}.enemy-details dd{margin:0;text-align:right;color:#8fe0c1}.session-mode .rc[role=button]{cursor:pointer}.session-mode .rc[role=button]:focus-visible{outline:3px solid #e9b45e;outline-offset:4px}
+body.session-mode .rc>.rt{font-size:9px;line-height:12px}
+
+.session-mode .session-objective{top:156px;right:0;width:152px}.battle-deadline{display:none}.session-mode .battle-deadline{display:block;position:absolute;right:12px;top:20px;z-index:12;width:140px;padding:12px;background:#0c1923;border:1px solid #456378;border-radius:8px;color:#a8cadd}
+.battle-deadline b{display:block;font:700 28px/1.2 system-ui;color:#edf3f4}.battle-deadline span,.battle-deadline small{display:block;font:12px/1.5 system-ui}.battle-deadline progress{width:100%;height:7px;accent-color:#8fe0c1}.battle-deadline.urgent{border-color:#efbd68;color:#efbd68}.battle-deadline.urgent progress{accent-color:#efbd68}.battle-deadline.urgent b{color:#efbd68}
+@media(max-width:900px){.session-mode .battle-deadline{width:124px;right:0;padding:8px}.battle-deadline b{font-size:24px}}
+
+.session-mode .battle-sidebar{position:absolute;right:0;top:20px;width:152px;display:grid;gap:12px;z-index:12}
+.session-mode .battle-sidebar .battle-deadline,.session-mode .battle-sidebar .session-objective{position:static;width:auto;margin:0}
+@media(max-width:900px){.session-mode .battle-sidebar{width:124px}}
+
+.recovery-progress{display:none}.session-mode .recovery-progress{display:block;width:100%;padding:10px 12px;border:1px solid #456378;border-radius:8px;background:#0c1923;color:#e8edf1;text-align:left;cursor:pointer;font:13px/1.4 system-ui}
+.recovery-progress>span{font-size:11px;color:#a8cadd}.recovery-progress>b{float:right;font-size:16px}.recovery-progress strong{display:block;font-size:15px;margin-top:8px;color:var(--recovery-color,#efbd68)}.recovery-progress small{display:block;font-size:11px;color:#a8cadd;margin-top:3px}.recovery-track{position:relative;height:10px;margin:12px 0 6px;background:#253743;border-radius:4px;overflow:hidden}.recovery-track>i:first-child{display:block;height:100%;width:0;background:var(--recovery-color,#efbd68)}.recovery-track .tick{position:absolute;top:0;bottom:0;width:1px;background:#f1f4f6aa}.recovery-track .tick.safe{width:3px;background:#8fe0c1}.recovery-progress:focus-visible{outline:3px solid #e9b45e;outline-offset:3px}
 </style>
+<style>.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
 </head>
 <body>
 
@@ -276,7 +292,9 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
       <div class="track" id="track"></div>
     </div>
     <div class="bmain">
-      <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div>
+      <div class="battle-sidebar"><aside class="battle-deadline" id="battleDeadline" aria-label="Combat deadline"><span id="deadlineLabel">TIME LEFT</span><b id="deadlineRemaining">5.0 rounds</b><progress id="deadlineBar" max="500" value="500" aria-label="Combat time remaining"></progress><small id="deadlineBudget">5-round limit</small></aside>
+      <button type="button" class="recovery-progress" id="recoveryProgress" aria-label="View recovery scoring"><span>RECOVERY</span><b id="recoveryPercent">0%</b><div class="recovery-track"><i id="recoveryFill"></i><i class="tick" style="left:18%"></i><i class="tick" style="left:42%"></i><i class="tick" style="left:68%"></i><i class="tick safe" style="left:88%"></i></div><strong id="recoveryDelta">−8 integrity</strong><small>If battle ends now</small><small id="recoveryNext"></small></button>
+      <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div></div>
       <div class="enemy-dock-live"><div class="zlabel" id="enemyCounter">WAVE 1 / 2 · 6 REMAINING</div><div class="ribbon" id="foes"></div></div>
 
       <div id="stage">
@@ -296,6 +314,7 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
   <section class="session-summary" id="sessionSummary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle"><div class="summary-panel"><div class="eyebrow">RECOVERY REPORT</div><h2 id="summaryTitle">Fieldwork complete</h2><p id="summaryCopy">The crew recovered the encounter and its field record.</p><div class="summary-rewards"><div><b id="summaryGold">+0g</b><span>GOLD EARNED</span></div><div><b id="summaryIntegrity">+0%</b><span>INTEGRITY</span></div><div><b id="summaryObservation">PARTIAL</b><span>OBSERVATION</span></div></div><div class="summary-stats"><div><b id="summaryActions">0</b><span>ACTIONS</span></div><div><b id="summaryBreaks">0</b><span>BREAKS</span></div><div><b id="summaryChains">0</b><span>CHAINS</span></div><div><b id="summaryUltimates">0</b><span>ULTIMATES</span></div><div><b id="summaryDamage">0</b><span>TOTAL DAMAGE</span></div><div><b id="summaryRounds">0</b><span>ROUNDS</span></div></div><div class="summary-drop" id="summaryDrop"></div><button class="summary-return" id="summaryReturn">RECOVER TO OPS</button></div></section>
 </div>
 
+<dialog id="enemyDetails" class="enemy-details" aria-labelledby="enemyDetailTitle"><div id="enemyDetailBody"></div><form method="dialog"><button>BACK TO BATTLE</button></form></dialog>
 <button id="fab" aria-label="Play">&#9654;</button>
 
 <div class="field" id="battleRecord">
@@ -381,6 +400,9 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
   <input type="range" id="rBloom" min="0" max="20" step="1" value="8">
 </div>
 
+<script src="voyage-settings.js"></script>
+<script src="recovery-scoring.js"></script>
+<script src="expedition-rules.js"></script>
 <script>
 /* ============ data ============ */
 var EL={order:'#7FA8C9',chaos:'#C97F9E',growth:'#8FB878',
@@ -583,8 +605,17 @@ var PROFILES={
 var UNIFORM={focus:2.6,kill:2.0,brk:2.0,vuln:1.6,threat:1.2,bulk:0.8,waste:1.4,match:1.2,
              piled:1.8,label:'balanced'};
 var AIMODE='profile', RETARGET='random', CHAINCAP=12, CHAINSTAGE=2;
-var ELITES=[{n:'Warden',sp:88,hp:150,dmg:18},{n:'Anchor',sp:104,hp:120,dmg:22},
-            {n:'Bulwark',sp:76,hp:190,dmg:30}];
+var ELITES=[{n:'Warden',sp:98,hp:165,dmg:19,layers:3,guard:22,trait:'Fortified'},
+            {n:'Anchor',sp:120,hp:135,dmg:22,layers:2,guard:20,haste:.1,cap:4,trait:'Accelerates'},
+            {n:'Bulwark',sp:82,hp:210,dmg:26,layers:4,guard:24,trait:'Heavy armor'}];
+var ENEMY_KITS={
+  Chaff:{n:'Chaff',sp:100,hp:52,dmg:11,layers:1,guard:18,trait:'Soldier'},
+  Bruiser:{n:'Bruiser',sp:90,hp:66,dmg:15,layers:1,guard:20,haste:.12,cap:5,trait:'Accelerates'},
+  Quickstep:{n:'Quickstep',sp:158,hp:45,dmg:9,layers:1,guard:16,trait:'Fast'},
+  Cleanser:{n:'Cleanser',sp:108,hp:58,dmg:11,layers:1,guard:18,cleanse:2,trait:'Sheds 2 fracture'},
+  Reflector:{n:'Reflector',sp:94,hp:56,dmg:12,layers:2,guard:18,trait:'Plated'}
+};
+var OPS_SPEED=1, OPS_GUARD=1, OPS_RECOVERY=.25;
 var CHAFFNAMES=['Chaff','Bruiser','Cleanser','Reflector','Quickstep','Chaff','Bruiser','Cleanser','Reflector'];
 var FIELD=6, POOL=12, OPS_PRESSURE=1, OPS_HP=1, OPS_DMG=1, OPS_WAVES=2, OPS_RUN_ROUND=1;
 
@@ -723,7 +754,7 @@ function build(team,planet){
   $('stats').innerHTML='';
   var t=TEAMS[team], pl=PLANETS[planet];
   G={team:team,planet:planet,round:1,av:0,over:false,units:[],wave:0,totalWaves:Math.ceil(POOL/FIELD),ship:Object.assign({},t.ship||{}),
-     breaks:0,chains:0,longest:1,supp:0,foeTurns:0,dealt:{},actions:0,
+     breaks:0,chains:0,longest:1,supp:0,foeTurns:0,foeAttacks:0,recoveries:0,dealt:{},actions:0,
      limit:MAXROUND,deaths:0,heals:0,drains:0,lowest:100,downed:[],ults:0,biggest:0,
      pending:null,react:{},follows:0,doubles:0};
   t.crew.forEach(function(c,i){
@@ -747,12 +778,13 @@ function build(team,planet){
     var wave=Math.floor(q/FIELD)+1,slot=q%FIELD;
     var elite=slot===FIELD-1&&(wave===G.totalWaves||OPS_RUN_ROUND>=3);
     var eliteTier=elite?1+Math.floor((OPS_RUN_ROUND-1)/2)+Math.floor((wave-1)/2):0;
-    var base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:{n:CHAFFNAMES[q%CHAFFNAMES.length],sp:98,hp:46,dmg:9};
+    var base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:ENEMY_KITS[CHAFFNAMES[(q+OPS_RUN_ROUND-1)%CHAFFNAMES.length]];
     var eliteScale=elite?1+(eliteTier-1)*.16:1;
-    G.pool.push({n:elite&&eliteTier>=3?'Prime '+base.n:base.n,sp:base.sp,
+    G.pool.push({n:elite&&eliteTier>=3?'Prime '+base.n:base.n,sp:Math.round(base.sp*OPS_SPEED),
       hp:Math.round(base.hp*OPS_HP*eliteScale),dmg:Math.round(base.dmg*OPS_DMG*(elite?1+(eliteTier-1)*.1:1)),
       elite:elite,eliteTier:eliteTier,wave:wave,
-      weak:pl.weak[q%pl.weak.length].slice(), layers:elite?Math.min(4,SHLAYERS+Math.floor(eliteTier/2)):1});
+      guard:Math.round(base.guard*OPS_GUARD),haste:base.haste||0,hasteCap:base.cap||0,cleanse:base.cleanse||0,trait:base.trait,
+      weak:pl.weak[q%pl.weak.length].slice(), layers:base.layers+(elite?Math.floor((eliteTier-1)/2):0)});
   }
   spawnFoes();
   var cov=coverage(team,planet);
@@ -767,9 +799,11 @@ function build(team,planet){
   computeTags();
   G.units.forEach(function(u){ if(u.side!=='ally') return;
     u.dmg=Math.round(u.dmg*G.bon.dmgMul);
+    u.sp*=G.bon.speed;
     u.av=u.av/G.bon.speed; });
   ribbons(); paintAll(); track(); injNote(); aiNote(); chainNote(); tagNote();
   log('Round 1','rnd');
+  if(window.SPACOLOGY_SESSION)log('Clear every wave before '+G.limit+' combat rounds elapse. Pausing and animation speed do not spend time.','rnd');
   G.units.filter(function(u){return u.hurt}).forEach(function(u){
     log('&nbsp;&nbsp;'+u.n+' is still recovering'); });
   setTimeout(pxResize,50);
@@ -820,9 +854,9 @@ function spawnFoes(){
   while(live<FIELD && G.spawned<G.pool.length&&G.pool[G.spawned].wave===G.wave){
     var p=G.pool[G.spawned];
     G.units.push({id:'f'+G.spawned,side:'foe',n:p.n,weak:p.weak.slice(),e:p.weak[0],
-      sp:p.sp,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
+      sp:p.sp,baseSp:p.sp,haste:p.haste,hasteCap:p.hasteCap,hasteStacks:0,cleanse:p.cleanse,trait:p.trait,shieldPer:p.guard,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
       av:10000/p.sp*(0.5+Math.random()*0.5),alive:true,frac:0,struck:false,survey:0,
-      shMax:p.layers,shL:p.layers,shC:SHPER,broken:false,regen:0,vuln:0});
+      shMax:p.layers,shL:p.layers,shC:p.guard,broken:false,regen:0,vuln:0});
     added.push('f'+G.spawned); G.spawned++; live++;
   }
   updateEnemyCounter();
@@ -871,12 +905,64 @@ function ribbons(){
         ['.rn','.rb','.sq','.bar2','.en'].forEach(function(selector){var node=d.querySelector(selector);if(node)footer.appendChild(node)});
         d.prepend(art);d.appendChild(footer);
       }
+      if(u.side==='foe'){
+        d.setAttribute('role','button');d.tabIndex=0;d.setAttribute('aria-label','Inspect '+u.n);
+        d.onclick=function(){inspectEnemy(u.id)};
+        d.onkeydown=function(event){if(event.key==='Enter'||event.key===' '){event.preventDefault();inspectEnemy(u.id);}};
+      }
       host.appendChild(d); }); }); }
-function paintAll(){ G.units.forEach(function(u){ paintUnit(u) });
+var inspectionWasPlaying=false;
+function inspectEnemy(id){
+  var u=U(id);if(!u||u.side!=='foe')return;
+  var behavior=u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
+    u.cleanse?'Sheds '+u.cleanse+' fracture stacks before each attack.':
+    u.trait==='Fast'?'Short waits between attacks. Can act between slower crew members.':
+    u.shMax>1?'Multiple shield layers reduce incoming damage until fully broken. Match its weaknesses to strip them faster.':'A regular attacker. Match its weaknesses to break its shield.';
+  openBattleDetails('<h2 id="enemyDetailTitle">'+u.n+(u.elite?' · Elite':'')+'</h2><p>'+behavior+'</p><dl><dt>Health</dt><dd>'+Math.round(u.hp)+' / '+u.max+'</dd><dt>Attack damage</dt><dd>'+u.dmg+'</dd><dt>Speed</dt><dd>'+u.sp+'</dd><dt>Shield remaining</dt><dd>'+(u.broken?0:(u.shL-1)*shieldCapacity(u)+u.shC)+' / '+u.shMax*shieldCapacity(u)+'</dd><dt>Weaknesses</dt><dd>'+u.weak.join(', ')+'</dd></dl><p><b>Recovery:</b> reforms its full shield and attacks on the same turn. A break delays its next turn by '+Math.round((window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay)*100)+'% of its normal wait and increases damage taken by 35%. Four Assay crew deny two turns before recovery.</p><p>Battle paused; the current animation may finish.</p>');
+}
+$('enemyDetails').addEventListener('close',function(){if(inspectionWasPlaying&&G&&!G.over&&!playing)$('bPlay').click();inspectionWasPlaying=false;});
+function openBattleDetails(html){
+  var dialog=$('enemyDetails');if(dialog.open)return;
+  inspectionWasPlaying=playing||!!sessionAutoTimer;
+  cancelSessionAutostart();playing=false;$('bPlay').textContent='Play';$('hState').textContent='paused';
+  $('enemyDetailBody').innerHTML=html;dialog.showModal();
+}
+function currentRecovery(){
+  var observed=window.SPACOLOGY_SESSION&&SpacologyExpedition.observed(window.SPACOLOGY_SESSION,G,false);
+  // Safe recovery is only completed by a full clear without a crew death.
+  if(window.SPACOLOGY_SESSION&&SpacologyExpedition.goal(window.SPACOLOGY_SESSION).metric==='safeWins')observed=G.deaths===0;
+  return SpacologyRecovery.score(G.pool,G.units,observed);
+}
+function projectedIntegrity(score){var start=window.SPACOLOGY_SESSION?window.SPACOLOGY_SESSION.integrity:70;return Math.max(0,Math.min(100,start+score.integrity))-start;}
+function signedIntegrity(value){return value>0?'+'+value:String(value);}
+function paintRecovery(){
+  if(!G)return;
+  var recovery=currentRecovery(),node=$('recoveryProgress');
+  node.style.setProperty('--recovery-color',recovery.integrity>=0?'#8fe0c1':'#efbd68');
+  $('recoveryPercent').textContent=Math.floor(recovery.percent)+'%';
+  $('recoveryFill').style.width=recovery.percent+'%';
+  $('recoveryDelta').textContent=signedIntegrity(projectedIntegrity(recovery))+' integrity';
+  $('recoveryNext').textContent=recovery.next?recovery.next.points+' pts to '+signedIntegrity(recovery.next.delta)+' · '+recovery.next.minimum+'%':'All waves recovered';
+  node.setAttribute('aria-label',Math.floor(recovery.percent)+'% recovered. '+signedIntegrity(projectedIntegrity(recovery))+' integrity if battle ends now. View scoring.');
+}
+$('recoveryProgress').onclick=function(){
+  var score=currentRecovery();
+  openBattleDetails('<h2 id="enemyDetailTitle">Recovery thresholds</h2><p>'+score.earned+' / '+score.total+' enemy points recovered across <b>every wave</b>. Chaff: 1 point; other regular enemies: 2; elites: 4. Points count when an enemy is defeated, not damaged.</p><dl>'+SpacologyRecovery.bands.map(function(b){return '<dt>'+b.minimum+'%'+(b.minimum===88?' · no loss':'')+'</dt><dd>'+signedIntegrity(b.delta)+(b.minimum===100?' / +5 with observation':'')+' integrity</dd>';}).join('')+'</dl><p><b>If battle ends now: '+signedIntegrity(projectedIntegrity(score))+' integrity.</b> At 88% you lose nothing, even if time expires. Full recovery is +2, or +5 when the observation is complete. Integrity stays between 0 and 100.</p>');
+};
+function paintDeadline(){
+  var remaining=Math.max(0,G.limit*100-G.av),urgent=remaining<=100;
+  $('battleDeadline').classList.toggle('urgent',urgent);
+  $('deadlineLabel').textContent=remaining===0?'TIME EXPIRED':urgent?'FINAL ROUND':'TIME LEFT';
+  $('deadlineRemaining').textContent=(Math.ceil(remaining/10)/10).toFixed(1);
+  $('deadlineBudget').textContent='rounds · '+G.limit+' total';
+  $('deadlineRemaining').setAttribute('aria-label',(Math.ceil(remaining/10)/10).toFixed(1)+' combat rounds remaining');
+  $('deadlineBar').max=G.limit*100;$('deadlineBar').value=remaining;
+}
+function paintAll(){ paintDeadline();paintRecovery();G.units.forEach(function(u){ paintUnit(u) });
   $('hRound').textContent=G.round; $('hMax').textContent=G.limit;
   $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
   var objective=document.querySelector('.session-objective');
-  if(objective&&window.SPACOLOGY_SESSION){var progress=Math.max(Math.min(2,G.breaks||0),Math.min(2,G.chains||0));objective.querySelector('b').textContent='COMPOUND FRACTURE · '+progress+' / 2';}
+  if(objective&&window.SPACOLOGY_SESSION){var goal=SpacologyExpedition.goal(window.SPACOLOGY_SESSION);var progress=goal.metric==='safeWins'?0:Math.min(goal.battleTarget,G[goal.metric]||0);objective.querySelector('b').textContent=goal.name.toUpperCase()+' · '+progress+' / '+goal.battleTarget;objective.querySelector('span').textContent=goal.battle;}
   updateEnemyCounter();
 }
 function updateEnemyCounter(){
@@ -896,12 +982,11 @@ function paintUnit(u,silent){
     var sq=$('rq-'+u.id);
     if(sq){ var uu=sq.querySelector('u');
       uu.style.background=EL[u.e];
-      uu.style.width=(u.broken?0:(u.shC/SHPER*100))+'%';
+      uu.style.width=(u.broken?0:(u.shC/shieldCapacity(u)*100))+'%';
       sq.style.opacity=u.broken?'.25':'1'; }
     rc.style.boxShadow=u.broken?'none':'0 0 0 '+(u.shL*2)+'px '+EL[u.e]+'44';
     var rt=$('rt-'+u.id);
-    if(rt) rt.textContent=u.broken?'broken':
-      (u.shL+' layer'+(u.shL===1?'':'s'));
+    if(rt)rt.textContent=u.broken?'BREAK':u.hasteStacks?'+'+Math.round(u.haste*u.hasteStacks*100)+'% SPD':u.trait==='Fast'?'FAST':u.shL+' SHIELD';
   }
   if(u.side==='ally'){
     var en=$('en-'+u.id);
@@ -1057,7 +1142,7 @@ function ultPolicy(u){
   // a single-target ultimate waits for a target worth spending it on
   var best=null;
   foes.forEach(function(f){
-    var sl=f.broken?0:((f.shL-1)*SHPER+f.shC);
+    var sl=f.broken?0:((f.shL-1)*shieldCapacity(f)+f.shC);
     var eff=Math.round(u.dmg*u.ult.mult*(1+(f.vuln>0?BRK.vuln:0))*
       ((!f.broken&&sl>0)?SOAK:1));
     if(eff>=f.hp) best=best||'it finishes '+f.n;
@@ -1412,6 +1497,25 @@ function markText(id,txt,c){ var m=$('mk-'+id);
   if(m){ m.textContent=txt; m.style.color=c; tr(m,220); m.style.opacity='.95'; } }
 
 /* ============ resolve one action (pure) ============ */
+function shieldCapacity(u){return u.shieldPer||SHPER;}
+function setEnemySpeed(u,speed){
+  var ratio=u.sp/speed;
+  // Preserve progress through the current wait, including a deferred queue reset.
+  u.av=Math.max(0,u.av*ratio);
+  if(G.pending&&G.pending.id===u.id)G.pending.av*=ratio;
+  u.sp=speed;
+}
+function breakEnemy(u){
+  u.broken=true;u.vuln=1;u.skips=G.bon&&G.bon.dissect?2:0;
+  if(u.hasteStacks){u.hasteStacks=0;setEnemySpeed(u,u.baseSp);}
+  u.av+=(10000/u.sp)*(window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay);
+  G.breaks++;
+}
+function accelerateEnemy(u,damage){
+  if(u.side!=='foe'||!u.alive||u.broken||!u.haste||damage<=0||u.hasteStacks>=u.hasteCap)return;
+  u.hasteStacks++;
+  setEnemySpeed(u,Math.round(u.baseSp*(1+u.haste*u.hasteStacks)));
+}
 function queueReset(u){ G.pending={id:u.id,av:10000/u.sp}; }
 function applyReset(){
   if(!G||!G.pending) return false;
@@ -1420,8 +1524,19 @@ function applyReset(){
   G.pending=null;
   return true;
 }
+function advanceCombat(wait){
+  var remaining=Math.max(0,G.limit*100-G.av),step=Math.min(wait,remaining),previous=G.round;
+  G.units.forEach(function(u){if(u.alive)u.av-=step;});
+  G.av+=step;G.round=Math.min(G.limit,Math.floor(G.av/100)+1);
+  if(G.round>previous){G.units.forEach(function(u){if(u.side==='foe')u.struck=false;});G.react={};}
+  return G.av>=G.limit*100;
+}
 function resolveAction(){
   applyReset();
+  var living=G.units.filter(function(u){return u.alive});
+  if(!living.some(function(u){return u.side==='foe'})&&G.spawned>=G.pool.length)return {end:'Crew wins'};
+  if(!living.some(function(u){return u.side==='ally'}))return {end:'Crew wiped'};
+  if(G.av>=G.limit*100)return {end:'Out of time'};
   G.react={};          // every action gets a fresh cascade budget
   // the whole action resolves before any of it is drawn, so keep a snapshot
   // of health to open the cards on; otherwise every target starts at its end state
@@ -1470,8 +1585,9 @@ function resolveAction(){
     if(nx && G.bloom.av<=nx.wait && bloomReady()){
       var ev0={hits:[],chains:[],notes:[],bloom:true,burn:[]};
       var adv=G.bloom.av;
-      G.units.forEach(function(u){ if(u.alive) u.av-=adv; });
-      G.av+=adv;
+      var previousRound=G.round;
+      if(advanceCombat(adv))return {end:'Out of time'};
+      if(G.round>previousRound)ev0.roundStart=G.round;
       G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.frac>0})
         .forEach(function(f){
           var d=Math.round(f.frac*7*(1+0.12*f.frac));
@@ -1492,13 +1608,9 @@ function resolveAction(){
   if(!alive.some(function(u){return u.side==='ally'})) return {end:'Crew wiped'};
   alive.sort(function(a,b){return a.av-b.av});
   var act=alive[0], adv=act.av;
-  alive.forEach(function(u){u.av-=adv}); G.av+=adv;
-  var ev={actor:act, hits:[], chains:[], notes:[], roundStart:null, suppressed:false};
-  var nr=Math.floor(G.av/100)+1;
-  if(nr>G.round){ G.round=nr; ev.roundStart=nr;
-    G.units.forEach(function(u){ if(u.side!=='foe') return; u.struck=false; });
-    G.react={};
-    if(G.round>G.limit) return {end:'Out of time'}; }
+  var oldRound=G.round;
+  if(advanceCombat(adv))return {end:'Out of time'};
+  var ev={actor:act,hits:[],chains:[],notes:[],roundStart:G.round>oldRound?G.round:null,suppressed:false};
 
   var fresh=spawnFoes();
   if(fresh.length){ ev.reinforced=fresh; reflowFoes(); }
@@ -1519,12 +1631,15 @@ function resolveAction(){
 
   if(act.side==='foe'){ G.foeTurns++;
     if(act.broken){
-      G.supp++; ev.suppressed=true;
-      if(act.skips>1){ act.skips--; act.av=10000/act.sp; return ev; }
-      ev.recovered=act.id;
-      act.broken=false; act.vuln=0; act.shL=act.shMax; act.shC=SHPER;
-      queueReset(act); return ev; }
-    var h0=hit(act,tgt); ev.hits.push(h0);
+      if(act.skips>0){
+        act.skips--; G.supp++; ev.suppressed=true; queueReset(act); return ev;
+      }
+      ev.recovered=act.id;G.recoveries++;
+      act.broken=false; act.vuln=0; act.shL=act.shMax; act.shC=shieldCapacity(act);
+      ev.notes.push(act.n+' reforms and attacks.');
+    }
+    if(act.cleanse&&act.frac){var shed=Math.min(act.frac,act.cleanse);act.frac-=shed;ev.notes.push(act.n+' sheds '+shed+' fracture.');}
+    G.foeAttacks++;var h0=hit(act,tgt); ev.hits.push(h0);
     cascade(ev,act,liveFoes()[0],['hurt']);
     if(tgt.reflect&&tgt.alive){
       ev.reflect=hit(tgt,act,(h0.dmg*tgt.reflect)/Math.max(1,tgt.dmg));
@@ -1603,12 +1718,10 @@ function resolveAction(){
     all.forEach(function(x){
       if(!x.broken&&x.shL>0){
         var b0=x.shL, p0=act.shred*(isWeak(x,act.e)?1:0.5)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
-        while(p0>0&&x.shL>0){ if(p0>=x.shC){p0-=x.shC;x.shL--;x.shC=x.shL>0?SHPER:0}
+        while(p0>0&&x.shL>0){ if(p0>=x.shC){p0-=x.shC;x.shL--;x.shC=x.shL>0?shieldCapacity(x):0}
           else{x.shC-=p0;p0=0} }
         if(b0>x.shL) (ev.shreds=ev.shreds||[]).push({id:x.id,from:b0,to:x.shL});
-        if(x.shL<=0){ x.broken=true;x.vuln=1;
-          if(G.bon&&G.bon.dissect) x.skips=2;
-          x.av+=(10000/x.sp)*BRK.delay; G.breaks++; (ev.broke2=ev.broke2||[]).push(x.id); }
+        if(x.shL<=0){ breakEnemy(x); (ev.broke2=ev.broke2||[]).push(x.id); }
       }
       if(act.frac){ x.frac=Math.min(12,(x.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
         (ev.fracs=ev.fracs||[]).push(x.id); }
@@ -1620,14 +1733,12 @@ function resolveAction(){
   if(!tgt.broken&&tgt.shL>0){
     var before=tgt.shL, match=isWeak(tgt,act.e);
     var p=act.dmg*(match?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
-    while(p>0&&tgt.shL>0){ if(p>=tgt.shC){p-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?SHPER:0}
+    while(p>0&&tgt.shL>0){ if(p>=tgt.shC){p-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}
       else{tgt.shC-=p;p=0} }
     ev.shield={id:tgt.id,from:before,to:tgt.shL,match:match};
     if(tgt.shL<=0){
-      tgt.broken=true; tgt.vuln=1;
-      if(G.bon&&G.bon.dissect) tgt.skips=2;
+      breakEnemy(tgt);
       if(G.bon&&G.bon.overstrike){ var h2=hit(act,tgt,0.9); h2.over=true; ev.chains.push(h2); }
-      tgt.av+=(10000/tgt.sp)*BRK.delay; G.breaks++;
       ev.broke=tgt.id;
       var al=G.units.filter(function(u){
         return u.side==='ally'&&u.alive&&u.e===act.e&&u.id!==act.id});
@@ -1668,7 +1779,7 @@ function evalTarget(act,t,pool){
   var w = AIMODE==='uniform' ? UNIFORM : (PROFILES[act.p]||UNIFORM);
   var match = isWeak(t,act.e);
   var chip = act.dmg*(match?1:UNMATCHED);
-  var shieldLeft = t.broken ? 0 : ((t.shL-1)*SHPER + t.shC);
+  var shieldLeft = t.broken ? 0 : ((t.shL-1)*shieldCapacity(t) + t.shC);
   var eff = Math.round(act.dmg*(1+(t.vuln>0?BRK.vuln:0)));
   var willBreak = !t.broken && shieldLeft>0 && chip>=shieldLeft;
   var willKill = t.broken||shieldLeft<=0 ? eff>=t.hp : false;
@@ -1690,7 +1801,7 @@ function evalTarget(act,t,pool){
 
   // focus fire: prefer whoever needs the fewest remaining turns to finish
   function workOf(x){
-    var sl2 = x.broken ? 0 : ((x.shL-1)*SHPER + x.shC);
+    var sl2 = x.broken ? 0 : ((x.shL-1)*shieldCapacity(x) + x.shC);
     var c2  = act.dmg*(isWeak(x,act.e)?1:UNMATCHED);
     var e2  = Math.max(1, Math.round(act.dmg*(1+(x.vuln>0?BRK.vuln:0))*
                 ((!x.broken&&sl2>0)?SOAK:1)));
@@ -1813,7 +1924,8 @@ function hit(src,tgt,scale){
   var killed=false, cost=0;
   if(tgt.hp<=0&&tgt.alive){ tgt.alive=false; killed=true;
     if(tgt.side==='ally'){ G.deaths++; G.downed.push(tgt.n);
-      G.limit=Math.max(G.round+1,G.limit-DEATHCOST); cost=DEATHCOST; } }
+      if(!window.SPACOLOGY_SESSION){G.limit=Math.max(G.round+1,G.limit-DEATHCOST);cost=DEATHCOST;} } }
+  accelerateEnemy(tgt,d);
   if(src.side==='ally'&&src.drain&&src.alive&&src.hp<src.max){
     var back=Math.round(d*src.drain);
     src.hp=Math.min(src.max,src.hp+back); G.drains++;
@@ -1831,7 +1943,7 @@ function playAction(done){
   G.units.forEach(function(u){
     if(u.side==='foe'&&!u.alive&&!u.retired&&G.hp0&&G.hp0[u.id]>0) u.retiring=true; });
   if(ev.end){ finish(ev.end); return done&&done(); }
-  G.actions++;
+  G.actions++;paintDeadline();
   G.maxChain=Math.max(G.maxChain||0,ev.chains?ev.chains.length:0);
   if(ev.roundStart) log('Round '+ev.roundStart,'rnd');
   if(ev.reinforced&&ev.reinforced.length)log('<b>Wave '+G.wave+' / '+G.totalWaves+'</b> enters the field','rnd');
@@ -1906,7 +2018,7 @@ function playAction(done){
     ev.hits.forEach(function(h){ logHit(h,ev.why) });
     ev.chains.forEach(function(h){ logHit(h) });
     sweepFoes();
-    if(ev.suppressed) log('&nbsp;&nbsp;'+act.n+' reforms instead of acting','brk');
+    if(ev.suppressed) log('&nbsp;&nbsp;'+act.n+' remains broken — turn denied by Assay','brk');
     if(ev.advanced) log('&nbsp;&nbsp;'+ev.advanced.name+' cuts forward','chain');
     if(ev.broke) log('<b>BREAK</b> '+U(ev.broke).n,'brk');
     G.units.forEach(paintUnit); paintAll(); track();
@@ -1928,6 +2040,7 @@ function playAction(done){
   targets.forEach(function(id){var rc=$('r-'+id);if(rc)rc.classList.add('targeted');});
   $('cap').textContent = ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
     : ev.interrupt ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()+' \u00b7 out of turn'
+    : ev.recovered ? act.n+' · REFORM & ATTACK'
     : ev.suppressed ? 'suppressed'
     : ev.kindle ? 'kindle \u00b7 '+act.n
     : ev.heal ? 'mend \u00b7 '+act.n
@@ -1945,11 +2058,15 @@ function playAction(done){
     t+=D(180);
   }
 
+  if(ev.recovered){
+    at(t,function(){tag.textContent='reform';floater(act.id,'reform → attack',EL[act.e],{tag:1});paintUnit(act);});
+    t+=D(300);
+  }
   if(ev.suppressed){
     at(t,function(){ tag.textContent='suppressed';
-      log('&nbsp;&nbsp;'+act.n+' reforms instead of acting','brk');
+      log('&nbsp;&nbsp;'+act.n+' remains broken — turn denied by Assay','brk');
       floater(act.id,'suppressed','#C97F9E',{tag:1});
-      floater(act.id,'reform',EL[act.e],{tag:1,delay:220});
+      floater(act.id,'held by Assay',EL[act.e],{tag:1,delay:220});
       paintUnit(act);
       var d=$('sc-'+act.id);
       if(d){ cardTF(act.id,'translateY(10px) scale(.94)',D(320));
@@ -2241,7 +2358,7 @@ function logHit(h,why){
 
 /* ============ finish ============ */
 function finish(msg){
-  G.over=true; playing=false; clr();
+  G.over=true; playing=false; clr();paintDeadline();paintRecovery();clearRibbonMarks();clearStage();
   $('bPlay').textContent='Play'; $('hState').textContent=msg;
   log('<b>'+msg+'</b> in '+G.round+' rounds','rnd');
   var names=Object.keys(G.dealt);
@@ -2268,30 +2385,33 @@ function finish(msg){
     '<div class="spark">'+bars+'</div>';
   if(window.SPACOLOGY_SESSION){
     var won=msg==='Crew wins';
-    var observation=G.breaks>=2||G.chains>=2;
+    var observation=SpacologyExpedition.observed(window.SPACOLOGY_SESSION,G,won);
+    var recovery=SpacologyRecovery.score(G.pool,G.units,observation);
     var pity=window.SPACOLOGY_SESSION.rarePity||0;
     var crystals=won&&(Math.random()<.22||pity>=3)?1:0;
     var rarePool=[{type:'gear',name:'Bore Bit'},{type:'gear',name:'Recoil Spring'},
       {type:'gear',name:'Ballast Plate'},{type:'ship',name:'Survey Prism'},
       {type:'ship',name:'Brace Matrix'}];
     var rareItem=won&&Math.random()<.1?rarePool[Math.floor(Math.random()*rarePool.length)]:null;
-    var baseGold=won?28+window.SPACOLOGY_SESSION.round*6:10;
+    var modifierEffects=SpacologyExpedition.effects(window.SPACOLOGY_SESSION);
+    var baseGold=(won?Math.round((28+window.SPACOLOGY_SESSION.round*6)*modifierEffects.reward):10)+modifierEffects.flatGold;
     var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*.2):0;
-    var result={round:window.SPACOLOGY_SESSION.round,won:won,
-      integrity:won?(observation?5:2):-8,
+    var result={reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
+      recovery:recovery,integrity:Math.max(0,Math.min(100,window.SPACOLOGY_SESSION.integrity+recovery.integrity))-window.SPACOLOGY_SESSION.integrity,
       gold:baseGold+surveyBonus,
       observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
-      actions:G.actions,ultimates:G.ults,totalDamage:Math.round(tot),crystals:crystals,item:rareItem,
+      actions:G.actions,enemyAttacks:G.foeAttacks,enemyRecoveries:G.recoveries,deaths:G.deaths,ultimates:G.ults,totalDamage:Math.round(tot),crystals:crystals,item:rareItem,
       rarePity:crystals?0:pity+(won?1:0)};
     localStorage.setItem('spacologyBattleResult',JSON.stringify(result));
-    $('summaryTitle').textContent=won?'Fieldwork recovered':'Partial recovery';
-    $('summaryCopy').textContent=won?'The crew secured the encounter and returned its field record.':'Extraction preserved the data gathered before the crew fell back.';
+    $('summaryTitle').textContent=won?'Fieldwork recovered':msg==='Out of time'?'Time expired':'Partial recovery';
+    $('summaryCopy').textContent=won?'The crew secured the encounter and returned its field record.':msg==='Out of time'?'The '+G.limit+'-round deadline expired before every wave was cleared. Partial data and recovery gold were retained.':'Extraction preserved the data gathered before the crew fell back.';
+    $('summaryCopy').textContent+=' '+recovery.earned+' / '+recovery.total+' points recovered ('+Math.floor(recovery.percent)+'%). '+recovery.band+'.';
     $('summaryGold').textContent='+'+result.gold+'g';
     $('summaryIntegrity').textContent=(result.integrity>=0?'+':'')+result.integrity+'%';
     $('summaryObservation').textContent=observation?'COMPLETE':'PARTIAL';
     $('summaryActions').textContent=G.actions;$('summaryBreaks').textContent=G.breaks;
     $('summaryChains').textContent=G.chains;$('summaryUltimates').textContent=G.ults;
-    $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=G.round;
+    $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=(Math.round(G.av)/100).toFixed(2)+' / '+G.limit;
     var recovered=[];if(rareItem)recovered.push(rareItem.name);if(crystals)recovered.push('Bloom crystal ×'+crystals);if(surveyBonus)recovered.push('Survey bonus +'+surveyBonus+'g');
     $('summaryDrop').textContent=recovered.length?'RARE RECOVERY · '+recovered.join(' · '):'No rare recovery this encounter.';
     $('summaryReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
@@ -2369,18 +2489,26 @@ function loadSpacologySession(){
   var state=null;
   try{state=JSON.parse(localStorage.getItem('spacologyRunV010'));}catch(e){}
   if(!state||!state.field||!state.support) return false;
+  state.difficulty=SpacologyVoyageSettings.normalize(state).difficulty;
+  var difficulty=SpacologyVoyageSettings.difficulties[state.difficulty];
+  var rules=SpacologyExpedition,modifierEffects=rules.effects(state);
   window.SPACOLOGY_SESSION=state;
   document.body.classList.add('session-mode');
   var library={};
   Object.keys(TEAMS).forEach(function(key){TEAMS[key].crew.forEach(function(c){if(!library[c.n])library[c.n]=c;});});
   var aliases={Coda:'Vane',Morrow:'Ash',Spore:'Sump',Latch:'Nettle'};
   var all=state.field.concat(state.support).filter(Boolean);
+  var planetHealth=rules.planetHealth(all);
   var crew=all.map(function(name){
     var source=library[name]||library[aliases[name]]||library.Corr;
     var c=JSON.parse(JSON.stringify(source));
     c.n=name;c.row=state.field.indexOf(name)>=0?'front':'back';
+    if(rules.crew[name]){c.e=rules.crew[name].element;c.tags=rules.crew[name].tags.slice();}
     var canonical=state.combatStats&&state.combatStats[name];
     if(canonical){c.hp=canonical.hp;c.dmg=canonical.dmg;c.sp=canonical.speed*10;}
+    var rank=(state.crewUpgrades&&state.crewUpgrades[name])||0;
+    c.hp=Math.round((c.hp||100)*(1+rank*.15)*planetHealth);
+    c.dmg=Math.round(c.dmg*(1+rank*.1)*modifierEffects.crewDamage);
     var gear=(state.equipped&&state.equipped[name])||[];
     gear.forEach(function(item){
       if(item==='Tuning Fork'&&c.frac)c.frac++;
@@ -2392,6 +2520,8 @@ function loadSpacologySession(){
       if(item==='Ballast Plate')c.barrierMul=(c.barrierMul||1)*1.3;
       if(item==='Slow Fuse')c.ultMul=(c.ultMul||1)*1.25;
       if(item==='Bore Bit')c.guardMul=(c.guardMul||1)*1.4;
+      var recipe=rules.recipes.find(function(r){return r.name===item});
+      if(recipe)Object.keys(recipe.stats).forEach(function(key){var value=recipe.stats[key];if(key==='frac'){if(c.frac)c.frac+=value;}else if(/Mul$/.test(key))c[key]=(c[key]||1)*value;else c[key]=(c[key]||0)+value;});
     });
     return c;
   });
@@ -2405,18 +2535,22 @@ function loadSpacologySession(){
   });
   TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew,ship:ship};
   OPS_RUN_ROUND=state.round;
-  OPS_HP=.82+(state.round-1)*.16;
-  OPS_DMG=.76+(state.round-1)*.12;
+  OPS_HP=(1+(state.round-1)*.22)*difficulty.enemyScale*modifierEffects.enemyHp;
+  OPS_DMG=(.9+(state.round-1)*.16)*difficulty.enemyScale*modifierEffects.enemyDamage;
+  OPS_SPEED=(1+(state.round-1)*.025)*difficulty.enemySpeed;
+  OPS_GUARD=(1+(state.round-1)*.06)*difficulty.enemyGuard;
+  OPS_RECOVERY=difficulty.breakDelay;
   OPS_PRESSURE=OPS_HP;
   FIELD=[3,3,4,4,5,6][Math.min(5,state.round-1)];
   OPS_WAVES=[2,2,2,3,3,3][Math.min(5,state.round-1)];
   POOL=FIELD*OPS_WAVES;
-  MAXROUND=14;
+  MAXROUND=SpacologyVoyageSettings.roundLimit(state);
   $('rPool').value=POOL;$('vPool').textContent=POOL;
-  $('sessionTitle').textContent='Phomous · Compound Motion';
+  $('sessionTitle').textContent=rules.route[Math.min(5,state.round-1)];
   $('sessionCrew').textContent=state.field.filter(Boolean).join(', ')+' on field · '+state.support.filter(Boolean).join(', ')+' off field';
   $('sessionRound').textContent='ROUND '+state.round+' / '+state.maxRounds;
-  $('sessionPressure').textContent='Enemy pressure '+Math.round(OPS_PRESSURE*100)+'%';
+  $('sessionPressure').textContent=difficulty.label+' · '+rules.activeModifiers(state).length+' modifiers';
+  var routeHost=document.querySelector('.session-route');if(routeHost)routeHost.innerHTML=rules.route.map(function(name,i){return '<div class="session-node '+(i+1<state.round?'done':i+1===state.round?'current':'')+'"><i>'+(i+1<state.round?'✓':i+1)+'</i><b>'+(i===5?'EXTRACT':'SURVEY')+'</b></div>'}).join('');
   $('sessionIntegrity').textContent=state.integrity+'%';
   $('sessionGold').textContent=state.gold;
   $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};

@@ -1,7 +1,7 @@
-const CACHE='spacology-v010-card-art-4';
+const CACHE='spacology-v010-recovery-progress-9';
 const CORE=[
   './','./index.html','./manifest.webmanifest',
-  './prototypes/spacology-v0.1.0.html','./prototypes/spacology-v0.1.0.js','./prototypes/watchable-fight.html','./prototypes/art-gallery.html',
+  './prototypes/spacology-v0.1.0.html','./prototypes/spacology-v0.1.0.js','./prototypes/recovery-scoring.js','./prototypes/voyage-settings.js','./prototypes/expedition-rules.js','./prototypes/ops-room.css','./prototypes/star-atlas.html','./prototypes/watchable-fight.html','./prototypes/art-gallery.html',
   './assets/app-icon-192.png','./assets/app-icon-512.png',
   './assets/crew/tarn-v1.webp','./assets/crew/ash-v1.webp','./assets/crew/quill-v1.webp','./assets/crew/maul-v1.webp',
   './assets/crew/bosk-v1.webp','./assets/crew/coda-v1.webp','./assets/crew/morrow-v1.webp','./assets/crew/spore-v1.webp',

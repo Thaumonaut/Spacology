@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const base = process.env.SPACOLOGY_BASE_URL || 'http://127.0.0.1:4173';
 (async () => {
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ headless:process.env.SPACOLOGY_HEADED !== '1' });
   try {
     const context = await browser.newContext({ serviceWorkers: 'block' });
     const page = await context.newPage();

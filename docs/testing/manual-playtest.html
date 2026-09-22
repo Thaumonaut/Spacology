@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spacology · playtest checklist</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#101923;color:#edf3f7;font:18px/1.55 system-ui,sans-serif}
+  main{max-width:900px;margin:auto;padding:32px 22px 70px}h1{line-height:1.2}h2{margin-top:38px;font-size:24px}
+  a{color:#9ed9ef}button,.button{display:inline-block;padding:13px 18px;border:1px solid #7bc4db;border-radius:9px;background:#213847;color:#fff;font:inherit;text-decoration:none;cursor:pointer;margin:5px 8px 5px 0}
+  .meta{color:#a9bac7}.note{background:#21303d;padding:18px;border-radius:10px}label.check{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid #354452;align-items:flex-start}
+  input[type=checkbox]{width:25px;height:25px;flex:none;margin:3px 0;accent-color:#7bdab3}textarea{width:100%;min-height:240px;padding:16px;font:inherit;color:inherit;background:#192734;border:1px solid #708693;border-radius:8px}
+  select{padding:12px;font:inherit;color:inherit;background:#213847;border:1px solid #7bc4db;border-radius:8px;margin:8px}summary{cursor:pointer;padding:12px 0;font-weight:bold}li{margin:10px 0}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #f0ce7d;outline-offset:3px}
+  @media print{body{background:white;color:black}.actions{display:none}.note{background:#eee}textarea{color:black}}
+</style>
+<main>
+<p class="meta">SPACOLOGY v0.1.0 · Recovery progress · Pages playtest 4</p>
+<h1>Help test a full voyage</h1>
+<p>Start with normal play, then try to break the interactions. Tick a box only after its expected behavior passes. Leave failures unticked and record the test number in your notes. Checks and notes save in this browser on this address.</p>
+<div class="note">
+<label for="difficulty">Difficulty</label><select id="difficulty"><option value="relaxed">Relaxed · enemies 85%</option><option value="standard" selected>Standard · enemies 100%</option><option value="hard">Hard · enemies 130%</option></select>
+<label for="initialIntegrity">Starting integrity</label><select id="initialIntegrity"><option value="70">70%</option><option value="60">60%</option><option value="50">50%</option></select>
+<p>Difficulty scales enemy health, damage, speed and shields throughout the voyage, including elites and later waves. Hard has 4 / 4 / 5 / 5 / 6 / 6 combat rounds across the six encounters; Standard gets one extra round and Relaxed two. The clock advances with combat actions, never animation duration or real-world waiting. Gold, starter crew rules, enemy counts and rewards stay the same. These are tuning presets, not balanced final modes. Choose a preset, then use <b>Start new test voyage</b> to apply it. Open game resumes the current run without changing its settings.</p>
+</div>
+<div class="actions">
+  <a class="button" href="../../prototypes/spacology-v0.1.0.html" target="_blank" rel="noopener">Open game</a>
+  <button id="reset" type="button">Start new test voyage…</button>
+  <button id="download" type="button">Download test report</button>
+</div>
+<p id="status" role="status"></p>
+<div class="note"><b>iPad setup:</b> Open this page on GitHub Pages in Safari, in landscape, at normal zoom. You can use Share → Add to Home Screen. If testing a local LAN copy instead, keep the hosting Mac awake and on the same Wi-Fi. Use one game tab at a time. Close it before resetting; then open it again here. No installation is needed.</div>
+
+<h2>Pass 1 · play one voyage</h2>
+<p>Do not reload during battle on this pass. Opened-pack progress now persists across reloads. Record your starting crew and whether you feel forced to save gold rather than buy anything.</p>
+<label class="check"><input type="checkbox" id="t01"><span><b>01 — Fresh start.</b> Enter Ops: round 1, 42 gold, 70% integrity by default (or your selected 50/60%), level 1, capacity 0/4, one ship slot, three reserve characters, and an empty formation. The difficulty label matches your selection. Launch is blocked until someone is on field.</span></label>
+<label class="check"><input type="checkbox" id="t02"><span><b>02 — Tap versus drag.</b> Tap a crew card to inspect it. Drag a compatible crew member into a specific empty cell, leaving a gap before it. It stays in that cell; dropping does not also open details. Repeat several times with slow and quick drags.</span></label>
+<label class="check"><input type="checkbox" id="t03"><span><b>03 — Position rules.</b> Front-only and back-only icons match placement restrictions. Invalid drops preserve the character. There are five front and seven support cells. The combined deployed count cannot exceed capacity. You can return everyone to inventory, but cannot launch with an empty front row.</span></label>
+<label class="check"><input type="checkbox" id="t04"><span><b>04 — Readability.</b> At normal iPad zoom, inventory tabs, names, gold, pack buttons, and item descriptions are readable and tappable. No clipping or sideways page scrolling. Note every label you must zoom to read.</span></label>
+<label class="check"><input type="checkbox" id="t05"><span><b>05 — Pack choices.</b> Preview does not spend gold. Opening a pack charges its displayed price and automatically claims currency/materials. Currency/materials appear as a compact receipt, leaving five actionable cards. Crew names remain visible above the quick-action buttons. Tap a card for its details. Tap Keep on one card, then Take All Remaining; each reward resolves once and the offers return after completion.</span></label>
+<label class="check"><input type="checkbox" id="t06"><span><b>06 — Equip two items.</b> Obtain two different gear items and drop both onto one character. The second fills the second slot rather than disappearing. Drop ship equipment into its slot. Inspect what each item changes.</span></label>
+<label class="check"><input type="checkbox" id="t07"><span><b>07 — Field progression.</b> Level 1 → 2 costs 12 gold and increases character capacity from 4 to 5. Level 2 → 3 costs 18 gold and increases ship slots from 1 to 2. An unaffordable upgrade changes neither level nor gold.</span></label>
+<label class="check"><input type="checkbox" id="t08"><span><b>08 — Ops and battle agree.</b> Launch: battle starts automatically with your deployed characters and the correct front/back rows. No reserve character joins. Initial stats reflect gear. Empty column gaps currently compact in battle; that limitation is already known.</span></label>
+<label class="check"><input type="checkbox" id="t09"><span><b>09 — Artwork and targeting.</b> The attacker appears large on stage; receivers react in their normal positions with a visible target cue. Names and health sit below the artwork. Captions do not overlap the staged card. Watch both ordinary attacks and an ultimate.</span></label>
+<label class="check"><input type="checkbox" id="t10"><span><b>10 — Combat controls and state.</b> Log starts hidden and can be opened/closed. Pause stops new actions after the current animation settles; Play resumes. Health/energy agree between staged and docked cards. Energy must not jump from full to empty and back without a matching action. Record a clip if it does.</span></label>
+<label class="check"><input type="checkbox" id="t11"><span><b>11 — Waves.</b> Defeating a wave spawns the next group; it does not end the encounter early. The remaining-enemy counter reaches zero at victory. The dock stays stable as enemies die. Later encounters contain more enemies and larger elite cards.</span></label>
+<label class="check"><input type="checkbox" id="t12"><span><b>12 — Recovery.</b> The report shows gold, damage, actions, breaks/chains and ultimates. Record gold before launch and the report reward; returning to Ops adds that reward exactly once. Reload only after returning to Ops: the reward must not be paid again.</span></label>
+<label class="check"><input type="checkbox" id="t13"><span><b>13 — Full voyage.</b> Continue through six encounters, buying packs and leveling with earned gold. Reach the final report, then Begin Another Voyage: the new run returns to the starting values. A loss still gives a recovery path; it should not strand the UI.</span></label>
+
+<h2>Pass 2 · try awkward interactions</h2>
+<p>Use a separate fresh run. Some checks require several packs to obtain enough distinct items. Mark “not reached” if you do not get the necessary cards.</p>
+<label class="check"><input type="checkbox" id="t14"><span><b>14 — Selling cannot print money.</b> Write down gold before opening a pack. Sell all five actionable cards. Including automatic gold, the final balance must be lower than before purchase. Repeat with other pack themes. No action can pay twice.</span></label>
+<label class="check"><input type="checkbox" id="t15"><span><b>15 — Every pack action.</b> Try individual Keep, Sell and Scrap; drag crew into a valid field cell, gear onto a character, ship items onto the ship, and cards to inventory/sell/scrap targets. Try bulk Sell Remaining and Scrap Remaining on separate packs. Resolved cards must never pay again or be included twice in bulk actions.</span></label>
+<label class="check"><input type="checkbox" id="t16"><span><b>16 — Refresh.</b> Refresh changes the offers and charges the displayed price exactly once (first refresh: 2 gold, then 4). After a battle, the refresh cost returns to 2. An unaffordable refresh must not charge gold.</span></label>
+<label class="check"><input type="checkbox" id="t17"><span><b>17 — Gear ownership.</b> Replace an occupied gear slot with a different item: the old gear returns to inventory. Return an equipped crew member to reserve, then sell or dismantle them from their details: attached gear returns once. No gear disappears or duplicates.</span></label>
+<label class="check"><input type="checkbox" id="t18"><span><b>18 — Duplicates and rare drops.</b> A duplicate kept card converts to scrap instead of creating a second owned copy, even if its gear is on reserve crew. Prime cards also grant their bonus scrap. If a battle drops a crystal or item, the recovery report and resulting inventory agree. No drop in a single battle is normal.</span></label>
+<label class="check"><input type="checkbox" id="t19"><span><b>19 — Touch edges.</b> Drop outside a valid destination, drag across gear diamonds, scroll the inventory, rotate and return to landscape, and switch apps while in Ops. Nothing should vanish, be sold accidentally, or leave a stuck drag image. Note the precise gesture if tap and drag conflict.</span></label>
+<label class="check"><input type="checkbox" id="t20"><span><b>20 — Artwork archive.</b> Open the <a href="../../prototypes/art-gallery.html" target="_blank" rel="noopener">art gallery</a>. Switch Enemies → Lore → All. The filter buttons stay visible and you can always switch back.</span></label>
+
+<h2>New systems · playtest 2</h2>
+<p>Earlier notes and check marks are preserved. Repeat pack, materials, formation and battle checks after this update.</p>
+<label class="check"><input type="checkbox" id="t21"><span><b>21 — Crafting.</b> Open Forge to see recipes. Obtain Tuning Fork + Spore Sling, then drag one loose item onto the other and confirm Resonance Coil. Both inputs disappear; the output appears once and can be equipped. Other recipes and crew upgrades also spend only their displayed costs.</span></label>
+<label class="check"><input type="checkbox" id="t22"><span><b>22 — Attunements and Barracks.</b> Craft a token for 12 scrap + 1 crystal and use it for an unowned character of the selected element. Barracks recruits a named unowned character for 32 gold, once per encounter. Repeated taps must not charge or recruit twice.</span></label>
+<label class="check"><input type="checkbox" id="t23"><span><b>23 — Modifiers and goals.</b> Choose a goal before first launch. Add an optional modifier at the start, and a second at encounter 4. Check its stated costs/benefits. One paid removal is available from encounter 3. Goal progress comes from actual breaks, chains or safe victories; completing it pays 8 gold + 1 crystal once.</span></label>
+<label class="check"><input type="checkbox" id="t24"><span><b>24 — Recovery inbox.</b> Each battle produces one receipt containing the gold, applied integrity change, rare drops and any duplicate conversion. Open the inbox repeatedly and reload: rewards must never apply again. The final report and its inbox should reopen after reload.</span></label>
+<label class="check"><input type="checkbox" id="t25"><span><b>25 — Ancestral-world harmonies.</b> View the <a href="../../prototypes/star-atlas.html" target="_blank" rel="noopener">star atlas</a>. Two Earth crew give +8% team base health; three give +15% instead. Other worlds add their bonuses. Check details and battle health agree, and that returning a crew member updates the breakpoint.</span></label>
+<label class="check"><input type="checkbox" id="t26"><span><b>26 — Owned-crew policy and persistence.</b> Set Ask, Auto scrap or Auto sell under Manage / Owned Crew. Open another pack containing an owned character. Only the new copy resolves; the original and its gear stay put. Resolve one other card, reload and confirm the remaining cards, gold and materials are preserved.</span></label>
+
+<h2>Economy and feel</h2>
+<p>Begin with Standard at 70 integrity, then compare Relaxed and Hard at the same starting integrity. Only then try lower integrity. Crew and packs are random, so repeat each setting and record the starting crew; a single comparison is noisy.</p>
+<p>For each encounter, note: difficulty, integrity before/after, crew, field level, gold before shopping, packs bought, upgrade cost, gold at launch, win/loss, and reward. Also record “I wanted to buy ___ but couldn't,” dull stretches, confusing effects, and animations that were too fast to follow. Those are useful findings even when nothing crashes.</p>
+<p>Base victory gold for encounters 1–6 is <b>34 / 40 / 46 / 52 / 58 / 64</b>; qualifying Survey Prism rewards can add a bonus. A defeat pays 10. One successful run is not proof that every starter team is balanced.</p>
+
+<details><summary>Already known — don't spend your first run retesting these</summary>
+<ul>
+<li>Active battles still do not resume the same action after reload. Test interruptions separately from a clean full voyage.</li>
+<li>Integrity does not currently end the voyage at zero. It affects recovery and final grading.</li>
+<li>Calls, persistent cross-voyage catalogue unlocks and combat audio remain unfinished. The Ops Calls placeholder is replaced by the working voyage-goal control.</li>
+<li>Some crew still share prototype combat kits. Descriptions now reflect the current kits; this does not mean every lore character has a unique finished kit.</li>
+<li>Homeworld assignments, recipes, prices and modifier values are proposals for testing. They are not a final balance sign-off.</li>
+<li>First offline battle navigation has a known routing bug. This HTTP test is for online gameplay; PWA/offline checks need a separate HTTPS build.</li>
+</ul>
+<p>The <a href="spacology-v0.1.0-systems-audit.md">original audit</a> describes an earlier checkpoint. See the <a href="ops-systems-playtest.md">Ops implementation notes</a> and <a href="enemy-pressure-playtest.md">enemy pressure and deadline tuning</a> for this build.</p>
+</details>
+
+<h2>Enemy pressure · playtest 3</h2>
+<label class="check"><input type="checkbox" id="t27"><span><b>27 — Recovery attacks.</b> Break an enemy. Its next turn reforms its shield and attacks, unless four Assay are denying its turns. Tap an enemy to inspect its speed, shield and behavior; closing details resumes only if the battle was running.</span></label>
+<label class="check"><input type="checkbox" id="t28"><span><b>28 — Different threats.</b> Quicksteps act frequently. Hitting a shielded Bruiser or Anchor raises its speed to a cap; breaking it removes the bonus. Armored enemies require more guard damage. Cleanser sheds two fracture stacks before attacking.</span></label>
+<label class="check"><input type="checkbox" id="t29"><span><b>29 — Race the deadline.</b> Check the deadline in Ops before launching. Time Left falls during battle and changes to Final Round near expiry. Pausing holds the clock. If enemies remain at zero, the report says Time expired and returns partial recovery gold. Its elapsed rounds and deadline also appear in the inbox.</span></label>
+<label class="check"><input type="checkbox" id="t30"><span><b>30 — Difficulty feedback.</b> Try Standard and Hard on separate voyages. Record the encounter, formation, gear, modifiers, result and elapsed rounds. Note whether you lost to damage or the deadline, and whether upgrades let you overcome it. A deliberately unchanged starter team should struggle later.</span></label>
+
+<h2>Recovery progress · playtest 4</h2>
+<label class="check"><input type="checkbox" id="t31"><span><b>31 — Recovery bands.</b> The recovery bar includes every wave. Defeated chaff award 1 point, other regular enemies 2 and elites 4. Tap the bar to see the thresholds. At 88% you lose no integrity, even on timeout. Compare the live estimate with the report and inbox; at the 0/100 integrity limits the applied change is capped.</span></label>
+<h2>Your notes / bug report</h2>
+<p>Record the steps before resetting. A short screen recording is especially helpful for animation or drag problems. Download your notes before closing the browser if using private browsing.</p>
+<label for="notes">Device + iPadOS/browser version; test ID; steps; expected result; actual result; happens every time or intermittently:</label>
+<textarea id="notes" placeholder="Test 06 — second gear disappeared&#10;Device / OS:&#10;Crew + gear names:&#10;Steps:&#10;Expected:&#10;Actual:&#10;Reproduced: 2 of 3 attempts&#10;Screenshot / video filename:"></textarea>
+<p class="meta">Checks are self-reported. Unticked means not passed or not tested; explain which in your notes. This update passed the enemy/deadline regression suite, the Ops systems and difficulty checks, and full Standard and Hard voyage flow checks. Seeded balance samples are documented in the tuning notes. Earlier builds had intermittent drag-test failures. Physical iPad behavior still needs your testing.</p>
+</main>
+<script src="../../prototypes/voyage-settings.js"></script>
+<script>
+const storageKey='spacologyPlaytest-difficulty-1';
+const difficultySelect=document.getElementById('difficulty'),integritySelect=document.getElementById('initialIntegrity');
+try{const config=SpacologyVoyageSettings.normalize(JSON.parse(localStorage.getItem('spacologyPlaytestConfigV010')));difficultySelect.value=config.difficulty;integritySelect.value=String(config.initialIntegrity)}catch(e){}
+const checks=[...document.querySelectorAll('input[type=checkbox]')];
+const notes=document.getElementById('notes'),status=document.getElementById('status');
+try{const saved=JSON.parse(localStorage.getItem(storageKey)||'{}');checks.forEach(c=>c.checked=!!saved[c.id]);notes.value=saved.notes||''}catch(e){status.textContent='Notes could not be restored. Download your report to keep a copy.'}
+function save(){try{localStorage.setItem(storageKey,JSON.stringify(Object.assign({notes:notes.value},Object.fromEntries(checks.map(c=>[c.id,c.checked])))))}catch(e){status.textContent='Browser storage is unavailable. Download your report to keep a copy.'}}
+checks.forEach(c=>c.addEventListener('change',save));notes.addEventListener('input',save);
+document.getElementById('reset').onclick=()=>{
+  if(!confirm('Close the game tab first. Replace this address’s current voyage and pending reward with a new '+difficultySelect.value+' voyage at '+integritySelect.value+' integrity? Checklist notes stay saved. Other website addresses are unaffected.'))return;
+  try{const config=SpacologyVoyageSettings.normalize({difficulty:difficultySelect.value,initialIntegrity:Number(integritySelect.value)});localStorage.setItem('spacologyPlaytestConfigV010',JSON.stringify(config));localStorage.removeItem('spacologyRunV010');localStorage.removeItem('spacologyBattleResult');status.textContent='Ready: '+config.difficulty+' at '+config.initialIntegrity+' integrity. Open game to begin. Previous checklist marks remain; download the report and untick checks when starting another test pass.'}catch(e){status.textContent='Reset failed: browser storage is unavailable.'}
+};
+document.getElementById('download').onclick=()=>{
+  let run=null,config=null;try{run=JSON.parse(localStorage.getItem('spacologyRunV010'));config=JSON.parse(localStorage.getItem('spacologyPlaytestConfigV010'))}catch(e){}
+  const report=['Spacology playtest — Recovery progress · Pages playtest 4',new Date().toISOString(),location.origin,navigator.userAgent,'Current run: '+JSON.stringify(run?{difficulty:run.difficulty,initialIntegrity:run.initialIntegrity,integrity:run.integrity,round:run.round,level:run.level,gold:run.gold,field:run.field,support:run.support,reserve:run.reserve,modifiers:run.modifiers,goal:run.goal,goalProgress:run.goalProgress,inbox:run.inbox}:config),'',...checks.map(c=>(c.checked?'PASS: ':'NOT MARKED PASS: ')+c.parentElement.innerText.trim()),'','NOTES',notes.value].join('\n');
+  const url=URL.createObjectURL(new Blob([report],{type:'text/plain;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='spacology-playtest-recovery-4.txt';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+};
+</script>
+</html>
