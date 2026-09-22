@@ -1,0 +1,1363 @@
+{
+  "method": "Real prototype resolver in Chromium, animations disabled for sampling. Same 20 LCG seeds (1\u201320) per cell. 3 difficulties \u00d7 encounters 1/3/6 \u00d7 3 fixed builds = 540 fights per version. No optional modifiers. This is a fixture comparison, not a predicted player win rate.",
+  "roster": "Original nine-character Ops playtest roster; concurrent 28-character roster expansion excluded.",
+  "builds": {
+    "starter": "Tarn + Ash on field, Coda support; unchanged across encounters; no gear or ranks.",
+    "growing": "Four crew at encounter 1, five at 3, seven at 6. Basic gear on four crew and Exact Clock; no crafted upgrades/ranks.",
+    "synergy": "Four/six/eight crew; two crafted items each, rank 2, Exact Clock/Culture Bed/Brace Matrix. Upper-bound build, not constrained by earned economy."
+  },
+  "files": {
+    "prototypes/watchable-fight.html": "6d438447ddcd0cbdf427720c4fef4950e13c5d88dae734ce8e9e254ea18fa349",
+    "prototypes/expedition-rules.js": "72bbb42967e895f8e5359ce697d3aabed6efc72410c5e39c6d3873baa86c8bf2",
+    "prototypes/voyage-settings.js": "52f3d5fcc4f1b58f2485c70800dbfd0e84a64ee568c2a21510ce4117f421acb2"
+  },
+  "results": [
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 1,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.8,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.94,
+      "elapsedRange": [
+        2.7,
+        3.7
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 1,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.05,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.52,
+      "elapsedRange": [
+        2.12,
+        3.0
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 1,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 2.85,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.0,
+      "elapsedRange": [
+        1.67,
+        2.5
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 3,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 8.6,
+      "meanDowns": 0,
+      "meanElapsedRounds": 4.7,
+      "elapsedRange": [
+        3.16,
+        7.49
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 3,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.4,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.93,
+      "elapsedRange": [
+        2.7,
+        3.33
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 3,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill",
+        "Spore"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 3.2,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.23,
+      "elapsedRange": [
+        2.0,
+        2.92
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 6,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 15,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 15,
+        "Out of time": 5
+      },
+      "meanEnemyAttacks": 14.85,
+      "meanDowns": 1.05,
+      "meanElapsedRounds": 9.51,
+      "elapsedRange": [
+        6.39,
+        13.08
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 6,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.45,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.25,
+      "elapsedRange": [
+        2.83,
+        4.17
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "relaxed",
+      "encounter": 6,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Spore",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.55,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.49,
+      "elapsedRange": [
+        2.14,
+        3.25
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 1,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.4,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.3,
+      "elapsedRange": [
+        2.7,
+        3.7
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 1,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.25,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.56,
+      "elapsedRange": [
+        2.12,
+        3.01
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 1,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 2.9,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.05,
+      "elapsedRange": [
+        1.67,
+        3.0
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 3,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 9,
+      "meanDowns": 0,
+      "meanElapsedRounds": 4.86,
+      "elapsedRange": [
+        3.43,
+        6.86
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 3,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.75,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.28,
+      "elapsedRange": [
+        2.7,
+        3.92
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 3,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill",
+        "Spore"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 3.35,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.3,
+      "elapsedRange": [
+        2.0,
+        2.92
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 6,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 4,
+      "trials": 20,
+      "outcomes": {
+        "Crew wiped": 5,
+        "Crew wins": 4,
+        "Out of time": 11
+      },
+      "meanEnemyAttacks": 17.15,
+      "meanDowns": 1.9,
+      "meanElapsedRounds": 10.75,
+      "elapsedRange": [
+        7.44,
+        13.08
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 6,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.45,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.75,
+      "elapsedRange": [
+        2.83,
+        4.67
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "standard",
+      "encounter": 6,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Spore",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.55,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.74,
+      "elapsedRange": [
+        2.14,
+        3.25
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 1,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 6.25,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.47,
+      "elapsedRange": [
+        2.91,
+        4.4
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 1,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 3.7,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.66,
+      "elapsedRange": [
+        2.24,
+        3.33
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 1,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 3.4,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.53,
+      "elapsedRange": [
+        2.07,
+        2.92
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 3,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 19,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 19,
+        "Out of time": 1
+      },
+      "meanEnemyAttacks": 10.95,
+      "meanDowns": 0.35,
+      "meanElapsedRounds": 6.33,
+      "elapsedRange": [
+        5.03,
+        12.31
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 3,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.39,
+      "elapsedRange": [
+        2.7,
+        4.44
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 3,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill",
+        "Spore"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 3.4,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.47,
+      "elapsedRange": [
+        2.0,
+        2.92
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 6,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 0,
+      "trials": 20,
+      "outcomes": {
+        "Crew wiped": 10,
+        "Out of time": 10
+      },
+      "meanEnemyAttacks": 14.65,
+      "meanDowns": 2.5,
+      "meanElapsedRounds": 9.12,
+      "elapsedRange": [
+        5.31,
+        12.31
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 6,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.4,
+      "meanDowns": 0,
+      "meanElapsedRounds": 4.11,
+      "elapsedRange": [
+        3.33,
+        5.0
+      ]
+    },
+    {
+      "version": "before",
+      "difficulty": "hard",
+      "encounter": 6,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Spore",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.45,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.97,
+      "elapsedRange": [
+        2.43,
+        3.33
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 1,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 7.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.56,
+      "elapsedRange": [
+        2.86,
+        3.86
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 1,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.84,
+      "elapsedRange": [
+        2.5,
+        3.4
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 1,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 3.75,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.55,
+      "elapsedRange": [
+        1.67,
+        2.92
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 3,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 16,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 16,
+        "Out of time": 4
+      },
+      "meanEnemyAttacks": 12.4,
+      "meanDowns": 0.3,
+      "meanElapsedRounds": 5.96,
+      "elapsedRange": [
+        4.62,
+        7.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 3,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 6.65,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.86,
+      "elapsedRange": [
+        2.77,
+        5.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 3,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill",
+        "Spore"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.59,
+      "elapsedRange": [
+        2.14,
+        2.92
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 6,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 0,
+      "trials": 20,
+      "outcomes": {
+        "Crew wiped": 20
+      },
+      "meanEnemyAttacks": 14.05,
+      "meanDowns": 3,
+      "meanElapsedRounds": 5.1,
+      "elapsedRange": [
+        4.27,
+        6.94
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 6,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 9.15,
+      "meanDowns": 0.1,
+      "meanElapsedRounds": 4.57,
+      "elapsedRange": [
+        3.77,
+        5.22
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "relaxed",
+      "encounter": 6,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Spore",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.65,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.06,
+      "elapsedRange": [
+        3.0,
+        3.4
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 1,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 9.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.26,
+      "elapsedRange": [
+        3.0,
+        3.85
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 1,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.62,
+      "elapsedRange": [
+        2.23,
+        3.4
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 1,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 4.1,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.46,
+      "elapsedRange": [
+        1.83,
+        2.92
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 3,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 3,
+      "trials": 20,
+      "outcomes": {
+        "Out of time": 17,
+        "Crew wins": 3
+      },
+      "meanEnemyAttacks": 12.55,
+      "meanDowns": 1.25,
+      "meanElapsedRounds": 5.93,
+      "elapsedRange": [
+        5.33,
+        6.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 3,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 8.45,
+      "meanDowns": 0.05,
+      "meanElapsedRounds": 3.95,
+      "elapsedRange": [
+        2.95,
+        4.71
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 3,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill",
+        "Spore"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.35,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.66,
+      "elapsedRange": [
+        2.0,
+        3.25
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 6,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 0,
+      "trials": 20,
+      "outcomes": {
+        "Crew wiped": 20
+      },
+      "meanEnemyAttacks": 13.1,
+      "meanDowns": 3,
+      "meanElapsedRounds": 2.4,
+      "elapsedRange": [
+        1.68,
+        4.27
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 6,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 12,
+      "meanDowns": 1,
+      "meanElapsedRounds": 5.3,
+      "elapsedRange": [
+        4.36,
+        6.7
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "standard",
+      "encounter": 6,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Spore",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 7.9,
+      "meanDowns": 0,
+      "meanElapsedRounds": 3.41,
+      "elapsedRange": [
+        3.0,
+        3.67
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 1,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 10,
+      "meanDowns": 0.2,
+      "meanElapsedRounds": 3.2,
+      "elapsedRange": [
+        2.56,
+        3.85
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 1,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 6.75,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.7,
+      "elapsedRange": [
+        2.5,
+        3.21
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 1,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 5.15,
+      "meanDowns": 0,
+      "meanElapsedRounds": 2.16,
+      "elapsedRange": [
+        1.83,
+        2.92
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 3,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 0,
+      "trials": 20,
+      "outcomes": {
+        "Out of time": 16,
+        "Crew wiped": 4
+      },
+      "meanEnemyAttacks": 11.35,
+      "meanDowns": 2.1,
+      "meanElapsedRounds": 4.9,
+      "elapsedRange": [
+        3.86,
+        5.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 3,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill"
+      ],
+      "wins": 5,
+      "trials": 20,
+      "outcomes": {
+        "Out of time": 15,
+        "Crew wins": 5
+      },
+      "meanEnemyAttacks": 10.9,
+      "meanDowns": 1.2,
+      "meanElapsedRounds": 4.81,
+      "elapsedRange": [
+        3.85,
+        5.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 3,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Coda",
+        "Quill",
+        "Spore"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 7.2,
+      "meanDowns": 0.05,
+      "meanElapsedRounds": 3.03,
+      "elapsedRange": [
+        2.5,
+        4.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 6,
+      "build": "starter",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Coda"
+      ],
+      "wins": 0,
+      "trials": 20,
+      "outcomes": {
+        "Crew wiped": 20
+      },
+      "meanEnemyAttacks": 11.15,
+      "meanDowns": 3,
+      "meanElapsedRounds": 1.54,
+      "elapsedRange": [
+        1.35,
+        1.68
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 6,
+      "build": "growing",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Maul"
+      ],
+      "wins": 0,
+      "trials": 20,
+      "outcomes": {
+        "Out of time": 20
+      },
+      "meanEnemyAttacks": 18.7,
+      "meanDowns": 3.15,
+      "meanElapsedRounds": 6.0,
+      "elapsedRange": [
+        6.0,
+        6.0
+      ]
+    },
+    {
+      "version": "after",
+      "difficulty": "hard",
+      "encounter": 6,
+      "build": "synergy",
+      "crew": [
+        "Tarn",
+        "Ash",
+        "Morrow",
+        "Bosk",
+        "Coda",
+        "Quill",
+        "Spore",
+        "Maul"
+      ],
+      "wins": 20,
+      "trials": 20,
+      "outcomes": {
+        "Crew wins": 20
+      },
+      "meanEnemyAttacks": 11.8,
+      "meanDowns": 0.35,
+      "meanElapsedRounds": 4.53,
+      "elapsedRange": [
+        4.01,
+        5.3
+      ]
+    }
+  ]
+}

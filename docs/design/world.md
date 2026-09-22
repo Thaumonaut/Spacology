@@ -265,8 +265,9 @@ in your head than the other thing, and it is, in its way, exactly the same argum
 
 ## Peoples
 
-Life is abundant, so people are too. The ship carries humans, **semi-humans** and **demi-humans**,
-and nobody aboard finds any of it remarkable. Worlds are named and numbered — **Maelus IV**,
+Life is abundant, so people are too. The ship carries hundreds of humanoid lineages, and nobody
+aboard finds any of it remarkable. There is no semi-human or demi-human hierarchy: those categories
+were always too broad to describe anybody usefully. Worlds are named and numbered — **Maelus IV**,
 **Utora VII**, **Orrowan V** — and the numeral is the orbital position, so the full name is the
 ordinary name.
 
@@ -287,11 +288,12 @@ treats any of it as exotic.
 
 ---
 
-## Semi-humans
+## Humanoid peoples
 
-Human body plan, different everything else. You could put them in the same clothes. Most people
-aboard are semi-human of one kind or another; **baseline humans — Earth-descended and similar — are
-a minority**, and are simply called human when it comes up, which is rarely.
+All of these peoples share enough of a body plan to use the same ship, clothing and tools, while
+their silhouettes, sensory lives and biology remain visibly distinct. **Baseline humans —
+Earth-descended and similar — are a minority**, and are simply called human when it comes up, which
+is rarely.
 
 ### The Chosokee — Maelus IV
 
@@ -408,6 +410,25 @@ hostile. There is a standing argument with Life Systems about humidity in the ar
 They arrive at meetings wet, because the watercourse is faster than the gallery and they will not
 pretend otherwise. Whether this is acceptable has been discussed at length, the discussion is not
 over, and they keep doing it.
+
+### Fungal people
+
+Humanoid symbiotic colonies: an animal body interwoven from birth with a mycelial second system.
+The visible fruiting crown is neither hair nor ornament. Its caps, gills and seasonal colour are a
+living record of health, age and environment, and no two crowns grow to the same silhouette.
+
+Fine hyphae at the fingertips can enter porous stone, wood and soil without damaging it. A trained
+engineer can taste chemical changes across a wall; an ecologist can lay a temporary network that
+carries nutrients and warnings between organisms that could not otherwise communicate. Strong
+sterilants, sealed dry air and contaminated networks are correspondingly dangerous.
+
+They are not related to the Mycelial Choir encountered in frontier reefs. Fungal biology has evolved
+many times, and treating every fungus-bearing organism as one people is the taxonomic equivalent of
+calling every winged creature a bird.
+
+Fungal people shed harmless ambient spores when stressed. Ship ventilation handles this perfectly.
+People still blame them whenever ordinary mould appears in a washroom, which they find less funny
+than everyone else does.
 
 ### The Tesk
 
@@ -528,23 +549,27 @@ is recording life has never settled whether the Made are life.** Some of them th
 funniest thing aboard and cite their own catalogue entry number in arguments. Others do not think it
 is funny at all.
 
-### Angels
+### Moth-folk
 
-Winged, luminous-eyed, and mildly embarrassed about the name, which somebody else gave them a long
-time ago and which stuck the way these things do.
+Very pale, luminous-eyed and moth-winged, with feathered antennae and powder-soft fur at the ears,
+neck and forearms. Their wing patterns vary enormously between families and worlds; their pale
+colouring does not.
 
 **Whether they can actually fly depends on which deck you catch them on.** An arcology's gravity
-varies from the hub outward, so an angel is airborne in the low-gravity cores, awkward in the mid
+varies from the hub outward, so a moth-person is airborne in the low-gravity cores, awkward in the mid
 rings, and grounded on the outer decks like everybody else. They plan routes around this, sometimes
 absurdly, to avoid being seen taking a lift.
 
-In a crowded gallery the wings are a menace and they know it. Every angel aboard has swept a tray
-off a table, and every angel aboard has a specific practised apology for it that they can deliver
+In a crowded gallery the wings are a menace and they know it. Every moth-person aboard has swept a tray
+off a table, and every moth-person aboard has a specific practised apology for it that they can deliver
 without looking round.
 
 ---
 
-## Demi-humans
+## Animal-featured peoples
+
+These lineages remain humanoid in posture, expression, clothing and tool use. Their animal features
+are biological adaptations rather than a scale running from "more human" to "less human."
 
 Animal body plans — muzzles, digitigrade legs, tails, fur or feathers as the primary covering. A
 minority aboard, but not a small one.

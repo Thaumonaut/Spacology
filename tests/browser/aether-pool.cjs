@@ -1,0 +1,18 @@
+const {chromium}=require('playwright');const assert=require('node:assert/strict');
+const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
+(async()=>{const browser=await chromium.launch({headless:true});try{const p=await browser.newPage({serviceWorkers:'block',viewport:{width:1200,height:900}});const errors=[];p.on('pageerror',e=>errors.push(e.message));
+await p.goto(BASE+'/prototypes/spacology-v0.1.0.html');await p.evaluate(()=>{const s=JSON.parse(localStorage.spacologyRunV010);Object.assign(s,{field:['Tarn','Nour'],support:['Coda','Aurel','Maul','Spore'],reserve:[],level:5,capacity:6,gear:[],equipped:{},aetherModes:{Coda:'build'},aetherPriority:'Nour',aetherOvercharge:{Nour:true}});localStorage.spacologyRunV010=JSON.stringify(s)});await p.reload();await p.locator('#enterOps').click();await p.locator('.unit[data-unit="Coda"]').click();assert.match(await p.locator('.crew-aether').innerText(),/Basic \+2/);
+await p.locator('.crew-aether summary').click();await p.locator('[data-aether-mode="auto"]').click();await p.locator('.crew-aether summary').click();await p.locator('[data-aether-mode="build"]').click();
+assert.equal(await p.evaluate(()=>JSON.parse(localStorage.spacologyRunV010).aetherModes.Coda),'build');await p.locator('#closeModal').click();await p.locator('#continueButton').click();await p.waitForURL('**/watchable-fight.html**');await p.evaluate(()=>cancelSessionAutostart());
+let result=await p.evaluate(()=>{
+const start={...G.aether};const events=[];for(let i=0;i<150;i++){const e=resolveAction();if(e.end)break;if(e.aether)events.push({n:e.actor.n,...e.aether});if(G.aether.current<0||G.aether.current>G.aether.max)throw Error('pool bounds')}
+return {start,pool:G.aether,events,ults:G.ults,alive:G.units.filter(u=>u.side==='ally'&&u.alive).length};});
+console.log(`Rotation: ${result.pool.basics} basics, ${result.pool.skills} skills, ${result.ults} separate ultimates`);assert.equal(result.start.current,3);assert.equal(result.start.max,11);assert(result.events.some(e=>e.kind==='skill'));assert(result.events.some(e=>e.n==='Coda'&&e.kind==='basic'&&e.delta===2));assert(result.events.some(e=>e.kind==='basic'));assert(result.ults>0);
+result=await p.evaluate(()=>{
+build('ops',G.planet);const allies=G.units.filter(u=>u.side==='ally');allies.forEach(u=>{u.en=0;u.av=999});G.units.filter(u=>u.side==='foe').forEach(u=>{u.av=999;u.hp=9999;u.max=9999});const actor=allies.find(u=>u.n==='Nour');actor.av=0;G.aether.current=0;const empty=resolveAction();const basic={...empty.aether};
+allies.forEach(u=>{u.en=0;u.av=999});actor.av=0;G.pending=null;G.aether.current=6;const skill=resolveAction();const spent={...skill.aether};
+allies.forEach(u=>{u.en=0;u.av=999});actor.en=100;actor.heldFor=5;const before=G.aether.current,ultimate=resolveAction();
+return {basic,spent,ultimate:!!ultimate.ult,delta:G.aether.current-before,powerCleared:allies.every(u=>!u.aetherPower)};});
+assert.equal(result.basic.kind,'basic');assert.equal(result.basic.delta,1);assert.equal(result.spent.delta,-3);assert(result.ultimate);assert.equal(result.delta,0);assert(result.powerCleared);assert.deepEqual(errors,[]);
+await p.evaluate(()=>{build('ops','spread');MODE='none';G.actions=0;playAction(()=>{});paintAll()});await p.waitForFunction(()=>G.actions>0);assert(await p.locator('#aetherMeter').isVisible());await p.screenshot({path:'/tmp/spacology-aether.png',fullPage:true});console.log('PASS basic generation, Weaver capacity/generation, skill spending, overcharge, ultimate separation, resolver bounds.');
+}finally{await browser.close()}})().catch(e=>{console.error(e);process.exitCode=1});

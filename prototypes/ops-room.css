@@ -1,0 +1,121 @@
+/* Playable Ops: readable tablet cards and progressive disclosure. */
+body{padding:0;display:block}.frame{width:min(1440px,100%);height:100svh;min-height:884px;max-height:none;aspect-ratio:auto;margin:auto;border-radius:0;grid-template-columns:152px minmax(0,1fr) 184px;grid-template-rows:80px 132px minmax(440px,1fr) 218px;overflow:visible}
+.topbar{grid-template-columns:225px minmax(0,1fr) 220px;gap:8px;padding:8px 12px}.room b{font-size:18px}.room span,.stat span,.run-meta span{font-size:11px}.stat b{font-size:22px}.run-meta b{font-size:13px}.run-icons{gap:5px}.round-icon{min-width:40px;height:36px;padding:4px 7px;font-size:11px}.node{width:52px;border:0;background:none;padding:0;cursor:pointer}.node b{font-size:9px}.node i{width:28px;height:28px;font-size:11px}.node:not(:last-child):after{width:28px;left:40px;top:14px}
+.supply{padding:8px 12px;min-height:0}.pack-select{grid-template-columns:repeat(3,minmax(0,1fr)) 172px;gap:10px}.pack{padding:14px}.pack .kind,.pack .odds,.pack p{font-size:12px}.pack h3{font-size:20px}.pack .price{font-size:22px}.pack-actions button,.stock-note button{min-height:44px;font-size:12px}.stock-note{padding:12px;gap:10px}.stock-note b{font-size:15px}.stock-note span{font-size:12px}.stock-note button{width:100%;padding:8px 4px}
+.opened-pack{display:grid;grid-template-columns:minmax(0,1fr) 164px;grid-template-rows:36px minmax(0,1fr);gap:8px;height:100%;overflow:visible}.opened-pack.hidden{display:none}.open-summary{grid-column:1/3;display:flex;flex-direction:row;align-items:center;gap:12px;padding:4px 10px;overflow:auto;white-space:nowrap}.open-summary>.eyebrow{display:none}.open-summary h3{font-size:15px;margin:0}.open-summary p{display:flex;gap:10px;font-size:12px;margin:0}.receipt{color:var(--green);white-space:nowrap}.resolve-count{margin:0 0 0 auto;font-size:12px;white-space:nowrap}
+.pack-cards{display:grid;grid-template-columns:repeat(5,minmax(146px,1fr));gap:8px;overflow-x:auto;overflow-y:hidden;min-height:0;padding:1px 1px 4px;align-items:stretch}.reward-card{display:flex;flex-direction:column;min-height:192px;padding:0;overflow:hidden}.reward-select,.reward-card.has-portrait .reward-select{padding:6px;display:flex;flex-direction:column;height:auto;flex:1;min-height:0;overflow:hidden;gap:2px;line-height:1.25}.reward-portrait,.reward-card .reward-portrait{position:static;inset:auto;width:100%;height:62px;min-height:62px;background-position:center 25%;background-size:cover;border-radius:4px;flex:none}.reward-symbol{height:62px;min-height:62px;display:grid;place-items:center;font-size:30px;color:var(--violet)}.reward-card .type{font-size:10px;flex:none;line-height:14px}.reward-card b{font-size:15px;line-height:19px;margin:0;flex:none;white-space:nowrap}.reward-card .reward-effect{font-size:12px;line-height:15px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex-shrink:0;min-height:30px}.reward-card .delta{display:none}.reward-actions{position:static;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:3px;gap:3px;flex:none}.reward-actions button{height:40px;font-size:11px;padding:0;min-width:0}.reward-card.resolved:after{font-size:13px}.position-badge{z-index:2}.reward-card .position-badge{position:absolute;top:10px;left:10px}.resolve-panel{padding:9px;gap:6px;overflow:auto}.resolve-panel label,.resolve-panel p{font-size:11px}.resolve-panel b{font-size:13px}.remaining-actions{display:grid;grid-template-columns:1fr;gap:5px}.remaining-actions button,.finish-pack,.pack-drop-actions button{font-size:12px;min-height:36px}.pack-drop-actions{margin:0}.finish-pack{display:none}
+.board{padding:8px;grid-template-rows:minmax(180px,1fr) 52px minmax(180px,1fr);gap:6px}.crew-row{grid-template-columns:56px repeat(7,minmax(0,1fr));gap:5px;align-items:stretch}.unit,.slot{height:100%;align-self:stretch}.unit{display:flex;flex-direction:column;padding:4px 4px 32px;min-height:180px}.unit .portrait{position:static;width:100%;height:auto;min-height:100px;flex:1;margin:0 0 5px;background-position:center 28%}.unit>b,.unit>span:not(.position-badge){flex:none}.unit>b{font-size:12px}.unit>span{font-size:10px}.slot{font-size:10px}.row-label,.row-label b{font-size:11px}.gear-slots i{width:16px;height:16px}.capacity{padding:4px 8px;gap:8px}.capacity .formation b{font-size:22px}.capacity .formation span{font-size:10px}.capacity-rule{display:none}.field-level b,.field-level span{font-size:11px}.level-field{height:42px;font-size:11px;padding:0 8px}
+.harmonies{overflow-y:auto;padding:12px 8px}.harmony{min-height:45px;padding:5px}.harmony b{font-size:12px}.breaks{font-size:12px}.eyebrow{font-size:10px}.empty-hint{font-size:12px;color:var(--muted)}.ship{padding:12px 8px;overflow:auto}.ship-head b{font-size:14px}.ship-head span{font-size:12px}.ship-slot{min-height:66px;height:auto;padding:10px}.ship-slot b{font-size:12px}.ship-slot span,.ship-note{font-size:11px}.ship-slot.empty{font-size:12px}
+.inventory{grid-template-columns:244px minmax(0,1fr);padding:12px;gap:12px;min-height:0}.inv-top b{font-size:20px}.inv-top button{font-size:11px;min-height:40px}.inv-tabs button{height:55px;font-size:12px}.inv-tabs button b{font-size:18px}.craft-actions button{font-size:12px;min-height:44px}.inv-hint{font-size:11px}.inv-items,#inventoryItems.inv-items{display:flex;overflow-x:auto;overflow-y:hidden;gap:8px;align-items:stretch;padding-bottom:6px}.inv-items .item{flex:0 0 122px;display:block!important;padding:10px}.item.character{padding-top:91px}.item.character .item-icon{height:80px}.item b{font-size:14px;line-height:18px}.item span,.item .qty{font-size:12px;line-height:16px}.item .qty{top:6px;right:6px;background:#0b1620;padding:0 3px}.item .lock{display:none}.material-counter{flex:0 0 178px;border:1px solid var(--line2);border-radius:8px;background:#0c1823;color:var(--ink);padding:14px;text-align:left;display:flex;flex-direction:column;gap:9px;cursor:pointer}.material-counter span{font-size:16px}.material-counter b{font-size:32px;color:var(--green)}.material-counter small{font-size:13px;line-height:1.4;color:var(--muted)}
+.departure{padding:12px 8px;display:flex;flex-direction:column;gap:8px}.destination b{font-size:15px}.destination span,.destination small{font-size:12px;line-height:1.4;display:block;margin-top:4px;color:var(--muted)}.round-settings{gap:5px;margin:0}.setting{min-height:40px;font-size:11px;padding:4px}.continue{height:48px;min-height:48px;font-size:12px;margin-top:auto}.destination{min-height:100px;padding:9px;overflow:auto}
+.overlay{position:fixed;z-index:250}.modal{width:min(820px,94vw);max-height:90svh;padding:24px;overflow:auto}.modal h2{font:600 26px/1.2 Inter,system-ui,sans-serif;margin:4px 40px 16px 0}.modal .lede,.modal p{font-size:16px;line-height:1.5;max-width:none}.modal h3{font-size:18px;margin:5px 0}.modal small{font-size:13px;color:var(--muted)}.modal button:not(.close){min-height:44px;border:1px solid var(--line2);border-radius:5px;background:#102331;padding:9px 12px;font-size:14px;cursor:pointer}.modal button:disabled{opacity:.4;cursor:default}.modal button[aria-pressed=true]{border-color:var(--green);color:var(--green)}.modal .close{width:40px;height:40px;font-size:22px}.modal-actions{display:flex;flex-wrap:wrap;gap:8px}.modal-actions button{flex:1 1 160px}.modal-card{padding:14px}.modal-card p{font-size:14px}.modal-card b{font-size:16px}.system-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.system-options>button{display:flex;flex-direction:column;text-align:left;gap:5px}.forge-inventory{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.recruit-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.recruit-art{height:108px;background-position:center 25%;background-size:cover;border-radius:4px;color:transparent}.recruit-preview{width:100%;padding:0!important;background:transparent!important;border:0!important}.recruit-preview b{display:block;margin-top:7px}.receipt-entry{padding:15px 0;border-bottom:1px solid var(--line)}.receipt-entry p{margin:5px 0}.kit-grid p,.kit-move p,.build-note{font-size:14px}.kit-stats div b{font-size:18px}.toast{position:fixed;bottom:24px;right:24px;max-width:calc(100vw - 48px);font-size:14px;padding:15px;z-index:280}.toast button{font-size:12px;padding:10px}.voyage-end{min-height:100%;z-index:150}.voyage-end .continue{display:block;margin:12px auto;min-width:230px}
+@media(max-width:900px){.frame{grid-template-columns:124px minmax(0,1fr) 166px}.topbar{grid-template-columns:205px 1fr 180px}.node{width:34px}.node b{font-size:7px}.node:not(:last-child):after{width:16px;left:26px}.round-icon{font-size:10px;min-width:32px;padding:3px}.crew-row{grid-template-columns:42px repeat(7,minmax(0,1fr));gap:3px}.inventory{grid-template-columns:210px minmax(0,1fr)}.pack-select{grid-template-columns:repeat(3,minmax(0,1fr)) 150px}.pack h3{font-size:16px}.pack .kind{font-size:10px}.opened-pack{grid-template-columns:minmax(0,1fr) 150px}.recruit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.resolve-panel>label,.resolve-panel>p{display:none}.remaining-actions{margin-top:0}.resolve-panel{gap:8px}.pack-drop-actions button{min-height:44px}.reward-actions button{height:44px;font-size:12px}.modal .crew-origin{font-size:13px;color:var(--green)}
+.title-screen{position:fixed;height:100svh}
+/* Card gestures are routed explicitly: a swipe scrolls, a held drag moves items. */
+.inventory .item[draggable=true],.reward-card[draggable=true],.forge-inventory [draggable=true]{touch-action:none}
+
+/* Keep the launch deadline and button inside the tablet departure panel. */
+.departure{display:grid;grid-template-rows:auto minmax(0,1fr) 44px 48px;gap:6px;padding:8px}
+.departure .eyebrow{margin:0}.departure .destination{min-height:0;overflow:auto}.departure .continue{margin:0;width:100%}
+
+.material-counter[draggable=true]{touch-action:none}
+
+.crew-detail-header{display:grid;grid-template-columns:160px minmax(0,1fr);gap:22px;align-items:center;margin-bottom:20px}.crew-detail-portrait{height:200px;border:1px solid var(--line2);border-radius:10px;background-size:cover;background-position:center 25%;display:grid;place-items:center;font-size:48px}.crew-detail-portrait.has-art{font-size:0}.crew-detail-header .crew-origin{line-height:1.5}.crew-rank{color:var(--green)}.character-gear{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0 20px}.character-gear .modal-card{border:1px solid var(--line2);border-radius:8px}.modal-actions small,.forge-inventory small{display:block;margin-top:5px}.recipe-inputs{border-block:1px solid var(--line2);padding:8px 0}
+@media(max-width:540px){.crew-detail-header{grid-template-columns:100px minmax(0,1fr);gap:12px}.crew-detail-portrait{height:140px}.character-gear{grid-template-columns:1fr}}
+
+.reserve-count{display:block;font-size:12px!important;color:var(--green);margin-top:4px}.reserve-empty{flex:0 0 110px;display:grid;place-content:center;text-align:center;border:1px dashed var(--line2);border-radius:8px;color:var(--muted);font-size:12px}.crew-copy{border-style:dashed!important}.craft-actions{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+.item.character .qty{z-index:3;padding:2px 4px;border-radius:3px;color:var(--amber)}
+
+/* Gear actions stay on the item the player is inspecting. */
+.modal:has(.gear-detail){width:min(560px,94vw)}
+.gear-detail section{margin-top:22px}.gear-detail h3{font-size:15px;margin-bottom:10px}
+.gear-detail .lede{margin-bottom:0}.gear-detail p{font-size:14px}
+.gear-fit-list{display:grid;gap:8px}.modal .gear-fit{display:flex;align-items:center;gap:12px;text-align:left;width:100%;padding:10px}
+.gear-fit-portrait{width:42px;height:48px;flex:none;border-radius:8px;background-size:cover;background-position:center 25%;display:grid;place-items:center}
+.gear-fit-portrait.has-art{font-size:0}.gear-fit b{font-size:14px}.gear-fit small{display:block;font-size:12px;margin-top:3px;line-height:1.45}
+.modal .gear-fit:disabled{opacity:1;color:var(--muted);background:#0b1620}
+.gear-detail summary{cursor:pointer;min-height:44px;padding:12px 0;font-size:14px}.gear-detail summary:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.gear-other summary{color:var(--muted)}.gear-combination{border:1px solid var(--line2);border-radius:8px;background:#0c1823;margin-top:8px}
+.gear-combination summary{padding:12px}.gear-combination summary b{font-size:15px}.gear-combination summary small{display:block;padding-left:17px;margin-top:4px}
+.gear-recipe{padding:4px 14px 14px}.gear-detail .recipe-inputs p{font-size:13px;margin:8px 0}.gear-detail .craft-availability{display:block;margin-top:8px}
+.modal .gear-primary{background:#302616;border-color:#897043;color:var(--amber)}
+.gear-footer{border-top:1px solid var(--line2);margin-top:22px;padding-top:12px}.gear-dismantle summary{color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.modal .gear-danger{color:#efaaa2}.modal .gear-name-button{background:transparent;text-align:left;padding:0;border:0;color:var(--blue);text-decoration:underline;text-underline-offset:4px}
+.pack.sold-offer{display:flex;flex-direction:column;justify-content:center;align-items:center;border-style:dashed;background:transparent;text-align:center;color:var(--muted)}
+.gear-slots .gear-slot{width:24px;height:22px;padding:0;border:1px solid var(--violet);border-radius:4px;background:#101827;color:var(--violet);font-size:14px;cursor:pointer}
+.gear-slots .gear-slot.empty{border-style:dashed;border-color:var(--dim);color:var(--dim);background:transparent}
+.unit{padding-bottom:32px}
+
+/* Keep unopened offers compact; spend the height on crew artwork. */
+.frame:has(.opened-pack:not(.hidden)){min-height:1018px;grid-template-rows:80px 280px minmax(440px,1fr) 218px}
+.pack-select .pack{padding:10px 12px;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) 44px;gap:6px 8px;align-items:center}
+.pack-select .pack h3{grid-column:1;grid-row:1;font-size:16px;line-height:1.2}
+.pack-select .pack .price{grid-column:2;grid-row:1;font-size:20px;margin:0}
+.pack-select .pack .kind,.pack-select .pack>p,.pack-select .pack .odds{display:none}
+.pack-select .pack-actions{grid-column:1/-1;grid-row:2;justify-content:flex-end}
+.pack-select .pack-actions button{padding:7px 10px;font-size:11px}
+.pack-select .stock-note{padding:7px;gap:6px;justify-content:center}
+.pack-select .stock-note>b,.pack-select .stock-note>span{display:none}
+.pack-select .stock-note button{margin:0;font-size:11px;line-height:1.2;min-height:44px}
+.pack-select .pack.sold-offer{display:flex}.pack-select .pack.sold-offer>p{display:block;font-size:12px}
+.crew-row:first-child{grid-template-columns:56px repeat(5,minmax(0,1fr))}
+.inv-items .item.character{display:flex!important;flex-direction:column;flex-basis:130px;padding:5px}
+.inv-items .item.character .item-icon{position:static;flex:1;min-height:105px;height:auto;width:100%;margin:0 0 6px;background-position:center 28%}
+.inv-items .item.character>b,.inv-items .item.character>span:not(.position-badge){flex:none}
+.reward-card .reward-portrait{height:82px;min-height:82px}
+@media(max-width:900px){.crew-row:first-child{grid-template-columns:42px repeat(5,minmax(0,1fr))}.pack-select .pack{padding:8px;gap:5px}.pack-select .pack h3{font-size:14px}.pack-select .pack .price{font-size:17px}.pack-select .pack-actions{gap:4px}.pack-select .pack-actions button{padding:6px;font-size:10px}}
+
+.crew-aether{margin:18px 0;padding:14px;border:1px solid var(--line2);border-radius:8px}.crew-aether summary{cursor:pointer;min-height:44px;padding:12px 0}.crew-aether small{display:block;margin-top:10px}.crew-aether p{font-size:13px}
+
+/* Opening a pack uses the same supply strip, leaving both crew rows in place. */
+.frame,.frame:has(.opened-pack:not(.hidden)){min-height:750px;grid-template-rows:80px 156px minmax(336px,1fr) 176px}
+.opened-pack{grid-template-rows:28px minmax(0,1fr);gap:6px;overflow:hidden}
+.open-summary{padding:3px 8px;gap:10px}.open-summary h3{font-size:13px}.open-summary p,.resolve-count{font-size:11px}
+.pack-cards{grid-template-columns:repeat(5,minmax(152px,1fr));gap:6px;padding-bottom:2px}
+.reward-card{min-height:0}.reward-select,.reward-card.has-portrait .reward-select{display:grid;grid-template-columns:40px minmax(0,1fr);grid-template-rows:18px 1fr;gap:0 6px;padding:5px;align-items:center}
+.reward-card .reward-portrait,.reward-symbol{grid-column:1;grid-row:1/3;width:40px;height:44px;min-height:44px;margin:0;font-size:24px}
+.reward-card .type{grid-column:2;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reward-card b{grid-column:2;font-size:12px;line-height:15px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.reward-card .reward-effect{display:none}.reward-card .position-badge{display:none}
+.reward-actions{margin:2px;gap:3px}.reward-actions button{height:40px;font-size:11px}
+.resolve-panel{padding:4px;gap:4px;justify-content:center}.resolve-panel>b{display:none}
+.remaining-actions button,.pack-drop-actions button{min-height:44px;font-size:11px}
+.board{grid-template-rows:minmax(0,1fr) 44px minmax(0,1fr);min-height:0}
+.crew-row{min-height:0}.unit{min-height:0}.unit .portrait{min-height:64px}
+.capacity .level-field{height:36px}.capacity .formation b{font-size:20px}
+.inventory{padding:8px;overflow:hidden}.inv-top b{font-size:17px}.inv-top button{min-height:32px}
+.inv-tabs button{height:42px}.craft-actions button{min-height:36px;font-size:11px}.inv-hint{display:none}
+.inv-items .item.character .item-icon{min-height:64px}.inv-items .item{padding:7px}
+@media(min-width:901px) and (min-height:900px){.frame,.frame:has(.opened-pack:not(.hidden)){grid-template-rows:80px 156px minmax(440px,1fr) 204px}}
+
+.title-actions{flex-wrap:wrap}.title-actions a{font-size:11px}
+.crew-lore{margin:18px 0}.crew-lore summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--green)}
+
+.topbar{grid-template-columns:225px minmax(0,1fr) 300px}
+@media(max-width:900px){.topbar{grid-template-columns:205px minmax(0,1fr) 250px}}
+
+/* Crew rewards reserve the full strip height for their portrait. */
+.reward-card.has-portrait{display:grid;grid-template-columns:minmax(0,1fr) 68px;gap:3px;padding:3px}
+.reward-card.has-portrait .reward-select{position:relative;display:block;padding:0;min-width:0;overflow:hidden;border-radius:3px}
+.reward-card.has-portrait .reward-portrait{position:absolute;inset:0;width:100%;height:100%;min-height:0;background-position:center 24%;background-size:cover}
+.reward-card.has-portrait .reward-select>b{position:absolute;bottom:0;left:0;right:0;display:block;max-width:none;padding:16px 5px 4px;background:linear-gradient(transparent,rgba(3,10,15,.94));font-size:12px;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reward-card.has-portrait .type{position:absolute;top:3px;left:3px;max-width:calc(100% - 6px);padding:2px 3px;background:rgba(3,10,15,.75);font-size:8px;color:var(--ink)}
+.reward-card.has-portrait .reward-actions{display:grid;grid-template-columns:1fr;grid-template-rows:1fr 1fr;gap:4px;margin:0;min-height:0}
+.reward-card.has-portrait .reward-actions button{height:auto;min-height:40px;font-size:10px;padding:2px}
+
+.reward-card.has-portrait .type{left:27px;max-width:calc(100% - 30px)}
+
+/* Field training fits inside the existing strip between crew rows. */
+.field-level{min-width:180px;max-width:280px}
+.field-level b,.field-level span{line-height:1.25}
+#fieldXP{display:block;width:100%;height:5px;margin-top:4px;border:0;border-radius:4px;overflow:hidden;background:#1c303d;accent-color:var(--green)}
+#fieldXP::-webkit-progress-bar{background:#1c303d;border-radius:4px}
+#fieldXP::-webkit-progress-value{background:var(--green);border-radius:4px}
+#fieldXP::-moz-progress-bar{background:var(--green);border-radius:4px}
+.field-training{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
+.capacity .field-training .level-field{height:28px;min-width:96px}
+.field-training small{font-size:10px;line-height:12px;color:var(--muted)}
+.level-field:disabled{opacity:.5;cursor:default}

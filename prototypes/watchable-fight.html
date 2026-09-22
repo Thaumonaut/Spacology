@@ -218,7 +218,7 @@ body.session-mode .boardrow{position:absolute;inset:0;display:block;height:auto}
 body.session-mode .bmain{position:absolute;left:85px;right:10px;top:0;bottom:0;min-width:0}.enemy-dock-live{position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:10;width:min(620px,calc(100% - 390px));min-width:360px;min-height:116px;padding:10px 14px 11px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.92);box-shadow:0 12px 28px rgba(0,0,0,.34)}.enemy-dock-live>.zlabel{position:absolute;left:14px;top:-10px;margin:0;padding:2px 6px;border:1px solid #33536e;border-radius:3px;background:#071018;font-size:7px}.enemy-dock-live:before,.enemy-dock-live:after,.crew-dock-live:before,.crew-dock-live:after{content:"";position:absolute;width:20px;height:20px;background:inherit;transform:rotate(45deg);z-index:-1}.enemy-dock-live:before{left:-11px;top:35px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.enemy-dock-live:after{right:-11px;top:35px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}
 body.session-mode #stage{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);width:min(690px,calc(100% - 30px));height:214px;margin:0;border:0;background:transparent;box-shadow:none;z-index:20}.session-mode #stage .ptag{display:none}.session-mode #stage .cap{top:calc(100% + 8px);bottom:auto;font-size:15px;padding:4px 9px;border:1px solid #33536e;border-radius:4px;background:rgba(7,16,24,.9);width:max-content;max-width:90%;margin:auto}
 .crew-dock-live{position:absolute;left:50%;bottom:11px;transform:translateX(-50%);width:min(770px,calc(100% - 12px));z-index:10;padding:9px 12px 10px;border:1px solid #2b465a;border-radius:6px;background:rgba(8,16,24,.93);box-shadow:0 12px 28px rgba(0,0,0,.34)}.crew-dock-live:before{left:-11px;top:75px;border-left:1px solid #2b465a;border-bottom:1px solid #2b465a}.crew-dock-live:after{right:-11px;top:75px;border-right:1px solid #2b465a;border-top:1px solid #2b465a}.crew-live-row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:5px;min-height:96px}.crew-live-row+.crew-live-row{margin-top:5px}.crew-live-row>span{display:flex;flex-direction:column;justify-content:center;color:#51697a;font-size:7px;letter-spacing:.06em}.crew-live-row>span b{color:#edf3f4;font-size:8px;margin-bottom:2px}.session-objective{position:absolute;right:0;top:12px;width:180px;z-index:30;border:1px solid #426c5e;border-radius:4px;background:rgba(8,25,21,.93);padding:8px 9px}.session-objective b{display:block;color:#70d5b2;font-size:8px}.session-objective span{font-size:7px;color:#8da2b1}
-body.session-mode .ribbon{display:flex;justify-content:center;align-items:flex-end;gap:5px;min-height:104px}body.session-mode .ribbon .rc{flex:0 0 78px;width:78px;min-width:78px;height:92px;min-height:92px}body.session-mode .ribbon .rc.elite{flex-basis:96px;width:96px;min-width:96px;height:104px;min-height:104px;border-width:2px;background:#151827}.session-mode .rc.elite .rn:after{content:' · ELITE';color:var(--energy);font-size:5px}.session-mode .crew-live-row .ribbon{min-width:0;min-height:92px;align-items:stretch;justify-content:flex-start}.session-mode .btns{display:none}
+body.session-mode .ribbon{display:flex;justify-content:center;align-items:flex-end;gap:5px;min-height:104px}body.session-mode .ribbon .rc{flex:0 0 78px;width:78px;min-width:78px;height:92px;min-height:92px}body.session-mode .ribbon .rc.elite{flex-basis:96px;width:96px;min-width:96px;height:104px;min-height:104px;border-width:2px;background:#151827}.session-mode .rc.elite .rn:after{content:' · ELITE';color:var(--energy);font-size:5px}.session-mode .crew-live-row .ribbon{min-width:0;min-height:92px;align-items:stretch;justify-content:flex-start;overflow-x:auto}.session-mode #crewBack.summon-packed .rc{flex-basis:62px;width:62px;min-width:62px}.session-mode .btns{display:none}
 body.session-mode .rc.crew-portrait,body.session-mode .rc.enemy-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 3px #000,0 0 7px #000}body.session-mode .rc.crew-portrait .rn,body.session-mode .rc.enemy-portrait .rn{font-weight:800}body.session-mode .rc.crew-portrait .re,body.session-mode .rc.crew-portrait .rt,body.session-mode .rc.enemy-portrait .rt{color:#edf3f4!important}.sc.crew-portrait,.sc.enemy-portrait{background-position:center 24%;background-size:cover;text-shadow:0 1px 4px #000,0 0 8px #000}.sc.crew-portrait:after,.sc.enemy-portrait:after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.58));z-index:0}.sc.crew-portrait>*,.sc.enemy-portrait>*{z-index:1}.session-mode .sc.act .sn{font-size:15px;font-weight:800}.session-mode .sc.act .se{font-size:10px}.session-mode .sc.act .sb{height:6px;margin-top:8px}.session-mode .sc.act.elite .sn{font-size:17px}.session-mode .sc.act.elite{border-width:2px;box-shadow:0 0 34px rgba(233,180,94,.28)}
 body.session-mode #battleRecord{display:none!important;position:fixed;top:64px;right:0;bottom:0;width:285px;z-index:90;margin:0;padding:12px;border:0;border-left:1px solid #33536e;border-radius:0;background:rgba(7,16,24,.98);box-shadow:-18px 0 45px rgba(0,0,0,.45)}body.session-mode #battleRecord.open{display:flex!important}body.session-mode #battleRecord>.zlabel{font-size:9px;color:#edf3f4}body.session-mode #battleRecord .log{font-size:10px}body.session-mode #battleRecord .stats{font-size:9px}
 .session-summary{display:none}.session-mode .session-summary.show{position:fixed;inset:64px 0 0;z-index:110;display:grid;place-items:center;padding:28px;background:rgba(2,5,8,.72);backdrop-filter:blur(7px)}.summary-panel{width:min(680px,92vw);border:1px solid #33536e;border-radius:8px;padding:24px;background:#071018;box-shadow:0 24px 80px #000}.summary-panel .eyebrow{font-size:9px;color:var(--energy);letter-spacing:.16em}.summary-panel h2{margin:6px 0 4px;font:34px Georgia,serif}.summary-panel>p{margin:0 0 18px;color:var(--ink2);font-size:12px}.summary-rewards,.summary-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}.summary-rewards div,.summary-stats div{min-height:68px;border:1px solid var(--line);border-radius:5px;padding:10px;background:#0c1823}.summary-rewards b,.summary-stats b{display:block;margin-bottom:5px;color:#edf3f4;font-size:18px}.summary-rewards span,.summary-stats span{color:var(--ink3);font-size:8px;letter-spacing:.12em}.summary-rewards b{color:var(--energy)}.summary-return{width:100%;height:46px;margin-top:12px;border:1px solid var(--energy);border-radius:4px;background:var(--energy);color:#251805;font-weight:800}.summary-drop{margin-top:10px;color:#8fb878;font-size:11px;min-height:16px}
@@ -255,7 +255,28 @@ body.session-mode .sc .sb,body.session-mode .sc.act .sb{width:100%;height:4px;ma
 body.session-mode .sc.help .sn{font-size:10px;line-height:12px}
 body.session-mode .sc.help .se{font-size:8px;line-height:9px}
 
+
+.enemy-details{width:min(520px,calc(100vw - 32px));max-height:85svh;overflow:auto;padding:24px;border:1px solid #638797;border-radius:14px;background:#101e29;color:#edf3f4;font:16px/1.55 system-ui;box-shadow:0 20px 70px #0009}
+.enemy-details::backdrop{background:#03090fbb}.enemy-details h2{margin:0 0 12px;font-size:24px}.enemy-details p{margin:12px 0}.enemy-details button{font:inherit;min-height:44px;padding:10px 16px;cursor:pointer}.enemy-details dl{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px}.enemy-details dd{margin:0;text-align:right;color:#8fe0c1}.session-mode .rc[role=button]{cursor:pointer}.session-mode .rc[role=button]:focus-visible{outline:3px solid #e9b45e;outline-offset:4px}
+body.session-mode .rc>.rt{font-size:9px;line-height:12px}
+
+.session-mode .session-objective{top:156px;right:0;width:152px}.battle-deadline{display:none}.session-mode .battle-deadline{display:block;position:absolute;right:12px;top:20px;z-index:12;width:140px;padding:12px;background:#0c1923;border:1px solid #456378;border-radius:8px;color:#a8cadd}
+.battle-deadline b{display:block;font:700 28px/1.2 system-ui;color:#edf3f4}.battle-deadline span,.battle-deadline small{display:block;font:12px/1.5 system-ui}.battle-deadline progress{width:100%;height:7px;accent-color:#8fe0c1}.battle-deadline.urgent{border-color:#efbd68;color:#efbd68}.battle-deadline.urgent progress{accent-color:#efbd68}.battle-deadline.urgent b{color:#efbd68}
+@media(max-width:900px){.session-mode .battle-deadline{width:124px;right:0;padding:8px}.battle-deadline b{font-size:24px}}
+
+.session-mode .battle-sidebar{position:absolute;right:0;top:20px;width:152px;display:grid;gap:12px;z-index:12}
+.session-mode .battle-sidebar .battle-deadline,.session-mode .battle-sidebar .session-objective{position:static;width:auto;margin:0}
+@media(max-width:900px){.session-mode .battle-sidebar{width:124px}}
+
+.recovery-progress{display:none}.session-mode .recovery-progress{display:block;width:100%;padding:10px 12px;border:1px solid #456378;border-radius:8px;background:#0c1923;color:#e8edf1;text-align:left;cursor:pointer;font:13px/1.4 system-ui}
+.recovery-progress>span{font-size:11px;color:#a8cadd}.recovery-progress>b{float:right;font-size:16px}.recovery-progress strong{display:block;font-size:15px;margin-top:8px;color:var(--recovery-color,#efbd68)}.recovery-progress small{display:block;font-size:11px;color:#a8cadd;margin-top:3px}.recovery-track{position:relative;height:10px;margin:12px 0 6px;background:#253743;border-radius:4px;overflow:hidden}.recovery-track>i:first-child{display:block;height:100%;width:0;background:var(--recovery-color,#efbd68)}.recovery-track .tick{position:absolute;top:0;bottom:0;width:1px;background:#f1f4f6aa}.recovery-track .tick.safe{width:3px;background:#8fe0c1}.recovery-progress:focus-visible{outline:3px solid #e9b45e;outline-offset:3px}
+
+.session-mode .tcol{flex:0 0 124px;min-width:124px}.session-mode .tcol .battle-deadline{position:static;width:100%;padding:10px;text-align:left;cursor:pointer;color:#abc6d4}.session-mode .battle-deadline b{font-size:28px}.session-mode .battle-deadline:focus-visible{outline:3px solid #e9b45e}.session-mode .track{max-height:380px;overflow:auto;overscroll-behavior:contain;padding:2px 3px 6px 0}.session-mode .tk{min-height:34px;padding:6px;display:flex;align-items:center;justify-content:space-between;gap:4px}.session-mode .tk .tn{font-size:12px;text-align:left}.session-mode .tk .tw{font-size:11px;flex-shrink:0}.session-mode .tk.round-marker{background:#253329;border:1px solid #6ca88a;color:#bcf0d5;min-height:40px}.session-mode .tk.extraction{background:#3b2a16;border-color:#c29751;color:#ffe2a4}.session-mode .tk.round-marker .tn{white-space:normal;font-weight:700}.session-mode .tk.round-marker .tw{color:inherit}.timeline-edge{display:none}.session-mode .timeline-edge{display:block;padding:8px 2px;font-size:12px;line-height:1.4;color:#aed4c3}.session-mode .tk.advanced{box-shadow:inset 3px 0 #8fe0c1}.session-mode .tk.advanced .tw{color:#8fe0c1}.session-mode .tcol .zlabel{font-size:11px;margin:12px 0 7px}.summary-tempo{font-size:14px;line-height:1.6;color:#b7d2da;margin:12px 0}.summary-tempo strong{color:#8fe0c1}
+@media(max-width:900px){.session-mode .tcol{flex-basis:110px;min-width:110px}.session-mode .tk .tn{font-size:11px}.session-mode .track{max-height:420px}}
+
+.aether-meter{display:block;width:100%;margin:8px 0;padding:9px;border:1px solid #3c5267;border-radius:7px;background:#101c29;color:#c8b6ef;text-align:left;cursor:pointer}.aether-meter[hidden]{display:none}.aether-meter>b{float:right}.aether-meter>span:first-child{font-size:11px;letter-spacing:.08em}.aether-pips{display:flex;gap:3px;margin-top:7px}.aether-pips i{flex:1;max-width:12px;min-width:0;height:10px;border-radius:3px;background:#273447}.aether-pips i.filled{background:#baa0e8}
 </style>
+<style>.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
 </head>
 <body>
 
@@ -272,11 +293,14 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
   </div>
   <div class="boardrow">
     <div class="tcol">
-      <div class="zlabel" style="margin:0 0 5px">Order</div>
-      <div class="track" id="track"></div>
+      <button type="button" class="battle-deadline" id="battleDeadline" aria-label="View combat round rules"><span id="deadlineLabel">ROUND 1 / 5</span><b id="deadlineRemaining">5</b><small>ROUNDS LEFT</small><progress id="deadlineBar" max="100" value="100" aria-label="Current round progress"></progress><small id="deadlineBudget">Advance to act sooner</small></button><div class="zlabel">TURN ORDER · AV</div>
+      <button type="button" id="aetherMeter" class="aether-meter" hidden aria-label="View shared Aether"><span>AETHER</span><b id="aetherCount">3 / 6</b><span id="aetherPips" class="aether-pips" aria-hidden="true"></span></button>
+      <div class="track" id="track" aria-label="Upcoming actions and round boundaries"></div><div class="timeline-edge" id="timelineEdge"></div>
     </div>
     <div class="bmain">
-      <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div>
+      <div class="battle-sidebar">
+      <button type="button" class="recovery-progress" id="recoveryProgress" aria-label="View recovery scoring"><span>RECOVERY</span><b id="recoveryPercent">0%</b><div class="recovery-track"><i id="recoveryFill"></i><i class="tick" style="left:18%"></i><i class="tick" style="left:42%"></i><i class="tick" style="left:68%"></i><i class="tick safe" style="left:88%"></i></div><strong id="recoveryDelta">−8 integrity</strong><small>If battle ends now</small><small id="recoveryNext"></small></button>
+      <div class="session-objective"><b>COMPOUND FRACTURE · 0 / 2</b><span>Complete 2 breaks or a 2-hit follow-up chain.</span></div></div>
       <div class="enemy-dock-live"><div class="zlabel" id="enemyCounter">WAVE 1 / 2 · 6 REMAINING</div><div class="ribbon" id="foes"></div></div>
 
       <div id="stage">
@@ -284,7 +308,7 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
         <div class="cap" id="cap">&nbsp;</div>
       </div>
 
-      <div class="crew-dock-live"><div class="crew-live-row"><span><b>ON FIELD</b>takes hits</span><div class="ribbon" id="crewFront"></div></div><div class="crew-live-row"><span><b>OFF FIELD</b>supported</span><div class="ribbon" id="crewBack"></div></div></div>
+      <div class="crew-dock-live"><div class="crew-live-row"><span><b>FRONT</b>takes hits</span><div class="ribbon" id="crewFront"></div></div><div class="crew-live-row"><span><b>BACK</b>untargetable</span><div class="ribbon" id="crewBack"></div></div></div>
     </div>
   </div>
 
@@ -293,9 +317,10 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
     <button id="bPlay">Play</button>
     <button id="bReset">Reset</button>
   </div>
-  <section class="session-summary" id="sessionSummary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle"><div class="summary-panel"><div class="eyebrow">RECOVERY REPORT</div><h2 id="summaryTitle">Fieldwork complete</h2><p id="summaryCopy">The crew recovered the encounter and its field record.</p><div class="summary-rewards"><div><b id="summaryGold">+0g</b><span>GOLD EARNED</span></div><div><b id="summaryIntegrity">+0%</b><span>INTEGRITY</span></div><div><b id="summaryObservation">PARTIAL</b><span>OBSERVATION</span></div></div><div class="summary-stats"><div><b id="summaryActions">0</b><span>ACTIONS</span></div><div><b id="summaryBreaks">0</b><span>BREAKS</span></div><div><b id="summaryChains">0</b><span>CHAINS</span></div><div><b id="summaryUltimates">0</b><span>ULTIMATES</span></div><div><b id="summaryDamage">0</b><span>TOTAL DAMAGE</span></div><div><b id="summaryRounds">0</b><span>ROUNDS</span></div></div><div class="summary-drop" id="summaryDrop"></div><button class="summary-return" id="summaryReturn">RECOVER TO OPS</button></div></section>
+  <section class="session-summary" id="sessionSummary" role="dialog" aria-modal="true" aria-labelledby="summaryTitle"><div class="summary-panel"><div class="eyebrow">RECOVERY REPORT</div><h2 id="summaryTitle">Fieldwork complete</h2><p id="summaryCopy">The crew recovered the encounter and its field record.</p><div class="summary-rewards"><div><b id="summaryGold">+0g</b><span>GOLD EARNED</span></div><div><b id="summaryIntegrity">+0%</b><span>INTEGRITY</span></div><div><b id="summaryObservation">PARTIAL</b><span>OBSERVATION</span></div></div><div class="summary-stats"><div><b id="summaryActions">0</b><span>ACTIONS</span></div><div><b id="summaryBreaks">0</b><span>BREAKS</span></div><div><b id="summaryChains">0</b><span>CHAINS</span></div><div><b id="summaryUltimates">0</b><span>ULTIMATES</span></div><div><b id="summaryDamage">0</b><span>TOTAL DAMAGE</span></div><div><b id="summaryRounds">0</b><span>ROUNDS</span></div></div><p class="summary-tempo" id="summaryTempo"></p><div class="summary-drop" id="summaryDrop"></div><button class="summary-return" id="summaryReturn">RECOVER TO OPS</button></div></section>
 </div>
 
+<dialog id="enemyDetails" class="enemy-details" aria-labelledby="enemyDetailTitle"><div id="enemyDetailBody"></div><form method="dialog"><button>BACK TO BATTLE</button></form></dialog>
 <button id="fab" aria-label="Play">&#9654;</button>
 
 <div class="field" id="battleRecord">
@@ -381,6 +406,17 @@ body.session-mode .sc.help .se{font-size:8px;line-height:9px}
   <input type="range" id="rBloom" min="0" max="20" step="1" value="8">
 </div>
 
+<script src="voyage-settings.js"></script>
+<script src="recovery-scoring.js"></script>
+<script src="session-store.js"></script>
+<script src="expedition-rules.js"></script>
+<script src="field-progression.js"></script>
+<script src="weaver-roster.js"></script>
+<script src="formation-rules.js"></script>
+<script src="down-recovery.js"></script>
+<script src="aether-rules.js"></script>
+<script src="../sim/enemy-catalogue.js"></script>
+<script src="crew-progression.js"></script>
 <script>
 /* ============ data ============ */
 var EL={order:'#7FA8C9',chaos:'#C97F9E',growth:'#8FB878',
@@ -583,10 +619,28 @@ var PROFILES={
 var UNIFORM={focus:2.6,kill:2.0,brk:2.0,vuln:1.6,threat:1.2,bulk:0.8,waste:1.4,match:1.2,
              piled:1.8,label:'balanced'};
 var AIMODE='profile', RETARGET='random', CHAINCAP=12, CHAINSTAGE=2;
-var ELITES=[{n:'Warden',sp:88,hp:150,dmg:18},{n:'Anchor',sp:104,hp:120,dmg:22},
-            {n:'Bulwark',sp:76,hp:190,dmg:30}];
+var ELITES=[{n:'Warden',sp:98,hp:150,dmg:19,layers:3,guard:22,trait:'Fortified'},
+            {n:'Anchor',sp:120,hp:135,dmg:22,layers:2,guard:20,haste:.1,cap:4,trait:'Accelerates'},
+            {n:'Bulwark',sp:82,hp:185,dmg:26,layers:3,guard:24,trait:'Heavy armor'}];
+var ENEMY_KITS={
+  Chaff:{n:'Chaff',sp:100,hp:52,dmg:11,layers:1,guard:18,trait:'Soldier'},
+  Bruiser:{n:'Bruiser',sp:90,hp:66,dmg:15,layers:1,guard:20,haste:.12,cap:5,trait:'Accelerates'},
+  Quickstep:{n:'Quickstep',sp:158,hp:45,dmg:9,layers:1,guard:16,trait:'Fast'},
+  Cleanser:{n:'Cleanser',sp:108,hp:58,dmg:11,layers:1,guard:18,cleanse:2,trait:'Sheds 2 fracture'},
+  Reflector:{n:'Reflector',sp:94,hp:56,dmg:12,layers:2,guard:18,trait:'Plated'},
+  Sapper:{n:'Sapper',sp:112,hp:50,dmg:13,layers:1,guard:17,trait:'Disruptor'},
+  Mender:{n:'Mender',sp:96,hp:62,dmg:10,layers:2,guard:18,trait:'Restorative'}
+};
+var OPS_SPEED=1, OPS_GUARD=1, OPS_RECOVERY=.25;
 var CHAFFNAMES=['Chaff','Bruiser','Cleanser','Reflector','Quickstep','Chaff','Bruiser','Cleanser','Reflector'];
 var FIELD=6, POOL=12, OPS_PRESSURE=1, OPS_HP=1, OPS_DMG=1, OPS_WAVES=2, OPS_RUN_ROUND=1;
+var OPS_FACTION='ossuary',OPS_PLANET=null;
+var FACTION_ORDER=['ossuary','mycelial','glasswake','tideworn','tannhul','custodian','redaction'];
+function enemyKitFor(archetype){
+  var label=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.ARCHETYPES[archetype]
+    ?window.SpacologyEnemyCatalogue.ARCHETYPES[archetype].label:'Chaff';
+  return ENEMY_KITS[label]||ELITES.filter(function(kit){return kit.n===label})[0]||ENEMY_KITS.Chaff;
+}
 
 /* ============ particles ============ */
 var PX={cv:null,ctx:null,bl:null,blx:null,list:[],raf:null,dpr:1,W:0,H:0,canFilter:false};
@@ -616,24 +670,27 @@ function pxAdd(o){ if(!PX.ctx) pxInit(); if(!PX.ctx) return;
   if(o.color&&o.color.charAt(0)==='#'&&o.type!=='text'&&o.type!=='tag') o.hsl=hexHSL(o.color);
   o.age=0;o.vx=o.vx||0;o.vy=o.vy||0;o.g=o.g===undefined?.16:o.g;
   o.drag=o.drag===undefined?.995:o.drag;o.rot=o.rot||0;o.vr=o.vr||0;
-  PX.list.push(o); if(!PX.raf) PX.raf=requestAnimationFrame(pxStep); }
-function pxClear(){ PX.list.length=0; if(PX.ctx) PX.ctx.clearRect(0,0,PX.W,PX.H);
+  PX.list.push(o); if(!PX.raf){PX.lastTime=undefined;PX.raf=requestAnimationFrame(pxStep);} }
+function pxClear(){ PX.lastTime=undefined;PX.list.length=0; if(PX.ctx) PX.ctx.clearRect(0,0,PX.W,PX.H);
   if(PX.raf){cancelAnimationFrame(PX.raf);PX.raf=null;} }
 function pxCol(o){ if(!o.hsl) return o.color;
   var k=o.age/o.life;
   var h=(o.hsl.h+Math.sin(k*5.4+o.seed)*46+k*60+360)%360;
   return 'hsl('+h.toFixed(0)+','+Math.min(100,o.hsl.s+14)+'%,'+
     Math.min(78,o.hsl.l+Math.sin(k*8+o.seed)*8).toFixed(0)+'%)'; }
-function pxStep(){ var c=PX.ctx; if(!c){PX.raf=null;return;}
+function pxStep(now){ var c=PX.ctx; if(!c){PX.raf=null;return;}
+  now=typeof now==='number'?now:performance.now();
+  var elapsed=PX.lastTime===undefined?16.7:Math.max(0,Math.min(100,now-PX.lastTime)),frame=elapsed/16.7;PX.lastTime=now;
   var bloom=+$('rBloom').value;
   c.clearRect(0,0,PX.W,PX.H); if(PX.blx) PX.blx.clearRect(0,0,PX.W,PX.H);
   var keep=[];
   for(var i=0;i<PX.list.length;i++){ var o=PX.list[i];
-    o.age+=16.7; if(o.delay&&o.age<o.delay){keep.push(o);continue;}
+    o.age+=elapsed; if(o.delay&&o.age<o.delay){keep.push(o);continue;}
     var t=o.age-(o.delay||0); if(t>o.life) continue;
-    o.vy+=o.g;o.vx*=o.drag;o.vy*=o.drag;o.x+=o.vx;o.y+=o.vy;o.rot+=o.vr;
+    o.vy+=o.g*frame;o.vx*=Math.pow(o.drag,frame);o.vy*=Math.pow(o.drag,frame);o.x+=o.vx*frame;o.y+=o.vy*frame;o.rot+=o.vr*frame;
     var k=t/o.life;
-    o.a=Math.max(0,Math.min(1,k<.08?k/.08:k>.66?1-(k-.66)/.34:1));
+    var readable=o.type==='text'||o.type==='tag',fade=readable?.82:.66;
+    o.a=Math.max(0,Math.min(1,k<.04?k/.04:k>fade?1-(k-fade)/(1-fade):1));
     o.col=pxCol(o); pxDraw(c,o,t,false);
     if(bloom&&PX.blx&&o.type!=='tag') pxDraw(PX.blx,o,t,true);
     keep.push(o); }
@@ -648,18 +705,18 @@ function pxDraw(c,o,t,bl){ c.save(); c.globalAlpha=o.a*(bl?.85:1);
   if(bl) c.globalCompositeOperation='lighter';
   c.translate(o.x,o.y); if(o.rot) c.rotate(o.rot);
   var col=o.col||o.color;
-  if(o.type==='text'){ var pop=t<90?1+.75*(1-t/90):1; c.scale(pop,pop);
-    c.font='600 '+o.size+'px ui-sans-serif,-apple-system,sans-serif';
+  if(o.type==='text'){ var pop=t<90?1+.2*(1-t/90):1; c.scale(pop,pop);
+    c.font='800 '+o.size+'px ui-sans-serif,-apple-system,sans-serif';
     c.textAlign='center';c.textBaseline='middle';
-    if(!bl){c.shadowColor='rgba(0,0,0,.9)';c.shadowBlur=6;c.shadowOffsetY=1;}
+    if(!bl){c.shadowColor='#000';c.shadowBlur=5;c.shadowOffsetY=2;c.strokeStyle='#071018';c.lineWidth=5;c.lineJoin='round';c.strokeText(o.text,0,0);}
     c.fillStyle=col;c.fillText(o.text,0,0);
   } else if(o.type==='tag'){
-    c.font='700 10px ui-sans-serif,-apple-system,sans-serif';
+    c.font='750 '+o.size+'px ui-sans-serif,-apple-system,sans-serif';
     c.textAlign='center';c.textBaseline='middle';
-    var w=c.measureText(o.text).width+14;
+    var w=c.measureText(o.text).width+18,h=o.size+12;
     c.shadowColor='rgba(0,0,0,.75)';c.shadowBlur=5;c.fillStyle='rgba(10,16,21,.82)';
-    rnd(c,-w/2,-8,w,16,8);c.fill();
-    c.shadowBlur=0;c.strokeStyle=col;c.lineWidth=1;rnd(c,-w/2,-8,w,16,8);c.stroke();
+    rnd(c,-w/2,-h/2,w,h,7);c.fill();
+    c.shadowBlur=0;c.strokeStyle=col;c.lineWidth=1;rnd(c,-w/2,-h/2,w,h,7);c.stroke();
     c.fillStyle=col;c.fillText(o.text,0,.5);
   } else if(o.type==='shard'){ c.fillStyle=col;
     if(!bl){c.shadowColor=col;c.shadowBlur=7;} c.fillRect(-o.w/2,-o.h/2,o.w,o.h);
@@ -684,13 +741,13 @@ function floater(id,txt,c,opt){ opt=opt||{};
   var now=Date.now();
   if(!fslot[id]||now-fslot[id].t>900) fslot[id]={n:0,t:now};
   var n=fslot[id].n++; fslot[id].t=now;
-  var dir=p.y<p.H*.22?1:-1, col=(n%3)-1;
-  pxAdd({type:opt.tag?'tag':'text',text:String(txt),color:c,size:opt.size||18,
-    x:p.x+col*26+(Math.random()*10-5), y:p.y+dir*(opt.tag?18:24),
-    vx:col*.5+(Math.random()*1.1-.55), vy:dir*(2.9+Math.random()*.7),
-    g:-dir*.052, drag:.971,
-    rot:opt.tag?Math.random()*.16-.08:0, vr:opt.tag?Math.random()*.006-.003:0,
-    life:opt.life||760, delay:opt.delay||0}); }
+  var dir=p.y<p.H*.22?1:-1, col=(n%3)-1,row=Math.floor(n/3)%3;
+  pxAdd({type:opt.tag?'tag':'text',text:String(txt),color:c,size:opt.tag?15:Math.max(32,opt.size||0),
+    x:p.x+col*(opt.tag?28:42), y:p.y+dir*((opt.tag?52:24)+row*32)+(opt.offsetY||0),
+    vx:col*.18, vy:dir*.65,
+    g:0, drag:.98,
+    rot:0, vr:0,
+    life:1000, delay:opt.delay||0}); }
 function burstAt(id,c,n,spread){
   if(MODE==='none') return;
   var p=floatPos(id); if(!p) return;
@@ -723,9 +780,9 @@ function build(team,planet){
   $('stats').innerHTML='';
   var t=TEAMS[team], pl=PLANETS[planet];
   G={team:team,planet:planet,round:1,av:0,over:false,units:[],wave:0,totalWaves:Math.ceil(POOL/FIELD),ship:Object.assign({},t.ship||{}),
-     breaks:0,chains:0,longest:1,supp:0,foeTurns:0,dealt:{},actions:0,
+     allyTurns:0,advances:0,advanceSaved:0,shieldedHits:0,alliedHits:0,breaks:0,chains:0,longest:1,supp:0,foeTurns:0,foeAttacks:0,recoveries:0,dealt:{},actions:0,
      limit:MAXROUND,deaths:0,heals:0,drains:0,lowest:100,downed:[],ults:0,biggest:0,
-     pending:null,react:{},follows:0,doubles:0};
+     pending:null,react:{},follows:0,doubles:0,firstMageSummon:true};
   t.crew.forEach(function(c,i){
     var hurt = CARRY && INJURED[c.n];
     var unitHp=window.SPACOLOGY_SESSION?(c.hp||100):100;
@@ -741,18 +798,35 @@ function build(team,planet){
       ult:c.ult||null, en:c.startEnergy||0, taken:0,
       hurt:!!hurt, hp:unitHp,max:unitHp,av:Math.max(1,10000/c.sp-(c.startAdvance||0)),alive:true});
     G.dealt[c.n]=0; });
+  if(window.SPACOLOGY_SESSION)G.aether=SpacologyAether.create(G.units);
   G.pool=[]; G.spawned=0;
   G.units=G.units.filter(function(u){return u.side!=='foe'});
+  var catalogue=window.SpacologyEnemyCatalogue;
+  var faction=catalogue&&catalogue.FACTIONS[OPS_FACTION];
   for(var q=0;q<POOL;q++){
     var wave=Math.floor(q/FIELD)+1,slot=q%FIELD;
     var elite=slot===FIELD-1&&(wave===G.totalWaves||OPS_RUN_ROUND>=3);
     var eliteTier=elite?1+Math.floor((OPS_RUN_ROUND-1)/2)+Math.floor((wave-1)/2):0;
-    var base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:{n:CHAFFNAMES[q%CHAFFNAMES.length],sp:98,hp:46,dmg:9};
-    var eliteScale=elite?1+(eliteTier-1)*.16:1;
-    G.pool.push({n:elite&&eliteTier>=3?'Prime '+base.n:base.n,sp:base.sp,
+    var specimen=null,archetype=null,base=null;
+    if(faction){
+      var eliteRoles=faction.archetypes.filter(function(role){return role==='warden'||role==='anchor'||role==='bulwark'||role==='bruiser'});
+      var roleDeck=elite&&eliteRoles.length?eliteRoles:faction.archetypes;
+      archetype=roleDeck[(q+OPS_RUN_ROUND+wave-2)%roleDeck.length];
+      specimen=catalogue.generateEnemy('voyage-'+OPS_RUN_ROUND+'-'+OPS_FACTION+'-'+q,{faction:OPS_FACTION,archetype:archetype});
+      base=enemyKitFor(archetype);
+    }else base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:ENEMY_KITS[CHAFFNAMES[(q+OPS_RUN_ROUND-1)%CHAFFNAMES.length]];
+    var eliteScale=elite?1+(eliteTier-1)*.10:1;
+    G.pool.push({n:specimen?specimen.typeName:(elite&&eliteTier>=3?'Prime '+base.n:base.n),sp:Math.round(base.sp*OPS_SPEED),
       hp:Math.round(base.hp*OPS_HP*eliteScale),dmg:Math.round(base.dmg*OPS_DMG*(elite?1+(eliteTier-1)*.1:1)),
       elite:elite,eliteTier:eliteTier,wave:wave,
-      weak:pl.weak[q%pl.weak.length].slice(), layers:elite?Math.min(4,SHLAYERS+Math.floor(eliteTier/2)):1});
+      archetype:archetype||base.n.toLowerCase(),archetypeName:specimen?specimen.archetypeName:base.n,
+      typeName:specimen&&specimen.typeName,specimenName:specimen&&specimen.name,portrait:specimen&&specimen.portrait,
+      factionId:specimen&&specimen.faction,factionName:specimen&&specimen.factionName,
+      factionRule:specimen&&specimen.factionRule,bodyPlan:specimen&&specimen.bodyPlan,
+      material:specimen&&specimen.material,adaptation:specimen&&specimen.adaptation,
+      nullStage:specimen&&specimen.nullStage,nullSymptom:specimen&&specimen.nullSymptom,
+      guard:Math.round(base.guard*OPS_GUARD),haste:base.haste||0,hasteCap:base.cap||0,cleanse:base.cleanse||0,trait:base.trait,
+      weak:pl.weak[q%pl.weak.length].slice(), layers:base.layers+(elite?Math.min(1,Math.floor((eliteTier-1)/2)):0)});
   }
   spawnFoes();
   var cov=coverage(team,planet);
@@ -767,9 +841,11 @@ function build(team,planet){
   computeTags();
   G.units.forEach(function(u){ if(u.side!=='ally') return;
     u.dmg=Math.round(u.dmg*G.bon.dmgMul);
+    u.sp*=G.bon.speed;
     u.av=u.av/G.bon.speed; });
   ribbons(); paintAll(); track(); injNote(); aiNote(); chainNote(); tagNote();
   log('Round 1','rnd');
+  if(window.SPACOLOGY_SESSION)log('Clear every wave before '+G.limit+' combat rounds elapse. Pausing and animation speed do not spend time.','rnd');
   G.units.filter(function(u){return u.hurt}).forEach(function(u){
     log('&nbsp;&nbsp;'+u.n+' is still recovering'); });
   setTimeout(pxResize,50);
@@ -820,9 +896,13 @@ function spawnFoes(){
   while(live<FIELD && G.spawned<G.pool.length&&G.pool[G.spawned].wave===G.wave){
     var p=G.pool[G.spawned];
     G.units.push({id:'f'+G.spawned,side:'foe',n:p.n,weak:p.weak.slice(),e:p.weak[0],
-      sp:p.sp,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
+      archetype:p.archetype,archetypeName:p.archetypeName,typeName:p.typeName,specimenName:p.specimenName,portrait:p.portrait,
+      factionId:p.factionId,factionName:p.factionName,
+      factionRule:p.factionRule,bodyPlan:p.bodyPlan,material:p.material,adaptation:p.adaptation,
+      nullStage:p.nullStage,nullSymptom:p.nullSymptom,
+      sp:p.sp,baseSp:p.sp,haste:p.haste,hasteCap:p.hasteCap,hasteStacks:0,cleanse:p.cleanse,trait:p.trait,shieldPer:p.guard,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
       av:10000/p.sp*(0.5+Math.random()*0.5),alive:true,frac:0,struck:false,survey:0,
-      shMax:p.layers,shL:p.layers,shC:SHPER,broken:false,regen:0,vuln:0});
+      shMax:p.layers,shL:p.layers,shC:p.guard,broken:false,regen:0,vuln:0});
     added.push('f'+G.spawned); G.spawned++; live++;
   }
   updateEnemyCounter();
@@ -830,9 +910,24 @@ function spawnFoes(){
 }
 function U(id){ for(var i=0;i<G.units.length;i++) if(G.units[i].id===id) return G.units[i]; }
 var CREW_PORTRAITS={Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'};
+Object.keys(SpacologyExpedition.crew).forEach(function(name){
+  var portrait=SpacologyExpedition.crew[name].portrait;
+  if(portrait)CREW_PORTRAITS[name]=portrait;
+});
+Object.keys(SpacologyExpedition.summons||{}).forEach(function(name){
+  var portrait=SpacologyExpedition.summons[name].portrait;
+  if(portrait)CREW_PORTRAITS[name]=portrait;
+});
 function applyCrewPortrait(el,u){if(u.side==='ally'&&CREW_PORTRAITS[u.n]){el.classList.add('crew-portrait');el.style.setProperty('--card-art','url("'+CREW_PORTRAITS[u.n]+'")');if(!window.SPACOLOGY_SESSION)el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.18),rgba(4,8,12,.78)),url("'+CREW_PORTRAITS[u.n]+'")'}}
 var ENEMY_PORTRAITS={Chaff:'../assets/enemies/chaff-v1.webp',Bruiser:'../assets/enemies/bruiser-v1.webp',Warden:'../assets/enemies/warden-v1.webp',Cleanser:'../assets/enemies/cleanser-v1.webp',Reflector:'../assets/enemies/reflector-v1.webp',Anchor:'../assets/enemies/anchor-v1.webp',Bulwark:'../assets/enemies/bulwark-v1.webp',Quickstep:'../assets/enemies/quickstep-v1.webp'};
-function applyEnemyPortrait(el,u){var name=u.n.replace(/^Prime /,'');if(u.side==='foe'&&ENEMY_PORTRAITS[name]){el.classList.add('enemy-portrait');el.style.setProperty('--card-art','url("'+ENEMY_PORTRAITS[name]+'")');if(!window.SPACOLOGY_SESSION)el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.8)),url("'+ENEMY_PORTRAITS[name]+'")'}}
+var FACTION_PORTRAITS={ossuary:'../assets/factions/ossuary-cathedral-v1.png',mycelial:'../assets/factions/mycelial-ninefold-v1.png',glasswake:'../assets/factions/glasswake-serein-v1.png',tideworn:'../assets/factions/tideworn-bell-v1.png',tannhul:'../assets/factions/tannhul-rookback-v1.png',custodian:'../assets/factions/custodian-curator-v1.png',redaction:'../assets/factions/redaction-kindly-voice-v1.png'};
+function applyEnemyPortrait(el,u){
+  var name=u.archetypeName||u.n.replace(/^Prime /,'');
+  var catalogue=window.SpacologyEnemyCatalogue;
+  var typeArt=catalogue&&catalogue.ARCHETYPE_PORTRAITS[u.factionId]&&catalogue.ARCHETYPE_PORTRAITS[u.factionId][u.archetype];
+  var art=u.portrait||typeArt||ENEMY_PORTRAITS[name]||FACTION_PORTRAITS[u.factionId];
+  if(u.side==='foe'&&art){el.classList.add('enemy-portrait');el.style.setProperty('--card-art','url("'+art+'")');if(!window.SPACOLOGY_SESSION)el.style.backgroundImage='linear-gradient(180deg,rgba(4,8,12,.12),rgba(4,8,12,.8)),url("'+art+'")'}
+}
 function log(t,c){ var d=document.createElement('div'); if(c)d.className=c;
   d.innerHTML=t; $('log').appendChild(d); $('log').scrollTop=$('log').scrollHeight; }
 
@@ -847,6 +942,7 @@ function ribbons(){
   [['foes','foe',null],['crewFront','ally','front'],['crewBack','ally','back']]
    .forEach(function(p){
     var host=$(p[0]); host.innerHTML='';
+    if(p[0]==='crewBack')host.classList.toggle('summon-packed',G.units.filter(function(u){return u.side==='ally'&&u.row==='back'}).length>7);
     G.units.filter(function(u){
       return u.side===p[1] && (!p[2]||u.row===p[2])
         && (u.side==='ally' || u.alive || u.retiring); }).forEach(function(u){
@@ -862,7 +958,7 @@ function ribbons(){
           '<div class="fr" id="fr-'+u.id+'"></div>'+
           '<div class="sv" id="sv-'+u.id+'"></div>'
          :'<div class="rt" style="color:'+(u.hurt?'#E88888':'var(--ink3)')+'">'+
-            (u.hurt?'recovering':(AIMODE==='profile'?u.p:(u.heal?'mender':'')))+'</div>'+
+            (u.summon?'J3K SUPPORT':u.hurt?'recovering':(AIMODE==='profile'?u.p:(u.heal?'mender':'')))+'</div>'+
             '<div class="bar2" id="bar-'+u.id+'"><u></u></div>'+
             '<div class="en" id="en-'+u.id+'"><u></u></div>');
       if(window.SPACOLOGY_SESSION){
@@ -871,12 +967,69 @@ function ribbons(){
         ['.rn','.rb','.sq','.bar2','.en'].forEach(function(selector){var node=d.querySelector(selector);if(node)footer.appendChild(node)});
         d.prepend(art);d.appendChild(footer);
       }
+      if(u.side==='foe'){
+        d.setAttribute('role','button');d.tabIndex=0;d.setAttribute('aria-label','Inspect '+u.n);
+        d.onclick=function(){inspectEnemy(u.id)};
+        d.onkeydown=function(event){if(event.key==='Enter'||event.key===' '){event.preventDefault();inspectEnemy(u.id);}};
+      }
       host.appendChild(d); }); }); }
-function paintAll(){ G.units.forEach(function(u){ paintUnit(u) });
+var inspectionWasPlaying=false;
+function inspectEnemy(id){
+  var u=U(id);if(!u||u.side!=='foe')return;
+  var behavior=u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
+    u.cleanse?'Sheds '+u.cleanse+' fracture stacks before each attack.':
+    u.trait==='Fast'?'Short waits between attacks. Can act between slower crew members.':
+    u.shMax>1?'Multiple shield layers reduce incoming damage until fully broken. Match its weaknesses to strip them faster.':'A regular attacker. Match its weaknesses to break its shield.';
+  var taxonomy=u.factionName?'<p><b>'+u.factionName+'</b> · '+u.archetypeName+(u.specimenName?' · field name '+u.specimenName:'')+' · '+u.bodyPlan+'. '+u.material+' adapted with '+u.adaptation+'.</p><p><b>Null state:</b> '+u.nullStage+' — '+u.nullSymptom+'. <b>Faction rule:</b> '+u.factionRule+'.</p>':'';
+  openBattleDetails('<h2 id="enemyDetailTitle">'+(u.typeName||u.n)+(u.elite?' · Elite':'')+'</h2>'+taxonomy+'<p>'+behavior+'</p><dl><dt>Health</dt><dd>'+Math.round(G.visualHP?.[u.id]??u.hp)+' / '+u.max+'</dd><dt>Attack damage</dt><dd>'+u.dmg+'</dd><dt>Speed</dt><dd>'+u.sp+'</dd><dt>Shield remaining</dt><dd>'+(u.broken?0:(u.shL-1)*shieldCapacity(u)+u.shC)+' / '+u.shMax*shieldCapacity(u)+'</dd><dt>Weaknesses</dt><dd>'+u.weak.join(', ')+'</dd></dl><p><b>Recovery:</b> reforms its full shield and attacks on the same turn. A break delays its next turn by '+Math.round((window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay)*100)+'% of its normal wait and increases damage taken by 35%. Four Assay crew deny two turns before recovery.</p><p>Battle paused; the current animation may finish.</p>');
+}
+$('enemyDetails').addEventListener('close',function(){if(inspectionWasPlaying&&G&&!G.over&&!playing)$('bPlay').click();inspectionWasPlaying=false;});
+function openBattleDetails(html){
+  var dialog=$('enemyDetails');if(dialog.open)return;
+  inspectionWasPlaying=playing||!!sessionAutoTimer;
+  cancelSessionAutostart();playing=false;$('bPlay').textContent='Play';$('hState').textContent='paused';
+  $('enemyDetailBody').innerHTML=html;dialog.showModal();
+}
+function currentRecovery(){
+  var observed=window.SPACOLOGY_SESSION&&SpacologyExpedition.observed(window.SPACOLOGY_SESSION,G,false);
+  // Safe recovery is only completed by a full clear without a crew death.
+  if(window.SPACOLOGY_SESSION&&SpacologyExpedition.goal(window.SPACOLOGY_SESSION).metric==='safeWins')observed=G.deaths===0;
+  return SpacologyRecovery.score(G.pool,G.units,observed);
+}
+function projectedIntegrity(score){var start=window.SPACOLOGY_SESSION?window.SPACOLOGY_SESSION.integrity:70;return Math.max(0,Math.min(100,start+score.integrity))-start;}
+function signedIntegrity(value){return value>0?'+'+value:String(value);}
+function paintRecovery(){
+  if(!G)return;
+  var recovery=currentRecovery(),node=$('recoveryProgress');
+  node.style.setProperty('--recovery-color',recovery.integrity>=0?'#8fe0c1':'#efbd68');
+  $('recoveryPercent').textContent=Math.floor(recovery.percent)+'%';
+  $('recoveryFill').style.width=recovery.percent+'%';
+  $('recoveryDelta').textContent=signedIntegrity(projectedIntegrity(recovery))+' integrity';
+  $('recoveryNext').textContent=recovery.next?recovery.next.points+' pts to '+signedIntegrity(recovery.next.delta)+' · '+recovery.next.minimum+'%':'All waves recovered';
+  node.setAttribute('aria-label',Math.floor(recovery.percent)+'% recovered. '+signedIntegrity(projectedIntegrity(recovery))+' integrity if battle ends now. View scoring.');
+}
+$('recoveryProgress').onclick=function(){
+  var score=currentRecovery();
+  openBattleDetails('<h2 id="enemyDetailTitle">Recovery thresholds</h2><p>'+score.earned+' / '+score.total+' enemy points recovered across <b>every wave</b>. Chaff: 1 point; other regular enemies: 2; elites: 4. Points count when an enemy is defeated, not damaged.</p><dl>'+SpacologyRecovery.bands.map(function(b){return '<dt>'+b.minimum+'%'+(b.minimum===88?' · no loss':'')+'</dt><dd>'+signedIntegrity(b.delta)+(b.minimum===100?' / +5 with observation':'')+' integrity</dd>';}).join('')+'</dl><p><b>If battle ends now: '+signedIntegrity(projectedIntegrity(score))+' integrity.</b> At 88% you lose nothing, even if time expires. Full recovery is +2, or +5 when the observation is complete. Integrity stays between 0 and 100.</p>');
+};
+function paintDeadline(){
+  var remaining=Math.max(0,G.limit*100-G.av),left=Math.ceil(remaining/100),urgent=left<=1;
+  $('battleDeadline').classList.toggle('urgent',urgent);
+  $('deadlineLabel').textContent=remaining===0?'EXTRACTION':urgent?'FINAL ROUND':'ROUND '+G.round+' / '+G.limit;
+  var displayLeft=G.recoveryAV?Math.ceil(remaining/10)/10:left;
+  $('deadlineRemaining').textContent=displayLeft;
+  $('deadlineBudget').textContent='Advances: '+Math.round(G.advanceSaved||0)+' AV'+(G.recoveryAV?' · Recovery: −'+G.recoveryAV+' AV':'');
+  $('deadlineRemaining').setAttribute('aria-label',displayLeft+' rounds remaining, including this round');
+  $('deadlineBar').max=100;$('deadlineBar').value=remaining?Math.min(remaining,100-G.av%100):0;
+}
+$('battleDeadline').onclick=function(){
+  openBattleDetails('<h2 id="enemyDetailTitle">Win before extraction</h2><p>Each round spans <b>100 Action Value (AV)</b> on this turn order. The round markers keep moving regardless of who acts. At the final marker the battle ends.</p><p><b>Speed</b> shortens the wait between turns. <b>Action advances</b> pull a crewmate ahead of the next marker, fitting more attacks into the same rounds. Ultimates and follow-ups resolve without spending another turn. Enemy delays give you safer attack windows; they do not add rounds.</p><p>With Recover enabled, a downed crew member returns at 50% health and the deadline moves 50 AV closer. Recovery does not advance anyone else’s turn. Last Stand is an alternative setting. Back-row crew remain untargetable.</p><p>Animation speed and pausing never spend rounds. '+(G.allyTurns||0)+' crew turns so far; '+(G.advances||0)+' advances have removed '+Math.round(G.advanceSaved||0)+' AV of waiting. This is combined crew waiting saved, not extra battle time.</p>');
+};
+function paintAll(){ paintDeadline();paintRecovery();paintAether();G.units.forEach(function(u){ paintUnit(u) });
   $('hRound').textContent=G.round; $('hMax').textContent=G.limit;
   $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
   var objective=document.querySelector('.session-objective');
-  if(objective&&window.SPACOLOGY_SESSION){var progress=Math.max(Math.min(2,G.breaks||0),Math.min(2,G.chains||0));objective.querySelector('b').textContent='COMPOUND FRACTURE · '+progress+' / 2';}
+  if(objective&&window.SPACOLOGY_SESSION){var goal=SpacologyExpedition.goal(window.SPACOLOGY_SESSION);var progress=goal.metric==='safeWins'?0:Math.min(goal.battleTarget,G[goal.metric]||0);objective.querySelector('b').textContent=goal.name.toUpperCase()+' · '+progress+' / '+goal.battleTarget;objective.querySelector('span').textContent=goal.battle;}
   updateEnemyCounter();
 }
 function updateEnemyCounter(){
@@ -886,9 +1039,11 @@ function updateEnemyCounter(){
 }
 function paintUnit(u,silent){
   var rc=$('r-'+u.id); if(!rc) return;
-  rc.classList.toggle('down',!u.alive);
-  rc.title=u.n+' · '+Math.max(0,Math.round(u.hp))+' / '+u.max+' HP · '+(u.side==='ally'?u.e+' · '+Math.round(u.en)+' Energy':(u.broken?'broken':u.shL+' shield layers'));
-  var pct=Math.max(0,u.hp/u.max*100);
+  var shownHp=G.visualHP&&G.visualHP[u.id]!==undefined?G.visualHP[u.id]:u.hp;
+  var shownBar=G.visualBar&&G.visualBar[u.id]!==undefined?G.visualBar[u.id]:u.bar;
+  rc.classList.toggle('down',shownHp<=0);
+  rc.title=u.n+' · '+Math.max(0,Math.round(shownHp))+' / '+u.max+' HP · '+(u.side==='ally'?u.e+' · '+Math.round(u.en)+' Energy':(u.broken?'broken':u.shL+' shield layers'));
+  var pct=Math.max(0,shownHp/u.max*100);
   var i=rc.querySelector('.rb i'), b=rc.querySelector('.rb b');
   if(i) i.style.width=pct+'%';
   if(b&&b.style.width==='') b.style.width=pct+'%';
@@ -896,19 +1051,18 @@ function paintUnit(u,silent){
     var sq=$('rq-'+u.id);
     if(sq){ var uu=sq.querySelector('u');
       uu.style.background=EL[u.e];
-      uu.style.width=(u.broken?0:(u.shC/SHPER*100))+'%';
+      uu.style.width=(u.broken?0:(u.shC/shieldCapacity(u)*100))+'%';
       sq.style.opacity=u.broken?'.25':'1'; }
     rc.style.boxShadow=u.broken?'none':'0 0 0 '+(u.shL*2)+'px '+EL[u.e]+'44';
     var rt=$('rt-'+u.id);
-    if(rt) rt.textContent=u.broken?'broken':
-      (u.shL+' layer'+(u.shL===1?'':'s'));
+    if(rt)rt.textContent=u.broken?'BREAK':u.hasteStacks?'+'+Math.round(u.haste*u.hasteStacks*100)+'% SPD':u.trait==='Fast'?'FAST':u.shL+' SHIELD';
   }
   if(u.side==='ally'){
     var en=$('en-'+u.id);
     if(en){ en.querySelector('u').style.width=(u.en/EN.cost*100)+'%'; }
     var bb=$('bar-'+u.id);
-    if(bb){ bb.querySelector('u').style.width=Math.min(100,u.bar/60*100)+'%';
-      bb.style.opacity=u.bar>0?'1':'.25'; }
+    if(bb){ bb.querySelector('u').style.width=Math.min(100,shownBar/60*100)+'%';
+      bb.style.opacity=shownBar>0?'1':'.25'; }
     var wasCharged=rc.classList.contains('charged');
     var nowCharged=u.en>=EN.cost && !!u.ult;
     rc.classList.toggle('charged', nowCharged);
@@ -942,7 +1096,7 @@ function paintUnit(u,silent){
         setTimeout(function(){gh.classList.remove('lost','gained')},460); }, D(520)); } }
 }
 function teamEls(){ var m={};
-  G.units.forEach(function(u){ if(u.side==='ally'&&u.alive) m[u.e]=1; }); return m; }
+  G.units.forEach(function(u){ if(u.side==='ally'&&u.alive&&!u.summon) m[u.e]=1; }); return m; }
 function paintWeak(u){
   if(u.side!=='foe') return;
   var mine=teamEls();
@@ -1037,6 +1191,7 @@ function ultPolicy(u){
   var k=u.ult.kind;
   var forced=u.heldFor>4?'charge cannot be held any longer':null;
 
+  if(G.aether&&u.ult.aether&&G.aether.max-G.aether.current>=Math.min(4,u.ult.aether))return 'refill the shared Aether pool';
   if(k==='mend'){
     var hurt=G.units.filter(function(a){
       return a.side==='ally'&&a.alive&&a.hp/a.max<0.55; });
@@ -1044,6 +1199,7 @@ function ultPolicy(u){
     if(hurt.some(function(a){return a.hp/a.max<0.3})) return 'someone is about to fall';
     return forced;
   }
+  if(window.SPACOLOGY_SESSION&&['lash','aoe','nuke'].includes(k)&&basicCleanupSoon(foes))return null;
   if(k==='lash'){
     if(u.taken>=Math.round(u.max*0.55)) return 'enough stored to hurt';
     return forced;
@@ -1054,31 +1210,35 @@ function ultPolicy(u){
       return 'shields everywhere';
     return forced;
   }
-  // a single-target ultimate waits for a target worth spending it on
-  var best=null;
-  foes.forEach(function(f){
-    var sl=f.broken?0:((f.shL-1)*SHPER+f.shC);
-    var eff=Math.round(u.dmg*u.ult.mult*(1+(f.vuln>0?BRK.vuln:0))*
-      ((!f.broken&&sl>0)?SOAK:1));
-    if(eff>=f.hp) best=best||'it finishes '+f.n;
-    else if(f.vuln>0) best=best||'the window is open';
-    else if(f.frac>=5) best=best||'the stacks are worth it';
-  });
-  if(best) return best;
+  // Prefer meaningful damage over spending an ultimate on a nearly defeated target.
+  var target=chooseUltimateTarget(u,foes);
+  if(target){
+    if(ultimateDamage(u,target)>=target.hp)return 'it finishes '+target.n;
+    if(target.vuln>0)return 'the window is open';
+    if(target.frac>=5)return 'the stacks are worth it';
+  }
   // otherwise hold, unless charge would be wasted sitting at full
   if(forced) return forced;
   return null;
 }
 function nextUltimate(){
-  var pick=null, why=null;
+  var ready=[];
   G.units.filter(function(u){return u.side==='ally'&&u.alive&&u.ult&&u.en>=EN.cost})
     .forEach(function(u){
       u.heldFor=(u.heldFor||0)+1;
-      if(pick) return;
       var r=ultPolicy(u);
-      if(r){ pick=u; why=r; }
+      if(r)ready.push({u:u,why:r});
     });
-  return pick?{u:pick,why:why}:null;
+  if(G.aether&&SpacologyAether.priority(livingCrew(),window.SPACOLOGY_SESSION||{},aetherSkillUseful)){
+    var critical=livingCrew().some(function(x){return x.hp/x.max<.3});
+    function rank(cut){
+      if(critical&&cut.u.ult.kind==='mend'&&cut.u.ult.amt>0)return 3;
+      if(cut.u.ult.aether&&G.aether.max-G.aether.current>=Math.min(4,cut.u.ult.aether))return 2;
+      return 1;
+    }
+    ready.sort(function(a,b){return rank(b)-rank(a)});
+  }
+  return ready[0]||null;
 }
 function bloomReady(){
   if(!G.bloom||!G.bloom.live) return false;
@@ -1088,20 +1248,30 @@ function bloomReady(){
 }
 function project(n){
   var sim=G.units.filter(function(u){return u.alive})
-    .map(function(u){return {u:u,av:u.av}});
-  var out=[];
+    .map(function(u){return {u:u,av:G.pending&&G.pending.id===u.id?G.pending.av:u.av}});
+  var out=[],elapsed=0;
   for(var k=0;k<n;k++){ sim.sort(function(a,b){return a.av-b.av});
-    var t=sim[0]; if(!t) break; var adv=t.av;
+    var t=sim[0]; if(!t) break; var adv=Math.max(0,t.av);elapsed+=adv;
     sim.forEach(function(x){x.av-=adv});
-    out.push({u:t.u,wait:Math.round(adv)}); t.av=10000/t.u.sp; }
-  return out; }
+    out.push({u:t.u,wait:elapsed}); t.av=10000/t.u.sp; }
+  return out;
+}
+function timelineEntries(){
+  var end=Math.max(0,G.limit*100-G.av),horizon=Math.min(end,(Math.floor(G.av/100)+2)*100-G.av),q=project(128).filter(function(sl){return sl.wait<horizon});
+  if(G.bloom&&G.bloom.live&&bloomReady()&&G.bloom.av<horizon)q.push({bloom:1,wait:G.bloom.av});
+  var boundary=(Math.floor(G.av/100)+1)*100;
+  // Markers win exact ties, matching the resolver's exclusive final deadline.
+  for(var at=boundary;at<=G.av+horizon;at+=100)q.push({roundMarker:1,round:at/100+1,extraction:at===G.limit*100,wait:at-G.av});
+  if(G.limit*100%100&&end<=horizon)q.push({roundMarker:1,round:Math.ceil(G.limit),extraction:true,wait:end});
+  return q.sort(function(a,b){return a.wait-b.wait||(b.roundMarker||0)-(a.roundMarker||0)});
+}
 function track(){
   var el=$('track');
   var before={};
   el.querySelectorAll('.tk').forEach(function(e){
     before[e.dataset.k]=e.getBoundingClientRect().top; });
 
-  var q=project(10);
+  var q=timelineEntries();
   var seen={};
   el.innerHTML='';
   var ready=G.units.filter(function(u){
@@ -1114,12 +1284,14 @@ function track(){
       '</div><div class="tw">any time</div>';
     el.appendChild(rd);
   }
-  if(G.bloom&&G.bloom.live){
-    var pos=q.length;
-    for(var bi=0;bi<q.length;bi++){ if(q[bi].wait>G.bloom.av){pos=bi;break;} }
-    q=q.slice(0,pos).concat([{bloom:1,wait:G.bloom.av}],q.slice(pos)).slice(0,10);
-  }
+  var nextBoundary=(Math.floor(G.av/100)+1)*100-G.av;
+  var beforeBoundary=q.filter(function(sl){return !sl.roundMarker&&sl.wait<nextBoundary}).length;
+  $('timelineEdge').textContent=G.av>=G.limit*100?'Extraction reached':beforeBoundary+' queued actions before '+(G.round>=G.limit?'extraction':'round '+(G.round+1));
   q.forEach(function(sl,i){
+    if(sl.roundMarker){
+      var marker=document.createElement('div');marker.className='tk round-marker'+(sl.extraction?' extraction':'');marker.dataset.k='ROUND-'+sl.round;marker.dataset.wait=sl.wait;
+      marker.innerHTML='<div class="tn">'+(sl.extraction?'EXTRACTION':'ROUND '+sl.round)+'</div><div class="tw">'+Math.ceil(sl.wait)+'</div>';el.appendChild(marker);return;
+    }
     if(sl.bloom){
       var bd=document.createElement('div');
       bd.className='tk bloomtok'+(bloomReady()?' hot':'');
@@ -1132,11 +1304,11 @@ function track(){
     seen[u.id]=(seen[u.id]||0)+1;
     var key=u.id+'#'+seen[u.id];
     var d=document.createElement('div');
-    d.className='tk'+(i===0?' now':'')+(i>6?' fade':'')+(u.broken?' brk':'');
-    d.dataset.k=key;
+    d.className='tk'+(i===0?' now':'')+(u.broken?' brk':'')+(u.lastAdvanceAt===G.av?' advanced':'');
+    d.dataset.k=key;d.dataset.wait=sl.wait;
     d.innerHTML='<div class="tn" style="color:'+
       (u.side==='foe'?EL[u.e]:'var(--ink)')+'">'+u.n+'</div>'+
-      '<div class="tw">'+(i===0?'now':Math.round(sl.wait))+'</div>';
+      '<div class="tw">'+(u.lastAdvanceAt===G.av?'↑ ':'')+Math.ceil(sl.wait)+'</div>';
     el.appendChild(d);
   });
 
@@ -1412,6 +1584,33 @@ function markText(id,txt,c){ var m=$('mk-'+id);
   if(m){ m.textContent=txt; m.style.color=c; tr(m,220); m.style.opacity='.95'; } }
 
 /* ============ resolve one action (pure) ============ */
+function shieldCapacity(u){return u.shieldPer||SHPER;}
+function setEnemySpeed(u,speed){
+  var ratio=u.sp/speed;
+  // Preserve progress through the current wait, including a deferred queue reset.
+  u.av=Math.max(0,u.av*ratio);
+  if(G.pending&&G.pending.id===u.id)G.pending.av*=ratio;
+  u.sp=speed;
+}
+function breakEnemy(u){
+  u.broken=true;u.vuln=1;u.skips=G.bon&&G.bon.dissect?2:0;
+  if(u.hasteStacks){u.hasteStacks=0;setEnemySpeed(u,u.baseSp);}
+  u.av+=(10000/u.sp)*(window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay);
+  G.breaks++;
+}
+function accelerateEnemy(u,damage){
+  if(u.side!=='foe'||!u.alive||u.broken||!u.haste||damage<=0||u.hasteStacks>=u.hasteCap)return;
+  u.hasteStacks++;
+  setEnemySpeed(u,Math.round(u.baseSp*(1+u.haste*u.hasteStacks)));
+}
+function advanceAlly(u,amount){
+  var pending=G.pending&&G.pending.id===u.id,wait=pending?G.pending.av:u.av;
+  var saved=Math.min(Math.max(0,wait-1),Math.max(0,amount));
+  if(!saved)return 0;
+  if(pending)G.pending.av-=saved;else u.av-=saved;
+  G.advances=(G.advances||0)+1;G.advanceSaved=(G.advanceSaved||0)+saved;u.lastAdvanceAt=G.av;
+  return saved;
+}
 function queueReset(u){ G.pending={id:u.id,av:10000/u.sp}; }
 function applyReset(){
   if(!G||!G.pending) return false;
@@ -1420,8 +1619,313 @@ function applyReset(){
   G.pending=null;
   return true;
 }
+function advanceCombat(wait){
+  var remaining=Math.max(0,G.limit*100-G.av),step=Math.min(wait,remaining),previous=G.round;
+  G.units.forEach(function(u){if(u.alive)u.av-=step;});
+  G.av+=step;G.round=Math.min(Math.ceil(G.limit),Math.floor(G.av/100)+1);
+  if(G.round>previous){G.units.forEach(function(u){if(u.side==='foe')u.struck=false;});G.react={};}
+  return G.av>=G.limit*100;
+}
+function weaverAllies(){return livingCrew()}
+function weaverPartner(act,flag){
+  var burst=G.aether&&SpacologyAether.priority(weaverAllies(),window.SPACOLOGY_SESSION||{});
+  return weaverAllies().filter(function(x){return x.id!==act.id&&!x[flag]&&(flag!=='weaverDiscount'||SpacologyAether.profile(x.n).cost>1)})
+    .sort(function(a,b){return flag==='weaverDiscount'?((b===burst?1:0)-(a===burst?1:0)||SpacologyAether.profile(b.n).cost-SpacologyAether.profile(a.n).cost):a.av-b.av})[0];
+}
+function weaverShelterTarget(){return weaverAllies().filter(function(x){return x.row==='front'&&!x.weaverShelter}).sort(function(a,b){return a.hp/a.max-b.hp/b.max})[0]}
+function weaverBarrier(u,amount){var added=Math.round(amount*((G.bon&&G.bon.barrier)||1)*(u.barrierMul||1));var before=u.bar;u.bar=Math.min(160,u.bar+added);return u.bar-before}
+function weaverGuard(act,tgt,amount,ev){
+  if(tgt.broken||tgt.shL<=0)return;
+  var before=tgt.shL,pressure=amount*(isWeak(tgt,act.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
+  while(pressure>0&&tgt.shL>0){if(pressure>=tgt.shC){pressure-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}else{tgt.shC-=pressure;pressure=0}}
+  ev.shield={id:tgt.id,from:before,to:tgt.shL,match:isWeak(tgt,act.e)};
+  if(tgt.shL<=0){breakEnemy(tgt);ev.broke=tgt.id;cascade(ev,act,tgt,['break'])}
+}
+function weaverAfterBasic(act,ev){
+  if(act.weaverTune)delete act.weaverTune;
+  if(act.n==='Daven'){var bar=weaverBarrier(act,6);ev.notes.push('Check the Brace: +'+bar+' barrier.');}
+  if(act.n==='Veska'){act.refrain=Math.min(3,(act.refrain||0)+1);ev.notes.push('Refrain '+act.refrain+'/3.');}
+  if(act.n==='Roonie'){
+    act.workshopBasics=(act.workshopBasics||0)+1;
+    if(act.workshopBasics%2===0){var target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;ev.notes.push('Pocket Workshop: '+target.n+' next skill costs 1 less.');}}
+  }
+}
+function weaverRefill(ev,amount){
+  if(!G.aether||!amount)return;
+  var before=G.aether.current,gain=SpacologyAether.credit(G.aether,amount);
+  ev.aether=ev.aether||{kind:'ultimate',delta:0,before:before,reason:'shared pool refill'};
+  ev.aether.generated=(ev.aether.generated||0)+gain;
+  ev.aether.delta+=gain;ev.aether.after=G.aether.current;
+  ev.notes.push('Restored '+gain+' Aether'+(gain<amount?' ('+(amount-gain)+' overflow)':'')+'.');
+}
+function resolveWeaverSkill(act,tgt,ev,plan){
+  var target,bar;
+  ev.notes.push(SpacologyWeavers.crew[act.n].kit.basic[0]);
+  delete act.aetherPower; // Dedicated kits specify their own damage multipliers.
+  if(act.n==='Hanae'){
+    weaverGuard(act,tgt,act.dmg,ev);ev.hits.push(hit(act,tgt,2));weaverRefill(ev,5);tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;
+    target=weaverPartner(act,'weaverTune');if(target){target.weaverTune=true;ev.notes.push(target.n+' next basic gathers +1 Aether.');}
+  }else if(act.n==='Ivara'){
+    target=weaverShelterTarget();if(target){target.weaverShelter=true;ev.notes.push(target.n+' ignores their next direct hit.');}
+  }else if(act.n==='Arunima'){
+    G.units.filter(function(x){return x.side==='foe'&&x.alive}).forEach(function(x){
+      weaverGuard(act,x,act.dmg*(2+.5*plan.extra),ev);
+      ev.hits.push(hit(act,x,3+plan.extra));if(x.alive)x.av+=15;
+    });ev.notes.push('Proof by Transit: '+((3+plan.extra)*100)+'% attack; all specimens delayed 15 AV.');
+  }else if(act.n==='Roonie'){
+    target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;bar=weaverBarrier(target,10);ev.mends=[{tgt:target.id,amt:0,bar:bar,ch:0}];ev.notes.push(target.n+' next skill costs 1 less.');}
+  }else if(act.n==='Veska'){
+    var refrains=act.refrain||0,amount=Math.round((12+6*refrains)*((G.bon&&G.bon.healMul)||1));act.refrain=0;weaverRefill(ev,refrains);
+    ev.mends=weaverAllies().map(function(x){var before=x.hp;x.hp=Math.min(x.max,x.hp+amount);return {tgt:x.id,amt:x.hp-before,bar:0,ch:0}});G.heals++;
+  }else if(act.n==='Daven'){
+    weaverGuard(act,tgt,act.dmg*1.5,ev);ev.hits.push(hit(act,tgt,2.25));bar=weaverBarrier(act,32);act.taunt=5;ev.mends=[{tgt:act.id,amt:0,bar:bar,ch:0}];ev.notes.push('Daven draws attacks until his next turn.');
+  }
+  act.en=Math.min(EN.cost,act.en+EN.act+EN.perHit);
+  queueReset(act);return ev;
+}
+function livingCrew(){
+  return G.units.filter(function(x){return x.side==='ally'&&x.alive&&!x.summon});
+}
+function activeJ3K(){
+  return G.units.filter(function(x){return x.summon&&x.alive});
+}
+function createMageSummon(name){
+  var definition=SpacologyExpedition.summons[name],combat=definition.combat||{};
+  var speed=(combat.speed||10)*10,hp=combat.hp||76;
+  var unit={id:'j3k-'+name.slice(-3),side:'ally',summon:true,n:name,
+    e:combat.element||'order',sp:speed,dmg:combat.dmg||7,p:'support',row:'back',
+    tags:[],hp:hp,max:hp,av:Math.max(1,10000/speed),alive:true,bar:0,en:0,
+    taken:0,taunt:0,barrierMul:1,ultMul:1,guardMul:1};
+  G.units.push(unit);G.dealt[name]=0;
+  return unit;
+}
+function resolveMageSkill(act,ev){
+  var names=Object.keys(SpacologyExpedition.summons||{}),active=activeJ3K();
+  var deployed={};active.forEach(function(x){deployed[x.n]=true});
+  var missing=names.filter(function(name){return !deployed[name]});
+  if(missing.length){
+    var name=missing[Math.floor(Math.random()*missing.length)],unit=createMageSummon(name);
+    if(G.firstMageSummon){unit.av=0;G.firstMageSummon=false;ev.immediateSummon=true;}
+    ev.summoned={id:unit.id,name:name,role:SpacologyExpedition.summons[name].role};
+    ev.notes.push(name+' joins the support field · '+SpacologyExpedition.summons[name].role+'.');
+  }else if(active.length){
+    active.sort(function(a,b){return b.av-a.av});
+    var waiting=active[0],saved=advanceAlly(waiting,waiting.av);
+    ev.advanced={id:waiting.id,name:waiting.n};
+    ev.notes.push('Full line deployed: '+waiting.n+' is commanded forward by '+Math.round(saved)+' AV.');
+  }
+  queueReset(act);return ev;
+}
+function resolveSummonAction(act,ev){
+  var crew=livingCrew(),target,bar,before,foes;
+  ev.supportAction=true;
+  if(act.n==='J3K-017'){
+    ev.mends=crew.map(function(x){bar=weaverBarrier(x,12);return {tgt:x.id,amt:0,bar:bar,ch:0}});
+    target=crew.slice().sort(function(a,b){return b.av-a.av})[0];
+    if(target){advanceAlly(target,(10000/target.sp)*.3);ev.advanced={id:target.id,name:target.n};}
+    ev.notes.push('Route Sweep: crew barriers raised'+(target?' and '+target.n+' advanced.':'.'));
+  }else if(act.n==='J3K-036'){
+    foes=G.units.filter(function(x){return x.side==='foe'&&x.alive});ev.aoe=true;
+    foes.forEach(function(x){weaverGuard(act,x,act.dmg*1.5,ev);x.survey=Math.max(x.survey||0,1);ev.hits.push(hit(act,x,.55));});
+    ev.surveyedAll=true;ev.notes.push('Harmonic Survey: every specimen mapped and pressured.');
+  }else{
+    target=crew.slice().sort(function(a,b){return a.hp/a.max-b.hp/b.max})[0];
+    if(target){before=target.hp;target.hp=Math.min(target.max,target.hp+18);bar=weaverBarrier(target,10);G.heals++;
+      ev.heal={src:act.id,tgt:target.id,amt:target.hp-before,bar:bar,clutch:before<=18};}
+    ev.notes.push('Sample Return: '+(target?target.n+' restored and protected.':'sample secured.'));
+  }
+  queueReset(act);return ev;
+}
+function aetherSkillUseful(u){
+  if(u.n==='Hanae')return G.aether.max-G.aether.current>=3;
+  if(u.n==='Ivara')return !!weaverShelterTarget();
+  if(u.n==='Roonie')return !!weaverPartner(u,'weaverDiscount');
+  if(u.n==='Veska')return weaverAllies().some(function(x){return x.hp/x.max<.75});
+  if(u.n==='Daven')return u.bar<24;
+  if(u.n==='The Mage')return Object.keys(SpacologyExpedition.summons||{}).some(function(name){
+    return !activeJ3K().some(function(x){return x.n===name});
+  })||activeJ3K().length>0;
+
+  var allies=livingCrew();
+  if(u.heal)return allies.some(function(x){return x.hp/x.max<.45});
+  if(u.kindle)return allies.some(function(x){return x.id!==u.id&&x.ult&&x.en<EN.cost});
+  return G.units.some(function(x){return x.side==='foe'&&x.alive});
+}
+function aetherKindleTarget(act){
+  var crew=livingCrew(),session=window.SPACOLOGY_SESSION||{},owner=G.aether&&SpacologyAether.priority(crew,session,aetherSkillUseful);
+  var candidates=crew.filter(function(x){return x.id!==act.id&&x.ult&&x.en<EN.cost});
+  function value(x){
+    if(G.aether&&x.ult.aether&&x.en+34>=EN.cost&&G.aether.max-G.aether.current>=Math.min(4,x.ult.aether))return 3;
+    if(x===owner&&x.en+34>=EN.cost)return 2;
+    return 0;
+  }
+  return candidates.sort(function(a,b){return value(b)-value(a)||b.en-a.en})[0];
+}
+function aetherSetupReason(u,owner){
+  if(!owner||owner===u)return null;
+  if(u.n==='Roonie'&&weaverPartner(u,'weaverDiscount')===owner&&
+      G.aether.current>=SpacologyAether.skillCost(u)+Math.max(1,SpacologyAether.skillCost(owner)-1))
+    return 'discount before '+owner.n+' burst';
+  if(u.kindle){
+    var target=aetherKindleTarget(u);
+    if(target&&target.en+34>=EN.cost){
+      if(target.ult.aether&&G.aether.max-G.aether.current>=Math.min(4,target.ult.aether))return 'ready an Aether refill ultimate';
+      if(target===owner)return 'ready '+owner.n+' ultimate';
+    }
+  }
+  return null;
+}
+// Conservative direct-hit estimates: ignore follow-ups, but account for guard breaks,
+// existing vulnerability, ailments, opening boosts and the actual attack multiplier.
+function estimatedAttack(u,t,kind,extra){
+  extra=extra||0;
+  var basic=kind==='basic',weaver=!!SpacologyWeavers.crew[u.n],mult=basic?(weaver?1.25:.75):1;
+  var pressure=u.dmg*(basic?.75:1)*(isWeak(t,u.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(u.guardMul||1);
+  var frac=t.frac||0;
+  if(basic&&u.frac)frac=Math.min(12,frac+1);
+  if(!basic){
+    if(u.n==='Arunima'){mult=3+extra;pressure=u.dmg*(2+.5*extra)*(isWeak(t,u.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(u.guardMul||1)}
+    else if(u.n==='Hanae')mult=2;
+    else if(u.n==='Daven')mult=2.25;
+    else{
+      mult=(u.aoe||u.heal||u.kindle?1:1.5)*(extra?1.35:1);
+      if(u.aoe)pressure=(u.shred||0)*(isWeak(t,u.e)?1:.5)*((G.bon&&G.bon.shredMul)||1)*(u.guardMul||1);
+      if(u.frac)frac=Math.min(12,frac+u.frac+((G.bon&&G.bon.stackUp)||0));
+      if(u.consume&&frac){mult*=1+u.consume*frac/Math.max(1,u.dmg);frac=0;}
+      if(u.follow&&t.struck)mult*=1+u.follow;
+    }
+  }
+  var guard=t.broken?0:Math.max(0,(t.shL-1)*shieldCapacity(t)+t.shC);
+  var breaks=guard>0&&pressure>=guard,vuln=t.vuln>0||breaks;
+  return Math.round(u.dmg*mult*(u.openingBoost&&!u.openingUsed?1+u.openingBoost:1)*(1+(vuln?BRK.vuln:0)+frac*.12)*(guard>pressure?SOAK:1));
+}
+function burstHealthBudget(u,foes,target){
+  if(!u||SpacologyAether.profile(u.n).role!=='conduit')return null;
+  if(u.n!=='Arunima'){
+    target=target||(foes.length?(chooseTarget(u,foes)||{}).t:null);
+    if(!target)return null;
+    if(estimatedAttack(u,target,'basic')>=target.hp)return 0;
+    if(estimatedAttack(u,target,'skill',0)>=target.hp)return SpacologyAether.skillCost(u);
+    return SpacologyAether.budget(G.aether,u,window.SPACOLOGY_SESSION||{});
+  }
+  if(foes.length===1&&estimatedAttack(u,foes[0],'basic')>=foes[0].hp)return 0;
+  var cost=SpacologyAether.skillCost(u),max=SpacologyAether.budget(G.aether,u,window.SPACOLOGY_SESSION||{});
+  for(var spend=cost;spend<=max;spend++){
+    if(foes.length&&foes.every(function(t){return estimatedAttack(u,t,'skill',spend-cost)>=t.hp}))return spend;
+  }
+  return max;
+}
+function basicCleanupSoon(foes){
+  if(!foes.length||foes.length>2)return false;
+  var used={},remaining=G.limit*100-G.av;
+  return foes.every(function(t){
+    var helper=livingCrew().filter(function(u){if(u.heal||u.kindle||['Ivara','Roonie','Veska','The Mage'].includes(u.n))return false;var wait=G.pending&&G.pending.id===u.id?G.pending.av:u.av;return !used[u.id]&&wait<t.av&&wait<remaining&&estimatedAttack(u,t,'basic')>=t.hp})
+      .sort(function(a,b){return a.av-b.av})[0];
+    if(helper)used[helper.id]=true;
+    return !!helper;
+  });
+}
+function ultimateDamage(u,t){
+  var mult=u.ult.mult||0;
+  if(u.ult.eat)mult+=u.ult.eat*(t.frac||0);
+  return Math.round(u.dmg*mult*(u.ultMul||1)*(u.openingBoost&&!u.openingUsed?1+u.openingBoost:1)*
+    (1+(t.vuln>0?BRK.vuln:0)+(u.ult.eat?0:t.frac||0)*.12)*(!t.broken&&t.shL>0?SOAK:1));
+}
+function chooseUltimateTarget(u,foes){
+  return foes.slice().sort(function(a,b){
+    function value(t){var damage=ultimateDamage(u,t);return Math.min(t.hp,damage)*(damage>=t.hp?1.35:1)}
+    return value(b)-value(a);
+  })[0];
+}
+function planAetherAction(u,target){
+  var session=window.SPACOLOGY_SESSION,allies=livingCrew();
+  SpacologyAether.sync(G.aether,allies);
+  var owner=SpacologyAether.priority(allies,session,aetherSkillUseful),foes=liveFoes();
+  var nextTurn=10000/u.sp,remaining=G.limit*100-G.av,opportunity=null;
+  target=target||(foes.length?(chooseTarget(u,foes)||{}).t:null);
+  var damageSkill=!u.heal&&!u.kindle&&!['Ivara','Roonie','Veska','The Mage','Hanae'].includes(u.n);
+  var basicEnough=damageSkill&&target&&(!u.aoe||foes.length===1)&&estimatedAttack(u,target,'basic')>=target.hp;
+  var spendLimit=burstHealthBudget(u,foes,target),ownerBudget=owner===u?spendLimit:burstHealthBudget(owner,foes);
+  var critical=allies.some(function(x){return x.hp/x.max<.3});
+  var emergency=(!!u.heal||u.n==='Veska')&&critical;
+  if(u.n==='Ivara')emergency=allies.some(function(x){return x.row==='front'&&!x.weaverShelter&&x.hp/x.max<.3});
+  if(u.n==='Daven')emergency=u.row==='front'&&u.hp/u.max<.3&&u.bar<24;
+  if(owner&&remaining<=nextTurn)opportunity='deadline approaching';
+  if(owner===u){
+    if(critical)opportunity='crew under pressure';
+    if(foes.some(function(x){return x.broken||x.vuln>0}))opportunity='use the open break window';
+    if(u.n==='Arunima'&&G.aether.current>=SpacologyAether.skillCost(u)){
+      var extra=SpacologyAether.overchargeEnabled(session,u.n)?Math.max(0,Math.min(SpacologyAether.budget(G.aether,u,session)-SpacologyAether.skillCost(u),G.aether.current-SpacologyAether.skillCost(u))):0;
+      if(foes.some(function(x){return x.hp<=Math.round(u.dmg*(3+extra)*(1+(x.vuln>0?BRK.vuln:0)+(x.frac||0)*.12)*(!x.broken&&x.shL>0?SOAK:1))}))opportunity='finish a specimen now';
+    }
+  }
+  var projected=G.aether.current+SpacologyAether.profile(u.n).gain;
+  allies.filter(function(x){return x!==u&&x.av<=nextTurn}).forEach(function(x){
+    var p=SpacologyAether.profile(x.n),gain=p.gain;
+    if((session.aetherModes||{})[x.n]!=='build'&&aetherSkillUseful(x)&&projected>=SpacologyAether.skillCost(x))
+      gain=Math.max(gain,(x.n==='Veska'?(x.refrain||0):p.skillGain)-SpacologyAether.skillCost(x));
+    projected+=gain;
+  });
+  return SpacologyAether.teamPlan(G.aether,u,{crew:allies,session:session,turn:G.allyTurns,useful:aetherSkillUseful,
+    emergency:emergency,setup:aetherSetupReason(u,owner),opportunity:opportunity,basicEnough:basicEnough,
+    spendLimit:spendLimit===null?undefined:spendLimit,ownerBudget:ownerBudget===null?undefined:ownerBudget,
+    skillGain:u.n==='Veska'?(u.refrain||0):SpacologyAether.profile(u.n).skillGain,
+    canWait:remaining>nextTurn&&owner===u&&projected>=(spendLimit===null?SpacologyAether.budget(G.aether,u,session):spendLimit)});
+}
+function resolveBasic(act,tgt,ev,plan){
+  if(!tgt.broken&&tgt.shL>0){
+    var before=tgt.shL,pressure=act.dmg*.75*(isWeak(tgt,act.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
+    while(pressure>0&&tgt.shL>0){if(pressure>=tgt.shC){pressure-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}else{tgt.shC-=pressure;pressure=0}}
+    ev.shield={id:tgt.id,from:before,to:tgt.shL,match:isWeak(tgt,act.e)};
+    if(tgt.shL<=0){
+      breakEnemy(tgt);ev.broke=tgt.id;
+      if(G.bon&&G.bon.overstrike){var over=hit(act,tgt,.9);over.over=true;ev.chains.push(over)}
+      var harmony=livingCrew().filter(function(u){return u.e===act.e&&u.id!==act.id});
+      if(harmony.length){G.chains++;G.longest=Math.max(G.longest,harmony.length+1);harmony.forEach(function(u){ev.chains.push(hit(u,tgt,HARM*(u.followMul||1)))})}
+      cascade(ev,act,tgt,['break']);
+    }
+  }
+  if(act.frac){tgt.frac=Math.min(12,(tgt.frac||0)+1);ev.fracs=[tgt.id]}
+  if(act.marks){tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id}
+  var basicMult=SpacologyWeavers.crew[act.n]?1.25:.75;
+  ev.hits.push(hit(act,tgt,basicMult));tgt.struck=true;
+  if(act.extraTargets)G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,basicMult*.7))});
+  act.en=Math.min(EN.cost,act.en+EN.act+EN.perHit);
+  reactTo(ev,act,tgt,0);
+  var beforeAether=G.aether.current,gain=SpacologyAether.generate(G.aether,plan.gain);
+  ev.aether={kind:'basic',delta:gain,before:beforeAether,after:G.aether.current,reason:plan.reason};
+  weaverAfterBasic(act,ev);queueReset(act);return ev;
+}
 function resolveAction(){
+  var event;
+  try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];event=resolveActionCore();if(event){event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
+  finally{if(G){
+    G.units.forEach(function(u){delete u.aetherPower});
+    if(G.aether){
+      var previousCap=G.aether.max;
+      SpacologyAether.sync(G.aether,G.units.filter(function(u){return u.side==='ally'&&!u.summon}));
+      if(event&&event.aether)event.aether.after=G.aether.current;
+      if(event&&event.notes&&G.aether.max<previousCap)event.notes.push('Aether capacity falls to '+G.aether.max+'.');
+    }
+  }}
+}
+function paintAether(){
+  var el=$('aetherMeter');el.hidden=!G.aether;if(!G.aether)return;
+  $('aetherCount').textContent=G.aether.current+' / '+G.aether.max;
+  $('aetherPips').innerHTML=Array.from({length:G.aether.max},function(_,i){return '<i class="'+(i<G.aether.current?'filled':'')+'"></i>'}).join('');
+  var owner=SpacologyAether.priority(livingCrew(),window.SPACOLOGY_SESSION||{},aetherSkillUseful);
+  var healthBudget=burstHealthBudget(owner,liveFoes());
+  var saving=owner&&healthBudget!==0&&G.allyTurns>=G.aether.reserveAfter;
+  el.title=saving?'Saving up to '+(healthBudget===null?SpacologyAether.budget(G.aether,owner,window.SPACOLOGY_SESSION):healthBudget)+' Aether for '+owner.n:'Shared Aether · teammates can spend';
+  el.setAttribute('aria-label','Shared Aether: '+G.aether.current+' of '+G.aether.max+'. '+el.title+'. View rules');
+}
+$('aetherMeter').onclick=function(){openBattleDetails('<h2 id="enemyDetailTitle">Shared Aether</h2><p>Basics generate 1 charge (Hanae and Coda generate 2); most skills spend 1–3. The whole crew shares this pool. Ultimates still use individual charge.</p><p>Hanae’s skill spends 1 and restores 5 (+4 net). Arunima can spend the available pool: 300% attack at 3 charges, plus 100 percentage points per extra charge. Ivara’s ultimate restores 6, Hanae’s and Roonie’s restore 4, and Veska’s skill returns up to 3 from Refrains. Daven returns charge from a blocked hit. Inspect their cards in Ops for exact kits. Coda, Aurel and Nour retain their initial Aether traits.</p><p>Capacity is 6 base + 1 per living deployed Weaver. Ivara and Aurel each add another 2 through their passives. Six Weavers with Ivara hold 14 charges. Reserves and summons do not count. Losing a Weaver reduces the cap and discards excess charges.</p><p>Auto saves for a burst Weaver, uses basics for easy finishes, and spends only enough burst charges to clear weakened enemies. Urgent recovery, net-positive refills and a discount or ultimate-charge setup can go first. Burst users wait at most one turn to build a full attack, and spend sooner near the deadline, during a break window or to finish a specimen. After the burst, teammates get a spending window. Manual priorities and Build charges still apply.</p><p>Named refill effects apply once per cast, capped by the pool. Other ultimate hits and follow-ups do not generate Aether. Waves preserve the pool; each encounter starts with 3.</p>')};
+function resolveActionCore(){
   applyReset();
+  var living=G.units.filter(function(u){return u.alive});
+  if(!living.some(function(u){return u.side==='foe'})&&G.spawned>=G.pool.length)return {end:'Crew wins'};
+  if(!living.some(function(u){return u.side==='ally'&&!u.summon&&(!window.SPACOLOGY_SESSION||u.row==='front')}))return {end:'Crew wiped'};
+  if(G.av>=G.limit*100)return {end:'Out of time'};
   G.react={};          // every action gets a fresh cascade budget
   // the whole action resolves before any of it is drawn, so keep a snapshot
   // of health to open the cards on; otherwise every target starts at its end state
@@ -1442,14 +1946,12 @@ function resolveAction(){
         if(u2.frac) x.frac=Math.min(12,(x.frac||0)+u2.frac+((G.bon&&G.bon.stackUp)||0));
         if(u2.survey){ x.survey=u2.survey; ev1.surveyedAll=true; } });
     } else if(u2.kind==='nuke'){
-      var bt2=null,bw2=-1e9;
-      fs2.forEach(function(x){ var sc2=(x.frac||0)*1.5+(x.broken?2:0)-x.hp/120;
-        if(sc2>bw2){bw2=sc2;bt2=x;} });
+      var bt2=chooseUltimateTarget(au,fs2);
       if(bt2){ var m2=u2.mult+(u2.eat&&bt2.frac?u2.eat*bt2.frac:0);
         if(u2.eat) bt2.frac=0;
         ev1.hits.push(hit(au,bt2,m2*(au.ultMul||1))); }
     } else if(u2.kind==='mend'){
-      G.units.filter(function(x){return x.side==='ally'&&x.alive}).forEach(function(a){
+      livingCrew().forEach(function(a){
         var b4=a.hp; a.hp=Math.min(a.max,a.hp+u2.amt);
         var barrier2=u2.barrier?Math.round(u2.barrier*(a.barrierMul||1)):0;
         if(barrier2) a.bar=Math.min(160,a.bar+barrier2);
@@ -1461,6 +1963,7 @@ function resolveAction(){
       fs2.forEach(function(x){ ev1.hits.push(hit(au,x,(pool4/Math.max(1,au.dmg))*(au.ultMul||1))); });
       ev1.lashed=Math.round(au.taken); au.taken=0;
     }
+    if(G.aether&&u2.aether)weaverRefill(ev1,u2.aether);
     return ev1;      // note: no queueReset, so nobody loses a turn
   }
 
@@ -1470,8 +1973,9 @@ function resolveAction(){
     if(nx && G.bloom.av<=nx.wait && bloomReady()){
       var ev0={hits:[],chains:[],notes:[],bloom:true,burn:[]};
       var adv=G.bloom.av;
-      G.units.forEach(function(u){ if(u.alive) u.av-=adv; });
-      G.av+=adv;
+      var previousRound=G.round;
+      if(advanceCombat(adv))return {end:'Out of time'};
+      if(G.round>previousRound)ev0.roundStart=G.round;
       G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.frac>0})
         .forEach(function(f){
           var d=Math.round(f.frac*7*(1+0.12*f.frac));
@@ -1489,20 +1993,18 @@ function resolveAction(){
   var alive=G.units.filter(function(u){return u.alive});
   if(!alive.some(function(u){return u.side==='foe'}) && G.spawned>=G.pool.length)
     return {end:'Crew wins'};
-  if(!alive.some(function(u){return u.side==='ally'})) return {end:'Crew wiped'};
+  if(!alive.some(function(u){return u.side==='ally'&&!u.summon})) return {end:'Crew wiped'};
   alive.sort(function(a,b){return a.av-b.av});
   var act=alive[0], adv=act.av;
-  alive.forEach(function(u){u.av-=adv}); G.av+=adv;
-  var ev={actor:act, hits:[], chains:[], notes:[], roundStart:null, suppressed:false};
-  var nr=Math.floor(G.av/100)+1;
-  if(nr>G.round){ G.round=nr; ev.roundStart=nr;
-    G.units.forEach(function(u){ if(u.side!=='foe') return; u.struck=false; });
-    G.react={};
-    if(G.round>G.limit) return {end:'Out of time'}; }
+  var oldRound=G.round;
+  if(advanceCombat(adv))return {end:'Out of time'};
+  if(act.side==='ally'){G.allyTurns=(G.allyTurns||0)+1;act.lastStandGuard=false;}
+  if(act.n==='Daven'){act.weaverRefundUsed=false;act.taunt=2;}
+  var ev={actor:act,hits:[],chains:[],notes:[],roundStart:G.round>oldRound?G.round:null,suppressed:false};
 
   var fresh=spawnFoes();
   if(fresh.length){ ev.reinforced=fresh; reflowFoes(); }
-  var pool=G.units.filter(function(u){return u.side!==act.side&&u.alive});
+  var pool=G.units.filter(function(u){return u.side!==act.side&&u.alive&&!(act.side==='foe'&&u.summon)});
   if(!pool.length && G.spawned>=G.pool.length) return {end:'Crew wins'};
   if(!pool.length) return ev;
   var tgt;
@@ -1519,17 +2021,37 @@ function resolveAction(){
 
   if(act.side==='foe'){ G.foeTurns++;
     if(act.broken){
-      G.supp++; ev.suppressed=true;
-      if(act.skips>1){ act.skips--; act.av=10000/act.sp; return ev; }
-      ev.recovered=act.id;
-      act.broken=false; act.vuln=0; act.shL=act.shMax; act.shC=SHPER;
-      queueReset(act); return ev; }
-    var h0=hit(act,tgt); ev.hits.push(h0);
+      if(act.skips>0){
+        act.skips--; G.supp++; ev.suppressed=true; queueReset(act); return ev;
+      }
+      ev.recovered=act.id;G.recoveries++;
+      act.broken=false; act.vuln=0; act.shL=act.shMax; act.shC=shieldCapacity(act);
+      ev.notes.push(act.n+' reforms and attacks.');
+    }
+    if(act.cleanse&&act.frac){var shed=Math.min(act.frac,act.cleanse);act.frac-=shed;ev.notes.push(act.n+' sheds '+shed+' fracture.');}
+    G.foeAttacks++;var h0=hit(act,tgt); ev.hits.push(h0);
     cascade(ev,act,liveFoes()[0],['hurt']);
     if(tgt.reflect&&tgt.alive){
       ev.reflect=hit(tgt,act,(h0.dmg*tgt.reflect)/Math.max(1,tgt.dmg));
       ev.hits.push(ev.reflect); }
     queueReset(act); return ev; }
+
+  if(act.summon)return resolveSummonAction(act,ev);
+
+  if(G.aether){
+    var actionPlan=planAetherAction(act,tgt);
+    if(actionPlan.kind==='basic'){SpacologyAether.recordAction(G.aether,act,actionPlan,G.allyTurns,livingCrew().length);return resolveBasic(act,tgt,ev,actionPlan);}
+    var beforeAether=G.aether.current;
+    if(!SpacologyAether.spend(G.aether,actionPlan))throw new Error('Aether changed during action');
+    if(actionPlan.discount)delete act.weaverDiscount;
+    ev.aether={kind:'skill',spent:actionPlan.cost,delta:-actionPlan.cost,before:beforeAether,after:G.aether.current,reason:actionPlan.reason};
+    act.aetherPower=(act.aoe||act.heal||act.kindle?1:1.5)*(actionPlan.extra?1.35:1);
+    SpacologyAether.recordAction(G.aether,act,actionPlan,G.allyTurns,livingCrew().length);
+  }
+
+  if(G.aether&&act.n==='The Mage')return resolveMageSkill(act,ev);
+
+  if(G.aether&&SpacologyWeavers.crew[act.n])return resolveWeaverSkill(act,tgt,ev,actionPlan);
 
   if(false && act.en>=EN.cost && act.ult){
     var u=act.ult; act.en=0; G.ults++;
@@ -1547,7 +2069,7 @@ function resolveAction(){
         if(u.eat) bt.frac=0;
         ev.hits.push(hit(act,bt,m*(act.ultMul||1))); }
     } else if(u.kind==='mend'){
-      G.units.filter(function(x){return x.side==='ally'&&x.alive}).forEach(function(a){
+      livingCrew().forEach(function(a){
         var b4=a.hp; a.hp=Math.min(a.max,a.hp+u.amt);
         var barrier=u.barrier?Math.round(u.barrier*(a.barrierMul||1)):0;
         if(barrier) a.bar=Math.min(60,a.bar+barrier);
@@ -1562,8 +2084,8 @@ function resolveAction(){
     queueReset(act); return ev;
   }
   if(act.heal){
-    var hurt=G.units.filter(function(u){
-      return u.side==='ally'&&u.alive&&u.hp/u.max<0.45})
+    var hurt=livingCrew().filter(function(u){
+      return u.hp/u.max<0.45})
       .sort(function(a,b){return a.hp/a.max-b.hp/b.max});
     if(hurt.length){
       var pt=hurt[0], before2=pt.hp;
@@ -1585,13 +2107,11 @@ function resolveAction(){
     G.units.filter(function(x){return x.side==='foe'&&x.alive}).length:1));
 
   if(act.kindle){
-    var need=G.units.filter(function(u){
-      return u.side==='ally'&&u.alive&&u.ult&&u.id!==act.id&&u.en<EN.cost; })
-      .sort(function(a,b){return (b.en/EN.cost)-(a.en/EN.cost)});
+    var kindleTarget=aetherKindleTarget(act),need=kindleTarget?[kindleTarget]:[];
     if(need.length){
       var kt=need[0];
       kt.en=Math.min(EN.cost,kt.en+34);
-      kt.av=Math.max(1,kt.av-(10000/kt.sp)*0.3);
+      advanceAlly(kt,(10000/kt.sp)*0.3);
       act.en=Math.min(EN.cost,act.en+EN.act+12);
       ev.kindle={src:act.id,tgt:kt.id,name:kt.n,full:kt.en>=EN.cost};
       queueReset(act); return ev;
@@ -1603,12 +2123,10 @@ function resolveAction(){
     all.forEach(function(x){
       if(!x.broken&&x.shL>0){
         var b0=x.shL, p0=act.shred*(isWeak(x,act.e)?1:0.5)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
-        while(p0>0&&x.shL>0){ if(p0>=x.shC){p0-=x.shC;x.shL--;x.shC=x.shL>0?SHPER:0}
+        while(p0>0&&x.shL>0){ if(p0>=x.shC){p0-=x.shC;x.shL--;x.shC=x.shL>0?shieldCapacity(x):0}
           else{x.shC-=p0;p0=0} }
         if(b0>x.shL) (ev.shreds=ev.shreds||[]).push({id:x.id,from:b0,to:x.shL});
-        if(x.shL<=0){ x.broken=true;x.vuln=1;
-          if(G.bon&&G.bon.dissect) x.skips=2;
-          x.av+=(10000/x.sp)*BRK.delay; G.breaks++; (ev.broke2=ev.broke2||[]).push(x.id); }
+        if(x.shL<=0){ breakEnemy(x); (ev.broke2=ev.broke2||[]).push(x.id); }
       }
       if(act.frac){ x.frac=Math.min(12,(x.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
         (ev.fracs=ev.fracs||[]).push(x.id); }
@@ -1620,17 +2138,15 @@ function resolveAction(){
   if(!tgt.broken&&tgt.shL>0){
     var before=tgt.shL, match=isWeak(tgt,act.e);
     var p=act.dmg*(match?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
-    while(p>0&&tgt.shL>0){ if(p>=tgt.shC){p-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?SHPER:0}
+    while(p>0&&tgt.shL>0){ if(p>=tgt.shC){p-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}
       else{tgt.shC-=p;p=0} }
     ev.shield={id:tgt.id,from:before,to:tgt.shL,match:match};
     if(tgt.shL<=0){
-      tgt.broken=true; tgt.vuln=1;
-      if(G.bon&&G.bon.dissect) tgt.skips=2;
+      breakEnemy(tgt);
       if(G.bon&&G.bon.overstrike){ var h2=hit(act,tgt,0.9); h2.over=true; ev.chains.push(h2); }
-      tgt.av+=(10000/tgt.sp)*BRK.delay; G.breaks++;
       ev.broke=tgt.id;
-      var al=G.units.filter(function(u){
-        return u.side==='ally'&&u.alive&&u.e===act.e&&u.id!==act.id});
+      var al=livingCrew().filter(function(u){
+        return u.e===act.e&&u.id!==act.id});
       if(al.length){ G.chains++; G.longest=Math.max(G.longest,al.length+1);
         al.forEach(function(a){ ev.chains.push(hit(a,tgt,HARM*(a.followMul||1))); }); }
       cascade(ev,act,tgt,['break']);
@@ -1648,7 +2164,7 @@ function resolveAction(){
       return u.side==='ally'&&u.alive&&u.follow&&u.id!==act.id})
       .sort(function(a,b){return a.av-b.av});
     if(q.length){ var nx=q[0];
-      nx.av=Math.max(1,nx.av-(10000/nx.sp)*0.5);
+      advanceAlly(nx,(10000/nx.sp)*0.5);
       ev.advanced={id:nx.id,name:nx.n}; } }
   ev.hits.push(hit(act,tgt,scale===1?undefined:scale));
   if(act.extraTargets){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,.7))})}
@@ -1668,7 +2184,7 @@ function evalTarget(act,t,pool){
   var w = AIMODE==='uniform' ? UNIFORM : (PROFILES[act.p]||UNIFORM);
   var match = isWeak(t,act.e);
   var chip = act.dmg*(match?1:UNMATCHED);
-  var shieldLeft = t.broken ? 0 : ((t.shL-1)*SHPER + t.shC);
+  var shieldLeft = t.broken ? 0 : ((t.shL-1)*shieldCapacity(t) + t.shC);
   var eff = Math.round(act.dmg*(1+(t.vuln>0?BRK.vuln:0)));
   var willBreak = !t.broken && shieldLeft>0 && chip>=shieldLeft;
   var willKill = t.broken||shieldLeft<=0 ? eff>=t.hp : false;
@@ -1690,7 +2206,7 @@ function evalTarget(act,t,pool){
 
   // focus fire: prefer whoever needs the fewest remaining turns to finish
   function workOf(x){
-    var sl2 = x.broken ? 0 : ((x.shL-1)*SHPER + x.shC);
+    var sl2 = x.broken ? 0 : ((x.shL-1)*shieldCapacity(x) + x.shC);
     var c2  = act.dmg*(isWeak(x,act.e)?1:UNMATCHED);
     var e2  = Math.max(1, Math.round(act.dmg*(1+(x.vuln>0?BRK.vuln:0))*
                 ((!x.broken&&sl2>0)?SOAK:1)));
@@ -1762,9 +2278,9 @@ function cascade(ev,src,cur,events){
       return m.side==='ally'&&m.alive&&m.onFollow;
     }).forEach(function(m){
       var nx=G.units.filter(function(u){
-        return u.side==='ally'&&u.alive&&u.id!==m.id})
+        return u.side==='ally'&&u.alive&&u.id!==m.id&&(!ev.actor||ev.interrupt||u.id!==ev.actor.id)})
         .sort(function(a,b){return a.av-b.av})[0];
-      if(nx){ nx.av=Math.max(1,nx.av-(10000/nx.sp)*0.45);
+      if(nx){ advanceAlly(nx,(10000/nx.sp)*0.45);
         ev.advanced={id:nx.id,name:nx.n,by:m.n}; }
     });
   });
@@ -1778,6 +2294,7 @@ function reactTo(ev,src,tgt,depth){
 function weightedPick(pool){
   // spread damage, but lean toward the wounded so pressure still builds
   var front=pool.filter(function(u){return u.row==='front'});
+  if(window.SPACOLOGY_SESSION){pool=front;if(!pool.length)return null;}
   if(front.length) pool=front.concat(pool.filter(function(u){return u.row!=='front'}));
   var ws=pool.map(function(u){
     var w=(1 + 1.6*(1-u.hp/u.max))*(u.taunt||1);
@@ -1788,7 +2305,21 @@ function weightedPick(pool){
   return pool[pool.length-1];
 }
 function hit(src,tgt,scale){
-  var amt=src.dmg*(scale||1);
+  if(!src||!tgt||!src.alive||!tgt.alive||(window.SPACOLOGY_SESSION&&src.side==='foe'&&tgt.side==='ally'&&(tgt.row==='back'||tgt.summon)))return {src:src&&src.id,tgt:tgt&&tgt.id,dmg:0,skipped:true};
+  var hpBefore=tgt.hp,barBefore=tgt.bar||0,stoodBefore=!!tgt.lastStandUsed;
+  var h=(tgt.lastStandGuard||tgt.recoveryGuard)&&src.side==='foe'?{src:src.id,tgt:tgt.id,dmg:0,guarded:true}:resolveHitDamage(src,tgt,scale);
+  h.hpBefore=hpBefore;h.hpAfter=tgt.hp;h.barBefore=barBefore;h.barAfter=tgt.bar||0;
+  h.lastStand=!stoodBefore&&!!tgt.lastStandUsed;
+  if(G.damageTimeline)G.damageTimeline.push(h);
+  return h;
+}
+function resolveHitDamage(src,tgt,scale){
+  if(tgt.side==='ally'&&tgt.weaverShelter&&src.side==='foe'){
+    delete tgt.weaverShelter;
+    return {src:src.id,tgt:tgt.id,dmg:0,absorbed:0,soaked:true,killed:false,chain:!!scale,cost:0,sheltered:true};
+  }
+
+  var amt=src.dmg*(scale||1)*(src.aetherPower||1);
   if(src.side==='ally'&&src.openingBoost&&!src.openingUsed){amt*=1+src.openingBoost;src.openingUsed=true;}
   var mult=1+(tgt.vuln>0?BRK.vuln:0)+(tgt.frac||0)*0.12;
   var soaked=false, absorbed=0;
@@ -1796,7 +2327,7 @@ function hit(src,tgt,scale){
   var d=Math.round(amt*mult);
   if(tgt.side==='ally'&&G.ship&&G.ship.brace>0){d=Math.max(1,Math.round(d*.6));G.ship.brace--;}
   G.biggest=Math.max(G.biggest,d);
-  if(src.side==='ally') G.dealt[src.n]=(G.dealt[src.n]||0)+d;
+  if(src.side==='ally'){G.dealt[src.n]=(G.dealt[src.n]||0)+d;G.alliedHits=(G.alliedHits||0)+1;if(soaked)G.shieldedHits=(G.shieldedHits||0)+1;}
   var rawIn=d;
   if(tgt.side==='ally'&&tgt.bar>0){
     var soak2=Math.min(tgt.bar,d); tgt.bar-=soak2; d-=soak2;
@@ -1807,22 +2338,53 @@ function hit(src,tgt,scale){
         G.ammoDmg=(G.ammoDmg||0)+back;
         if(src.hp<=0&&src.alive) src.alive=false; } }
   }
+  var hpBeforeDamage=tgt.hp;
   tgt.hp=Math.max(0,tgt.hp-d);
+  if(tgt.side==='ally'&&tgt.hp<=0&&!tgt.lastStandUsed&&window.SPACOLOGY_SESSION&&SpacologyDownRecovery.mode(window.SPACOLOGY_SESSION)==='lastStand'){
+    tgt.hp=1;tgt.lastStandUsed=true;tgt.lastStandGuard=true;d=Math.max(0,hpBeforeDamage-1);G.lastStands=(G.lastStands||0)+1;
+  }
   if(tgt.side==='ally'){ G.lowest=Math.min(G.lowest,tgt.hp);
     tgt.en=Math.min(EN.cost,tgt.en+EN.taken); tgt.taken+=d; }
-  var killed=false, cost=0;
+  var killed=false, cost=0,revival=null;
   if(tgt.hp<=0&&tgt.alive){ tgt.alive=false; killed=true;
     if(tgt.side==='ally'){ G.deaths++; G.downed.push(tgt.n);
-      G.limit=Math.max(G.round+1,G.limit-DEATHCOST); cost=DEATHCOST; } }
+      if(!window.SPACOLOGY_SESSION){G.limit=Math.max(G.round+1,G.limit-DEATHCOST);cost=DEATHCOST;}
+      else{revival=SpacologyDownRecovery.recover(window.SPACOLOGY_SESSION,tgt,G);if(revival)killed=false;} } }
+  if(G.aether&&src.side==='foe'&&tgt.n==='Daven'&&tgt.alive&&!revival&&absorbed>0&&!tgt.weaverRefundUsed){
+    tgt.weaverRefundUsed=true;SpacologyAether.credit(G.aether,1);G.weaverRefunds=(G.weaverRefunds||0)+1;
+  }
+  accelerateEnemy(tgt,d);
   if(src.side==='ally'&&src.drain&&src.alive&&src.hp<src.max){
     var back=Math.round(d*src.drain);
     src.hp=Math.min(src.max,src.hp+back); G.drains++;
     return {src:src.id,tgt:tgt.id,dmg:d,vuln:tgt.vuln>0,soaked:soaked,killed:killed,
             chain:!!scale,cost:cost,drain:back}; }
   return {src:src.id,tgt:tgt.id,dmg:d,vuln:tgt.vuln>0,soaked:soaked,absorbed:absorbed,
-          killed:killed,chain:!!scale,cost:cost};
+          killed:killed,chain:!!scale,cost:cost,revival:revival};
 }
 
+function presentImpact(h){
+  var target=U(h.tgt),source=U(h.src);if(!target||!source||h.skipped)return;
+  if(G.visualHP)G.visualHP[h.tgt]=h.revival?0:h.hpAfter;
+  if(G.visualBar)G.visualBar[h.tgt]=h.barAfter;
+  var color=EL[source.e]||'#fff';
+  hitVisual(h.tgt,Math.min(1,.35+h.dmg/40),color);
+  floater(h.tgt,h.guarded?'PROTECTED':h.sheltered?'SHELTERED':h.dmg,color,{size:22,tag:!!(h.guarded||h.sheltered)});
+  if(h.absorbed)floater(h.tgt,'barrier −'+h.absorbed,'#7FA8C9',{tag:1,delay:100});
+  if(h.revival){
+    log(target.n+' recovered to '+h.revival.hp+' HP · −'+h.revival.costAV+' AV from the deadline','brk');
+    at(D(70),function(){if(G.visualHP)G.visualHP[h.tgt]=h.hpAfter;paintUnit(target,true);floater(h.tgt,'+'+h.revival.hp,'#70d5b2',{offsetY:44});floater(h.tgt,'RECOVERED · −'+h.revival.costAV+' AV','#e9b45e',{tag:1});paintDeadline();});
+  }
+  if(h.lastStand){floater(h.tgt,'LAST STAND · 1 HP','#e9b45e',{tag:1,delay:160});log('<b>'+target.n+' — LAST STAND</b> · protected until their next turn','brk');}
+  if(h.drain){if(G.visualHP)G.visualHP[h.src]=source.hp;floater(h.src,'+'+h.drain,HEALC,{delay:100});paintUnit(source);}
+  burstAt(h.tgt,color,5,44);paintUnit(target);logHit(h);
+  if(h.killed){
+    var rc=$('r-'+h.tgt);if(rc)rc.classList.add('down');
+    floater(h.tgt,'DOWN','#fff',{tag:1,delay:180});
+    log(target.n+' is down','kill');if(h.cost){floater(h.tgt,'−'+h.cost+' rounds','#E88888',{tag:1,delay:250});log('Time limit drops to '+G.limit+' rounds','brk');}
+    if(target.side==='foe'){target.retiring=true;at(1200,function(){retireFoe(h.tgt)});}
+  }
+}
 /* ============ play one action with animation ============ */
 function playAction(done){
   if(G.over) return done&&done();
@@ -1831,7 +2393,12 @@ function playAction(done){
   G.units.forEach(function(u){
     if(u.side==='foe'&&!u.alive&&!u.retired&&G.hp0&&G.hp0[u.id]>0) u.retiring=true; });
   if(ev.end){ finish(ev.end); return done&&done(); }
-  G.actions++;
+  G.visualHP=Object.assign({},G.hp0||{});G.visualBar={};
+  (ev.timeline||[]).forEach(function(h){if(G.visualBar[h.tgt]===undefined)G.visualBar[h.tgt]=h.barBefore;if(G.visualHP[h.tgt]===undefined)G.visualHP[h.tgt]=h.hpBefore;});
+  if(ev.summoned){ribbons();track();}
+  G.units.forEach(function(u){paintUnit(u,true)});
+  G.actions++;paintDeadline();paintAether();
+  if(ev.aether)log(ev.actor.n+' · '+ev.aether.kind+' · '+(ev.aether.delta>=0?'+':'')+ev.aether.delta+' Aether ('+ev.aether.after+'/'+G.aether.max+') · '+ev.aether.reason+(ev.aether.generated?' · spent '+(ev.aether.spent||0)+', restored '+ev.aether.generated:''),'chain');
   G.maxChain=Math.max(G.maxChain||0,ev.chains?ev.chains.length:0);
   if(ev.roundStart) log('Round '+ev.roundStart,'rnd');
   if(ev.reinforced&&ev.reinforced.length)log('<b>Wave '+G.wave+' / '+G.totalWaves+'</b> enters the field','rnd');
@@ -1852,7 +2419,7 @@ function playAction(done){
         floater(b.id,b.dmg,'#D9B87A',{size:24});
         floater(b.id,b.stacks+' stacks','#A89070',{tag:1,delay:80});
         burstAt(b.id,'#D9B87A',12,84);
-        paintUnit(bu);
+        if(G.visualHP)G.visualHP[b.id]=bu.hp;paintUnit(bu);
         if(b.killed){ markText(b.id,'consumed','#D9B87A');
           bu.retiring=true;
           setTimeout(function(){retireFoe(b.id)},D(420)); }
@@ -1860,7 +2427,7 @@ function playAction(done){
       bt+=D(170);
     });
     at(bt+D(140),function(){
-      btag.textContent='next'; paintAll(); sweepFoes(); track(); });
+      btag.textContent='next';G.visualHP=null;G.visualBar=null; paintAll(); sweepFoes(); track(); });
     setTimeout(function(){ busy=false; if(done) done(); }, bt+D(560));
     return;
   }
@@ -1877,7 +2444,7 @@ function playAction(done){
     log('<b>'+act.n+' cuts in</b> \u2014 '+ev.why,'chain');
   }
   var isUlt = !!ev.ult;
-  var isSupport = !!ev.heal || !!ev.kindle || (isUlt&&ev.ult.kind==='mend');
+  var isSupport = !!ev.heal || !!ev.kindle || !!ev.mends || !!ev.supportAction || !!ev.summoned || (isUlt&&ev.ult.kind==='mend');
   var big = isUlt || isSupport || !!ev.broke || (ev.broke2&&ev.broke2.length) ||
             ev.hits.some(function(h){return h.killed});
   var targets=[];
@@ -1900,13 +2467,14 @@ function playAction(done){
   if(isSupport) c=HEALC;
 
   if(MODE==='none'){
+    G.visualHP=null;G.visualBar=null;
     if(ev.heal){ var hu=U(ev.heal.tgt);
       log('&nbsp;&nbsp;'+act.n+' heals '+hu.n+' <b>+'+ev.heal.amt+'</b>'+
         (ev.heal.clutch?' <span style="color:#4FD97F">clutch</span>':'')); }
     ev.hits.forEach(function(h){ logHit(h,ev.why) });
     ev.chains.forEach(function(h){ logHit(h) });
     sweepFoes();
-    if(ev.suppressed) log('&nbsp;&nbsp;'+act.n+' reforms instead of acting','brk');
+    if(ev.suppressed) log('&nbsp;&nbsp;'+act.n+' remains broken — turn denied by Assay','brk');
     if(ev.advanced) log('&nbsp;&nbsp;'+ev.advanced.name+' cuts forward','chain');
     if(ev.broke) log('<b>BREAK</b> '+U(ev.broke).n,'brk');
     G.units.forEach(paintUnit); paintAll(); track();
@@ -1926,15 +2494,18 @@ function playAction(done){
   // position stays readable while their hit/heal reaction animates in place.
   buildStage(act.id,[],isSupport,helpers);
   targets.forEach(function(id){var rc=$('r-'+id);if(rc)rc.classList.add('targeted');});
-  $('cap').textContent = ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
+  $('cap').textContent = ev.summoned ? act.n+' · J3K LOTTERY · '+ev.summoned.name
+    : ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
     : ev.interrupt ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()+' \u00b7 out of turn'
+    : ev.aether ? act.n+' · '+ev.aether.kind.toUpperCase()+' · '+(ev.aether.delta>=0?'+':'')+ev.aether.delta+' AETHER'
+    : ev.recovered ? act.n+' · REFORM & ATTACK'
     : ev.suppressed ? 'suppressed'
     : ev.kindle ? 'kindle \u00b7 '+act.n
     : ev.heal ? 'mend \u00b7 '+act.n
     : ev.why ? act.n+' \u00b7 '+ev.why
     : (act.side==='ally'?'attack':'enemy turn')+' \u00b7 '+act.e;
 
-  var t=0;
+  var t=0,impactGap=Math.max(45,D(100));
   var tag=$('ptag');
   at(t,function(){ tag.textContent='in'; stageIn(act.id,D(180)); });
   t+=D(180);
@@ -1945,11 +2516,15 @@ function playAction(done){
     t+=D(180);
   }
 
+  if(ev.recovered){
+    at(t,function(){tag.textContent='reform';floater(act.id,'reform → attack',EL[act.e],{tag:1});paintUnit(act);});
+    t+=D(300);
+  }
   if(ev.suppressed){
     at(t,function(){ tag.textContent='suppressed';
-      log('&nbsp;&nbsp;'+act.n+' reforms instead of acting','brk');
+      log('&nbsp;&nbsp;'+act.n+' remains broken — turn denied by Assay','brk');
       floater(act.id,'suppressed','#C97F9E',{tag:1});
-      floater(act.id,'reform',EL[act.e],{tag:1,delay:220});
+      floater(act.id,'held by Assay',EL[act.e],{tag:1,delay:220});
       paintUnit(act);
       var d=$('sc-'+act.id);
       if(d){ cardTF(act.id,'translateY(10px) scale(.94)',D(320));
@@ -2002,7 +2577,7 @@ function playAction(done){
         if(g){ g.style.transition='width 90ms'; g.style.width=pct+'%'; }
         if(f){ f.style.transition='width 460ms cubic-bezier(.3,.6,.3,1)'; f.style.width=pct+'%'; }
       });
-      paintUnit(hu); });
+      if(G.visualHP)G.visualHP[hu.id]=hu.hp;paintUnit(hu); });
     t+=D(620);
   } else {
     at(t,function(){ tag.textContent=isUlt?'ultimate':'charge';
@@ -2037,28 +2612,20 @@ function playAction(done){
         if(pf){ pf.style.transition='box-shadow 260ms cubic-bezier(.16,.85,.3,1)';
           pf.style.boxShadow=ringStack(U(ev.shield.id),null,ev.shield.to); }
       }
-      ev.hits.forEach(function(h,hi){
-        var tu=U(h.tgt);
-        var pw=Math.min(1,.35+(h.dmg/40))*(isUlt?1.25:1);
-        setTimeout(function(){ hitVisual(h.tgt,pw,c); burstAt(h.tgt,c,isUlt?9:5,isUlt?66:44); },
-          hi*D(70));
-        floater(h.tgt,h.dmg,h.vuln?'#FFFFFF':c,
-          {size:(h.vuln?22:18)*(isUlt?1.25:1),delay:hi*D(70)});
-        if(h.vuln) floater(h.tgt,'vulnerable','#FFFFFF',{tag:1,delay:90});
-        else if(h.soaked&&hi===0) floater(h.tgt,'soaked','#5F6E7B',{tag:1,delay:90});
-        if(h.absorbed){ floater(h.tgt,'barrier \u2212'+h.absorbed,'#7FA8C9',{tag:1,delay:60});
-          if(G.bon&&G.bon.ammo) floater(h.src,'ammunition',TAGCOL.Hull,{tag:1,delay:130}); }
-        if(h.drain){ floater(h.src,'+'+h.drain,HEALC,{size:15,delay:120});
-          floater(h.src,'drain',HEALC,{tag:1,delay:200});
-          paintUnit(U(h.src)); }
-        logHit(h,ev.why); paintUnit(tu); });
+      (ev.timeline||ev.hits.concat(ev.chains)).forEach(function(h,hi){
+        at(hi*impactGap,function(){
+          tag.textContent=h.src===act.id?'impact':'follow-up';
+          var source=U(h.src);if(source&&h.src!==act.id){glint($('r-'+h.src),500);floater(h.src,source.n,EL[source.e],{tag:1});}
+          presentImpact(h);
+        });
+      });
       if(ev.shreds) ev.shreds.forEach(function(sh){
         popRings(sh.id,sh.from,sh.to);
         floater(sh.id,'shred \u2212'+(sh.from-sh.to),EL[U(sh.id).e],{tag:1,delay:90}); });
       if(ev.fracs) ev.fracs.forEach(function(fid,fi){
         floater(fid,'fracture','#C97F9E',{tag:1,delay:150+fi*60});
         paintUnit(U(fid)); });
-      if(ev.consumed) floater(ev.hits[0].tgt,'fractures spent','#C97F9E',{tag:1,delay:120});
+      if(ev.consumed&&ev.hits[0]) floater(ev.hits[0].tgt,'fractures spent','#C97F9E',{tag:1,delay:120});
       if(G.bon&&G.bon.overstrike&&ev.broke)
         floater(ev.broke,'overstrike',TAGCOL.Ordnance,{tag:1,delay:200});
       if(G.bon&&G.bon.dissect&&ev.broke)
@@ -2068,7 +2635,7 @@ function playAction(done){
       if(ev.surveyedAll) G.units.filter(function(x){return x.side==='foe'})
         .forEach(function(x,xi){ floater(x.id,'surveyed','#8FB878',{tag:1,delay:120+xi*70});
           paintUnit(x); });
-      if(ev.followed) floater(ev.hits[0].tgt,'follow-up',c,{tag:1,delay:120});
+      if(ev.followed&&ev.hits[0]) floater(ev.hits[0].tgt,'follow-up',c,{tag:1,delay:120});
       if(ev.advanced){ floater(ev.advanced.id,'advance','#D4A45C',{tag:1,delay:180});
         log('&nbsp;&nbsp;'+(ev.advanced.by?ev.advanced.by+' pulls ':'')+
           ev.advanced.name+' forward in line','chain');
@@ -2082,7 +2649,7 @@ function playAction(done){
         if(md.amt) floater(md.tgt,'+'+md.amt,HEALC,{size:17,delay:mi*70});
         if(md.bar) floater(md.tgt,'barrier','#7FA8C9',{tag:1,delay:mi*70+90});
         if(md.ch) floater(md.tgt,'charge +'+md.ch,'#D4A45C',{tag:1,delay:mi*70+150});
-        paintUnit(U(md.tgt)); });
+        if(G.visualHP)G.visualHP[md.tgt]=U(md.tgt).hp;if(G.visualBar)G.visualBar[md.tgt]=U(md.tgt).bar;paintUnit(U(md.tgt)); });
       if(ev.broke2) ev.broke2.forEach(function(bid,bi){
         setTimeout(function(){ var bu=U(bid);
           floater(bid,'break',EL[bu.e],{tag:1});
@@ -2090,11 +2657,11 @@ function playAction(done){
           log('<b>BREAK</b> &mdash; '+bu.n,'brk'); paintUnit(bu); track(); }, bi*D(110)); });
       cardTF(act.id,'none',D(220),'cubic-bezier(.2,.8,.4,1)');
     });
-    t+=D(200);
+    t+=Math.max(0,(ev.timeline||ev.hits).length-1)*impactGap+D(110);
 
     if(ev.broke){
       at(t,function(){ tag.textContent='break';
-        var bu=U(ev.broke), bc=EL[bu.e];
+        var bu=U(ev.broke), bc=EL[bu.e];if(G.visualHP&&G.visualHP[bu.id]<=0)return;
         log('<b>BREAK</b> &mdash; '+bu.n+' delayed and exposed','brk');
         floater(ev.broke,'break',bc,{tag:1});
         burstAt(ev.broke,bc,13,80);
@@ -2103,122 +2670,14 @@ function playAction(done){
       t+=D(340);
     }
 
-    var quick = ev.chains.length>CHAINSTAGE;
-    var joined={};
-    ev.chains.forEach(function(h,k){
-      var step=t+k*(quick?D(140):D(320));
-      if(quick){
-        var su0=U(h.src), kind0=h.follow?'follow-up':(h.dbl?'follow-up':'harmony');
-        at(step,function(){
-          if(k===0) tag.textContent='cascade \u00d7'+ev.chains.length;
-          var tu0=U(h.tgt);
-          hitVisual(h.tgt,.45,EL[su0.e]);
-          floater(h.tgt,h.dmg,EL[su0.e],{size:15,life:520});
-          if(k%3===0) floater(h.tgt,su0.n,EL[su0.e],{tag:1,delay:40,life:520});
-          burstAt(h.tgt,EL[su0.e],3,32);
-          var rq=$('r-'+su0.id);
-          if(rq){ glint(rq,300); fz(rq);
-            rq.style.transform='translateY(-6px)'; rq.style.boxShadow='0 0 12px '+EL[su0.e];
-            setTimeout(function(){tr(rq,180);rq.style.transform='';rq.style.boxShadow='';},130); }
-          logHit(h); paintUnit(tu0);
-        });
-        return;
-      }
-      var su=U(h.src), onField=!!$('sc-'+h.src);
-      var kind = h.follow?'follow-up' : h.dbl?'follow-up' : 'harmony';
-
-      // the responder steps onto the field
-      if(pendingHelpers.indexOf(h.src)>=0 && h.src!==act.id && !joined[h.src]){
-        joined[h.src]=1;
-        at(step,function(){
-          tag.textContent=kind;
-          makeRoom(act.id,Object.keys(joined),D(240));
-          floater(h.src,kind,EL[su.e],{tag:1});
-          burstAt(h.src,EL[su.e],5,40);
-        });
-        step+=D(170);
-      }
-
-      at(step,function(){
-        tag.textContent=kind;
-        var sd=$('sc-'+h.src);
-        if(sd){
-          cardTF(h.src,'translateY(-16px) scale(1.06)',D(110),'cubic-bezier(.4,0,.7,.2)');
-          glint(FACE(h.src),480);
-        } else {
-          var rcx=$('r-'+h.src);
-          if(rcx){ glint(rcx,460); fz(rcx);
-            rcx.style.transform='translateY(-9px) scale(1.06)';
-            rcx.style.boxShadow='0 0 18px '+EL[su.e];
-            setTimeout(function(){ tr(rcx,260); rcx.style.transform='';
-              rcx.style.boxShadow=''; },220);
-            floater(h.src,kind,EL[su.e],{tag:1}); }
-        }
-      });
-
-      at(step+D(110),function(){
-        var sd2=$('sc-'+h.src);
-        if(sd2) cardTF(h.src,'translateY(-46px) scale(1.03)',D(80),'cubic-bezier(.8,0,.9,.2)');
-      });
-
-      at(step+D(190),function(){
-        var tu=U(h.tgt);
-        hitVisual(h.tgt,h.follow?.85:.6,EL[su.e]);
-        floater(h.tgt,h.dmg,EL[su.e],{size:h.follow?22:17});
-        floater(h.tgt,su.n,EL[su.e],{tag:1,delay:70});
-        burstAt(h.tgt,EL[su.e],h.follow?10:5,h.follow?68:40);
-        log('&nbsp;&nbsp;'+kind+' &mdash; '+su.n,'chain');
-        logHit(h); paintUnit(tu);
-        var sd3=$('sc-'+h.src);
-        if(sd3) cardTF(h.src,'none',D(240),'cubic-bezier(.2,.8,.4,1)');
-      });
-    });
-    if(ev.chains.length) t+=ev.chains.length*(quick?D(140):D(320))+D(300);
-    if(ev.chains.length>CHAINSTAGE){
-      at(t-D(200),function(){
-        var n=ev.chains.length, hitCount=Object.keys(ev.touched||{}).length;
-        floater(act.id,n+' hit chain','#D4A45C',{tag:1});
-        if(hitCount>1) floater(act.id,hitCount+' enemies','#D4A45C',{tag:1,delay:120});
-        log('<b>chain \u00d7'+n+'</b> across '+hitCount+' enemies','chain');
-      });
-    }
-
-    var killed=ev.hits.concat(ev.chains).filter(function(h){return h.killed});
-    killed.forEach(function(h){
-      at(t,function(){ tag.textContent='down';
-        var ku=U(h.tgt);
-        log('&nbsp;&nbsp;'+ku.n+' is down','kill');
-        floater(h.tgt,'down','#FFFFFF',{tag:1});
-        if(h.cost){ floater(h.tgt,'\u2212'+h.cost+' rounds','#E88888',{tag:1,delay:150});
-          log('&nbsp;&nbsp;time limit drops to '+G.limit+' rounds','brk');
-          var hm=$('hMax'); if(hm){ hm.style.transition='none';
-            hm.style.transform='scale(1.6)';
-            setTimeout(function(){hm.style.transition='transform 320ms';
-              hm.style.transform='none';},40); } }
-        burstAt(h.tgt,EL[ku.e],14,84);
-        var d=$('sc-'+h.tgt);
-        if(d){ d.dataset.dead='1';
-          cardTF(h.tgt,'scale(.72) rotate(-7deg)',D(600),'cubic-bezier(.42,0,.6,1)');
-          d.style.opacity='0'; d.style.filter='saturate(.25)';
-          var fcd=FACE(h.tgt);
-          if(fcd){ fcd.style.transition='box-shadow '+D(400)+'ms'; fcd.style.boxShadow='none'; } }
-        var ku2=U(h.tgt);
-        if(ku2 && ku2.side==='foe'){
-          U(h.tgt).retiring=true;
-          setTimeout(function(){ retireFoe(h.tgt); }, D(420));
-        } else {
-          var rc=$('r-'+h.tgt); if(rc) setTimeout(function(){rc.classList.add('down')},D(300));
-        }
-      });
-      t+=D(360);
-    });
   }
 
   at(t,function(){ tag.textContent='resolve';
+    G.visualHP=null;G.visualBar=null;
     cardTF(act.id,'none',D(200));
     ev.hits.concat(ev.chains).forEach(function(h){ ghostSettle(U(h.tgt)); });
     paintAll(); track(); });
-  t+=D(520);
+  t+=D(180);
   at(t,function(){ tag.textContent='out';
     stageOut(act.id,D(180));
     pendingHelpers.forEach(function(id){stageOut(id,D(180))});
@@ -2240,8 +2699,20 @@ function logHit(h,why){
 }
 
 /* ============ finish ============ */
+function battleAnalysis(){
+  var remaining=G.units.filter(function(u){return u.side==='foe'&&u.alive});
+  var unspawned=Math.max(0,G.pool.length-G.spawned),shieldShare=G.alliedHits?Math.round(G.shieldedHits/G.alliedHits*100):0;
+  var notes=[];
+  if(unspawned)notes.push(unspawned+' enemies in later waves were not reached.');
+  if(remaining.length)notes.push(remaining.length+' enemies still active'+(remaining.length===1?': '+remaining[0].n+' at '+Math.ceil(remaining[0].hp/remaining[0].max*100)+'% health':'')+'.');
+  if(shieldShare>=50)notes.push(shieldShare+'% of your hits landed into shields; matched elements and guard damage can open longer damage windows.');
+  if(G.deaths)notes.push(G.deaths+' crew went down, reducing your available actions.');
+  if(G.recoveries>=3)notes.push(G.recoveries+' enemy recoveries closed break windows; coordinate burst or delay their turns.');
+  if(!notes.length)notes.push('Compare damage per turn with crew turns to choose between stronger hits and faster rotations.');
+  return {crewTurns:G.allyTurns||0,advances:G.advances||0,savedAV:Math.round(G.advanceSaved||0),shieldShare:shieldShare,remaining:remaining.length+unspawned,notes:notes};
+}
 function finish(msg){
-  G.over=true; playing=false; clr();
+  G.over=true;G.visualHP=null;G.visualBar=null; playing=false; clr();paintDeadline();paintRecovery();clearRibbonMarks();clearStage();
   $('bPlay').textContent='Play'; $('hState').textContent=msg;
   log('<b>'+msg+'</b> in '+G.round+' rounds','rnd');
   var names=Object.keys(G.dealt);
@@ -2268,31 +2739,39 @@ function finish(msg){
     '<div class="spark">'+bars+'</div>';
   if(window.SPACOLOGY_SESSION){
     var won=msg==='Crew wins';
-    var observation=G.breaks>=2||G.chains>=2;
+    var observation=SpacologyExpedition.observed(window.SPACOLOGY_SESSION,G,won);
+    var recovery=SpacologyRecovery.score(G.pool,G.units,observation);
     var pity=window.SPACOLOGY_SESSION.rarePity||0;
-    var crystals=won&&(Math.random()<.22||pity>=3)?1:0;
+    var bonusCrystal=won&&(Math.random()<.22||pity>=3)?1:0;
+    var crystals=won?1+bonusCrystal:0;
     var rarePool=[{type:'gear',name:'Bore Bit'},{type:'gear',name:'Recoil Spring'},
       {type:'gear',name:'Ballast Plate'},{type:'ship',name:'Survey Prism'},
       {type:'ship',name:'Brace Matrix'}];
     var rareItem=won&&Math.random()<.1?rarePool[Math.floor(Math.random()*rarePool.length)]:null;
-    var baseGold=won?28+window.SPACOLOGY_SESSION.round*6:10;
-    var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*.2):0;
-    var result={round:window.SPACOLOGY_SESSION.round,won:won,
-      integrity:won?(observation?5:2):-8,
-      gold:baseGold+surveyBonus,
+    var modifierEffects=SpacologyExpedition.effects(window.SPACOLOGY_SESSION);
+    var baseGold=(won?Math.round((28+window.SPACOLOGY_SESSION.round*6)*modifierEffects.reward):10)+modifierEffects.flatGold;
+    var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*(G.ship.survey===true?.2:G.ship.survey)):0;
+    var analysis=battleAnalysis();
+    var result={analysis:analysis,revives:G.revives||0,recoveryAV:G.recoveryAV||0,reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
+      recovery:recovery,integrity:Math.max(0,Math.min(100,window.SPACOLOGY_SESSION.integrity+recovery.integrity))-window.SPACOLOGY_SESSION.integrity,
+      gold:baseGold+surveyBonus,fieldXP:SpacologyField.battleXP(window.SPACOLOGY_SESSION,won),
       observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
-      actions:G.actions,ultimates:G.ults,totalDamage:Math.round(tot),crystals:crystals,item:rareItem,
-      rarePity:crystals?0:pity+(won?1:0)};
-    localStorage.setItem('spacologyBattleResult',JSON.stringify(result));
-    $('summaryTitle').textContent=won?'Fieldwork recovered':'Partial recovery';
-    $('summaryCopy').textContent=won?'The crew secured the encounter and returned its field record.':'Extraction preserved the data gathered before the crew fell back.';
+      actions:G.actions,enemyAttacks:G.foeAttacks,enemyRecoveries:G.recoveries,deaths:G.deaths,ultimates:G.ults,totalDamage:Math.round(tot),crystals:crystals,item:rareItem,
+      rarePity:bonusCrystal?0:pity+(won?1:0)};
+    localStorage.setItem(SpacologyStore.result,JSON.stringify(result));
+    $('summaryTitle').textContent=won?'Fieldwork recovered':msg==='Out of time'?'Time expired':'Partial recovery';
+    $('summaryCopy').textContent=won?'The crew secured the encounter and returned its field record.':msg==='Out of time'?'The '+G.limit+'-round deadline expired before every wave was cleared. Partial data and recovery gold were retained.':'Extraction preserved the data gathered before the crew fell back.';
+    $('summaryCopy').textContent+=' '+recovery.earned+' / '+recovery.total+' points recovered ('+Math.floor(recovery.percent)+'%). '+recovery.band+'.';
+    if(result.revives)$('summaryCopy').textContent+=' '+result.revives+' crew recoveries cost '+result.recoveryAV+' AV.';
+    if(result.fieldXP)$('summaryCopy').textContent+=' +'+result.fieldXP+' field XP toward your next field level.';
     $('summaryGold').textContent='+'+result.gold+'g';
     $('summaryIntegrity').textContent=(result.integrity>=0?'+':'')+result.integrity+'%';
     $('summaryObservation').textContent=observation?'COMPLETE':'PARTIAL';
     $('summaryActions').textContent=G.actions;$('summaryBreaks').textContent=G.breaks;
     $('summaryChains').textContent=G.chains;$('summaryUltimates').textContent=G.ults;
-    $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=G.round;
+    $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=(Math.round(G.av)/100).toFixed(2)+' / '+G.limit;
     var recovered=[];if(rareItem)recovered.push(rareItem.name);if(crystals)recovered.push('Bloom crystal ×'+crystals);if(surveyBonus)recovered.push('Survey bonus +'+surveyBonus+'g');
+    $('summaryTempo').textContent=analysis.crewTurns+' crew turns · '+analysis.advances+' advances · '+analysis.savedAV+' AV of crew waiting saved. '+analysis.notes.join(' ');
     $('summaryDrop').textContent=recovered.length?'RARE RECOVERY · '+recovered.join(' · '):'No rare recovery this encounter.';
     $('summaryReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
     $('sessionSummary').classList.add('show');
@@ -2367,20 +2846,42 @@ function injNote(){
 function loadSpacologySession(){
   if(new URLSearchParams(location.search).get('spacology')!=='1') return false;
   var state=null;
-  try{state=JSON.parse(localStorage.getItem('spacologyRunV010'));}catch(e){}
+  try{state=JSON.parse(localStorage.getItem(SpacologyStore.run));}catch(e){}
   if(!state||!state.field||!state.support) return false;
+  if(state.end==='retreated'||state.round>state.maxRounds){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
+  var formationChanges=SpacologyFormation.normalize(state);
+  if(formationChanges.length)localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
+  if(!state.field.some(Boolean)||SpacologyCrew.slots(state)>6){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
+  state.difficulty=SpacologyVoyageSettings.normalize(state).difficulty;
+  var difficulty=SpacologyVoyageSettings.difficulties[state.difficulty];
+  var rules=SpacologyExpedition,modifierEffects=rules.effects(state);
   window.SPACOLOGY_SESSION=state;
   document.body.classList.add('session-mode');
   var library={};
   Object.keys(TEAMS).forEach(function(key){TEAMS[key].crew.forEach(function(c){if(!library[c.n])library[c.n]=c;});});
-  var aliases={Coda:'Vane',Morrow:'Ash',Spore:'Sump',Latch:'Nettle'};
+  // Temporary mechanical bridge from the 28-character lore roster to the
+  // proven combat prototypes. Display names, elements, tags, stats, art and
+  // kit copy remain canonical; only the underlying action implementation is
+  // borrowed until each new kit receives its dedicated combat verbs.
+  var aliases={
+    Ilka:'Wex',Reva:'Tarn','Tomás':'Ferrule',Ojo:'Ballast',Stella:'Ash',Nour:'Cinder',
+    Dolores:'Pyre',Spore:'Sump',Abike:'Sump',Aurel:'Vane',Imke:'Nettle',Idris:'Mote',
+    Beatriz:'Corr',Otaremnivas:'Ballast',Wren:'Maul',Nadira:'Quill',Yusuf:'Vitre',
+    Sevim:'Rime',Aurelio:'Ledger',Nahana:'Fen',Navigator:'Mire',Ekene:'Halo',
+    Coda:'Vane',Morrow:'Ash',Latch:'Nettle'
+  };
   var all=state.field.concat(state.support).filter(Boolean);
+  var planetHealth=rules.planetHealth(all);
   var crew=all.map(function(name){
-    var source=library[name]||library[aliases[name]]||library.Corr;
+    var source=rules.crew[name]?.combat||library[name]||library[aliases[name]]||library.Corr;
     var c=JSON.parse(JSON.stringify(source));
     c.n=name;c.row=state.field.indexOf(name)>=0?'front':'back';
-    var canonical=state.combatStats&&state.combatStats[name];
+    if(rules.crew[name]){c.e=rules.crew[name].element;c.tags=rules.crew[name].tags.slice();}
+    var canonical=rules.crew[name]?.combat?rules.crew[name].stats:state.combatStats&&state.combatStats[name];
     if(canonical){c.hp=canonical.hp;c.dmg=canonical.dmg;c.sp=canonical.speed*10;}
+    var rank=(state.crewUpgrades&&state.crewUpgrades[name])||0;
+    c.hp=Math.round((c.hp||100)*SpacologyCrew.bonuses(rank).hp*planetHealth);
+    c.dmg=Math.round(c.dmg*SpacologyCrew.bonuses(rank).attack*modifierEffects.crewDamage);
     var gear=(state.equipped&&state.equipped[name])||[];
     gear.forEach(function(item){
       if(item==='Tuning Fork'&&c.frac)c.frac++;
@@ -2392,38 +2893,59 @@ function loadSpacologySession(){
       if(item==='Ballast Plate')c.barrierMul=(c.barrierMul||1)*1.3;
       if(item==='Slow Fuse')c.ultMul=(c.ultMul||1)*1.25;
       if(item==='Bore Bit')c.guardMul=(c.guardMul||1)*1.4;
+      var recipe=rules.recipes.find(function(r){return r.name===item});
+      if(recipe)Object.keys(recipe.stats).forEach(function(key){var value=recipe.stats[key];if(key==='frac'){if(c.frac)c.frac+=value;}else if(/Mul$/.test(key))c[key]=(c[key]||1)*value;else c[key]=(c[key]||0)+value;});
     });
     return c;
   });
-  var ship={brace:0,survey:false};
+  var ship={brace:0,survey:0};
   (state.shipEquipped||[]).filter(Boolean).forEach(function(item){
-    if(item==='Culture Bed')crew.forEach(function(c){if(c.frac)c.frac++});
-    if(item==='Exact Clock')crew.forEach(function(c){c.startEnergy=(c.startEnergy||0)+20});
-    if(item==='Fast Clock')crew.forEach(function(c){c.startAdvance=(c.startAdvance||0)+8});
-    if(item==='Brace Matrix')ship.brace++;
-    if(item==='Survey Prism')ship.survey=true;
+    var part=rules.shipParts[item];if(!part)return;
+    crew.forEach(function(c){
+      if(part.stacks&&c.frac)c.frac+=part.stacks;
+      if(part.startEnergy)c.startEnergy=Math.min(100,(c.startEnergy||0)+part.startEnergy);
+      if(part.startAdvance)c.startAdvance=(c.startAdvance||0)+part.startAdvance;
+    });
+    ship.brace+=part.brace||0;ship.survey=Math.max(ship.survey,part.survey||0);
   });
   TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew,ship:ship};
   OPS_RUN_ROUND=state.round;
-  OPS_HP=.82+(state.round-1)*.16;
-  OPS_DMG=.76+(state.round-1)*.12;
+  OPS_FACTION=FACTION_ORDER[(state.round-1)%FACTION_ORDER.length];
+  OPS_PLANET=window.SpacologyEnemyCatalogue?window.SpacologyEnemyCatalogue.generatePlanet('voyage-'+(state.seed||'star-singer')+'-'+state.round):null;
+  OPS_HP=(1+(state.round-1)*.22)*difficulty.enemyScale*modifierEffects.enemyHp;
+  OPS_DMG=(.9+(state.round-1)*.16)*difficulty.enemyScale*modifierEffects.enemyDamage;
+  OPS_SPEED=(1+(state.round-1)*.025)*difficulty.enemySpeed;
+  OPS_GUARD=(1+(state.round-1)*.06)*difficulty.enemyGuard;
+  OPS_RECOVERY=difficulty.breakDelay;
   OPS_PRESSURE=OPS_HP;
   FIELD=[3,3,4,4,5,6][Math.min(5,state.round-1)];
   OPS_WAVES=[2,2,2,3,3,3][Math.min(5,state.round-1)];
   POOL=FIELD*OPS_WAVES;
-  MAXROUND=14;
+  MAXROUND=SpacologyVoyageSettings.roundLimit(state);
   $('rPool').value=POOL;$('vPool').textContent=POOL;
-  $('sessionTitle').textContent='Phomous · Compound Motion';
+  var encounterFaction=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.FACTIONS[OPS_FACTION];
+  $('sessionTitle').textContent=(OPS_PLANET?OPS_PLANET.name+' · ':'')+rules.route[Math.min(5,state.round-1)];
   $('sessionCrew').textContent=state.field.filter(Boolean).join(', ')+' on field · '+state.support.filter(Boolean).join(', ')+' off field';
   $('sessionRound').textContent='ROUND '+state.round+' / '+state.maxRounds;
-  $('sessionPressure').textContent='Enemy pressure '+Math.round(OPS_PRESSURE*100)+'%';
+  $('sessionPressure').textContent=difficulty.label+' · '+(encounterFaction?encounterFaction.name+' · ':'')+rules.activeModifiers(state).length+' modifiers';
+  var routeHost=document.querySelector('.session-route');if(routeHost)routeHost.innerHTML=rules.route.map(function(name,i){return '<div class="session-node '+(i+1<state.round?'done':i+1===state.round?'current':'')+'"><i>'+(i+1<state.round?'✓':i+1)+'</i><b>'+(i===5?'EXTRACT':'SURVEY')+'</b></div>'}).join('');
   $('sessionIntegrity').textContent=state.integrity+'%';
   $('sessionGold').textContent=state.gold;
-  $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
-  $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html'};
+  $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix};
+  $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix};
   build('ops','spread');
   var controls=$('sessionControls'),play=$('bPlay'),logToggle=$('sessionLogToggle'),record=$('battleRecord');
   controls.insertBefore(play,logToggle);controls.appendChild($('sessionReturn'));
+  var retreat=document.createElement('button');retreat.id='sessionRetreat';retreat.textContent='RETREAT';retreat.setAttribute('aria-label','Retreat from voyage');controls.appendChild(retreat);
+  retreat.onclick=function(){
+    if(G.over)return;
+    if(!confirm('Retreat from this voyage? This ends the run. This unfinished encounter gives no rewards. Completed encounter records stay in your inbox.'))return;
+    cancelSessionAutostart();playing=false;G.over=true;clr();
+    state.end='retreated';state.pack=null;
+    localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
+    localStorage.removeItem(SpacologyStore.result);
+    location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix;
+  };
   logToggle.onclick=function(){var open=record.classList.toggle('open');this.setAttribute('aria-expanded',open?'true':'false');this.textContent=open?'CLOSE LOG':'COMBAT LOG';};
   sessionAutoTimer=setTimeout(function(){sessionAutoTimer=null;if(G&&!G.over&&!playing)$('bPlay').click();},350);
   return true;

@@ -308,6 +308,12 @@ unit loses its turn and reforms on its own next turn.
 **Multipliers are bucketed** — additive within a category, multiplicative across: defence
 stripped, power, crit, volume. Peak measured at 61× against additive's 8.8×.
 
+## Shared Aether
+
+Regular skills spend a team-wide Aether pool; basic attacks replenish it. Ultimates retain individual charge and remain interrupts. The first playable values are 3 starting charges, 6 capacity, +1 per basic and 1–3 per skill. Generation happens once per basic action, not per hit or follow-up. The pool persists across waves and resets at the next encounter.
+
+Aether Weavers can increase basic generation, increase capacity, or spend extra charges for stronger skills. The initial implementation and tuning limits are recorded in [the Aether proposal](aether-pool-proposal.md).
+
 ## Placement, and what testing concluded
 
 Three sessions of grid testing, and the honest finding: **placement is the weakest depth
@@ -666,3 +672,9 @@ annotated) · `store-dressed.html` (ops room beside the fight) · `pack-opening.
 `run.html` (rebuilt combat instead of reusing the animation — a mistake) ·
 `session.html` (right idea, wrong direction of merge) · `battlefield.html` (grid combat,
 rejected) · earlier animation tests
+
+## Pack equipment and compact rewards
+
+Keep and Take All add every gear or ship copy to inventory, including items already equipped. Copies appear as inventory quantities; equipping, replacing, removing, combining, and dismantling move or consume one copy at a time. Equipped gear actions refer to the inspected owner and slot. Prime resolution bonuses remain unchanged, and crew duplicate preferences apply only to crew.
+
+Open pack rewards share the store’s 156px supply strip. Compact cards keep their name, thumbnail, Keep and disposal buttons; clicking a card opens its full details. Opening a pack does not change the field height or position. Inventory and departure stay visible at supported tablet and desktop heights.

@@ -1,6 +1,6 @@
 # The crew of *ARC 017 - Star Singer*
 
-All 21 — who they are, what they look like, where they came from, and what they have done to each
+All 28 — who they are, what they look like, where they came from, and what they have done to each
 other. Replaces the one-line bios in `sim/roster.js`.
 
 `world.md` is the foundation. This is the story.
@@ -163,7 +163,7 @@ at her.
 
 ---
 
-### **Reva Sokolovna** — field operations supervisor · *chaos* · (was Tarn)
+### **Reva Sokolovna** — field operations supervisor · *chaos*
 
 **Bird folk** · Belune III
 
@@ -280,7 +280,7 @@ burnt sugar for three weeks. People still say *"is that Stella"* about any unexp
 **Decay: front-loaded and permanent.** What she does happens at once and does not wear off. No reef
 she has worked goes back to what it was.
 
-She and Nadira Quill have been fighting for six years over eleven contaminated sites. They are
+She and Nadira Sayegh have been fighting for six years over eleven contaminated sites. They are
 scrupulously polite to each other, which everyone finds far worse than shouting, and they sit at
 opposite ends of the mess with the deliberateness of people who have measured it.
 
@@ -326,10 +326,12 @@ this and would deny it under oath.
 
 ### **Dolores Achterberg** — head of access engineering · *chaos* · (was Pyre)
 
-**Human** · Calyx IV
+**Fungal person** · Calyx IV
 
-Small, round, sixty-one, silver bob, reading glasses on a cord. She looks like somebody's extremely
-competent aunt and is in fact the person who opens moons.
+Small, round, sixty-one, with a compact crown of silver shelf-caps that reads at a distance like a
+neat bob, and reading glasses on a cord. She looks like somebody's extremely competent aunt and is
+in fact the person who opens moons. Fine diagnostic hyphae line her fingertips; when she presses a
+hand to a reef wall she can taste its chemistry and feel which internal seams are alive.
 
 She asks permission. Not in the abstract — she finds you, personally, wherever you are, and asks
 whether you have any objection to her opening a reef, and waits for an actual answer. This takes
@@ -343,18 +345,58 @@ did not consider this remarkable.
 there is one event and it is finished. Either nothing is happening or everything already has.
 
 She is warm, endlessly chatty, and fond of the younger crew — she noticed Imke was not eating
-properly and started making too much of everything at dinner without ever mentioning why.
+properly and started making too much of everything at dinner without ever mentioning why. Her
+daughter Spore is a young adult and a field scientist in her own right. Dolores knows this. Dolores
+also carries two spare filters, three meals and an emergency hood whenever they work together.
 
 She also talks to Beatriz Corriveau like an ordinary person, which almost nobody aboard manages, and
-it is neither kindness nor effort. They are both from Calyx IV, where oni and humans have shared a
-world long enough that nobody can remember it being otherwise, and an oni at your table is not a
-story. Dolores has simply never understood what everyone else finds difficult. She is
+it is neither kindness nor effort. They are both from Calyx IV, where oni, humans and fungal people
+have shared a world long enough that nobody can remember it being otherwise, and an oni at your
+table is not a story. Dolores has simply never understood what everyone else finds difficult. She is
 also, everybody suspects, the reason Imke's placement paperwork keeps not getting filed, and
 everybody has decided not to look into it.
 
 Her flaw is not the asking. It is that she has developed a taste for the size of the pile, and now
 waits slightly longer than the job needs, for reasons she calls technical and which are not
 technical.
+
+---
+
+### **Spore** — interior ecology and biotic access · *growth*
+
+**Fungal person** · Calyx IV
+
+A young adult in her mid-twenties, long-limbed where Dolores is round, with a wild asymmetrical crown
+of green-grey caps, lavender gills and small new fruiting bodies that appear when she has gone too
+long without sleep. Her legal first name remains on formal records; everybody aboard calls her
+Spore, including her mother when she is annoyed enough to become formal.
+
+She earned the name during her first unsupervised access survey. Dolores opened a hand-width seam
+into a reef vault and told her to wait while the pressure settled. Spore sent a filament through,
+germinated a complete living map across the interior wall, and had named six organisms before
+Dolores finished saying *wait*. The report used the nickname once. It never went away.
+
+Where Dolores makes an entrance, Spore makes a connection. She carries cultures in glass ampoules
+and lays temporary hyphal paths through damaged tissue, porous stone and contaminated soil. Those
+paths transmit nutrients, chemical warnings and whatever else is already moving through the system.
+This is extraordinarily useful and exactly as dangerous as it sounds.
+
+**Growth: spread, persistence, and consequences.** Her first application is small. Every action the
+target takes gives the culture another route, and what began on one specimen can cross to the next.
+Her work is the field expression of the prototype's Culture, Cross-contaminate and Airborne kit.
+
+She and Dolores are almost perfect together professionally. Dolores waits until one decisive breach
+will hold; Spore turns that breach into a network before the dust has settled. They are terrible at
+keeping work and family in separate conversations. A tactical disagreement can become an argument
+about an unanswered message from four years ago without either noticing the transition.
+
+Spore does not resent Dolores's preparation. She steals the spare filters. Dolores does not resent
+Spore's impatience. She has designed every opening around it.
+
+The Null frightens Spore for a reason she can state plainly: a fungal person is accustomed to the
+self extending beyond the visible body. Corruption does not merely threaten her body. It can enter
+the network and make every connection into a route for erasure. This is why she insists on being the
+one who learns how to cleanse it.
 
 ---
 
@@ -395,12 +437,12 @@ is not a threat to her. It is an obscenity.
 
 ### **Aurel Cosma** — helm officer · *energy* · (was Vane)
 
-**Angel** · Tessine IX
+**Moth-folk** · Tessine IX
 
-Sharp-featured and long-limbed, black hair tied back badly, luminous-eyed and winged — which means
-he flies on the inner decks, walks like everybody else on the outer rings, and has arranged a
-remarkable amount of his life around being seen on the inner decks. Handsome in a way he is entirely
-aware of. Forty-one, and dresses like a man with somewhere
+Moon-pale, sharp-featured and long-limbed, with black hair tied back badly, luminous eyes, feathered
+antennae and broad patterned moth wings — which means he flies on the inner decks, walks like
+everybody else on the outer rings, and has arranged a remarkable amount of his life around being
+seen on the inner decks. Handsome in a way he is entirely aware of. Forty-one, and dresses like a man with somewhere
 better to be.
 
 He reads a fight better than anyone aboard. From the first exchange he can tell you how it goes,
@@ -528,7 +570,7 @@ right moment and which is not entirely a joke.
 
 ---
 
-### **Otaremnivas** — senior specimen handler · *decay* · (was Bosk)
+### **Otaremnivas** — senior specimen handler · *decay*
 
 **Cassine** · Ranohe II
 
@@ -556,7 +598,7 @@ He is the best-tempered person on the ship.
 
 ---
 
-### **Wren Adeyemi** — structural analysis · *decay* · (was Maul)
+### **Wren Adeyemi** — structural analysis · *decay*
 
 **Rock skin** · Kessa — gone
 
@@ -600,7 +642,7 @@ it and she told him to shut up, and that was the best either of them had felt in
 
 ## Assay and survey
 
-### **Dr. Nadira Quill** — xenobotany · *void*
+### **Dr. Nadira Sayegh** — xenobotany · *void*
 
 **Canid** · Sindal II
 
@@ -716,12 +758,13 @@ and have begun optimising for the quality of the record rather than its size, an
 
 ### **Aurelio Bassi** — catalogue registrar · *order* · (was Ledger)
 
-**Angel** · born aboard a Census ship
+**Moth-folk** · born aboard a Census ship
 
-Narrow and neat, forty-eight, thinning hair combed flat, ink on the side of his right hand that
-never entirely washes off. Third generation; he has never lived anywhere that was not moving.
+Narrow, very pale and neat, forty-eight, with powder-grey antennae, folded cream-and-brown wings,
+thinning hair combed flat, and ink on the side of his right hand that never entirely washes off.
+Third generation; he has never lived anywhere that was not moving.
 
-He is an angel, and the catalogue sits on an outer ring at full gravity — twenty-six years in the
+He is moth-folk, and the catalogue sits on an outer ring at full gravity — twenty-six years in the
 one part of the ship where his wings are furniture. Asked about it, he says the archive is where the
 archive needs to be.
 
@@ -847,6 +890,126 @@ She has never worked out whether that was a compliment.
 
 ---
 
+## Survey Unit Twelve — the field-name crew
+
+Six long-range specialists who worked together before joining *ARC 017 - Star Singer*. Their
+personal names are not secret, but almost nobody aboard uses them. During the **Pale Reach
+incident**, the Null began corrupting suit registries, voiceprints and written identity tags. The
+team abandoned every identifier the instruments knew and chose six plain field names over an open
+channel: **Bosk, Coda, Morrow, Maul, Quill and Tarn**. Those names remained stable when the records
+did not. They kept them after rescue.
+
+Nobody outside the six knows who chose their own name and who named somebody else. Asking produces
+six incompatible answers.
+
+### **Bosk** — heavy recovery and salvage · *decay*
+
+**Ursine** · born aboard the recovery arc *Good Weather*
+
+A towering bear woman with a broad muzzle, rounded ears, dense umber fur and a mane of black curls
+usually tied away from her eyes. Her patched recovery shell makes her larger still. She smiles
+easily, stands square to whoever is speaking, and looks most comfortable when carrying something
+that ought to require a machine.
+
+Bosk retrieves what a survey leaves behind: damaged equipment, stranded crew and contaminated
+specimens too dangerous to abandon. She treats salvage as a form of respect. A broken thing still
+contains the labour that made it, and leaving it to disappear is too close to helping the Null.
+
+**Decay: weight applied patiently to the weakest point.** She does not strike often. When she does,
+the damage stays done.
+
+---
+
+### **Coda** — song-lane signal analyst · *energy*
+
+**Moth-folk** · born aboard the university relay *Lamp at Periapsis*
+
+Very pale even for moth-folk, with soft ash-blond hair, long feathered antennae and broad wings
+patterned charcoal, cream and muted gold. He folds them close beneath a short survey mantle when he
+works. His face is open and animated; when listening closely, every visible part of him turns toward
+the sound.
+
+Coda studies what remains after a song ends: whale-lane echoes, delayed harmonics and the final
+answer of a route going quiet. He can recover direction from fragments Navigator considers beneath
+interpretation, although he cannot hold a full lane in his head as she can.
+
+**Energy: the answering note.** His strongest action is never the first one; he hears what another
+person begins and completes it.
+
+---
+
+### **Morrow** — succession ecologist · *growth*
+
+**Cervine** · Ilex Moraine
+
+A deer woman with warm russet-brown skin and fine fur along her ears, shoulders and forearms. Her
+branching antlers are asymmetrical after an old field break and support tags, sample cord and the
+occasional living cutting. She wears her dark hair in a long practical braid and habitually looks
+past the person speaking toward whatever is growing behind them.
+
+Morrow studies the ecology that follows disturbance: the first film after fire, the nursery species
+inside a cleansed wound, and whether a place can become itself again after Null contact. She refuses
+the language of restoration. Nothing returns unchanged, she says; survival is what grows next.
+
+**Growth: a second beginning.** Her work is unimpressive at first and transformative if protected
+long enough to establish itself.
+
+---
+
+### **Maul** — breach and containment veteran · *decay*
+
+**Human** · Earth-descended, born on Kessa Station
+
+An older Black man, bald, broad through the chest and shoulders, with a close grey beard and one
+scar crossing his left brow. His containment armour is heavy, blunt and meticulously maintained.
+He rarely looks directly at a camera and almost never smiles for one; in person he is dry, patient
+and much gentler than his field name suggests.
+
+Maul opens paths through structures that cannot be safely negotiated, then holds the opening while
+everyone else leaves. He chose retirement twice. Survey Unit Twelve ignored him twice, correctly.
+
+**Decay: one committed blow into an existing fracture.** He wastes nothing on an intact defence and
+becomes frightening the moment someone else makes a crack.
+
+---
+
+### **Quill** — remote instruments and specimen marking · *void*
+
+**Human** · Iseul orbital diaspora
+
+An East Asian woman with straight black hair in a high, untidy ponytail and an expressive face that
+betrays every thought a moment before she voices it. A violet multi-spectrum lens sits over her left
+eye, connected to a fine instrument rig at her collar. Her field coat is narrow, layered and covered
+in handwritten calibration marks.
+
+Quill tags a specimen before anyone approaches it and maintains a moving model of everything the
+team still does not understand. She dislikes certainty performed for an audience and has ended more
+than one senior briefing by asking what, precisely, the speaker measured.
+
+**Void: make the hidden boundary visible.** Her marks do little alone and turn everybody else's
+work into a precise strike.
+
+---
+
+### **Tarn** — expedition shield and route anchor · *order*
+
+**Human** · Tannhul VI diaspora
+
+A dark-skinned woman with a powerful build, close-cut white hair and a face made for visible
+disagreement. Her blue-white field plate is built from overlapping rescue panels rather than
+military armour. She stands front-facing and level, not posed, as if the portrait photographer is
+another environmental hazard she has agreed to tolerate.
+
+Tarn is the fixed point in a moving survey. Every member of Unit Twelve can find her beacon without
+looking at a map, and every retreat route begins with where she is standing. She does not command
+the team. She simply says where she will be, and five people build their decisions around the fact
+that she will still be there.
+
+**Order: an invariant position.** Her protection is neither dramatic nor flexible. It arrives at
+the promised place and holds for the promised time.
+
+---
+
 ## The web
 
 | | |
@@ -875,6 +1038,12 @@ She has never worked out whether that was a compliment.
 | **Ilka → Sevim** | A cue-reading system performing at chance. Sevim varies the cues on purpose |
 | **Beatriz → Sevim** | Always knows, never says. Sevim finds her restful for exactly that reason |
 | **Aurelio → Sevim** | Added a field for it to the catalogue. The field is always wrong. It haunts him |
+| **Survey Unit Twelve** | Six field names from the Pale Reach incident. Their official debrief still contains six incompatible accounts of who named whom |
+| **Tarn → the unit** | Names a position and makes it true. The other five navigate around her without discussing it |
+| **Coda ↔ Navigator** | He reconstructs the echoes she discards. She has begun leaving some of them for him on purpose |
+| **Morrow ↔ Spore** | Argue warmly and endlessly over whether a cleansed ecology is new growth or a continuation of the old one |
+| **Bosk ↔ Maul** | Have each attempted to carry the other out of danger. Neither attempt succeeded and both accounts grow less plausible every year |
+| **Quill → Stella** | Has asked what Stella measured in three public briefings. Stella now arrives with the raw instrument logs already open |
 
 ---
 
@@ -883,7 +1052,7 @@ She has never worked out whether that was a compliment.
 | Old roster | Now | Called |
 |---|---|---|
 | Wex | **Ilka Voressen** | — |
-| Tarn | **Reva Sokolovna** | — |
+| Tarn | **Tarn** | field name retained by the original character |
 | Ferrule | **Tomás Iriarte** | — |
 | Ballast | **Ojo Mbeki** | Ballast |
 | Ash | **Dr. Stella Anuye** | — |
@@ -894,9 +1063,9 @@ She has never worked out whether that was a compliment.
 | Nettle | **Imke Rask** | Nettle |
 | Mote | **Idris Okonjo** | Mote |
 | Corr | **Beatriz Corriveau** | — |
-| Bosk | **Otaremnivas** | Otto |
-| Maul | **Wren Adeyemi** | Maul |
-| Quill | **Dr. Nadira Quill** | — |
+| Bosk | **Bosk** | field name retained by the original character |
+| Maul | **Maul** | field name retained by the original character |
+| Quill | **Quill** | field name retained by the original character |
 | Vitre | **Yusuf Benhaddou** | — |
 | Rime | **Sevim Aydar** | Patience |
 | Ledger | **Aurelio Bassi** | — |
@@ -906,15 +1075,18 @@ She has never worked out whether that was a compliment.
 
 ## Species mix
 
-**Two humans, thirteen semi-humans, six demi-humans.**
+**Twenty-eight people across sixteen currently named lineages.** The setting no longer divides them
+into semi-human and demi-human tiers; portrait designs use a shared humanoid readability while each
+lineage keeps distinct biology, silhouette and sensory traits.
 
 | | |
 |---|---|
-| **Human** | Tomás Iriarte, Dolores Achterberg |
+| **Human** | Tomás Iriarte, Maul, Quill, Tarn |
+| **Fungal people** | Dolores Achterberg, Spore |
 | **Oni** | Stella Anuye (mana-deaf, which for an oni is close to unheard of), Beatriz Corriveau |
 | **Rock skin** | Ojo Mbeki, Wren Adeyemi |
 | **Mana dweller** | Nour Bediako, Ekene Baptiste — both on the heartwood, which is costing them |
-| **Angel** | Aurel Cosma, Aurelio Bassi |
+| **Moth-folk** | Aurel Cosma, Aurelio Bassi, Coda |
 | **Amphibioid** | Abike Sunmonu |
 | **Cassine** | Otaremnivas |
 | **Beluni** | Sevim Aydar |
@@ -922,7 +1094,9 @@ She has never worked out whether that was a compliment.
 | **Ossuan** | Navigator |
 | **Feline** | Ilka Voressen, Idris Okonjo |
 | **Bird folk** | Reva Sokolovna, Yusuf Benhaddou |
-| **Canid** | Imke Rask, Nadira Quill |
+| **Canid** | Imke Rask, Nadira Sayegh |
+| **Ursine** | Bosk |
+| **Cervine** | Morrow |
 
 Each assignment explains something the character already did rather than being pinned on. Ilka taps
 the hull and listens — that is feline hearing, and it is how a mana-deaf woman became the best
@@ -934,7 +1108,7 @@ one deck where his wings are furniture.
 
 ## Not yet written
 
-Four characters discussed and not drafted. None has a mechanical slot yet.
+Roonie, the singer (Veska Reed), and the perpetual student (Daven Pell) now have draft lore, portraits and dedicated kits in [Aether Weavers](aether-weavers.md), alongside Hanae, Arunima and Ivara. The prodigy remains open. Earlier concept notes:
 
 - **Roonie Baelk**, 16, amphibioid — builds robots in his own time, crawls ducts to fix
   over-excited transmana manifolds

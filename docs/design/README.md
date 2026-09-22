@@ -17,6 +17,10 @@ document in this folder contradicts it, this one wins.
 | File | What it covers |
 |---|---|
 | `glossary.md` | The working vocabulary: roles, character properties, enemy archetypes, combat constants |
+| `enemy-catalogue.md` | Enemy factions, Null progression, hero specimens, and the procedural frontier grammar |
+| `crew.md` | The current 28-character lore cast, relationships, field names and species mix |
+| `art-direction.md` | Shared painterly anime/JRPG portrait language and species-specific constraints |
+| `visual-identity.md` | Working logo system based on *Star Singer*'s aft ring and hull silhouette |
 | `measurements.md` | **Generated.** Every number from the simulation — role lift, strongest teams, the mandatory-character test, constant sensitivity, worlds, verb census |
 | `decisions.md` | The naming proposal, three bugs found checking it, and the open questions |
 | `character-construction.md` | How a character is built — the uniqueness rule, self-sufficiency versus amplification, and where the roster falls short |
@@ -76,3 +80,7 @@ is unpredictable. **The element says how a character acts.**
 Distinguish the two things when reading `design-notes.md`: the fifteen-reaction wheel is a
 mechanic that was cut, and reasonable to cut. The six primitives, their oppositions, and the
 adverb table are the setting, and are not up for redesign.
+
+## Playable Aether Weavers
+
+[The first six: lore, portraits and kits](aether-weavers.md). Open `prototypes/aether-weavers.html` for the cast page and isolated test voyage.

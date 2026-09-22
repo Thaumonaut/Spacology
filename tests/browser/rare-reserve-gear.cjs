@@ -1,6 +1,6 @@
 const { chromium } = require('playwright');
 (async()=>{
- const browser=await chromium.launch({headless:false}); const page=await browser.newPage();
+ const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED !== '1'}); const page=await browser.newPage();
  await page.goto((process.env.SPACOLOGY_BASE_URL || 'http://127.0.0.1:4173') + '/prototypes/spacology-v0.1.0.html');
  await page.evaluate(()=>{
   const state={schema:3,round:1,maxRounds:6,gold:42,integrity:100,level:1,capacity:4,shipSlots:1,field:['Ash',null,null,null,null,null,null,null],support:Array(8).fill(null),reserve:['Tarn'],gear:[],shipInventory:[],shipEquipped:[],equipped:{Tarn:['Bore Bit']},scrap:0,crystals:0,rarePity:0,selected:null,drag:null,openedThisRound:false,battlesWon:0,observations:0,packRefreshes:0,packOffers:['rot','tempo','bulwark']};
