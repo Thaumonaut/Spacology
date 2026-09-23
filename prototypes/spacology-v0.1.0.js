@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const Rules=SpacologyExpedition, Crew=SpacologyCrew, Field=SpacologyField;
+const Rules=SpacologyExpedition, Crew=SpacologyCrew, Field=SpacologyField, Voyage=SpacologyVoyage;
 
 let newVoyageSettings={};
 try{newVoyageSettings=JSON.parse(localStorage.getItem('spacologyPlaytestConfigV010'))}catch(_){}
@@ -10,8 +10,8 @@ function shuffled(values){const copy=[...values];for(let i=copy.length-1;i>0;i--
 const starterFront=shuffled(['Tarn','Stella','Bosk','Morrow'])[0];
 const starterRoster=[starterFront,...shuffled(starterCrew.filter(name=>name!==starterFront)).slice(0,2)];
 const runState={
-  schema:4,round:1,maxRounds:6,gold:42,integrity:newVoyageSettings.initialIntegrity,level:1,fieldXP:0,capacity:4,shipSlots:1,
-  difficulty:newVoyageSettings.difficulty,initialIntegrity:newVoyageSettings.initialIntegrity,lastStand:true,downRecovery:null,
+  schema:4,voyageVersion:1,voyageStarted:false,nodeHistory:[],round:1,maxRounds:21,gold:42,integrity:newVoyageSettings.initialIntegrity,level:1,fieldXP:0,capacity:4,shipSlots:1,
+  difficulty:newVoyageSettings.difficulty,initialIntegrity:newVoyageSettings.initialIntegrity,lastStand:SpacologyPreferences.load().recovery==='lastStand',downRecovery:SpacologyPreferences.load().recovery,
   field:Array(5).fill(null),support:Array(7).fill(null),reserve:starterRoster,gear:[],shipInventory:[],shipEquipped:[],
   inbox:[],inboxSeen:0,attunements:{},duplicatePolicy:'ask',modifiers:[],modifierChoices:[],modifierRemovalUsed:false,
   goal:'survey',goalProgress:0,goalClaimed:false,goalLocked:false,recruitedRound:0,crewUpgrades:{},pack:null,
@@ -31,11 +31,11 @@ if(SpacologyStore.silen){
   document.querySelector('.title-copy .eyebrow').textContent='SILEN · CASCADE TEST VOYAGE';
   document.querySelector('.title-copy p').textContent='Silen leads the damage chain with Roonie supporting. Ivara, Hanae, Veska and Daven complete the six. Arunima is in reserve to compare spenders. This voyage has its own save.';
 }
-try{const saved=JSON.parse(localStorage.getItem(SpacologyStore.run));if(saved?.schema===runState.schema)Object.assign(runState,saved,SpacologyVoyageSettings.normalize(saved),{selected:null,drag:null})}catch(_){}
+try{const saved=JSON.parse(localStorage.getItem(SpacologyStore.run));if(saved?.schema===runState.schema)Object.assign(runState,saved,SpacologyVoyageSettings.normalize(saved),{voyageVersion:saved.voyageVersion||0,selected:null,drag:null})}catch(_){}
 SpacologyTreasure.normalize(runState);
 Field.normalize(runState);
 const formationChanges=SpacologyFormation.normalize(runState);
-const voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];
+let voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];
 document.querySelector('.run-meta > span').textContent=`${voyageDifficulty.label} · ${Math.round(voyageDifficulty.enemyScale*100)}% enemy health / damage · ${Math.round(voyageDifficulty.enemySpeed*100)}% speed`;
 const difficultyButton=document.querySelector('[data-info="modifiers"]');
 difficultyButton.textContent=voyageDifficulty.label;
@@ -421,8 +421,8 @@ function renderShip(){
 function renderOps(){
   $('gold').textContent=runState.gold;
   document.querySelector('.stat.integrity b').textContent=`${runState.integrity}%`;
-  document.querySelector('.room span').textContent=`VOYAGE ${String(runState.round).padStart(2,'0')} · PHOMOUS`;
-  document.querySelector('.run-meta b').textContent=`ROUND ${runState.round} · CONTAINMENT`;
+  document.querySelector('.room span').textContent=Voyage.active(runState)?`VOYAGE · SECTOR ${Math.min(3,Math.ceil(runState.round/7))}`:`VOYAGE ${String(runState.round).padStart(2,'0')} · PHOMOUS`;
+  document.querySelector('.run-meta b').textContent=Voyage.active(runState)?`NODE ${Math.min(21,runState.round)} / 21`:`ROUND ${runState.round} · LEGACY VOYAGE`;
   renderFormation();renderShip();renderInventory(inventoryTab);renderExpedition();if(activePack)renderPack();
   runState.pack=activePack?{key:activePack,cards:activeCards,resolved:resolved}:null;
   localStorage.setItem(SpacologyStore.run,JSON.stringify(runState));
@@ -776,6 +776,10 @@ function finishBattle(won,message){
   $('resultTitle').textContent=message;$('resultCopy').textContent=won?'The crew recovered the encounter and returned its field record.':'The ship recovered what data it could before extraction.';$('resultIntegrity').textContent=`${integrityDelta>=0?'+':''}${integrityDelta}%`;$('resultGold').textContent=`+${gold}g · +${fieldProgress.xp} XP`;$('resultObservation').textContent=observation?'COMPLETE':'PARTIAL';$('battleResult').classList.add('open');
 }
 function enterBattle(){
+  if(Voyage.active(runState)){
+    if(!runState.voyageStarted){showDeparture();return}
+    if(Voyage.current(runState)?.kind!=='battle'){showCurrentNode();return}
+  }
   if(runState.end==='retreated'){showVoyageEnd();return}
   if(Crew.slots(runState)>6){toastMessage('Resolve reserve overflow before launch');return}
   if(!runState.field.some(Boolean)){toastMessage('Place at least one character on field');return}
@@ -794,15 +798,16 @@ $('callHold').onclick=()=>{battle.hold=true;$('callHold').disabled=true;logBattl
 $('leaveBattle').onclick=()=>{if(!battle.over)finishBattle(false,'Fieldwork abandoned')};
 $('resultContinue').onclick=()=>{
   battleView.classList.remove('open');runState.round++;
-  if(runState.round>runState.maxRounds){const grade=runState.integrity>=85?'A':runState.integrity>=70?'B':'C';$('voyageGrade').textContent=grade;$('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${runState.maxRounds} encounters recovered · ${runState.observations} observations completed.`;$('voyageEnd').classList.add('open');return}
+  if(runState.round>runState.maxRounds){const grade=runState.integrity>=85?'A':runState.integrity>=70?'B':'C';$('voyageGrade').textContent=grade;$('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${Voyage.active(runState)?14:runState.maxRounds} battles recovered · ${runState.observations} observations completed.`;$('voyageEnd').classList.add('open');return}
   runState.openedThisRound=false;runState.packRefreshes=0;runState.packOffers=rollPackOffers(runState.packOffers);renderPackOffers();renderOps();toastMessage(`Round ${runState.round} ready. Enemy pressure will increase.`)
 };
-$('newVoyage').onclick=()=>{if(runState.treasureCaches.some(c=>!c.opened)){showInbox();toastMessage('Open your recovered caches before starting a new voyage.');return;}localStorage.removeItem(SpacologyStore.run);localStorage.removeItem(SpacologyStore.result);location.reload()};
+$('newVoyage').onclick=()=>requestNewVoyage();
 
 function applyBattleResult(){
   if(runState.end==='retreated'){localStorage.removeItem(SpacologyStore.result);return}
   let result=null;try{result=JSON.parse(localStorage.getItem(SpacologyStore.result))}catch(_){}
   if(!result||result.round!==runState.round)return;
+  if(Voyage.active(runState)&&(result.nodeId!==Voyage.current(runState)?.id||Voyage.current(runState)?.kind!=='battle')){localStorage.removeItem(SpacologyStore.result);return;}
   const before=runState.integrity;
   const fieldProgress=awardFieldXP(Field.battleXP(runState,result.won));
   if(result.treasure)SpacologyTreasure.collect(runState,result.treasure);
@@ -814,24 +819,22 @@ function applyBattleResult(){
   runState.goalProgress+=Rules.goalGain(runState,result);
   const goalReward=!runState.goalClaimed&&runState.goalProgress>=Rules.goal(runState).target;
   if(goalReward){runState.goalClaimed=true;runState.gold+=8;runState.crystals++}
-  const characterReward=result.won&&[1,2,4].includes(result.round)?{name:randomCard(Object.keys(Rules.crew)),rank:Crew.rollRewardRank(),status:'pending'}:null;
+  const characterReward=result.won&&(Voyage.active(runState)?Voyage.current(runState)?.format==='survey':[1,2,4].includes(result.round))?{name:randomCard(Object.keys(Rules.crew)),rank:Crew.rollRewardRank(),status:'pending'}:null;
   runState.inbox.push({characterReward,treasure:result.treasure||null,treasureStatus:result.treasureStatus||null,round:result.round,won:result.won,gold:result.gold,revives:result.revives||0,recoveryAV:result.recoveryAV||0,fieldXP:fieldProgress.xp,fieldUnlocks:fieldProgress.levels,integrity:runState.integrity-before,crystals:result.crystals||0,item:result.item?.name||null,duplicate,goalReward,actions:result.actions,breaks:result.breaks,chains:result.chains,ultimates:result.ultimates,reason:result.reason,timeLimit:result.timeLimit,elapsedAV:result.elapsedAV,enemyAttacks:result.enemyAttacks,enemyRecoveries:result.enemyRecoveries,recovery:result.recovery,analysis:result.analysis});
-  runState.round++;runState.goalLocked=true;
+  if(Voyage.active(runState)){Voyage.advance(runState,result.nodeId);runState.battlesCompleted=(runState.battlesCompleted||0)+1;}else runState.round++;runState.goalLocked=true;
   runState.packRefreshes=0;runState.packOffers=rollPackOffers(runState.packOffers);
   // Commit the advanced round with its rewards before consuming the separate result.
   localStorage.setItem(SpacologyStore.run,JSON.stringify(runState));
-  localStorage.removeItem(SpacologyStore.result);
+  localStorage.removeItem(SpacologyStore.result);SpacologyPreferences.clearCheckpoint();
   if(runState.round>runState.maxRounds)showVoyageEnd();
   else setTimeout(()=>toastMessage(`Encounter ${runState.round} ready${fieldProgress.xp?` · +${fieldProgress.xp} field XP`:""}${fieldProgress.levels.length?" · Unlocked "+fieldProgress.levels.join(" · "):""} · rewards in inbox`),80);
 }
-$('retreatRun').onclick=()=>{
-  if(runState.end==='retreated'||runState.round>runState.maxRounds){showVoyageEnd();return}
-  if(!confirm('Retreat from this voyage? This ends the run. Completed encounter records stay in your inbox. Any unclaimed pack cards are lost. You can then begin a new voyage.'))return;
-  runState.end='retreated';
-  localStorage.removeItem(SpacologyStore.result);
-  closePack();
-  showVoyageEnd();
-};
+function retreatVoyage(){
+  if(runState.end||runState.round>runState.maxRounds){showVoyageEnd();return}
+  runState.end='retreated';localStorage.removeItem(SpacologyStore.result);SpacologyPreferences.clearCheckpoint();closePack();renderOps();showVoyageEnd();
+}
+$('retreatRun').onclick=()=>SpacologyMenu.confirm({title:'End this voyage?',copy:'Your crew will retreat. Completed rewards stay in the inbox. This voyage cannot continue and unclaimed pack cards are lost.',actionLabel:'END VOYAGE',onCancel:()=>SpacologyMenu.close(),onConfirm:()=>{SpacologyMenu.close();retreatVoyage();}});
+
 function showVoyageEnd(){
   const retreated=runState.end==='retreated';
   document.querySelector('#voyageEnd .eyebrow').textContent=retreated?'VOYAGE ENDED · RETREATED':'VOYAGE COMPLETE · ARCHIVE ACCEPTED';
@@ -839,7 +842,7 @@ function showVoyageEnd(){
   $('voyageGrade').hidden=retreated;
   const grade=runState.integrity>=85?'A':runState.integrity>=70?'B':'C';
   $('voyageGrade').textContent=grade;
-  $('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${runState.maxRounds} encounters recovered · ${Rules.goal(runState).name}: ${runState.goalProgress}/${Rules.goal(runState).target}. Rewards are saved in your inbox.`;
+  $('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${Voyage.active(runState)?14:runState.maxRounds} battles recovered · ${Rules.goal(runState).name}: ${runState.goalProgress}/${Rules.goal(runState).target}. Rewards are saved in your inbox.`;
   $('voyageEnd').classList.add('open');
   if(!$('finalInbox')){$('newVoyage').insertAdjacentHTML('beforebegin','<button class="continue" id="finalInbox" data-open-inbox>VIEW RECOVERY INBOX</button>')}
 }
@@ -854,14 +857,52 @@ function renderExpedition(){
   document.querySelector('.destination').innerHTML=`<b>${Rules.route[Math.min(5,runState.round-1)]}</b><span>${goal.battle}</span><small>${modifierWindow()&&!runState.modifierChoices.includes(modifierWindow())?'Modifier choice available in Settings':modifierNames.length?modifierNames.join(' · '):'No active modifiers'}</small>`;
   $('continueButton').textContent=`LAUNCH · ${SpacologyVoyageSettings.roundLimit(runState)} ROUNDS`;
   $('continueButton').setAttribute('aria-label',`Launch battle with a ${SpacologyVoyageSettings.roundLimit(runState)}-round deadline`);
+  if(Voyage.active(runState))renderVoyageRoute();
   const goalButton=document.querySelector('[data-info="calls"]');goalButton.textContent=`GOAL · ${Math.min(goal.target,runState.goalProgress)} / ${goal.target}`;goalButton.onclick=showGoals;
-  document.querySelector('[data-info="next-settings"]').onclick=showVoyageSettings;
+  document.querySelector('[data-info="next-settings"]').onclick=()=>SpacologyMenu.settings('ops');
   let inboxButton=document.querySelector('.run-icons [data-open-inbox]');
   if(!inboxButton){const old=document.querySelector('.round-icon[aria-label="Pause"]');old.setAttribute('data-open-inbox','');old.removeAttribute('aria-label');inboxButton=old}
   const unopened=runState.treasureCaches.filter(c=>!c.opened).length;
   inboxButton.textContent=`INBOX${unopened?' · '+unopened:''}`;inboxButton.style.width='auto';inboxButton.setAttribute('aria-label','Open recovery inbox');
   document.querySelector('.run-meta > span').textContent=`${voyageDifficulty.label} · ${modifierNames.length} modifiers`;
 }
+
+function showDeparture(){SpacologyMenu.departure(difficulty=>beginVoyage(difficulty),()=>{if(!runState.voyageStarted)showMainMenu();});}
+
+function rewardCopy(r){return [r.gold?'+'+r.gold+' gold':'',r.scrap?'+'+r.scrap+' scrap':'',r.crystals?'+'+r.crystals+' Bloom crystals':'',r.fieldXP?'+'+r.fieldXP+' field XP':'',r.integrity?'+'+r.integrity+' integrity':'',...(r.gear||[])].filter(Boolean).join(' · ')}
+function showCurrentNode(){
+  if(runState.end||runState.round>runState.maxRounds){showVoyageEnd();return}
+  if(!runState.voyageStarted){showDeparture();return}
+  if(activePack){toastMessage('Resolve the open pack before visiting this node');return}
+  const n=Voyage.current(runState);if(!n)return;
+  if(n.kind==='battle'){enterBattle();return}
+  if(n.kind==='modifier'){showModifierNode();return}
+  showModal(`<div class="eyebrow">SECTOR ${n.sector} · NODE ${n.index} / 21</div><h2>${n.name}</h2><p>${n.description} Choose one; it is credited immediately.</p><div class="system-options">${Voyage.rewards(runState).map((r,i)=>`<article class="modal-card"><h3>${r.label}</h3><p>${rewardCopy(r)}</p><button data-node-reward="${i}" data-node-id="${n.id}">CLAIM & CONTINUE</button></article>`).join('')}</div>`);
+}
+function showModifierNode(){
+  const n=Voyage.current(runState),current=Rules.activeModifiers(runState);
+  showModal(`<div class="eyebrow">SECTOR ${n.sector} · NODE ${n.index} / 21</div><h2>Choose a voyage modifier</h2><p>Optional trade-offs last for the remaining voyage and stack with ${voyageDifficulty.label} difficulty. Each category can appear once.</p><div class="system-options">${Object.entries(Rules.modifiers).map(([id,m])=>`<article class="modal-card"><h3>${m.name}</h3><p>${m.description}</p><button data-modifier="${id}" data-node-id="${n.id}" ${current.some(key=>Rules.modifiers[key].category===m.category)?'disabled':''}>${current.includes(id)?'ACTIVE':'CHOOSE & CONTINUE'}</button></article>`).join('')}</div><button data-skip-modifier data-node-id="${n.id}">PASS · KEEP CURRENT MODIFIERS</button>`);
+}
+function resolveVoyageModifier(id,nodeId){
+  if(activePack){toastMessage('Resolve the open pack first');return}
+  if(Voyage.chooseModifier(runState,nodeId,id)){finishNode();toastMessage(id==='skip'?'Modifier selection passed':Rules.modifiers[id].name+' active for the voyage');}
+}
+function finishNode(){runState.packOffers=rollPackOffers(runState.packOffers);renderPackOffers();renderOps();overlay.classList.remove('open');}
+function nodeLabel(n){return n.kind==='reward'?'REWARD':n.format==='modifier'?'MODIFIER':n.format.toUpperCase()}
+function renderVoyageRoute(){
+  const nodes=Voyage.route(runState),current=Voyage.current(runState),sector=current?.sector||3;
+  document.querySelector('.round-map').innerHTML=`<span class="sector-progress">SECTOR ${sector} / 3</span>`+nodes.filter(n=>n.sector===sector).map(n=>`<button class="node ${n.index<runState.round?'complete':n.index===runState.round?'current':''}" data-route="${n.index-1}" aria-label="Node ${n.index}: ${n.name}"><i>${n.index<runState.round?'✓':n.index}</i><b>${nodeLabel(n)}</b></button>`).join('');
+  document.querySelector('.round-map').classList.add('voyage-map');
+  const ready=runState.voyageStarted;
+  document.querySelector('.departure > .eyebrow').textContent=current?'NEXT NODE · '+nodeLabel(current):'VOYAGE COMPLETE';
+  document.querySelector('.destination').innerHTML=`<b>${current?current.name:'Voyage complete'}</b><span>${current?current.description:'All three sectors explored.'}</span><small>${ready?'Sector '+sector+' · '+(Rules.activeModifiers(runState).map(id=>Rules.modifiers[id].name).join(' · ')||'No optional modifiers'):'Choose starting difficulty to depart'}</small>`;
+  $('continueButton').textContent=!ready?'CHOOSE DIFFICULTY':!current?'VIEW VOYAGE':current.kind==='battle'?`LAUNCH · ${SpacologyVoyageSettings.roundLimit(runState)} ROUNDS`:current.kind==='modifier'?'CHOOSE MODIFIER':'CHOOSE REWARD';
+  $('continueButton').setAttribute('aria-label',$('continueButton').textContent);
+}
+function showNodeDetail(i){const n=Voyage.route(runState)[i];if(!n)return;showModal(`<div class="eyebrow">SECTOR ${n.sector} · NODE ${n.index} / 21</div><h2>${n.name}</h2><p>${n.description}</p><p>${n.index<runState.round?'Completed.':n.index===runState.round?'Current stop. Use the main continue button when ready.':'Upcoming stop.'}</p>${n.format==='boss'?'<p>Recovery: 80% from damage dealt to the boss, plus 20% for defeating it. Partial extraction still advances the route.</p>':''}`)}
+function showVoyageMap(){showModal(`<h2>Voyage route</h2><p>Three sectors of seven nodes. The first reward helps set up your crew; later sectors begin with a battle. Strength increases after each boss.</p>${[1,2,3].map(sector=>`<h3>Sector ${sector}</h3><div class="voyage-route-list">${Voyage.route(runState).filter(n=>n.sector===sector).map(n=>`<button data-route="${n.index-1}">${n.index}. ${n.name} · ${n.index<runState.round?'complete':n.index===runState.round?'current':'ahead'}</button>`).join('')}</div>`).join('')}`)}
+
+
 function treasureTrayHTML(){
   const caches=runState.treasureCaches.filter(c=>!c.opened),info=SpacologyTreasure.encounter(runState);
   const available=info&&!runState.treasureClaims.includes(info.id);
@@ -874,7 +915,7 @@ function treasureInboxHTML(){
 function previewTreasureCache(id){
   const cache=runState.treasureCaches.find(c=>c.id===id);if(!cache)return;
   const odds=SpacologyTreasure.pools[cache.tier];
-  showModal(`<div class="eyebrow">TREASURE RECOVERY · ENCOUNTER ${cache.round}</div>${SpacologyTreasure.icon(cache.tier)}<h2>Tier ${cache.tier} Treasure cache</h2>${cache.opened?`<p>Already collected: ${SpacologyTreasure.describe(cache.contents)}</p>`:`<p>Guaranteed ${4+cache.tier*2+cache.round} gold, plus one featured reward.</p><p>${odds.currency}% currency bundle · ${odds.basic}% basic equipment · ${odds.advanced}% advanced equipment.</p><p>Currency bundles draw gold (60%), scrap (30%) or Bloom crystals (10%). Equipment copies are kept, including duplicates.</p><button data-open-cache="${cache.id}">OPEN CACHE</button>`}<button data-open-inbox>ALL RECOVERIES</button>`);
+  showModal(`<div class="eyebrow">TREASURE RECOVERY · ENCOUNTER ${cache.round}</div>${SpacologyTreasure.icon(cache.tier)}<h2>Tier ${cache.tier} Treasure cache</h2>${cache.opened?`<p>Already collected: ${SpacologyTreasure.describe(cache.contents)}</p>`:`<p>Guaranteed ${cache.baseGold||4+cache.tier*2+cache.round} gold, plus one featured reward.</p><p>${odds.currency}% currency bundle · ${odds.basic}% basic equipment · ${odds.advanced}% advanced equipment.</p><p>Currency bundles draw gold (60%), scrap (30%) or Bloom crystals (10%). Equipment copies are kept, including duplicates.</p><button data-open-cache="${cache.id}">OPEN CACHE</button>`}<button data-open-inbox>ALL RECOVERIES</button>`);
 }
 function openTreasureCaches(id){
   const selected=runState.treasureCaches.filter(c=>!c.opened&&(!id||c.id===id)),rewards=[];
@@ -894,15 +935,20 @@ function claimCharacterReward(round,sell=false){
 }
 function showInbox(){
   runState.inboxSeen=runState.inbox.length;renderOps();
-  showModal(`<div class="eyebrow">RECOVERY INBOX</div><h2>What came home</h2><h3>Character rewards</h3><p>Winning survey encounters 1, 2 and 4 awards a character · 15% chance of ★★. Unclaimed characters wait here when reserves are full.</p><div class="recruit-grid">${runState.inbox.map(characterRewardHTML).join('')||'<p>No character rewards yet.</p>'}</div>${treasureInboxHTML()}<h3>Battle history · already credited</h3><p class="lede">Reading a receipt does not collect rewards again.</p>${runState.inbox.slice().reverse().map(entry=>`<article class="receipt-entry"><h3>Encounter ${entry.round} · ${entry.won?'Recovered':entry.reason==='timeout'?'Time expired':'Partial recovery'}</h3><p>+${entry.gold} gold · ${entry.integrity>=0?'+':''}${entry.integrity}% integrity${entry.crystals?' · +'+entry.crystals+' crystals':''}${entry.fieldXP?' · +'+entry.fieldXP+' field XP':''}</p>${entry.treasure?`<p>Treasure: +${entry.treasure.gold} gold · ${entry.treasure.item} · Tier ${entry.treasure.cache.tier} cache.</p>`:entry.treasureStatus==='escaped'?'<p>Treasure carrier escaped.</p>':''}${entry.revives?`<p>${entry.revives} crew recoveries · ${entry.recoveryAV} AV lost.</p>`:''}${entry.fieldUnlocks?.length?`<p>Field level up: ${entry.fieldUnlocks.join(' · ')}.</p>`:''}${entry.item?`<p>${entry.item}${entry.duplicate?' → 4 scrap (already owned)':''}</p>`:''}${entry.goalReward?'<p>Voyage goal completed: +8 gold and +1 crystal.</p>':''}<small>${entry.actions||0} actions · ${entry.breaks||0} breaks · ${entry.chains||0} chains · ${entry.ultimates||0} ultimates${entry.recovery?` · ${entry.recovery.earned}/${entry.recovery.total} recovery pts (${Math.floor(entry.recovery.percent)}%)`:''}${Number.isFinite(entry.elapsedAV)?` · ${(entry.elapsedAV/100).toFixed(2)} / ${entry.timeLimit} rounds`:''}</small>${entry.analysis?`<p>${entry.analysis.crewTurns} crew turns · ${entry.analysis.advances} advances · ${entry.analysis.savedAV} AV of crew waiting saved.</p><p>${entry.analysis.notes.join(' ')}</p>`:''}</article>`).join('')||'<p>No recovery yet. Finish an encounter to record its rewards here.</p>'}`);
+  showModal(`<div class="eyebrow">RECOVERY INBOX</div><h2>What came home</h2><h3>Character rewards</h3><p>Winning survey battles awards a character · 15% chance of ★★. Unclaimed characters wait here when reserves are full.</p><div class="recruit-grid">${runState.inbox.map(characterRewardHTML).join('')||'<p>No character rewards yet.</p>'}</div>${treasureInboxHTML()}${Voyage.active(runState)?`<h3>Voyage stops · already credited</h3>${(runState.nodeHistory||[]).map(e=>`<p>Node ${e.round} · ${e.name}: ${e.reward?rewardCopy(e.reward):e.modifier==='skip'?'Passed':Rules.modifiers[e.modifier]?.name||'Completed'}</p>`).join('')||'<p>No supply or modifier stops completed yet.</p>'}`:''}<h3>Battle history · already credited</h3><p class="lede">Reading a receipt does not collect rewards again.</p>${runState.inbox.slice().reverse().map(entry=>`<article class="receipt-entry"><h3>Encounter ${entry.round} · ${entry.won?'Recovered':entry.reason==='timeout'?'Time expired':'Partial recovery'}</h3><p>+${entry.gold} gold · ${entry.integrity>=0?'+':''}${entry.integrity}% integrity${entry.crystals?' · +'+entry.crystals+' crystals':''}${entry.fieldXP?' · +'+entry.fieldXP+' field XP':''}</p>${entry.treasure?`<p>Treasure: +${entry.treasure.gold} gold · ${entry.treasure.item} · Tier ${entry.treasure.cache.tier} cache.</p>`:entry.treasureStatus==='escaped'?'<p>Treasure carrier escaped.</p>':''}${entry.revives?`<p>${entry.revives} crew recoveries · ${entry.recoveryAV} AV lost.</p>`:''}${entry.fieldUnlocks?.length?`<p>Field level up: ${entry.fieldUnlocks.join(' · ')}.</p>`:''}${entry.item?`<p>${entry.item}${entry.duplicate?' → 4 scrap (already owned)':''}</p>`:''}${entry.goalReward?'<p>Voyage goal completed: +8 gold and +1 crystal.</p>':''}<small>${entry.actions||0} actions · ${entry.breaks||0} breaks · ${entry.chains||0} chains · ${entry.ultimates||0} ultimates${entry.recovery?` · ${entry.recovery.earned}/${entry.recovery.total} recovery pts (${Math.floor(entry.recovery.percent)}%)`:''}${Number.isFinite(entry.elapsedAV)?` · ${(entry.elapsedAV/100).toFixed(2)} / ${entry.timeLimit} rounds`:''}</small>${entry.analysis?`<p>${entry.analysis.crewTurns} crew turns · ${entry.analysis.advances} advances · ${entry.analysis.savedAV} AV of crew waiting saved.</p><p>${entry.analysis.notes.join(' ')}</p>`:''}</article>`).join('')||'<p>No recovery yet. Finish an encounter to record its rewards here.</p>'}`);
 }
 function showGoals(){
   showModal(`<div class="eyebrow">VOYAGE GOAL</div><h2>Choose your fieldwork</h2><p class="lede">Complete one goal for 8 gold and 1 crystal. Progress carries across encounters. Selection locks at first launch.</p><div class="system-options">${Object.entries(Rules.goals).map(([id,g])=>`<article class="modal-card"><h3>${g.name}${runState.goal===id?' · SELECTED':''}</h3><p>${g.description}</p><p>Encounter observation: ${g.battle}</p><button data-goal="${id}" ${runState.goalLocked?'disabled':''}>${runState.goal===id?`${Math.min(g.target,runState.goalProgress)} / ${g.target}${runState.goalClaimed?' · REWARDED':''}`:'SELECT GOAL'}</button></article>`).join('')}</div>`);
 }
-function modifierWindow(){return runState.round===1&&!runState.goalLocked?1:runState.round===4?4:0}
+function modifierWindow(){if(Voyage.active(runState))return runState.voyageStarted&&!runState.end&&Voyage.current(runState)?.kind==='modifier'?runState.round:0;return runState.round===1&&!runState.goalLocked?1:runState.round===4?4:0}
+function setRecoveryMode(mode){
+  if(!['revive','lastStand','none'].includes(mode)||SpacologyPreferences.readCheckpoint(runState))return;
+  runState.downRecovery=mode;runState.lastStand=mode==='lastStand';renderOps();
+}
 function showVoyageSettings(){
+  if(Voyage.active(runState)&&!runState.voyageStarted){showDeparture();return}
   const current=Rules.activeModifiers(runState),window=modifierWindow(),canChoose=window&&!runState.modifierChoices.includes(window)&&!activePack;
-  showModal(`<div class="eyebrow">VOYAGE SETTINGS</div><h2>${voyageDifficulty.label}</h2><h3>Downed crew</h3><div class="modal-actions">${[['revive','RECOVER · −50 AV'],['lastStand','LAST STAND'],['none','NO RECOVERY']].map(([id,label])=>`<button data-recovery-mode="${id}" aria-pressed="${SpacologyDownRecovery.mode(runState)===id}">${label}</button>`).join('')}</div><p>Recover restores downed crew to 50% health and shortens the battle deadline by 50 AV (half a round) each time. They resume after a normal turn wait; repeated downs can force early extraction. Last Stand instead prevents the first lethal hit at 1 HP and protects until their next turn. These modes do not stack. Changes apply to the next encounter.</p><p class="lede">Base enemy health and damage: ${Math.round(voyageDifficulty.enemyScale*100)}% of standard. Enemy speed: ${Math.round(voyageDifficulty.enemySpeed*100)}%; shield strength: ${Math.round(voyageDifficulty.enemyGuard*100)}%. Breaks delay the next enemy turn by ${Math.round(voyageDifficulty.breakDelay*100)}% of its normal wait; enemies reform and attack on their recovery turn. This encounter has a ${SpacologyVoyageSettings.roundLimit(runState)}-round deadline. A round is 100 Action Value, shown as a marker in the turn order. Speed and action advances fit more crew turns before the marker; they never add rounds. Animations and pauses do not spend it. Clear every wave before time expires. With Recover enabled, each down removes up to 50 AV from the remaining deadline. Back-row crew cannot be targeted by enemies. Tap an enemy in battle to inspect its behavior. Choose one optional modifier before first launch and another at encounter 4. Each trade applies to future encounters. A category can appear only once.</p><div class="system-options">${Object.entries(Rules.modifiers).map(([id,m])=>`<article class="modal-card"><h3>${m.name}${current.includes(id)?' · ACTIVE':''}</h3><p>${m.description}</p><button data-modifier="${id}" ${!canChoose||current.some(key=>Rules.modifiers[key].category===m.category)?'disabled':''}>ADD MODIFIER</button>${current.includes(id)?`<button data-remove-modifier="${id}" ${runState.modifierRemovalUsed||runState.round<3||runState.gold<8||activePack?'disabled':''}>REMOVE · 8g</button>`:''}</article>`).join('')}</div><p>One removal per voyage, available from encounter 3. ${runState.modifierRemovalUsed?'Already used.':''}</p><button data-show-goals>VIEW VOYAGE GOAL</button>`);
+  showModal(`<div class="eyebrow">VOYAGE SETTINGS</div><h2>${voyageDifficulty.label}</h2><h3>Downed crew</h3><div class="modal-actions">${[['revive','RECOVER · −50 AV'],['lastStand','LAST STAND'],['none','NO RECOVERY']].map(([id,label])=>`<button data-recovery-mode="${id}" aria-pressed="${SpacologyDownRecovery.mode(runState)===id}">${label}</button>`).join('')}</div><p>Recover restores downed crew to 50% health and shortens the battle deadline by 50 AV (half a round) each time. They resume after a normal turn wait; repeated downs can force early extraction. Last Stand instead prevents the first lethal hit at 1 HP and protects until their next turn. These modes do not stack. Changes apply to the next encounter.</p><p class="lede">Base enemy health and damage: ${Math.round(voyageDifficulty.enemyScale*100)}% of standard. Enemy speed: ${Math.round(voyageDifficulty.enemySpeed*100)}%; shield strength: ${Math.round(voyageDifficulty.enemyGuard*100)}%. Breaks delay the next enemy turn by ${Math.round(voyageDifficulty.breakDelay*100)}% of its normal wait; enemies reform and attack on their recovery turn. This encounter has a ${SpacologyVoyageSettings.roundLimit(runState)}-round deadline. A round is 100 Action Value, shown as a marker in the turn order. Speed and action advances fit more crew turns before the marker; they never add rounds. Animations and pauses do not spend it. Clear every wave before time expires. With Recover enabled, each down removes up to 50 AV from the remaining deadline. Back-row crew cannot be targeted by enemies. Tap an enemy in battle to inspect its behavior. ${Voyage.active(runState)?'Starting difficulty applies to the entire voyage and is locked. Choose an optional modifier at nodes 3, 10 and 17.':'Choose one optional modifier before first launch and another at encounter 4.'} Each trade applies to future encounters. A category can appear only once.</p><div class="system-options">${Object.entries(Rules.modifiers).map(([id,m])=>`<article class="modal-card"><h3>${m.name}${current.includes(id)?' · ACTIVE':''}</h3><p>${m.description}</p><button data-modifier="${id}" ${!canChoose||current.some(key=>Rules.modifiers[key].category===m.category)?'disabled':''}>ADD MODIFIER</button>${current.includes(id)?`<button data-remove-modifier="${id}" ${runState.modifierRemovalUsed||runState.round<3||runState.gold<8||activePack?'disabled':''}>REMOVE · 8g</button>`:''}</article>`).join('')}</div><p>One removal per voyage, available from encounter 3. ${runState.modifierRemovalUsed?'Already used.':''}</p><button data-show-goals>VIEW VOYAGE GOAL</button>`);
 }
 function showDuplicateSettings(){
   showModal(`<div class="eyebrow">INVENTORY PREFERENCES</div><h2>Already-owned crew</h2><p class="lede">Copies normally occupy reserve slots and combine into ranks. Characters sell for 3 gold per base copy (3 / 9 / 27 by rank). Equipment dismantles into scrap. Auto-selling owned copies is optional and slows rank growth.</p><div class="modal-actions">${[['maxed','Auto-sell maxed crew'],['ask','Choose each time'],['sell','Auto-sell all owned copies']].map(([id,name])=>`<button data-duplicate-policy="${id}" aria-pressed="${runState.duplicatePolicy===id}">${name}${runState.duplicatePolicy===id?' ✓':''}</button>`).join('')}</div>`);
@@ -1039,7 +1085,7 @@ document.querySelector('[data-info="forge"]').onclick=showForge;
 document.querySelector('[data-info="attune"]').onclick=()=>showAttunements();
 
 document.querySelector('[data-info="manage"]').onclick=showDuplicateSettings;
-document.querySelector('[data-info="map"]').onclick=()=>showModal(`<h2>Voyage route</h2><p><a href="star-atlas.html" target="_blank" rel="noopener">OPEN STAR ATLAS · HOMEWORLDS</a></p>${Rules.route.map((name,i)=>`<p>${i+1}. ${name} · ${i+1<runState.round?'complete':i+1===runState.round?'current':'ahead'}</p>`).join('')}`);
+document.querySelector('[data-info="map"]').onclick=()=>Voyage.active(runState)?showVoyageMap():showModal(`<h2>Voyage route</h2><p><a href="star-atlas.html" target="_blank" rel="noopener">OPEN STAR ATLAS · HOMEWORLDS</a></p>${Rules.route.map((name,i)=>`<p>${i+1}. ${name} · ${i+1<runState.round?'complete':i+1===runState.round?'current':'ahead'}</p>`).join('')}`);
 showToast=function(message){toast.textContent=message;const button=document.createElement('button');button.textContent='DISMISS';button.onclick=()=>toast.classList.remove('show');toast.append(button);toast.classList.add('show')};
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -1055,7 +1101,10 @@ document.addEventListener('click',e=>{
   if(['ask','maxed','sell'].includes(b.dataset.duplicatePolicy)){runState.duplicatePolicy=b.dataset.duplicatePolicy;renderPackOffers();renderOps();showDuplicateSettings()}
   if(b.dataset.liveHarmony){const tag=b.dataset.liveHarmony,members=deployed().filter(n=>Rules.crew[n]?.tags.includes(tag));showModal(`<h2>${tag} · ${members.length} crew</h2><p>2: ${Rules.tags[tag][0]}</p><p>4: ${Rules.tags[tag][1]}</p><p>${members.join(', ')}</p>`)}
   if(b.dataset.planetHarmony){const planet=b.dataset.planetHarmony,members=deployed().filter(n=>Rules.crew[n]?.planet===planet);showModal(`<h2>${planet} · ${members.length} crew</h2><p>2: All deployed crew gain 8% base health.</p><p>3: Increases to 15%. Bonuses from different planets add together.</p><p>${members.join(', ')}</p><p>Shared ancestral-world affiliation. Birthplace and ancestry can differ; proposed assignments are shown in the star atlas.</p>`)}
-  if(b.dataset.route!==undefined){const i=Number(b.dataset.route);showModal(`<h2>Encounter ${i+1} · ${Rules.route[i]}</h2><p>${i+1<runState.round?'Completed':i+1===runState.round?'Prepare your crew, then launch.':'Upcoming encounter. Enemy strength increases along the route.'}</p>`)}
+  if(b.dataset.startVoyage){if(Voyage.start(runState,b.dataset.startVoyage)){voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];difficultyButton.textContent=voyageDifficulty.label;difficultyButton.setAttribute('aria-label','Difficulty: '+voyageDifficulty.label);renderOps();showCurrentNode();}return}
+  if(b.dataset.nodeReward!==undefined){if(activePack){toastMessage('Resolve the open pack first');return}const reward=Voyage.claim(runState,b.dataset.nodeId,Number(b.dataset.nodeReward));if(reward){if(reward.fieldXP)awardFieldXP(reward.fieldXP);finishNode();toastMessage(reward.label+' collected');}return}
+  if(b.hasAttribute('data-skip-modifier')){resolveVoyageModifier('skip',b.dataset.nodeId);return}
+  if(b.dataset.route!==undefined){const i=Number(b.dataset.route);if(Voyage.active(runState)){showNodeDetail(i);return;}showModal(`<h2>Encounter ${i+1} · ${Rules.route[i]}</h2><p>${i+1<runState.round?'Completed':i+1===runState.round?'Prepare your crew, then launch.':'Upcoming encounter. Enemy strength increases along the route.'}</p>`)}
 });
 modalBody.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
@@ -1066,7 +1115,7 @@ modalBody.addEventListener('click',e=>{
   if(b.dataset.shipUnequip){const source=shipSource(b.dataset.shipUnequip,b.dataset.shipSlot);if(source){runState.shipInventory.push(b.dataset.shipUnequip);source.list[source.index]=null;renderOps();showShip(b.dataset.shipUnequip)}return}
   if(b.dataset.shipUpgrade){const name=b.dataset.shipUpgrade,source=shipSource(name,b.dataset.shipSource),next=Rules.shipParts[name]?.upgrade;if(source&&next&&runState.scrap>=8){source.list[source.index]=next;runState.scrap-=8;renderOps();showShip(next,source.equipped?source.index:null);toastMessage(next+' ready')}return}
   if(b.dataset.shipScrap){const name=b.dataset.shipScrap,source=shipSource(name,b.dataset.shipSource);if(source){if(source.equipped)source.list[source.index]=null;else source.list.splice(source.index,1);runState.scrap+=4;renderOps();overlay.classList.remove('open');toastMessage(name+' dismantled for 4 scrap')}return}
-  if(b.dataset.recoveryMode){if(!['revive','lastStand','none'].includes(b.dataset.recoveryMode))return;runState.downRecovery=b.dataset.recoveryMode;runState.lastStand=b.dataset.recoveryMode==='lastStand';renderOps();showVoyageSettings();return}
+  if(b.dataset.recoveryMode){setRecoveryMode(b.dataset.recoveryMode);showVoyageSettings();return}
   if(b.dataset.aetherMode){const n=b.dataset.aetherCrew,id=b.dataset.aetherMode;if(!ownedCard(['CREW',n]))return;runState.aetherModes||={};if(id==='priority'){runState.aetherPriority=n;runState.aetherModes[n]='auto'}else{if(runState.aetherPriority===n)runState.aetherPriority=null;runState.aetherModes[n]=id==='build'?'build':'auto'}refreshCharacterDetails(n,b);return}
   if(b.dataset.aetherOvercharge){const n=b.dataset.aetherOvercharge;if(!ownedCard(['CREW',n]))return;runState.aetherOvercharge||={};runState.aetherOvercharge[n]=!SpacologyAether.overchargeEnabled(runState,n);refreshCharacterDetails(n,b);return}
   if(b.dataset.packModal){if(resolveCard(Number(b.dataset.index),b.dataset.packModal))overlay.classList.remove('open')}
@@ -1089,13 +1138,63 @@ modalBody.addEventListener('click',e=>{
   if(b.dataset.dismantleItem&&b.dataset.itemType==='gear'){const name=b.dataset.dismantleItem,source=detailGearSource(name);if(source){if(source.owner)runState.equipped[source.owner][source.index]=null;else runState.gear.splice(runState.gear.indexOf(name),1);runState.scrap+=4;renderOps();overlay.classList.remove('open');toastMessage(name+' dismantled for 4 scrap')}return}
   if(b.dataset.dismantleItem){const name=b.dataset.dismantleItem,type=b.dataset.itemType,list=type==='gear'?runState.gear:type==='ship'?runState.shipInventory:null;if(list&&list.includes(name)){list.splice(list.indexOf(name),1);runState.scrap+=4;renderOps();overlay.classList.remove('open');toastMessage(name+' dismantled for 4 scrap')}}
   if(b.dataset.goal&&!runState.goalLocked&&Rules.goals[b.dataset.goal]){runState.goal=b.dataset.goal;runState.goalProgress=0;renderOps();showGoals()}
+  if(b.dataset.modifier&&Voyage.active(runState)){resolveVoyageModifier(b.dataset.modifier,b.dataset.nodeId||Voyage.current(runState)?.id);return}
   if(b.dataset.modifier){const id=b.dataset.modifier,m=Rules.modifiers[id],window=modifierWindow();if(!m||!window||runState.modifierChoices.includes(window)||Rules.activeModifiers(runState).some(k=>Rules.modifiers[k].category===m.category)||activePack)return;runState.modifiers.push(id);runState.modifierChoices.push(window);renderPackOffers();renderOps();showVoyageSettings()}
   if(b.dataset.removeModifier){const id=b.dataset.removeModifier;if(runState.round<3||runState.modifierRemovalUsed||runState.gold<8||!runState.modifiers.includes(id)||activePack)return;runState.modifiers=runState.modifiers.filter(m=>m!==id);runState.gold-=8;runState.modifierRemovalUsed=true;renderPackOffers();renderOps();showVoyageSettings()}
 });
 
-const returningToOps=runState.end==='retreated'||new URLSearchParams(location.search).get('return')==='1'||!!localStorage.getItem(SpacologyStore.result);
-if(returningToOps)document.getElementById('titleScreen').hidden=true;
+
+function setTitleVisible(visible){
+  document.body.classList.toggle('main-menu-open',visible);
+  if(visible)document.documentElement.classList.remove('returning-to-ops');
+  $('titleScreen').hidden=!visible;
+  document.querySelectorAll('.frame > :not(#titleScreen)').forEach(el=>{el.inert=visible;});
+}
+function renderMainMenu(){
+  const started=runState.voyageStarted||!Voyage.active(runState),ended=runState.end||runState.round>runState.maxRounds;
+  const checkpoint=SpacologyPreferences.readCheckpoint(runState),node=Voyage.current(runState);
+  $('enterOps').hidden=!started;
+  $('enterOps').textContent=ended?'VIEW VOYAGE RESULTS':checkpoint?'CONTINUE BATTLE':'CONTINUE VOYAGE';
+  $('titleNewVoyage').classList.toggle('primary',!started);
+  $('savePreview').innerHTML=started?`<span class="menu-kicker">${ended?'LAST EXPEDITION':checkpoint?'BATTLE SAVED':'VOYAGE SAVED'}</span><h2>${ended?'A record came home':node?.name||'Expedition in progress'}</h2><p>${voyageDifficulty.label} · ${Voyage.active(runState)?'Sector '+Math.min(3,Math.ceil(runState.round/7)):'Legacy voyage'} · Node ${Math.min(runState.round,runState.maxRounds)} / ${runState.maxRounds}</p><div class="save-stats"><span><strong>${runState.integrity}%</strong>INTEGRITY</span><span><strong>${runState.gold}</strong>GOLD</span><span><strong>${runState.battlesWon}</strong>VICTORIES</span></div><p style="font-size:11px;margin-top:16px">${checkpoint?'Continue from your saved combat turn.':'Progress saved on this device.'}</p>`:`<span class="menu-kicker">AWAITING DEPARTURE</span><h2>The frontier is calling.</h2><p>3 sectors · 21 stops</p><p>Build your crew, choose your route conditions, and set out aboard Star Singer.</p>`;
+}
+function showMainMenu(){history.replaceState(null,'','spacology-v0.1.0.html?menu=1'+SpacologyStore.suffix);SpacologyMenu.close();overlay.classList.remove('open');renderOps();renderMainMenu();setTitleVisible(true);$('titleNewVoyage').focus();}
+function continueVoyage(){
+  if(SpacologyPreferences.readCheckpoint(runState)){location.href='watchable-fight.html?spacology=1'+SpacologyStore.suffix;return}
+  setTitleVisible(false);
+  if(runState.end||runState.round>runState.maxRounds)showVoyageEnd();
+  else if(Voyage.active(runState)&&!runState.voyageStarted)showDeparture();
+}
+function beginVoyage(difficulty){
+  if(!Voyage.start(runState,difficulty))return;
+  voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];difficultyButton.textContent=voyageDifficulty.label;difficultyButton.setAttribute('aria-label','Difficulty: '+voyageDifficulty.label);
+  SpacologyMenu.close();setTitleVisible(false);renderOps();showCurrentNode();
+}
+function requestNewVoyage(){
+  SpacologyMenu.departure(difficulty=>{
+    if(Voyage.active(runState)&&!runState.voyageStarted&&!runState.end){beginVoyage(difficulty);return}
+    const caches=runState.treasureCaches.filter(c=>!c.opened).length,characters=runState.inbox.filter(e=>e.characterReward?.status==='pending').length;
+    SpacologyMenu.confirm({title:'Replace this voyage?',copy:`There is one save slot for this expedition. Starting over replaces your current voyage, crew and rewards.${caches?' '+caches+' unopened caches will be lost.':''}${characters?' '+characters+' unclaimed characters will be lost.':''}`,actionLabel:'START NEW VOYAGE',onCancel:()=>requestNewVoyage(),onConfirm:()=>{
+      sessionStorage.setItem(SpacologyStore.run+'Departure',difficulty);
+      localStorage.removeItem(SpacologyStore.run);localStorage.removeItem(SpacologyStore.result);SpacologyPreferences.clearCheckpoint();
+      location.replace('spacology-v0.1.0.html?new=1'+SpacologyStore.suffix);
+    }});
+  },()=>{if(!$('titleScreen').hidden)$('titleNewVoyage').focus();});
+}
+SpacologyMenu.init({mode:'ops',state:()=>runState,canPause:()=>$('titleScreen').hidden&&!$('voyageEnd').classList.contains('open'),pause:()=>renderOps(),resume:()=>{},home:()=>showMainMenu(),retreat:()=>retreatVoyage(),voyageRules:()=>showVoyageSettings(),titleFocus:()=>($('enterOps').hidden?$('titleNewVoyage'):$('enterOps')).focus(),preferenceChanged:(key,p)=>{if(key==='recovery')setRecoveryMode(p.recovery);}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.classList.contains('open')&&!SpacologyMenu.isOpen()){e.preventDefault();overlay.classList.remove('open');}});
+$('pauseGame').onclick=()=>SpacologyMenu.openPause();
+$('enterOps').onclick=continueVoyage;
+$('titleNewVoyage').onclick=requestNewVoyage;
+$('titleSettings').onclick=()=>SpacologyMenu.settings('title');
+$('titleHelp').onclick=()=>SpacologyMenu.help('title');
+const returningToOps=!SpacologyPreferences.readCheckpoint(runState)&&new URLSearchParams(location.search).get('menu')!=='1'&&(runState.end==='retreated'||new URLSearchParams(location.search).get('return')==='1'||!!localStorage.getItem(SpacologyStore.result));
 renderPackOffers();installPackTargets();applyBattleResult();
 if(runState.pack&&packs[runState.pack.key]&&Array.isArray(runState.pack.cards)){runState.packOffers=runState.packOffers.map(key=>key===runState.pack.key?null:key);activePack=runState.pack.key;activeCards=runState.pack.cards;resolved=runState.pack.resolved;packSelect.classList.add('hidden');openedPack.classList.remove('hidden');renderPack()}
-renderPackOffers();renderOps();if(formationChanges.length)setTimeout(()=>toastMessage('Formation roles updated: '+formationChanges.join(' · ')),120);if(runState.end==='retreated'||runState.round>runState.maxRounds)showVoyageEnd();
+renderPackOffers();renderOps();renderMainMenu();setTitleVisible(!returningToOps);
+let pendingDeparture=sessionStorage.getItem(SpacologyStore.run+'Departure');
+if(pendingDeparture){sessionStorage.removeItem(SpacologyStore.run+'Departure');beginVoyage(pendingDeparture);}
+if(formationChanges.length&&returningToOps)setTimeout(()=>toastMessage('Formation roles updated: '+formationChanges.join(' · ')),120);
+if(returningToOps&&(runState.end==='retreated'||runState.round>runState.maxRounds))showVoyageEnd();
+if(!$('endMainMenu')){$('newVoyage').insertAdjacentHTML('afterend','<button class="continue" id="endMainMenu">MAIN MENU</button>');$('endMainMenu').onclick=showMainMenu;}
 })();

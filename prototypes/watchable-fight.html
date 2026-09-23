@@ -279,6 +279,8 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 .session-mode .rc.treasure-carrier{border:2px solid #efc879;box-shadow:0 0 16px #efc87955!important}.treasure-badge{position:absolute;right:4px;top:3px;z-index:4;color:#ffe2a0;font-size:22px;text-shadow:0 0 8px #000}.treasure-marker{color:#efc879!important}#treasureBattle{display:block;color:#efc879;font-size:11px;line-height:1.5;padding:9px;border:1px solid #9c8050;border-radius:6px;background:#132129}#treasureBattle[hidden]{display:none}
 </style>
 <style>body.session-mode{grid-template-columns:minmax(0,1fr)}body.session-mode .sessionbar{grid-template-columns:minmax(170px,215px) minmax(0,1fr) 160px auto}.session-mode .session-status{min-width:0}.session-mode .session-status b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:minmax(0,1fr) 150px auto}}@media(max-width:760px){body.session-mode .sessionbar{grid-template-columns:minmax(0,1fr) auto}}.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
+<style>body.session-mode .ribbon .rc.boss{flex-basis:116px;width:116px;min-width:116px;height:120px}.session-mode .rc.boss{border:2px solid #e6a762;box-shadow:0 0 18px #b86b3933}.session-mode .rc.boss .rn:after{content:' · BOSS';color:#ffd897}</style>
+<link rel="stylesheet" href="game-menu.css">
 </head>
 <body>
 
@@ -409,8 +411,11 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 </div>
 
 <script src="voyage-settings.js"></script>
+<script src="voyage-rules.js"></script>
 <script src="recovery-scoring.js"></script>
 <script src="session-store.js"></script>
+<script src="game-preferences.js"></script>
+<script src="game-menu.js"></script>
 <script src="expedition-rules.js"></script>
 <script src="treasure-rules.js"></script>
 <script src="field-progression.js"></script>
@@ -419,6 +424,7 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 <script src="down-recovery.js"></script>
 <script src="aether-rules.js"></script>
 <script src="../sim/enemy-catalogue.js"></script>
+<script src="enemy-summoning.js"></script>
 <script src="crew-progression.js"></script>
 <script>
 /* ============ data ============ */
@@ -626,6 +632,7 @@ var ELITES=[{n:'Warden',sp:98,hp:150,dmg:19,layers:3,guard:22,trait:'Fortified'}
             {n:'Anchor',sp:120,hp:135,dmg:22,layers:2,guard:20,haste:.1,cap:4,trait:'Accelerates'},
             {n:'Bulwark',sp:82,hp:185,dmg:26,layers:3,guard:24,trait:'Heavy armor'}];
 var ENEMY_KITS={
+  Summoner:{n:'Summoner',sp:100,hp:88,dmg:10,layers:1,guard:16,trait:'Summons reinforcements'},
   Chaff:{n:'Chaff',sp:100,hp:52,dmg:11,layers:1,guard:18,trait:'Soldier'},
   Bruiser:{n:'Bruiser',sp:90,hp:66,dmg:15,layers:1,guard:20,haste:.12,cap:5,trait:'Accelerates'},
   Quickstep:{n:'Quickstep',sp:158,hp:45,dmg:9,layers:1,guard:16,trait:'Fast'},
@@ -637,7 +644,7 @@ var ENEMY_KITS={
 var OPS_SPEED=1, OPS_GUARD=1, OPS_RECOVERY=.25;
 var CHAFFNAMES=['Chaff','Bruiser','Cleanser','Reflector','Quickstep','Chaff','Bruiser','Cleanser','Reflector'];
 var FIELD=6, POOL=12, OPS_PRESSURE=1, OPS_HP=1, OPS_DMG=1, OPS_WAVES=2, OPS_RUN_ROUND=1;
-var OPS_FACTION='ossuary',OPS_PLANET=null;
+var OPS_FACTION='ossuary',OPS_PLANET=null,OPS_NODE=null;
 var FACTION_ORDER=['ossuary','mycelial','glasswake','tideworn','tannhul','custodian','redaction'];
 function enemyKitFor(archetype){
   var label=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.ARCHETYPES[archetype]
@@ -808,18 +815,27 @@ function build(team,planet){
   var faction=catalogue&&catalogue.FACTIONS[OPS_FACTION];
   for(var q=0;q<POOL;q++){
     var wave=Math.floor(q/FIELD)+1,slot=q%FIELD;
-    var elite=slot===FIELD-1&&(wave===G.totalWaves||OPS_RUN_ROUND>=3);
-    var eliteTier=elite?1+Math.floor((OPS_RUN_ROUND-1)/2)+Math.floor((wave-1)/2):0;
+    var elite=OPS_NODE?OPS_NODE.format==='elite'&&slot===FIELD-1:slot===FIELD-1&&(wave===G.totalWaves||OPS_RUN_ROUND>=3);
+    var eliteTier=elite?(OPS_NODE?OPS_NODE.sector:1+Math.floor((OPS_RUN_ROUND-1)/2)+Math.floor((wave-1)/2)):0;
     var specimen=null,archetype=null,base=null;
     if(faction){
       var eliteRoles=faction.archetypes.filter(function(role){return role==='warden'||role==='anchor'||role==='bulwark'||role==='bruiser'});
-      var roleDeck=elite&&eliteRoles.length?eliteRoles:faction.archetypes;
-      archetype=roleDeck[(q+OPS_RUN_ROUND+wave-2)%roleDeck.length];
+      var regularRoles=faction.archetypes.filter(function(role){return !['warden','anchor','bulwark'].includes(role)});
+      var roleDeck=elite&&eliteRoles.length?eliteRoles:OPS_NODE?(regularRoles.length?regularRoles:['chaff']):faction.archetypes;
+      archetype=OPS_NODE&&OPS_NODE.format==='swarm'?'chaff':OPS_NODE&&OPS_NODE.format==='ambush'?'quickstep':OPS_NODE&&OPS_NODE.format==='boss'?'warden':roleDeck[(q+OPS_RUN_ROUND+wave-2)%roleDeck.length];
+      if(archetype==='summoner'&&(OPS_RUN_ROUND===1||G.pool.some(function(p){return p.wave===wave&&p.archetype==='summoner'})))archetype='chaff';
       specimen=catalogue.generateEnemy('voyage-'+OPS_RUN_ROUND+'-'+OPS_FACTION+'-'+q,{faction:OPS_FACTION,archetype:archetype});
       base=enemyKitFor(archetype);
     }else base=elite?ELITES[(OPS_RUN_ROUND+wave-2)%ELITES.length]:ENEMY_KITS[CHAFFNAMES[(q+OPS_RUN_ROUND-1)%CHAFFNAMES.length]];
-    var eliteScale=elite?1+(eliteTier-1)*.10:1;
-    G.pool.push({n:specimen?specimen.typeName:(elite&&eliteTier>=3?'Prime '+base.n:base.n),sp:Math.round(base.sp*OPS_SPEED),
+    var eliteScale=elite?1.3+(eliteTier-1)*.10:1;
+    if(!OPS_NODE)eliteScale=elite?1+(eliteTier-1)*.10:1;
+    if(OPS_NODE){
+      base=Object.assign({},base);
+      if(OPS_NODE.format==='swarm'){base.hp=30;base.dmg=6;base.guard=8;base.layers=1;base.sp=100;}
+      if(OPS_NODE.format==='ambush'){base.hp=40;base.dmg=8;base.guard=12;base.layers=1;base.sp=150;}
+      if(OPS_NODE.format==='boss'){base.hp=560;base.dmg=23;base.sp=110;base.layers=3;base.guard=24;base.trait='Two phases · heavy strike every third attack';}
+    }
+    G.pool.push({boss:!!OPS_NODE&&OPS_NODE.format==='boss',n:OPS_NODE&&OPS_NODE.format==='boss'?'Sector '+OPS_NODE.sector+' boss':specimen?specimen.typeName:(elite&&eliteTier>=3?'Prime '+base.n:base.n),sp:Math.round(base.sp*OPS_SPEED),
       hp:Math.round(base.hp*OPS_HP*eliteScale),dmg:Math.round(base.dmg*OPS_DMG*(elite?1+(eliteTier-1)*.1:1)),
       elite:elite,eliteTier:eliteTier,wave:wave,
       archetype:archetype||base.n.toLowerCase(),archetypeName:specimen?specimen.archetypeName:base.n,
@@ -899,7 +915,7 @@ function spawnFoes(){
   G.wave=G.pool[G.spawned].wave;
   while(live<FIELD && G.spawned<G.pool.length&&G.pool[G.spawned].wave===G.wave){
     var p=G.pool[G.spawned];
-    G.units.push({id:'f'+G.spawned,side:'foe',n:p.n,weak:p.weak.slice(),e:p.weak[0],
+    G.units.push({boss:p.boss,phase:p.boss?1:undefined,bossAttacks:0,lowestHP:p.hp,id:'f'+G.spawned,side:'foe',n:p.n,weak:p.weak.slice(),e:p.weak[0],
       archetype:p.archetype,archetypeName:p.archetypeName,typeName:p.typeName,specimenName:p.specimenName,portrait:p.portrait,
       factionId:p.factionId,factionName:p.factionName,
       factionRule:p.factionRule,bodyPlan:p.bodyPlan,material:p.material,adaptation:p.adaptation,
@@ -912,6 +928,20 @@ function spawnFoes(){
   updateEnemyCounter();
   return added;
 }
+function summonEnemy(actor,ev){
+  var catalogue=window.SpacologyEnemyCatalogue;
+  var specimen=catalogue.generateEnemy(actor.id+'-reinforcement-'+(actor.summonCalls||0),{faction:actor.factionId||OPS_FACTION,archetype:'chaff',element:actor.e});
+  var child=SpacologyEnemySummoning.act(actor,G.units,FIELD,{
+    n:specimen.typeName,typeName:specimen.typeName,specimenName:specimen.name,portrait:specimen.portrait,
+    factionId:specimen.faction,factionName:specimen.factionName,factionRule:specimen.factionRule,
+    bodyPlan:specimen.bodyPlan,material:specimen.material,adaptation:specimen.adaptation,
+    nullStage:specimen.nullStage,nullSymptom:specimen.nullSymptom
+  });
+  if(!child)return false;
+  G.units.push(child);ev.enemySummoned={id:child.id,name:child.n};
+  ev.notes.push(actor.n+' calls '+child.n+' · '+(SpacologyEnemySummoning.MAX_CALLS-actor.summonCalls)+' calls remaining.');
+  updateEnemyCounter();reflowFoes();queueReset(actor);return true;
+}
 function spawnTreasureCarrier(){
   if(!window.SPACOLOGY_SESSION)return;
   var info=SpacologyTreasure.encounter(window.SPACOLOGY_SESSION);
@@ -921,7 +951,7 @@ function spawnTreasureCarrier(){
   var model=G.units.find(function(u){return u.side==='foe'&&!u.elite});
   if(!model)return;
   var carrier=Object.assign({},model,{id:'treasure',n:'Treasure carrier',typeName:'Treasure carrier · '+model.n,
-    treasure:true,elite:false,eliteTier:0,hp:55+OPS_RUN_ROUND*12,max:55+OPS_RUN_ROUND*12,
+    treasure:true,elite:false,eliteTier:0,hp:55+(OPS_NODE?OPS_NODE.sector*2:OPS_RUN_ROUND)*12,max:55+(OPS_NODE?OPS_NODE.sector*2:OPS_RUN_ROUND)*12,
     dmg:0,haste:0,cleanse:0,trait:'Treasure',shMax:1,shL:1,shC:10,shieldPer:10,
     av:0,frac:0,survey:0,bar:0,escapeAt:G.av+info.escapeAV});
   G.units.push(carrier);G.treasureStatus='present';
@@ -1029,11 +1059,13 @@ function ribbons(){
 var inspectionWasPlaying=false;
 function inspectEnemy(id){
   var u=U(id);if(!u||u.side!=='foe')return;
+  if(u.boss){openBattleDetails('<h2 id="enemyDetailTitle">'+u.n+' · Phase '+u.phase+'</h2><p>At 50% health, guard strength drops 40% and attack damage rises 35%. Existing breaks and ailments persist. Every third attack deals 1.8× damage, announced one attack ahead.</p><p>Recovery comes from boss damage (80%) and defeating it (20%).</p><p>'+u.hp+' / '+u.max+' HP · '+u.dmg+' attack damage.</p>');return;}
   if(u.treasure){openBattleDetails('<h2 id="enemyDetailTitle">Treasure carrier</h2><p>'+u.factionName+' · '+u.archetypeName+'</p><p>Optional, non-attacking hoarder. Defeat it for bonus gold, rare equipment and a Tier II or III Treasure cache. It escapes after 240 AV or when this wave is cleared.</p><p>'+Math.max(0,Math.ceil(u.escapeAt-G.av))+' AV until escape · '+Math.max(0,u.hp)+' / '+u.max+' HP.</p><p>It awards no recovery points and never blocks a wave or mission completion. Pursue treasure focuses direct attacks; mission first leaves it to incidental area damage.</p>');return;}
-  var behavior=u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
+  var summonInfo=SpacologyEnemySummoning.isSummoner(u)?'Spends its turn calling one weaker faction enemy, then attacks on the following turn. '+(SpacologyEnemySummoning.MAX_CALLS-(u.summonCalls||0))+' calls remaining. Break or defeat it to stop the call. A full enemy row makes it attack instead; the call is saved. Summons never summon others.':u.enemyMinion?'Called reinforcement: a weaker attacker with one shield layer. It cannot summon. It must be defeated to clear the wave, but grants no additional recovery points.':null;
+  var behavior=summonInfo|| (u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
     u.cleanse?'Sheds '+u.cleanse+' fracture stacks before each attack.':
     u.trait==='Fast'?'Short waits between attacks. Can act between slower crew members.':
-    u.shMax>1?'Multiple shield layers reduce incoming damage until fully broken. Match its weaknesses to strip them faster.':'A regular attacker. Match its weaknesses to break its shield.';
+    u.shMax>1?'Multiple shield layers reduce incoming damage until fully broken. Match its weaknesses to strip them faster.':'A regular attacker. Match its weaknesses to break its shield.');
   var taxonomy=u.factionName?'<p><b>'+u.factionName+'</b> · '+u.archetypeName+(u.specimenName?' · field name '+u.specimenName:'')+' · '+u.bodyPlan+'. '+u.material+' adapted with '+u.adaptation+'.</p><p><b>Null state:</b> '+u.nullStage+' — '+u.nullSymptom+'. <b>Faction rule:</b> '+u.factionRule+'.</p>':'';
   openBattleDetails('<h2 id="enemyDetailTitle">'+(u.typeName||u.n)+(u.elite?' · Elite':'')+'</h2>'+taxonomy+'<p>'+behavior+'</p><dl><dt>Health</dt><dd>'+Math.round(G.visualHP?.[u.id]??u.hp)+' / '+u.max+'</dd><dt>Attack damage</dt><dd>'+u.dmg+'</dd><dt>Speed</dt><dd>'+u.sp+'</dd><dt>Shield remaining</dt><dd>'+(u.broken?0:(u.shL-1)*shieldCapacity(u)+u.shC)+' / '+u.shMax*shieldCapacity(u)+'</dd><dt>Weaknesses</dt><dd>'+u.weak.join(', ')+'</dd></dl><p><b>Recovery:</b> reforms its full shield and attacks on the same turn. A break delays its next turn by '+Math.round((window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay)*100)+'% of its normal wait and increases damage taken by 35%. Four Assay crew deny two turns before recovery.</p><p>Battle paused; the current animation may finish.</p>');
 }
@@ -1064,7 +1096,7 @@ function paintRecovery(){
 }
 $('recoveryProgress').onclick=function(){
   var score=currentRecovery();
-  openBattleDetails('<h2 id="enemyDetailTitle">Recovery thresholds</h2><p>'+score.earned+' / '+score.total+' enemy points recovered across <b>every wave</b>. Chaff: 1 point; other regular enemies: 2; elites: 4. Points count when an enemy is defeated, not damaged.</p><dl>'+SpacologyRecovery.bands.map(function(b){return '<dt>'+b.minimum+'%'+(b.minimum===88?' · no loss':'')+'</dt><dd>'+signedIntegrity(b.delta)+(b.minimum===100?' / +5 with observation':'')+' integrity</dd>';}).join('')+'</dl><p><b>If battle ends now: '+signedIntegrity(projectedIntegrity(score))+' integrity.</b> At 88% you lose nothing, even if time expires. Full recovery is +2, or +5 when the observation is complete. Integrity stays between 0 and 100.</p>');
+  openBattleDetails('<h2 id="enemyDetailTitle">Recovery thresholds</h2><p>'+score.earned+' / '+score.total+(OPS_NODE&&OPS_NODE.format==='boss'?' boss recovery points. Damage contributes up to 80 points; defeating the boss awards the final 20. Healing cannot remove earned progress.':' enemy points recovered across <b>every wave</b>. Chaff: 1 point; other regular enemies: 2; elites: 4. Points count when an enemy is defeated, not damaged.')+'</p><dl>'+SpacologyRecovery.bands.map(function(b){return '<dt>'+b.minimum+'%'+(b.minimum===88?' · no loss':'')+'</dt><dd>'+signedIntegrity(b.delta)+(b.minimum===100?' / +5 with observation':'')+' integrity</dd>';}).join('')+'</dl><p><b>If battle ends now: '+signedIntegrity(projectedIntegrity(score))+' integrity.</b> At 88% you lose nothing, even if time expires. Full recovery is +2, or +5 when the observation is complete. Integrity stays between 0 and 100.</p>');
 };
 function paintDeadline(){
   var remaining=Math.max(0,G.limit*100-G.av),left=Math.ceil(remaining/100),urgent=left<=1;
@@ -1084,6 +1116,7 @@ function paintAll(){ paintTreasure();paintDeadline();paintRecovery();paintAether
   $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
   var objective=document.querySelector('.session-objective');
   if(objective&&window.SPACOLOGY_SESSION){var goal=SpacologyExpedition.goal(window.SPACOLOGY_SESSION);var progress=goal.metric==='safeWins'?0:Math.min(goal.battleTarget,G[goal.metric]||0);objective.querySelector('b').textContent=goal.name.toUpperCase()+' · '+progress+' / '+goal.battleTarget;objective.querySelector('span').textContent=goal.battle;}
+  if(objective&&OPS_NODE){var boss=G.units.find(function(u){return u.boss});objective.querySelector('b').textContent=OPS_NODE.name.toUpperCase()+(boss?' · PHASE '+boss.phase:'');objective.querySelector('span').textContent=boss?(boss.bossAttacks%3===2?'Heavy strike next attack · break or delay it.':boss.phase===2?'Weaker guard · +35% damage · heavy strike every third attack.':OPS_NODE.description):OPS_NODE.description;}
   updateEnemyCounter();
 }
 function updateEnemyCounter(){
@@ -1095,7 +1128,7 @@ function paintUnit(u,silent){
   var rc=$('r-'+u.id); if(!rc) return;
   var shownHp=G.visualHP&&G.visualHP[u.id]!==undefined?G.visualHP[u.id]:u.hp;
   var shownBar=G.visualBar&&G.visualBar[u.id]!==undefined?G.visualBar[u.id]:u.bar;
-  rc.classList.toggle('down',shownHp<=0);
+  rc.classList.toggle('down',shownHp<=0);rc.classList.toggle('boss',!!u.boss);
   rc.title=u.n+' · '+Math.max(0,Math.round(shownHp))+' / '+u.max+' HP · '+(u.side==='ally'?u.e+' · '+Math.round(u.en)+' Energy':(u.broken?'broken':u.shL+' shield layers'));
   var pct=Math.max(0,shownHp/u.max*100);
   var i=rc.querySelector('.rb i'), b=rc.querySelector('.rb b');
@@ -1109,7 +1142,7 @@ function paintUnit(u,silent){
       sq.style.opacity=u.broken?'.25':'1'; }
     rc.style.boxShadow=u.broken?'none':'0 0 0 '+(u.shL*2)+'px '+EL[u.e]+'44';
     var rt=$('rt-'+u.id);
-    if(rt)rt.textContent=u.broken?'BREAK':u.hasteStacks?'+'+Math.round(u.haste*u.hasteStacks*100)+'% SPD':u.trait==='Fast'?'FAST':u.shL+' SHIELD';
+    if(rt)rt.textContent=u.broken?'BREAK':SpacologyEnemySummoning.label(u,G.units,FIELD)|| (u.hasteStacks?'+'+Math.round(u.haste*u.hasteStacks*100)+'% SPD':u.trait==='Fast'?'FAST':u.shL+' SHIELD');
   }
   if(u.side==='ally'){
     var en=$('en-'+u.id);
@@ -2006,6 +2039,7 @@ function resolveAction(){
   var event;
   try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];event=resolveActionCore();if(event){event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
   finally{if(G){
+    G.units.forEach(function(u){if(SpacologyVoyage.updateBoss(u)){var note='Boss phase 2: guard strength falls 40%; attack damage rises 35%.';if(event&&event.notes)event.notes.push(note);log(note,'rnd');}});
     settleTreasure(false);
     G.units.forEach(function(u){delete u.aetherPower});
     if(G.aether){
@@ -2140,8 +2174,11 @@ function resolveActionCore(){
       act.broken=false; act.vuln=0; act.shL=act.shMax; act.shC=shieldCapacity(act);
       ev.notes.push(act.n+' reforms and attacks.');
     }
+    if(!ev.recovered&&SpacologyEnemySummoning.isSummoner(act)&&summonEnemy(act,ev))return ev;
     if(act.cleanse&&act.frac){var shed=Math.min(act.frac,act.cleanse);act.frac-=shed;ev.notes.push(act.n+' sheds '+shed+' fracture.');}
-    G.foeAttacks++;var h0=hit(act,tgt); ev.hits.push(h0);
+    G.foeAttacks++;
+    if(act.boss){act.bossAttacks++;if(act.bossAttacks%3===2)ev.notes.push('Boss is charging a heavy strike for its next attack. Break or delay it.');if(act.bossAttacks%3===0)ev.notes.push('Boss releases its heavy strike!');}
+    var h0=hit(act,tgt,act.boss&&act.bossAttacks%3===0?1.8:undefined); ev.hits.push(h0);
     cascade(ev,act,liveFoes()[0],['hurt']);
     if(tgt.reflect&&tgt.alive){
       ev.reflect=hit(tgt,act,(h0.dmg*tgt.reflect)/Math.max(1,tgt.dmg));
@@ -2510,7 +2547,7 @@ function playAction(done){
   G.visualHP=Object.assign({},G.hp0||{});G.visualBar={};
   G.visualAether=ev.hits&&ev.hits.some(function(h){return h.pulse})?ev.aether.before:null;
   (ev.timeline||[]).forEach(function(h){if(G.visualBar[h.tgt]===undefined)G.visualBar[h.tgt]=h.barBefore;if(G.visualHP[h.tgt]===undefined)G.visualHP[h.tgt]=h.hpBefore;});
-  if(ev.summoned){ribbons();track();}
+  if(ev.summoned||ev.enemySummoned){ribbons();track();}
   G.units.forEach(function(u){paintUnit(u,true)});
   G.actions++;paintDeadline();paintAether();
   if(ev.aether)log(ev.actor.n+' · '+ev.aether.kind+' · '+(ev.aether.delta>=0?'+':'')+ev.aether.delta+' Aether ('+ev.aether.after+'/'+G.aether.max+') · '+ev.aether.reason+(ev.aether.generated?' · spent '+(ev.aether.spent||0)+', restored '+ev.aether.generated:''),'chain');
@@ -2609,6 +2646,7 @@ function playAction(done){
   buildStage(act.id,[],isSupport,helpers);
   targets.forEach(function(id){var rc=$('r-'+id);if(rc)rc.classList.add('targeted');});
   $('cap').textContent = ev.bonusTurn ? act.n+' · EXTRA TURN '+(ev.bonusIndex+1)+' · '+Math.round(SpacologyAether.chainMultiplier(ev.bonusIndex)*100)+'% · −1 AETHER'
+    : ev.enemySummoned ? act.n+' · SUMMON · '+ev.enemySummoned.name
     : ev.summoned ? act.n+' · J3K LOTTERY · '+ev.summoned.name
     : ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
     : ev.interrupt ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()+' \u00b7 out of turn'
@@ -2645,6 +2683,9 @@ function playAction(done){
       if(d){ cardTF(act.id,'translateY(10px) scale(.94)',D(320));
         d.style.filter='saturate(.3) brightness(.7)'; } });
     t+=D(560);
+  } else if(ev.enemySummoned){
+    at(t,function(){tag.textContent='summon';floater(ev.enemySummoned.id,'REINFORCEMENT','#e9b45e',{tag:1});glint($('r-'+ev.enemySummoned.id),500);paintAll();track();});
+    t+=D(340);
   } else if(ev.kindle){
     at(t,function(){ tag.textContent='kindle';
       var d=$('sc-'+act.id);
@@ -2830,6 +2871,7 @@ function battleAnalysis(){
 function finish(msg){
   if(G.over)return;
   settleTreasure(true);
+  if(window.SPACOLOGY_SESSION){SpacologyPreferences.clearCheckpoint();if($('sessionMenu'))$('sessionMenu').disabled=true;}
   G.over=true;G.visualHP=null;G.visualBar=null;G.visualAether=null; playing=false; clr();sweepFoes();paintDeadline();paintRecovery();clearRibbonMarks();clearStage();
   $('bPlay').textContent='Play'; $('hState').textContent=msg;
   log('<b>'+msg+'</b> in '+G.round+' rounds','rnd');
@@ -2867,10 +2909,10 @@ function finish(msg){
       {type:'ship',name:'Brace Matrix'}];
     var rareItem=won&&Math.random()<.1?rarePool[Math.floor(Math.random()*rarePool.length)]:null;
     var modifierEffects=SpacologyExpedition.effects(window.SPACOLOGY_SESSION);
-    var baseGold=(won?Math.round((28+window.SPACOLOGY_SESSION.round*6)*modifierEffects.reward):10)+modifierEffects.flatGold;
+    var baseGold=(won?Math.round((OPS_NODE?SpacologyVoyage.profile(window.SPACOLOGY_SESSION).gold:28+window.SPACOLOGY_SESSION.round*6)*modifierEffects.reward):10)+modifierEffects.flatGold;
     var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*(G.ship.survey===true?.2:G.ship.survey)):0;
     var analysis=battleAnalysis();
-    var result={treasure:G.treasureReward||null,treasureStatus:G.treasureStatus||null,analysis:analysis,revives:G.revives||0,recoveryAV:G.recoveryAV||0,reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
+    var result={nodeId:OPS_NODE&&OPS_NODE.id,treasure:G.treasureReward||null,treasureStatus:G.treasureStatus||null,analysis:analysis,revives:G.revives||0,recoveryAV:G.recoveryAV||0,reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
       recovery:recovery,integrity:Math.max(0,Math.min(100,window.SPACOLOGY_SESSION.integrity+recovery.integrity))-window.SPACOLOGY_SESSION.integrity,
       gold:baseGold+surveyBonus,fieldXP:SpacologyField.battleXP(window.SPACOLOGY_SESSION,won),
       observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
@@ -2900,10 +2942,10 @@ function finish(msg){
 
 /* ============ controls ============ */
 function step(){ if(busy||G.over) return; busy=true;
-  playAction(function(){ busy=false; if(playing) step(); }); }
+  playAction(function(){ busy=false;saveCombatCheckpoint();if(playing)setTimeout(function(){if(playing&&!SpacologyMenu.isOpen())step();},SpacologyMenu.preferences().reducedMotion?100:0); }); }
 function cancelSessionAutostart(){if(sessionAutoTimer){clearTimeout(sessionAutoTimer);sessionAutoTimer=null;}}
 $('bStep').onclick=function(){cancelSessionAutostart(); playing=false; $('bPlay').textContent='Play'; $('hState').textContent='step'; step(); };
-$('bPlay').onclick=function(){cancelSessionAutostart(); if(playing){ playing=false; this.textContent='Play'; $('hState').textContent='paused'; return; }
+$('bPlay').onclick=function(){if(SpacologyMenu.isOpen())return;cancelSessionAutostart(); if(playing){ playing=false; this.textContent='Play'; $('hState').textContent='paused'; return; }
   playing=true; this.textContent='Pause'; $('hState').textContent='running'; step(); };
 $('fab').onclick=function(){ $('bPlay').click(); };
 $('bReset').onclick=function(){cancelSessionAutostart(); build(G.team,G.planet); };
@@ -2968,7 +3010,7 @@ function loadSpacologySession(){
   var state=null;
   try{state=JSON.parse(localStorage.getItem(SpacologyStore.run));}catch(e){}
   if(!state||!state.field||!state.support) return false;
-  if(state.end==='retreated'||state.round>state.maxRounds){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
+  if(state.end==='retreated'||state.round>state.maxRounds||(SpacologyVoyage.active(state)&&(!state.voyageStarted||SpacologyVoyage.current(state)?.kind!=='battle'))){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
   var formationChanges=SpacologyFormation.normalize(state);
   if(formationChanges.length)localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
   if(!state.field.some(Boolean)||SpacologyCrew.slots(state)>6){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
@@ -3030,7 +3072,7 @@ function loadSpacologySession(){
     ship.brace+=part.brace||0;ship.survey=Math.max(ship.survey,part.survey||0);
   });
   TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew,ship:ship};
-  OPS_RUN_ROUND=state.round;
+  OPS_RUN_ROUND=state.round;OPS_NODE=SpacologyVoyage.current(state);
   OPS_FACTION=FACTION_ORDER[(state.round-1)%FACTION_ORDER.length];
   OPS_PLANET=window.SpacologyEnemyCatalogue?window.SpacologyEnemyCatalogue.generatePlanet('voyage-'+(state.seed||'star-singer')+'-'+state.round):null;
   OPS_HP=(1+(state.round-1)*.22)*difficulty.enemyScale*modifierEffects.enemyHp;
@@ -3041,38 +3083,78 @@ function loadSpacologySession(){
   OPS_PRESSURE=OPS_HP;
   FIELD=[3,3,4,4,5,6][Math.min(5,state.round-1)];
   OPS_WAVES=[2,2,2,3,3,3][Math.min(5,state.round-1)];
+  if(OPS_NODE){var profile=SpacologyVoyage.profile(state);OPS_HP=profile.hp*modifierEffects.enemyHp;OPS_DMG=profile.damage*modifierEffects.enemyDamage;OPS_SPEED=profile.speed;OPS_GUARD=profile.guard;OPS_RECOVERY=profile.recovery;FIELD=profile.field;OPS_WAVES=profile.waves;OPS_PRESSURE=OPS_HP;}
   POOL=FIELD*OPS_WAVES;
   MAXROUND=SpacologyVoyageSettings.roundLimit(state);
   $('rPool').value=POOL;$('vPool').textContent=POOL;
   var encounterFaction=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.FACTIONS[OPS_FACTION];
-  $('sessionTitle').textContent=(OPS_PLANET?OPS_PLANET.name+' · ':'')+rules.route[Math.min(5,state.round-1)];
+  $('sessionTitle').textContent=(OPS_PLANET?OPS_PLANET.name+' · ':'')+(OPS_NODE?OPS_NODE.name:rules.route[Math.min(5,state.round-1)]);
   $('sessionCrew').textContent=state.field.filter(Boolean).join(', ')+' on field · '+state.support.filter(Boolean).join(', ')+' off field';
-  $('sessionRound').textContent='ROUND '+state.round+' / '+state.maxRounds;
+  $('sessionRound').textContent=(OPS_NODE?'NODE ':'ROUND ')+state.round+' / '+state.maxRounds;
   $('sessionPressure').textContent=difficulty.label+' · '+(encounterFaction?encounterFaction.name+' · ':'')+rules.activeModifiers(state).length+' modifiers';
   var routeHost=document.querySelector('.session-route');if(routeHost)routeHost.innerHTML=rules.route.map(function(name,i){return '<div class="session-node '+(i+1<state.round?'done':i+1===state.round?'current':'')+'"><i>'+(i+1<state.round?'✓':i+1)+'</i><b>'+(i===5?'EXTRACT':'SURVEY')+'</b></div>'}).join('');
+  if(OPS_NODE&&routeHost)routeHost.innerHTML=SpacologyVoyage.route(state).filter(function(n){return n.sector===OPS_NODE.sector}).map(function(n){return '<div class="session-node '+(n.index<state.round?'done':n.index===state.round?'current':'')+'"><i>'+(n.index<state.round?'✓':n.index)+'</i><b>'+n.format.toUpperCase()+'</b></div>'}).join('');
   $('sessionIntegrity').textContent=state.integrity+'%';
   $('sessionGold').textContent=state.gold;
-  $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix};
+  $('sessionReturn').onclick=function(){if(G.over)location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix;else SpacologyMenu.openPause();};
   $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix};
   build('ops','spread');
   var treasureStatus=document.createElement('span');treasureStatus.id='treasureBattle';treasureStatus.setAttribute('role','status');document.querySelector('.battle-sidebar').appendChild(treasureStatus);paintTreasure();
   var controls=$('sessionControls'),play=$('bPlay'),logToggle=$('sessionLogToggle'),record=$('battleRecord');
   controls.insertBefore(play,logToggle);controls.appendChild($('sessionReturn'));
-  var retreat=document.createElement('button');retreat.id='sessionRetreat';retreat.textContent='RETREAT';retreat.setAttribute('aria-label','Retreat from voyage');controls.appendChild(retreat);
-  retreat.onclick=function(){
-    if(G.over)return;
-    if(!confirm('Retreat from this voyage? This ends the run. Normal encounter rewards are forfeited. Secured treasure and completed encounter records stay in your inbox.'))return;
-    cancelSessionAutostart();playing=false;G.over=true;clr();
-    var latest=JSON.parse(localStorage.getItem(SpacologyStore.run)||'null')||state;
-    if(latest.treasureSeed!==state.treasureSeed)return;
-    latest.end='retreated';latest.pack=null;
-    localStorage.setItem(SpacologyStore.run,JSON.stringify(latest));
-    localStorage.removeItem(SpacologyStore.result);
-    location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix;
-  };
+  var menuButton=document.createElement('button');menuButton.id='sessionMenu';menuButton.textContent='MENU';menuButton.setAttribute('aria-label','Open pause menu');controls.appendChild(menuButton);
+  menuButton.onclick=function(){SpacologyMenu.openPause();};
   logToggle.onclick=function(){var open=record.classList.toggle('open');this.setAttribute('aria-expanded',open?'true':'false');this.textContent=open?'CLOSE LOG':'COMBAT LOG';};
-  sessionAutoTimer=setTimeout(function(){sessionAutoTimer=null;if(G&&!G.over&&!playing)$('bPlay').click();},350);
+  installBattleMenu(state);
+  var restored=restoreCombatCheckpoint(state);
+  saveCombatCheckpoint();
+  if(SpacologyMenu.preferences().autoBattle&&!restored&&!document.hidden)sessionAutoTimer=setTimeout(function(){sessionAutoTimer=null;if(G&&!G.over&&!playing&&!SpacologyMenu.isOpen())$('bPlay').click();},350);
   return true;
+}
+
+var menuResumePlayback=false;
+function saveCombatCheckpoint(){
+  if(!window.SPACOLOGY_SESSION||!G||G.over||busy)return;
+  try{SpacologyPreferences.writeCheckpoint(window.SPACOLOGY_SESSION,G);}catch(e){/* Pause explicitly reports a failed save before allowing navigation. */}
+}
+function restoreCombatCheckpoint(state){
+  var saved=SpacologyPreferences.readCheckpoint(state);if(!saved)return false;
+  G=saved.combat;G.visualHP=null;G.visualBar=null;G.visualAether=null;playing=false;busy=false;
+  if(G.treasureInfo&&state.treasureClaims.includes(G.treasureInfo.id)){
+    G.treasureStatus='collected';G.treasureReward=SpacologyTreasure.rollReward(G.treasureInfo);
+    var carrier=G.units.find(function(u){return u.treasure});if(carrier){carrier.hp=0;carrier.alive=false;carrier.retired=true;}
+  }
+  ribbons();paintAll();track();reflowFoes();clearStage();
+  $('bPlay').textContent='Play';$('hState').textContent='saved battle';
+  log('Saved battle restored. Press Play when ready.','rnd');return true;
+}
+async function pauseSessionForMenu(){
+  menuResumePlayback=playing||!!sessionAutoTimer;
+  cancelSessionAutostart();playing=false;$('bPlay').textContent='Play';$('hState').textContent='paused';
+  while(busy)await new Promise(function(resolve){setTimeout(resolve,30)});
+  if(!G.over)SpacologyPreferences.writeCheckpoint(window.SPACOLOGY_SESSION,G);
+}
+function installBattleMenu(state){
+  SpacologyMenu.init({mode:'battle',state:function(){try{return JSON.parse(localStorage.getItem(SpacologyStore.run))||state}catch(_){return state}},canPause:function(){return !!G&&!G.over},pause:pauseSessionForMenu,
+    resume:function(){if(menuResumePlayback&&!G.over&&!playing)$('bPlay').click();menuResumePlayback=false;},
+    home:function(){if(!G.over)SpacologyPreferences.writeCheckpoint(state,G);location.href='spacology-v0.1.0.html?menu=1'+SpacologyStore.suffix;},
+    retreat:function(){
+      if(G.over){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix;return;}
+      var latest=JSON.parse(localStorage.getItem(SpacologyStore.run))||state;
+      if(latest.treasureSeed!==state.treasureSeed)return;
+      cancelSessionAutostart();playing=false;G.over=true;clr();latest.end='retreated';latest.pack=null;
+      localStorage.setItem(SpacologyStore.run,JSON.stringify(latest));localStorage.removeItem(SpacologyStore.result);SpacologyPreferences.clearCheckpoint();
+      location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix;
+    },
+    applyPreferences:function(p){
+      MODE=p.reducedMotion?'none':'full';$('rTempo').value=p.speed*100;$('vTempo').textContent=p.speed*100+'%';
+      $('rDens').value=p.effects==='full'?100:p.effects==='low'?30:0;$('vDens').textContent=$('rDens').value+'%';
+      $('rBloom').value=p.effects==='full'?8:p.effects==='low'?3:0;$('vBloom').textContent=$('rBloom').value+'px';
+      if(p.effects==='off'||p.reducedMotion)pxClear();
+    }
+  });
+  document.addEventListener('keydown',function(e){if(e.code!=='Space'||e.repeat||SpacologyMenu.isOpen()||document.querySelector('dialog[open]')||['INPUT','SELECT','TEXTAREA','BUTTON','A'].includes(e.target.tagName))return;e.preventDefault();if(!G.over)$('bPlay').click();});
+  document.addEventListener('visibilitychange',function(){if(document.hidden&&SpacologyMenu.preferences().pauseOnHide&&!G.over&&!SpacologyMenu.isOpen())SpacologyMenu.openPause();});
 }
 
 pxInit();

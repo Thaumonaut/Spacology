@@ -207,6 +207,13 @@ function registerFaction(id,{types,...definition}){
 
 Object.keys(FACTIONS).forEach(refreshFactionTypes);
 
+// Summoners initially reuse each faction's command-organ artwork.
+registerArchetype('summoner',{label:'Summoner',cue:'brood chamber or assembly nest',problem:'enemy reinforcements'});
+const summonerNames={ossuary:'Brood Reliquary',mycelial:'Spore Nursery',glasswake:'Prism Loom',tideworn:'Tide Hatchery',tannhul:'Ember Broodmother',custodian:'Assembly Nest',redaction:'Echo Nursery'};
+Object.entries(summonerNames).forEach(([faction,name])=>registerEnemyType(faction,'summoner',{
+  name,body:FACTIONS[faction].roleBodies.anchor[0],portrait:ARCHETYPE_PORTRAITS[faction].anchor
+}));
+
 const NULL_STAGES=[
   {id:'clear',weight:5,symptoms:['none']},
   {id:'touched',weight:42,symptoms:['repeated motion','wrong shadow','faded colour','compulsive route']},

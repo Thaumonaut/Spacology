@@ -55,10 +55,11 @@ body{padding:0}.frame{width:100vw;height:100vh;max-height:none;aspect-ratio:auto
 <link rel="stylesheet" href="ops-room.css">
 <style>.returning-to-ops #titleScreen{display:none!important}</style>
 <script>if(new URLSearchParams(location.search).get('return')==='1')document.documentElement.classList.add('returning-to-ops');</script>
+<link rel="stylesheet" href="game-menu.css">
 </head>
 <body><div class="frame">
-  <section class="title-screen" id="titleScreen" aria-label="Spacology title screen"><div class="title-copy"><div class="eyebrow">ARC 017 - STAR SINGER · VOYAGE 01</div><h1>Spacology</h1><p>Build a field crew, study an impossible ecology, and bring a record home before the Null erases it.</p><div class="title-actions"><button class="primary" id="enterOps">ENTER OPS ROOM</button><a href="art-gallery.html">OPEN ART ARCHIVE</a><a href="aether-weavers.html">AETHER WEAVERS</a></div></div></section>
-  <header class="topbar"><div class="status"><div class="room"><b>Ops room</b><span>VOYAGE 01 · PHOMOUS</span></div><div class="stat integrity"><b>74%</b><span>INTEGRITY</span></div><div class="stat gold"><b id="gold">102</b><span>GOLD</span></div></div><nav class="round-map" aria-label="Current round map"><div class="node complete"><i>✓</i><b>ARRIVE</b></div><div class="node complete"><i>✓</i><b>SALVAGE</b></div><div class="node complete"><i>✓</i><b>CONTACT</b></div><div class="node current"><i>1</i><b>OPS</b></div><div class="node"><i>5</i><b>FIELDWORK</b></div><div class="node"><i>6</i><b>SPECIMEN</b></div><div class="node"><i>7</i><b>RECOVER</b></div></nav><div class="run-meta"><b>ROUND 1 · CONTAINMENT</b><span>Major specimen ahead · Survey I</span><div class="run-icons"><a class="round-icon" href="art-gallery.html" aria-label="Open art archive">◉</a><button class="round-icon" data-info="modifiers">Ⅲ</button><button class="round-icon" data-info="map">⌁</button><button class="round-icon" id="retreatRun" style="width:auto">RETREAT</button><button class="round-icon" aria-label="Pause">Ⅱ</button></div></div></header>
+  <section class="title-screen" id="titleScreen" aria-label="Spacology main menu"><div class="title-orbit" aria-hidden="true"></div><div class="title-copy"><div class="eyebrow">STAR SINGER · EXPEDITION CONTROL</div><h1>Spacology</h1><p>Build a field crew. Explore an impossible ecology. Bring a record home.</p><nav class="title-actions" aria-label="Main menu"><button class="primary" id="enterOps">CONTINUE VOYAGE</button><button id="titleNewVoyage">NEW VOYAGE</button><button id="titleSettings">SETTINGS</button><button id="titleHelp">HOW TO PLAY</button></nav><div class="title-secondary"><a href="art-gallery.html">Art archive ↗</a><a href="aether-weavers.html">Weaver expeditions ↗</a></div></div><aside class="save-preview" id="savePreview" aria-label="Saved voyage"></aside><footer class="title-footer"><span>EXPLORATION BEGINS WITH CURIOSITY</span><span>LOCAL PLAYTEST · v0.1</span></footer></section>
+  <header class="topbar"><div class="status"><div class="room"><b>Ops room</b><span>VOYAGE 01 · PHOMOUS</span></div><div class="stat integrity"><b>74%</b><span>INTEGRITY</span></div><div class="stat gold"><b id="gold">102</b><span>GOLD</span></div></div><nav class="round-map" aria-label="Current round map"><div class="node complete"><i>✓</i><b>ARRIVE</b></div><div class="node complete"><i>✓</i><b>SALVAGE</b></div><div class="node complete"><i>✓</i><b>CONTACT</b></div><div class="node current"><i>1</i><b>OPS</b></div><div class="node"><i>5</i><b>FIELDWORK</b></div><div class="node"><i>6</i><b>SPECIMEN</b></div><div class="node"><i>7</i><b>RECOVER</b></div></nav><div class="run-meta"><b>ROUND 1 · CONTAINMENT</b><span>Major specimen ahead · Survey I</span><div class="run-icons"><a class="round-icon" href="art-gallery.html" aria-label="Open art archive">◉</a><button class="round-icon" data-info="modifiers">Ⅲ</button><button class="round-icon" data-info="map">⌁</button><button class="round-icon" id="pauseGame" style="width:auto" aria-label="Open pause menu">MENU</button><button id="retreatRun" hidden>RETREAT</button><button class="round-icon" aria-label="Pause">Ⅱ</button></div></div></header>
 
   <section class="supply"><div class="pack-select" id="packSelect">
     <article class="pack"><div class="kind">MECHANIC PACK</div><div class="price">26g</div><h3>Rot &amp; Bloom</h3><p>Ailments, spread, and detonation.</p><div class="odds">70% themed · 14% Prime</div><div class="pack-actions"><button data-preview="rot">PREVIEW</button><button class="open" data-open="rot">OPEN</button></div></article>
@@ -116,7 +117,10 @@ const info={modifiers:['SURVEY III','Difficulty and modifiers','Specimens use ad
 document.getElementById('closeModal').onclick=()=>overlay.classList.remove('open');overlay.onclick=e=>{if(e.target===overlay)overlay.classList.remove('open')};renderInventory('characters');
 </script>
 <script src="voyage-settings.js"></script>
+<script src="voyage-rules.js"></script>
 <script src="session-store.js"></script>
+<script src="game-preferences.js"></script>
+<script src="game-menu.js"></script>
 <script src="expedition-rules.js"></script>
 <script src="treasure-rules.js"></script>
 <script src="field-progression.js"></script>
@@ -127,6 +131,6 @@ document.getElementById('closeModal').onclick=()=>overlay.classList.remove('open
 <script src="../sim/enemy-catalogue.js"></script>
 <script src="crew-progression.js"></script>
 <script src="spacology-v0.1.0.js"></script>
-<script>document.getElementById('enterOps').onclick=()=>document.getElementById('titleScreen').hidden=true;</script>
+
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('../sw.js');</script>
 </body></html>

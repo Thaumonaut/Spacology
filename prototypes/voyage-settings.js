@@ -15,6 +15,10 @@
   function roundLimit(state) {
     const settings = difficulties[normalize(state).difficulty];
     const index = Math.max(0, Math.min(5, Math.floor(Number(state && state.round) || 1) - 1));
+    if(state?.voyageVersion===1){
+      const sector=Math.min(3,Math.ceil(state.round/7)),boss=state.round%7===0;
+      return (state.difficulty==='relaxed'?7:state.difficulty==='hard'?5:6)+(sector-1)+(boss?1:0);
+    }
     return settings.roundLimits[index];
   }
   window.SpacologyVoyageSettings = Object.freeze({ difficulties, normalize, roundLimit });

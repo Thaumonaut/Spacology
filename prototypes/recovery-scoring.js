@@ -17,6 +17,13 @@
       total += value;
       if (defeated.has('f' + index)) earned += value;
     });
+    const bossIndex=pool.findIndex(enemy=>enemy.boss);
+    if(bossIndex>=0){
+      const boss=units.find(unit=>unit.id==='f'+bossIndex);
+      const max=pool[bossIndex].hp;
+      const hp=boss?Math.max(0,Math.min(boss.lowestHP??max,boss.hp)):max;
+      total=100;earned=Math.floor(80*(1-hp/max))+(defeated.has('f'+bossIndex)?20:0);
+    }
     let index = 0;
     if (total) bands.forEach((band, i) => { if (earned * 100 >= band.minimum * total) index = i; });
     const band = bands[index];

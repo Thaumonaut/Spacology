@@ -61,3 +61,11 @@ SPACOLOGY_BASE_URL=http://127.0.0.1:4173 node /Users/jek/.agents/skills/playwrig
 ```
 
 `aether-pool.cjs` checks shared Aether generation and spending in the real resolver, Weaver capacity/generation, overcharging, pool bounds, and unchanged individual ultimate spending. `node tests/unit/aether-rules.cjs` covers reservations, emergency override, capacity loss, capped generation, and failed payment. Balance across the full voyage remains to be tuned.
+
+### Three-sector voyage fixtures
+
+New saves now begin at a setup reward and require starting difficulty selection. Browser fixtures that navigate directly to combat must either start the voyage and reach a battle node, or explicitly set `voyageVersion: 0, maxRounds: 6` to test the legacy route. See [voyage-node validation](../../docs/testing/voyage-nodes.md) for the full-route and difficulty checks. Pure route invariants are retained in `tests/unit/voyage-rules.cjs`.
+
+### Main menu and pause
+
+Fresh voyages now start through `#titleNewVoyage`, a `[data-difficulty]` choice and `[data-menu="depart"]`. `#enterOps` is Continue for an existing voyage and resumes combat if a checkpoint is present. See [game-menu behavior and validation](../../docs/testing/game-menus.md) for pause, preferences and checkpoint coverage. `tests/unit/game-preferences.cjs` retains the storage and normalization regressions.

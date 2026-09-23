@@ -25,27 +25,31 @@
     if (!state?.treasureSeed || state.end || state.round > state.maxRounds) return null;
     const round = Number(state.round);
     // Two bounded opportunities on the current six-encounter route, never the opener/finale.
-    const rounds = [2 + hash(state.treasureSeed+'-early') % 2, 4 + hash(state.treasureSeed+'-late') % 2];
+    const rounds = state.voyageVersion===1 ? [1,2,3].map(sector=>{
+      const candidates=window.SpacologyVoyage.route(state).filter(n=>n.sector===sector&&n.kind==='battle'&&!['elite','boss'].includes(n.format));
+      return candidates[hash(state.treasureSeed+'-carrier-'+sector)%candidates.length].index;
+    }) : [2 + hash(state.treasureSeed+'-early') % 2, 4 + hash(state.treasureSeed+'-late') % 2];
     if (!rounds.includes(round)) return null;
-    return {id:state.treasureSeed+'-treasure-'+round, round, escapeAV:240};
+    return {id:state.treasureSeed+'-treasure-'+round, round, lootLevel:state.voyageVersion===1?Math.ceil(round/7)*2:round, escapeAV:240};
   }
   function rollReward(info) {
     const random = rng(info.id), pick = list => list[Math.floor(random()*list.length)];
     const tier = random() < .75 ? 2 : 3, weights = pools[tier], roll = random()*100;
-    const contents = {gold:4+tier*2+info.round, scrap:0, crystals:0, gear:[]};
+    const lootLevel=info.lootLevel||info.round;
+    const contents = {gold:4+tier*2+lootLevel, scrap:0, crystals:0, gear:[]};
     if (roll < weights.currency) {
       const currency = random();
       if (currency < .6) contents.gold += 10+tier*4;
       else if (currency < .9) contents.scrap = tier*4;
       else contents.crystals = tier === 3 ? 2 : 1;
     } else contents.gear.push(pick(roll < weights.currency+weights.basic ? basic : advanced));
-    return {id:info.id, round:info.round, gold:8+info.round*2, item:pick(advanced),
-      cache:{id:info.id+'-cache', round:info.round, tier, contents, opened:false}};
+    return {id:info.id, round:info.round, lootLevel, gold:8+lootLevel*2, item:pick(advanced),
+      cache:{id:info.id+'-cache', round:info.round, tier, baseGold:4+tier*2+lootLevel, contents, opened:false}};
   }
   function collect(state, reward) {
     normalize(state);
     if (!reward || state.treasureClaims.includes(reward.id)) return false;
-    const expected = rollReward({id:reward.id, round:reward.round});
+    const expected = rollReward({id:reward.id, round:reward.round, lootLevel:state.voyageVersion===1?Math.ceil(reward.round/7)*2:reward.round});
     if (reward.id !== state.treasureSeed+'-treasure-'+reward.round) return false;
     state.gold += expected.gold;
     (state.gear ||= []).push(expected.item); // Duplicates remain useful owned copies.

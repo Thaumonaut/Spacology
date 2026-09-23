@@ -1,0 +1,13 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
+const storage=new Map(),context={localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},matchMedia:()=>({matches:true}),SpacologyStore:{run:'mainRun'}};context.window=context;vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../../prototypes/game-preferences.js'),'utf8'),context);
+const P=context.SpacologyPreferences,clone=value=>JSON.parse(JSON.stringify(value));
+assert.equal(P.load().reducedMotion,true);assert.equal(P.load().autoBattle,true);
+const saved=P.save({speed:'2',effects:'off',reducedMotion:false,autoBattle:false,pauseOnHide:true,recovery:'revive'});assert.deepEqual(clone(P.load()),clone(saved));assert.equal(saved.speed,2);
+const bad=P.normalize({speed:1000,effects:'invalid',recovery:'broken',autoBattle:'false'});assert.equal(bad.speed,1);assert.equal(bad.effects,'full');assert.equal(bad.recovery,'revive');assert.equal(bad.autoBattle,true);
+storage.set('spacologyPreferencesV1','{');assert.equal(P.load().reducedMotion,true);
+const state={treasureSeed:'voyage-a',round:4,maxRounds:21},combat={team:'ops',av:147,round:2,limit:7,over:false,units:[{id:'a0',hp:53,av:24},{id:'f1',hp:19,av:5,shL:1,shC:8}],pool:[{n:'enemy'}],pending:{id:'a0',av:83},aether:{current:5,max:14},visualHP:{a0:99},damageTimeline:[{dmg:20}]};
+assert(P.writeCheckpoint(state,combat));const checkpoint=P.readCheckpoint(state);assert.equal(checkpoint.combat.av,147);assert.equal(checkpoint.combat.units[0].hp,53);assert.deepEqual(clone(checkpoint.combat.pending),combat.pending);assert.equal(checkpoint.combat.visualHP,null);assert.deepEqual(clone(checkpoint.combat.damageTimeline),[]);assert.equal(combat.visualHP.a0,99);
+assert.equal(P.readCheckpoint({...state,round:5}),null);assert.equal(P.readCheckpoint({...state,treasureSeed:'voyage-b'}),null);assert.equal(P.readCheckpoint({...state,end:'retreated'}),null);assert.equal(P.readCheckpoint({...state,maxRounds:3}),null);
+context.SpacologyStore.run='weaverRun';assert.equal(P.readCheckpoint(state),null);assert(P.writeCheckpoint(state,combat));P.clearCheckpoint();assert.equal(P.readCheckpoint(state),null);context.SpacologyStore.run='mainRun';assert(P.readCheckpoint(state));
+assert.equal(P.writeCheckpoint(state,{...combat,over:true}),false);P.clearCheckpoint();assert.equal(P.readCheckpoint(state),null);storage.set('mainRunCombatV1','not json');assert.equal(P.readCheckpoint(state),null);
+console.log('PASS preference validation, reduced-motion default, persistence, exact combat checkpoint, stale/ended voyage rejection and independent save slots.');

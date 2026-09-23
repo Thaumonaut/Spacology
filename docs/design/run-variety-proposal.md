@@ -1,5 +1,8 @@
 # Run variety: encounter formats and voyage modifiers
 
+**Playable update (2026-09-22):** New voyages now use the three seven-node sectors, starting difficulty selection, survey/swarm/ambush battles, elite and two-phase boss encounters, and supply/workshop/research rewards. Modifier stops are nodes 3, 10 and 17. Existing six-battle saves finish on their original route. See [implementation and validation](../testing/voyage-nodes.md) for the shipped subset, exact tuning and remaining proposals. The original baseline and broader proposals below remain as design history.
+
+
 Status: design only, not implemented. The three-set route below is user-confirmed; encounter mechanics, reward contents and modifier details remain proposals. This document records the requested revision to the older run structure in the design record.
 
 Requested direction: three sets of seven nodes. Set 1 follows Setup reward → Basic battle → Modifier selection → Basic battle → Elite battle → Reward → Boss battle. Sets 2 and 3 replace the opening reward with another basic battle; the initial reward exists to help establish the starting formation. Randomize encounter and reward types within a fair, recognizable formula. Difficulty increases after each boss before the next set; the third boss ends the voyage. Add a distinct boss format, mob swarms containing only small weak enemies and no elites, and other encounter variety within that structure. Modifier selection happens between battles. The encounter details and numbers below are starting proposals, not balance findings.
