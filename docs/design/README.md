@@ -29,10 +29,18 @@ document in this folder contradicts it, this one wins.
 | `roster-design.md` | The six tags with measured breakpoint tables per world |
 | `store.md` | The pack store and the scrap economy |
 | `modifiers.md` | The world-condition pool and its category caps |
+| `run-variety-proposal.md` | **Design revision:** three seven-node sets, basic/elite/boss formats, reward nodes, and one modifier selection per set |
+| `recovery-inbox-and-equipment-proposal.md` | **Proposal:** top-left tiered reward caches, consumable adjustment tools, visible illustrated equipment, and direct equipping |
 | `synergy-deep-dive.md` | Structural analysis of synergy systems, with ratings against this game's constraints |
 | `synergy-notes.md` | Character-level combination testing |
 | `pipeline-notes.md` | The genetic search over rosters — designer / composer / evaluator |
 | `cw-teardown.md` | Teardown of the main reference point, with verdicts |
+
+## Deferred expansion ideas
+
+| File | What it preserves |
+|---|---|
+| `fantasy-factions-proposal.md` | Goblins, undead, vampires and other possible future peoples and enemies. Deferred at the user's request; outside current work. Treasure carriers remain part of the current rewards proposal and can use existing factions. |
 
 ## Superseded exploration
 

@@ -51,6 +51,7 @@ h1{font-size:15px;font-weight:500;margin:0 0 2px}
   line-height:1.25}
 .tk .tw{font-size:8px;color:var(--ink3);line-height:1.1}
 .tk.now .tw{color:var(--energy)}
+.tk.bonus-turn{box-shadow:inset 3px 0 #8fe0c1}.tk.bonus-turn .tw{color:#8fe0c1;font-weight:700}
 .tk.ultready{border-color:var(--energy);background:#332B1E;color:var(--energy);
   order:-1;animation:readypulse 1.9s ease-in-out infinite}
 .tk.ultready .tn{font-weight:700;color:var(--energy)}
@@ -275,8 +276,9 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 @media(max-width:900px){.session-mode .tcol{flex-basis:110px;min-width:110px}.session-mode .tk .tn{font-size:11px}.session-mode .track{max-height:420px}}
 
 .aether-meter{display:block;width:100%;margin:8px 0;padding:9px;border:1px solid #3c5267;border-radius:7px;background:#101c29;color:#c8b6ef;text-align:left;cursor:pointer}.aether-meter[hidden]{display:none}.aether-meter>b{float:right}.aether-meter>span:first-child{font-size:11px;letter-spacing:.08em}.aether-pips{display:flex;gap:3px;margin-top:7px}.aether-pips i{flex:1;max-width:12px;min-width:0;height:10px;border-radius:3px;background:#273447}.aether-pips i.filled{background:#baa0e8}
+.session-mode .rc.treasure-carrier{border:2px solid #efc879;box-shadow:0 0 16px #efc87955!important}.treasure-badge{position:absolute;right:4px;top:3px;z-index:4;color:#ffe2a0;font-size:22px;text-shadow:0 0 8px #000}.treasure-marker{color:#efc879!important}#treasureBattle{display:block;color:#efc879;font-size:11px;line-height:1.5;padding:9px;border:1px solid #9c8050;border-radius:6px;background:#132129}#treasureBattle[hidden]{display:none}
 </style>
-<style>.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
+<style>body.session-mode{grid-template-columns:minmax(0,1fr)}body.session-mode .sessionbar{grid-template-columns:minmax(170px,215px) minmax(0,1fr) 160px auto}.session-mode .session-status{min-width:0}.session-mode .session-status b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:minmax(0,1fr) 150px auto}}@media(max-width:760px){body.session-mode .sessionbar{grid-template-columns:minmax(0,1fr) auto}}.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
 </head>
 <body>
 
@@ -410,6 +412,7 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 <script src="recovery-scoring.js"></script>
 <script src="session-store.js"></script>
 <script src="expedition-rules.js"></script>
+<script src="treasure-rules.js"></script>
 <script src="field-progression.js"></script>
 <script src="weaver-roster.js"></script>
 <script src="formation-rules.js"></script>
@@ -829,6 +832,7 @@ function build(team,planet){
       weak:pl.weak[q%pl.weak.length].slice(), layers:base.layers+(elite?Math.min(1,Math.floor((eliteTier-1)/2)):0)});
   }
   spawnFoes();
+  spawnTreasureCarrier();
   var cov=coverage(team,planet);
   var bios=t.crew.filter(function(c){return c.bio}).map(function(c){
     return '<b>'+c.n+'</b> \u2014 '+c.bio; }).join('<br>');
@@ -889,7 +893,7 @@ function tagNote(){
     '<span style="color:var(--ink3)">no tag reaches two</span>';
 }
 function spawnFoes(){
-  var live=G.units.filter(function(u){return u.side==='foe'&&u.alive}).length;
+  var live=G.units.filter(function(u){return u.side==='foe'&&u.alive&&!u.treasure}).length;
   var added=[];
   if(live||G.spawned>=G.pool.length) return added;
   G.wave=G.pool[G.spawned].wave;
@@ -907,6 +911,55 @@ function spawnFoes(){
   }
   updateEnemyCounter();
   return added;
+}
+function spawnTreasureCarrier(){
+  if(!window.SPACOLOGY_SESSION)return;
+  var info=SpacologyTreasure.encounter(window.SPACOLOGY_SESSION);
+  if(!info||FIELD>=6)return;
+  G.treasureInfo=info;
+  if(window.SPACOLOGY_SESSION.treasureClaims.includes(info.id)){G.treasureStatus='collected';G.treasureReward=SpacologyTreasure.rollReward(info);return;}
+  var model=G.units.find(function(u){return u.side==='foe'&&!u.elite});
+  if(!model)return;
+  var carrier=Object.assign({},model,{id:'treasure',n:'Treasure carrier',typeName:'Treasure carrier · '+model.n,
+    treasure:true,elite:false,eliteTier:0,hp:55+OPS_RUN_ROUND*12,max:55+OPS_RUN_ROUND*12,
+    dmg:0,haste:0,cleanse:0,trait:'Treasure',shMax:1,shL:1,shC:10,shieldPer:10,
+    av:0,frac:0,survey:0,bar:0,escapeAt:G.av+info.escapeAV});
+  G.units.push(carrier);G.treasureStatus='present';
+}
+function settleTreasure(ending){
+  if(!G||!G.treasureInfo)return;
+  var carrier=U('treasure');
+  if(!carrier||G.treasureStatus!=='present')return;
+  if(!carrier.alive&&carrier.hp<=0){
+    G.treasureStatus='collected';G.treasureReward=SpacologyTreasure.rollReward(G.treasureInfo);
+    // Save immediately, including on partial extraction or a subsequent retreat.
+    var saved=JSON.parse(localStorage.getItem(SpacologyStore.run)||'null');
+    if(saved&&saved.treasureSeed===window.SPACOLOGY_SESSION.treasureSeed&&saved.round===OPS_RUN_ROUND){
+      SpacologyTreasure.collect(saved,G.treasureReward);
+      localStorage.setItem(SpacologyStore.run,JSON.stringify(saved));
+      $('sessionGold').textContent=saved.gold;
+    }
+    log('<b>Treasure secured</b> · +'+G.treasureReward.gold+' gold · '+G.treasureReward.item+' · Tier '+G.treasureReward.cache.tier+' cache saved to Ops.','chain');
+  }else if(ending||G.av>=carrier.escapeAt||!G.units.some(function(u){return u.side==='foe'&&!u.treasure&&u.alive})){
+    carrier.alive=false;carrier.escaped=true;carrier.retired=true;carrier.retiring=false;
+    var card=$('r-'+carrier.id);if(card)card.remove();
+    G.treasureStatus='escaped';log('Treasure carrier escaped. Mission rewards are unchanged.','rnd');
+  }
+  paintTreasure();
+}
+function paintTreasure(){
+  var el=$('treasureBattle');if(!el)return;
+  el.hidden=!G.treasureInfo;
+  if(!G.treasureInfo)return;
+  var carrier=U('treasure');
+  el.textContent=G.treasureStatus==='collected'?'✦ TREASURE SECURED · cache saved':G.treasureStatus==='escaped'?'✦ CARRIER ESCAPED':
+    '✦ TREASURE · escapes in '+Math.max(0,Math.ceil(carrier.escapeAt-G.av))+' AV · '+(window.SPACOLOGY_SESSION.treasureOrder==='mission'?'mission first':'pursuing');
+}
+function treasureTargets(pool){
+  if(!window.SPACOLOGY_SESSION)return pool;
+  var carrier=pool.find(function(u){return u.treasure&&u.alive});
+  if(!carrier)return pool;
+  return window.SPACOLOGY_SESSION.treasureOrder==='mission'?pool.filter(function(u){return !u.treasure}):[carrier];
 }
 function U(id){ for(var i=0;i<G.units.length;i++) if(G.units[i].id===id) return G.units[i]; }
 var CREW_PORTRAITS={Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'};
@@ -934,7 +987,7 @@ function log(t,c){ var d=document.createElement('div'); if(c)d.className=c;
 /* ============ ribbons ============ */
 function ribbons(){
   var fc=G.units.filter(function(u){
-    return u.side==='foe'&&(u.alive||u.retiring)}).length;
+    return u.side==='foe'&&(u.alive||(!u.retired&&u.retiring))}).length;
   var fr=$('foes');
   // enemies always read as one line, however many there are
   fr.className='ribbon'+(fc>7?' tighter':fc>4?' tight':'');
@@ -945,11 +998,11 @@ function ribbons(){
     if(p[0]==='crewBack')host.classList.toggle('summon-packed',G.units.filter(function(u){return u.side==='ally'&&u.row==='back'}).length>7);
     G.units.filter(function(u){
       return u.side===p[1] && (!p[2]||u.row===p[2])
-        && (u.side==='ally' || u.alive || u.retiring); }).forEach(function(u){
-      var d=document.createElement('div'); d.className='rc holo'+(u.elite?' elite':''); d.id='r-'+u.id;
+        && (u.side==='ally' || u.alive || (!u.retired&&u.retiring)); }).forEach(function(u){
+      var d=document.createElement('div'); d.className='rc holo'+(u.elite?' elite':'')+(u.treasure?' treasure-carrier':''); d.id='r-'+u.id;
       applyCrewPortrait(d,u);
       applyEnemyPortrait(d,u);
-      d.innerHTML='<div class="rn">'+u.n+'</div>'+
+      d.innerHTML=(u.treasure?'<span class="treasure-badge" aria-label="Bonus treasure">✦</span>':'')+'<div class="rn">'+u.n+'</div>'+
         (u.side==='foe'?'<div class="wk" id="wk-'+u.id+'"></div>'
           :'<div class="re" style="color:'+EL[u.e]+'">'+u.e+'</div>')+
         '<div class="rb"><b></b><i></i></div>'+
@@ -976,6 +1029,7 @@ function ribbons(){
 var inspectionWasPlaying=false;
 function inspectEnemy(id){
   var u=U(id);if(!u||u.side!=='foe')return;
+  if(u.treasure){openBattleDetails('<h2 id="enemyDetailTitle">Treasure carrier</h2><p>'+u.factionName+' · '+u.archetypeName+'</p><p>Optional, non-attacking hoarder. Defeat it for bonus gold, rare equipment and a Tier II or III Treasure cache. It escapes after 240 AV or when this wave is cleared.</p><p>'+Math.max(0,Math.ceil(u.escapeAt-G.av))+' AV until escape · '+Math.max(0,u.hp)+' / '+u.max+' HP.</p><p>It awards no recovery points and never blocks a wave or mission completion. Pursue treasure focuses direct attacks; mission first leaves it to incidental area damage.</p>');return;}
   var behavior=u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
     u.cleanse?'Sheds '+u.cleanse+' fracture stacks before each attack.':
     u.trait==='Fast'?'Short waits between attacks. Can act between slower crew members.':
@@ -1025,7 +1079,7 @@ function paintDeadline(){
 $('battleDeadline').onclick=function(){
   openBattleDetails('<h2 id="enemyDetailTitle">Win before extraction</h2><p>Each round spans <b>100 Action Value (AV)</b> on this turn order. The round markers keep moving regardless of who acts. At the final marker the battle ends.</p><p><b>Speed</b> shortens the wait between turns. <b>Action advances</b> pull a crewmate ahead of the next marker, fitting more attacks into the same rounds. Ultimates and follow-ups resolve without spending another turn. Enemy delays give you safer attack windows; they do not add rounds.</p><p>With Recover enabled, a downed crew member returns at 50% health and the deadline moves 50 AV closer. Recovery does not advance anyone else’s turn. Last Stand is an alternative setting. Back-row crew remain untargetable.</p><p>Animation speed and pausing never spend rounds. '+(G.allyTurns||0)+' crew turns so far; '+(G.advances||0)+' advances have removed '+Math.round(G.advanceSaved||0)+' AV of waiting. This is combined crew waiting saved, not extra battle time.</p>');
 };
-function paintAll(){ paintDeadline();paintRecovery();paintAether();G.units.forEach(function(u){ paintUnit(u) });
+function paintAll(){ paintTreasure();paintDeadline();paintRecovery();paintAether();G.units.forEach(function(u){ paintUnit(u) });
   $('hRound').textContent=G.round; $('hMax').textContent=G.limit;
   $('hMax').style.color=G.limit<MAXROUND?'#E88':'';
   var objective=document.querySelector('.session-objective');
@@ -1034,7 +1088,7 @@ function paintAll(){ paintDeadline();paintRecovery();paintAether();G.units.forEa
 }
 function updateEnemyCounter(){
   var enemyCounter=$('enemyCounter');if(!enemyCounter||!G)return;
-  var alive=G.units.filter(function(u){return u.side==='foe'&&u.alive}).length;
+  var alive=G.units.filter(function(u){return u.side==='foe'&&u.alive&&!u.treasure}).length;
   enemyCounter.textContent='WAVE '+Math.max(1,G.wave)+' / '+G.totalWaves+' · '+(alive+G.pool.length-G.spawned)+' REMAINING';
 }
 function paintUnit(u,silent){
@@ -1109,22 +1163,16 @@ function paintWeak(u){
   });
 }
 function retireFoe(id){
-  var u=U(id); if(!u||u.retired) return;
-  u.retired=true;
-  var card=$('r-'+id);
-  if(!card||MODE==='none'){ u.retiring=false; reflowFoes(); return; }
-  card.style.transition='transform 320ms cubic-bezier(.5,0,.8,.2), opacity 320ms ease';
-  card.style.transform='scale(.72) translateY(10px)';
-  card.style.opacity='0';
-  setTimeout(function(){
-    u.retiring=false;      // clearing this is what lets the ribbon drop the card
-    reflowFoes();
-  }, 340);
+  var u=U(id); if(!u||u.side!=='foe'||u.alive) return;
+  // Release the dock slot at the killing impact. Stage cards and floating text
+  // have their own lifetime, so the final damage can remain readable.
+  u.retired=true; u.retiring=false;
+  reflowFoes();
 }
 // anything that died without a death animation still has to leave
 function sweepFoes(){
   var gone=G.units.filter(function(u){
-    return u.side==='foe' && !u.alive && !u.retired; });
+    return u.side==='foe' && !u.alive && (!u.retired||u.retiring); });
   if(!gone.length) return;
   gone.forEach(function(u){ u.retired=true; u.retiring=false; });
   reflowFoes();
@@ -1246,11 +1294,21 @@ function bloomReady(){
   G.units.forEach(function(u){ if(u.side==='foe'&&u.alive) st+=(u.frac||0); });
   return st>=10;
 }
+function silenBonusTurn(){
+  var chain=G.silenChain,session=window.SPACOLOGY_SESSION||{};
+  if(!chain||!G.aether||G.aether.current<1+(chain.reserve||0))return null;
+  var actor=U(chain.actor),target=U(chain.target);
+  if(!actor||!actor.alive||!SpacologyAether.overchargeEnabled(session,actor.n)||(session.aetherModes||{})[actor.n]==='build')return null;
+  if(!target||!target.alive)target=treasureTargets(liveFoes()).slice().sort(function(a,b){return b.hp-a.hp})[0];
+  if(!target&&G.spawned>=G.pool.length)return null;
+  return {actor:actor,target:target,chain:chain};
+}
 function project(n){
-  var sim=G.units.filter(function(u){return u.alive})
+  var sim=G.units.filter(function(u){return u.alive&&!u.treasure})
     .map(function(u){return {u:u,av:G.pending&&G.pending.id===u.id?G.pending.av:u.av}});
-  var out=[],elapsed=0;
-  for(var k=0;k<n;k++){ sim.sort(function(a,b){return a.av-b.av});
+  var out=[],elapsed=0,bonus=silenBonusTurn();
+  if(bonus&&n>0)out.push({u:bonus.actor,wait:0,bonus:true,index:bonus.chain.index});
+  for(var k=out.length;k<n;k++){ sim.sort(function(a,b){return a.av-b.av});
     var t=sim[0]; if(!t) break; var adv=Math.max(0,t.av);elapsed+=adv;
     sim.forEach(function(x){x.av-=adv});
     out.push({u:t.u,wait:elapsed}); t.av=10000/t.u.sp; }
@@ -1258,6 +1316,8 @@ function project(n){
 }
 function timelineEntries(){
   var end=Math.max(0,G.limit*100-G.av),horizon=Math.min(end,(Math.floor(G.av/100)+2)*100-G.av),q=project(128).filter(function(sl){return sl.wait<horizon});
+  var carrier=U('treasure');
+  if(carrier&&carrier.alive&&carrier.escapeAt-G.av<=horizon)q.push({treasureEscape:true,wait:Math.max(0,carrier.escapeAt-G.av)});
   if(G.bloom&&G.bloom.live&&bloomReady()&&G.bloom.av<horizon)q.push({bloom:1,wait:G.bloom.av});
   var boundary=(Math.floor(G.av/100)+1)*100;
   // Markers win exact ties, matching the resolver's exclusive final deadline.
@@ -1285,9 +1345,10 @@ function track(){
     el.appendChild(rd);
   }
   var nextBoundary=(Math.floor(G.av/100)+1)*100-G.av;
-  var beforeBoundary=q.filter(function(sl){return !sl.roundMarker&&sl.wait<nextBoundary}).length;
+  var beforeBoundary=q.filter(function(sl){return !sl.roundMarker&&!sl.treasureEscape&&sl.wait<nextBoundary}).length;
   $('timelineEdge').textContent=G.av>=G.limit*100?'Extraction reached':beforeBoundary+' queued actions before '+(G.round>=G.limit?'extraction':'round '+(G.round+1));
   q.forEach(function(sl,i){
+    if(sl.treasureEscape){var marker=document.createElement('div');marker.className='tk round-marker treasure-marker';marker.dataset.k='TREASURE-ESCAPE';marker.innerHTML='<div class="tn">TREASURE ESCAPES</div><div class="tw">'+Math.ceil(sl.wait)+'</div>';el.appendChild(marker);return;}
     if(sl.roundMarker){
       var marker=document.createElement('div');marker.className='tk round-marker'+(sl.extraction?' extraction':'');marker.dataset.k='ROUND-'+sl.round;marker.dataset.wait=sl.wait;
       marker.innerHTML='<div class="tn">'+(sl.extraction?'EXTRACTION':'ROUND '+sl.round)+'</div><div class="tw">'+Math.ceil(sl.wait)+'</div>';el.appendChild(marker);return;
@@ -1304,11 +1365,11 @@ function track(){
     seen[u.id]=(seen[u.id]||0)+1;
     var key=u.id+'#'+seen[u.id];
     var d=document.createElement('div');
-    d.className='tk'+(i===0?' now':'')+(u.broken?' brk':'')+(u.lastAdvanceAt===G.av?' advanced':'');
-    d.dataset.k=key;d.dataset.wait=sl.wait;
+    d.className='tk'+(i===0?' now':'')+(u.broken?' brk':'')+(u.lastAdvanceAt===G.av?' advanced':'')+(sl.bonus?' bonus-turn':'');
+    d.dataset.k=key;d.dataset.wait=sl.wait;if(sl.bonus)d.dataset.bonusTurn='true';
     d.innerHTML='<div class="tn" style="color:'+
       (u.side==='foe'?EL[u.e]:'var(--ink)')+'">'+u.n+'</div>'+
-      '<div class="tw">'+(u.lastAdvanceAt===G.av?'↑ ':'')+Math.ceil(sl.wait)+'</div>';
+      '<div class="tw">'+(sl.bonus?'EXTRA':(u.lastAdvanceAt===G.av?'↑ ':'')+Math.ceil(sl.wait))+'</div>';
     el.appendChild(d);
   });
 
@@ -1624,6 +1685,7 @@ function advanceCombat(wait){
   G.units.forEach(function(u){if(u.alive)u.av-=step;});
   G.av+=step;G.round=Math.min(Math.ceil(G.limit),Math.floor(G.av/100)+1);
   if(G.round>previous){G.units.forEach(function(u){if(u.side==='foe')u.struck=false;});G.react={};}
+  settleTreasure(false);
   return G.av>=G.limit*100;
 }
 function weaverAllies(){return livingCrew()}
@@ -1632,7 +1694,6 @@ function weaverPartner(act,flag){
   return weaverAllies().filter(function(x){return x.id!==act.id&&!x[flag]&&(flag!=='weaverDiscount'||SpacologyAether.profile(x.n).cost>1)})
     .sort(function(a,b){return flag==='weaverDiscount'?((b===burst?1:0)-(a===burst?1:0)||SpacologyAether.profile(b.n).cost-SpacologyAether.profile(a.n).cost):a.av-b.av})[0];
 }
-function weaverShelterTarget(){return weaverAllies().filter(function(x){return x.row==='front'&&!x.weaverShelter}).sort(function(a,b){return a.hp/a.max-b.hp/b.max})[0]}
 function weaverBarrier(u,amount){var added=Math.round(amount*((G.bon&&G.bon.barrier)||1)*(u.barrierMul||1));var before=u.bar;u.bar=Math.min(160,u.bar+added);return u.bar-before}
 function weaverGuard(act,tgt,amount,ev){
   if(tgt.broken||tgt.shL<=0)return;
@@ -1658,6 +1719,35 @@ function weaverRefill(ev,amount){
   ev.aether.delta+=gain;ev.aether.after=G.aether.current;
   ev.notes.push('Restored '+gain+' Aether'+(gain<amount?' ('+(amount-gain)+' overflow)':'')+'.');
 }
+function resolveSilenStrike(act,tgt,ev,index){
+  weaverGuard(act,tgt,act.dmg*.5,ev);
+  if(!tgt.alive)return;
+  var strike=hit(act,tgt,SpacologyAether.chainMultiplier(index));
+  strike.chain=false; // This is the turn's attack, not a follow-up.
+  strike.pulse=index+1;strike.multiplier=SpacologyAether.chainMultiplier(index);strike.aetherAfter=G.aether.current;
+  ev.hits.push(strike);
+  reactTo(ev,act,tgt,0);
+}
+function resolveSilenBonus(bonus){
+  var act=bonus.actor,tgt=bonus.target,chain=bonus.chain,before=G.aether.current,fresh=[];
+  if(!tgt){fresh=spawnFoes();if(fresh.length)reflowFoes();tgt=treasureTargets(liveFoes()).slice().sort(function(a,b){return b.hp-a.hp})[0];}
+  if(!tgt)return null;
+  var retargeted=tgt.id!==chain.target;chain.target=tgt.id;
+  if(!SpacologyAether.spendContinuation(G.aether))return null;
+  G.allyTurns=(G.allyTurns||0)+1;act.lastStandGuard=false;
+  if(chain.releasesReservation)G.aether.reserveAfter++;
+  var ev={actor:act,hits:[],chains:[],notes:[],bonusTurn:true,bonusIndex:chain.index,
+    aether:{kind:'skill',spent:1,delta:-1,before:before,after:G.aether.current,reason:'Rising Current extra turn '+(chain.index+1)}};
+  if(fresh.length)ev.reinforced=fresh;
+  if(retargeted)ev.notes.push('Rising Current carries its charge to '+tgt.n+'.');
+  resolveSilenStrike(act,tgt,ev,chain.index);
+  act.en=Math.min(EN.cost,act.en+EN.act+EN.perHit);
+  chain.index++;
+  ev.notes.push('Silen takes an extra turn: '+Math.round(SpacologyAether.chainMultiplier(ev.bonusIndex)*100)+'% attack.');
+  if(!silenBonusTurn())G.silenChain=null;
+  // His ordinary turn already has its cooldown. Extra turns do not move it.
+  return ev;
+}
 function resolveWeaverSkill(act,tgt,ev,plan){
   var target,bar;
   ev.notes.push(SpacologyWeavers.crew[act.n].kit.basic[0]);
@@ -1666,14 +1756,20 @@ function resolveWeaverSkill(act,tgt,ev,plan){
     weaverGuard(act,tgt,act.dmg,ev);ev.hits.push(hit(act,tgt,2));weaverRefill(ev,5);tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;
     target=weaverPartner(act,'weaverTune');if(target){target.weaverTune=true;ev.notes.push(target.n+' next basic gathers +1 Aether.');}
   }else if(act.n==='Ivara'){
-    target=weaverShelterTarget();if(target){target.weaverShelter=true;ev.notes.push(target.n+' ignores their next direct hit.');}
+    weaverGuard(act,tgt,act.dmg*1.5,ev);ev.hits.push(hit(act,tgt,3));tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;
+  }else if(act.n==='Silen'){
+    resolveSilenStrike(act,tgt,ev,0);
+    G.silenChain={actor:act.id,target:tgt.id,index:1,reserve:plan.reserve||0,releasesReservation:plan.releasesReservation};
+    if(!silenBonusTurn())G.silenChain=null;
+    if(G.silenChain)ev.notes.push('Rising Current grants an immediate extra turn.');
   }else if(act.n==='Arunima'){
     G.units.filter(function(x){return x.side==='foe'&&x.alive}).forEach(function(x){
       weaverGuard(act,x,act.dmg*(2+.5*plan.extra),ev);
       ev.hits.push(hit(act,x,3+plan.extra));if(x.alive)x.av+=15;
     });ev.notes.push('Proof by Transit: '+((3+plan.extra)*100)+'% attack; all specimens delayed 15 AV.');
   }else if(act.n==='Roonie'){
-    target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;bar=weaverBarrier(target,10);ev.mends=[{tgt:target.id,amt:0,bar:bar,ch:0}];ev.notes.push(target.n+' next skill costs 1 less.');}
+    target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;bar=weaverBarrier(target,20);ev.mends=[{tgt:target.id,amt:0,bar:bar,ch:0}];ev.notes.push(target.n+' next skill costs 1 less.');}
+    weaverRefill(ev,3);
   }else if(act.n==='Veska'){
     var refrains=act.refrain||0,amount=Math.round((12+6*refrains)*((G.bon&&G.bon.healMul)||1));act.refrain=0;weaverRefill(ev,refrains);
     ev.mends=weaverAllies().map(function(x){var before=x.hp;x.hp=Math.min(x.max,x.hp+amount);return {tgt:x.id,amt:x.hp-before,bar:0,ch:0}});G.heals++;
@@ -1738,8 +1834,7 @@ function resolveSummonAction(act,ev){
 }
 function aetherSkillUseful(u){
   if(u.n==='Hanae')return G.aether.max-G.aether.current>=3;
-  if(u.n==='Ivara')return !!weaverShelterTarget();
-  if(u.n==='Roonie')return !!weaverPartner(u,'weaverDiscount');
+  if(u.n==='Roonie')return G.aether.max-G.aether.current>=2||!!weaverPartner(u,'weaverDiscount');
   if(u.n==='Veska')return weaverAllies().some(function(x){return x.hp/x.max<.75});
   if(u.n==='Daven')return u.bar<24;
   if(u.n==='The Mage')return Object.keys(SpacologyExpedition.summons||{}).some(function(name){
@@ -1764,7 +1859,7 @@ function aetherKindleTarget(act){
 function aetherSetupReason(u,owner){
   if(!owner||owner===u)return null;
   if(u.n==='Roonie'&&weaverPartner(u,'weaverDiscount')===owner&&
-      G.aether.current>=SpacologyAether.skillCost(u)+Math.max(1,SpacologyAether.skillCost(owner)-1))
+      Math.min(G.aether.max,G.aether.current-SpacologyAether.skillCost(u)+SpacologyAether.profile(u.n).skillGain)>=Math.max(1,SpacologyAether.skillCost(owner)-1))
     return 'discount before '+owner.n+' burst';
   if(u.kindle){
     var target=aetherKindleTarget(u);
@@ -1786,6 +1881,8 @@ function estimatedAttack(u,t,kind,extra){
   if(!basic){
     if(u.n==='Arunima'){mult=3+extra;pressure=u.dmg*(2+.5*extra)*(isWeak(t,u.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(u.guardMul||1)}
     else if(u.n==='Hanae')mult=2;
+    else if(u.n==='Ivara'){mult=3;pressure*=1.5;}
+    else if(u.n==='Silen'){mult=SpacologyAether.chainMultiplier(extra);pressure*=.5;}
     else if(u.n==='Daven')mult=2.25;
     else{
       mult=(u.aoe||u.heal||u.kindle?1:1.5)*(extra?1.35:1);
@@ -1804,6 +1901,10 @@ function burstHealthBudget(u,foes,target){
   if(u.n!=='Arunima'){
     target=target||(foes.length?(chooseTarget(u,foes)||{}).t:null);
     if(!target)return null;
+    if(u.n==='Silen'){
+      if(foes.length===1&&G.spawned>=G.pool.length&&estimatedAttack(u,target,'basic')>=target.hp)return 0;
+      return SpacologyAether.budget(G.aether,u,window.SPACOLOGY_SESSION||{});
+    }
     if(estimatedAttack(u,target,'basic')>=target.hp)return 0;
     if(estimatedAttack(u,target,'skill',0)>=target.hp)return SpacologyAether.skillCost(u);
     return SpacologyAether.budget(G.aether,u,window.SPACOLOGY_SESSION||{});
@@ -1819,7 +1920,7 @@ function basicCleanupSoon(foes){
   if(!foes.length||foes.length>2)return false;
   var used={},remaining=G.limit*100-G.av;
   return foes.every(function(t){
-    var helper=livingCrew().filter(function(u){if(u.heal||u.kindle||['Ivara','Roonie','Veska','The Mage'].includes(u.n))return false;var wait=G.pending&&G.pending.id===u.id?G.pending.av:u.av;return !used[u.id]&&wait<t.av&&wait<remaining&&estimatedAttack(u,t,'basic')>=t.hp})
+    var helper=livingCrew().filter(function(u){if(u.heal||u.kindle||['Roonie','Veska','The Mage'].includes(u.n))return false;var wait=G.pending&&G.pending.id===u.id?G.pending.av:u.av;return !used[u.id]&&wait<t.av&&wait<remaining&&estimatedAttack(u,t,'basic')>=t.hp})
       .sort(function(a,b){return a.av-b.av})[0];
     if(helper)used[helper.id]=true;
     return !!helper;
@@ -1832,6 +1933,7 @@ function ultimateDamage(u,t){
     (1+(t.vuln>0?BRK.vuln:0)+(u.ult.eat?0:t.frac||0)*.12)*(!t.broken&&t.shL>0?SOAK:1));
 }
 function chooseUltimateTarget(u,foes){
+  foes=treasureTargets(foes);
   return foes.slice().sort(function(a,b){
     function value(t){var damage=ultimateDamage(u,t);return Math.min(t.hp,damage)*(damage>=t.hp?1.35:1)}
     return value(b)-value(a);
@@ -1843,14 +1945,18 @@ function planAetherAction(u,target){
   var owner=SpacologyAether.priority(allies,session,aetherSkillUseful),foes=liveFoes();
   var nextTurn=10000/u.sp,remaining=G.limit*100-G.av,opportunity=null;
   target=target||(foes.length?(chooseTarget(u,foes)||{}).t:null);
-  var damageSkill=!u.heal&&!u.kindle&&!['Ivara','Roonie','Veska','The Mage','Hanae'].includes(u.n);
+  var damageSkill=!u.heal&&!u.kindle&&!['Roonie','Veska','The Mage','Hanae'].includes(u.n);
   var basicEnough=damageSkill&&target&&(!u.aoe||foes.length===1)&&estimatedAttack(u,target,'basic')>=target.hp;
+  if(u.n==='Silen'&&SpacologyAether.overchargeEnabled(session,u.n)&&(foes.length>1||G.spawned<G.pool.length))basicEnough=false;
   var spendLimit=burstHealthBudget(u,foes,target),ownerBudget=owner===u?spendLimit:burstHealthBudget(owner,foes);
   var critical=allies.some(function(x){return x.hp/x.max<.3});
   var emergency=(!!u.heal||u.n==='Veska')&&critical;
-  if(u.n==='Ivara')emergency=allies.some(function(x){return x.row==='front'&&!x.weaverShelter&&x.hp/x.max<.3});
   if(u.n==='Daven')emergency=u.row==='front'&&u.hp/u.max<.3&&u.bar<24;
-  if(owner&&remaining<=nextTurn)opportunity='deadline approaching';
+  if(remaining<=nextTurn)opportunity='deadline approaching';
+  if(damageSkill&&SpacologyAether.profile(u.n).spending==='conservative'&&target&&!basicEnough){
+    if(target.broken||target.vuln>0)opportunity='sub-DPS using a break window';
+    if(estimatedAttack(u,target,'skill')>=target.hp)opportunity='sub-DPS securing a kill';
+  }
   if(owner===u){
     if(critical)opportunity='crew under pressure';
     if(foes.some(function(x){return x.broken||x.vuln>0}))opportunity='use the open break window';
@@ -1867,7 +1973,7 @@ function planAetherAction(u,target){
     projected+=gain;
   });
   return SpacologyAether.teamPlan(G.aether,u,{crew:allies,session:session,turn:G.allyTurns,useful:aetherSkillUseful,
-    emergency:emergency,setup:aetherSetupReason(u,owner),opportunity:opportunity,basicEnough:basicEnough,
+    emergency:emergency,setup:aetherSetupReason(u,owner),opportunity:opportunity,basicEnough:basicEnough,damageSkill:damageSkill,
     spendLimit:spendLimit===null?undefined:spendLimit,ownerBudget:ownerBudget===null?undefined:ownerBudget,
     skillGain:u.n==='Veska'?(u.refrain||0):SpacologyAether.profile(u.n).skillGain,
     canWait:remaining>nextTurn&&owner===u&&projected>=(spendLimit===null?SpacologyAether.budget(G.aether,u,session):spendLimit)});
@@ -1900,6 +2006,7 @@ function resolveAction(){
   var event;
   try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];event=resolveActionCore();if(event){event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
   finally{if(G){
+    settleTreasure(false);
     G.units.forEach(function(u){delete u.aetherPower});
     if(G.aether){
       var previousCap=G.aether.max;
@@ -1911,19 +2018,20 @@ function resolveAction(){
 }
 function paintAether(){
   var el=$('aetherMeter');el.hidden=!G.aether;if(!G.aether)return;
-  $('aetherCount').textContent=G.aether.current+' / '+G.aether.max;
-  $('aetherPips').innerHTML=Array.from({length:G.aether.max},function(_,i){return '<i class="'+(i<G.aether.current?'filled':'')+'"></i>'}).join('');
+  var shown=G.visualAether==null?G.aether.current:G.visualAether;
+  $('aetherCount').textContent=shown+' / '+G.aether.max;
+  $('aetherPips').innerHTML=Array.from({length:G.aether.max},function(_,i){return '<i class="'+(i<shown?'filled':'')+'"></i>'}).join('');
   var owner=SpacologyAether.priority(livingCrew(),window.SPACOLOGY_SESSION||{},aetherSkillUseful);
   var healthBudget=burstHealthBudget(owner,liveFoes());
   var saving=owner&&healthBudget!==0&&G.allyTurns>=G.aether.reserveAfter;
   el.title=saving?'Saving up to '+(healthBudget===null?SpacologyAether.budget(G.aether,owner,window.SPACOLOGY_SESSION):healthBudget)+' Aether for '+owner.n:'Shared Aether · teammates can spend';
-  el.setAttribute('aria-label','Shared Aether: '+G.aether.current+' of '+G.aether.max+'. '+el.title+'. View rules');
+  el.setAttribute('aria-label','Shared Aether: '+shown+' of '+G.aether.max+'. '+el.title+'. View rules');
 }
-$('aetherMeter').onclick=function(){openBattleDetails('<h2 id="enemyDetailTitle">Shared Aether</h2><p>Basics generate 1 charge (Hanae and Coda generate 2); most skills spend 1–3. The whole crew shares this pool. Ultimates still use individual charge.</p><p>Hanae’s skill spends 1 and restores 5 (+4 net). Arunima can spend the available pool: 300% attack at 3 charges, plus 100 percentage points per extra charge. Ivara’s ultimate restores 6, Hanae’s and Roonie’s restore 4, and Veska’s skill returns up to 3 from Refrains. Daven returns charge from a blocked hit. Inspect their cards in Ops for exact kits. Coda, Aurel and Nour retain their initial Aether traits.</p><p>Capacity is 6 base + 1 per living deployed Weaver. Ivara and Aurel each add another 2 through their passives. Six Weavers with Ivara hold 14 charges. Reserves and summons do not count. Losing a Weaver reduces the cap and discards excess charges.</p><p>Auto saves for a burst Weaver, uses basics for easy finishes, and spends only enough burst charges to clear weakened enemies. Urgent recovery, net-positive refills and a discount or ultimate-charge setup can go first. Burst users wait at most one turn to build a full attack, and spend sooner near the deadline, during a break window or to finish a specimen. After the burst, teammates get a spending window. Manual priorities and Build charges still apply.</p><p>Named refill effects apply once per cast, capped by the pool. Other ultimate hits and follow-ups do not generate Aether. Waves preserve the pool; each encounter starts with 3.</p>')};
+$('aetherMeter').onclick=function(){openBattleDetails('<h2 id="enemyDetailTitle">Shared Aether</h2><p>Basics generate 1 charge (Hanae and Coda generate 2); most skills spend 1–3. The whole crew shares this pool. Ultimates still use individual charge.</p><p>Hanae’s skill spends 1 and restores 5 (+4 net). Arunima can spend the available pool: 300% attack at 3 charges, plus 100 percentage points per extra charge. Roonie’s skill spends 1 and restores 3 (+2 net), and his ultimate restores 6. Hanae’s ultimate restores 4, and Veska’s skill returns up to 3 from Refrains. Silen spends 2 for a 200% attack, then takes immediate extra turns for 1 Aether each: 225%, 250%, 275% and onward. Each is a separate action that earns ultimate charge. Kills carry the growing attack to another enemy, including the next wave. Refills fuel more extra turns. He spends all unreserved Aether, stopping when it runs out or the encounter is cleared. Ivara supplies focused damage and extra storage. Daven returns charge from a blocked hit. Inspect their cards in Ops for exact kits. Coda, Aurel and Nour retain their initial Aether traits.</p><p>Capacity is 6 base + 1 per living deployed Weaver. Ivara and Aurel each add another 2 through their passives. Six Weavers with Ivara hold 14 charges. Reserves and summons do not count. Losing a Weaver reduces the cap and discards excess charges.</p><p>Main DPS spend aggressively; sub-DPS usually build Aether with basics, spending near a full pool or for a kill, break window or urgent support. Auto saves for a burst Weaver, uses basics for easy finishes, and spends only enough burst charges to clear weakened enemies. Urgent recovery, net-positive refills and a discount or ultimate-charge setup can go first. Burst users wait at most one turn to build a full attack, and spend sooner near the deadline, during a break window or to finish a specimen. After the burst, teammates get a spending window. Manual priorities and Build charges still apply.</p><p>Named refill effects apply once per cast, capped by the pool. Other ultimate hits and follow-ups do not generate Aether. Waves preserve the pool; each encounter starts with 3.</p>')};
 function resolveActionCore(){
-  applyReset();
+  applyReset();settleTreasure(false);
   var living=G.units.filter(function(u){return u.alive});
-  if(!living.some(function(u){return u.side==='foe'})&&G.spawned>=G.pool.length)return {end:'Crew wins'};
+  if(!living.some(function(u){return u.side==='foe'&&!u.treasure})&&G.spawned>=G.pool.length)return {end:'Crew wins'};
   if(!living.some(function(u){return u.side==='ally'&&!u.summon&&(!window.SPACOLOGY_SESSION||u.row==='front')}))return {end:'Crew wiped'};
   if(G.av>=G.limit*100)return {end:'Out of time'};
   G.react={};          // every action gets a fresh cascade budget
@@ -1967,6 +2075,10 @@ function resolveActionCore(){
     return ev1;      // note: no queueReset, so nobody loses a turn
   }
 
+  var bonus=silenBonusTurn();
+  if(bonus)return resolveSilenBonus(bonus);
+  G.silenChain=null;
+
   // the Bloom holds a slot in the order and burns the board when it comes up
   if(G.bloom&&G.bloom.live){
     var nx=project(1)[0];
@@ -1990,7 +2102,7 @@ function resolveActionCore(){
       return ev0;
     }
   }
-  var alive=G.units.filter(function(u){return u.alive});
+  var alive=G.units.filter(function(u){return u.alive&&!u.treasure});
   if(!alive.some(function(u){return u.side==='foe'}) && G.spawned>=G.pool.length)
     return {end:'Crew wins'};
   if(!alive.some(function(u){return u.side==='ally'&&!u.summon})) return {end:'Crew wiped'};
@@ -2042,9 +2154,10 @@ function resolveActionCore(){
     var actionPlan=planAetherAction(act,tgt);
     if(actionPlan.kind==='basic'){SpacologyAether.recordAction(G.aether,act,actionPlan,G.allyTurns,livingCrew().length);return resolveBasic(act,tgt,ev,actionPlan);}
     var beforeAether=G.aether.current;
-    if(!SpacologyAether.spend(G.aether,actionPlan))throw new Error('Aether changed during action');
+    var payment=SpacologyAether.profile(act.n).chain?Object.assign({},actionPlan,{cost:SpacologyAether.skillCost(act)}):actionPlan;
+    if(!SpacologyAether.spend(G.aether,payment))throw new Error('Aether changed during action');
     if(actionPlan.discount)delete act.weaverDiscount;
-    ev.aether={kind:'skill',spent:actionPlan.cost,delta:-actionPlan.cost,before:beforeAether,after:G.aether.current,reason:actionPlan.reason};
+    ev.aether={kind:'skill',spent:payment.cost,delta:-payment.cost,before:beforeAether,after:G.aether.current,reason:actionPlan.reason};
     act.aetherPower=(act.aoe||act.heal||act.kindle?1:1.5)*(actionPlan.extra?1.35:1);
     SpacologyAether.recordAction(G.aether,act,actionPlan,G.allyTurns,livingCrew().length);
   }
@@ -2233,6 +2346,7 @@ function evalTarget(act,t,pool){
   return {score:score,why:label,willBreak:willBreak,willKill:willKill};
 }
 function chooseTarget(act,pool){
+  if(act.side==='ally')pool=treasureTargets(pool);
   if(!pool||!pool.length) return null;
   var best={t:pool[0],why:'nearest'}, bw=-Infinity;
   pool.forEach(function(t){
@@ -2382,7 +2496,7 @@ function presentImpact(h){
     var rc=$('r-'+h.tgt);if(rc)rc.classList.add('down');
     floater(h.tgt,'DOWN','#fff',{tag:1,delay:180});
     log(target.n+' is down','kill');if(h.cost){floater(h.tgt,'−'+h.cost+' rounds','#E88888',{tag:1,delay:250});log('Time limit drops to '+G.limit+' rounds','brk');}
-    if(target.side==='foe'){target.retiring=true;at(1200,function(){retireFoe(h.tgt)});}
+    if(target.side==='foe')retireFoe(h.tgt);
   }
 }
 /* ============ play one action with animation ============ */
@@ -2394,6 +2508,7 @@ function playAction(done){
     if(u.side==='foe'&&!u.alive&&!u.retired&&G.hp0&&G.hp0[u.id]>0) u.retiring=true; });
   if(ev.end){ finish(ev.end); return done&&done(); }
   G.visualHP=Object.assign({},G.hp0||{});G.visualBar={};
+  G.visualAether=ev.hits&&ev.hits.some(function(h){return h.pulse})?ev.aether.before:null;
   (ev.timeline||[]).forEach(function(h){if(G.visualBar[h.tgt]===undefined)G.visualBar[h.tgt]=h.barBefore;if(G.visualHP[h.tgt]===undefined)G.visualHP[h.tgt]=h.hpBefore;});
   if(ev.summoned){ribbons();track();}
   G.units.forEach(function(u){paintUnit(u,true)});
@@ -2421,13 +2536,12 @@ function playAction(done){
         burstAt(b.id,'#D9B87A',12,84);
         if(G.visualHP)G.visualHP[b.id]=bu.hp;paintUnit(bu);
         if(b.killed){ markText(b.id,'consumed','#D9B87A');
-          bu.retiring=true;
-          setTimeout(function(){retireFoe(b.id)},D(420)); }
+          retireFoe(b.id); }
       });
       bt+=D(170);
     });
     at(bt+D(140),function(){
-      btag.textContent='next';G.visualHP=null;G.visualBar=null; paintAll(); sweepFoes(); track(); });
+      btag.textContent='next';G.visualHP=null;G.visualBar=null;G.visualAether=null; paintAll(); sweepFoes(); track(); });
     setTimeout(function(){ busy=false; if(done) done(); }, bt+D(560));
     return;
   }
@@ -2467,7 +2581,7 @@ function playAction(done){
   if(isSupport) c=HEALC;
 
   if(MODE==='none'){
-    G.visualHP=null;G.visualBar=null;
+    G.visualHP=null;G.visualBar=null;G.visualAether=null;
     if(ev.heal){ var hu=U(ev.heal.tgt);
       log('&nbsp;&nbsp;'+act.n+' heals '+hu.n+' <b>+'+ev.heal.amt+'</b>'+
         (ev.heal.clutch?' <span style="color:#4FD97F">clutch</span>':'')); }
@@ -2494,7 +2608,8 @@ function playAction(done){
   // position stays readable while their hit/heal reaction animates in place.
   buildStage(act.id,[],isSupport,helpers);
   targets.forEach(function(id){var rc=$('r-'+id);if(rc)rc.classList.add('targeted');});
-  $('cap').textContent = ev.summoned ? act.n+' · J3K LOTTERY · '+ev.summoned.name
+  $('cap').textContent = ev.bonusTurn ? act.n+' · EXTRA TURN '+(ev.bonusIndex+1)+' · '+Math.round(SpacologyAether.chainMultiplier(ev.bonusIndex)*100)+'% · −1 AETHER'
+    : ev.summoned ? act.n+' · J3K LOTTERY · '+ev.summoned.name
     : ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
     : ev.interrupt ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()+' \u00b7 out of turn'
     : ev.aether ? act.n+' · '+ev.aether.kind.toUpperCase()+' · '+(ev.aether.delta>=0?'+':'')+ev.aether.delta+' AETHER'
@@ -2614,7 +2729,8 @@ function playAction(done){
       }
       (ev.timeline||ev.hits.concat(ev.chains)).forEach(function(h,hi){
         at(hi*impactGap,function(){
-          tag.textContent=h.src===act.id?'impact':'follow-up';
+          tag.textContent=h.pulse?(ev.bonusTurn?'extra turn':'strike')+' · '+Math.round(h.multiplier*100)+'%':h.src===act.id?'impact':'follow-up';
+          if(h.pulse){G.visualAether=h.aetherAfter;paintAether();glint(FACE(act.id),160);}
           var source=U(h.src);if(source&&h.src!==act.id){glint($('r-'+h.src),500);floater(h.src,source.n,EL[source.e],{tag:1});}
           presentImpact(h);
         });
@@ -2673,7 +2789,7 @@ function playAction(done){
   }
 
   at(t,function(){ tag.textContent='resolve';
-    G.visualHP=null;G.visualBar=null;
+    G.visualHP=null;G.visualBar=null;G.visualAether=null;
     cardTF(act.id,'none',D(200));
     ev.hits.concat(ev.chains).forEach(function(h){ ghostSettle(U(h.tgt)); });
     paintAll(); track(); });
@@ -2700,7 +2816,7 @@ function logHit(h,why){
 
 /* ============ finish ============ */
 function battleAnalysis(){
-  var remaining=G.units.filter(function(u){return u.side==='foe'&&u.alive});
+  var remaining=G.units.filter(function(u){return u.side==='foe'&&u.alive&&!u.treasure});
   var unspawned=Math.max(0,G.pool.length-G.spawned),shieldShare=G.alliedHits?Math.round(G.shieldedHits/G.alliedHits*100):0;
   var notes=[];
   if(unspawned)notes.push(unspawned+' enemies in later waves were not reached.');
@@ -2712,7 +2828,9 @@ function battleAnalysis(){
   return {crewTurns:G.allyTurns||0,advances:G.advances||0,savedAV:Math.round(G.advanceSaved||0),shieldShare:shieldShare,remaining:remaining.length+unspawned,notes:notes};
 }
 function finish(msg){
-  G.over=true;G.visualHP=null;G.visualBar=null; playing=false; clr();paintDeadline();paintRecovery();clearRibbonMarks();clearStage();
+  if(G.over)return;
+  settleTreasure(true);
+  G.over=true;G.visualHP=null;G.visualBar=null;G.visualAether=null; playing=false; clr();sweepFoes();paintDeadline();paintRecovery();clearRibbonMarks();clearStage();
   $('bPlay').textContent='Play'; $('hState').textContent=msg;
   log('<b>'+msg+'</b> in '+G.round+' rounds','rnd');
   var names=Object.keys(G.dealt);
@@ -2752,7 +2870,7 @@ function finish(msg){
     var baseGold=(won?Math.round((28+window.SPACOLOGY_SESSION.round*6)*modifierEffects.reward):10)+modifierEffects.flatGold;
     var surveyBonus=won&&observation&&G.ship&&G.ship.survey?Math.ceil(baseGold*(G.ship.survey===true?.2:G.ship.survey)):0;
     var analysis=battleAnalysis();
-    var result={analysis:analysis,revives:G.revives||0,recoveryAV:G.recoveryAV||0,reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
+    var result={treasure:G.treasureReward||null,treasureStatus:G.treasureStatus||null,analysis:analysis,revives:G.revives||0,recoveryAV:G.recoveryAV||0,reason:won?'victory':msg==='Out of time'?'timeout':'defeat',timeLimit:G.limit,elapsedAV:G.av,timeRemaining:Math.max(0,G.limit-G.av/100),round:window.SPACOLOGY_SESSION.round,won:won,difficulty:window.SPACOLOGY_SESSION.difficulty,
       recovery:recovery,integrity:Math.max(0,Math.min(100,window.SPACOLOGY_SESSION.integrity+recovery.integrity))-window.SPACOLOGY_SESSION.integrity,
       gold:baseGold+surveyBonus,fieldXP:SpacologyField.battleXP(window.SPACOLOGY_SESSION,won),
       observation:observation,rounds:G.round,breaks:G.breaks,chains:G.chains,
@@ -2764,7 +2882,7 @@ function finish(msg){
     $('summaryCopy').textContent+=' '+recovery.earned+' / '+recovery.total+' points recovered ('+Math.floor(recovery.percent)+'%). '+recovery.band+'.';
     if(result.revives)$('summaryCopy').textContent+=' '+result.revives+' crew recoveries cost '+result.recoveryAV+' AV.';
     if(result.fieldXP)$('summaryCopy').textContent+=' +'+result.fieldXP+' field XP toward your next field level.';
-    $('summaryGold').textContent='+'+result.gold+'g';
+    $('summaryGold').textContent='+'+(result.gold+(G.treasureReward?G.treasureReward.gold:0))+'g';
     $('summaryIntegrity').textContent=(result.integrity>=0?'+':'')+result.integrity+'%';
     $('summaryObservation').textContent=observation?'COMPLETE':'PARTIAL';
     $('summaryActions').textContent=G.actions;$('summaryBreaks').textContent=G.breaks;
@@ -2772,6 +2890,8 @@ function finish(msg){
     $('summaryDamage').textContent=Math.round(tot);$('summaryRounds').textContent=(Math.round(G.av)/100).toFixed(2)+' / '+G.limit;
     var recovered=[];if(rareItem)recovered.push(rareItem.name);if(crystals)recovered.push('Bloom crystal ×'+crystals);if(surveyBonus)recovered.push('Survey bonus +'+surveyBonus+'g');
     $('summaryTempo').textContent=analysis.crewTurns+' crew turns · '+analysis.advances+' advances · '+analysis.savedAV+' AV of crew waiting saved. '+analysis.notes.join(' ');
+    if(G.treasureReward)recovered.push('TREASURE: '+G.treasureReward.item+' + unopened Tier '+G.treasureReward.cache.tier+' cache');
+    else if(G.treasureStatus==='escaped')recovered.push('Treasure carrier escaped');
     $('summaryDrop').textContent=recovered.length?'RARE RECOVERY · '+recovered.join(' · '):'No rare recovery this encounter.';
     $('summaryReturn').textContent=won?'RECOVER TO OPS':'RETURN WITH PARTIAL DATA';
     $('sessionSummary').classList.add('show');
@@ -2852,6 +2972,7 @@ function loadSpacologySession(){
   var formationChanges=SpacologyFormation.normalize(state);
   if(formationChanges.length)localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
   if(!state.field.some(Boolean)||SpacologyCrew.slots(state)>6){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
+  SpacologyTreasure.normalize(state);localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
   state.difficulty=SpacologyVoyageSettings.normalize(state).difficulty;
   var difficulty=SpacologyVoyageSettings.difficulties[state.difficulty];
   var rules=SpacologyExpedition,modifierEffects=rules.effects(state);
@@ -2934,15 +3055,18 @@ function loadSpacologySession(){
   $('sessionReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix};
   $('summaryReturn').onclick=function(){location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix};
   build('ops','spread');
+  var treasureStatus=document.createElement('span');treasureStatus.id='treasureBattle';treasureStatus.setAttribute('role','status');document.querySelector('.battle-sidebar').appendChild(treasureStatus);paintTreasure();
   var controls=$('sessionControls'),play=$('bPlay'),logToggle=$('sessionLogToggle'),record=$('battleRecord');
   controls.insertBefore(play,logToggle);controls.appendChild($('sessionReturn'));
   var retreat=document.createElement('button');retreat.id='sessionRetreat';retreat.textContent='RETREAT';retreat.setAttribute('aria-label','Retreat from voyage');controls.appendChild(retreat);
   retreat.onclick=function(){
     if(G.over)return;
-    if(!confirm('Retreat from this voyage? This ends the run. This unfinished encounter gives no rewards. Completed encounter records stay in your inbox.'))return;
+    if(!confirm('Retreat from this voyage? This ends the run. Normal encounter rewards are forfeited. Secured treasure and completed encounter records stay in your inbox.'))return;
     cancelSessionAutostart();playing=false;G.over=true;clr();
-    state.end='retreated';state.pack=null;
-    localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
+    var latest=JSON.parse(localStorage.getItem(SpacologyStore.run)||'null')||state;
+    if(latest.treasureSeed!==state.treasureSeed)return;
+    latest.end='retreated';latest.pack=null;
+    localStorage.setItem(SpacologyStore.run,JSON.stringify(latest));
     localStorage.removeItem(SpacologyStore.result);
     location.href='spacology-v0.1.0.html?return=1'+SpacologyStore.suffix;
   };

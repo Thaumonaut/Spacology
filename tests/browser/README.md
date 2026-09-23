@@ -29,6 +29,8 @@ node tests/browser/touch-interactions.cjs
 
 These are focused regressions, not proof that every advertised gameplay system is implemented. See [the systems audit](../../docs/testing/spacology-v0.1.0-systems-audit.md) for outstanding gaps, coverage limits, and the full-voyage evidence. The sealed-pack randomization test samples two packs and can very rarely draw the same contents; investigate any failure before classifying it.
 
+Treasure-carrier behavior, saved reward/cache unit coverage, headless combat scenarios and the obsolete schema-3 ownership fixture are documented in [treasure-carrier validation](../../docs/testing/treasure-carriers.md). Run its retained pure checks with `node tests/unit/treasure-rules.cjs`.
+
 The Ops systems update and additional manual checks are described in [the current playtest notes](../../docs/testing/ops-systems-playtest.md). The original audit is historical; its resolved placeholder findings should not be read as the current implementation status.
 
 ### Enemy pressure and combat deadline

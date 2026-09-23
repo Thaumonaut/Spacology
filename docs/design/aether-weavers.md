@@ -1,8 +1,8 @@
-# Aether Weavers — the first six
+# Aether Weavers — playable roster
 
 Status: playable first-pass kits; lore and names are drafts for testing. Shared Aether pays for regular skills. Ultimates keep their own charge. Weaver is a learned discipline spanning shipboard jobs, not a species or a new element.
 
-Start the isolated test voyage at `prototypes/spacology-v0.1.0.html?weavers=1`, or choose **Aether Weavers** on the title screen, then **Play the six-Weaver voyage**. Six characters start deployed at field level 5. This uses separate save and result keys; the main voyage is preserved. New test voyages start Hanae in Auto and Arunima with Full burst enabled. Existing saves retain their selected Aether modes; switch Hanae to Auto to use her refill skill. All six can also be discovered through the normal pack pools.
+Start the isolated test voyage at `prototypes/spacology-v0.1.0.html?weavers=1`, or choose **Aether Weavers** on the title screen, then **Play the six-Weaver voyage**. Six characters start deployed at field level 5. This uses separate save and result keys; the main voyage is preserved. New test voyages start Hanae in Auto and Arunima with Full burst enabled. Existing saves retain their selected Aether modes; switch Hanae to Auto to use her refill skill. All seven, including Silen, can also be discovered through the normal pack pools. Choose **Test Silen’s attack chain** on the review page to try his separate six-character preset.
 
 The crew’s common history begins with a failed transfer manifold. Hanae heard the wasted resonance; Ivara had somewhere to hold it; Arunima knew how to open a route for it. Roonie made the bypass, Daven made it safe to touch, and Veska kept six people working at one pace. They named the practice after what their hands were doing. It remains ordinary skilled work, with arguments, mistakes and personalities attached.
 
@@ -31,14 +31,14 @@ adult · he/him · Synthetic narwhal · void · both
 
 Ivara was recovered from a relay buoy still announcing a route that had ceased to exist. His makers had given him an exquisitely sensitive spiral receiver and enough memory to hold a convoy’s return paths. They had not given him an instruction for what to do when nobody came back. He spent eleven years keeping the channel open before Navigator persuaded him that leaving was not the same as forgetting.
 
-His original narwhal machine body is a deliberate, singular design: ivory plates, listening fins and a luminous spiral horn. He speaks softly and uses he/him. Aether storage is the practical use of the quiet intervals he preserves between echoes; his shelter briefly removes a threatened ally from an incoming hit’s route. He repairs cracked mugs without being asked and has recently begun choosing which distress recordings he wishes to keep. Arunima never calls his empty channels wasted space.
+His original narwhal machine body is a deliberate, singular design: ivory plates, listening fins and a luminous spiral horn. He speaks softly and uses he/him. Aether storage is the practical use of the quiet intervals he preserves between echoes; he can collapse those echoes into a focused lance through his spiral receiver. He repairs cracked mugs without being asked and has recently begun choosing which distress recordings he wishes to keep. Arunima never calls his empty channels wasted space.
 
 - **Basic: Echo Probe.** 125% attack. Generates 1 Aether.
-- **Skill: Unwritten Shelter.** The most injured on-field ally ignores their next direct incoming hit. The shelter does not stack.
-- **Ultimate: Safe Anchorage.** Grant every living ally 24 barrier and restore 6 shared Aether. Uses individual ultimate charge.
+- **Skill: Echo Lance.** Spend 2 Aether to hit one specimen for 300% attack, apply guard pressure and one survey mark.
+- **Ultimate: The Returning Signal.** Hit one specimen for 600% attack. Uses individual ultimate charge; saves the strike when basics can finish the remaining enemies.
 - **Passive: Room for an Echo.** Adds 2 shared Aether capacity while alive; does not add starting charges.
 
-His larger pool lets you bank a burst. Shelter protects the front while your gatherers work.
+An either-row sub-DPS who keeps the larger pool and deals focused damage between team bursts. Auto usually builds Aether with basics, spending near a full pool or to secure a kill or use a break window. Manual skill priority overrides this conservative role. Base attack is 26 (up from 16); his harmonies are Hull / Ordnance.
 
 ## Arunima Das — Conduit
 
@@ -55,7 +55,7 @@ Tall, lean and silver-braided, she is patient with learners and intolerant of co
 - **Ultimate: No Distance Remains.** Hit every specimen for 500% attack and apply 2 survey marks. Uses individual ultimate charge.
 - **Passive: Wider Aperture.** Full burst turns each extra Aether spent into a larger attack multiplier, scaling with the current pool capacity. It spends the available budget in one hit per specimen.
 
-Enable Full burst for the payoff: 8 Aether becomes an 800% attack; 14 becomes 1400%. Hanae refills with skills, Ivara refills with his ultimate, and Roonie makes the same burst cost 1 less.
+Enable Full burst for the payoff: 8 Aether becomes an 800% attack; 14 becomes 1400%. Hanae and Roonie refill the pool, Roonie discounts the burst, and Ivara adds focused damage between bursts.
 
 ## Roonie Baelk — Tuner
 
@@ -68,11 +68,11 @@ Roonie grew up in a wet-habitat maintenance family, taking apart the devices tha
 He has a human teenage face and lanky body, pale speckled amphibian skin and conspicuous feathery axolotl gills and fin-shaped amphiboid ears. His gills flare when a circuit finally works, making it impossible to pretend he knew it would. Hanae helps him hear losses in a conduit, and Daven checks every isolation switch before letting him touch it. Roonie wants to make useful machines that people can repair themselves; he is quietly offended by sealed housings.
 
 - **Basic: Continuity Tap.** 125% attack. Generates 1 Aether. Every second basic tunes another ally’s next skill.
-- **Skill: Borrow My Bypass.** Give another ally 10 barrier and reduce their next skill cost by 1 Aether, to a minimum of 1. Does not stack.
-- **Ultimate: All Circuits Clear.** Restore 12 health and 25 individual ultimate charge to every living ally, including Roonie. Also restore 4 shared Aether once per cast.
+- **Skill: Borrow My Bypass.** Spend 1 Aether and restore 3 (+2 net, capped by the pool). Give another ally 20 barrier and reduce their next skill cost by 1, to a minimum of 1. Discounts do not stack; refilling still works when everyone is already tuned.
+- **Ultimate: All Circuits Clear.** Restore 12 health and 25 individual ultimate charge to every living ally, including Roonie. Also restore 6 shared Aether once per cast.
 - **Passive: Pocket Workshop.** Every second basic grants one ally a non-stacking, one-use skill discount.
 
-Auto waits until a useful untuned ally needs a bypass; his basics still provide discounts while funding the pool.
+The main Aether support: refill low reserves, discount the burst attacker and protect that ally. At zero Aether, use a basic. His ultimate refills 6 charges before a ready damage ultimate when useful.
 
 ## Veska Reed — Cantor
 
@@ -108,15 +108,26 @@ Broad, fat and strong, with a bare veined-marble crown, layered angular marble l
 
 Keep him on field. His own barriers let him return a little charge while protecting the gatherers.
 
-## Silen — reused design, separate character concept
+## Silen — Cascade
 
-Adult newt-inspired amphiboid, working name Silen. The human redesign of the narwhal is reused here; Ivara retains his original synthetic narwhal body and identity. Silen has a human face and lean body, slate-teal amphibian skin, gold markings, fin-shaped ears and a finned tail. He has no spiral horn or axolotl gill fronds.
+34 · he/him · Newt amphiboid · order · front · Drive / Ordnance
 
 ![Silen](../../assets/cast/silen-newt-v1.png)
 
-Silen surveys the changing boundaries between wet habitats and their surrounding machinery. He judges a seal by the tiny currents it permits, and dislikes instruments that report only “open” or “closed.” He seems languid because he waits for a complete reading before speaking. Roonie mistakes that stillness for boredom until Silen can describe a faulty valve from the sound transmitted through a water cup. His blue survey globe records pressure relationships, rather than Ivara’s missing routes.
+Silen is now a playable seventh Weaver, using the previously approved amphiboid concept. He has a human face and lean body, slate-teal skin, gold markings, fin ears and a finned tail. Ivara keeps his own identity and focused single-hit damage kit.
 
-Possible kit direction: an Order surveyor who marks a single specimen and steadily reduces the cost of maintaining protective effects. This is a portrait/lore concept, not a seventh implemented combat kit or member of the six-character test preset.
+Silen surveys the changing boundaries between wet habitats and machinery. He judges a seal by the tiny currents it permits, and distrusts instruments that report only open or closed. During a reservoir failure he discovered that small, timed releases could move an obstruction that one violent discharge could not. He joined Star Singer to find other problems being pushed at the wrong rhythm.
+
+His globe records pressure relationships. Roonie once mistook his stillness for boredom until Silen described a faulty valve from the sound transmitted through a water cup. Now Roonie builds his bypasses and Silen teaches him when to stop adding pressure. Ivara stores echoes; Silen listens for the moment when the next pulse will travel farther than the last.
+
+- **Basic: Read the Current.** 125% attack; generates 1 Aether.
+- **Skill: Rising Current.** Spend 2 Aether for a 200% single-target attack. With Extra turns enabled, each immediate extra turn costs 1 and grows by 25 percentage points: 225%, 250%, 275%… Each pulse applies light guard pressure. On a kill, carry the current multiplier to the healthiest remaining enemy. Continue into the next wave without resetting the ramp. Pay 1 per extra turn until all unreserved Aether is used or the encounter is cleared. Refills during the sequence fuel additional turns; there is no original-target health ceiling.
+- **Ultimate: Pressure Release.** 500% single-target attack; uses individual ultimate charge.
+- **Passive: Gathering Pressure.** Rising Current ramps across consecutive extra turns, then resets when the sequence ends. Roonie discounts the opening cost by 1, leaving another charge for an extra turn. Kills and ultimate interruptions preserve the ramp.
+
+At 8 charges, an undiscounted uninterrupted chain has seven hits (200% through 350%, 1925% combined). At 14 it has thirteen hits (200% through 500%, 4550% combined). Each attack resolves as its own skill turn, with a separate actor animation, hit, Aether payment and ultimate-charge award. The next immediate turn appears as EXTRA in the timeline. These turns do not advance combat time or delay his already scheduled ordinary turn. Ready ultimates may interrupt between turns; the sequence resumes against a living enemy, retargeting if necessary. Auto uses a basic when it can finish the final enemy of the encounter. With enemies or waves still remaining, it can start a sustained sequence even against a weak opener. Target death is checked after every turn before choosing the next enemy. At 14 charges, Roonie’s discount permits fourteen attacks ending at 525%; further refills can push the ramp higher. Another spender’s reserved charges remain protected.
+
+Extra turns defaults on; switching it off casts only the opening hit. As a main DPS, Silen starts as soon as his opening skill is affordable rather than waiting to fill the pool. Auto favors Arunima when both spenders are present. **Save for this skill** gives Silen priority instead. Roonie's refill and discount can still go before the selected burst. The default six-Weaver preset remains available. `?silen=1` opens a separate saved test voyage with Silen, Hanae and Daven in front, Ivara, Roonie and Veska in back, and Arunima in reserve. Silen is also discoverable through normal packs.
 
 ## Economy safeguards
 
@@ -129,4 +140,9 @@ The requested reference is Honkai: Star Rail’s Currency Wars. Its dedicated sk
 See [burst verification](../testing/weaver-burst.md) for the first-pass checks.
 
 
-Current team rules: each living deployed Weaver adds 1 capacity to the base 6; Ivara and Aurel each add 2 more. The six-Weaver team holds 14 and still starts with 3. Arunima is front-only, Ivara is back-only, and Hanae can use either row. Auto limits burst spending when less damage can clear the remaining enemies. See [team priorities](aether-priorities.md) and [formation and recovery](formation-and-recovery.md).
+Current team rules: each living deployed Weaver adds 1 capacity to the base 6; Ivara and Aurel each add 2 more. The six-Weaver team holds 14 and still starts with 3. Arunima is front-only, Ivara and Hanae can use either row; Roonie remains back-only as the main Aether support. Auto limits burst spending when less damage can clear the remaining enemies. See [team priorities](aether-priorities.md) and [formation and recovery](formation-and-recovery.md).
+
+
+### Ivara / Roonie role validation
+
+The role pass was checked with `tests/unit/aether-rules.cjs`, `tests/unit/formation-rules.cjs`, `tests/browser/aether-pool.cjs`, and headless `/tmp/playwright-test-weaver-roles.cjs`. Controlled combat cases cover Ivara's skill and ultimate damage, survey mark, guard-aware estimate, basic finisher and burst reservation; Roonie's one-charge refill, discount, barrier, already-tuned allies, full/empty pools, Build mode and refill ultimate priority. Eight seeded autonomous first encounters completed with both Roonie refills and Arunima bursts. This verifies the mechanics, not late-run balance.

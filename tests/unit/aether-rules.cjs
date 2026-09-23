@@ -52,7 +52,10 @@ assert.equal(team(arunima,{canWait:true}).kind,'skill'); // Never wait two conse
 arunima.aetherWaits=0;
 assert.equal(team(arunima,{canWait:true,opportunity:'break window'}).kind,'skill');
 assert.equal(team(roonie,{setup:'discount before burst'}).kind,'skill');
-assert.equal(team(roonie).kind,'basic');
+assert.equal(team(roonie).kind,'skill'); // His +2 net refill funds the reservation.
+assert.equal(team(ivara).kind,'basic'); // Sub-DPS does not consume the saved burst.
+assert.equal(A.profile('Ivara').cost,2);
+assert.equal(A.profile('Roonie').skillGain,3);
 assert.equal(team(veska,{emergency:true}).kind,'skill');
 assert.equal(team(veska,{skillGain:3}).kind,'skill');
 assert.equal(team(veska,{skillGain:1}).kind,'basic');
@@ -90,3 +93,43 @@ assert.equal(A.decide(expanded,{n:'Arunima'},{useful:true,overcharge:true,basicE
 six[1].alive=false;A.sync(expanded,six);assert.equal(expanded.max,11);assert.equal(expanded.current,11);
 six[1].alive=true;A.sync(expanded,six);assert.equal(expanded.max,14);assert.equal(expanded.current,11);
 console.log('PASS per-Weaver storage, additive capacity passives, summons/dead/duplicate exclusions, 14-charge burst, discount, health budget and safe cap changes');
+
+// Silen's escalating chain shares reservations, but pays one continuation at a time.
+const chainCrew=[{n:'Silen',alive:true},{n:'Arunima',alive:true},{n:'Roonie',alive:true},{n:'Ivara',alive:true}];
+const chainPool=A.create(chainCrew);chainPool.current=chainPool.max;
+const chainSession={aetherModes:{},aetherPriority:'Silen'};
+const chainActor=chainCrew[0];
+assert.equal(A.priority(chainCrew,{}).n,'Arunima');
+assert.equal(A.priority(chainCrew,chainSession).n,'Silen');
+const chainPlan=A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:chainSession,useful:()=>true});
+assert.equal(chainPlan.cost,chainPool.max);
+assert(A.spend(chainPool,{...chainPlan,cost:A.skillCost(chainActor)}));
+assert.equal(chainPool.skills,1);
+assert(A.spendContinuation(chainPool));assert.equal(chainPool.skills,2);assert.equal(chainPool.spent,3);
+assert.deepEqual([0,1,2,3].map(A.chainMultiplier),[2,2.25,2.5,2.75]);
+chainPool.current=0;assert.equal(A.spendContinuation(chainPool),false);assert.equal(chainPool.spent,3);
+chainPool.current=chainPool.max;chainActor.weaverDiscount=true;
+assert.equal(A.skillCost(chainActor),1);assert.equal(A.budget(chainPool,chainActor,chainSession),chainPool.max);
+assert.equal(A.budget(chainPool,chainActor,{aetherOvercharge:{Silen:false}}),1);
+assert.equal(A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:{},useful:()=>true}).kind,'basic');
+console.log('PASS Silen priority, separate skill-turn accounting, per-turn spending, escalating multipliers, empty pool and discount/chain toggle');
+
+chainSession.aetherPriority='Arunima';chainPool.current=chainPool.max;
+const savedForOther=A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:chainSession,useful:()=>true});
+assert.equal(savedForOther.reserve,chainPool.max);
+chainSession.aetherPriority='Silen';
+const fullChain=A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:chainSession,useful:()=>true});
+assert.equal(fullChain.reserve,0);assert.equal(fullChain.cost,chainPool.max);
+console.log('PASS sustained Silen reservation floor and discounted full-pool budget');
+// Formation roles inform Auto spending without blocking refills or explicit priorities.
+assert.equal(A.spendingStyle('Silen'),'greedy');assert.equal(A.spendingStyle('Ivara'),'conservative');assert.equal(A.spendingStyle('Roonie'),'support');
+const roleCrew=[{n:'Silen',alive:true},{n:'Ivara',alive:true},{n:'Hanae',alive:true}],rolePool=A.create(roleCrew);rolePool.current=4;rolePool.reserveAfter=100;
+const rolePlan=(actor,extra={})=>A.teamPlan(rolePool,actor,{crew:roleCrew,session:{},turn:1,useful:()=>true,damageSkill:true,...extra});
+assert.equal(rolePlan(roleCrew[1]).kind,'basic');
+assert.equal(rolePlan(roleCrew[1],{opportunity:'secure kill'}).kind,'skill');
+assert.equal(rolePlan(roleCrew[1],{session:{aetherPriority:'Ivara'}}).kind,'skill');
+assert.equal(rolePlan(roleCrew[1],{damageSkill:false}).kind,'skill');
+rolePool.current=rolePool.max;assert.equal(rolePlan(roleCrew[1]).kind,'skill');
+rolePool.current=1;assert.equal(rolePlan(roleCrew[2]).kind,'skill');
+rolePool.reserveAfter=0;rolePool.current=4;assert.equal(rolePlan(roleCrew[0],{canWait:true}).kind,'skill');
+console.log('PASS main-DPS spending, sub-DPS generation, opportunities, surplus pool, manual priority and useful refill exceptions');

@@ -2,7 +2,7 @@
 
 Primary damage dealers and protectors deploy in front. Supports deploy in back. Damage/support hybrids and sub-DPS can use either row. `prototypes/formation-rules.js` contains the complete assignment table and updates the shared character metadata.
 
-Arunima now deploys in front; Ivara deploys in back. Hanae, Quill, Maul and other hybrids can use either row. Back-row crew still use their abilities and generate Aether, but cannot be targeted or damaged by enemy attacks. The prior 18% target weight was inconsistent with the safe-back-row UI and has been removed for voyage battles.
+Arunima deploys in front; Roonie deploys in back. Ivara is a damage / reservoir hybrid; he, Hanae, Quill, Maul and other hybrids can use either row. Back-row crew still use their abilities and generate Aether, but cannot be targeted or damaged by enemy attacks. The prior 18% target weight was inconsistent with the safe-back-row UI and has been removed for voyage battles.
 
 Existing formations are migrated without removing characters or gear. Valid cells stay in place. If a required row is full, a flexible crew member can move to the other row; otherwise the incompatible character returns to reserves. Temporary reserve overflow is preserved and must be resolved before launch. Direct battle links enforce the same migration and launch checks.
 

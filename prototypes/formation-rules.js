@@ -1,10 +1,10 @@
 (function(root){
   'use strict';
   const groups={
-    damage:['Ash','Stella','Nour','Dolores','Beatriz','Bosk','Vitre','Arunima'],
+    damage:['Ash','Stella','Nour','Dolores','Beatriz','Bosk','Vitre','Arunima','Silen'],
     protector:['Ilka','Reva','Ojo','Otaremnivas','Tarn','Daven'],
-    support:['Spore','Abike','Aurel','Nahana','Ekene','Coda','Redcap','The Mage','Ivara','Roonie','Veska','Latch'],
-    hybrid:['Tomás','Imke','Idris','Wren','Nadira','Yusuf','Sevim','Aurelio','Navigator','Morrow','Maul','Quill','Hanae','Atsa','Ledger']
+    support:['Spore','Abike','Aurel','Nahana','Ekene','Coda','Redcap','The Mage','Roonie','Veska','Latch'],
+    hybrid:['Ivara','Tomás','Imke','Idris','Wren','Nadira','Yusuf','Sevim','Aurelio','Navigator','Morrow','Maul','Quill','Hanae','Atsa','Ledger']
   };
   const roles=Object.fromEntries(Object.entries(groups).flatMap(([role,names])=>names.map(name=>[name,role])));
   const labels={damage:'Damage dealer',protector:'Protector',support:'Support',hybrid:'Damage / support hybrid'};

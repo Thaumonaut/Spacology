@@ -23,9 +23,16 @@ const runState={
 if(SpacologyStore.weavers){
   Object.assign(runState,{level:5,capacity:6,field:['Daven','Hanae','Arunima',null,null],support:['Ivara','Roonie','Veska',null,null,null,null],reserve:[],aetherModes:{Hanae:'auto'},aetherOvercharge:{Arunima:true},packOffers:['survey','order','frontier']});
   document.querySelector('.title-copy .eyebrow').textContent='AETHER WEAVERS · SEPARATE TEST VOYAGE';
-  document.querySelector('.title-copy p').textContent='Six Weavers are deployed and ready. Hanae gathers, Ivara stores, Arunima spends, Roonie tunes, Veska heals, and Daven protects. This voyage has its own save.';
+  document.querySelector('.title-copy p').textContent='Six Weavers are deployed and ready. Hanae gathers, Ivara strikes and stores, Arunima bursts, Roonie refills and buffs, Veska heals, and Daven protects. This voyage has its own save.';
+}
+if(SpacologyStore.silen){
+  runState.field=['Daven','Hanae','Silen',null,null];runState.reserve=['Arunima'];
+  runState.aetherPriority='Silen';runState.aetherOvercharge.Silen=true;
+  document.querySelector('.title-copy .eyebrow').textContent='SILEN · CASCADE TEST VOYAGE';
+  document.querySelector('.title-copy p').textContent='Silen leads the damage chain with Roonie supporting. Ivara, Hanae, Veska and Daven complete the six. Arunima is in reserve to compare spenders. This voyage has its own save.';
 }
 try{const saved=JSON.parse(localStorage.getItem(SpacologyStore.run));if(saved?.schema===runState.schema)Object.assign(runState,saved,SpacologyVoyageSettings.normalize(saved),{selected:null,drag:null})}catch(_){}
+SpacologyTreasure.normalize(runState);
 Field.normalize(runState);
 const formationChanges=SpacologyFormation.normalize(runState);
 const voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];
@@ -297,19 +304,20 @@ normalizeCrewPositions();
 Crew.normalize(runState);
 if(runState.duplicatePolicy==='scrap')runState.duplicatePolicy='sell';
 if(!['ask','maxed','sell'].includes(runState.duplicatePolicy))runState.duplicatePolicy='maxed';
-function displayedCrewStats(name){
-  const base=battleStats[name]||{hp:92,dmg:15,speed:9},rank=runState.crewUpgrades[name]||0,names=deployed(),active=names.includes(name);
+function displayedCrewStats(name,copy=null){
+  const base=battleStats[name]||{hp:92,dmg:15,speed:9},rank=copy?copy.rank:runState.crewUpgrades[name]||0,names=deployed(),active=!copy&&names.includes(name);
   const health=active?Rules.planetHealth(names):1,mods=Rules.effects(runState);
   const ordnance=active&&names.filter(n=>Rules.crew[n]?.tags.includes('Ordnance')).length>=2;
   const drive=active&&names.filter(n=>Rules.crew[n]?.tags.includes('Drive')).length>=2;
   return {...base,speed:Number((base.speed*(drive?1.12:1)).toFixed(2)),hp:Math.round(base.hp*Crew.bonuses(rank).hp*health),dmg:Math.round(Math.round(base.dmg*Crew.bonuses(rank).attack*(active?mods.crewDamage:1))*(ordnance?1.2:1))};
 }
-function rankProgress(name){
-  const rank=Crew.rank(runState,name),total=Crew.total(runState,name);
-  return Crew.stars(rank)+(rank===2?' · MAX':total>=9?' · ★★★ unlocks at field level 5':` · ${total}/${rank===0?3:9} copies`);
+function rankProgress(name,copy=null){
+  const rank=copy?copy.rank:Crew.rank(runState,name);
+  const matching=Crew.characters(runState).filter(c=>c.name===name&&c.rank===rank).length;
+  return Crew.stars(rank)+(rank===2?' · MAX':` · ${matching}/3 matching characters${rank===1&&runState.level<5?' · ★★★ at field level 5':''}`);
 }
-function receiveCrew(name,quiet=false){
-  const result=Crew.receive(runState,name);
+function receiveCrew(name,quiet=false,rank=0){
+  const result=Crew.receive(runState,name,rank);
   if(result.error){if(!quiet)toastMessage(result.error);return false}
   Crew.apply(runState,result.state);return true;
 }
@@ -319,29 +327,38 @@ function summonDetails(name){
 }
 function showCopyDetails(id){
   const copy=runState.crewCopies.find(c=>c.id===id);if(!copy)return;
-  showModal(`<div class="crew-detail-header">${portraitMarkup(copy.name,'crew-detail-portrait')}<div><div class="eyebrow">RESERVE COPY</div><h2>${copy.name} · ${Crew.stars(copy.rank)}</h2><p>${rankProgress(copy.name)}</p></div></div><p>Three matching copies of the same rank combine automatically. This copy occupies one reserve slot. Only one ${copy.name} can be deployed at a time; their equipped gear stays with them through a merge.</p><div class="modal-actions"><button data-copy-sell="${id}">SELL · +${Crew.saleValue(copy.rank)} GOLD</button></div>`);
+  showModal(characterDetails(copy.name,'copy',copy));
+}
+function refreshCharacterDetails(name,button){
+  const copyId=button.closest('[data-character-copy]')?.dataset.characterCopy;
+  renderOps();
+  if(copyId)showCopyDetails(copyId);
+  else showModal(characterDetails(name,runState.reserve.includes(name)?'inventory':'formation'));
 }
 function aetherDetails(name){
   const p=SpacologyAether.profile(name),mode=(runState.aetherModes||{})[name]||'auto';
   const role=Rules.crew[name]?.weaver?'Aether Weaver · '+Rules.crew[name].weaver:p.role?({gatherer:'Aether Weaver · basics generate 2 charges.',reservoir:'Aether Weaver · adds 2 shared capacity while alive.',conduit:'Aether Weaver · can overcharge skills for extra damage.'})[p.role]:'';
-  return `<section class="crew-aether"><h3>Basic +${p.gain} Aether · Skill ${SpacologyAether.skillLabel(name)}</h3><p>${Rules.crew[name]?.weaver?'See the four kit descriptions above for exact effects.':'Basic: one light attack (75% attack), with one stack or mark if this kit applies them. Skill: the full attack or support action. Direct damage skills deal 150% attack.'} Ultimates use individual charge.</p>${role?`<p>${role} Adds 1 shared capacity while deployed${p.capacityBonus?`, plus ${p.capacityBonus} from their capacity passive`:''}.</p>`:''}<details><summary>Aether use</summary><div class="modal-actions">${[['auto','Auto'],['build','Build charges'],['priority','Save for this skill']].map(([id,label])=>`<button data-aether-mode="${id}" data-aether-crew="${name}" aria-pressed="${id==='priority'?runState.aetherPriority===name:runState.aetherPriority!==name&&mode===id}">${label}</button>`).join('')}</div>${p.role==='conduit'?`<button data-aether-overcharge="${name}" aria-pressed="${SpacologyAether.overchargeEnabled(runState,name)}">${p.spendAll?'Full burst · spend available Aether, +100% attack per extra charge':'Overcharge · +1 cost, +35% skill damage'}</button>`:''}<small>Auto saves for a burst Weaver and avoids wasting big attacks on low-health enemies; a manual priority overrides it. Urgent recovery, Aether refills and useful burst setup can go first. After the burst, teammates get a spending window. Full burst is on by default for Arunima.</small></details></section>`;
+  return `<section class="crew-aether"><h3>Basic +${p.gain} Aether · Skill ${SpacologyAether.skillLabel(name)}</h3><p>${Rules.crew[name]?.weaver?'See the four kit descriptions above for exact effects.':'Basic: one light attack (75% attack), with one stack or mark if this kit applies them. Skill: the full attack or support action. Direct damage skills deal 150% attack.'} Ultimates use individual charge.</p>${role?`<p>${role} Adds 1 shared capacity while deployed${p.capacityBonus?`, plus ${p.capacityBonus} from their capacity passive`:''}.</p>`:''}<p>${p.spending==='greedy'?'Main DPS · spends Aether aggressively.':p.spending==='conservative'?'Sub-DPS · usually builds Aether with basics; spends near a full pool or for useful openings.':'Support · prioritizes useful refills, buffs and recovery.'}</p><details><summary>Aether use</summary><div class="modal-actions">${[['auto','Auto'],['build','Build charges'],['priority','Save for this skill']].map(([id,label])=>`<button data-aether-mode="${id}" data-aether-crew="${name}" aria-pressed="${id==='priority'?runState.aetherPriority===name:runState.aetherPriority!==name&&mode===id}">${label}</button>`).join('')}</div>${p.role==='conduit'?`<button data-aether-overcharge="${name}" aria-pressed="${SpacologyAether.overchargeEnabled(runState,name)}">${p.chain?'Extra turns · 1 Aether each, attacks grow by 25%':p.spendAll?'Full burst · spend available Aether, +100% attack per extra charge':'Overcharge · +1 cost, +35% skill damage'}</button>`:''}<small>Auto saves for a burst Weaver and avoids wasting big attacks on low-health enemies; a manual priority overrides it. Urgent recovery, Aether refills and useful burst setup can go first. After the burst, teammates get a spending window. Full burst is on by default for Arunima; Extra turns is on for Silen.</small></details></section>`;
 }
-function characterDetails(name,location){
-  const info=crewInfo(name),stats=displayedCrewStats(name),kit=crewKits[name]||{role:info[1],basic:['Basic attack','Deals damage to one specimen.'],skill:['Special action',info[2]],passive:['Field trait','Supports the crew through its listed Harmonies.'],plan:info[2]};
-  const gear=(runState.equipped[name]||[]).filter(Boolean);
-  const lastAction=location==='inventory'?`<button class="sell-action" data-sell-character="${name}">SELL · +${Crew.saleValue(Crew.rank(runState,name))} GOLD</button>`:location==='formation'?`<button data-return="${name}">RETURN TO INVENTORY</button><button class="sell-action" data-sell-character="${name}">SELL · +${Crew.saleValue(Crew.rank(runState,name))} GOLD</button>`:'';
-  return `<div class="crew-detail-header"><div role="img" aria-label="${name} portrait">${portraitMarkup(name,'crew-detail-portrait')}</div><div><div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="crew-origin">${Rules.crew[name]?`${Rules.crew[name].species} · ancestry: ${Rules.crew[name].planet} · birthplace: ${Rules.crew[name].birthplace}`:''}</p><p class="lede"><strong>${kit.role||info[1]}</strong> · ${positionLabel(name)} · ${SpacologyFormation.labels[SpacologyFormation.roles[name]]||'Hybrid'}</p><p class="crew-rank">${rankProgress(name)}</p></div></div><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>POSITION</span><b>${positionLabel(name)}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div><div class="kit-grid">${kit.attack?`<div class="kit-move"><label>BASIC · +${SpacologyAether.profile(name).gain} AETHER</label><b>${kit.attack[0]}</b><p>${kit.attack[1]}</p></div>`:''}<div class="kit-move"><label>SKILL · ${SpacologyAether.skillLabel(name)} AETHER</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>ULTIMATE</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div>${aetherDetails(name)}${Rules.crew[name]?.lore?`<details class="crew-lore"><summary>About ${Rules.crew[name].fullName}</summary>${Rules.crew[name].lore.map(p=>`<p>${p}</p>`).join('')}</details>`:''}${summonDetails(name)}${ownedCard(['CREW',name])&&location!=='pack'&&location!=='preview'?characterGearDetails(name):''}<div class="modal-actions"><button data-place="field" data-name="${name}" ${canPlace(name,'field')?'':'disabled'}>MOVE TO FRONT</button><button data-place="support" data-name="${name}" ${canPlace(name,'support')?'':'disabled'}>MOVE TO BACK</button>${lastAction}${ownedCard(['CREW',name])&&location!=='pack'&&location!=='preview'?`<button data-view-upgrade="${name}">GET COPY · 2 CRYSTALS</button>`:''}</div>`;
+function characterDetails(name,location,copy=null){
+  const info=crewInfo(name),stats=displayedCrewStats(name,copy),kit=crewKits[name]||{role:info[1],basic:['Basic attack','Deals damage to one specimen.'],skill:['Special action',info[2]],passive:['Field trait','Supports the crew through its listed Harmonies.'],plan:info[2]};
+  const ref=copy?.id||name,owned=!!Crew.character(runState,ref)&&!['pack','preview','reward'].includes(location);
+  const gear=owned?(runState.equipped[ref]||[]).filter(Boolean):[];
+  const lastAction=owned?`${location==='formation'?`<button data-return="${name}">RETURN TO INVENTORY</button>`:''}<button class="sell-action" data-sell-character="${ref}">SELL · +${Crew.saleValue(copy?copy.rank:Crew.rank(runState,name))} GOLD</button>`:'';
+  return `<section class="character-details" ${copy?.id?`data-character-copy="${copy.id}"`:""}><div class="crew-detail-header"><div role="img" aria-label="${name} portrait">${portraitMarkup(name,'crew-detail-portrait')}</div><div><div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="crew-origin">${Rules.crew[name]?`${Rules.crew[name].species} · ancestry: ${Rules.crew[name].planet} · birthplace: ${Rules.crew[name].birthplace}`:''}</p><p class="lede"><strong>${kit.role||info[1]}</strong> · ${positionLabel(name)} · ${SpacologyFormation.labels[SpacologyFormation.roles[name]]||'Hybrid'}</p><p class="crew-rank">${['pack','reward'].includes(location)?Crew.stars(copy?.rank||0):rankProgress(name,copy)}</p></div></div><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>POSITION</span><b>${positionLabel(name)}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div>${owned?`<p>Three characters of the same name and rank combine automatically. Only one ${name} can be deployed at a time.</p>`:''}<div class="kit-grid">${kit.attack?`<div class="kit-move"><label>BASIC · +${SpacologyAether.profile(name).gain} AETHER</label><b>${kit.attack[0]}</b><p>${kit.attack[1]}</p></div>`:''}<div class="kit-move"><label>SKILL · ${SpacologyAether.skillLabel(name)} AETHER</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>ULTIMATE</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div>${aetherDetails(name)}${Rules.crew[name]?.lore?`<details class="crew-lore"><summary>About ${Rules.crew[name].fullName}</summary>${Rules.crew[name].lore.map(p=>`<p>${p}</p>`).join('')}</details>`:''}${summonDetails(name)}${owned?characterGearDetails(ref):''}<div class="modal-actions">${owned?`<button data-place="field" data-name="${ref}" ${canPlace(name,'field')?'':'disabled'}>MOVE TO FRONT</button><button data-place="support" data-name="${ref}" ${canPlace(name,'support')?'':'disabled'}>MOVE TO BACK</button>`:""}${lastAction}${owned?`<button data-view-upgrade="${name}">GET COPY · 2 CRYSTALS</button>`:''}</div></section>`;
 }
 
+function characterLabel(ref){const c=Crew.character(runState,ref);return c?c.name+' '+Crew.stars(c.rank):ref}
+function showCharacter(ref){const c=Crew.character(runState,ref);if(!c)return;if(ref!==c.name)showCopyDetails(ref);else showModal(characterDetails(c.name,runState.reserve.includes(c.name)?'inventory':'formation'))}
 function characterGearDetails(name){
-  return `<h3>Equipped gear</h3><div class="character-gear">${[0,1].map(index=>{const item=runState.equipped[name]?.[index];return `<article class="modal-card"><small>SLOT ${index+1}</small><h3>${item?`<button class="gear-name-button" data-inspect-gear="${item}" data-source-owner="${name}" data-source-index="${index}">${item}</button>`:'Empty'}</h3><p>${item?gearEffects[item]:'No gear equipped.'}</p>${item?`<button data-unequip-gear="${name}" data-gear-slot="${index}" data-gear-name="${item}">REMOVE TO INVENTORY</button>`:''}</article>`}).join('')}</div>`;
+  return `<h3>Equipped gear</h3><div class="character-gear">${[0,1].map(index=>{const item=runState.equipped[name]?.[index];return `<article class="modal-card"><small>SLOT ${index+1}</small><h3>${item?`<button class="gear-name-button" data-inspect-gear="${item}" data-source-owner="${name}" data-source-index="${index}">${item}</button>`:'Empty'}</h3><p>${item?gearEffects[item]:'No gear equipped.'}</p>${item?`<button data-unequip-gear="${name}" data-gear-slot="${index}" data-gear-name="${item}">REMOVE TO INVENTORY</button>`:`<button data-choose-gear="${name}" data-gear-slot="${index}">EQUIP GEAR</button>`}</article>`}).join('')}</div>`;
 }
 function unequipGear(name,index,expected){
-  if(!ownedCard(['CREW',name])||![0,1].includes(index))return;
+  if(!Crew.character(runState,name)||![0,1].includes(index))return;
   const item=runState.equipped[name]?.[index];if(!item||item!==expected)return;
   runState.equipped[name][index]=null;
   runState.gear.push(item);
-  renderOps();showModal(characterDetails(name,runState.reserve.includes(name)?'inventory':'formation'));toastMessage(item+' returned to inventory');
+  renderOps();showCharacter(name);toastMessage(item+' returned to inventory');
 }
 function unitMarkup(name,row,slotIndex){
   const info=crewInfo(name),gear=runState.equipped[name]||[];
@@ -385,7 +402,7 @@ renderInventory=function(type){
   if(type==='materials'){inventoryHost.innerHTML=inventoryEntries(type).map(([name,n,desc])=>`<button class="material-counter" data-material="${name}" draggable="${name==='Bloom crystal'&&n>0}"><span>${name}</span><b>×${n}</b><small>${desc}</small></button>`).join('');return}
   inventoryHost.innerHTML=inventoryEntries(type).map((x,i)=>`<article class="item ${type==='characters'?'character':type==='gear'?'drop-zone':''}" ${type==='gear'?`data-combine-with="${x[0]}"`:''} draggable="${type!=='materials'}" data-item="${x[0]}" data-type="${type}">${type==='characters'?positionBadge(x[0]):`<span class="lock">${i===0?'◆':''}</span>`}<span class="qty">${type==='characters'?Crew.stars(Crew.rank(runState,x[0])):'×'+x[2]}</span>${type==='characters'?portraitMarkup(x[0],'item-icon'):'<div class="item-icon"></div>'}<b>${x[0]}</b><span>${x[1]}</span></article>`).join('');
   if(type==='characters'){
-    inventoryHost.innerHTML+=runState.crewCopies.map(c=>`<article class="item character crew-copy" data-copy-id="${c.id}" data-item="${c.name}" data-type="characters"><span class="qty">${Crew.stars(c.rank)} COPY</span>${portraitMarkup(c.name,'item-icon')}<b>${c.name}</b><span>Combines automatically</span></article>`).join('');
+    inventoryHost.innerHTML+=runState.crewCopies.map(c=>`<article class="item character" draggable="true" data-copy-id="${c.id}" data-item="${c.name}" data-type="characters">${positionBadge(c.name)}<span class="qty">${Crew.stars(c.rank)}</span>${portraitMarkup(c.name,'item-icon')}<b>${c.name}</b><span>${crewInfo(c.name)[0]}</span></article>`).join('');
     inventoryHost.innerHTML+=Array.from({length:Math.max(0,6-Crew.slots(runState))},()=>'<div class="reserve-empty">EMPTY<br>RESERVE</div>').join('');
   }
 
@@ -457,20 +474,11 @@ function removeCrew(name){
   runState.support=runState.support.map(n=>n===name?null:n);
   runState.reserve=runState.reserve.filter(n=>n!==name);
 }
-function placeCrew(name,row,slotIndex){
-  if(!crewInfo(name))return false;
-  if(!canPlace(name,row)){toastMessage(`${name} is ${positionLabel(name).toLowerCase()}`);return false}
-  if(slotIndex===undefined||Number.isNaN(slotIndex))slotIndex=runState[row].findIndex(n=>!n);
-  if(!Number.isInteger(slotIndex)||slotIndex<0||slotIndex>=Rules.rowSlots[row]){toastMessage(`No open ${row==='field'?'on-field':'off-field'} slot`);return false}
-  const displaced=runState[row][slotIndex];
-  const already=deployed().includes(name);
-  const needed=Crew.slots(runState)-(runState.reserve.includes(name)?1:0)+(displaced&&displaced!==name?1:0);
-  if(needed>6&&needed>=Crew.slots(runState)){toastMessage('Reserve full · cannot displace this character');return false}
-  if(!already&&!displaced&&deployed().length>=runState.capacity){toastMessage(`Team capacity ${runState.capacity} reached`);return false}
-  removeCrew(name);
-  if(displaced&&displaced!==name){removeCrew(displaced);runState.reserve.push(displaced)}
-  runState[row][slotIndex]=name;
-  renderOps();toastMessage(`${name} placed ${row==='field'?'on field':'off field'}`);return true;
+function placeCrew(ref,row,slotIndex){
+  const result=Crew.place(runState,ref,row,slotIndex,{canPlace,rowSlots:Rules.rowSlots});
+  if(result.error){toastMessage(result.error);return false}
+  Crew.apply(runState,result.state);renderOps();
+  toastMessage(`${result.name} ${result.displaced?'swapped into':'placed in'} the ${row==='field'?'front':'back'} row`);return true;
 }
 function returnCrew(name){
   if(runState.reserve.includes(name))return true;
@@ -480,7 +488,7 @@ function returnCrew(name){
 }
 // A pack supplies a new copy; inventory actions consume exactly one stored copy.
 function equipGear(name,gear,index,fromPack=false){
-  if(!ownedCard(['CREW',name])||!gearEffects[gear])return false;
+  if(!Crew.character(runState,name)||!gearEffects[gear])return false;
   const items=runState.equipped[name]||[];
   if(index===undefined||Number.isNaN(index))index=[0,1].find(i=>!items[i]);
   if(![0,1].includes(index)){toastMessage(`${name} has no empty Gear slots`);return false}
@@ -490,7 +498,7 @@ function equipGear(name,gear,index,fromPack=false){
   if(!fromPack)runState.gear.splice(loose,1);
   if(replaced)runState.gear.push(replaced);
   items[index]=gear;runState.equipped[name]=items;
-  renderOps();toastMessage(replaced?`${gear} replaced ${replaced}`:`${gear} equipped to ${name} · slot ${index+1}`);return true;
+  renderOps();toastMessage(replaced?`${gear} replaced ${replaced}`:`${gear} equipped to ${Crew.character(runState,name).name} · slot ${index+1}`);return true;
 }
 function equipShip(name,index,fromPack=false){
   if(!Rules.shipParts[name])return false;
@@ -523,7 +531,7 @@ function payloadFrom(el){
   if(el.matches('[data-material="Bloom crystal"]'))return {kind:'crystal',from:'inventory'};
   if(el.matches('[data-forge-input]'))return {kind:'gear',name:el.dataset.forgeInput,from:'forge'};
   if(el.matches('.unit'))return {kind:'crew',name:el.dataset.unit,from:'formation'};
-  if(el.matches('.item'))return {kind:el.dataset.type==='characters'?'crew':el.dataset.type,name:el.dataset.item,from:'inventory'};
+  if(el.matches('.item'))return {kind:el.dataset.type==='characters'?'crew':el.dataset.type,name:el.dataset.item,ref:el.dataset.copyId||el.dataset.item,from:'inventory'};
   if(el.matches('.reward-card')){const i=Number(el.dataset.card),card=activeCards[i];return {kind:card[0].toLowerCase(),name:card[1],from:'pack',index:i}}
   return null;
 }
@@ -569,13 +577,14 @@ function handleDrop(data,zone){
   if(!data)return;
   if(data.from==='forge'){if(zone.dataset.forgeInput||zone.dataset.combineWith)previewRecipe(data.name,zone.dataset.forgeInput||zone.dataset.combineWith);return}
   if(data.kind==='crystal'){const owner=zone.dataset.gearOwner||zone.dataset.unit||(zone.dataset.type==='characters'?zone.dataset.item:null);if(owner&&ownedCard(['CREW',owner]))showCrewUpgrades(owner);return}
+  if(zone.matches('.item.character')&&data.kind==='gear'){const equip=()=>equipGear(zone.dataset.copyId||zone.dataset.item,data.name,undefined,data.from==='pack');if(data.from==='pack')resolveCard(data.index,'equipped',equip);else equip();return}
   if(zone.matches('.item.character'))zone=zone.closest('.inventory')||zone;
   if(zone.dataset.combineWith){if(data.from==='inventory'&&data.kind==='gear')previewRecipe(data.name,zone.dataset.combineWith);return}
   if(zone.dataset.forgeInput){if(data.from==='inventory'&&data.kind==='gear')previewRecipe(data.name,zone.dataset.forgeInput);return}
   if(data.kind==='crew'&&zone.dataset.gearOwner)zone=zone.closest('.unit')||zone;
   if(zone.dataset.packAction){if(data.from==='pack')resolveCard(data.index,zone.dataset.packAction);return}
   const row=zone.dataset.row||(zone.closest('.crew-row')?.querySelector('.row-label b')?.textContent.startsWith('ON')?'field':'support');
-  if(data.kind==='crew'&&(zone.dataset.row||zone.classList.contains('slot')||zone.classList.contains('unit'))){const move=()=>placeCrew(data.name,zone.dataset.row||zone.dataset.sourceRow||row,Number(zone.dataset.slotIndex));if(data.from==='pack')resolveCard(data.index,'field',move);else move();return}
+  if(data.kind==='crew'&&(zone.dataset.row||zone.classList.contains('slot')||zone.classList.contains('unit'))){const move=()=>placeCrew(data.ref||data.name,zone.dataset.row||zone.dataset.sourceRow||row,Number(zone.dataset.slotIndex));if(data.from==='pack')resolveCard(data.index,'field',{row:zone.dataset.row||zone.dataset.sourceRow||row,index:Number(zone.dataset.slotIndex)});else move();return}
   if(data.kind==='gear'&&zone.dataset.gearOwner){const equip=()=>equipGear(zone.dataset.gearOwner,data.name,Number(zone.dataset.gearIndex),data.from==='pack');if(data.from==='pack')resolveCard(data.index,'equipped',equip);else equip();return}
   if(data.kind==='ship'&&zone.dataset.shipIndex!==undefined){const equip=()=>equipShip(data.name,Number(zone.dataset.shipIndex),data.from==='pack');if(data.from==='pack')resolveCard(data.index,'equipped',equip);else equip();return}
   if(zone.classList.contains('inventory')){if(data.from==='formation')returnCrew(data.name);else if(data.from==='pack')resolveCard(data.index,'inventory');return}
@@ -593,14 +602,26 @@ document.addEventListener('click',e=>{
 },{capture:true});
 
 function showCrewPicker(row,slotIndex){
-  const choices=runState.reserve.map(n=>`<button data-place="${row}" data-slot-index="${slotIndex}" data-name="${n}" ${canPlace(n,row)?'':'disabled'}>${n}<small>${positionLabel(n)}</small></button>`).join('');
+  const choices=Crew.characters(runState).filter(c=>runState.reserve.includes(c.ref)||c.ref!==c.name).map(c=>`<button data-place="${row}" data-slot-index="${slotIndex}" data-name="${c.ref}" ${canPlace(c.name,row)?'':'disabled'}>${c.name} ${Crew.stars(c.rank)}<small>${positionLabel(c.name)}</small></button>`).join('');
   showModal(`<div class="eyebrow">PLACE CREW · ${deployed().length} / ${runState.capacity}</div><h2>${row==='field'?'On field':'Off field'}</h2><p class="lede">Drag a crew card here or choose one below. Dimmed crew cannot use this position.</p><div class="modal-actions">${choices||'<span>No reserve crew available.</span>'}</div>`)
 }
 function returnEquippedGear(name){
   (runState.equipped[name]||[]).filter(Boolean).forEach(gear=>runState.gear.push(gear));
   delete runState.equipped[name];
 }
-modalBody.addEventListener('click',e=>{const place=e.target.closest('[data-place]');if(place){if(placeCrew(place.dataset.name,place.dataset.place,Number(place.dataset.slotIndex)))overlay.classList.remove('open');return}const ret=e.target.closest('[data-return]');if(ret){if(returnCrew(ret.dataset.return))overlay.classList.remove('open');return}const sell=e.target.closest('[data-sell-character]');if(sell){const name=sell.dataset.sellCharacter;if(Crew.owned(runState,name)){returnEquippedGear(name);const value=Crew.saleValue(Crew.rank(runState,name));Crew.disposeMain(runState,name);if(runState.aetherPriority===name)runState.aetherPriority=null;runState.gold+=value;renderOps();toastMessage(`${name} sold for ${value} gold`)}overlay.classList.remove('open');return}});
+modalBody.addEventListener('click',e=>{
+  const place=e.target.closest('[data-place]');
+  if(place){
+    const ref=place.dataset.name,row=place.dataset.place,c=Crew.character(runState,ref);
+    if(!c)return;
+    if(place.dataset.slotIndex===undefined&&!runState[row].includes(null)&&!runState[row].includes(c.name)){
+      showModal(`<h2>Swap ${c.name} into the ${row==='field'?'front':'back'} row</h2><p>The selected character returns to inventory with their gear.</p><div class="modal-actions">${runState[row].map((n,i)=>`<button data-place="${row}" data-slot-index="${i}" data-name="${ref}">SWAP WITH ${n}</button>`).join('')}</div>`);return;
+    }
+    if(placeCrew(ref,row,Number(place.dataset.slotIndex)))overlay.classList.remove('open');return;
+  }
+  const ret=e.target.closest('[data-return]');if(ret){if(returnCrew(ret.dataset.return))overlay.classList.remove('open');return}
+  const sell=e.target.closest('[data-sell-character]');if(sell){const ref=sell.dataset.sellCharacter,c=Crew.character(runState,ref);if(c){const value=Crew.saleValue(c.rank);Crew.dispose(runState,ref);if(!Crew.owned(runState,c.name)&&runState.aetherPriority===c.name)runState.aetherPriority=null;runState.gold+=value;renderOps();toastMessage(`${c.name} sold for ${value} gold`)}overlay.classList.remove('open');return}
+});
 inventoryHost.onclick=e=>{const item=e.target.closest('[data-item]');if(!item)return;const name=item.dataset.item,type=item.dataset.type;if(type==='characters')showModal(characterDetails(name,'inventory'));else if(type==='gear')showGear(name);else if(type==='ship')showShip(name);else{const effect=type==='gear'?(gearEffects[name]||'Improves one crew member while equipped.'):type==='ship'?(shipEffects[name]||'Changes the rules for the whole expedition.'):`${name} is used for crafting and upgrades.`;showModal(`<div class="eyebrow">${type.toUpperCase()}</div><h2>${name}</h2><p class="lede">${effect}</p>${['gear','ship'].includes(type)?`<div class="modal-actions"><button data-dismantle-item="${name}" data-item-type="${type}">DISMANTLE · +4 SCRAP</button></div>`:''}`)}};
 
 function installPackTargets(){
@@ -619,14 +640,14 @@ openPack=function(key){
   runState.packOffers[offer]=null;
   runState.gold-=price;runState.openedThisRound=true;activePack=key;activeCards=rollPackCards(key);selectedIndex=-1;resolved=activeCards.map((_,index)=>index<2);
   activeCards.slice(0,2).forEach(card=>{const amount=parseInt(card[1].match(/\d+/)?.[0]||'1');if(card[0]==='CURRENCY')runState.gold+=amount;else if(card[0]==='MATERIAL'&&/crystal/i.test(card[1]))runState.crystals+=amount;else if(card[0]==='MATERIAL')runState.scrap+=amount});
-  if(runState.duplicatePolicy!=='ask')activeCards.forEach((card,i)=>{if(i>1&&card[0]==='CREW'&&((runState.duplicatePolicy==='maxed'&&Crew.rank(runState,card[1])===2)||(runState.duplicatePolicy!=='maxed'&&ownedCard(card))))resolveCard(i,'dispose',null,true)});
+  if(runState.duplicatePolicy!=='ask')activeCards.forEach((card,i)=>{if(i>1&&card[0]==='CREW'&&((runState.duplicatePolicy==='maxed'&&Crew.characters(runState).some(c=>c.name===card[1]&&c.rank===2))||(runState.duplicatePolicy!=='maxed'&&ownedCard(card))))resolveCard(i,'dispose',null,true)});
   packSelect.classList.add('hidden');openedPack.classList.remove('hidden');renderPack();renderOps();
 };
 renderPack=function(){
   if(!activePack)return;
   $('openPackName').textContent=packs[activePack].name;
   document.querySelector('.open-summary p').innerHTML=activeCards.slice(0,2).map(c=>`<span class="receipt">✓ ${c[1]} credited</span>`).join('');
-  packCards.innerHTML=activeCards.slice(2).map((c,index)=>{const i=index+2;return `<article class="reward-card ${c[0]==='CREW'?'has-position has-portrait':''} ${resolved[i]?'resolved':''} ${c[5]?'prime':''}" draggable="${!resolved[i]}" style="--tone:${c[4]}" data-card="${i}" data-resolution="${resolved[i]?'RESOLVED':''}"><button class="reward-select" data-card-select="${i}" aria-label="View ${c[1]} details">${c[0]==='CREW'?positionBadge(c[1])+portraitMarkup(c[1],'reward-portrait'):'<div class="reward-symbol">'+(c[0]==='GEAR'?'◈':'▣')+'</div>'}<span class="type">${c[5]?'PRIME · ':''}${c[0]}${ownedCard(c)?' · OWNED':''}</span><b>${c[1]}</b><span class="reward-effect">${c[0]==='CREW'?(ownedCard(c)?rankProgress(c[1]):crewInfo(c[1])[0]):c[2]}</span></button>${!resolved[i]?`<div class="reward-actions"><button data-card-action="inventory" data-card-index="${i}">KEEP</button><button data-card-action="dispose" data-card-index="${i}">${disposalLabel(c)}</button></div>`:''}</article>`}).join('');
+  packCards.innerHTML=activeCards.slice(2).map((c,index)=>{const i=index+2;return `<article class="reward-card ${c[0]==='CREW'?'has-position has-portrait':''} ${resolved[i]?'resolved':''} ${c[5]?'prime':''}" draggable="${!resolved[i]}" style="--tone:${c[4]}" data-card="${i}" data-resolution="${resolved[i]?'RESOLVED':''}"><button class="reward-select" data-card-select="${i}" aria-label="View ${c[1]} details">${c[0]==='CREW'?positionBadge(c[1])+portraitMarkup(c[1],'reward-portrait'):'<div class="reward-symbol">'+(c[0]==='GEAR'?'◈':'▣')+'</div>'}<span class="type">${c[5]?'PRIME · ':''}${c[0]}${ownedCard(c)?' · OWNED':''}</span><b>${c[1]}</b><span class="reward-effect">${c[0]==='CREW'?Crew.stars(c[6]||0)+' · '+crewInfo(c[1])[0]:c[2]}</span></button>${!resolved[i]?`<div class="reward-actions"><button data-card-action="inventory" data-card-index="${i}">KEEP</button><button data-card-action="dispose" data-card-index="${i}">${disposalLabel(c)}</button></div>`:''}</article>`}).join('');
   const left=resolved.filter((x,i)=>!x&&i>1).length;$('resolveCount').textContent=`${left} cards remaining`;finishPack.disabled=left>0;
   const returns=activeCards.reduce((sum,c,i)=>{if(i>1&&!resolved[i]){const value=disposalReturn(c);sum.gold+=value.gold;sum.scrap+=value.scrap}return sum},{gold:0,scrap:0});
   $('disposeRemaining').textContent='DISPOSE REMAINING'+(left?' · '+[returns.gold?returns.gold+'g':'',returns.scrap?returns.scrap+' scrap':''].filter(Boolean).join(' + '):'');$('disposeRemaining').disabled=!left;
@@ -641,7 +662,7 @@ function ownedCard(card){
 }
 function cardScrap(card){return ['GEAR','SHIP'].includes(card[0])?4:0}
 function primeReturn(card){return !card[5]?{gold:0,scrap:0}:card[0]==='CREW'?{gold:1,scrap:0}:{gold:0,scrap:2}}
-function disposalReturn(card){const bonus=primeReturn(card);return {gold:(card[0]==='CREW'?Crew.saleValue(0):0)+bonus.gold,scrap:cardScrap(card)+bonus.scrap}}
+function disposalReturn(card){const bonus=primeReturn(card);return {gold:(card[0]==='CREW'?Crew.saleValue(card[6]||0):0)+bonus.gold,scrap:cardScrap(card)+bonus.scrap}}
 function disposalLabel(card){const value=disposalReturn(card);return card[0]==='CREW'?`SELL · ${value.gold}g`:`SCRAP · ${value.scrap}`}
 function creditReturn(value){runState.gold+=value.gold;runState.scrap+=value.scrap}
 
@@ -653,9 +674,14 @@ function storeCard(card){
 }
 function resolveCard(index,action,perform,quiet=false){
   if(!activePack||!Number.isInteger(index)||index<2||index>=activeCards.length||resolved[index]||!['inventory','field','equipped','dispose'].includes(action))return false;
-  const card=activeCards[index],duplicate=ownedCard(card);
-  if((action==='equipped'||(action==='field'&&!duplicate))&&(!perform||perform()!==true))return false;
-  if(card[0]==='CREW'&&(action==='inventory'||(action==='field'&&duplicate))){if(!receiveCrew(card[1],quiet))return false}
+  const card=activeCards[index];
+  if(action==='equipped'&&(!perform||perform()!==true))return false;
+  if(card[0]==='CREW'&&action==='field'){
+    if(!perform||typeof perform!=='object')return false;
+    const result=Crew.receiveAndPlace(runState,card[1],card[6]||0,perform.row,perform.index,{canPlace,rowSlots:Rules.rowSlots});
+    if(result.error){if(!quiet)toastMessage(result.error);return false}Crew.apply(runState,result.state);
+  }
+  if(card[0]==='CREW'&&action==='inventory'){if(!receiveCrew(card[1],quiet,card[6]||0))return false}
   else if(action==='inventory'){storeCard(card);if(!quiet)inventoryTab=card[0]==='GEAR'?'gear':'ship'}
   if(action==='dispose')creditReturn(disposalReturn(card));
   else creditReturn(primeReturn(card));
@@ -674,8 +700,8 @@ function takeAll(){
 function previewCard(index){
   const c=activeCards[index];if(!c||resolved[index])return;
   selectedIndex=index;
-  const details=c[0]==='CREW'?characterDetails(c[1],'pack'):c[0]==='GEAR'?gearDetails(c[1],true):`<div class="eyebrow">${c[0]}${c[5]?' · PRIME':''}</div><h2>${c[1]}</h2><p class="lede">${c[2]}</p>`;
-  showModal(details+`<p>${c[0]==='CREW'?'Keeping adds one copy. '+rankProgress(c[1])+'. '+(Crew.receive(runState,c[1]).error||'Room available after merges.'):'Keep adds one copy to inventory. Only Scrap dismantles this item.'}${c[5]?(c[0]==='CREW'?' Prime: +1 bonus gold on resolution.':' Prime: +2 bonus scrap on resolution.'):''}</p><div class="modal-actions"><button data-pack-modal="inventory" data-index="${index}">KEEP</button><button data-pack-modal="dispose" data-index="${index}">${disposalLabel(c)}</button></div>`);
+  const details=c[0]==='CREW'?characterDetails(c[1],'pack',{name:c[1],rank:c[6]||0}):c[0]==='GEAR'?gearDetails(c[1],true):`<div class="eyebrow">${c[0]}${c[5]?' · PRIME':''}</div><h2>${c[1]}</h2><p class="lede">${c[2]}</p>`;
+  showModal(details+`<p>${c[0]==='CREW'?'Keeping adds this '+Crew.stars(c[6]||0)+' character. '+(Crew.receive(runState,c[1],c[6]||0).error||'Room available after merges.'):'Keep adds one copy to inventory. Only Scrap dismantles this item.'}${c[5]?(c[0]==='CREW'?' Prime: +1 bonus gold on resolution.':' Prime: +2 bonus scrap on resolution.'):''}</p><div class="modal-actions"><button data-pack-modal="inventory" data-index="${index}">KEEP</button><button data-pack-modal="dispose" data-index="${index}">${disposalLabel(c)}</button></div>`);
   if(c[0]==='CREW')modalBody.querySelectorAll('[data-place],[data-return]').forEach(b=>b.remove());
 }
 packCards.onclick=e=>{const action=e.target.closest('[data-card-action]');if(action){resolveCard(Number(action.dataset.cardIndex),action.dataset.cardAction);return}const select=e.target.closest('[data-card-select]');if(select)previewCard(Number(select.dataset.cardSelect))};
@@ -771,7 +797,7 @@ $('resultContinue').onclick=()=>{
   if(runState.round>runState.maxRounds){const grade=runState.integrity>=85?'A':runState.integrity>=70?'B':'C';$('voyageGrade').textContent=grade;$('voyageSummary').textContent=`${runState.integrity}% integrity · ${runState.battlesWon}/${runState.maxRounds} encounters recovered · ${runState.observations} observations completed.`;$('voyageEnd').classList.add('open');return}
   runState.openedThisRound=false;runState.packRefreshes=0;runState.packOffers=rollPackOffers(runState.packOffers);renderPackOffers();renderOps();toastMessage(`Round ${runState.round} ready. Enemy pressure will increase.`)
 };
-$('newVoyage').onclick=()=>{localStorage.removeItem(SpacologyStore.run);localStorage.removeItem(SpacologyStore.result);location.reload()};
+$('newVoyage').onclick=()=>{if(runState.treasureCaches.some(c=>!c.opened)){showInbox();toastMessage('Open your recovered caches before starting a new voyage.');return;}localStorage.removeItem(SpacologyStore.run);localStorage.removeItem(SpacologyStore.result);location.reload()};
 
 function applyBattleResult(){
   if(runState.end==='retreated'){localStorage.removeItem(SpacologyStore.result);return}
@@ -779,6 +805,7 @@ function applyBattleResult(){
   if(!result||result.round!==runState.round)return;
   const before=runState.integrity;
   const fieldProgress=awardFieldXP(Field.battleXP(runState,result.won));
+  if(result.treasure)SpacologyTreasure.collect(runState,result.treasure);
   runState.gold+=result.gold;runState.integrity=Math.max(0,Math.min(100,runState.integrity+result.integrity));
   runState.crystals+=(result.crystals||0);runState.rarePity=result.rarePity||0;
   let duplicate=false;
@@ -787,7 +814,8 @@ function applyBattleResult(){
   runState.goalProgress+=Rules.goalGain(runState,result);
   const goalReward=!runState.goalClaimed&&runState.goalProgress>=Rules.goal(runState).target;
   if(goalReward){runState.goalClaimed=true;runState.gold+=8;runState.crystals++}
-  runState.inbox.push({round:result.round,won:result.won,gold:result.gold,revives:result.revives||0,recoveryAV:result.recoveryAV||0,fieldXP:fieldProgress.xp,fieldUnlocks:fieldProgress.levels,integrity:runState.integrity-before,crystals:result.crystals||0,item:result.item?.name||null,duplicate,goalReward,actions:result.actions,breaks:result.breaks,chains:result.chains,ultimates:result.ultimates,reason:result.reason,timeLimit:result.timeLimit,elapsedAV:result.elapsedAV,enemyAttacks:result.enemyAttacks,enemyRecoveries:result.enemyRecoveries,recovery:result.recovery,analysis:result.analysis});
+  const characterReward=result.won&&[1,2,4].includes(result.round)?{name:randomCard(Object.keys(Rules.crew)),rank:Crew.rollRewardRank(),status:'pending'}:null;
+  runState.inbox.push({characterReward,treasure:result.treasure||null,treasureStatus:result.treasureStatus||null,round:result.round,won:result.won,gold:result.gold,revives:result.revives||0,recoveryAV:result.recoveryAV||0,fieldXP:fieldProgress.xp,fieldUnlocks:fieldProgress.levels,integrity:runState.integrity-before,crystals:result.crystals||0,item:result.item?.name||null,duplicate,goalReward,actions:result.actions,breaks:result.breaks,chains:result.chains,ultimates:result.ultimates,reason:result.reason,timeLimit:result.timeLimit,elapsedAV:result.elapsedAV,enemyAttacks:result.enemyAttacks,enemyRecoveries:result.enemyRecoveries,recovery:result.recovery,analysis:result.analysis});
   runState.round++;runState.goalLocked=true;
   runState.packRefreshes=0;runState.packOffers=rollPackOffers(runState.packOffers);
   // Commit the advanced round with its rewards before consuming the separate result.
@@ -820,7 +848,7 @@ function renderExpedition(){
   const planets=Rules.planetCounts(names);
   const breakpoint=(count,steps)=>steps.map(n=>`<i class="${count>=n?'reached':''}">${n}</i>`).join(' | ');
   const aether=SpacologyAether.capacityBreakdown(names);
-  document.querySelector('.harmonies').innerHTML=`<button class="harmony aether-team" data-team-aether><span class="harmony-icon">✦</span><span><b>Aether · ${aether.total} cap</b><span class="breaks">${aether.weavers} Weavers · +${aether.bonus} bonus</span></span></button><div class="eyebrow">HARMONIES</div>`+Object.keys(Rules.tags).filter(t=>counts[t]).map(t=>`<button class="harmony" data-live-harmony="${t}"><span class="harmony-icon">◇</span><span><b>${t} · ${counts[t]}</b><span class="breaks">${breakpoint(counts[t],[2,4])}</span></span></button>`).join('')+(names.length?'':'<p class="empty-hint">Deploy crew to build harmonies.</p>')+'<div class="eyebrow">HOMEWORLD</div>'+Object.entries(planets).map(([p,n])=>`<button class="harmony" data-planet-harmony="${p}"><span class="harmony-icon">◎</span><span><b>${p} · ${n}</b><span class="breaks">${breakpoint(n,[2,3])}</span></span></button>`).join('');
+  document.querySelector('.harmonies').innerHTML=treasureTrayHTML()+`<button class="harmony aether-team" data-team-aether><span class="harmony-icon">✦</span><span><b>Aether · ${aether.total} cap</b><span class="breaks">${aether.weavers} Weavers · +${aether.bonus} bonus</span></span></button><div class="eyebrow">HARMONIES</div>`+Object.keys(Rules.tags).filter(t=>counts[t]).map(t=>`<button class="harmony" data-live-harmony="${t}"><span class="harmony-icon">◇</span><span><b>${t} · ${counts[t]}</b><span class="breaks">${breakpoint(counts[t],[2,4])}</span></span></button>`).join('')+(names.length?'':'<p class="empty-hint">Deploy crew to build harmonies.</p>')+'<div class="eyebrow">HOMEWORLD</div>'+Object.entries(planets).map(([p,n])=>`<button class="harmony" data-planet-harmony="${p}"><span class="harmony-icon">◎</span><span><b>${p} · ${n}</b><span class="breaks">${breakpoint(n,[2,3])}</span></span></button>`).join('');
   document.querySelector('.round-map').innerHTML=Rules.route.map((name,i)=>`<button class="node ${i+1<runState.round?'complete':i+1===runState.round?'current':''}" data-route="${i}" aria-label="Encounter ${i+1}: ${name}${i+1<runState.round?', complete':i+1===runState.round?', current':''}"><i>${i+1<runState.round?'✓':i+1}</i><b>${i===5?'EXTRACT':i===2||i===4?'SPECIMEN':'SURVEY'}</b></button>`).join('');
   const goal=Rules.goal(runState),modifierNames=Rules.activeModifiers(runState).map(id=>Rules.modifiers[id].name);
   document.querySelector('.destination').innerHTML=`<b>${Rules.route[Math.min(5,runState.round-1)]}</b><span>${goal.battle}</span><small>${modifierWindow()&&!runState.modifierChoices.includes(modifierWindow())?'Modifier choice available in Settings':modifierNames.length?modifierNames.join(' · '):'No active modifiers'}</small>`;
@@ -828,14 +856,45 @@ function renderExpedition(){
   $('continueButton').setAttribute('aria-label',`Launch battle with a ${SpacologyVoyageSettings.roundLimit(runState)}-round deadline`);
   const goalButton=document.querySelector('[data-info="calls"]');goalButton.textContent=`GOAL · ${Math.min(goal.target,runState.goalProgress)} / ${goal.target}`;goalButton.onclick=showGoals;
   document.querySelector('[data-info="next-settings"]').onclick=showVoyageSettings;
-  let inboxButton=document.querySelector('[data-open-inbox]');
+  let inboxButton=document.querySelector('.run-icons [data-open-inbox]');
   if(!inboxButton){const old=document.querySelector('.round-icon[aria-label="Pause"]');old.setAttribute('data-open-inbox','');old.removeAttribute('aria-label');inboxButton=old}
-  inboxButton.textContent=`INBOX${runState.inbox.length>runState.inboxSeen?' · '+(runState.inbox.length-runState.inboxSeen):''}`;inboxButton.style.width='auto';inboxButton.setAttribute('aria-label','Open recovery inbox');
+  const unopened=runState.treasureCaches.filter(c=>!c.opened).length;
+  inboxButton.textContent=`INBOX${unopened?' · '+unopened:''}`;inboxButton.style.width='auto';inboxButton.setAttribute('aria-label','Open recovery inbox');
   document.querySelector('.run-meta > span').textContent=`${voyageDifficulty.label} · ${modifierNames.length} modifiers`;
+}
+function treasureTrayHTML(){
+  const caches=runState.treasureCaches.filter(c=>!c.opened),info=SpacologyTreasure.encounter(runState);
+  const available=info&&!runState.treasureClaims.includes(info.id);
+  return `<section class="treasure-tray" aria-label="Recovery caches"><div class="eyebrow">RECOVERY CACHES · ${caches.length}</div><div class="treasure-tray-items">${caches.map(c=>`<button data-cache-preview="${c.id}" aria-label="Inspect unopened Tier ${c.tier} Treasure cache">${SpacologyTreasure.icon(c.tier)}<span>TIER ${c.tier}</span></button>`).join('')||'<small>Defeat treasure carriers to recover caches.</small>'}</div>${available?`<div class="treasure-sighting"><b>Carrier sighted</b><small>First wave · escapes after 240 AV</small><button data-treasure-order="${runState.treasureOrder==='pursue'?'mission':'pursue'}">${runState.treasureOrder==='pursue'?'✦ PURSUE TREASURE':'MISSION FIRST'}</button></div>`:''}${caches.length?'<button data-open-inbox>OPEN RECOVERIES</button>':''}</section>`;
+}
+function treasureInboxHTML(){
+  const caches=runState.treasureCaches;
+  return `<h3>Treasure caches</h3><p>Carrier gold and rare equipment are already saved. Open each cache for its additional rewards.</p>${caches.some(c=>!c.opened)?'<button data-open-caches>OPEN ALL CACHES</button>':''}<div class="treasure-cache-list">${caches.map(c=>`<article class="modal-card treasure-cache">${SpacologyTreasure.icon(c.tier)}<h3>Tier ${c.tier} Treasure cache</h3><small>Encounter ${c.round} · ${c.opened?'OPENED':'UNOPENED'}</small>${c.opened?`<p>${SpacologyTreasure.describe(c.contents)}</p>${c.contents.gear.map(n=>`<button data-treasure-gear="${n}">INSPECT ${n}</button>`).join('')}`:`<button data-cache-preview="${c.id}">VIEW & OPEN</button>`}</article>`).join('')||'<p>No treasure caches recovered yet.</p>'}</div>`;
+}
+function previewTreasureCache(id){
+  const cache=runState.treasureCaches.find(c=>c.id===id);if(!cache)return;
+  const odds=SpacologyTreasure.pools[cache.tier];
+  showModal(`<div class="eyebrow">TREASURE RECOVERY · ENCOUNTER ${cache.round}</div>${SpacologyTreasure.icon(cache.tier)}<h2>Tier ${cache.tier} Treasure cache</h2>${cache.opened?`<p>Already collected: ${SpacologyTreasure.describe(cache.contents)}</p>`:`<p>Guaranteed ${4+cache.tier*2+cache.round} gold, plus one featured reward.</p><p>${odds.currency}% currency bundle · ${odds.basic}% basic equipment · ${odds.advanced}% advanced equipment.</p><p>Currency bundles draw gold (60%), scrap (30%) or Bloom crystals (10%). Equipment copies are kept, including duplicates.</p><button data-open-cache="${cache.id}">OPEN CACHE</button>`}<button data-open-inbox>ALL RECOVERIES</button>`);
+}
+function openTreasureCaches(id){
+  const selected=runState.treasureCaches.filter(c=>!c.opened&&(!id||c.id===id)),rewards=[];
+  selected.forEach(c=>{const reward=SpacologyTreasure.open(runState,c.id);if(reward)rewards.push(reward)});
+  if(!rewards.length)return;
+  renderOps();showInbox();toastMessage(rewards.map(SpacologyTreasure.describe).join(' · '));
+}
+function characterRewardHTML(entry){
+  const reward=entry.characterReward;if(!reward)return '';
+  return `<article class="modal-card"><button data-reward-character="${entry.round}" class="recruit-preview">${portraitMarkup(reward.name,'recruit-art')}<b>${reward.name} ${Crew.stars(reward.rank)}</b></button><p>Survey reward · Encounter ${entry.round}</p>${reward.status==='pending'?`<div class="modal-actions"><button data-claim-character="${entry.round}">KEEP</button><button data-sell-reward="${entry.round}">SELL · +${Crew.saleValue(reward.rank)} GOLD</button></div>`:`<p>${reward.status==='kept'?'Kept in roster':'Sold'}</p>`}</article>`;
+}
+function claimCharacterReward(round,sell=false){
+  const reward=runState.inbox.find(e=>e.round===round)?.characterReward;if(!reward||reward.status!=='pending')return;
+  if(sell)runState.gold+=Crew.saleValue(reward.rank);
+  else if(!receiveCrew(reward.name,false,reward.rank))return;
+  reward.status=sell?'sold':'kept';renderOps();showInbox();
 }
 function showInbox(){
   runState.inboxSeen=runState.inbox.length;renderOps();
-  showModal(`<div class="eyebrow">RECOVERY INBOX · ALREADY CREDITED</div><h2>What came home</h2><p class="lede">A receipt for each encounter. Reading it does not collect rewards again.</p>${runState.inbox.slice().reverse().map(entry=>`<article class="receipt-entry"><h3>Encounter ${entry.round} · ${entry.won?'Recovered':entry.reason==='timeout'?'Time expired':'Partial recovery'}</h3><p>+${entry.gold} gold · ${entry.integrity>=0?'+':''}${entry.integrity}% integrity${entry.crystals?' · +'+entry.crystals+' crystals':''}${entry.fieldXP?' · +'+entry.fieldXP+' field XP':''}</p>${entry.revives?`<p>${entry.revives} crew recoveries · ${entry.recoveryAV} AV lost.</p>`:''}${entry.fieldUnlocks?.length?`<p>Field level up: ${entry.fieldUnlocks.join(' · ')}.</p>`:''}${entry.item?`<p>${entry.item}${entry.duplicate?' → 4 scrap (already owned)':''}</p>`:''}${entry.goalReward?'<p>Voyage goal completed: +8 gold and +1 crystal.</p>':''}<small>${entry.actions||0} actions · ${entry.breaks||0} breaks · ${entry.chains||0} chains · ${entry.ultimates||0} ultimates${entry.recovery?` · ${entry.recovery.earned}/${entry.recovery.total} recovery pts (${Math.floor(entry.recovery.percent)}%)`:''}${Number.isFinite(entry.elapsedAV)?` · ${(entry.elapsedAV/100).toFixed(2)} / ${entry.timeLimit} rounds`:''}</small>${entry.analysis?`<p>${entry.analysis.crewTurns} crew turns · ${entry.analysis.advances} advances · ${entry.analysis.savedAV} AV of crew waiting saved.</p><p>${entry.analysis.notes.join(' ')}</p>`:''}</article>`).join('')||'<p>No recovery yet. Finish an encounter to record its rewards here.</p>'}`);
+  showModal(`<div class="eyebrow">RECOVERY INBOX</div><h2>What came home</h2><h3>Character rewards</h3><p>Winning survey encounters 1, 2 and 4 awards a character · 15% chance of ★★. Unclaimed characters wait here when reserves are full.</p><div class="recruit-grid">${runState.inbox.map(characterRewardHTML).join('')||'<p>No character rewards yet.</p>'}</div>${treasureInboxHTML()}<h3>Battle history · already credited</h3><p class="lede">Reading a receipt does not collect rewards again.</p>${runState.inbox.slice().reverse().map(entry=>`<article class="receipt-entry"><h3>Encounter ${entry.round} · ${entry.won?'Recovered':entry.reason==='timeout'?'Time expired':'Partial recovery'}</h3><p>+${entry.gold} gold · ${entry.integrity>=0?'+':''}${entry.integrity}% integrity${entry.crystals?' · +'+entry.crystals+' crystals':''}${entry.fieldXP?' · +'+entry.fieldXP+' field XP':''}</p>${entry.treasure?`<p>Treasure: +${entry.treasure.gold} gold · ${entry.treasure.item} · Tier ${entry.treasure.cache.tier} cache.</p>`:entry.treasureStatus==='escaped'?'<p>Treasure carrier escaped.</p>':''}${entry.revives?`<p>${entry.revives} crew recoveries · ${entry.recoveryAV} AV lost.</p>`:''}${entry.fieldUnlocks?.length?`<p>Field level up: ${entry.fieldUnlocks.join(' · ')}.</p>`:''}${entry.item?`<p>${entry.item}${entry.duplicate?' → 4 scrap (already owned)':''}</p>`:''}${entry.goalReward?'<p>Voyage goal completed: +8 gold and +1 crystal.</p>':''}<small>${entry.actions||0} actions · ${entry.breaks||0} breaks · ${entry.chains||0} chains · ${entry.ultimates||0} ultimates${entry.recovery?` · ${entry.recovery.earned}/${entry.recovery.total} recovery pts (${Math.floor(entry.recovery.percent)}%)`:''}${Number.isFinite(entry.elapsedAV)?` · ${(entry.elapsedAV/100).toFixed(2)} / ${entry.timeLimit} rounds`:''}</small>${entry.analysis?`<p>${entry.analysis.crewTurns} crew turns · ${entry.analysis.advances} advances · ${entry.analysis.savedAV} AV of crew waiting saved.</p><p>${entry.analysis.notes.join(' ')}</p>`:''}</article>`).join('')||'<p>No recovery yet. Finish an encounter to record its rewards here.</p>'}`);
 }
 function showGoals(){
   showModal(`<div class="eyebrow">VOYAGE GOAL</div><h2>Choose your fieldwork</h2><p class="lede">Complete one goal for 8 gold and 1 crystal. Progress carries across encounters. Selection locks at first launch.</p><div class="system-options">${Object.entries(Rules.goals).map(([id,g])=>`<article class="modal-card"><h3>${g.name}${runState.goal===id?' · SELECTED':''}</h3><p>${g.description}</p><p>Encounter observation: ${g.battle}</p><button data-goal="${id}" ${runState.goalLocked?'disabled':''}>${runState.goal===id?`${Math.min(g.target,runState.goalProgress)} / ${g.target}${runState.goalClaimed?' · REWARDED':''}`:'SELECT GOAL'}</button></article>`).join('')}</div>`);
@@ -858,7 +917,7 @@ const recipeCost=r=>`${r.scrap||ADVANCED_GEAR_SCRAP} scrap${r.crystals?' + '+r.c
 function basicGearNames(){return Object.keys(gearEffects).filter(n=>!Rules.recipes.some(r=>r.name===n))}
 function gearSource(name){
   if(runState.gear.includes(name))return {name,owner:null};
-  for(const owner of [...deployed(),...runState.reserve]){
+  for(const {ref:owner} of Crew.characters(runState)){
     const index=(runState.equipped[owner]||[]).indexOf(name);
     if(index>=0)return {name,owner,index};
   }
@@ -892,12 +951,13 @@ function gearPurpose(name){
   return purposes[name]||recipe?.inputs.map(n=>purposes[n]).join(' + ')||'Crew equipment';
 }
 function gearDetails(name,readOnly=false,selectedSource){
-  const source=readOnly?null:selectedSource||gearSource(name),names=[...new Set([...deployed(),...runState.reserve])];
-  const fits=names.filter(n=>gearFit(name,n)),suggested=fits.slice(0,3),other=names.filter(n=>!suggested.includes(n));
-  const crewButton=n=>{const wearing=source?.owner===n,full=![0,1].some(i=>!runState.equipped[n]?.[i]);return `<button class="gear-fit" data-equip-detail="${name}" data-crew="${n}" ${!source||wearing||full?'disabled':''}>${portraitMarkup(n,'gear-fit-portrait')}<span><b>${wearing?'Equipped to':source?'Equip to':'Good for'} ${n}</b><small>${gearFit(name,n)||'Can equip this gear.'}${full&&!wearing?' · No free slots':''}</small></span></button>`};
+  const source=readOnly?null:selectedSource||gearSource(name),names=Crew.characters(runState).map(c=>c.ref);
+  const crewName=ref=>Crew.character(runState,ref)?.name||ref,crewLabel=ref=>crewName(ref)+' '+Crew.stars(Crew.character(runState,ref)?.rank||0);
+  const fits=names.filter(n=>gearFit(name,crewName(n))),suggested=fits.slice(0,3),other=names.filter(n=>!suggested.includes(n));
+  const crewButton=n=>{const wearing=source?.owner===n,full=![0,1].some(i=>!runState.equipped[n]?.[i]);return `<button class="gear-fit" data-equip-detail="${name}" data-crew="${n}" ${!source||wearing||full?'disabled':''}>${portraitMarkup(crewName(n),'gear-fit-portrait')}<span><b>${wearing?'Equipped to':source?'Equip to':'Good for'} ${crewLabel(n)}</b><small>${gearFit(name,crewName(n))||'Can equip this gear.'}${full&&!wearing?' · No free slots':''}</small></span></button>`};
   const combinations=Rules.recipes.filter(r=>r.inputs.includes(name));
   const recipe=Rules.recipes.find(r=>r.name===name),value=recipe?(recipe.scrap||ADVANCED_GEAR_SCRAP)+recipe.inputs.length*BASIC_GEAR_SCRAP:BASIC_GEAR_SCRAP;
-  return `<div class="gear-detail" data-source-name="${name}" data-source-owner="${source?.owner||''}" data-source-index="${source?.index??''}"><div class="eyebrow">GEAR · ${source?.owner?source.owner+', slot '+(source.index+1):source?'IN INVENTORY':'PREVIEW'}</div><h2>${name}</h2><p class="lede">${gearEffects[name]}</p><section><h3>Good for</h3><div class="gear-fit-list">${suggested.map(crewButton).join('')}</div>${!fits.length?`<p class="gear-help">${gearPurpose(name)}. No matching crew in your roster yet.</p>`:''}${source&&other.length?`<details class="gear-other"><summary>Other crew</summary><div class="gear-fit-list">${other.map(crewButton).join('')}</div></details>`:''}</section>${combinations.length?`<section><h3>Combine with</h3>${combinations.map(r=>{const partner=r.inputs.find(n=>n!==name),owned=gearSource(partner);return `<details class="gear-combination"><summary><b>${partner}</b><small>${owned?(owned.owner?owned.owner+', slot '+(owned.index+1):'You own this'):'Missing · '+BASIC_GEAR_SCRAP+' scrap to make'} → ${r.name}</small></summary><div class="gear-recipe"><h3>${r.name}</h3>${source?recipeDetails(r,source||name):`<p>${r.effect}</p><small>Keep this gear to combine it. Uses both items + ${recipeCost(r)}.</small>`}</div></details>`}).join('')}</section>`:''}${source?`<footer class="gear-footer">${source.owner?`<button data-remove-detail="${name}">Remove to inventory</button>`:''}<details class="gear-dismantle"><summary>Dismantle for 4 scrap</summary><p>Destroy ${name}${source.owner?' and remove it from '+source.owner:''}. Recover 4 of its ${value}-scrap crafting value; lose ${value-4} scrap.${recipe?.crystals?' Crystals are not returned.':''}</p><button class="gear-danger" data-dismantle-item="${name}" data-item-type="gear">DISMANTLE · +4 SCRAP</button></details></footer>`:''}</div>`;
+  return `<div class="gear-detail" data-source-name="${name}" data-source-owner="${source?.owner||''}" data-source-index="${source?.index??''}"><div class="eyebrow">GEAR · ${source?.owner?crewLabel(source.owner)+', slot '+(source.index+1):source?'IN INVENTORY':'PREVIEW'}</div><h2>${name}</h2><p class="lede">${gearEffects[name]}</p><section><h3>Good for</h3><div class="gear-fit-list">${suggested.map(crewButton).join('')}</div>${!fits.length?`<p class="gear-help">${gearPurpose(name)}. No matching crew in your roster yet.</p>`:''}${source&&other.length?`<details class="gear-other"><summary>Other crew</summary><div class="gear-fit-list">${other.map(crewButton).join('')}</div></details>`:''}</section>${combinations.length?`<section><h3>Combine with</h3>${combinations.map(r=>{const partner=r.inputs.find(n=>n!==name),owned=gearSource(partner);return `<details class="gear-combination"><summary><b>${partner}</b><small>${owned?(owned.owner?crewLabel(owned.owner)+', slot '+(owned.index+1):'You own this'):'Missing · '+BASIC_GEAR_SCRAP+' scrap to make'} → ${r.name}</small></summary><div class="gear-recipe"><h3>${r.name}</h3>${source?recipeDetails(r,source||name):`<p>${r.effect}</p><small>Keep this gear to combine it. Uses both items + ${recipeCost(r)}.</small>`}</div></details>`}).join('')}</section>`:''}${source?`<footer class="gear-footer">${source.owner?`<button data-remove-detail="${name}">Remove to inventory</button>`:''}<details class="gear-dismantle"><summary>Dismantle for 4 scrap</summary><p>Destroy ${name}${source.owner?' and remove it from '+crewLabel(source.owner):''}. Recover 4 of its ${value}-scrap crafting value; lose ${value-4} scrap.${recipe?.crystals?' Crystals are not returned.':''}</p><button class="gear-danger" data-dismantle-item="${name}" data-item-type="gear">DISMANTLE · +4 SCRAP</button></details></footer>`:''}</div>`;
 }
 function showGear(name,source){if(gearEffects[name])showModal(gearDetails(name,false,source))}
 function detailGearSource(name){
@@ -908,9 +968,9 @@ function detailGearSource(name){
   return runState.gear.includes(name)?{name,owner:null}:null;
 }
 function equipFromDetails(item,name){
-  const source=detailGearSource(item);if(!source||!ownedCard(['CREW',name])||source.owner===name)return;
+  const source=detailGearSource(item);if(!source||!Crew.character(runState,name)||source.owner===name)return;
   const index=[0,1].find(i=>!runState.equipped[name]?.[i]);
-  if(index===undefined){toastMessage(name+' has no free gear slots');return}
+  if(index===undefined){toastMessage((Crew.character(runState,name)?.name||name)+' has no free gear slots');return}
   if(source.owner){runState.equipped[source.owner][source.index]=null;runState.gear.push(item)}
   equipGear(name,item,index);showGear(item,{name:item,owner:name,index});
 }
@@ -948,7 +1008,7 @@ function craftAdvanced(name,makeMissing=false,preferred){
   runState.scrap-=plan.scrap;runState.crystals-=r.crystals||0;
   if(plan.destination)runState.equipped[plan.destination.owner][plan.destination.index]=r.name;
   else runState.gear.push(r.name);
-  renderOps();showGear(r.name);toastMessage(r.name+' crafted'+(plan.destination?' and equipped to '+plan.destination.owner:''));
+  renderOps();showGear(r.name);toastMessage(r.name+' crafted'+(plan.destination?' and equipped to '+characterLabel(plan.destination.owner):''));
 }
 function craftBasic(name){
   if(!basicGearNames().includes(name)||ownedCard(['GEAR',name])||runState.scrap<BASIC_GEAR_SCRAP)return;
@@ -966,7 +1026,7 @@ function showAttunements(selected){
 }
 function showForge(){
   const available=Object.keys(gearEffects).map(gearSource).filter(Boolean);
-  showModal(`<div class="eyebrow">FORGE · ${runState.scrap} SCRAP</div><h2>Build your equipment</h2><p class="lede">Basic gear costs ${BASIC_GEAR_SCRAP} scrap. Combine two ingredients and ${ADVANCED_GEAR_SCRAP} scrap into advanced gear. Standard recipes require no crystals.</p><h3>Available ingredients</h3><div class="forge-inventory">${available.map(source=>`<button draggable="true" class="drop-zone" data-forge-input="${source.name}">${source.name}<small>${source.owner?source.owner+' · slot '+(source.index+1):'Inventory'}</small></button>`).join('')||'<p>No gear yet. Craft a basic item below.</p>'}</div><h3>Advanced gear</h3><div class="system-options">${Rules.recipes.filter(r=>!r.crystals).map(r=>`<article class="modal-card"><h3>${r.name}</h3><p>${r.inputs.join(' + ')} + ${ADVANCED_GEAR_SCRAP} scrap</p><p>${r.effect}</p><button data-recipe="${r.name}">${canCraft(r)?'PREVIEW COMBINATION':'VIEW RECIPE'}</button></article>`).join('')}</div><h3>Basic gear · ${BASIC_GEAR_SCRAP} scrap each</h3><div class="system-options">${basicGearNames().map(name=>`<article class="modal-card"><h3>${name}</h3><p>${gearEffects[name]}</p><button data-craft-basic="${name}" ${ownedCard(['GEAR',name])||runState.scrap<BASIC_GEAR_SCRAP?'disabled':''}>${ownedCard(['GEAR',name])?'OWNED':`CRAFT · ${BASIC_GEAR_SCRAP} SCRAP`}</button></article>`).join('')}</div><h3>Crystal crafting</h3><div class="system-options">${Rules.recipes.filter(r=>r.crystals).map(r=>`<article class="modal-card"><h3>${r.name}</h3><p>${r.effect}</p><p>${recipeCost(r)}</p><button data-recipe="${r.name}">VIEW RECIPE</button></article>`).join('')}<article class="modal-card"><h3>Prismatic Dynamo · ship</h3><p>${shipEffects['Prismatic Dynamo']}</p><button data-craft-dynamo ${ownedCard(['SHIP','Prismatic Dynamo'])||runState.scrap<16||runState.crystals<2?'disabled':''}>${ownedCard(['SHIP','Prismatic Dynamo'])?'OWNED':'CRAFT · 16 SCRAP + 2 CRYSTALS'}</button></article></div><p>Crew ranks come from copies, not material upgrades.</p><button data-show-attunements>CREATE A CHARACTER COPY</button>`);
+  showModal(`<div class="eyebrow">FORGE · ${runState.scrap} SCRAP</div><h2>Build your equipment</h2><p class="lede">Basic gear costs ${BASIC_GEAR_SCRAP} scrap. Combine two ingredients and ${ADVANCED_GEAR_SCRAP} scrap into advanced gear. Standard recipes require no crystals.</p><h3>Available ingredients</h3><div class="forge-inventory">${available.map(source=>`<button draggable="true" class="drop-zone" data-forge-input="${source.name}">${source.name}<small>${source.owner?characterLabel(source.owner)+' · slot '+(source.index+1):'Inventory'}</small></button>`).join('')||'<p>No gear yet. Craft a basic item below.</p>'}</div><h3>Advanced gear</h3><div class="system-options">${Rules.recipes.filter(r=>!r.crystals).map(r=>`<article class="modal-card"><h3>${r.name}</h3><p>${r.inputs.join(' + ')} + ${ADVANCED_GEAR_SCRAP} scrap</p><p>${r.effect}</p><button data-recipe="${r.name}">${canCraft(r)?'PREVIEW COMBINATION':'VIEW RECIPE'}</button></article>`).join('')}</div><h3>Basic gear · ${BASIC_GEAR_SCRAP} scrap each</h3><div class="system-options">${basicGearNames().map(name=>`<article class="modal-card"><h3>${name}</h3><p>${gearEffects[name]}</p><button data-craft-basic="${name}" ${ownedCard(['GEAR',name])||runState.scrap<BASIC_GEAR_SCRAP?'disabled':''}>${ownedCard(['GEAR',name])?'OWNED':`CRAFT · ${BASIC_GEAR_SCRAP} SCRAP`}</button></article>`).join('')}</div><h3>Crystal crafting</h3><div class="system-options">${Rules.recipes.filter(r=>r.crystals).map(r=>`<article class="modal-card"><h3>${r.name}</h3><p>${r.effect}</p><p>${recipeCost(r)}</p><button data-recipe="${r.name}">VIEW RECIPE</button></article>`).join('')}<article class="modal-card"><h3>Prismatic Dynamo · ship</h3><p>${shipEffects['Prismatic Dynamo']}</p><button data-craft-dynamo ${ownedCard(['SHIP','Prismatic Dynamo'])||runState.scrap<16||runState.crystals<2?'disabled':''}>${ownedCard(['SHIP','Prismatic Dynamo'])?'OWNED':'CRAFT · 16 SCRAP + 2 CRYSTALS'}</button></article></div><p>Crew ranks come from copies, not material upgrades.</p><button data-show-attunements>CREATE A CHARACTER COPY</button>`);
 }
 previewPack=function(key){
   const p=packs[key],pool=[];Object.values(packs).forEach(pack=>pack.cards.slice(2).forEach(c=>{if(!pool.some(x=>x[0]===c[0]&&x[1]===c[1]))pool.push(c)}));
@@ -983,6 +1043,11 @@ document.querySelector('[data-info="map"]').onclick=()=>showModal(`<h2>Voyage ro
 showToast=function(message){toast.textContent=message;const button=document.createElement('button');button.textContent='DISMISS';button.onclick=()=>toast.classList.remove('show');toast.append(button);toast.classList.add('show')};
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.cachePreview){previewTreasureCache(b.dataset.cachePreview);return;}
+  if(b.dataset.openCache){openTreasureCaches(b.dataset.openCache);return;}
+  if(b.hasAttribute('data-open-caches')){openTreasureCaches();return;}
+  if(b.dataset.treasureGear){showGear(b.dataset.treasureGear);return;}
+  if(b.dataset.treasureOrder){runState.treasureOrder=b.dataset.treasureOrder;renderOps();return;}
   if(b.hasAttribute('data-team-aether')){const a=SpacologyAether.capacityBreakdown(deployed());showModal(`<div class="eyebrow">TEAM AETHER</div><h2>${a.total} shared capacity</h2><p>6 base + ${a.weavers} from deployed Weavers + ${a.bonus} from capacity passives. Each living Weaver adds 1; Ivara and Aurel each add 2 more. Reserve crew and summons do not count.</p><p>Battles still start with 3 Aether. Losing a Weaver reduces capacity and discards any excess charges. Full burst scales with the current pool: Arunima adds 100 percentage points of attack for every charge beyond her base cost.</p>`);return}
   if(b.hasAttribute('data-open-inbox'))showInbox();
   if(b.hasAttribute('data-show-goals'))showGoals();
@@ -994,13 +1059,16 @@ document.addEventListener('click',e=>{
 });
 modalBody.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
+  if(b.dataset.claimCharacter){claimCharacterReward(Number(b.dataset.claimCharacter));return}
+  if(b.dataset.sellReward){claimCharacterReward(Number(b.dataset.sellReward),true);return}
+  if(b.dataset.rewardCharacter){const entry=runState.inbox.find(e=>e.round===Number(b.dataset.rewardCharacter)),reward=entry?.characterReward;if(reward)showModal(characterDetails(reward.name,'reward',reward)+`<button data-open-inbox>BACK TO INBOX</button>`);return}
   if(b.dataset.shipEquip){if(equipShip(b.dataset.shipEquip,Number(b.dataset.shipSlot)))overlay.classList.remove('open');return}
   if(b.dataset.shipUnequip){const source=shipSource(b.dataset.shipUnequip,b.dataset.shipSlot);if(source){runState.shipInventory.push(b.dataset.shipUnequip);source.list[source.index]=null;renderOps();showShip(b.dataset.shipUnequip)}return}
   if(b.dataset.shipUpgrade){const name=b.dataset.shipUpgrade,source=shipSource(name,b.dataset.shipSource),next=Rules.shipParts[name]?.upgrade;if(source&&next&&runState.scrap>=8){source.list[source.index]=next;runState.scrap-=8;renderOps();showShip(next,source.equipped?source.index:null);toastMessage(next+' ready')}return}
   if(b.dataset.shipScrap){const name=b.dataset.shipScrap,source=shipSource(name,b.dataset.shipSource);if(source){if(source.equipped)source.list[source.index]=null;else source.list.splice(source.index,1);runState.scrap+=4;renderOps();overlay.classList.remove('open');toastMessage(name+' dismantled for 4 scrap')}return}
   if(b.dataset.recoveryMode){if(!['revive','lastStand','none'].includes(b.dataset.recoveryMode))return;runState.downRecovery=b.dataset.recoveryMode;runState.lastStand=b.dataset.recoveryMode==='lastStand';renderOps();showVoyageSettings();return}
-  if(b.dataset.aetherMode){const n=b.dataset.aetherCrew,id=b.dataset.aetherMode;if(!ownedCard(['CREW',n]))return;runState.aetherModes||={};if(id==='priority'){runState.aetherPriority=n;runState.aetherModes[n]='auto'}else{if(runState.aetherPriority===n)runState.aetherPriority=null;runState.aetherModes[n]=id==='build'?'build':'auto'}renderOps();showModal(characterDetails(n,runState.reserve.includes(n)?'inventory':'formation'));return}
-  if(b.dataset.aetherOvercharge){const n=b.dataset.aetherOvercharge;if(!ownedCard(['CREW',n]))return;runState.aetherOvercharge||={};runState.aetherOvercharge[n]=!SpacologyAether.overchargeEnabled(runState,n);renderOps();showModal(characterDetails(n,runState.reserve.includes(n)?'inventory':'formation'));return}
+  if(b.dataset.aetherMode){const n=b.dataset.aetherCrew,id=b.dataset.aetherMode;if(!ownedCard(['CREW',n]))return;runState.aetherModes||={};if(id==='priority'){runState.aetherPriority=n;runState.aetherModes[n]='auto'}else{if(runState.aetherPriority===n)runState.aetherPriority=null;runState.aetherModes[n]=id==='build'?'build':'auto'}refreshCharacterDetails(n,b);return}
+  if(b.dataset.aetherOvercharge){const n=b.dataset.aetherOvercharge;if(!ownedCard(['CREW',n]))return;runState.aetherOvercharge||={};runState.aetherOvercharge[n]=!SpacologyAether.overchargeEnabled(runState,n);refreshCharacterDetails(n,b);return}
   if(b.dataset.packModal){if(resolveCard(Number(b.dataset.index),b.dataset.packModal))overlay.classList.remove('open')}
   if(b.dataset.poolCard){if(b.dataset.poolCard==='CREW'){showModal(characterDetails(b.dataset.name,'preview'));modalBody.querySelectorAll('[data-place],[data-return]').forEach(x=>x.remove())}else showItem(b.dataset.name,b.dataset.poolCard.toLowerCase())}
   if(b.dataset.viewCrew){showModal(characterDetails(b.dataset.viewCrew,'preview'));modalBody.querySelectorAll('[data-place],[data-return]').forEach(x=>x.remove())}
@@ -1012,11 +1080,12 @@ modalBody.addEventListener('click',e=>{
   if(b.dataset.removeDetail)removeFromDetails(b.dataset.removeDetail);
   if(b.hasAttribute('data-craft-dynamo')){if(ownedCard(['SHIP','Prismatic Dynamo'])||runState.scrap<16||runState.crystals<2)return;runState.scrap-=16;runState.crystals-=2;runState.shipInventory.push('Prismatic Dynamo');renderOps();showForge()}
   if(b.dataset.craftBasic)craftBasic(b.dataset.craftBasic);
+  if(b.dataset.chooseGear){const ref=b.dataset.chooseGear,index=Number(b.dataset.gearSlot);showModal(`<h2>Choose gear</h2><div class="modal-actions">${[...new Set(runState.gear)].map(n=>`<button data-equip-owned="${n}" data-crew="${ref}" data-gear-slot="${index}">${n}</button>`).join('')||'<p>No loose gear available.</p>'}</div>`);return}
+  if(b.dataset.equipOwned){if(equipGear(b.dataset.crew,b.dataset.equipOwned,Number(b.dataset.gearSlot)))showCharacter(b.dataset.crew);return}
   if(b.dataset.unequipGear)unequipGear(b.dataset.unequipGear,Number(b.dataset.gearSlot),b.dataset.gearName);
   if(b.dataset.viewUpgrade)showCrewUpgrades(b.dataset.viewUpgrade);
   if(b.hasAttribute('data-show-attunements'))showAttunements();
   if(b.dataset.createCopy){const n=b.dataset.createCopy,issue=copyIssue(n);if(issue){toastMessage(issue);return}if(receiveCrew(n)){runState.crystals-=2;renderOps();showAttunements(n);toastMessage(n+' · '+rankProgress(n))}}
-  if(b.dataset.copySell){const id=b.dataset.copySell,copy=runState.crewCopies.find(c=>c.id===id);if(copy){runState.gold+=Crew.saleValue(copy.rank);runState.crewCopies=runState.crewCopies.filter(c=>c.id!==id);renderOps();overlay.classList.remove('open')}}
   if(b.dataset.dismantleItem&&b.dataset.itemType==='gear'){const name=b.dataset.dismantleItem,source=detailGearSource(name);if(source){if(source.owner)runState.equipped[source.owner][source.index]=null;else runState.gear.splice(runState.gear.indexOf(name),1);runState.scrap+=4;renderOps();overlay.classList.remove('open');toastMessage(name+' dismantled for 4 scrap')}return}
   if(b.dataset.dismantleItem){const name=b.dataset.dismantleItem,type=b.dataset.itemType,list=type==='gear'?runState.gear:type==='ship'?runState.shipInventory:null;if(list&&list.includes(name)){list.splice(list.indexOf(name),1);runState.scrap+=4;renderOps();overlay.classList.remove('open');toastMessage(name+' dismantled for 4 scrap')}}
   if(b.dataset.goal&&!runState.goalLocked&&Rules.goals[b.dataset.goal]){runState.goal=b.dataset.goal;runState.goalProgress=0;renderOps();showGoals()}
