@@ -7,7 +7,7 @@ The enemy catalogue has two jobs:
 
 The solution is to separate **faction**, **archetype**, **specimen**, and **hero**.
 
-Future behavior ideas and counterplay are recorded in the [enemy traits backlog](enemy-traits-backlog.md).
+Implemented combat behaviors and counterplay are documented in [enemy behaviors](../testing/enemy-traits.md); the original proposals and remaining expansion ideas are in the [enemy traits backlog](enemy-traits-backlog.md).
 
 - A **faction** is an origin ecology or constructed lineage. It owns anatomy, materials, naming,
   behaviour, and a shared combat rule.

@@ -214,6 +214,22 @@ Object.entries(summonerNames).forEach(([faction,name])=>registerEnemyType(factio
   name,body:FACTIONS[faction].roleBodies.anchor[0],portrait:ARCHETYPE_PORTRAITS[faction].anchor
 }));
 
+// Behavior variants reuse an existing silhouette until dedicated plates are authored.
+const traitVariants={
+  venom:['Venom carrier','cleanser','stacking poison'],hexer:['Hexer','reflector','skill surcharge'],
+  leech:['Aether leech','reflector','stored shared Aether'],saboteur:['Saboteur','sapper','delayed bomb'],
+  duelist:['Duelist','quickstep','marked-target pressure'],brood:['Brood host','anchor','offspring on defeat'],
+  channeler:['Channeler','warden','interruptible charged attack'],scorcher:['Scorcher','sapper','short burn'],
+  bloodletter:['Bloodletter','quickstep','bleed on attacking turns']
+};
+Object.entries(traitVariants).forEach(([role,[label,base,problem]])=>{
+  registerArchetype(role,{label,cue:ARCHETYPES[base].cue,problem});
+  Object.keys(FACTIONS).forEach(faction=>registerEnemyType(faction,role,{
+    name:FACTIONS[faction].typeNames[base]+' · '+label,
+    body:FACTIONS[faction].roleBodies[base][0],portrait:ARCHETYPE_PORTRAITS[faction][base]
+  }));
+});
+
 const NULL_STAGES=[
   {id:'clear',weight:5,symptoms:['none']},
   {id:'touched',weight:42,symptoms:['repeated motion','wrong shadow','faded colour','compulsive route']},

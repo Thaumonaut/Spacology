@@ -35,7 +35,7 @@ dialog{width:min(1040px,calc(100% - 28px));max-height:92vh;padding:0;border:1px 
 const rules=window.SpacologyExpedition,enemyData=window.SpacologyEnemyCatalogue;
 const esc=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 const fullNames={Ilka:'Ilka Voressen',Reva:'Reva Sokolovna','Tomás':'Tomás Iriarte',Ojo:'Ojo Mbeki',Stella:'Dr Stella Anuye',Nour:'Nour Bediako',Dolores:'Dolores Achterberg',Abike:'Dr Abike Sunmonu',Aurel:'Aurel Cosma',Imke:'Imke Rask',Idris:'Idris Okonjo',Beatriz:'Beatriz Corriveau',Wren:'Wren Adeyemi',Nadira:'Dr Nadira Quill',Yusuf:'Yusuf Benhaddou',Sevim:'Sevim Aydar',Aurelio:'Aurelio Bassi',Ekene:'Ekene Baptiste'};
-const titleName=name=>rules.crew[name]?.fullName||fullNames[name]||name;
+const titleName=name=>name==='Spore'?'Spore · Mary Achterberg':name==='Redcap'?'Redcap · Liora Venn':rules.crew[name]?.fullName||fullNames[name]||name;
 const card=(item,kind)=>`<button class="card ${esc(item.element||'void')}" type="button" data-kind="${kind}" data-id="${esc(item.id)}"><img loading="lazy" src="${esc(item.portrait)}" alt="${esc(item.name)} portrait"><span class="meta"><small>${esc(item.kicker)}</small><span class="card-title"><h3>${esc(item.name)}</h3></span><p>${esc(item.caption)}</p></span></button>`;
 const crew=Object.entries(rules.crew).map(([id,p])=>({id,name:titleName(id),element:p.element,portrait:p.portrait,kicker:`${p.element} · ${p.species}`,caption:p.role,raw:p}));
 const summons=Object.entries(rules.summons||{}).map(([id,p])=>({id,name:id,element:'order',portrait:p.portrait,kicker:p.form,caption:p.role,raw:p}));

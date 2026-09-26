@@ -22,7 +22,7 @@
     const saved=(session.aetherOvercharge||{})[name];
     return saved===undefined?!!profile(name).spendAll:!!saved;
   }
-  function skillCost(actor){return Math.max(1,profile(actor.n).cost-(actor.weaverDiscount?1:0))}
+  function skillCost(actor){return Math.max(1,profile(actor.n).cost-(actor.weaverDiscount?1:0))+(actor.ailments?.hex?1:0)}
   function budget(pool,actor,session){
     const p=profile(actor.n),cost=skillCost(actor);
     return Math.min(pool.max,overchargeEnabled(session,actor.n)?(p.spendAll?pool.max-(!p.chain&&actor.weaverDiscount?1:0):p.role==='conduit'?cost+1:cost):cost);
@@ -35,7 +35,7 @@
   function decide(pool,actor,options={}){
     const p=profile(actor.n),reserve=options.reserve||0;
     const discount=actor.weaverDiscount?Math.min(1,p.cost-1):0;
-    p.cost-=discount;p.gain+=actor.weaverTune?1:0;
+    p.cost=p.cost-discount+(actor.ailments?.hex?1:0);p.gain+=actor.weaverTune?1:0;
     if(!options.useful)return {kind:'basic',gain:p.gain,reason:'skill has no useful target'};
     if(options.mode==='build'&&!options.emergency)return {kind:'basic',gain:p.gain,reason:'building Aether'};
     if(options.basicEnough&&!options.emergency&&!options.setup)return {kind:'basic',gain:p.gain,reason:'a basic can finish the target'};
@@ -75,10 +75,12 @@
     pool.current-=decision.cost;pool.spent+=decision.cost;pool.skills++;return true;
   }
   function chainMultiplier(index){return 2+.25*index}
+  function continuationCost(index){return Math.max(2,Math.floor(index)+1)}
   // Each continuation is a separately paid skill turn; never prepay future turns.
-  function spendContinuation(pool){
-    if(pool.current<1)return false;
-    pool.current--;pool.spent++;pool.skills++;return true;
+  function spendContinuation(pool,index){
+    const cost=continuationCost(index);
+    if(pool.current<cost)return false;
+    pool.current-=cost;pool.spent+=cost;pool.skills++;return true;
   }
   function credit(pool,amount){
     const actual=Math.min(amount,pool.max-pool.current);
@@ -86,7 +88,7 @@
   }
   function generate(pool,amount){pool.basics++;return credit(pool,amount)}
   function skillLabel(name){const p=profile(name);return p.skillGain?'−'+p.cost+' / +'+p.skillGain:p.spendAll?'−'+p.cost+'–all':'−'+p.cost}
-  const api={spendingStyle,chainMultiplier,spendContinuation,skillLabel,profile,capacity,capacityBreakdown,create,sync,decide,spend,generate,credit,overchargeEnabled,skillCost,budget,priority,teamPlan,recordAction};
+  const api={spendingStyle,chainMultiplier,continuationCost,spendContinuation,skillLabel,profile,capacity,capacityBreakdown,create,sync,decide,spend,generate,credit,overchargeEnabled,skillCost,budget,priority,teamPlan,recordAction};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.SpacologyAether=api;
 })(typeof window!=='undefined'?window:globalThis);

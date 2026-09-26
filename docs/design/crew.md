@@ -200,10 +200,12 @@ cannot stand the idea of the last of something sitting in a drawer.
 
 ### **Tomás Iriarte** — biotic structures engineer · *growth* · (was Ferrule)
 
-**Human** · Orrowan V
+**Fungal person** · Orrowan V
 
-Broad and weathered, fifty-odd, grey-streaked beard he keeps meaning to deal with, hands stained
-permanently amber with sap. Sawdust in everything he owns. A laugh you can hear two galleries away.
+Broad and weathered, fifty-odd, with a clustered golden chanterelle trumpet crown and faint mycelium at his
+hairline and wrists. His fingertips are permanently amber with sap. Sawdust in everything he owns.
+A laugh you can hear two galleries away. His fungal anatomy is his own; his grafting practice comes from
+growing up Ereta in the Barrena delta.
 
 He grafts during fights. Not metaphorically — he brings the kit, gets between two failing members
 while things are happening, and splices living wood into the gap. Whoever is nearest gets bark
@@ -362,14 +364,14 @@ technical.
 
 ---
 
-### **Spore** — interior ecology and biotic access · *growth*
+### **Mary “Spore” Achterberg** — interior ecology and biotic access · *growth*
 
 **Fungal person** · Calyx IV
 
 A young adult in her mid-twenties, long-limbed where Dolores is round, with a wild asymmetrical crown
 of green-grey caps, lavender gills and small new fruiting bodies that appear when she has gone too
-long without sleep. Her legal first name remains on formal records; everybody aboard calls her
-Spore, including her mother when she is annoyed enough to become formal.
+long without sleep. Her name is Mary Achterberg, but everybody aboard calls her Spore. Dolores
+uses “Mary” when she is worried about her, which Spore finds worse than being scolded.
 
 She earned the name during her first unsupervised access survey. Dolores opened a hand-width seam
 into a reef vault and told her to wait while the pressure settled. Spore sent a filament through,
@@ -1081,8 +1083,8 @@ lineage keeps distinct biology, silhouette and sensory traits.
 
 | | |
 |---|---|
-| **Human** | Tomás Iriarte, Maul, Quill, Tarn |
-| **Fungal people** | Dolores Achterberg, Spore |
+| **Human** | Maul, Quill, Tarn |
+| **Fungal people** | Tomás Iriarte, Dolores Achterberg, Mary “Spore” Achterberg |
 | **Oni** | Stella Anuye (mana-deaf, which for an oni is close to unheard of), Beatriz Corriveau |
 | **Rock skin** | Ojo Mbeki, Wren Adeyemi |
 | **Mana dweller** | Nour Bediako, Ekene Baptiste — both on the heartwood, which is costing them |

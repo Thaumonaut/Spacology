@@ -20,7 +20,7 @@
 html,body{margin:0;background:var(--bg);color:var(--ink);
   font-family:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%}
-body{padding:14px 14px calc(20px + env(safe-area-inset-bottom))}
+body{padding:calc(14px + var(--game-safe-top)) calc(14px + var(--game-safe-right)) calc(20px + var(--game-safe-bottom)) calc(14px + var(--game-safe-left))}
 h1{font-size:15px;font-weight:500;margin:0 0 2px}
 .sub{font-size:12px;color:var(--ink3);margin:0 0 14px}
 .zlabel{font-size:10px;color:var(--ink3);letter-spacing:.06em;margin:12px 0 6px}
@@ -195,7 +195,7 @@ input[type=range]{width:100%;accent-color:var(--energy);height:26px}
   width:54px;height:54px;border-radius:50%;background:var(--energy);color:#131A21;
   border:0;font-size:19px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.5)}
 .sessionbar{display:none}.session-return{display:none;width:100%;margin-top:10px;background:var(--energy);color:#211605;border:0;border-radius:5px;padding:13px;font:800 9px inherit;letter-spacing:.05em}
-body.session-mode{--bg:#05090e;--panel:#09131c;--raised:#0d1924;--line:#1c3042;--ink:#edf3f4;--ink2:#8da2b1;--ink3:#51697a;--ghost:#dc7d8f;--energy:#e9b45e;min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 218px;grid-template-rows:76px 1fr;gap:0;padding:0;background:#020406}
+body.session-mode{--bg:#05090e;--panel:#09131c;--raised:#0d1924;--line:#1c3042;--ink:#edf3f4;--ink2:#8da2b1;--ink3:#51697a;--ghost:#dc7d8f;--energy:#e9b45e;min-height:100vh;display:grid;grid-template-columns:minmax(0,1fr) 218px;grid-template-rows:76px 1fr;gap:0;padding:var(--game-safe-top) var(--game-safe-right) var(--game-safe-bottom) var(--game-safe-left);background:#020406}
 body.session-mode>h1,body.session-mode>.sub{display:none}body.session-mode .sessionbar{display:grid;grid-template-columns:265px 1fr 230px;grid-column:1/3;align-items:center;border-bottom:1px solid var(--line);padding:0 14px;background:#071018}
 .session-status .eyebrow{font-size:7px;color:#70d5b2;letter-spacing:.13em}.session-status b{display:block;font-size:14px;margin:3px 0}.session-status>span{display:block;max-width:250px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:7px;color:var(--ink3)}
 .session-route{display:flex;align-items:flex-start;justify-content:center}.session-node{width:78px;text-align:center;position:relative;color:var(--ink3)}.session-node:not(:last-child):after{content:"";position:absolute;height:1px;width:53px;background:var(--line);left:52px;top:12px}.session-node.done:not(:last-child):after{background:#70d5b2}.session-node i{width:25px;height:25px;border:1px solid #33536e;border-radius:50%;display:grid;place-items:center;margin:auto;background:#09141e;font-style:normal;font-size:7px;position:relative;z-index:1}.session-node.done i{border-color:#70d5b2;color:#70d5b2;background:#0a211b}.session-node.current i{border-color:var(--energy);background:var(--energy);color:#251805;box-shadow:0 0 14px rgba(233,180,94,.22)}.session-node b{display:block;font-size:6px;margin-top:4px}.session-node.current b{color:var(--energy)}
@@ -280,11 +280,12 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 </style>
 <style>body.session-mode{grid-template-columns:minmax(0,1fr)}body.session-mode .sessionbar{grid-template-columns:minmax(170px,215px) minmax(0,1fr) 160px auto}.session-mode .session-status{min-width:0}.session-mode .session-status b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:900px){body.session-mode .sessionbar{grid-template-columns:minmax(0,1fr) 150px auto}}@media(max-width:760px){body.session-mode .sessionbar{grid-template-columns:minmax(0,1fr) auto}}.session-route .session-node{width:48px}.session-route .session-node:not(:last-child):after{width:24px;left:36px}</style>
 <style>body.session-mode .ribbon .rc.boss{flex-basis:116px;width:116px;min-width:116px;height:120px}.session-mode .rc.boss{border:2px solid #e6a762;box-shadow:0 0 18px #b86b3933}.session-mode .rc.boss .rn:after{content:' · BOSS';color:#ffd897}</style>
+<style>.tk .intent{font-size:10px;line-height:1.25;color:#edc88f;white-space:normal;margin-top:3px;flex:0 0 100%;text-align:left}.session-mode .tk:has(.intent){flex-wrap:wrap}.session-mode .rc.crew-portrait>.rt.ailment-label{display:block;top:auto;bottom:calc(var(--card-footer) + 3px)}.rc .ailment-label{color:#efb28d!important;font-size:10px;line-height:1.3}.rc .rt{white-space:normal;overflow-wrap:anywhere}</style>
 <link rel="stylesheet" href="game-menu.css">
 </head>
 <body>
 
-<header class="sessionbar"><div class="session-status"><div class="eyebrow">FIELDWORK</div><b id="sessionTitle">Phomous · Compound Motion</b><span id="sessionCrew">Formation linked from Ops</span></div><nav class="session-route" aria-label="Round progress"><div class="session-node done"><i>✓</i><b>OPS</b></div><div class="session-node current"><i>●</i><b>FIELDWORK</b></div><div class="session-node"><i>3</i><b>SPECIMEN</b></div><div class="session-node"><i>4</i><b>RECOVER</b></div></nav><div class="session-run"><b id="sessionRound">ROUND 1 / 6</b><span id="sessionPressure">Enemy pressure 70%</span><div class="session-resources"><em><strong id="sessionIntegrity">74%</strong> INTEGRITY</em><em><strong id="sessionGold">102</strong> GOLD</em></div></div><div class="session-controls" id="sessionControls"><button id="sessionLogToggle" aria-expanded="false">COMBAT LOG</button></div></header>
+<header class="sessionbar"><div class="session-status"><div class="eyebrow">FIELDWORK</div><b id="sessionTitle">Phomous · Compound Motion</b><span id="sessionCrew">Formation linked from Ops</span></div><nav class="session-route" aria-label="Round progress"><div class="session-node done"><i>✓</i><b>OPS</b></div><div class="session-node current"><i>●</i><b>FIELDWORK</b></div><div class="session-node"><i>3</i><b>BATTLE</b></div><div class="session-node"><i>4</i><b>RECOVER</b></div></nav><div class="session-run"><b id="sessionRound">ROUND 1 / 6</b><span id="sessionPressure">Enemy pressure 70%</span><div class="session-resources"><em><strong id="sessionIntegrity">74%</strong> INTEGRITY</em><em><strong id="sessionGold">102</strong> GOLD</em></div></div><div class="session-controls" id="sessionControls"><button id="sessionLogToggle" aria-expanded="false">COMBAT LOG</button></div></header>
 
 <h1>Watchable fight</h1>
 <p class="sub">Same sim, played at full ceremony.</p>
@@ -425,6 +426,7 @@ body.session-mode .rc>.rt{font-size:9px;line-height:12px}
 <script src="aether-rules.js"></script>
 <script src="../sim/enemy-catalogue.js"></script>
 <script src="enemy-summoning.js"></script>
+<script src="enemy-traits.js"></script>
 <script src="crew-progression.js"></script>
 <script>
 /* ============ data ============ */
@@ -473,7 +475,7 @@ var TEAMS={
        bio:'Field biologist. Corruption jumps hosts when one dies; she counts on it.',
        ult:{kind:'mend',amt:28,barrier:18,name:'Bloomtide'}},
       {n:'Quill',e:'void',sp:110,dmg:10,marks:3,tags:['Blight','Assay'],p:'breaker',row:'back',
-       bio:'Xeno-botanist. Tags every specimen before she touches it.',
+       bio:'Xeno-botanist. Marks every enemy before she attacks.',
        ult:{kind:'aoe',mult:2.2,survey:3,name:'Full Survey'}},
       {n:'Fen',e:'order',sp:106,dmg:7,heal:30,tags:['Crew'],p:'opportunist',row:'back',
        bio:'Ship medic. Treats the crew like equipment: patched before it fails.',
@@ -521,7 +523,7 @@ var TEAMS={
        bio:'Cryo-analyst. Freezes a shell until it fractures on its own.',
        ult:{kind:'aoe',mult:2.8,name:'Hoarfrost'}},
       {n:'Quill',e:'growth',sp:110,dmg:10,marks:3,tags:['Assay','Blight'],p:'breaker',row:'back',
-       bio:'Xeno-botanist. Tags every specimen before she touches it.',
+       bio:'Xeno-botanist. Marks every enemy before she attacks.',
        ult:{kind:'aoe',mult:2.2,survey:3,name:'Full Survey'}},
       {n:'Vitre',e:'chaos',sp:108,dmg:9,marks:2,aoe:1,shred:13,tags:['Assay','Drive'],
        p:'tactician',row:'back',
@@ -606,7 +608,7 @@ var TAGS={
             4:'RELAY \u2014 a kill advances the next crewmate'},
   Ordnance:{2:'20% more damage',
             4:'OVERSTRIKE \u2014 a hit that breaks a shield lands twice'},
-  Assay:   {2:'shields shredded 60% faster',
+  Assay:   {2:'shield damage +60%',
             4:'DISSECTION \u2014 break costs the enemy two turns'},
   Crew:    {2:'healing 50% stronger',
             4:'RELIEF \u2014 the first crew member to fall is brought back'}
@@ -647,6 +649,7 @@ var FIELD=6, POOL=12, OPS_PRESSURE=1, OPS_HP=1, OPS_DMG=1, OPS_WAVES=2, OPS_RUN_
 var OPS_FACTION='ossuary',OPS_PLANET=null,OPS_NODE=null;
 var FACTION_ORDER=['ossuary','mycelial','glasswake','tideworn','tannhul','custodian','redaction'];
 function enemyKitFor(archetype){
+  var traitKit=SpacologyEnemyTraits.kit(archetype);if(traitKit)return traitKit;
   var label=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.ARCHETYPES[archetype]
     ?window.SpacologyEnemyCatalogue.ARCHETYPES[archetype].label:'Chaff';
   return ENEMY_KITS[label]||ELITES.filter(function(kit){return kit.n===label})[0]||ENEMY_KITS.Chaff;
@@ -823,6 +826,7 @@ function build(team,planet){
       var regularRoles=faction.archetypes.filter(function(role){return !['warden','anchor','bulwark'].includes(role)});
       var roleDeck=elite&&eliteRoles.length?eliteRoles:OPS_NODE?(regularRoles.length?regularRoles:['chaff']):faction.archetypes;
       archetype=OPS_NODE&&OPS_NODE.format==='swarm'?'chaff':OPS_NODE&&OPS_NODE.format==='ambush'?'quickstep':OPS_NODE&&OPS_NODE.format==='boss'?'warden':roleDeck[(q+OPS_RUN_ROUND+wave-2)%roleDeck.length];
+      if(OPS_NODE)archetype=SpacologyEnemyTraits.roster({sector:OPS_NODE.sector,format:OPS_NODE.format,index:OPS_RUN_ROUND,wave:wave,size:FIELD,seed:window.SPACOLOGY_SESSION&&window.SPACOLOGY_SESSION.treasureSeed})[slot];
       if(archetype==='summoner'&&(OPS_RUN_ROUND===1||G.pool.some(function(p){return p.wave===wave&&p.archetype==='summoner'})))archetype='chaff';
       specimen=catalogue.generateEnemy('voyage-'+OPS_RUN_ROUND+'-'+OPS_FACTION+'-'+q,{faction:OPS_FACTION,archetype:archetype});
       base=enemyKitFor(archetype);
@@ -925,6 +929,7 @@ function spawnFoes(){
       shMax:p.layers,shL:p.layers,shC:p.guard,broken:false,regen:0,vuln:0});
     added.push('f'+G.spawned); G.spawned++; live++;
   }
+  SpacologyEnemyTraits.linkGuards(G.units);
   updateEnemyCounter();
   return added;
 }
@@ -992,7 +997,7 @@ function treasureTargets(pool){
   return window.SPACOLOGY_SESSION.treasureOrder==='mission'?pool.filter(function(u){return !u.treasure}):[carrier];
 }
 function U(id){ for(var i=0;i<G.units.length;i++) if(G.units[i].id===id) return G.units[i]; }
-var CREW_PORTRAITS={Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'};
+var CREW_PORTRAITS={Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/cast/coda-v2.png',Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp'};
 Object.keys(SpacologyExpedition.crew).forEach(function(name){
   var portrait=SpacologyExpedition.crew[name].portrait;
   if(portrait)CREW_PORTRAITS[name]=portrait;
@@ -1059,15 +1064,16 @@ function ribbons(){
 var inspectionWasPlaying=false;
 function inspectEnemy(id){
   var u=U(id);if(!u||u.side!=='foe')return;
-  if(u.boss){openBattleDetails('<h2 id="enemyDetailTitle">'+u.n+' · Phase '+u.phase+'</h2><p>At 50% health, guard strength drops 40% and attack damage rises 35%. Existing breaks and ailments persist. Every third attack deals 1.8× damage, announced one attack ahead.</p><p>Recovery comes from boss damage (80%) and defeating it (20%).</p><p>'+u.hp+' / '+u.max+' HP · '+u.dmg+' attack damage.</p>');return;}
-  if(u.treasure){openBattleDetails('<h2 id="enemyDetailTitle">Treasure carrier</h2><p>'+u.factionName+' · '+u.archetypeName+'</p><p>Optional, non-attacking hoarder. Defeat it for bonus gold, rare equipment and a Tier II or III Treasure cache. It escapes after 240 AV or when this wave is cleared.</p><p>'+Math.max(0,Math.ceil(u.escapeAt-G.av))+' AV until escape · '+Math.max(0,u.hp)+' / '+u.max+' HP.</p><p>It awards no recovery points and never blocks a wave or mission completion. Pursue treasure focuses direct attacks; mission first leaves it to incidental area damage.</p>');return;}
+  if(u.boss){openBattleDetails('<h2 id="enemyDetailTitle">'+u.n+' · Phase '+u.phase+'</h2><p>At 50% health, shield strength drops 40% and attack damage rises 35%. Existing Breaks and status effects persist. Every third attack deals 1.8× damage, announced one attack ahead.</p><p>Recovery comes from boss damage (80%) and defeating it (20%).</p><p>'+u.hp+' / '+u.max+' HP · '+u.dmg+' attack damage.</p>');return;}
+  if(u.treasure){openBattleDetails('<h2 id="enemyDetailTitle">Treasure carrier</h2><p>'+u.factionName+' · '+u.archetypeName+'</p><p>Optional, non-attacking hoarder. Defeat it for bonus gold, rare equipment and a Tier II or III Treasure cache. It escapes after 240 AV or when this wave is cleared.</p><p>'+Math.max(0,Math.ceil(u.escapeAt-G.av))+' AV until escape · '+Math.max(0,u.hp)+' / '+u.max+' HP.</p><p>It awards no recovery points and never blocks a wave or mission completion. Pursue treasure focuses direct attacks; mission first leaves it to incidental AoE damage.</p>');return;}
   var summonInfo=SpacologyEnemySummoning.isSummoner(u)?'Spends its turn calling one weaker faction enemy, then attacks on the following turn. '+(SpacologyEnemySummoning.MAX_CALLS-(u.summonCalls||0))+' calls remaining. Break or defeat it to stop the call. A full enemy row makes it attack instead; the call is saved. Summons never summon others.':u.enemyMinion?'Called reinforcement: a weaker attacker with one shield layer. It cannot summon. It must be defeated to clear the wave, but grants no additional recovery points.':null;
-  var behavior=summonInfo|| (u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
-    u.cleanse?'Sheds '+u.cleanse+' fracture stacks before each attack.':
+  var traitInfo=SpacologyEnemyTraits.type(u);
+  var behavior=(traitInfo?'<b>'+traitInfo.name+'</b> · '+traitInfo.description+'<br>Healers automatically cleanse an ally with a status effect; healing ultimates cleanse the crew. Poison, burn and bleed deal damage over time (DoT). Bombs explode after a delay. These timers advance after scheduled turns, not extra turns, ultimates or follow-up attacks. Status effects clear when crew are downed. <br>Intent: '+SpacologyEnemyTraits.labels(u,G.units):null)||summonInfo|| (u.haste?'Each damaging hit while shielded grants +'+Math.round(u.haste*100)+'% speed, up to +'+Math.round(u.haste*u.hasteCap*100)+'%. Breaking its shield clears this speed bonus.':
+    u.cleanse?'Sheds '+u.cleanse+' Fracture stacks before each attack.':
     u.trait==='Fast'?'Short waits between attacks. Can act between slower crew members.':
     u.shMax>1?'Multiple shield layers reduce incoming damage until fully broken. Match its weaknesses to strip them faster.':'A regular attacker. Match its weaknesses to break its shield.');
   var taxonomy=u.factionName?'<p><b>'+u.factionName+'</b> · '+u.archetypeName+(u.specimenName?' · field name '+u.specimenName:'')+' · '+u.bodyPlan+'. '+u.material+' adapted with '+u.adaptation+'.</p><p><b>Null state:</b> '+u.nullStage+' — '+u.nullSymptom+'. <b>Faction rule:</b> '+u.factionRule+'.</p>':'';
-  openBattleDetails('<h2 id="enemyDetailTitle">'+(u.typeName||u.n)+(u.elite?' · Elite':'')+'</h2>'+taxonomy+'<p>'+behavior+'</p><dl><dt>Health</dt><dd>'+Math.round(G.visualHP?.[u.id]??u.hp)+' / '+u.max+'</dd><dt>Attack damage</dt><dd>'+u.dmg+'</dd><dt>Speed</dt><dd>'+u.sp+'</dd><dt>Shield remaining</dt><dd>'+(u.broken?0:(u.shL-1)*shieldCapacity(u)+u.shC)+' / '+u.shMax*shieldCapacity(u)+'</dd><dt>Weaknesses</dt><dd>'+u.weak.join(', ')+'</dd></dl><p><b>Recovery:</b> reforms its full shield and attacks on the same turn. A break delays its next turn by '+Math.round((window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay)*100)+'% of its normal wait and increases damage taken by 35%. Four Assay crew deny two turns before recovery.</p><p>Battle paused; the current animation may finish.</p>');
+  openBattleDetails('<h2 id="enemyDetailTitle">'+(u.typeName||u.n)+(u.elite?' · Elite':'')+'</h2>'+taxonomy+'<p>'+behavior+'</p><dl><dt>Health</dt><dd>'+Math.round(G.visualHP?.[u.id]??u.hp)+' / '+u.max+'</dd><dt>Attack damage</dt><dd>'+u.dmg+'</dd><dt>Speed</dt><dd>'+u.sp+'</dd><dt>Shield remaining</dt><dd>'+(u.broken?0:Math.max(0,(u.shL-1)*shieldCapacity(u)+u.shC))+' / '+u.shMax*shieldCapacity(u)+'</dd><dt>Weaknesses</dt><dd>'+u.weak.join(', ')+'</dd>'+(u.frac?'<dt>Fracture</dt><dd>'+u.frac+' stacks · +'+(u.frac*12)+'% damage taken</dd>':'')+(u.survey?'<dt>Marks</dt><dd>'+u.survey+'</dd>':'')+'</dl><p><b>Recovery:</b> reforms its full shield and attacks on the same turn. A break delays its next turn by '+Math.round((window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay)*100)+'% of its normal wait and increases damage taken by 35%. Four Assay crew deny two turns before recovery.</p><p>Battle paused; the current animation may finish.</p>');
 }
 $('enemyDetails').addEventListener('close',function(){if(inspectionWasPlaying&&G&&!G.over&&!playing)$('bPlay').click();inspectionWasPlaying=false;});
 function openBattleDetails(html){
@@ -1129,7 +1135,7 @@ function paintUnit(u,silent){
   var shownHp=G.visualHP&&G.visualHP[u.id]!==undefined?G.visualHP[u.id]:u.hp;
   var shownBar=G.visualBar&&G.visualBar[u.id]!==undefined?G.visualBar[u.id]:u.bar;
   rc.classList.toggle('down',shownHp<=0);rc.classList.toggle('boss',!!u.boss);
-  rc.title=u.n+' · '+Math.max(0,Math.round(shownHp))+' / '+u.max+' HP · '+(u.side==='ally'?u.e+' · '+Math.round(u.en)+' Energy':(u.broken?'broken':u.shL+' shield layers'));
+  rc.title=u.n+' · '+Math.max(0,Math.round(shownHp))+' / '+u.max+' HP · '+(u.side==='ally'?u.e+' · '+Math.round(u.en)+' ultimate charge':(u.broken?'broken':u.shL+' shield layers'));
   var pct=Math.max(0,shownHp/u.max*100);
   var i=rc.querySelector('.rb i'), b=rc.querySelector('.rb b');
   if(i) i.style.width=pct+'%';
@@ -1142,9 +1148,10 @@ function paintUnit(u,silent){
       sq.style.opacity=u.broken?'.25':'1'; }
     rc.style.boxShadow=u.broken?'none':'0 0 0 '+(u.shL*2)+'px '+EL[u.e]+'44';
     var rt=$('rt-'+u.id);
-    if(rt)rt.textContent=u.broken?'BREAK':SpacologyEnemySummoning.label(u,G.units,FIELD)|| (u.hasteStacks?'+'+Math.round(u.haste*u.hasteStacks*100)+'% SPD':u.trait==='Fast'?'FAST':u.shL+' SHIELD');
+    if(rt)rt.textContent=u.broken?'BREAK':SpacologyEnemyTraits.labels(u,G.units)||SpacologyEnemySummoning.label(u,G.units,FIELD)|| (u.hasteStacks?'+'+Math.round(u.haste*u.hasteStacks*100)+'% SPD':u.trait==='Fast'?'FAST':u.shL+' SHIELD');
   }
   if(u.side==='ally'){
+    var status=rc.querySelector('.rt');if(status){status.textContent=SpacologyEnemyTraits.labels(u,G.units)||(u.summon?'J3K SUPPORT':u.hurt?'recovering':u.p||'');status.classList.toggle('ailment-label',!!Object.keys(u.ailments||{}).length);}
     var en=$('en-'+u.id);
     if(en){ en.querySelector('u').style.width=(u.en/EN.cost*100)+'%'; }
     var bb=$('bar-'+u.id);
@@ -1159,7 +1166,7 @@ function paintUnit(u,silent){
     var fr=$('fr-'+u.id);
     if(fr) fr.textContent=u.frac?('fracture \u00d7'+u.frac):'';
     var sv=$('sv-'+u.id);
-    if(sv) sv.textContent=u.survey>0?new Array(u.survey+1).join('\u25CE'):'';
+    if(sv) sv.textContent=u.survey>0?'MARK ×'+u.survey:'';
     paintWeak(u);
   }
   var sc=$('sc-'+u.id);
@@ -1274,6 +1281,7 @@ function ultPolicy(u){
 
   if(G.aether&&u.ult.aether&&G.aether.max-G.aether.current>=Math.min(4,u.ult.aether))return 'refill the shared Aether pool';
   if(k==='mend'){
+    if(livingCrew().some(function(x){return Object.keys(x.ailments||{}).length}))return 'cleanse the crew';
     var hurt=G.units.filter(function(a){
       return a.side==='ally'&&a.alive&&a.hp/a.max<0.55; });
     if(hurt.length>=2) return 'the crew is hurt';
@@ -1329,7 +1337,7 @@ function bloomReady(){
 }
 function silenBonusTurn(){
   var chain=G.silenChain,session=window.SPACOLOGY_SESSION||{};
-  if(!chain||!G.aether||G.aether.current<1+(chain.reserve||0))return null;
+  if(!chain||!G.aether||G.aether.current<SpacologyAether.continuationCost(chain.index)+(chain.reserve||0))return null;
   var actor=U(chain.actor),target=U(chain.target);
   if(!actor||!actor.alive||!SpacologyAether.overchargeEnabled(session,actor.n)||(session.aetherModes||{})[actor.n]==='build')return null;
   if(!target||!target.alive)target=treasureTargets(liveFoes()).slice().sort(function(a,b){return b.hp-a.hp})[0];
@@ -1403,6 +1411,8 @@ function track(){
     d.innerHTML='<div class="tn" style="color:'+
       (u.side==='foe'?EL[u.e]:'var(--ink)')+'">'+u.n+'</div>'+
       '<div class="tw">'+(sl.bonus?'EXTRA':(u.lastAdvanceAt===G.av?'↑ ':'')+Math.ceil(sl.wait))+'</div>';
+    var intent=seen[u.id]===1?SpacologyEnemyTraits.labels(u,G.units):'';
+    if(intent){var tell=document.createElement('div');tell.className='intent';tell.textContent=intent;d.appendChild(tell);d.title=u.n+' · '+intent;}
     el.appendChild(d);
   });
 
@@ -1690,6 +1700,8 @@ function breakEnemy(u){
   u.broken=true;u.vuln=1;u.skips=G.bon&&G.bon.dissect?2:0;
   if(u.hasteStacks){u.hasteStacks=0;setEnemySpeed(u,u.baseSp);}
   u.av+=(10000/u.sp)*(window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay);
+  var returned=SpacologyEnemyTraits.interrupt(u,G.aether);
+  if(returned.stored)traitNote(u.n+' releases '+returned.returned+' of '+returned.stored+' stored Aether.');
   G.breaks++;
 }
 function accelerateEnemy(u,damage){
@@ -1766,11 +1778,12 @@ function resolveSilenBonus(bonus){
   if(!tgt){fresh=spawnFoes();if(fresh.length)reflowFoes();tgt=treasureTargets(liveFoes()).slice().sort(function(a,b){return b.hp-a.hp})[0];}
   if(!tgt)return null;
   var retargeted=tgt.id!==chain.target;chain.target=tgt.id;
-  if(!SpacologyAether.spendContinuation(G.aether))return null;
+  var cost=SpacologyAether.continuationCost(chain.index);
+  if(!SpacologyAether.spendContinuation(G.aether,chain.index))return null;
   G.allyTurns=(G.allyTurns||0)+1;act.lastStandGuard=false;
   if(chain.releasesReservation)G.aether.reserveAfter++;
   var ev={actor:act,hits:[],chains:[],notes:[],bonusTurn:true,bonusIndex:chain.index,
-    aether:{kind:'skill',spent:1,delta:-1,before:before,after:G.aether.current,reason:'Rising Current extra turn '+(chain.index+1)}};
+    aether:{kind:'skill',spent:cost,delta:-cost,before:before,after:G.aether.current,reason:'Rising Current extra turn '+(chain.index+1)}};
   if(fresh.length)ev.reinforced=fresh;
   if(retargeted)ev.notes.push('Rising Current carries its charge to '+tgt.n+'.');
   resolveSilenStrike(act,tgt,ev,chain.index);
@@ -1798,8 +1811,8 @@ function resolveWeaverSkill(act,tgt,ev,plan){
   }else if(act.n==='Arunima'){
     G.units.filter(function(x){return x.side==='foe'&&x.alive}).forEach(function(x){
       weaverGuard(act,x,act.dmg*(2+.5*plan.extra),ev);
-      ev.hits.push(hit(act,x,3+plan.extra));if(x.alive)x.av+=15;
-    });ev.notes.push('Proof by Transit: '+((3+plan.extra)*100)+'% attack; all specimens delayed 15 AV.');
+      ev.hits.push(hit(act,x,3+plan.extra,{area:true}));if(x.alive)x.av+=15;
+    });ev.notes.push('Proof by Transit: '+((3+plan.extra)*100)+'% attack; all enemies delayed 15 AV.');
   }else if(act.n==='Roonie'){
     target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;bar=weaverBarrier(target,20);ev.mends=[{tgt:target.id,amt:0,bar:bar,ch:0}];ev.notes.push(target.n+' next skill costs 1 less.');}
     weaverRefill(ev,3);
@@ -1855,8 +1868,8 @@ function resolveSummonAction(act,ev){
     ev.notes.push('Route Sweep: crew barriers raised'+(target?' and '+target.n+' advanced.':'.'));
   }else if(act.n==='J3K-036'){
     foes=G.units.filter(function(x){return x.side==='foe'&&x.alive});ev.aoe=true;
-    foes.forEach(function(x){weaverGuard(act,x,act.dmg*1.5,ev);x.survey=Math.max(x.survey||0,1);ev.hits.push(hit(act,x,.55));});
-    ev.surveyedAll=true;ev.notes.push('Harmonic Survey: every specimen mapped and pressured.');
+    foes.forEach(function(x){weaverGuard(act,x,act.dmg*1.5,ev);x.survey=Math.max(x.survey||0,1);ev.hits.push(hit(act,x,.55,{area:true}));});
+    ev.surveyedAll=true;ev.notes.push('Harmonic Survey: all enemies marked and dealt shield damage.');
   }else{
     target=crew.slice().sort(function(a,b){return a.hp/a.max-b.hp/b.max})[0];
     if(target){before=target.hp;target.hp=Math.min(target.max,target.hp+18);bar=weaverBarrier(target,10);G.heals++;
@@ -1995,7 +2008,7 @@ function planAetherAction(u,target){
     if(foes.some(function(x){return x.broken||x.vuln>0}))opportunity='use the open break window';
     if(u.n==='Arunima'&&G.aether.current>=SpacologyAether.skillCost(u)){
       var extra=SpacologyAether.overchargeEnabled(session,u.n)?Math.max(0,Math.min(SpacologyAether.budget(G.aether,u,session)-SpacologyAether.skillCost(u),G.aether.current-SpacologyAether.skillCost(u))):0;
-      if(foes.some(function(x){return x.hp<=Math.round(u.dmg*(3+extra)*(1+(x.vuln>0?BRK.vuln:0)+(x.frac||0)*.12)*(!x.broken&&x.shL>0?SOAK:1))}))opportunity='finish a specimen now';
+      if(foes.some(function(x){return x.hp<=Math.round(u.dmg*(3+extra)*(1+(x.vuln>0?BRK.vuln:0)+(x.frac||0)*.12)*(!x.broken&&x.shL>0?SOAK:1))}))opportunity='finish an enemy now';
     }
   }
   var projected=G.aether.current+SpacologyAether.profile(u.n).gain;
@@ -2035,9 +2048,70 @@ function resolveBasic(act,tgt,ev,plan){
   ev.aether={kind:'basic',delta:gain,before:beforeAether,after:G.aether.current,reason:plan.reason};
   weaverAfterBasic(act,ev);queueReset(act);return ev;
 }
+function traitNote(note){(G.traitNotes||(G.traitNotes=[])).push(note)}
+function settleEnemyTraits(){
+  var added=false;
+  G.units.slice().forEach(function(u){
+    if(!SpacologyEnemyTraits.type(u))return;
+    if(SpacologyEnemyTraits.enrage(u))traitNote(u.n+' enrages: +40% damage, shield lost.');
+    if(u.alive||u.traitDeathHandled)return;
+    u.traitDeathHandled=true;
+    var returned=SpacologyEnemyTraits.interrupt(u,G.aether);
+    if(returned.stored)traitNote(u.n+' releases '+returned.returned+' of '+returned.stored+' stored Aether.');
+    if(u.archetype!=='brood'||u.broken)return;
+    var parent=Object.assign({},u,{alive:true,archetype:'summoner',summonCalls:0,summonCooldown:0});
+    for(var i=0;i<2;i++){
+      parent.summonCooldown=0;
+      var specimen=SpacologyEnemyCatalogue.generateEnemy(u.id+'-brood-'+i,{faction:u.factionId||OPS_FACTION,archetype:'chaff',element:u.e});
+      var child=SpacologyEnemySummoning.act(parent,G.units,FIELD,{n:specimen.typeName,typeName:specimen.typeName,specimenName:specimen.name,portrait:specimen.portrait,factionId:specimen.faction,factionName:specimen.factionName,factionRule:specimen.factionRule,bodyPlan:specimen.bodyPlan,material:specimen.material,adaptation:specimen.adaptation,nullStage:specimen.nullStage,nullSymptom:specimen.nullSymptom});
+      if(child){G.units.push(child);added=true;traitNote(u.n+' releases '+child.n+' (no recovery points).');}
+    }
+  });
+  SpacologyEnemyTraits.linkGuards(G.units);
+  if(added)G.traitSpawned=true;
+}
+function fieldCleanse(act,ev){
+  if(!(act.heal>0||act.n==='Veska'))return false;
+  var patients=livingCrew().filter(function(u){return Object.keys(u.ailments||{}).length});
+  patients.sort(function(a,b){function urgency(u){var s=u.ailments||{};return (s.bomb?10-s.bomb.turns:0)+(s.poison?s.poison.stacks*2:0)+Object.keys(s).length}return urgency(b)-urgency(a)});
+  var target=patients[0];if(!target)return false;
+  var removed=SpacologyEnemyTraits.cleanse(target),before=target.hp;
+  target.hp=Math.min(target.max,target.hp+Math.max(1,Math.round((act.heal||20)*.5)));
+  ev.mends=[{tgt:target.id,amt:target.hp-before,bar:0,ch:0}];ev.supportAction=true;
+  ev.notes.push(act.n+' cleanses '+removed+' status effects from '+target.n+'.');
+  if(G.aether){var beforeAether=G.aether.current,gain=SpacologyAether.generate(G.aether,SpacologyAether.profile(act.n).gain);ev.aether={kind:'basic',delta:gain,before:beforeAether,after:G.aether.current,reason:'field cleanse'};}
+  act.en=Math.min(EN.cost,act.en+EN.act);G.heals++;queueReset(act);return true;
+}
+function enemyTraitAction(act,tgt,ev){
+  var plan=SpacologyEnemyTraits.plan(act,G.units,G.aether,G.av);if(!plan)return null;
+  var target=plan.target?U(plan.target):tgt;
+  if(plan.kind==='strike')return {target:target,plan:plan};
+  ev.supportAction=true;
+  if(plan.kind==='heal'){var before=target.hp;target.hp=Math.min(target.max,target.hp+plan.amount);ev.heal={src:act.id,tgt:target.id,amt:target.hp-before,bar:0};ev.notes.push(act.n+' heals '+target.n+'; '+(2-act.healUses)+' heals remain.');}
+  if(plan.kind==='steal')ev.notes.push(act.n+' steals 1 Aether; '+act.stolenAether+' stored. Break or defeat it to reclaim.');
+  if(plan.kind==='charge')ev.notes.push(act.n+' charges '+(act.archetype==='sapper'?'a delay strike':'a heavy strike')+' on '+target.n+'. Break it before its next turn.');
+  if(plan.kind==='mark')ev.notes.push(act.n+' challenges '+target.n+'.');
+  if(plan.kind==='fizzle')ev.notes.push(act.n+' loses its charged target.');
+  queueReset(act);return {handled:true};
+}
+function finishCrewConditions(ev){
+  var act=ev&&ev.actor;if(!act||act.side!=='ally'||act.summon)return;
+  if(act.ailments)delete act.ailments.hex;
+  // Scheduled turns, not multi-hits, interrupts or Silen's immediate extra turns.
+  if(!ev.interrupt&&!ev.bonusTurn&&act.alive){
+    var attacked=ev.hits.some(function(h){return h.src===act.id&&!h.skipped&&U(h.tgt)?.side==='foe'});
+    SpacologyEnemyTraits.statusDamage(act,attacked).forEach(function(tick){
+      if(!act.alive||act.recoveryGuard||act.lastStandGuard)return;
+      var source=U(tick.source)||{id:act.id,side:'foe',alive:true,dmg:tick.amount};
+      // Ticks persist after their source falls and share normal barrier/downing rules.
+      var h=hit(Object.assign({},source,{alive:true,side:'foe'}),act,1,{flat:tick.amount,condition:true});
+      h.condition=tick.kind;ev.hits.push(h);ev.notes.push(act.n+' suffers '+tick.kind+' ('+h.dmg+' health damage).');
+    });
+  }
+}
 function resolveAction(){
   var event;
-  try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];event=resolveActionCore();if(event){event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
+  try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];event=resolveActionCore();if(event){finishCrewConditions(event);settleEnemyTraits();if(G.traitSpawned){event.traitSpawned=true;G.traitSpawned=false;}if(event.notes)event.notes.push(...(G.traitNotes||[]));G.traitNotes=[];event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
   finally{if(G){
     G.units.forEach(function(u){if(SpacologyVoyage.updateBoss(u)){var note='Boss phase 2: guard strength falls 40%; attack damage rises 35%.';if(event&&event.notes)event.notes.push(note);log(note,'rnd');}});
     settleTreasure(false);
@@ -2061,7 +2135,7 @@ function paintAether(){
   el.title=saving?'Saving up to '+(healthBudget===null?SpacologyAether.budget(G.aether,owner,window.SPACOLOGY_SESSION):healthBudget)+' Aether for '+owner.n:'Shared Aether · teammates can spend';
   el.setAttribute('aria-label','Shared Aether: '+shown+' of '+G.aether.max+'. '+el.title+'. View rules');
 }
-$('aetherMeter').onclick=function(){openBattleDetails('<h2 id="enemyDetailTitle">Shared Aether</h2><p>Basics generate 1 charge (Hanae and Coda generate 2); most skills spend 1–3. The whole crew shares this pool. Ultimates still use individual charge.</p><p>Hanae’s skill spends 1 and restores 5 (+4 net). Arunima can spend the available pool: 300% attack at 3 charges, plus 100 percentage points per extra charge. Roonie’s skill spends 1 and restores 3 (+2 net), and his ultimate restores 6. Hanae’s ultimate restores 4, and Veska’s skill returns up to 3 from Refrains. Silen spends 2 for a 200% attack, then takes immediate extra turns for 1 Aether each: 225%, 250%, 275% and onward. Each is a separate action that earns ultimate charge. Kills carry the growing attack to another enemy, including the next wave. Refills fuel more extra turns. He spends all unreserved Aether, stopping when it runs out or the encounter is cleared. Ivara supplies focused damage and extra storage. Daven returns charge from a blocked hit. Inspect their cards in Ops for exact kits. Coda, Aurel and Nour retain their initial Aether traits.</p><p>Capacity is 6 base + 1 per living deployed Weaver. Ivara and Aurel each add another 2 through their passives. Six Weavers with Ivara hold 14 charges. Reserves and summons do not count. Losing a Weaver reduces the cap and discards excess charges.</p><p>Main DPS spend aggressively; sub-DPS usually build Aether with basics, spending near a full pool or for a kill, break window or urgent support. Auto saves for a burst Weaver, uses basics for easy finishes, and spends only enough burst charges to clear weakened enemies. Urgent recovery, net-positive refills and a discount or ultimate-charge setup can go first. Burst users wait at most one turn to build a full attack, and spend sooner near the deadline, during a break window or to finish a specimen. After the burst, teammates get a spending window. Manual priorities and Build charges still apply.</p><p>Named refill effects apply once per cast, capped by the pool. Other ultimate hits and follow-ups do not generate Aether. Waves preserve the pool; each encounter starts with 3.</p>')};
+$('aetherMeter').onclick=function(){openBattleDetails('<h2 id="enemyDetailTitle">Shared Aether</h2><p>Basics generate 1 charge (Hanae and Coda generate 2); most skills spend 1–3. The whole crew shares this pool. Ultimates use each character’s separate ultimate charge.</p><p>Hanae’s skill spends 1 and restores 5 (+4 net). Arunima can spend the available pool: 300% attack at 3 charges, plus 100 percentage points per extra charge. Roonie’s skill spends 1 and restores 3 (+2 net), and his ultimate restores 6. Hanae’s ultimate restores 4, and Veska’s skill returns up to 3 from Refrains. Silen spends 2 for a 200% attack, then takes immediate extra turns costing 2, 3, 4 Aether and so on: 225%, 250%, 275% and onward. Each is a separate action that earns ultimate charge. Kills carry the growing attack to another enemy, including the next wave. Refills can extend the sequence when enough Aether is available for the next hit. He stops when the next hit is unaffordable or the encounter is cleared. Ivara supplies focused damage and extra storage. Daven returns charge from a blocked hit. Inspect their cards in Ops for exact kits. Coda, Aurel and Nour retain their initial Aether traits.</p><p>Capacity is 6 base + 1 per living deployed Weaver. Ivara and Aurel each add another 2 through their passives. Six Weavers with Ivara hold 14 charges. Reserves and summons do not count. Losing a Weaver reduces the cap and discards excess charges.</p><p>Main DPS spend aggressively; sub-DPS usually build Aether with basics, spending near a full pool or for a kill, break window or urgent support. Auto saves for a burst Weaver, uses basics for easy finishes, and spends only enough burst charges to clear weakened enemies. Urgent recovery, net-positive refills and a discount or ultimate-charge setup can go first. Burst users wait at most one turn to build a full attack, and spend sooner near the deadline, during a break window or to finish an enemy. After the burst, teammates get a spending window. Manual priorities and Build charges still apply.</p><p>Named refill effects apply once per cast, capped by the pool. Other ultimate hits and follow-ups do not generate Aether. Waves preserve the pool; each encounter starts with 3.</p>')};
 function resolveActionCore(){
   applyReset();settleTreasure(false);
   var living=G.units.filter(function(u){return u.alive});
@@ -2084,7 +2158,7 @@ function resolveActionCore(){
     var u2=au.ult;
     var fs2=G.units.filter(function(x){return x.side==='foe'&&x.alive});
     if(u2.kind==='aoe'){
-      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,u2.mult*(au.ultMul||1)));
+      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,u2.mult*(au.ultMul||1),{area:true}));
         if(u2.frac) x.frac=Math.min(12,(x.frac||0)+u2.frac+((G.bon&&G.bon.stackUp)||0));
         if(u2.survey){ x.survey=u2.survey; ev1.surveyedAll=true; } });
     } else if(u2.kind==='nuke'){
@@ -2095,6 +2169,7 @@ function resolveActionCore(){
     } else if(u2.kind==='mend'){
       livingCrew().forEach(function(a){
         var b4=a.hp; a.hp=Math.min(a.max,a.hp+u2.amt);
+        var cleansed=SpacologyEnemyTraits.cleanse(a);if(cleansed)ev1.notes.push(a.n+' cleansed of '+cleansed+' status effects.');
         var barrier2=u2.barrier?Math.round(u2.barrier*(a.barrierMul||1)):0;
         if(barrier2) a.bar=Math.min(160,a.bar+barrier2);
         if(u2.charge) a.en=Math.min(EN.cost,a.en+u2.charge);
@@ -2102,7 +2177,7 @@ function resolveActionCore(){
         ev1.mends.push({tgt:a.id,amt:a.hp-b4,bar:barrier2,ch:u2.charge||0}); });
     } else if(u2.kind==='lash'){
       var pool4=au.taken*u2.mult/Math.max(1,fs2.length);
-      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,(pool4/Math.max(1,au.dmg))*(au.ultMul||1))); });
+      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,(pool4/Math.max(1,au.dmg))*(au.ultMul||1),{area:true})); });
       ev1.lashed=Math.round(au.taken); au.taken=0;
     }
     if(G.aether&&u2.aether)weaverRefill(ev1,u2.aether);
@@ -2175,10 +2250,18 @@ function resolveActionCore(){
       ev.notes.push(act.n+' reforms and attacks.');
     }
     if(!ev.recovered&&SpacologyEnemySummoning.isSummoner(act)&&summonEnemy(act,ev))return ev;
+    var special=!ev.recovered?enemyTraitAction(act,tgt,ev):null;
+    if(special&&special.handled)return ev;
+    if(special)tgt=special.target;
+    var protectedAtImpact=tgt&&(tgt.bar>0||tgt.weaverShelter||tgt.recoveryGuard||tgt.lastStandGuard),downsBefore=G.deaths;
     if(act.cleanse&&act.frac){var shed=Math.min(act.frac,act.cleanse);act.frac-=shed;ev.notes.push(act.n+' sheds '+shed+' fracture.');}
     G.foeAttacks++;
     if(act.boss){act.bossAttacks++;if(act.bossAttacks%3===2)ev.notes.push('Boss is charging a heavy strike for its next attack. Break or delay it.');if(act.bossAttacks%3===0)ev.notes.push('Boss releases its heavy strike!');}
-    var h0=hit(act,tgt,act.boss&&act.bossAttacks%3===0?1.8:undefined); ev.hits.push(h0);
+    var h0=hit(act,tgt,special?special.plan.scale:act.boss&&act.bossAttacks%3===0?1.8:undefined); ev.hits.push(h0);
+    if(special&&!h0.skipped&&!h0.guarded&&!h0.sheltered&&tgt.alive&&G.deaths===downsBefore){
+      if(special.plan.status&&SpacologyEnemyTraits.applyStatus(tgt,special.plan.status,act.id,protectedAtImpact))ev.notes.push(tgt.n+' receives '+special.plan.status+'.');
+      if(special.plan.delay&&!protectedAtImpact&&(tgt.delayImmuneUntil||0)<=G.av){tgt.av+=special.plan.delay;tgt.delayImmuneUntil=G.av+100;ev.notes.push(tgt.n+' delayed '+special.plan.delay+' AV.');}
+    }
     cascade(ev,act,liveFoes()[0],['hurt']);
     if(tgt.reflect&&tgt.alive){
       ev.reflect=hit(tgt,act,(h0.dmg*tgt.reflect)/Math.max(1,tgt.dmg));
@@ -2186,6 +2269,7 @@ function resolveActionCore(){
     queueReset(act); return ev; }
 
   if(act.summon)return resolveSummonAction(act,ev);
+  if(fieldCleanse(act,ev))return ev;
 
   if(G.aether){
     var actionPlan=planAetherAction(act,tgt);
@@ -2280,7 +2364,7 @@ function resolveActionCore(){
       }
       if(act.frac){ x.frac=Math.min(12,(x.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
         (ev.fracs=ev.fracs||[]).push(x.id); }
-      ev.hits.push(hit(act,x)); x.struck=true; });
+      ev.hits.push(hit(act,x,1,{area:true})); x.struck=true; });
     reactTo(ev,act,all[0],0);
     queueReset(act); return ev;
   }
@@ -2345,7 +2429,7 @@ function evalTarget(act,t,pool){
   f.brk = willBreak ? 1 : (shieldLeft>0 ? Math.max(0,1-shieldLeft/Math.max(1,chip*3))*0.55 : 0);
   f.kill = willKill ? 1 : (t.broken? Math.min(.8, eff/Math.max(1,t.hp))*0.6 : 0);
   f.vuln = t.vuln>0 ? 1 : (t.broken?0.55:0);
-  f.threat = (1-Math.min(1,soon/6)) * (t.broken?0.25:1) * (t.dmg/30);
+  f.threat = (1-Math.min(1,soon/6)) * (t.broken?0.25:1) * (t.dmg/30)+SpacologyEnemyTraits.threat(t);
   f.bulk = Math.min(1,t.hp/190);
   f.match = match?1:0;
   // waste: penalty for oversized damage into a nearly dead target
@@ -2455,27 +2539,34 @@ function weightedPick(pool){
   for(var i=0;i<pool.length;i++){ r-=ws[i]; if(r<=0) return pool[i]; }
   return pool[pool.length-1];
 }
-function hit(src,tgt,scale){
+function hit(src,tgt,scale,options){
+  options=options||{};
   if(!src||!tgt||!src.alive||!tgt.alive||(window.SPACOLOGY_SESSION&&src.side==='foe'&&tgt.side==='ally'&&(tgt.row==='back'||tgt.summon)))return {src:src&&src.id,tgt:tgt&&tgt.id,dmg:0,skipped:true};
   var hpBefore=tgt.hp,barBefore=tgt.bar||0,stoodBefore=!!tgt.lastStandUsed;
-  var h=(tgt.lastStandGuard||tgt.recoveryGuard)&&src.side==='foe'?{src:src.id,tgt:tgt.id,dmg:0,guarded:true}:resolveHitDamage(src,tgt,scale);
+  var h=(tgt.lastStandGuard||tgt.recoveryGuard)&&src.side==='foe'?{src:src.id,tgt:tgt.id,dmg:0,guarded:true}:resolveHitDamage(src,tgt,scale,options);
   h.hpBefore=hpBefore;h.hpAfter=tgt.hp;h.barBefore=barBefore;h.barAfter=tgt.bar||0;
   h.lastStand=!stoodBefore&&!!tgt.lastStandUsed;
+  settleEnemyTraits();
   if(G.damageTimeline)G.damageTimeline.push(h);
   return h;
 }
-function resolveHitDamage(src,tgt,scale){
+function resolveHitDamage(src,tgt,scale,options){
+  options=options||{};
   if(tgt.side==='ally'&&tgt.weaverShelter&&src.side==='foe'){
     delete tgt.weaverShelter;
     return {src:src.id,tgt:tgt.id,dmg:0,absorbed:0,soaked:true,killed:false,chain:!!scale,cost:0,sheltered:true};
   }
 
-  var amt=src.dmg*(scale||1)*(src.aetherPower||1);
+  var amt=src.dmg*(scale||1)*(src.aetherPower||1)*SpacologyEnemyTraits.damageMultiplier(src,G.units);
   if(src.side==='ally'&&src.openingBoost&&!src.openingUsed){amt*=1+src.openingBoost;src.openingUsed=true;}
   var mult=1+(tgt.vuln>0?BRK.vuln:0)+(tgt.frac||0)*0.12;
   var soaked=false, absorbed=0;
   if(tgt.side==='foe'&&!tgt.broken&&tgt.shL>0){ mult*=SOAK; soaked=true; }
-  var d=Math.round(amt*mult);
+  var d=options.flat===undefined?Math.round(amt*mult):options.flat;
+  if(tgt.side==='foe'&&!options.area&&!options.transfer){
+    var guard=SpacologyEnemyTraits.protector(tgt,G.units);
+    if(guard&&d>0){var shared=Math.floor(d*.35);d-=shared;if(shared){hit(src,guard,1,{flat:shared,transfer:true});traitNote(guard.n+' intercepts '+shared+' damage for '+tgt.n+'.');}}
+  }
   if(tgt.side==='ally'&&G.ship&&G.ship.brace>0){d=Math.max(1,Math.round(d*.6));G.ship.brace--;}
   G.biggest=Math.max(G.biggest,d);
   if(src.side==='ally'){G.dealt[src.n]=(G.dealt[src.n]||0)+d;G.alliedHits=(G.alliedHits||0)+1;if(soaked)G.shieldedHits=(G.shieldedHits||0)+1;}
@@ -2483,7 +2574,7 @@ function resolveHitDamage(src,tgt,scale){
   if(tgt.side==='ally'&&tgt.bar>0){
     var soak2=Math.min(tgt.bar,d); tgt.bar-=soak2; d-=soak2;
     if(soak2>0){ G.barSoak=(G.barSoak||0)+soak2; absorbed=soak2;
-      if(G.bon&&G.bon.ammo&&src.side==='foe'&&src.alive){
+      if(G.bon&&G.bon.ammo&&src.side==='foe'&&src.alive&&!options.condition){
         var back=Math.round(rawIn*0.9);
         src.hp=Math.max(0,src.hp-back);
         G.ammoDmg=(G.ammoDmg||0)+back;
@@ -2498,10 +2589,11 @@ function resolveHitDamage(src,tgt,scale){
     tgt.en=Math.min(EN.cost,tgt.en+EN.taken); tgt.taken+=d; }
   var killed=false, cost=0,revival=null;
   if(tgt.hp<=0&&tgt.alive){ tgt.alive=false; killed=true;
+    if(tgt.side==='ally')SpacologyEnemyTraits.cleanse(tgt);
     if(tgt.side==='ally'){ G.deaths++; G.downed.push(tgt.n);
       if(!window.SPACOLOGY_SESSION){G.limit=Math.max(G.round+1,G.limit-DEATHCOST);cost=DEATHCOST;}
       else{revival=SpacologyDownRecovery.recover(window.SPACOLOGY_SESSION,tgt,G);if(revival)killed=false;} } }
-  if(G.aether&&src.side==='foe'&&tgt.n==='Daven'&&tgt.alive&&!revival&&absorbed>0&&!tgt.weaverRefundUsed){
+  if(G.aether&&!options.condition&&src.side==='foe'&&tgt.n==='Daven'&&tgt.alive&&!revival&&absorbed>0&&!tgt.weaverRefundUsed){
     tgt.weaverRefundUsed=true;SpacologyAether.credit(G.aether,1);G.weaverRefunds=(G.weaverRefunds||0)+1;
   }
   accelerateEnemy(tgt,d);
@@ -2547,7 +2639,7 @@ function playAction(done){
   G.visualHP=Object.assign({},G.hp0||{});G.visualBar={};
   G.visualAether=ev.hits&&ev.hits.some(function(h){return h.pulse})?ev.aether.before:null;
   (ev.timeline||[]).forEach(function(h){if(G.visualBar[h.tgt]===undefined)G.visualBar[h.tgt]=h.barBefore;if(G.visualHP[h.tgt]===undefined)G.visualHP[h.tgt]=h.hpBefore;});
-  if(ev.summoned||ev.enemySummoned){ribbons();track();}
+  if(ev.summoned||ev.enemySummoned||ev.traitSpawned){ribbons();track();}
   G.units.forEach(function(u){paintUnit(u,true)});
   G.actions++;paintDeadline();paintAether();
   if(ev.aether)log(ev.actor.n+' · '+ev.aether.kind+' · '+(ev.aether.delta>=0?'+':'')+ev.aether.delta+' Aether ('+ev.aether.after+'/'+G.aether.max+') · '+ev.aether.reason+(ev.aether.generated?' · spent '+(ev.aether.spent||0)+', restored '+ev.aether.generated:''),'chain');
@@ -2562,7 +2654,7 @@ function playAction(done){
     clearStage(); clearRibbonMarks();
     btag.textContent='bloom';
     $('cap').textContent='THE BLOOM';
-    log('<b>THE BLOOM</b> \u2014 every ailment on the board goes off','chain');
+    log('<b>THE BLOOM</b> \u2014 Fracture stacks detonate on enemies with Fracture','chain');
     var bt=D(160);
     ev.burn.forEach(function(b){
       at(bt,function(){
@@ -2645,7 +2737,7 @@ function playAction(done){
   // position stays readable while their hit/heal reaction animates in place.
   buildStage(act.id,[],isSupport,helpers);
   targets.forEach(function(id){var rc=$('r-'+id);if(rc)rc.classList.add('targeted');});
-  $('cap').textContent = ev.bonusTurn ? act.n+' · EXTRA TURN '+(ev.bonusIndex+1)+' · '+Math.round(SpacologyAether.chainMultiplier(ev.bonusIndex)*100)+'% · −1 AETHER'
+  $('cap').textContent = ev.bonusTurn ? act.n+' · EXTRA TURN '+(ev.bonusIndex+1)+' · '+Math.round(SpacologyAether.chainMultiplier(ev.bonusIndex)*100)+'% · −'+ev.aether.spent+' AETHER'
     : ev.enemySummoned ? act.n+' · SUMMON · '+ev.enemySummoned.name
     : ev.summoned ? act.n+' · J3K LOTTERY · '+ev.summoned.name
     : ev.ult ? act.n+' \u00b7 '+ev.ult.name.toUpperCase()
@@ -2761,7 +2853,7 @@ function playAction(done){
       if(ev.shield){
         popRings(ev.shield.id,ev.shield.from,ev.shield.to);
         if(ev.shield.from>ev.shield.to)
-          floater(ev.shield.id,'shred \u2212'+(ev.shield.from-ev.shield.to),
+          floater(ev.shield.id,'shield damage \u2212'+(ev.shield.from-ev.shield.to),
             EL[U(ev.shield.id).e],{tag:1});
         if(ev.shield.match) floater(ev.shield.id,'weakness',EL[act.e],{tag:1,delay:70});
         var pf=FACE(ev.shield.id);
@@ -2778,7 +2870,7 @@ function playAction(done){
       });
       if(ev.shreds) ev.shreds.forEach(function(sh){
         popRings(sh.id,sh.from,sh.to);
-        floater(sh.id,'shred \u2212'+(sh.from-sh.to),EL[U(sh.id).e],{tag:1,delay:90}); });
+        floater(sh.id,'shield damage \u2212'+(sh.from-sh.to),EL[U(sh.id).e],{tag:1,delay:90}); });
       if(ev.fracs) ev.fracs.forEach(function(fid,fi){
         floater(fid,'fracture','#C97F9E',{tag:1,delay:150+fi*60});
         paintUnit(U(fid)); });
@@ -2787,10 +2879,10 @@ function playAction(done){
         floater(ev.broke,'overstrike',TAGCOL.Ordnance,{tag:1,delay:200});
       if(G.bon&&G.bon.dissect&&ev.broke)
         floater(ev.broke,'dissected',TAGCOL.Assay,{tag:1,delay:260});
-      if(ev.surveyed){ floater(ev.surveyed,'surveyed','#8FB878',{tag:1,delay:100});
+      if(ev.surveyed){ floater(ev.surveyed,'marked','#8FB878',{tag:1,delay:100});
         paintUnit(U(ev.surveyed)); }
       if(ev.surveyedAll) G.units.filter(function(x){return x.side==='foe'})
-        .forEach(function(x,xi){ floater(x.id,'surveyed','#8FB878',{tag:1,delay:120+xi*70});
+        .forEach(function(x,xi){ floater(x.id,'marked','#8FB878',{tag:1,delay:120+xi*70});
           paintUnit(x); });
       if(ev.followed&&ev.hits[0]) floater(ev.hits[0].tgt,'follow-up',c,{tag:1,delay:120});
       if(ev.advanced){ floater(ev.advanced.id,'advance','#D4A45C',{tag:1,delay:180});
@@ -2862,7 +2954,7 @@ function battleAnalysis(){
   var notes=[];
   if(unspawned)notes.push(unspawned+' enemies in later waves were not reached.');
   if(remaining.length)notes.push(remaining.length+' enemies still active'+(remaining.length===1?': '+remaining[0].n+' at '+Math.ceil(remaining[0].hp/remaining[0].max*100)+'% health':'')+'.');
-  if(shieldShare>=50)notes.push(shieldShare+'% of your hits landed into shields; matched elements and guard damage can open longer damage windows.');
+  if(shieldShare>=50)notes.push(shieldShare+'% of your hits landed into shields; matching Weaknesses and shield damage can open longer damage windows.');
   if(G.deaths)notes.push(G.deaths+' crew went down, reducing your available actions.');
   if(G.recoveries>=3)notes.push(G.recoveries+' enemy recoveries closed break windows; coordinate burst or delay their turns.');
   if(!notes.length)notes.push('Compare damage per turn with crew turns to choose between stronger hits and faster rotations.');

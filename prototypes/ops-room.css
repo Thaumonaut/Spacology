@@ -71,7 +71,7 @@ body{padding:0;display:block}.frame{width:min(1440px,100%);height:100svh;min-hei
 .crew-aether{margin:18px 0;padding:14px;border:1px solid var(--line2);border-radius:8px}.crew-aether summary{cursor:pointer;min-height:44px;padding:12px 0}.crew-aether small{display:block;margin-top:10px}.crew-aether p{font-size:13px}
 
 /* Opening a pack uses the same supply strip, leaving both crew rows in place. */
-.frame,.frame:has(.opened-pack:not(.hidden)){min-height:750px;grid-template-rows:80px 156px minmax(336px,1fr) 176px}
+.frame,.frame:has(.opened-pack:not(.hidden)){min-height:calc(670px + var(--ops-header-height) + var(--game-safe-top) + var(--game-safe-bottom));grid-template-rows:var(--ops-header-height) 156px minmax(336px,1fr) 176px}
 .opened-pack{grid-template-rows:28px minmax(0,1fr);gap:6px;overflow:hidden}
 .open-summary{padding:3px 8px;gap:10px}.open-summary h3{font-size:13px}.open-summary p,.resolve-count{font-size:11px}
 .pack-cards{grid-template-columns:repeat(5,minmax(152px,1fr));gap:6px;padding-bottom:2px}
@@ -89,7 +89,7 @@ body{padding:0;display:block}.frame{width:min(1440px,100%);height:100svh;min-hei
 .inventory{padding:8px;overflow:hidden}.inv-top b{font-size:17px}.inv-top button{min-height:32px}
 .inv-tabs button{height:42px}.craft-actions button{min-height:36px;font-size:11px}.inv-hint{display:none}
 .inv-items .item.character .item-icon{min-height:64px}.inv-items .item{padding:7px}
-@media(min-width:901px) and (min-height:900px){.frame,.frame:has(.opened-pack:not(.hidden)){grid-template-rows:80px 156px minmax(440px,1fr) 204px}}
+@media(min-width:901px) and (min-height:900px){.frame,.frame:has(.opened-pack:not(.hidden)){grid-template-rows:var(--ops-header-height) 156px minmax(440px,1fr) 204px}}
 
 .title-actions{flex-wrap:wrap}.title-actions a{font-size:11px}
 .crew-lore{margin:18px 0}.crew-lore summary{cursor:pointer;min-height:44px;padding:12px 0;color:var(--green)}
@@ -128,3 +128,41 @@ body{padding:0;display:block}.frame{width:min(1440px,100%);height:100svh;min-hei
 .voyage-map .node{flex:1;min-width:0;max-width:58px}.voyage-map .node b{font-size:7px}.voyage-map .node:not(:last-child):after{width:calc(100% - 28px);left:calc(50% + 14px)}
 .difficulty-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.difficulty-options .recommended{border-color:#d6b16d}.difficulty-options button{width:100%;min-height:44px}.difficulty-options p{line-height:1.8}.voyage-route-list{display:grid;gap:6px}.voyage-route-list button{text-align:left;padding:10px}
 @media(max-width:760px){.difficulty-options{grid-template-columns:1fr}.voyage-map .node b{font-size:6px}}
+
+/* Leave the installed app's status bar outside the interactive play area. */
+:root{--ops-header-height:96px}
+.frame{padding:var(--game-safe-top) var(--game-safe-right) var(--game-safe-bottom) var(--game-safe-left)}
+.frame,.frame *,[draggable="true"],[draggable="true"] *{-webkit-user-select:none;user-select:none}
+[draggable="true"],[draggable="true"] *{-webkit-touch-callout:none}
+.frame input,.frame textarea,.frame [contenteditable="true"]{-webkit-user-select:text;user-select:text}
+
+/* One toolbar, with the route and voyage status on a shared baseline. */
+.topbar{grid-template-columns:215px minmax(0,1fr) auto;gap:18px;padding:12px 16px;background:linear-gradient(180deg,#0d1c29,#08131d);border-bottom:1px solid #304758}
+.topbar .status{gap:16px;min-width:0}.topbar .room b{font-size:17px}.topbar .room span{font-size:9px}.topbar .stat b{font-size:22px}.topbar .stat span{font-size:9px;letter-spacing:.1em}
+.run-meta{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:12px;row-gap:8px;min-width:0}
+.run-meta>b{font-size:10px;letter-spacing:.08em;text-align:left;color:#b7ccd9}
+.run-meta>span{font-size:10px;color:#91adbe;white-space:nowrap}
+.run-icons{grid-column:1/-1;display:flex;gap:5px;margin:0;align-items:center;justify-content:flex-end}
+.run-icons .round-icon{width:auto;min-width:48px;height:44px;flex-shrink:0;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #344f62;border-radius:7px;background:#102331;color:#c6d8e3;font-size:11px;font-weight:600;line-height:1;letter-spacing:.015em;white-space:nowrap;text-decoration:none;transition:background .15s,border-color .15s}
+.run-icons .round-icon:hover{background:#1b3545;border-color:#6a8c9f;color:#edf3f4}
+.run-icons .round-icon:active{background:#264452}
+.run-icons .round-icon:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.run-icons .toolbar-menu{background:#203c49;border-color:#577b87;color:#e1eee9}
+.toolbar-menu svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.run-icons .toolbar-badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 4px;border-radius:4px;background:#dfba78;color:#241d12;font-size:10px;font-variant-numeric:tabular-nums}
+.run-icons .toolbar-badge[hidden]{display:none}
+@media(max-width:980px){
+  :root{--ops-header-height:150px}
+  .topbar{grid-template-columns:1fr auto;gap:10px 16px;padding:10px 14px}
+  .topbar .round-map{grid-column:1/-1;grid-row:2;justify-self:center;width:min(100%,480px);padding-top:18px}
+  .topbar .run-meta{grid-column:2;grid-row:1}
+  .topbar .node{flex:1;max-width:64px}.topbar .node b{font-size:8px}
+}
+@media(max-width:600px){
+  :root{--ops-header-height:200px}
+  .topbar{grid-template-columns:minmax(0,1fr);gap:8px}
+  .topbar .status{justify-content:space-between}
+  .topbar .run-meta{grid-column:1;grid-row:2}
+  .topbar .round-map{grid-row:3}
+  .run-icons{justify-content:space-between}.run-icons .round-icon{flex:1;padding:0 7px;min-width:0}
+}

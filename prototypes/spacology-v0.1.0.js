@@ -38,18 +38,17 @@ const formationChanges=SpacologyFormation.normalize(runState);
 let voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];
 document.querySelector('.run-meta > span').textContent=`${voyageDifficulty.label} · ${Math.round(voyageDifficulty.enemyScale*100)}% enemy health / damage · ${Math.round(voyageDifficulty.enemySpeed*100)}% speed`;
 const difficultyButton=document.querySelector('[data-info="modifiers"]');
-difficultyButton.textContent=voyageDifficulty.label;
-difficultyButton.setAttribute('aria-label',`Difficulty: ${voyageDifficulty.label}`);
-difficultyButton.style.width='auto';
+difficultyButton.textContent='Rules';
+difficultyButton.setAttribute('aria-label',`Open voyage rules: ${voyageDifficulty.label} difficulty`);
 difficultyButton.onclick=()=>showVoyageSettings();
 
 const crewFallback={
-  Ledger:['Assay · Order','Surveyor','Marks specimens and exposes weak points.'],
-  Vitre:['Assay · Chaos','Surveyor','Turns unstable readings into area damage.'],
+  Ledger:['Assay · Order','Surveyor','Marks enemies and exposes weak points.'],
+  Vitre:['Assay · Chaos','Surveyor','Turns unstable readings into AoE damage.'],
   Coda:['Follow-up · Energy','Relay','Charges allies whenever a follow-up lands.'],
   Latch:['Tempo · Order','Relay','Advances the next allied action.'],
-  Morrow:['Ailment · Decay','Seeder','Plants persistent decay on specimens.'],
-  Spore:['Ailment · Growth','Seeder','Spreads ailments when a specimen acts.']
+  Morrow:['Blight · Decay','Seeder','Plants persistent damage on enemies.'],
+  Spore:['Blight · Growth','Seeder','Spreads Fracture stacks when an enemy acts.']
 };
 
 const battleStats={
@@ -66,7 +65,7 @@ const crewKits={
     "role": "Protection and retaliation",
     "basic": [
       "Direct attack",
-      "Deals damage to a chosen specimen."
+      "Deals damage to a chosen enemy."
     ],
     "skill": [
       "Recoil",
@@ -79,14 +78,14 @@ const crewKits={
     "plan": "Hull improves barriers. Ordnance increases team damage. Pair with healing so Tarn can remain on field."
   },
   "Ash": {
-    "role": "Area ailment seeder",
+    "role": "AoE Blight attacker",
     "basic": [
       "Reagent mist",
-      "Area attack with 2 ailment stacks and extra guard pressure."
+      "AoE attack that applies 2 Fracture stacks and deals extra shield damage."
     ],
     "skill": [
       "Scatterfall",
-      "Area ultimate with 3\u00d7 attack damage and 2 additional stacks."
+      "AoE ultimate with 3\u00d7 attack damage and 2 additional Fracture stacks."
     ],
     "passive": [
       "Blight specialist",
@@ -95,14 +94,14 @@ const crewKits={
     "plan": "Use multiple Blight crew to increase applications and unlock periodic blooms."
   },
   "Quill": {
-    "role": "Specimen marker",
+    "role": "Enemy marker",
     "basic": [
-      "Mark specimen",
+      "Mark enemy",
       "Attacks and applies 3 marks to expose the target."
     ],
     "skill": [
       "Full Survey",
-      "Area ultimate with 2.2\u00d7 attack damage and 3 survey marks."
+      "AoE ultimate with 2.2\u00d7 attack damage and 3 Marks."
     ],
     "passive": [
       "Assay / Blight",
@@ -150,7 +149,7 @@ const crewKits={
     ],
     "skill": [
       "Full Ahead",
-      "Restores 14 health and grants 48 charge to allies."
+      "Restores 14 health and grants 48 ultimate charge to allies."
     ],
     "passive": [
       "Drive / Crew",
@@ -159,14 +158,14 @@ const crewKits={
     "plan": "Use with damage ultimates and another Drive or Crew character."
   },
   "Morrow": {
-    "role": "Area ailment seeder",
+    "role": "AoE Blight attacker",
     "basic": [
       "Seed",
-      "Area attack with 2 stacks and extra guard pressure."
+      "AoE attack that applies 2 Fracture stacks and deals extra shield damage."
     ],
     "skill": [
       "Scatterfall",
-      "Prototype ultimate: 3\u00d7 area attack damage and 2 stacks."
+      "Prototype AoE ultimate: 3\u00d7 attack damage and 2 Fracture stacks."
     ],
     "passive": [
       "Blight specialist",
@@ -175,7 +174,7 @@ const crewKits={
     "plan": "Currently shares the seeder mechanics with Ash, with a Growth element."
   },
   "Spore": {
-    "role": "Ailments and healing",
+    "role": "Status effects and healing",
     "basic": [
       "Culture",
       "Applies 1 stack and supplies healing with overheal support."
@@ -188,13 +187,13 @@ const crewKits={
       "Blight / Crew",
       "Contributes to applications and healing thresholds."
     ],
-    "plan": "Support a front row that needs time to build and trigger ailments."
+    "plan": "Support a front row that needs time to build Fracture and trigger Blight."
   },
   "Ledger": {
     "role": "Mark responder",
     "basic": [
       "Archive shot",
-      "Direct attack that prefers finishing damaged specimens."
+      "Direct attack that prefers finishing damaged enemies."
     ],
     "skill": [
       "Final Entry",
@@ -216,7 +215,7 @@ const crewPositions={
 const crewPortraits={
   Tarn:'../assets/crew/tarn-v1.webp',Ash:'../assets/crew/ash-v1.webp',
   Quill:'../assets/crew/quill-v1.webp',Maul:'../assets/crew/maul-v1.webp',
-  Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/crew/coda-v1.webp',
+  Bosk:'../assets/crew/bosk-v1.webp',Coda:'../assets/cast/coda-v2.png',
   Morrow:'../assets/crew/morrow-v1.webp',Spore:'../assets/crew/spore-v1.webp',Ledger:'../assets/lore/aurelio-bassi-v1.webp'
 };
 Object.entries(Rules.crew).forEach(([name,profile])=>{
@@ -232,11 +231,11 @@ const enemyPortraits={
   Bulwark:'../assets/enemies/bulwark-v1.webp',Quickstep:'../assets/enemies/quickstep-v1.webp'
 };
 const gearEffects={
-  'Tuning Fork':'Ailment applications add 1 extra stack.','Spore Sling':'Ailment spread reaches 1 additional specimen.',
-  'Ranging Sight':'Attacks also hit 1 additional specimen.','Loaded Die':'The wearer’s first attack deals 20% more damage.',
+  'Tuning Fork':'Fracture applications add 1 extra stack.','Spore Sling':'Fracture spreads to 1 additional enemy.',
+  'Ranging Sight':'Attacks also hit 1 other enemy.','Loaded Die':'The wearer’s first attack deals 20% more damage.',
   'Recoil Spring':'Follow-up attacks deal 30% more damage.','Quick Latch':'The wearer begins battle 8 Action Value ahead.',
   'Ballast Plate':'Barriers are 30% larger.','Slow Fuse':'Ultimate attacks deal 25% more damage.',
-  'Bore Bit':'Attacks deal 40% more guard damage.'
+  'Bore Bit':'Attacks deal 40% more shield damage.'
 };
 const shipEffects=Object.fromEntries(Object.entries(Rules.shipParts).map(([name,part])=>[name,part.effect]));
 
@@ -246,13 +245,13 @@ Rules.recipes.forEach(recipe=>gearEffects[recipe.name]=recipe.effect);
 // currency card softens rather than erases the price.
 packs.rot.price=12;packs.rot.cards[0][1]='5 gold';
 packs.order.price=14;packs.order.cards[0][1]='6 gold';packs.order.cards[6][1]='Maul';
-packs.order.cards[3][2]='First attack deals +20%';packs.order.cards[4][2]='Crew begin with 20 Energy';
+packs.order.cards[3][2]='First attack deals +20%';packs.order.cards[4][2]='Crew begin with 20 ultimate charge';
 packs.tempo.price=13;packs.tempo.cards[0][1]='5 gold';packs.tempo.cards[6][1]='Stella';
 packs.tempo.cards[3][2]='Wearer starts 8 AV ahead';
 Object.assign(packs,{
   bulwark:{name:'Hull & Ordnance',price:13,theme:'Hull and heavy attacks',pool:'2–4 resources · 1–2 Gear · 0–1 ship item · 1–2 crew',cards:[['CURRENCY','5 gold','Offsets the pack cost','AUTO','var(--amber)'],['MATERIAL','Prism scrap ×4','Upgrade or forge Gear','AUTO','var(--green)'],['GEAR','Ballast Plate','Barriers gain +30%','Tarn fit','var(--violet)'],['GEAR','Slow Fuse','Ultimate damage +25%','Bosk fit','var(--violet)'],['SHIP','Brace Matrix','First incoming hit is reduced','Hull fit','var(--green)'],['CREW','Tarn','Hull · Decay','Front-line anchor','var(--blue)'],['CREW','Bosk','Ordnance · Decay','Heavy burst','var(--blue)']]},
   survey:{name:'Assay & Energy',price:12,theme:'Assay and Energy',pool:'2–4 resources · 1–2 Gear · 0–1 ship item · 1–2 crew',cards:[['CURRENCY','5 gold','Offsets the pack cost','AUTO','var(--amber)'],['MATERIAL','Relay scrap ×4','Upgrade or forge Gear','AUTO','var(--green)'],['GEAR','Ranging Sight','Attack reaches +1 target','Quill fit','var(--violet)'],['GEAR','Quick Latch','Wearer starts 8 AV ahead','Coda fit','var(--violet)'],['SHIP','Survey Prism','Observation gold +20%','Fieldwork fit','var(--green)'],['CREW','Quill','Follow-up · Assay','Off-field surveyor','var(--blue)'],['CREW','Coda','Follow-up · Energy','Charge relay','var(--blue)']]},
-  frontier:{name:'Wild Culture',price:11,theme:'Growth and Decay',pool:'2–4 resources · 1–2 Gear · 0–1 ship item · 1–2 crew',cards:[['CURRENCY','4 gold','Offsets the pack cost','AUTO','var(--amber)'],['MATERIAL','Bloom crystal ×3','Crafting and attunements','AUTO','var(--green)'],['GEAR','Spore Sling','Spread reaches +1 target','Spore fit','var(--violet)'],['GEAR','Tuning Fork','Applications add +1 stack','Morrow fit','var(--violet)'],['SHIP','Culture Bed','Ailments persist +1 turn','Fieldwork fit','var(--green)'],['CREW','Morrow','Ailment · Decay','Persistent stacks','var(--blue)'],['CREW','Spore','Ailment · Growth','Wide spread','var(--blue)']]}
+  frontier:{name:'Wild Culture',price:11,theme:'Growth and Decay',pool:'2–4 resources · 1–2 Gear · 0–1 ship item · 1–2 crew',cards:[['CURRENCY','4 gold','Offsets the pack cost','AUTO','var(--amber)'],['MATERIAL','Bloom crystal ×3','Crafting and attunements','AUTO','var(--green)'],['GEAR','Spore Sling','Spread reaches +1 target','Spore fit','var(--violet)'],['GEAR','Tuning Fork','Applications add +1 stack','Morrow fit','var(--violet)'],['SHIP','Culture Bed','Fracture stacks +1','Fieldwork fit','var(--green)'],['CREW','Morrow','Blight · Decay','Fracture stacks','var(--blue)'],['CREW','Spore','Blight · Growth','Fracture spread','var(--blue)']]}
 });
 // Keep the expanded draft roster discoverable after removing direct recruitment.
 const discoveryNames=new Set(Object.values(packs).flatMap(pack=>pack.cards.filter(card=>card[0]==='CREW').map(card=>card[1])));
@@ -338,14 +337,14 @@ function refreshCharacterDetails(name,button){
 function aetherDetails(name){
   const p=SpacologyAether.profile(name),mode=(runState.aetherModes||{})[name]||'auto';
   const role=Rules.crew[name]?.weaver?'Aether Weaver · '+Rules.crew[name].weaver:p.role?({gatherer:'Aether Weaver · basics generate 2 charges.',reservoir:'Aether Weaver · adds 2 shared capacity while alive.',conduit:'Aether Weaver · can overcharge skills for extra damage.'})[p.role]:'';
-  return `<section class="crew-aether"><h3>Basic +${p.gain} Aether · Skill ${SpacologyAether.skillLabel(name)}</h3><p>${Rules.crew[name]?.weaver?'See the four kit descriptions above for exact effects.':'Basic: one light attack (75% attack), with one stack or mark if this kit applies them. Skill: the full attack or support action. Direct damage skills deal 150% attack.'} Ultimates use individual charge.</p>${role?`<p>${role} Adds 1 shared capacity while deployed${p.capacityBonus?`, plus ${p.capacityBonus} from their capacity passive`:''}.</p>`:''}<p>${p.spending==='greedy'?'Main DPS · spends Aether aggressively.':p.spending==='conservative'?'Sub-DPS · usually builds Aether with basics; spends near a full pool or for useful openings.':'Support · prioritizes useful refills, buffs and recovery.'}</p><details><summary>Aether use</summary><div class="modal-actions">${[['auto','Auto'],['build','Build charges'],['priority','Save for this skill']].map(([id,label])=>`<button data-aether-mode="${id}" data-aether-crew="${name}" aria-pressed="${id==='priority'?runState.aetherPriority===name:runState.aetherPriority!==name&&mode===id}">${label}</button>`).join('')}</div>${p.role==='conduit'?`<button data-aether-overcharge="${name}" aria-pressed="${SpacologyAether.overchargeEnabled(runState,name)}">${p.chain?'Extra turns · 1 Aether each, attacks grow by 25%':p.spendAll?'Full burst · spend available Aether, +100% attack per extra charge':'Overcharge · +1 cost, +35% skill damage'}</button>`:''}<small>Auto saves for a burst Weaver and avoids wasting big attacks on low-health enemies; a manual priority overrides it. Urgent recovery, Aether refills and useful burst setup can go first. After the burst, teammates get a spending window. Full burst is on by default for Arunima; Extra turns is on for Silen.</small></details></section>`;
+  return `<section class="crew-aether"><h3>Basic +${p.gain} Aether · Skill ${SpacologyAether.skillLabel(name)}</h3><p>${Rules.crew[name]?.weaver?'See the four kit descriptions above for exact effects.':'Basic: one light attack (75% attack), with one stack or mark if this kit applies them. Skill: the full attack or support action. Direct damage skills deal 150% attack.'} Ultimates use individual charge.</p>${role?`<p>${role} Adds 1 shared capacity while deployed${p.capacityBonus?`, plus ${p.capacityBonus} from their capacity passive`:''}.</p>`:''}<p>${p.spending==='greedy'?'Main DPS · spends Aether aggressively.':p.spending==='conservative'?'Sub-DPS · usually builds Aether with basics; spends near a full pool or for useful openings.':'Support · prioritizes useful refills, buffs and recovery.'}</p><details><summary>Aether use</summary><div class="modal-actions">${[['auto','Auto'],['build','Build charges'],['priority','Save for this skill']].map(([id,label])=>`<button data-aether-mode="${id}" data-aether-crew="${name}" aria-pressed="${id==='priority'?runState.aetherPriority===name:runState.aetherPriority!==name&&mode===id}">${label}</button>`).join('')}</div>${p.role==='conduit'?`<button data-aether-overcharge="${name}" aria-pressed="${SpacologyAether.overchargeEnabled(runState,name)}">${p.chain?'Extra turns · 2, 3, 4… Aether; +25% damage each':p.spendAll?'Full burst · spend available Aether, +100% attack per extra charge':'Overcharge · +1 cost, +35% skill damage'}</button>`:''}<small>Auto saves for a burst Weaver and avoids wasting big attacks on low-health enemies; a manual priority overrides it. Urgent recovery, Aether refills and useful burst setup can go first. After the burst, teammates get a spending window. Full burst is on by default for Arunima; Extra turns is on for Silen.</small></details></section>`;
 }
 function characterDetails(name,location,copy=null){
-  const info=crewInfo(name),stats=displayedCrewStats(name,copy),kit=crewKits[name]||{role:info[1],basic:['Basic attack','Deals damage to one specimen.'],skill:['Special action',info[2]],passive:['Field trait','Supports the crew through its listed Harmonies.'],plan:info[2]};
+  const info=crewInfo(name),stats=displayedCrewStats(name,copy),kit=crewKits[name]||{role:info[1],basic:['Basic attack','Deals damage to one enemy.'],skill:['Special action',info[2]],passive:['Field trait','Supports the crew through its listed team bonuses.'],plan:info[2]};
   const ref=copy?.id||name,owned=!!Crew.character(runState,ref)&&!['pack','preview','reward'].includes(location);
   const gear=owned?(runState.equipped[ref]||[]).filter(Boolean):[];
   const lastAction=owned?`${location==='formation'?`<button data-return="${name}">RETURN TO INVENTORY</button>`:''}<button class="sell-action" data-sell-character="${ref}">SELL · +${Crew.saleValue(copy?copy.rank:Crew.rank(runState,name))} GOLD</button>`:'';
-  return `<section class="character-details" ${copy?.id?`data-character-copy="${copy.id}"`:""}><div class="crew-detail-header"><div role="img" aria-label="${name} portrait">${portraitMarkup(name,'crew-detail-portrait')}</div><div><div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="crew-origin">${Rules.crew[name]?`${Rules.crew[name].species} · ancestry: ${Rules.crew[name].planet} · birthplace: ${Rules.crew[name].birthplace}`:''}</p><p class="lede"><strong>${kit.role||info[1]}</strong> · ${positionLabel(name)} · ${SpacologyFormation.labels[SpacologyFormation.roles[name]]||'Hybrid'}</p><p class="crew-rank">${['pack','reward'].includes(location)?Crew.stars(copy?.rank||0):rankProgress(name,copy)}</p></div></div><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>POSITION</span><b>${positionLabel(name)}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div>${owned?`<p>Three characters of the same name and rank combine automatically. Only one ${name} can be deployed at a time.</p>`:''}<div class="kit-grid">${kit.attack?`<div class="kit-move"><label>BASIC · +${SpacologyAether.profile(name).gain} AETHER</label><b>${kit.attack[0]}</b><p>${kit.attack[1]}</p></div>`:''}<div class="kit-move"><label>SKILL · ${SpacologyAether.skillLabel(name)} AETHER</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>ULTIMATE</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div>${aetherDetails(name)}${Rules.crew[name]?.lore?`<details class="crew-lore"><summary>About ${Rules.crew[name].fullName}</summary>${Rules.crew[name].lore.map(p=>`<p>${p}</p>`).join('')}</details>`:''}${summonDetails(name)}${owned?characterGearDetails(ref):''}<div class="modal-actions">${owned?`<button data-place="field" data-name="${ref}" ${canPlace(name,'field')?'':'disabled'}>MOVE TO FRONT</button><button data-place="support" data-name="${ref}" ${canPlace(name,'support')?'':'disabled'}>MOVE TO BACK</button>`:""}${lastAction}${owned?`<button data-view-upgrade="${name}">GET COPY · 2 CRYSTALS</button>`:''}</div></section>`;
+  return `<section class="character-details" ${copy?.id?`data-character-copy="${copy.id}"`:""}><div class="crew-detail-header"><div role="img" aria-label="${name} portrait">${portraitMarkup(name,'crew-detail-portrait')}</div><div><div class="eyebrow">CHARACTER · ${info[0]}</div><h2>${name}</h2><p class="crew-origin">${Rules.crew[name]?`${Rules.crew[name].fullName&&Rules.crew[name].fullName!==name?`${Rules.crew[name].fullName} · `:""}${Rules.crew[name].species} · ancestry: ${Rules.crew[name].planet} · birthplace: ${Rules.crew[name].birthplace}`:''}</p><p class="lede"><strong>${kit.role||info[1]}</strong> · ${positionLabel(name)} · ${SpacologyFormation.labels[SpacologyFormation.roles[name]]||'Hybrid'}</p><p class="crew-rank">${['pack','reward'].includes(location)?Crew.stars(copy?.rank||0):rankProgress(name,copy)}</p></div></div><div class="kit-stats"><div><span>HEALTH</span><b>${stats.hp}</b></div><div><span>ATTACK</span><b>${stats.dmg}</b></div><div><span>SPEED</span><b>${stats.speed}</b></div><div><span>POSITION</span><b>${positionLabel(name)}</b></div><div><span>GEAR</span><b>${gear.length} / 2</b></div></div>${owned?`<p>Three characters of the same name and rank combine automatically. Only one ${name} can be deployed at a time.</p>`:''}<div class="kit-grid">${kit.attack?`<div class="kit-move"><label>BASIC · +${SpacologyAether.profile(name).gain} AETHER</label><b>${kit.attack[0]}</b><p>${kit.attack[1]}</p></div>`:''}<div class="kit-move"><label>SKILL · ${SpacologyAether.skillLabel(name)} AETHER</label><b>${kit.basic[0]}</b><p>${kit.basic[1]}</p></div><div class="kit-move"><label>ULTIMATE</label><b>${kit.skill[0]}</b><p>${kit.skill[1]}</p></div><div class="kit-move"><label>PASSIVE</label><b>${kit.passive[0]}</b><p>${kit.passive[1]}</p></div></div><div class="build-note"><strong>HOW TO USE:</strong> ${kit.plan}</div>${aetherDetails(name)}${Rules.crew[name]?.lore?`<details class="crew-lore"><summary>About ${Rules.crew[name].fullName}</summary>${Rules.crew[name].lore.map(p=>`<p>${p}</p>`).join('')}</details>`:''}${summonDetails(name)}${owned?characterGearDetails(ref):''}<div class="modal-actions">${owned?`<button data-place="field" data-name="${ref}" ${canPlace(name,'field')?'':'disabled'}>MOVE TO FRONT</button><button data-place="support" data-name="${ref}" ${canPlace(name,'support')?'':'disabled'}>MOVE TO BACK</button>`:""}${lastAction}${owned?`<button data-view-upgrade="${name}">GET COPY · 2 CRYSTALS</button>`:''}</div></section>`;
 }
 
 function characterLabel(ref){const c=Crew.character(runState,ref);return c?c.name+' '+Crew.stars(c.rank):ref}
@@ -535,7 +534,13 @@ function payloadFrom(el){
   if(el.matches('.reward-card')){const i=Number(el.dataset.card),card=activeCards[i];return {kind:card[0].toLowerCase(),name:card[1],from:'pack',index:i}}
   return null;
 }
-document.addEventListener('dragstart',e=>{const source=e.target.closest('[draggable="true"]');if(!source)return;if(coarsePointer){e.preventDefault();return}runState.drag=payloadFrom(source);if(runState.drag)e.dataTransfer.setData('text/plain',JSON.stringify(runState.drag));});
+// Long presses belong to card gestures, not Safari text selection or callouts.
+document.addEventListener('selectstart',e=>{
+  const target=e.target.nodeType===Node.ELEMENT_NODE?e.target:e.target.parentElement;
+  if(target?.closest('.frame,[draggable="true"]')&&!target.closest('input,textarea,[contenteditable="true"]'))e.preventDefault();
+});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('[draggable="true"]'))e.preventDefault()});
+document.addEventListener('dragstart',e=>{const source=e.target.closest('[draggable="true"]');if(!source)return;if(coarsePointer){e.preventDefault();return}window.getSelection()?.removeAllRanges();runState.drag=payloadFrom(source);if(runState.drag)e.dataTransfer.setData('text/plain',JSON.stringify(runState.drag));});
 document.addEventListener('dragover',e=>{const zone=e.target.closest('.drop-zone,.inventory,.unit,.item.character,.pack-action-drop');if(!zone)return;e.preventDefault();zone.classList.add('drag-over')});
 document.addEventListener('dragleave',e=>{const zone=e.target.closest('.drag-over');if(zone)zone.classList.remove('drag-over')});
 document.addEventListener('drop',e=>{const zone=e.target.closest('.drop-zone,.inventory,.unit,.item.character,.pack-action-drop');if(!zone)return;e.preventDefault();document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));let data=runState.drag;try{data=JSON.parse(e.dataTransfer.getData('text/plain'))||data}catch(_){}handleDrop(data,zone);runState.drag=null});
@@ -545,6 +550,7 @@ document.addEventListener('pointerdown',e=>{
   if(e.pointerType==='mouse')return;
   if(e.target.closest('.reward-actions'))return;
   const source=e.target.closest('[draggable="true"]');if(!source)return;
+  window.getSelection()?.removeAllRanges();
   const scrollHost=source.closest('.inv-items,.pack-cards');
   touchDrag={source,payload:payloadFrom(source),startX:e.clientX,startY:e.clientY,startScrollY:window.scrollY,scrollHost,startScrollX:scrollHost?.scrollLeft||0,scrolling:null,active:false,armed:false,ghost:null,zone:null,pointerId:e.pointerId,armTimer:null};
   touchDrag.armTimer=setTimeout(()=>{if(touchDrag&&touchDrag.pointerId===e.pointerId){touchDrag.armed=true;source.classList.add('drag-ready')}},180);
@@ -726,7 +732,7 @@ function renderBattle(){
   $('enemyRank').innerHTML=battle.enemies.map(u=>makeCombatant(u,true)).join('');$('crewRank').innerHTML=battle.crew.map(u=>makeCombatant(u,false)).join('');
   [...battle.enemies,...battle.crew].forEach(u=>{const el=$(`combat-${u.id}`);if(!el)return;el.querySelector('.hp i').style.width=`${Math.max(0,u.hp/u.maxHp*100)}%`;el.querySelector('.hp-label').textContent=`${Math.max(0,u.hp)} / ${u.maxHp}`;el.classList.toggle('down',u.hp<=0)});
   const live=[...battle.crew.filter(u=>u.hp>0),...battle.enemies.filter(u=>u.hp>0)].sort((a,b)=>b.speed-a.speed).slice(0,6);
-  $('turnQueue').innerHTML=live.map(u=>`<div class="queue-unit">${u.name}<br><span>${u.side==='crew'?'CREW':'SPECIMEN'} · ${u.speed} SP</span></div>`).join('');
+  $('turnQueue').innerHTML=live.map(u=>`<div class="queue-unit">${u.name}<br><span>${u.side==='crew'?'CREW':'ENEMY'} · ${u.speed} SP</span></div>`).join('');
   $('observationText').textContent=`${Math.min(2,battle.quickstepActions)} / 2 QUICKSTEP ACTIONS`;$('observationFill').style.width=`${Math.min(100,battle.quickstepActions*50)}%`;
 }
 function setupBattle(){
@@ -734,7 +740,7 @@ function setupBattle(){
   const crew=deployed().map((name,i)=>{const s=battleStats[name]||{hp:92,dmg:15,speed:9,color:'#8ebddd'};return {id:`c${i}`,name,side:'crew',row:runState.field.includes(name)?'field':'support',hp:s.hp,maxHp:s.hp,dmg:s.dmg,speed:s.speed,color:s.color}});
   const count=runState.round<3?3:4;
   const names=['Quickstep','Warden','Anchor','Bruiser'];
-  const enemies=Array.from({length:count},(_,i)=>{const hp=Math.round((46+i*8)*pressure*(i===0?2.2:1));return{id:`e${i}`,name:names[i],side:'enemy',kind:i===0?'FAST · OBSERVE':i===1?'ARMOURED':'SPECIMEN',hp,maxHp:hp,dmg:Math.round((7+i*2)*pressure),speed:i===0?12-i:8-i}});
+  const enemies=Array.from({length:count},(_,i)=>{const hp=Math.round((46+i*8)*pressure*(i===0?2.2:1));return{id:`e${i}`,name:names[i],side:'enemy',kind:i===0?'FAST · OBSERVE':i===1?'ARMOURED':'ENEMY',hp,maxHp:hp,dmg:Math.round((7+i*2)*pressure),speed:i===0?12-i:8-i}});
   battle={pressure,crew,enemies,playing:false,over:false,round:1,cursor:0,quickstepActions:0,focus:false,hold:false,timer:null,log:[]};
   $('battleResult').classList.remove('open');$('battlePlay').textContent='BEGIN FIELDWORK';$('battleAction').textContent='Review the formation';$('battlePhase').textContent='FIELDWORK READY';$('callFocus').disabled=false;$('callHold').disabled=false;renderBattle();renderLog();
 }
@@ -752,7 +758,7 @@ function battleStep(){
   const actor=nextActor();if(!actor)return;
   if(actor.side==='crew')crewAction(actor);else enemyAction(actor);
   renderBattle();
-  if(!battle.enemies.some(e=>e.hp>0)){finishBattle(true,'Specimens catalogued');return}
+  if(!battle.enemies.some(e=>e.hp>0)){finishBattle(true,'Enemies defeated');return}
   if(!battle.crew.some(c=>c.hp>0&&c.row==='field')){finishBattle(false,'On-field crew lost');return}
   battle.timer=setTimeout(battleStep,Math.round(760/(battle.speed||1)));
 }
@@ -760,7 +766,7 @@ function crewAction(actor){
   const target=battle.enemies.filter(e=>e.hp>0).sort((a,b)=>a.hp-b.hp)[0];if(!target)return;
   let dmg=actor.dmg+(runState.equipped[actor.name]||[]).length*2;if(battle.focus){dmg=Math.round(dmg*1.6);battle.focus=false}
   if(actor.name==='Ash'&&battle.enemies.some(e=>e.hp>0&&e.hp<e.maxHp*.5))dmg+=8;
-  target.hp-=dmg;pulse(actor,'acting');setTimeout(()=>pulse(target,'hit'),180);showDamage(dmg);$('battlePhase').textContent=`${actor.name.toUpperCase()} ACTS`;$('battleAction').textContent=actor.name==='Quill'?'Survey mark → follow-up':`${target.name} takes ${dmg}`;logBattle(`<strong>${actor.name}</strong> hit ${target.name} for ${dmg}.`);
+  target.hp-=dmg;pulse(actor,'acting');setTimeout(()=>pulse(target,'hit'),180);showDamage(dmg);$('battlePhase').textContent=`${actor.name.toUpperCase()} ACTS`;$('battleAction').textContent=actor.name==='Quill'?'Mark → follow-up attack':`${target.name} takes ${dmg}`;logBattle(`<strong>${actor.name}</strong> hit ${target.name} for ${dmg}.`);
 }
 function enemyAction(actor){
   const targets=battle.crew.filter(c=>c.hp>0&&c.row==='field');const target=targets[Math.floor(Math.random()*targets.length)];if(!target)return;
@@ -851,8 +857,8 @@ function renderExpedition(){
   const planets=Rules.planetCounts(names);
   const breakpoint=(count,steps)=>steps.map(n=>`<i class="${count>=n?'reached':''}">${n}</i>`).join(' | ');
   const aether=SpacologyAether.capacityBreakdown(names);
-  document.querySelector('.harmonies').innerHTML=treasureTrayHTML()+`<button class="harmony aether-team" data-team-aether><span class="harmony-icon">✦</span><span><b>Aether · ${aether.total} cap</b><span class="breaks">${aether.weavers} Weavers · +${aether.bonus} bonus</span></span></button><div class="eyebrow">HARMONIES</div>`+Object.keys(Rules.tags).filter(t=>counts[t]).map(t=>`<button class="harmony" data-live-harmony="${t}"><span class="harmony-icon">◇</span><span><b>${t} · ${counts[t]}</b><span class="breaks">${breakpoint(counts[t],[2,4])}</span></span></button>`).join('')+(names.length?'':'<p class="empty-hint">Deploy crew to build harmonies.</p>')+'<div class="eyebrow">HOMEWORLD</div>'+Object.entries(planets).map(([p,n])=>`<button class="harmony" data-planet-harmony="${p}"><span class="harmony-icon">◎</span><span><b>${p} · ${n}</b><span class="breaks">${breakpoint(n,[2,3])}</span></span></button>`).join('');
-  document.querySelector('.round-map').innerHTML=Rules.route.map((name,i)=>`<button class="node ${i+1<runState.round?'complete':i+1===runState.round?'current':''}" data-route="${i}" aria-label="Encounter ${i+1}: ${name}${i+1<runState.round?', complete':i+1===runState.round?', current':''}"><i>${i+1<runState.round?'✓':i+1}</i><b>${i===5?'EXTRACT':i===2||i===4?'SPECIMEN':'SURVEY'}</b></button>`).join('');
+  document.querySelector('.harmonies').innerHTML=treasureTrayHTML()+`<button class="harmony aether-team" data-team-aether><span class="harmony-icon">✦</span><span><b>Aether · ${aether.total} cap</b><span class="breaks">${aether.weavers} Weavers · +${aether.bonus} bonus</span></span></button><div class="eyebrow">TEAM BONUSES</div>`+Object.keys(Rules.tags).filter(t=>counts[t]).map(t=>`<button class="harmony" data-live-harmony="${t}"><span class="harmony-icon">◇</span><span><b>${t} · ${counts[t]}</b><span class="breaks">${breakpoint(counts[t],[2,4])}</span></span></button>`).join('')+(names.length?'':'<p class="empty-hint">Deploy crew to unlock team bonuses.</p>')+'<div class="eyebrow">HOMEWORLD</div>'+Object.entries(planets).map(([p,n])=>`<button class="harmony" data-planet-harmony="${p}"><span class="harmony-icon">◎</span><span><b>${p} · ${n}</b><span class="breaks">${breakpoint(n,[2,3])}</span></span></button>`).join('');
+  document.querySelector('.round-map').innerHTML=Rules.route.map((name,i)=>`<button class="node ${i+1<runState.round?'complete':i+1===runState.round?'current':''}" data-route="${i}" aria-label="Encounter ${i+1}: ${name}${i+1<runState.round?', complete':i+1===runState.round?', current':''}"><i>${i+1<runState.round?'✓':i+1}</i><b>${i===5?'EXTRACT':i===2||i===4?'BATTLE':'SURVEY'}</b></button>`).join('');
   const goal=Rules.goal(runState),modifierNames=Rules.activeModifiers(runState).map(id=>Rules.modifiers[id].name);
   document.querySelector('.destination').innerHTML=`<b>${Rules.route[Math.min(5,runState.round-1)]}</b><span>${goal.battle}</span><small>${modifierWindow()&&!runState.modifierChoices.includes(modifierWindow())?'Modifier choice available in Settings':modifierNames.length?modifierNames.join(' · '):'No active modifiers'}</small>`;
   $('continueButton').textContent=`LAUNCH · ${SpacologyVoyageSettings.roundLimit(runState)} ROUNDS`;
@@ -860,10 +866,11 @@ function renderExpedition(){
   if(Voyage.active(runState))renderVoyageRoute();
   const goalButton=document.querySelector('[data-info="calls"]');goalButton.textContent=`GOAL · ${Math.min(goal.target,runState.goalProgress)} / ${goal.target}`;goalButton.onclick=showGoals;
   document.querySelector('[data-info="next-settings"]').onclick=()=>SpacologyMenu.settings('ops');
-  let inboxButton=document.querySelector('.run-icons [data-open-inbox]');
-  if(!inboxButton){const old=document.querySelector('.round-icon[aria-label="Pause"]');old.setAttribute('data-open-inbox','');old.removeAttribute('aria-label');inboxButton=old}
+  const inboxButton=document.querySelector('.run-icons [data-open-inbox]');
   const unopened=runState.treasureCaches.filter(c=>!c.opened).length;
-  inboxButton.textContent=`INBOX${unopened?' · '+unopened:''}`;inboxButton.style.width='auto';inboxButton.setAttribute('aria-label','Open recovery inbox');
+  const badge=inboxButton.querySelector('.toolbar-badge');
+  badge.hidden=!unopened;badge.textContent=unopened>99?'99+':String(unopened);
+  inboxButton.setAttribute('aria-label',`Open recovery inbox${unopened?`, ${unopened} unopened caches`:''}`);
   document.querySelector('.run-meta > span').textContent=`${voyageDifficulty.label} · ${modifierNames.length} modifiers`;
 }
 
@@ -948,7 +955,7 @@ function setRecoveryMode(mode){
 function showVoyageSettings(){
   if(Voyage.active(runState)&&!runState.voyageStarted){showDeparture();return}
   const current=Rules.activeModifiers(runState),window=modifierWindow(),canChoose=window&&!runState.modifierChoices.includes(window)&&!activePack;
-  showModal(`<div class="eyebrow">VOYAGE SETTINGS</div><h2>${voyageDifficulty.label}</h2><h3>Downed crew</h3><div class="modal-actions">${[['revive','RECOVER · −50 AV'],['lastStand','LAST STAND'],['none','NO RECOVERY']].map(([id,label])=>`<button data-recovery-mode="${id}" aria-pressed="${SpacologyDownRecovery.mode(runState)===id}">${label}</button>`).join('')}</div><p>Recover restores downed crew to 50% health and shortens the battle deadline by 50 AV (half a round) each time. They resume after a normal turn wait; repeated downs can force early extraction. Last Stand instead prevents the first lethal hit at 1 HP and protects until their next turn. These modes do not stack. Changes apply to the next encounter.</p><p class="lede">Base enemy health and damage: ${Math.round(voyageDifficulty.enemyScale*100)}% of standard. Enemy speed: ${Math.round(voyageDifficulty.enemySpeed*100)}%; shield strength: ${Math.round(voyageDifficulty.enemyGuard*100)}%. Breaks delay the next enemy turn by ${Math.round(voyageDifficulty.breakDelay*100)}% of its normal wait; enemies reform and attack on their recovery turn. This encounter has a ${SpacologyVoyageSettings.roundLimit(runState)}-round deadline. A round is 100 Action Value, shown as a marker in the turn order. Speed and action advances fit more crew turns before the marker; they never add rounds. Animations and pauses do not spend it. Clear every wave before time expires. With Recover enabled, each down removes up to 50 AV from the remaining deadline. Back-row crew cannot be targeted by enemies. Tap an enemy in battle to inspect its behavior. ${Voyage.active(runState)?'Starting difficulty applies to the entire voyage and is locked. Choose an optional modifier at nodes 3, 10 and 17.':'Choose one optional modifier before first launch and another at encounter 4.'} Each trade applies to future encounters. A category can appear only once.</p><div class="system-options">${Object.entries(Rules.modifiers).map(([id,m])=>`<article class="modal-card"><h3>${m.name}${current.includes(id)?' · ACTIVE':''}</h3><p>${m.description}</p><button data-modifier="${id}" ${!canChoose||current.some(key=>Rules.modifiers[key].category===m.category)?'disabled':''}>ADD MODIFIER</button>${current.includes(id)?`<button data-remove-modifier="${id}" ${runState.modifierRemovalUsed||runState.round<3||runState.gold<8||activePack?'disabled':''}>REMOVE · 8g</button>`:''}</article>`).join('')}</div><p>One removal per voyage, available from encounter 3. ${runState.modifierRemovalUsed?'Already used.':''}</p><button data-show-goals>VIEW VOYAGE GOAL</button>`);
+  showModal(`<div class="eyebrow">VOYAGE SETTINGS</div><h2>${voyageDifficulty.label}</h2><h3>Downed crew</h3><div class="modal-actions">${[['revive','RECOVER · −50 AV'],['lastStand','LAST STAND'],['none','NO RECOVERY']].map(([id,label])=>`<button data-recovery-mode="${id}" aria-pressed="${SpacologyDownRecovery.mode(runState)===id}">${label}</button>`).join('')}</div><p>Recover restores downed crew to 50% health and shortens the battle deadline by 50 AV (half a round) each time. They resume after a normal turn wait; repeated downs can force early extraction. Last Stand instead prevents the first lethal hit at 1 HP and protects until their next turn. These modes do not stack. Changes apply to the next encounter.</p><p class="lede">Base enemy health and damage: ${Math.round(voyageDifficulty.enemyScale*100)}% of standard. Enemy speed: ${Math.round(voyageDifficulty.enemySpeed*100)}%; shield strength: ${Math.round(voyageDifficulty.enemyGuard*100)}%. Breaks delay the next enemy turn by ${Math.round(voyageDifficulty.breakDelay*100)}% of its normal wait; enemies reform and attack on their recovery turn. This encounter has a ${SpacologyVoyageSettings.roundLimit(runState)}-round deadline. A round is 100 Action Value, shown as a marker in the turn order. Speed and action advances fit more crew turns before the marker; they never add rounds. Animations and pauses do not spend it. Clear every wave before time expires. With Recover enabled, each down removes up to 50 AV from the remaining deadline. Back-row crew cannot be targeted by enemies. Tap an enemy in battle to inspect its behavior. ${Voyage.active(runState)?'Starting difficulty applies to the entire voyage and is locked. Choose an optional modifier at nodes 3, 10 and 17.':'Choose one optional modifier before first launch and another at encounter 4.'} Each trade applies to future encounters. A category can appear only once.</p><details><summary>Combat terms</summary><p><b>Shield:</b> enemies take 60% less health damage until you Break their last shield layer. Matching a Weakness removes shield faster. <b>Barrier:</b> temporary protection on your crew.</p><p><b>Mark:</b> a target flag used by follow-up attacks. <b>Fracture:</b> each stack adds 12% damage taken; it is not damage over time. <b>DoT:</b> poison, burn or bleed that deals damage after scheduled turns. Bombs are delayed damage, while Hex raises a skill cost.</p><p><b>AoE:</b> hits every enemy. <b>Multi-target:</b> hits a chosen enemy and another target. <b>AV:</b> Action Value, the turn timer. Aether pays for skills; each character has separate ultimate charge.</p></details><div class="system-options">${Object.entries(Rules.modifiers).map(([id,m])=>`<article class="modal-card"><h3>${m.name}${current.includes(id)?' · ACTIVE':''}</h3><p>${m.description}</p><button data-modifier="${id}" ${!canChoose||current.some(key=>Rules.modifiers[key].category===m.category)?'disabled':''}>ADD MODIFIER</button>${current.includes(id)?`<button data-remove-modifier="${id}" ${runState.modifierRemovalUsed||runState.round<3||runState.gold<8||activePack?'disabled':''}>REMOVE · 8g</button>`:''}</article>`).join('')}</div><p>One removal per voyage, available from encounter 3. ${runState.modifierRemovalUsed?'Already used.':''}</p><button data-show-goals>VIEW VOYAGE GOAL</button>`);
 }
 function showDuplicateSettings(){
   showModal(`<div class="eyebrow">INVENTORY PREFERENCES</div><h2>Already-owned crew</h2><p class="lede">Copies normally occupy reserve slots and combine into ranks. Characters sell for 3 gold per base copy (3 / 9 / 27 by rank). Equipment dismantles into scrap. Auto-selling owned copies is optional and slows rank growth.</p><div class="modal-actions">${[['maxed','Auto-sell maxed crew'],['ask','Choose each time'],['sell','Auto-sell all owned copies']].map(([id,name])=>`<button data-duplicate-policy="${id}" aria-pressed="${runState.duplicatePolicy===id}">${name}${runState.duplicatePolicy===id?' ✓':''}</button>`).join('')}</div>`);
@@ -976,15 +983,15 @@ function gearFit(item,name){
   const direct=['Bosk','Maul','Wren','Beatriz','Ledger','Aurelio','Quill','Nadira','Nour'];
   const damageUlt=[...direct,'Ash','Stella','Morrow','Dolores','Imke','Latch','Idris','Sevim','Vitre','Yusuf','Tarn','Reva','Ojo','Otaremnivas','Tomás'];
   const matches={
-    'Tuning Fork':[ailment,'Adds a stack to their ailment applications.'],
-    'Spore Sling':[['Nour','Spore','Abike'],'Spreads stacks when their single-target attack applies an ailment.'],
-    'Ranging Sight':[direct,'Their single-target attack hits another specimen.'],
+    'Tuning Fork':[ailment,'Adds 1 Fracture stack when they apply Fracture.'],
+    'Spore Sling':[['Nour','Spore','Abike'],'Spreads Fracture from a single-target attack.'],
+    'Ranging Sight':[direct,'Their single-target attack hits another enemy.'],
     'Loaded Die':[direct,'Strengthens their opening hit.'],
     'Recoil Spring':[follow,'Boosts their triggered follow-up attacks.'],
     'Quick Latch':[[...deployed(),...runState.reserve],'Brings their first action forward.'],
     'Ballast Plate':[[...runState.field.filter(Boolean),...runState.reserve.filter(n=>crewPosition(n)==='field')],'Larger barriers received while holding the front row.'],
     'Slow Fuse':[damageUlt,'Increases their damaging ultimate.'],
-    'Bore Bit':[[...direct,'Ash','Stella','Morrow','Sevim','Vitre','Yusuf','Idris'],'Adds guard pressure to their attacks.'],
+    'Bore Bit':[[...direct,'Ash','Stella','Morrow','Sevim','Vitre','Yusuf','Idris'],'Adds shield damage to their attacks.'],
     'Lumen Conduit':[damageUlt,'Starts closer to a stronger damaging ultimate.']
   };
   const recipe=Rules.recipes.find(r=>r.name===item);
@@ -992,7 +999,7 @@ function gearFit(item,name){
   const fit=matches[item];return fit?.[0].includes(name)?fit[1]:'';
 }
 function gearPurpose(name){
-  const purposes={'Tuning Fork':'Ailment application','Spore Sling':'Single-target ailment spread','Ranging Sight':'Single-target attackers','Loaded Die':'Opening damage','Recoil Spring':'Triggered follow-up attacks','Quick Latch':'Earlier opening actions','Ballast Plate':'Front-row protection','Slow Fuse':'Damaging ultimates','Bore Bit':'Breaking shields','Lumen Conduit':'Earlier, stronger damaging ultimates'};
+  const purposes={'Tuning Fork':'Fracture stacks','Spore Sling':'Fracture spread','Ranging Sight':'Single-target attackers','Loaded Die':'Opening damage','Recoil Spring':'Triggered follow-up attacks','Quick Latch':'Earlier opening actions','Ballast Plate':'Front-row protection','Slow Fuse':'Damaging ultimates','Bore Bit':'Breaking shields','Lumen Conduit':'Earlier, stronger damaging ultimates'};
   const recipe=Rules.recipes.find(r=>r.name===name);
   return purposes[name]||recipe?.inputs.map(n=>purposes[n]).join(' + ')||'Crew equipment';
 }
@@ -1101,7 +1108,7 @@ document.addEventListener('click',e=>{
   if(['ask','maxed','sell'].includes(b.dataset.duplicatePolicy)){runState.duplicatePolicy=b.dataset.duplicatePolicy;renderPackOffers();renderOps();showDuplicateSettings()}
   if(b.dataset.liveHarmony){const tag=b.dataset.liveHarmony,members=deployed().filter(n=>Rules.crew[n]?.tags.includes(tag));showModal(`<h2>${tag} · ${members.length} crew</h2><p>2: ${Rules.tags[tag][0]}</p><p>4: ${Rules.tags[tag][1]}</p><p>${members.join(', ')}</p>`)}
   if(b.dataset.planetHarmony){const planet=b.dataset.planetHarmony,members=deployed().filter(n=>Rules.crew[n]?.planet===planet);showModal(`<h2>${planet} · ${members.length} crew</h2><p>2: All deployed crew gain 8% base health.</p><p>3: Increases to 15%. Bonuses from different planets add together.</p><p>${members.join(', ')}</p><p>Shared ancestral-world affiliation. Birthplace and ancestry can differ; proposed assignments are shown in the star atlas.</p>`)}
-  if(b.dataset.startVoyage){if(Voyage.start(runState,b.dataset.startVoyage)){voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];difficultyButton.textContent=voyageDifficulty.label;difficultyButton.setAttribute('aria-label','Difficulty: '+voyageDifficulty.label);renderOps();showCurrentNode();}return}
+  if(b.dataset.startVoyage){if(Voyage.start(runState,b.dataset.startVoyage)){voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];difficultyButton.textContent='Rules';difficultyButton.setAttribute('aria-label',`Open voyage rules: ${voyageDifficulty.label} difficulty`);renderOps();showCurrentNode();}return}
   if(b.dataset.nodeReward!==undefined){if(activePack){toastMessage('Resolve the open pack first');return}const reward=Voyage.claim(runState,b.dataset.nodeId,Number(b.dataset.nodeReward));if(reward){if(reward.fieldXP)awardFieldXP(reward.fieldXP);finishNode();toastMessage(reward.label+' collected');}return}
   if(b.hasAttribute('data-skip-modifier')){resolveVoyageModifier('skip',b.dataset.nodeId);return}
   if(b.dataset.route!==undefined){const i=Number(b.dataset.route);if(Voyage.active(runState)){showNodeDetail(i);return;}showModal(`<h2>Encounter ${i+1} · ${Rules.route[i]}</h2><p>${i+1<runState.round?'Completed':i+1===runState.round?'Prepare your crew, then launch.':'Upcoming encounter. Enemy strength increases along the route.'}</p>`)}
@@ -1167,7 +1174,7 @@ function continueVoyage(){
 }
 function beginVoyage(difficulty){
   if(!Voyage.start(runState,difficulty))return;
-  voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];difficultyButton.textContent=voyageDifficulty.label;difficultyButton.setAttribute('aria-label','Difficulty: '+voyageDifficulty.label);
+  voyageDifficulty=SpacologyVoyageSettings.difficulties[runState.difficulty];difficultyButton.textContent='Rules';difficultyButton.setAttribute('aria-label',`Open voyage rules: ${voyageDifficulty.label} difficulty`);
   SpacologyMenu.close();setTitleVisible(false);renderOps();showCurrentNode();
 }
 function requestNewVoyage(){

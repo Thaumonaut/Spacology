@@ -34,7 +34,7 @@ West of the Kalva the shelf ramps down in stages to **the Marsk**: cold coast un
 
 #### The Ereta
 
-**Mostly human. A large amphibioid population through the lower channels, and a sunfed minority in the upper Spread.** · The Barrena Spread — the eastern lowland delta. Warm, seasonally flooded, and not in the same shape it was in a century ago.
+**Mostly human. A large amphibioid population through the lower channels, fungal families among the grafting lines, and a sunfed minority in the upper Spread.** · The Barrena Spread — the eastern lowland delta. Warm, seasonally flooded, and not in the same shape it was in a century ago.
 
 *Seed: Char-land tenure of the Brahmaputra–Jamuna: an inherited claim to ground that is currently under water, made good by re-occupation when the river gives it back. The terrain push is that Orrowan's river moves further and stays longer, so re-occupation is not enough — the claim has to be alive in the meantime, somewhere else, in the hands of somebody else's family.*
 

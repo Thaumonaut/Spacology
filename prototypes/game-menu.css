@@ -1,3 +1,6 @@
+/* Insets are shared by Ops, battle and full-screen menus. */
+:root{--game-safe-top:env(safe-area-inset-top,0px);--game-safe-right:env(safe-area-inset-right,0px);--game-safe-bottom:env(safe-area-inset-bottom,0px);--game-safe-left:env(safe-area-inset-left,0px)}
+@media(display-mode:standalone){:root{--game-safe-top:max(24px,env(safe-area-inset-top,0px))}}
 /* Shared front end for title, pause and settings screens. */
 .game-menu{--menu-ink:#e7eef0;--menu-muted:#9bb1be;--menu-line:#2a4352;--menu-gold:#e9bb6a;color:var(--menu-ink);background:linear-gradient(135deg,#10212d,#09151e 65%);border:1px solid #3a5767;border-radius:18px;padding:30px;width:min(740px,calc(100vw - 32px));max-height:calc(100dvh - 40px);box-sizing:border-box;overflow:auto;box-shadow:0 28px 100px #0009;font:15px/1.55 Inter,system-ui,sans-serif}
 .game-menu::backdrop{background:#02080dd9;backdrop-filter:blur(10px)}
@@ -12,3 +15,6 @@ html.reduce-motion *,html.reduce-motion *:before,html.reduce-motion *:after{anim
 @media(max-height:620px) and (min-width:661px){.title-screen{padding-block:24px}.title-screen .title-copy h1{font-size:62px;margin:12px 0}.title-screen .title-copy>p{font-size:13px}.title-screen .title-actions{margin-top:16px;gap:6px}.title-screen .title-actions button{min-height:42px}.title-secondary{margin-top:8px}}
 
 .main-menu-open #toast{display:none}
+
+.title-screen{padding-top:max(clamp(28px,6vw,84px),calc(var(--game-safe-top) + 20px));padding-bottom:max(28px,calc(var(--game-safe-bottom) + 20px))}
+.game-menu{inset-block:var(--game-safe-top) var(--game-safe-bottom);max-height:calc(100dvh - var(--game-safe-top) - var(--game-safe-bottom) - 40px)}

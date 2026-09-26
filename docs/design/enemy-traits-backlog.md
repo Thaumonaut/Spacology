@@ -1,10 +1,10 @@
-# Enemy traits: future work
+# Enemy traits: implementation record and future work
 
-Recorded 2026-09-22. Status: brainstorm saved for future design and implementation. These behaviors, timings and priorities are proposals, not finalized balance or implemented features. The existing summoner behavior is documented separately in [enemy summoners](../testing/enemy-summoners.md).
+Recorded 2026-09-22; implemented 2026-09-23. All twelve behaviors below, plus burn and bleed variants, are now playable. The original proposal is retained below; the current timings, limits, role mappings, counterplay and verification are in [enemy behaviors](../testing/enemy-traits.md). Balance remains subject to playtesting. Existing summoners are documented in [enemy summoners](../testing/enemy-summoners.md).
 
 Goal: make target choice and team composition matter through distinct enemy behavior. Each regular enemy should have one clear gimmick, a visible tell, and an accessible counter. Consider two complementary traits for elites later. Map these ideas onto existing catalogue roles where appropriate (especially Mender, Sapper, Bulwark and Anchor) before adding redundant archetypes.
 
-## Candidate behaviors
+## Original candidate behaviors (now implemented)
 
 | Working name | Proposed behavior | Counterplay |
 | --- | --- | --- |
@@ -37,8 +37,15 @@ Before implementing, define stack limits, duration and tick timing, whether shie
 - Counters must work with automated crew decisions and pre-battle preparation, without requiring reactive manual input. Evaluate AI responses to heal windows, marked allies and interruptible attacks.
 - Keep recovery and spawn loops finite. Healing must not create repeated recovery credit; spawned helpers must not recursively spawn or allow reward farming.
 
-## Suggested first batch
+## Original suggested introduction order
 
 Medic, Venom Carrier, Disruptor, Bodyguard and Aether Leech, alongside the existing summoners. This is a suggested starting order, not a scheduled commitment.
 
 Test combinations that create readable priorities: a bodyguard protecting a medic, poison enemies supported by a healer, and an Aether leech holding charges needed by the crew's main DPS. Introduce traits individually before combining them. Check encounter duration, control lockouts, cleanse availability and repeated-turn interactions before increasing complexity.
+
+## Remaining expansion ideas
+
+- Dedicated artwork for the nine new role variants; the first implementation reuses faction silhouettes.
+- Combining two complementary traits on selected elites after single-trait balance testing.
+- Additional factions such as goblins, undead or vampires, previously deferred; none are added by this implementation.
+- Further evaluation of ordinary-team encounter duration, cleanse availability and readability on iPad.

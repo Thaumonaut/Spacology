@@ -105,14 +105,16 @@ const chainPlan=A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:chainSes
 assert.equal(chainPlan.cost,chainPool.max);
 assert(A.spend(chainPool,{...chainPlan,cost:A.skillCost(chainActor)}));
 assert.equal(chainPool.skills,1);
-assert(A.spendContinuation(chainPool));assert.equal(chainPool.skills,2);assert.equal(chainPool.spent,3);
+assert.deepEqual([1,2,3,4].map(A.continuationCost),[2,3,4,5]);
+assert(A.spendContinuation(chainPool,1));assert.equal(chainPool.skills,2);assert.equal(chainPool.spent,4);
+assert(A.spendContinuation(chainPool,2));assert.equal(chainPool.skills,3);assert.equal(chainPool.spent,7);
 assert.deepEqual([0,1,2,3].map(A.chainMultiplier),[2,2.25,2.5,2.75]);
-chainPool.current=0;assert.equal(A.spendContinuation(chainPool),false);assert.equal(chainPool.spent,3);
+chainPool.current=3;assert.equal(A.spendContinuation(chainPool,3),false);assert.equal(chainPool.spent,7);
 chainPool.current=chainPool.max;chainActor.weaverDiscount=true;
 assert.equal(A.skillCost(chainActor),1);assert.equal(A.budget(chainPool,chainActor,chainSession),chainPool.max);
 assert.equal(A.budget(chainPool,chainActor,{aetherOvercharge:{Silen:false}}),1);
 assert.equal(A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:{},useful:()=>true}).kind,'basic');
-console.log('PASS Silen priority, separate skill-turn accounting, per-turn spending, escalating multipliers, empty pool and discount/chain toggle');
+console.log('PASS Silen priority, separate skill-turn accounting, increasing costs and multipliers, insufficient pool and discount/chain toggle');
 
 chainSession.aetherPriority='Arunima';chainPool.current=chainPool.max;
 const savedForOther=A.teamPlan(chainPool,chainActor,{crew:chainCrew,session:chainSession,useful:()=>true});

@@ -69,3 +69,9 @@ New saves now begin at a setup reward and require starting difficulty selection.
 ### Main menu and pause
 
 Fresh voyages now start through `#titleNewVoyage`, a `[data-difficulty]` choice and `[data-menu="depart"]`. `#enterOps` is Continue for an existing voyage and resumes combat if a checkpoint is present. See [game-menu behavior and validation](../../docs/testing/game-menus.md) for pause, preferences and checkpoint coverage. `tests/unit/game-preferences.cjs` retains the storage and normalization regressions.
+
+Enemy-trait regression coverage is in `tests/browser/enemy-traits.cjs` and `tests/unit/enemy-traits.cjs`. See [enemy behaviors](../../docs/testing/enemy-traits.md) for the implemented timings, status rules and encounter rollout.
+
+`offline-battle-launch.cjs` allows the service worker, takes the browser offline in Ops, then checks that launching a battle loads the cached combat page and starts an action. Run it against a local HTTP server with `NODE_PATH` pointing to Playwright's `node_modules` directory.
+
+`battle-safe-area.cjs` starts a real voyage battle and checks that the header and Play control respect shared tablet safe-area insets.
