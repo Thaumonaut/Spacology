@@ -3,6 +3,7 @@
 // the combat rules can be proven to change nothing. Headless.
 //   node tests/browser/combat-core-parity.cjs record out.json   — write the event streams
 //   node tests/browser/combat-core-parity.cjs check  base.json  — fail on the first difference
+//   SPACOLOGY_SESSIONS_OUT=tests/unit/combat-voyage-sessions.json … — also save the voyage states it fought
 const {chromium}=require('playwright');const fs=require('fs');const assert=require('node:assert/strict');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',[mode,file]=process.argv.slice(2);
 if(!['record','check'].includes(mode)||!file){console.error('usage: record|check <file>');process.exit(2)}
@@ -18,7 +19,7 @@ const RUN=String(function run(args){
   return {end,steps:events.length,events,units,aether:G.aether?{current:G.aether.current,max:G.aether.max,spent:G.aether.spent,generated:G.aether.generated}:null};
 });
 
-(async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});const out={};
+(async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});const out={},sessions={};
 try{
   // Standalone prototype teams on two planets.
   const p=await browser.newPage({serviceWorkers:'block'});const errors=[];p.on('pageerror',e=>errors.push(e.message));
@@ -35,6 +36,7 @@ try{
     await p.goto(BASE+'/prototypes/watchable-fight.html?spacology=1');await p.evaluate(()=>cancelSessionAutostart());
     assert.equal(await p.evaluate(()=>G.team),'ops','voyage-mode battle loaded');
     out[key]=await p.evaluate(`(${RUN})(${JSON.stringify({team:'ops',planet:'spread',seed,steps:600})})`);
+    sessions[key]={session:await p.evaluate(()=>JSON.parse(localStorage.spacologyRunV010)),seed};
   };
   await voyage('voyage/bridged',['Tarn','Nour'],['Coda','Aurel','Maul','Spore'],{aetherModes:{Coda:'build'},aetherPriority:'Nour',aetherOvercharge:{Nour:true}},11);
   await voyage('voyage/weavers',['Arunima','Daven'],['Hanae','Ivara','Roonie','Veska'],{},13);
@@ -42,6 +44,8 @@ try{
   assert.deepEqual(errors,[]);
 }finally{await browser.close()}
 const summary=Object.entries(out).map(([k,v])=>`${k}: ${v.steps} actions, ${v.end&&(v.end.result||v.end.kind||JSON.stringify(v.end).slice(0,40))}`).join('\n');
+// The voyage states, so tests/unit/combat-headless.cjs can replay the same battles in Node.
+if(process.env.SPACOLOGY_SESSIONS_OUT)fs.writeFileSync(process.env.SPACOLOGY_SESSIONS_OUT,JSON.stringify(sessions,null,1)+'\n');
 if(mode==='record'){fs.writeFileSync(file,JSON.stringify(out));console.log('recorded '+Object.keys(out).length+' fights\n'+summary);return}
 const base=JSON.parse(fs.readFileSync(file,'utf8'));
 for(const k of Object.keys(base)){

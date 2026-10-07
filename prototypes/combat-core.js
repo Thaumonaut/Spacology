@@ -11,6 +11,11 @@
    define them (no-ops are fine): clr, pxClear, log, ribbons, paintAll, track,
    chainNote, aiNote, injNote, updateEnemyCounter, reflowFoes, paintTreasure,
    and the page globals G, playing, busy.
+
+   Host surface: rng() / COMBAT_RNG (every rule draw; inject a source or leave
+   Math.random), rngFree(fn) for displays that call rule helpers, and
+   voyageEncounter(state) + applyVoyageEncounter(enc) to set up a voyage battle
+   from a voyage state exactly as the page does.
    ============================================================================ */
 
 /* ---- Data: constants, prototype teams, tags, targeting profiles, enemy kits (watchable-fight.html, lines 432–656 before extraction) ---- */
@@ -233,6 +238,11 @@ var CHAFFNAMES=['Chaff','Bruiser','Cleanser','Reflector','Quickstep','Chaff','Br
 var FIELD=6, POOL=12, OPS_PRESSURE=1, OPS_HP=1, OPS_DMG=1, OPS_WAVES=2, OPS_RUN_ROUND=1;
 var OPS_FACTION='ossuary',OPS_PLANET=null,OPS_NODE=null;
 var FACTION_ORDER=['ossuary','mycelial','glasswake','tideworn','tannhul','custodian','redaction'];
+// Every random draw the rules make goes through rng(). A host may inject its own source (COMBAT_RNG); otherwise
+// Math.random. Displays that call rule helpers (an Aether preview, say) use rngFree() so they never shift the fight.
+var COMBAT_RNG=null;
+function rng(){return COMBAT_RNG?COMBAT_RNG():Math.random()}
+function rngFree(fn){var prev=COMBAT_RNG;COMBAT_RNG=function(){return .5};try{return fn()}finally{COMBAT_RNG=prev}}
 function enemyKitFor(archetype){
   var traitKit=SpacologyEnemyTraits.kit(archetype);if(traitKit)return traitKit;
   var label=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.ARCHETYPES[archetype]
@@ -381,7 +391,7 @@ function spawnFoes(){
       factionRule:p.factionRule,bodyPlan:p.bodyPlan,material:p.material,adaptation:p.adaptation,
       nullStage:p.nullStage,nullSymptom:p.nullSymptom,
       sp:p.sp,baseSp:p.sp,haste:p.haste,hasteCap:p.hasteCap,hasteStacks:0,cleanse:p.cleanse,trait:p.trait,shieldPer:p.guard,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
-      av:10000/p.sp*(0.5+Math.random()*0.5),alive:true,frac:0,struck:false,survey:0,
+      av:10000/p.sp*(0.5+rng()*0.5),alive:true,frac:0,struck:false,survey:0,
       shMax:p.layers,shL:p.layers,shC:p.guard,broken:false,regen:0,vuln:0});
     added.push('f'+G.spawned); G.spawned++; live++;
   }
@@ -716,7 +726,7 @@ function resolveMageSkill(act,ev){
   var deployed={};active.forEach(function(x){deployed[x.n]=true});
   var missing=names.filter(function(name){return !deployed[name]});
   if(missing.length){
-    var name=missing[Math.floor(Math.random()*missing.length)],unit=createMageSummon(name);
+    var name=missing[Math.floor(rng()*missing.length)],unit=createMageSummon(name);
     if(G.firstMageSummon){unit.av=0;G.firstMageSummon=false;ev.immediateSummon=true;}
     ev.summoned={id:unit.id,name:name,role:SpacologyExpedition.summons[name].role};
     ev.notes.push(name+' joins the support field · '+SpacologyExpedition.summons[name].role+'.');
@@ -1332,7 +1342,7 @@ function chooseTarget(act,pool){
   var best={t:pool[0],why:'nearest'}, bw=-Infinity;
   pool.forEach(function(t){
     var e=evalTarget(act,t,pool);
-    var sc=e.score*(1+(Math.random()-0.5)*0.06);
+    var sc=e.score*(1+(rng()-0.5)*0.06);
     if(isFinite(sc)&&sc>bw){ bw=sc; best={t:t,why:e.why}; }
   });
   return best;
@@ -1341,10 +1351,10 @@ function liveFoes(){ return G.units.filter(function(u){return u.side==='foe'&&u.
 function retarget(cur){
   var fs=liveFoes(); if(!fs.length) return null;
   if(RETARGET==='same') return (cur&&cur.alive)?cur:null;
-  if(RETARGET==='redirect') return (cur&&cur.alive)?cur:fs[Math.floor(Math.random()*fs.length)];
+  if(RETARGET==='redirect') return (cur&&cur.alive)?cur:fs[Math.floor(rng()*fs.length)];
   if(RETARGET==='spread'){ var o=fs.filter(function(f){return f!==cur});
-    return o.length?o[Math.floor(Math.random()*o.length)]:fs[0]; }
-  return fs[Math.floor(Math.random()*fs.length)];
+    return o.length?o[Math.floor(rng()*o.length)]:fs[0]; }
+  return fs[Math.floor(rng()*fs.length)];
 }
 // a follow-up can set off further follow-ups; budget and cap stop the runaway
 function cascade(ev,src,cur,events){
@@ -1395,7 +1405,7 @@ function weightedPick(pool){
     var w=(1 + 1.6*(1-u.hp/u.max))*(u.taunt||1);
     if(u.row==='back') w *= front.length? 0.18 : 1;
     return w; });
-  var sum=ws.reduce(function(a,b){return a+b},0), r=Math.random()*sum;
+  var sum=ws.reduce(function(a,b){return a+b},0), r=rng()*sum;
   for(var i=0;i<pool.length;i++){ r-=ws[i]; if(r<=0) return pool[i]; }
   return pool[pool.length-1];
 }
@@ -1479,4 +1489,90 @@ function battleAnalysis(){
   if(G.recoveries>=3)notes.push(G.recoveries+' enemy recoveries closed break windows; coordinate burst or delay their turns.');
   if(!notes.length)notes.push('Compare damage per turn with crew turns to choose between stronger hits and faster rotations.');
   return {crewTurns:G.allyTurns||0,advances:G.advances||0,savedAV:Math.round(G.advanceSaved||0),shieldShare:shieldShare,remaining:remaining.length+unspawned,notes:notes};
+}
+
+/* ---- Voyage encounter: the crew, ship and encounter settings for one voyage battle (was in the page's loadSpacologySession) ---- */
+// Pure: works on a normalised copy of the voyage state and never writes storage. The page persists its own normalisation.
+// Temporary mechanical bridge from the 28-character lore roster to the proven combat prototypes. Display names,
+// elements, tags, stats, art and kit copy remain canonical; only the underlying action implementation is borrowed
+// until each new kit receives its dedicated combat verbs.
+var VOYAGE_ALIASES={
+  Ilka:'Wex',Reva:'Tarn','Tomás':'Ferrule',Ojo:'Ballast',Stella:'Ash',Nour:'Cinder',
+  Dolores:'Pyre',Spore:'Sump',Abike:'Sump',Aurel:'Vane',Imke:'Nettle',Idris:'Mote',
+  Beatriz:'Corr',Otaremnivas:'Ballast',Wren:'Maul',Nadira:'Quill',Yusuf:'Vitre',
+  Sevim:'Rime',Aurelio:'Ledger',Nahana:'Fen',Navigator:'Mire',Ekene:'Halo',
+  Coda:'Vane',Morrow:'Ash',Latch:'Nettle'
+};
+function voyageEncounter(source){
+  var state=JSON.parse(JSON.stringify(source));
+  // A state the game never normalised has no treasure seed; derive one rather than let normalize roll a random one.
+  if(!state.treasureSeed)state.treasureSeed='voyage-'+(state.seed||'star-singer');
+  SpacologyFormation.normalize(state);SpacologyTreasure.normalize(state);
+  state.difficulty=SpacologyVoyageSettings.normalize(state).difficulty;
+  var difficulty=SpacologyVoyageSettings.difficulties[state.difficulty];
+  var rules=SpacologyExpedition,modifierEffects=rules.effects(state);
+  var library={};
+  Object.keys(TEAMS).forEach(function(key){if(key!=='ops')TEAMS[key].crew.forEach(function(c){if(!library[c.n])library[c.n]=c;});});
+  var all=state.field.concat(state.support).filter(Boolean);
+  var planetHealth=rules.planetHealth(all);
+  var crew=all.map(function(name){
+    var source=rules.crew[name]?.combat||library[name]||library[VOYAGE_ALIASES[name]]||library.Corr;
+    var c=JSON.parse(JSON.stringify(source));
+    c.n=name;c.row=state.field.indexOf(name)>=0?'front':'back';
+    if(rules.crew[name]){c.e=rules.crew[name].element;c.tags=rules.crew[name].tags.slice();}
+    var canonical=rules.crew[name]?.combat?rules.crew[name].stats:state.combatStats&&state.combatStats[name];
+    if(canonical){c.hp=canonical.hp;c.dmg=canonical.dmg;c.sp=canonical.speed*10;}
+    var rank=(state.crewUpgrades&&state.crewUpgrades[name])||0;
+    c.hp=Math.round((c.hp||100)*SpacologyCrew.bonuses(rank).hp*planetHealth);
+    c.dmg=Math.round(c.dmg*SpacologyCrew.bonuses(rank).attack*modifierEffects.crewDamage);
+    var gear=(state.equipped&&state.equipped[name])||[];
+    gear.forEach(function(item){
+      if(item==='Tuning Fork'&&c.frac)c.frac++;
+      if(item==='Spore Sling')c.spreadExtra=(c.spreadExtra||0)+1;
+      if(item==='Ranging Sight')c.extraTargets=(c.extraTargets||0)+1;
+      if(item==='Loaded Die')c.openingBoost=(c.openingBoost||0)+.2;
+      if(item==='Recoil Spring')c.followMul=(c.followMul||1)*1.3;
+      if(item==='Quick Latch')c.startAdvance=(c.startAdvance||0)+8;
+      if(item==='Ballast Plate')c.barrierMul=(c.barrierMul||1)*1.3;
+      if(item==='Slow Fuse')c.ultMul=(c.ultMul||1)*1.25;
+      if(item==='Bore Bit')c.guardMul=(c.guardMul||1)*1.4;
+      var recipe=rules.recipes.find(function(r){return r.name===item});
+      if(recipe)Object.keys(recipe.stats).forEach(function(key){var value=recipe.stats[key];if(key==='frac'){if(c.frac)c.frac+=value;}else if(/Mul$/.test(key))c[key]=(c[key]||1)*value;else c[key]=(c[key]||0)+value;});
+    });
+    return c;
+  });
+  var ship={brace:0,survey:0};
+  (state.shipEquipped||[]).filter(Boolean).forEach(function(item){
+    var part=rules.shipParts[item];if(!part)return;
+    crew.forEach(function(c){
+      if(part.stacks&&c.frac)c.frac+=part.stacks;
+      if(part.startEnergy)c.startEnergy=Math.min(100,(c.startEnergy||0)+part.startEnergy);
+      if(part.startAdvance)c.startAdvance=(c.startAdvance||0)+part.startAdvance;
+    });
+    ship.brace+=part.brace||0;ship.survey=Math.max(ship.survey,part.survey||0);
+  });
+  var g={};
+  g.OPS_RUN_ROUND=state.round;g.OPS_NODE=SpacologyVoyage.current(state);
+  g.OPS_FACTION=FACTION_ORDER[(state.round-1)%FACTION_ORDER.length];
+  g.OPS_PLANET=globalThis.SpacologyEnemyCatalogue?globalThis.SpacologyEnemyCatalogue.generatePlanet('voyage-'+(state.seed||'star-singer')+'-'+state.round):null;
+  g.OPS_HP=(1+(state.round-1)*.22)*difficulty.enemyScale*modifierEffects.enemyHp;
+  g.OPS_DMG=(.9+(state.round-1)*.16)*difficulty.enemyScale*modifierEffects.enemyDamage;
+  g.OPS_SPEED=(1+(state.round-1)*.025)*difficulty.enemySpeed;
+  g.OPS_GUARD=(1+(state.round-1)*.06)*difficulty.enemyGuard;
+  g.OPS_RECOVERY=difficulty.breakDelay;
+  g.OPS_PRESSURE=g.OPS_HP;
+  g.FIELD=[3,3,4,4,5,6][Math.min(5,state.round-1)];
+  g.OPS_WAVES=[2,2,2,3,3,3][Math.min(5,state.round-1)];
+  if(g.OPS_NODE){var profile=SpacologyVoyage.profile(state);g.OPS_HP=profile.hp*modifierEffects.enemyHp;g.OPS_DMG=profile.damage*modifierEffects.enemyDamage;g.OPS_SPEED=profile.speed;g.OPS_GUARD=profile.guard;g.OPS_RECOVERY=profile.recovery;g.FIELD=profile.field;g.OPS_WAVES=profile.waves;g.OPS_PRESSURE=g.OPS_HP;}
+  g.POOL=g.FIELD*g.OPS_WAVES;
+  g.MAXROUND=SpacologyVoyageSettings.roundLimit(state);
+  return {session:state,crew:crew,ship:ship,globals:g,difficulty:difficulty};
+}
+// Installs an encounter: the crew becomes TEAMS.ops and the encounter settings become the rules' globals.
+function applyVoyageEncounter(enc){
+  TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:enc.crew,ship:enc.ship};
+  var g=enc.globals;
+  OPS_RUN_ROUND=g.OPS_RUN_ROUND;OPS_NODE=g.OPS_NODE;OPS_FACTION=g.OPS_FACTION;OPS_PLANET=g.OPS_PLANET;
+  OPS_HP=g.OPS_HP;OPS_DMG=g.OPS_DMG;OPS_SPEED=g.OPS_SPEED;OPS_GUARD=g.OPS_GUARD;OPS_RECOVERY=g.OPS_RECOVERY;OPS_PRESSURE=g.OPS_PRESSURE;
+  FIELD=g.FIELD;OPS_WAVES=g.OPS_WAVES;POOL=g.POOL;MAXROUND=g.MAXROUND;
 }

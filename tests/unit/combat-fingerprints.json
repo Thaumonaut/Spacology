@@ -50,8 +50,8 @@
    "sha256": "de3c36f685f22da8f822a966964dc3f8921fca39f36e350d727488a655d4501f"
   },
   "voyage/bridged": {
-   "steps": 37,
-   "sha256": "cf84a2367c5bad5fdef5e17096f89bb69a9107d8f13eadcf8496019cc1cac4bd"
+   "steps": 41,
+   "sha256": "8d928b9916d6fb5f667019376d1b0e6b65bfaabcd61bd204eac4730165288f59"
   },
   "voyage/weavers": {
    "steps": 14,
@@ -59,7 +59,7 @@
   },
   "voyage/silen": {
    "steps": 25,
-   "sha256": "d4c539496f90fc018dbce04b3ce5df058269086ef719450f01286bbd9b5342de"
+   "sha256": "05daac85043e10edd5d7788aab60bfa361bd82626627b30e96edd711709b2533"
   }
  }
 }

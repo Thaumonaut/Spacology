@@ -11,10 +11,8 @@
 //  const {runFight}=require('./combat-headless.js');
 //  runFight({team:'bloom',planet:'spread',seed:7})  // a prototype team
 //  runFight({crew:[...],planet:'spread',seed:7})    // crew in the live kit format
-//
-//  Not yet page-faithful for voyage fights (spec.session): the page's loadSpacologySession sets the encounter
-//  globals and normalises the session, and its paintAether() draws Math.random after build(). Moving voyage setup
-//  into the core (phase 2) closes both gaps.
+//  runFight({session:voyageState,seed:7})           // a voyage battle, set up exactly as the page does (voyageEncounter)
+//  runFight({...,rng:myRandom})                     // inject the rules' random source instead of seeding
 // ============================================================================
 'use strict';
 const vm=require('vm'),fs=require('fs'),path=require('path');
@@ -43,17 +41,19 @@ function createContext(opts={}){
   // build() and settleTreasure() write to a few page elements; headless, every element is a sink that accepts anything.
   const sink=new Proxy(function(){},{get:(t,k)=>k===Symbol.toPrimitive?()=>'':sink,set:()=>true,apply:()=>sink});
   ctx.$=()=>sink;
-  if(opts.session)ctx.SPACOLOGY_SESSION=opts.session;
   return ctx;
 }
 
 // Runs one battle. Math.random is the context's own, reseeded right before setup, exactly as the parity harness seeds the page.
 function runFight(spec={}){
   const ctx=createContext(spec);
+  // A voyage battle: the page's own setup (normalised session, crew, encounter settings), and the page's session flag.
+  if(spec.session){const enc=ctx.voyageEncounter(spec.session);ctx.applyVoyageEncounter(enc);ctx.SPACOLOGY_SESSION=enc.session}
   if(spec.crew){ctx.TEAMS.ops={note:'headless',crew:JSON.parse(JSON.stringify(spec.crew)),ship:spec.ship||{}}}
   if(spec.globals)Object.assign(ctx,spec.globals);
   ctx.__seededRandom=seeded(spec.seed===undefined?1:spec.seed);vm.runInContext('Math.random=__seededRandom',ctx);
-  ctx.build(spec.crew?'ops':spec.team||'bloom',spec.planet||'spread');
+  if(spec.rng)ctx.COMBAT_RNG=spec.rng;
+  ctx.build(spec.session||spec.crew?'ops':spec.team||'bloom',spec.planet||'spread');
   if(spec.setup)spec.setup(ctx);
   const ref=(k,v)=>v&&typeof v==='object'&&'side' in v&&'id' in v&&v!==ctx.G?'#'+v.id:typeof v==='number'?Math.round(v*1e6)/1e6:v;
   const events=[];let end=null;

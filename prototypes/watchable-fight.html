@@ -1162,8 +1162,9 @@ function paintAether(){
   var shown=G.visualAether==null?G.aether.current:G.visualAether;
   $('aetherCount').textContent=shown+' / '+G.aether.max;
   $('aetherPips').innerHTML=Array.from({length:G.aether.max},function(_,i){return '<i class="'+(i<shown?'filled':'')+'"></i>'}).join('');
+  // A preview only: rngFree keeps it from drawing on the fight's random numbers.
   var owner=SpacologyAether.priority(livingCrew(),window.SPACOLOGY_SESSION||{},aetherSkillUseful);
-  var healthBudget=burstHealthBudget(owner,liveFoes());
+  var healthBudget=rngFree(function(){return burstHealthBudget(owner,liveFoes())});
   var saving=owner&&healthBudget!==0&&G.allyTurns>=G.aether.reserveAfter;
   el.title=saving?'Saving up to '+(healthBudget===null?SpacologyAether.budget(G.aether,owner,window.SPACOLOGY_SESSION):healthBudget)+' Aether for '+owner.n:'Shared Aether · teammates can spend';
   el.setAttribute('aria-label','Shared Aether: '+shown+' of '+G.aether.max+'. '+el.title+'. View rules');
@@ -1659,76 +1660,11 @@ function loadSpacologySession(){
   if(!state.field.some(Boolean)||SpacologyCrew.slots(state)>6){location.replace('spacology-v0.1.0.html?return=1'+SpacologyStore.suffix);return true;}
   SpacologyTreasure.normalize(state);localStorage.setItem(SpacologyStore.run,JSON.stringify(state));
   state.difficulty=SpacologyVoyageSettings.normalize(state).difficulty;
-  var difficulty=SpacologyVoyageSettings.difficulties[state.difficulty];
-  var rules=SpacologyExpedition,modifierEffects=rules.effects(state);
+  var rules=SpacologyExpedition;
   window.SPACOLOGY_SESSION=state;
   document.body.classList.add('session-mode');
-  var library={};
-  Object.keys(TEAMS).forEach(function(key){TEAMS[key].crew.forEach(function(c){if(!library[c.n])library[c.n]=c;});});
-  // Temporary mechanical bridge from the 28-character lore roster to the
-  // proven combat prototypes. Display names, elements, tags, stats, art and
-  // kit copy remain canonical; only the underlying action implementation is
-  // borrowed until each new kit receives its dedicated combat verbs.
-  var aliases={
-    Ilka:'Wex',Reva:'Tarn','Tomás':'Ferrule',Ojo:'Ballast',Stella:'Ash',Nour:'Cinder',
-    Dolores:'Pyre',Spore:'Sump',Abike:'Sump',Aurel:'Vane',Imke:'Nettle',Idris:'Mote',
-    Beatriz:'Corr',Otaremnivas:'Ballast',Wren:'Maul',Nadira:'Quill',Yusuf:'Vitre',
-    Sevim:'Rime',Aurelio:'Ledger',Nahana:'Fen',Navigator:'Mire',Ekene:'Halo',
-    Coda:'Vane',Morrow:'Ash',Latch:'Nettle'
-  };
-  var all=state.field.concat(state.support).filter(Boolean);
-  var planetHealth=rules.planetHealth(all);
-  var crew=all.map(function(name){
-    var source=rules.crew[name]?.combat||library[name]||library[aliases[name]]||library.Corr;
-    var c=JSON.parse(JSON.stringify(source));
-    c.n=name;c.row=state.field.indexOf(name)>=0?'front':'back';
-    if(rules.crew[name]){c.e=rules.crew[name].element;c.tags=rules.crew[name].tags.slice();}
-    var canonical=rules.crew[name]?.combat?rules.crew[name].stats:state.combatStats&&state.combatStats[name];
-    if(canonical){c.hp=canonical.hp;c.dmg=canonical.dmg;c.sp=canonical.speed*10;}
-    var rank=(state.crewUpgrades&&state.crewUpgrades[name])||0;
-    c.hp=Math.round((c.hp||100)*SpacologyCrew.bonuses(rank).hp*planetHealth);
-    c.dmg=Math.round(c.dmg*SpacologyCrew.bonuses(rank).attack*modifierEffects.crewDamage);
-    var gear=(state.equipped&&state.equipped[name])||[];
-    gear.forEach(function(item){
-      if(item==='Tuning Fork'&&c.frac)c.frac++;
-      if(item==='Spore Sling')c.spreadExtra=(c.spreadExtra||0)+1;
-      if(item==='Ranging Sight')c.extraTargets=(c.extraTargets||0)+1;
-      if(item==='Loaded Die')c.openingBoost=(c.openingBoost||0)+.2;
-      if(item==='Recoil Spring')c.followMul=(c.followMul||1)*1.3;
-      if(item==='Quick Latch')c.startAdvance=(c.startAdvance||0)+8;
-      if(item==='Ballast Plate')c.barrierMul=(c.barrierMul||1)*1.3;
-      if(item==='Slow Fuse')c.ultMul=(c.ultMul||1)*1.25;
-      if(item==='Bore Bit')c.guardMul=(c.guardMul||1)*1.4;
-      var recipe=rules.recipes.find(function(r){return r.name===item});
-      if(recipe)Object.keys(recipe.stats).forEach(function(key){var value=recipe.stats[key];if(key==='frac'){if(c.frac)c.frac+=value;}else if(/Mul$/.test(key))c[key]=(c[key]||1)*value;else c[key]=(c[key]||0)+value;});
-    });
-    return c;
-  });
-  var ship={brace:0,survey:0};
-  (state.shipEquipped||[]).filter(Boolean).forEach(function(item){
-    var part=rules.shipParts[item];if(!part)return;
-    crew.forEach(function(c){
-      if(part.stacks&&c.frac)c.frac+=part.stacks;
-      if(part.startEnergy)c.startEnergy=Math.min(100,(c.startEnergy||0)+part.startEnergy);
-      if(part.startAdvance)c.startAdvance=(c.startAdvance||0)+part.startAdvance;
-    });
-    ship.brace+=part.brace||0;ship.survey=Math.max(ship.survey,part.survey||0);
-  });
-  TEAMS.ops={note:'<b>Ops formation</b> &mdash; exact crew rows and equipped Gear carried from the Ops room.',crew:crew,ship:ship};
-  OPS_RUN_ROUND=state.round;OPS_NODE=SpacologyVoyage.current(state);
-  OPS_FACTION=FACTION_ORDER[(state.round-1)%FACTION_ORDER.length];
-  OPS_PLANET=window.SpacologyEnemyCatalogue?window.SpacologyEnemyCatalogue.generatePlanet('voyage-'+(state.seed||'star-singer')+'-'+state.round):null;
-  OPS_HP=(1+(state.round-1)*.22)*difficulty.enemyScale*modifierEffects.enemyHp;
-  OPS_DMG=(.9+(state.round-1)*.16)*difficulty.enemyScale*modifierEffects.enemyDamage;
-  OPS_SPEED=(1+(state.round-1)*.025)*difficulty.enemySpeed;
-  OPS_GUARD=(1+(state.round-1)*.06)*difficulty.enemyGuard;
-  OPS_RECOVERY=difficulty.breakDelay;
-  OPS_PRESSURE=OPS_HP;
-  FIELD=[3,3,4,4,5,6][Math.min(5,state.round-1)];
-  OPS_WAVES=[2,2,2,3,3,3][Math.min(5,state.round-1)];
-  if(OPS_NODE){var profile=SpacologyVoyage.profile(state);OPS_HP=profile.hp*modifierEffects.enemyHp;OPS_DMG=profile.damage*modifierEffects.enemyDamage;OPS_SPEED=profile.speed;OPS_GUARD=profile.guard;OPS_RECOVERY=profile.recovery;FIELD=profile.field;OPS_WAVES=profile.waves;OPS_PRESSURE=OPS_HP;}
-  POOL=FIELD*OPS_WAVES;
-  MAXROUND=SpacologyVoyageSettings.roundLimit(state);
+  var encounter=voyageEncounter(state),difficulty=encounter.difficulty;
+  applyVoyageEncounter(encounter);
   $('rPool').value=POOL;$('vPool').textContent=POOL;
   var encounterFaction=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.FACTIONS[OPS_FACTION];
   $('sessionTitle').textContent=(OPS_PLANET?OPS_PLANET.name+' · ':'')+(OPS_NODE?OPS_NODE.name:rules.route[Math.min(5,state.round-1)]);
