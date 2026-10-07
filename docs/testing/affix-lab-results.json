@@ -1,0 +1,3347 @@
+{
+ "command": "all",
+ "seeds": 2,
+ "tuning": {
+  "round": 100,
+  "normalRounds": 10,
+  "bossRounds": 14,
+  "soak": 0.4,
+  "vuln": 0.35,
+  "breakDelay": 0.35,
+  "markBonus": 0.08,
+  "maxMarks": 3,
+  "poisonPerAtk": 0.4,
+  "maxPoison": 15,
+  "energy": {
+   "act": 18,
+   "taken": 9,
+   "cost": 100
+  },
+  "barrierCap": 1,
+  "foeHp": 0.8,
+  "foeAtk": 2.2,
+  "burstPerAether": 0.6,
+  "followUp": 1.1,
+  "reflect": 0.6,
+  "gearPower": 0.15
+ },
+ "economy": {
+  "startGold": 12,
+  "startCrew": 2,
+  "maxBerths": 6,
+  "startIntegrity": 70,
+  "voucher": {
+   "3": 12,
+   "4": 20,
+   "5": 30,
+   "6": 42
+  },
+  "income": 10,
+  "bossBonus": 6,
+  "gearPrice": 5,
+  "sellValue": 2,
+  "offers": 3,
+  "slots": 2,
+  "upkeepFree": 4,
+  "upkeep": 5
+ },
+ "sectorScale": [
+  0.85,
+  1.5,
+  2.3
+ ],
+ "startedAt": "2026-10-06T11:12:17.398Z",
+ "baseline": {
+  "aether": {
+   "team": [
+    "Hanae",
+    "Arunima",
+    "Daven",
+    "Nahana"
+   ],
+   "bp": 1.43,
+   "lossesAbove": {
+    "cleared": 4,
+    "time": 5,
+    "wiped": 13
+   }
+  },
+  "carry": {
+   "team": [
+    "Silen",
+    "Ekene",
+    "Daven",
+    "Nahana"
+   ],
+   "bp": 1.13,
+   "lossesAbove": {
+    "cleared": 6,
+    "time": 1,
+    "wiped": 15
+   }
+  },
+  "break": {
+   "team": [
+    "Wren",
+    "Sevim",
+    "Daven",
+    "Nahana"
+   ],
+   "bp": 1.49,
+   "lossesAbove": {
+    "cleared": 6,
+    "time": 3,
+    "wiped": 13
+   }
+  },
+  "dot": {
+   "team": [
+    "Nour",
+    "Spore",
+    "Daven",
+    "Nahana"
+   ],
+   "bp": 1.28,
+   "lossesAbove": {
+    "cleared": 8,
+    "time": 3,
+    "wiped": 11
+   }
+  },
+  "counter": {
+   "team": [
+    "Reva",
+    "Ilka",
+    "Nahana",
+    "Nadira"
+   ],
+   "bp": 1.37,
+   "lossesAbove": {
+    "cleared": 5,
+    "time": 5,
+    "wiped": 12
+   }
+  },
+  "followup": {
+   "team": [
+    "Nadira",
+    "Aurelio",
+    "Daven",
+    "Nahana"
+   ],
+   "bp": 1.52,
+   "lossesAbove": {
+    "cleared": 5,
+    "time": 3,
+    "wiped": 14
+   }
+  }
+ },
+ "roster": {
+  "top": [
+   {
+    "team": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Reva"
+    ],
+    "screen": 0.63
+   },
+   {
+    "team": [
+     "Hanae",
+     "Reva",
+     "Aurelio",
+     "Nahana"
+    ],
+    "screen": 0.62
+   },
+   {
+    "team": [
+     "Arunima",
+     "Ekene",
+     "Reva",
+     "Ilka"
+    ],
+    "screen": 0.62
+   },
+   {
+    "team": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "screen": 0.61
+   },
+   {
+    "team": [
+     "Arunima",
+     "Ekene",
+     "Reva",
+     "Daven"
+    ],
+    "screen": 0.61
+   },
+   {
+    "team": [
+     "Reva",
+     "Ilka",
+     "Nadira",
+     "Aurelio"
+    ],
+    "screen": 0.61
+   },
+   {
+    "team": [
+     "Nadira",
+     "Aurelio",
+     "Nahana",
+     "Daven"
+    ],
+    "screen": 0.61
+   },
+   {
+    "team": [
+     "Hanae",
+     "Silen",
+     "Reva",
+     "Ilka"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Hanae",
+     "Silen",
+     "Ilka",
+     "Daven"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Hanae",
+     "Silen",
+     "Wren",
+     "Reva"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Wren",
+     "Reva",
+     "Ilka",
+     "Nadira"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Arunima",
+     "Silen",
+     "Reva",
+     "Ilka"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Arunima",
+     "Ekene",
+     "Ilka",
+     "Daven"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Arunima",
+     "Ekene",
+     "Nour",
+     "Daven"
+    ],
+    "screen": 0.6
+   },
+   {
+    "team": [
+     "Hanae",
+     "Silen",
+     "Aurelio",
+     "Daven"
+    ],
+    "screen": 0.59
+   },
+   {
+    "team": [
+     "Reva",
+     "Nadira",
+     "Aurelio",
+     "Daven"
+    ],
+    "screen": 0.59
+   },
+   {
+    "team": [
+     "Hanae",
+     "Silen",
+     "Sevim",
+     "Ilka"
+    ],
+    "screen": 0.58
+   },
+   {
+    "team": [
+     "Arunima",
+     "Wren",
+     "Sevim",
+     "Reva"
+    ],
+    "screen": 0.58
+   },
+   {
+    "team": [
+     "Silen",
+     "Wren",
+     "Sevim",
+     "Aurelio"
+    ],
+    "screen": 0.58
+   }
+  ],
+  "rows": [
+   {
+    "id": "Reva",
+    "share": 0.6,
+    "banCost": 0.03
+   },
+   {
+    "id": "Ilka",
+    "share": 0.5,
+    "banCost": 0
+   },
+   {
+    "id": "Silen",
+    "share": 0.45,
+    "banCost": 0.01
+   },
+   {
+    "id": "Arunima",
+    "share": 0.4,
+    "banCost": 0.01
+   },
+   {
+    "id": "Hanae",
+    "share": 0.35,
+    "banCost": 0.03
+   },
+   {
+    "id": "Daven",
+    "share": 0.35,
+    "banCost": 0
+   },
+   {
+    "id": "Aurelio",
+    "share": 0.3,
+    "banCost": 0
+   },
+   {
+    "id": "Wren",
+    "share": 0.25,
+    "banCost": 0
+   },
+   {
+    "id": "Ekene",
+    "share": 0.2,
+    "banCost": 0
+   },
+   {
+    "id": "Nadira",
+    "share": 0.2,
+    "banCost": 0
+   },
+   {
+    "id": "Sevim",
+    "share": 0.15,
+    "banCost": 0
+   },
+   {
+    "id": "Nour",
+    "share": 0.1,
+    "banCost": 0
+   },
+   {
+    "id": "Nahana",
+    "share": 0.1,
+    "banCost": 0
+   },
+   {
+    "id": "Spore",
+    "share": 0.05,
+    "banCost": 0
+   }
+  ]
+ },
+ "matrix": {
+  "families": {
+   "aether": {
+    "none": {
+     "bp": 1.4299679307700681,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Reva"
+     ]
+    },
+    "frost": {
+     "bp": 1.4706488933153867,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Reva",
+      "Aurelio"
+     ]
+    },
+    "hardened": {
+     "bp": 1.358286371135364,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Reva"
+     ]
+    },
+    "wither": {
+     "bp": 1.4879389981125561,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Reva",
+      "Aurelio"
+     ]
+    },
+    "snapback": {
+     "bp": 1.4299679307700681,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Ilka"
+     ]
+    },
+    "provoke": {
+     "bp": 1.456961579988589,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Ilka"
+     ]
+    },
+    "flankers": {
+     "bp": 1.588588567097271,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Sevim"
+     ]
+    },
+    "spiked": {
+     "bp": 1.3238045384565116,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "capped": {
+     "bp": 1.1371931277423455,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Reva",
+      "Aurelio"
+     ]
+    },
+    "scarce": {
+     "bp": 1.7280628765986397,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Ilka",
+      "Daven"
+     ]
+    },
+    "brutal": {
+     "bp": 1.1505628643549781,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Reva"
+     ]
+    },
+    "horde": {
+     "bp": 1.2428330244893018,
+     "team": [
+      "Hanae",
+      "Arunima",
+      "Ilka",
+      "Daven"
+     ]
+    }
+   },
+   "carry": {
+    "none": {
+     "bp": 1.2226614189189817,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Daven"
+     ]
+    },
+    "frost": {
+     "bp": 1.3207135709645454,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Reva"
+     ]
+    },
+    "hardened": {
+     "bp": 1.188840264451229,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Daven"
+     ]
+    },
+    "wither": {
+     "bp": 1.3053666541366462,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Reva"
+     ]
+    },
+    "snapback": {
+     "bp": 1.2226614189189817,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "provoke": {
+     "bp": 1.3936663702355816,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Ilka",
+      "Daven"
+     ]
+    },
+    "flankers": {
+     "bp": 1.3551148915883495,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Nadira",
+      "Aurelio"
+     ]
+    },
+    "spiked": {
+     "bp": 1.1451962102568698,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Ilka"
+     ]
+    },
+    "capped": {
+     "bp": 1.0454087208151175,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Reva"
+     ]
+    },
+    "scarce": {
+     "bp": 1.5518837317170653,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Arunima",
+      "Ilka"
+     ]
+    },
+    "brutal": {
+     "bp": 0.9410246153568366,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Reva",
+      "Daven"
+     ]
+    },
+    "horde": {
+     "bp": 0.9768875783521888,
+     "team": [
+      "Silen",
+      "Ekene",
+      "Reva",
+      "Ilka"
+     ]
+    }
+   },
+   "break": {
+    "none": {
+     "bp": 1.4467797581831146,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Nahana",
+      "Daven"
+     ]
+    },
+    "frost": {
+     "bp": 1.6337821064818943,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Ekene",
+      "Reva"
+     ]
+    },
+    "hardened": {
+     "bp": 1.4879389981125561,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Nahana"
+     ]
+    },
+    "wither": {
+     "bp": 1.5811787978374228,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Nahana"
+     ]
+    },
+    "snapback": {
+     "bp": 1.3678454140466865,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Aurelio"
+     ]
+    },
+    "provoke": {
+     "bp": 1.3176298206105774,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "flankers": {
+     "bp": 1.6960464365228365,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Hanae",
+      "Nahana"
+     ]
+    },
+    "spiked": {
+     "bp": 1.336240918214331,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "capped": {
+     "bp": 1.2752057495806957,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Nahana"
+     ]
+    },
+    "scarce": {
+     "bp": 1.6110268698830672,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "brutal": {
+     "bp": 1.2752057495806957,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Aurelio"
+     ]
+    },
+    "horde": {
+     "bp": 1.4603714191693127,
+     "team": [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Aurelio"
+     ]
+    }
+   },
+   "dot": {
+    "none": {
+     "bp": 1.494911824123013,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "frost": {
+     "bp": 1.526696127340318,
+     "team": [
+      "Nour",
+      "Spore",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "hardened": {
+     "bp": 1.480998695961893,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "wither": {
+     "bp": 1.3774717294443728,
+     "team": [
+      "Nour",
+      "Spore",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "snapback": {
+     "bp": 1.5160269730309714,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "provoke": {
+     "bp": 1.5446451674920014,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "flankers": {
+     "bp": 1.6724239854061569,
+     "team": [
+      "Nour",
+      "Spore",
+      "Hanae",
+      "Nahana"
+     ]
+    },
+    "spiked": {
+     "bp": 1.3774717294443728,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "capped": {
+     "bp": 1.494911824123013,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "scarce": {
+     "bp": 1.7565726522471425,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "brutal": {
+     "bp": 1.239931118380778,
+     "team": [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "horde": {
+     "bp": 1.2962442374265695,
+     "team": [
+      "Nour",
+      "Spore",
+      "Ilka",
+      "Daven"
+     ]
+    }
+   },
+   "counter": {
+    "none": {
+     "bp": 1.5374403666288246,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Nadira",
+      "Aurelio"
+     ]
+    },
+    "frost": {
+     "bp": 1.5997683791045325,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Sevim",
+      "Aurelio"
+     ]
+    },
+    "hardened": {
+     "bp": 1.4467797581831146,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Wren",
+      "Spore"
+     ]
+    },
+    "wither": {
+     "bp": 1.614797279904565,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Arunima",
+      "Ekene"
+     ]
+    },
+    "snapback": {
+     "bp": 1.5195750474913257,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Nour",
+      "Spore"
+     ]
+    },
+    "provoke": {
+     "bp": 1.570128897151434,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Nour",
+      "Spore"
+     ]
+    },
+    "flankers": {
+     "bp": 1.5811787978374228,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Wren",
+      "Aurelio"
+     ]
+    },
+    "spiked": {
+     "bp": 1.4400314380705352,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Spore",
+      "Daven"
+     ]
+    },
+    "capped": {
+     "bp": 1.494911824123013,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Nour",
+      "Spore"
+     ]
+    },
+    "scarce": {
+     "bp": 1.760683694251055,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Nadira",
+      "Aurelio"
+     ]
+    },
+    "brutal": {
+     "bp": 1.2752057495806957,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Nour",
+      "Spore"
+     ]
+    },
+    "horde": {
+     "bp": 1.4266290810681945,
+     "team": [
+      "Reva",
+      "Ilka",
+      "Spore",
+      "Aurelio"
+     ]
+    }
+   },
+   "followup": {
+    "none": {
+     "bp": 1.5518837317170653,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "frost": {
+     "bp": 1.5591562175269325,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "hardened": {
+     "bp": 1.416659234721211,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Nahana",
+      "Daven"
+     ]
+    },
+    "wither": {
+     "bp": 1.5774868840230163,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Wren",
+      "Reva"
+     ]
+    },
+    "snapback": {
+     "bp": 1.4133514596573618,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Ilka",
+      "Daven"
+     ]
+    },
+    "provoke": {
+     "bp": 1.4133514596573618,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Wren",
+      "Ilka"
+     ]
+    },
+    "flankers": {
+     "bp": 1.603512440014633,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Wren",
+      "Nahana"
+     ]
+    },
+    "spiked": {
+     "bp": 1.214116978992186,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "capped": {
+     "bp": 1.371046687813992,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Reva",
+      "Nahana"
+     ]
+    },
+    "scarce": {
+     "bp": 1.7200025471670222,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Reva",
+      "Ilka"
+     ]
+    },
+    "brutal": {
+     "bp": 1.2752057495806957,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Wren",
+      "Reva"
+     ]
+    },
+    "horde": {
+     "bp": 1.3238045384565116,
+     "team": [
+      "Nadira",
+      "Aurelio",
+      "Reva",
+      "Ilka"
+     ]
+    }
+   }
+  },
+  "affixes": {
+   "frost": {
+    "relative": {
+     "aether": 1.03,
+     "carry": 1.08,
+     "break": 1.13,
+     "dot": 1.02,
+     "counter": 1.04,
+     "followup": 1
+    },
+    "spread": 1.13,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "break"
+    ],
+    "losers": [
+     "followup"
+    ]
+   },
+   "hardened": {
+    "relative": {
+     "aether": 0.95,
+     "carry": 0.97,
+     "break": 1.03,
+     "dot": 0.99,
+     "counter": 0.94,
+     "followup": 0.91
+    },
+    "spread": 1.13,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "break"
+    ],
+    "losers": [
+     "followup"
+    ]
+   },
+   "wither": {
+    "relative": {
+     "aether": 1.04,
+     "carry": 1.07,
+     "break": 1.09,
+     "dot": 0.92,
+     "counter": 1.05,
+     "followup": 1.02
+    },
+    "spread": 1.18,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "break"
+    ],
+    "losers": [
+     "dot"
+    ]
+   },
+   "snapback": {
+    "relative": {
+     "aether": 1,
+     "carry": 1,
+     "break": 0.95,
+     "dot": 1.01,
+     "counter": 0.99,
+     "followup": 0.91
+    },
+    "spread": 1.11,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "dot"
+    ],
+    "losers": [
+     "followup"
+    ]
+   },
+   "provoke": {
+    "relative": {
+     "aether": 1.02,
+     "carry": 1.14,
+     "break": 0.91,
+     "dot": 1.03,
+     "counter": 1.02,
+     "followup": 0.91
+    },
+    "spread": 1.25,
+    "flat": false,
+    "cliff": false,
+    "winners": [
+     "carry"
+    ],
+    "losers": [
+     "break",
+     "followup"
+    ]
+   },
+   "flankers": {
+    "relative": {
+     "aether": 1.11,
+     "carry": 1.11,
+     "break": 1.17,
+     "dot": 1.12,
+     "counter": 1.03,
+     "followup": 1.03
+    },
+    "spread": 1.14,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "break"
+    ],
+    "losers": [
+     "counter",
+     "followup"
+    ]
+   },
+   "spiked": {
+    "relative": {
+     "aether": 0.93,
+     "carry": 0.94,
+     "break": 0.92,
+     "dot": 0.92,
+     "counter": 0.94,
+     "followup": 0.78
+    },
+    "spread": 1.21,
+    "flat": false,
+    "cliff": false,
+    "winners": [
+     "carry",
+     "counter"
+    ],
+    "losers": [
+     "followup"
+    ]
+   },
+   "capped": {
+    "relative": {
+     "aether": 0.8,
+     "carry": 0.86,
+     "break": 0.88,
+     "dot": 1,
+     "counter": 0.97,
+     "followup": 0.88
+    },
+    "spread": 1.25,
+    "flat": false,
+    "cliff": false,
+    "winners": [
+     "dot"
+    ],
+    "losers": [
+     "aether"
+    ]
+   },
+   "scarce": {
+    "relative": {
+     "aether": 1.21,
+     "carry": 1.27,
+     "break": 1.11,
+     "dot": 1.18,
+     "counter": 1.15,
+     "followup": 1.11
+    },
+    "spread": 1.14,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "carry"
+    ],
+    "losers": [
+     "break",
+     "followup"
+    ]
+   },
+   "brutal": {
+    "relative": {
+     "aether": 0.8,
+     "carry": 0.77,
+     "break": 0.88,
+     "dot": 0.83,
+     "counter": 0.83,
+     "followup": 0.82
+    },
+    "spread": 1.14,
+    "flat": true,
+    "cliff": false,
+    "winners": [
+     "break"
+    ],
+    "losers": [
+     "carry"
+    ]
+   },
+   "horde": {
+    "relative": {
+     "aether": 0.87,
+     "carry": 0.8,
+     "break": 1.01,
+     "dot": 0.87,
+     "counter": 0.93,
+     "followup": 0.85
+    },
+    "spread": 1.26,
+    "flat": false,
+    "cliff": false,
+    "winners": [
+     "break"
+    ],
+    "losers": [
+     "carry"
+    ]
+   }
+  }
+ },
+ "intent": {
+  "base": {
+   "aether": 0.6,
+   "carry": 0.6,
+   "break": 0.1,
+   "dot": 0.2,
+   "counter": 0.9,
+   "followup": 0.3
+  },
+  "rows": {
+   "frost": {
+    "favors": [
+     "break"
+    ],
+    "punishes": [
+     "aether",
+     "carry"
+    ],
+    "shares": {
+     "aether": 0.1,
+     "carry": 0.3,
+     "break": 1,
+     "dot": 0,
+     "counter": 0.7,
+     "followup": 0.6
+    },
+    "best": [
+     "Ekene",
+     "Wren",
+     "Sevim",
+     "Reva"
+    ],
+    "asDesigned": true
+   },
+   "hardened": {
+    "favors": [
+     "break",
+     "counter"
+    ],
+    "punishes": [
+     "carry",
+     "followup",
+     "aether"
+    ],
+    "shares": {
+     "aether": 0.4,
+     "carry": 0.3,
+     "break": 0.7,
+     "dot": 0.3,
+     "counter": 0.9,
+     "followup": 0.3
+    },
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "asDesigned": true
+   },
+   "wither": {
+    "favors": [
+     "carry",
+     "aether"
+    ],
+    "punishes": [
+     "dot"
+    ],
+    "shares": {
+     "aether": 0.7,
+     "carry": 0.8,
+     "break": 0.6,
+     "dot": 0,
+     "counter": 0.7,
+     "followup": 0.2
+    },
+    "best": [
+     "Hanae",
+     "Silen",
+     "Reva",
+     "Daven"
+    ],
+    "asDesigned": true
+   },
+   "snapback": {
+    "favors": [
+     "carry",
+     "dot",
+     "followup"
+    ],
+    "punishes": [
+     "break"
+    ],
+    "shares": {
+     "aether": 0.6,
+     "carry": 0.6,
+     "break": 0.2,
+     "dot": 0.3,
+     "counter": 1,
+     "followup": 0.2
+    },
+    "best": [
+     "Hanae",
+     "Silen",
+     "Ilka",
+     "Daven"
+    ],
+    "asDesigned": false
+   },
+   "provoke": {
+    "favors": [
+     "dot",
+     "counter"
+    ],
+    "punishes": [
+     "break"
+    ],
+    "shares": {
+     "aether": 0.2,
+     "carry": 0.2,
+     "break": 0,
+     "dot": 0.7,
+     "counter": 1,
+     "followup": 0.4
+    },
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "asDesigned": true
+   },
+   "flankers": {
+    "favors": [
+     "carry",
+     "aether"
+    ],
+    "punishes": [
+     "counter"
+    ],
+    "shares": {
+     "aether": 1,
+     "carry": 0.9,
+     "break": 0.7,
+     "dot": 0.1,
+     "counter": 0,
+     "followup": 0.4
+    },
+    "best": [
+     "Hanae",
+     "Silen",
+     "Nadira",
+     "Aurelio"
+    ],
+    "asDesigned": true
+   },
+   "spiked": {
+    "favors": [
+     "break"
+    ],
+    "punishes": [
+     "followup",
+     "carry"
+    ],
+    "shares": {
+     "aether": 0.6,
+     "carry": 0.4,
+     "break": 0.6,
+     "dot": 0.1,
+     "counter": 0.8,
+     "followup": 0
+    },
+    "best": [
+     "Hanae",
+     "Wren",
+     "Sevim",
+     "Ilka"
+    ],
+    "asDesigned": true
+   },
+   "capped": {
+    "favors": [
+     "followup",
+     "dot"
+    ],
+    "punishes": [
+     "carry",
+     "aether"
+    ],
+    "shares": {
+     "aether": 0.1,
+     "carry": 0,
+     "break": 0.1,
+     "dot": 0.9,
+     "counter": 1,
+     "followup": 0.4
+    },
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "asDesigned": true
+   },
+   "scarce": {
+    "favors": [
+     "counter"
+    ],
+    "punishes": [],
+    "shares": {
+     "aether": 0.3,
+     "carry": 0.3,
+     "break": 0.4,
+     "dot": 0.3,
+     "counter": 1,
+     "followup": 0.3
+    },
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "asDesigned": true
+   },
+   "brutal": {
+    "favors": [],
+    "punishes": [],
+    "shares": {
+     "aether": 0.8,
+     "carry": 0.8,
+     "break": 0.8,
+     "dot": 0,
+     "counter": 0.7,
+     "followup": 0.2
+    },
+    "best": [
+     "Hanae",
+     "Silen",
+     "Sevim",
+     "Reva"
+    ],
+    "asDesigned": true
+   },
+   "horde": {
+    "favors": [
+     "break"
+    ],
+    "punishes": [
+     "carry"
+    ],
+    "shares": {
+     "aether": 0.3,
+     "carry": 0.4,
+     "break": 1,
+     "dot": 0,
+     "counter": 0.6,
+     "followup": 0.3
+    },
+    "best": [
+     "Arunima",
+     "Wren",
+     "Sevim",
+     "Reva"
+    ],
+    "asDesigned": true
+   }
+  }
+ },
+ "churn": {
+  "summary": {
+   "briefs": 24,
+   "affixCount": 2,
+   "changedVsPlain": 0.96,
+   "consecutiveChurn": 0.91,
+   "winnerConcentration": 0.13,
+   "mostCommonBest": "Ilka,Nour,Reva,Spore",
+   "characterBreadth": {
+    "Hanae": 0.42,
+    "Arunima": 0.13,
+    "Silen": 0.13,
+    "Ekene": 0,
+    "Wren": 0.42,
+    "Sevim": 0.46,
+    "Nour": 0.42,
+    "Spore": 0.38,
+    "Reva": 0.38,
+    "Ilka": 0.46,
+    "Nadira": 0.25,
+    "Aurelio": 0.17,
+    "Nahana": 0.21,
+    "Daven": 0.21
+   },
+   "unsolvable": []
+  },
+  "rows": [
+   {
+    "affixes": [
+     "wither",
+     "spiked"
+    ],
+    "bosses": [
+     "brood",
+     "sprinter",
+     "carapace"
+    ],
+    "best": [
+     "Hanae",
+     "Wren",
+     "Sevim",
+     "Ilka"
+    ],
+    "bp": 1.51,
+    "plain": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Reva"
+    ],
+    "plainBp": 1.44,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Reva"
+     ],
+     [
+      "Arunima",
+      "Wren",
+      "Sevim",
+      "Reva"
+     ],
+     [
+      "Wren",
+      "Ilka",
+      "Nadira",
+      "Daven"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "brutal",
+     "spiked"
+    ],
+    "bosses": [
+     "brood",
+     "mirror",
+     "carapace"
+    ],
+    "best": [
+     "Arunima",
+     "Wren",
+     "Sevim",
+     "Reva"
+    ],
+    "bp": 1.19,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 2,
+    "solvableAtScale1": 0.89,
+    "runnersUp": [
+     [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Daven"
+     ],
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Daven"
+     ],
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Ilka"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "capped",
+     "flankers"
+    ],
+    "bosses": [
+     "sprinter",
+     "carapace",
+     "brood"
+    ],
+    "best": [
+     "Hanae",
+     "Sevim",
+     "Nour",
+     "Spore"
+    ],
+    "bp": 1.61,
+    "plain": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Reva"
+    ],
+    "plainBp": 1.44,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Nour",
+      "Spore",
+      "Nahana"
+     ],
+     [
+      "Hanae",
+      "Sevim",
+      "Nour",
+      "Nahana"
+     ],
+     [
+      "Sevim",
+      "Nour",
+      "Spore",
+      "Nahana"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "flankers",
+     "spiked"
+    ],
+    "bosses": [
+     "purifier",
+     "sprinter",
+     "carapace"
+    ],
+    "best": [
+     "Hanae",
+     "Nour",
+     "Spore",
+     "Nahana"
+    ],
+    "bp": 1.5,
+    "plain": [
+     "Hanae",
+     "Reva",
+     "Aurelio",
+     "Nahana"
+    ],
+    "plainBp": 1.51,
+    "changed": 2,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Silen",
+      "Wren",
+      "Sevim"
+     ],
+     [
+      "Hanae",
+      "Silen",
+      "Wren",
+      "Nadira"
+     ],
+     [
+      "Hanae",
+      "Arunima",
+      "Ekene",
+      "Nour"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "snapback",
+     "flankers"
+    ],
+    "bosses": [
+     "mirror",
+     "sprinter",
+     "brood"
+    ],
+    "best": [
+     "Wren",
+     "Nadira",
+     "Aurelio",
+     "Nahana"
+    ],
+    "bp": 1.67,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Silen",
+      "Wren",
+      "Sevim"
+     ],
+     [
+      "Hanae",
+      "Silen",
+      "Nadira",
+      "Aurelio"
+     ],
+     [
+      "Hanae",
+      "Nour",
+      "Spore",
+      "Nadira"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "spiked",
+     "capped"
+    ],
+    "bosses": [
+     "mirror",
+     "carapace",
+     "purifier"
+    ],
+    "best": [
+     "Spore",
+     "Reva",
+     "Ilka",
+     "Daven"
+    ],
+    "bp": 1.38,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 0.89,
+    "runnersUp": [
+     [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ],
+     [
+      "Hanae",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ],
+     [
+      "Wren",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "provoke",
+     "scarce"
+    ],
+    "bosses": [
+     "purifier",
+     "sprinter",
+     "mirror"
+    ],
+    "best": [
+     "Nour",
+     "Ilka",
+     "Nadira",
+     "Daven"
+    ],
+    "bp": 1.79,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Reva",
+      "Ilka",
+      "Nadira",
+      "Aurelio"
+     ],
+     [
+      "Spore",
+      "Reva",
+      "Ilka",
+      "Aurelio"
+     ],
+     [
+      "Nour",
+      "Reva",
+      "Ilka",
+      "Nadira"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "spiked",
+     "hardened"
+    ],
+    "bosses": [
+     "mirror",
+     "brood",
+     "purifier"
+    ],
+    "best": [
+     "Hanae",
+     "Wren",
+     "Sevim",
+     "Ilka"
+    ],
+    "bp": 1.49,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.63,
+    "changed": 2,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Daven"
+     ],
+     [
+      "Wren",
+      "Sevim",
+      "Aurelio",
+      "Daven"
+     ],
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Reva"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "hardened",
+     "scarce"
+    ],
+    "bosses": [
+     "sprinter",
+     "purifier",
+     "brood"
+    ],
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "bp": 1.7,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Wren",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ],
+     [
+      "Hanae",
+      "Arunima",
+      "Reva",
+      "Ilka"
+     ],
+     [
+      "Arunima",
+      "Silen",
+      "Reva",
+      "Ilka"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "frost",
+     "provoke"
+    ],
+    "bosses": [
+     "purifier",
+     "sprinter",
+     "brood"
+    ],
+    "best": [
+     "Sevim",
+     "Ilka",
+     "Nadira",
+     "Daven"
+    ],
+    "bp": 1.57,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Wren",
+      "Sevim",
+      "Ilka",
+      "Aurelio"
+     ],
+     [
+      "Reva",
+      "Ilka",
+      "Nadira",
+      "Aurelio"
+     ],
+     [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Ilka"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "frost",
+     "brutal"
+    ],
+    "bosses": [
+     "mirror",
+     "carapace",
+     "purifier"
+    ],
+    "best": [
+     "Wren",
+     "Sevim",
+     "Reva",
+     "Aurelio"
+    ],
+    "bp": 1.5,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Wren",
+      "Sevim",
+      "Aurelio",
+      "Daven"
+     ],
+     [
+      "Sevim",
+      "Reva",
+      "Aurelio",
+      "Daven"
+     ],
+     [
+      "Ekene",
+      "Wren",
+      "Sevim",
+      "Reva"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "wither",
+     "flankers"
+    ],
+    "bosses": [
+     "mirror",
+     "sprinter",
+     "carapace"
+    ],
+    "best": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Sevim"
+    ],
+    "bp": 1.77,
+    "plain": [
+     "Hanae",
+     "Reva",
+     "Aurelio",
+     "Nahana"
+    ],
+    "plainBp": 1.6,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Nahana"
+     ],
+     [
+      "Wren",
+      "Sevim",
+      "Aurelio",
+      "Nahana"
+     ],
+     [
+      "Hanae",
+      "Silen",
+      "Sevim",
+      "Nahana"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "provoke",
+     "capped"
+    ],
+    "bosses": [
+     "mirror",
+     "brood",
+     "purifier"
+    ],
+    "best": [
+     "Spore",
+     "Reva",
+     "Ilka",
+     "Daven"
+    ],
+    "bp": 1.54,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.63,
+    "changed": 3,
+    "solvableAtScale1": 0.89,
+    "runnersUp": [
+     [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ],
+     [
+      "Nour",
+      "Spore",
+      "Ilka",
+      "Daven"
+     ],
+     [
+      "Hanae",
+      "Spore",
+      "Reva",
+      "Ilka"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "horde",
+     "scarce"
+    ],
+    "bosses": [
+     "purifier",
+     "carapace",
+     "mirror"
+    ],
+    "best": [
+     "Wren",
+     "Sevim",
+     "Reva",
+     "Ilka"
+    ],
+    "bp": 1.6,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 2,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Sevim",
+      "Reva",
+      "Daven"
+     ],
+     [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Daven"
+     ],
+     [
+      "Wren",
+      "Sevim",
+      "Ilka",
+      "Daven"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "capped",
+     "flankers"
+    ],
+    "bosses": [
+     "sprinter",
+     "carapace",
+     "mirror"
+    ],
+    "best": [
+     "Hanae",
+     "Sevim",
+     "Nour",
+     "Spore"
+    ],
+    "bp": 1.64,
+    "plain": [
+     "Hanae",
+     "Reva",
+     "Aurelio",
+     "Nahana"
+    ],
+    "plainBp": 1.6,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Sevim",
+      "Nour",
+      "Nahana"
+     ],
+     [
+      "Hanae",
+      "Nour",
+      "Spore",
+      "Nahana"
+     ],
+     [
+      "Sevim",
+      "Nadira",
+      "Aurelio",
+      "Nahana"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "flankers",
+     "horde"
+    ],
+    "bosses": [
+     "carapace",
+     "brood",
+     "sprinter"
+    ],
+    "best": [
+     "Hanae",
+     "Wren",
+     "Sevim",
+     "Nour"
+    ],
+    "bp": 1.58,
+    "plain": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Reva"
+    ],
+    "plainBp": 1.44,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Sevim",
+      "Nadira",
+      "Aurelio"
+     ],
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Nahana"
+     ],
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Nadira"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "flankers",
+     "spiked"
+    ],
+    "bosses": [
+     "purifier",
+     "brood",
+     "mirror"
+    ],
+    "best": [
+     "Hanae",
+     "Arunima",
+     "Nour",
+     "Nahana"
+    ],
+    "bp": 1.53,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.63,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Arunima",
+      "Ilka",
+      "Nahana"
+     ],
+     [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Wren"
+     ],
+     [
+      "Hanae",
+      "Silen",
+      "Wren",
+      "Sevim"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "flankers",
+     "capped"
+    ],
+    "bosses": [
+     "brood",
+     "mirror",
+     "carapace"
+    ],
+    "best": [
+     "Nour",
+     "Spore",
+     "Nadira",
+     "Nahana"
+    ],
+    "bp": 1.67,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 4,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Sevim",
+      "Nour",
+      "Spore"
+     ],
+     [
+      "Hanae",
+      "Nour",
+      "Spore",
+      "Nahana"
+     ],
+     [
+      "Nour",
+      "Spore",
+      "Reva",
+      "Nahana"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "flankers",
+     "capped"
+    ],
+    "bosses": [
+     "brood",
+     "sprinter",
+     "purifier"
+    ],
+    "best": [
+     "Hanae",
+     "Nadira",
+     "Aurelio",
+     "Nahana"
+    ],
+    "bp": 1.7,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 4,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Sevim",
+      "Nadira",
+      "Aurelio"
+     ],
+     [
+      "Hanae",
+      "Sevim",
+      "Nour",
+      "Nahana"
+     ],
+     [
+      "Sevim",
+      "Nadira",
+      "Aurelio",
+      "Nahana"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "spiked",
+     "wither"
+    ],
+    "bosses": [
+     "brood",
+     "sprinter",
+     "mirror"
+    ],
+    "best": [
+     "Wren",
+     "Ilka",
+     "Nadira",
+     "Daven"
+    ],
+    "bp": 1.56,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 2,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Ilka"
+     ],
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Daven"
+     ],
+     [
+      "Arunima",
+      "Wren",
+      "Sevim",
+      "Reva"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "snapback",
+     "capped"
+    ],
+    "bosses": [
+     "purifier",
+     "brood",
+     "mirror"
+    ],
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "bp": 1.49,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.63,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Nour",
+      "Spore",
+      "Ilka",
+      "Daven"
+     ],
+     [
+      "Spore",
+      "Reva",
+      "Ilka",
+      "Aurelio"
+     ],
+     [
+      "Spore",
+      "Reva",
+      "Ilka",
+      "Daven"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "provoke",
+     "brutal"
+    ],
+    "bosses": [
+     "brood",
+     "carapace",
+     "sprinter"
+    ],
+    "best": [
+     "Hanae",
+     "Silen",
+     "Wren",
+     "Reva"
+    ],
+    "bp": 1.16,
+    "plain": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Reva"
+    ],
+    "plainBp": 1.44,
+    "changed": 1,
+    "solvableAtScale1": 0.94,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Silen",
+      "Reva",
+      "Ilka"
+     ],
+     [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Reva"
+     ],
+     [
+      "Hanae",
+      "Silen",
+      "Reva",
+      "Daven"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "brutal",
+     "spiked"
+    ],
+    "bosses": [
+     "carapace",
+     "sprinter",
+     "mirror"
+    ],
+    "best": [
+     "Silen",
+     "Wren",
+     "Sevim",
+     "Aurelio"
+    ],
+    "bp": 1.13,
+    "plain": [
+     "Hanae",
+     "Reva",
+     "Aurelio",
+     "Nahana"
+    ],
+    "plainBp": 1.6,
+    "changed": 3,
+    "solvableAtScale1": 0.83,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Wren",
+      "Sevim",
+      "Ilka"
+     ],
+     [
+      "Wren",
+      "Sevim",
+      "Reva",
+      "Daven"
+     ],
+     [
+      "Silen",
+      "Wren",
+      "Sevim",
+      "Daven"
+     ]
+    ]
+   },
+   {
+    "affixes": [
+     "provoke",
+     "hardened"
+    ],
+    "bosses": [
+     "brood",
+     "purifier",
+     "carapace"
+    ],
+    "best": [
+     "Nour",
+     "Spore",
+     "Reva",
+     "Ilka"
+    ],
+    "bp": 1.49,
+    "plain": [
+     "Arunima",
+     "Silen",
+     "Wren",
+     "Ilka"
+    ],
+    "plainBp": 1.61,
+    "changed": 3,
+    "solvableAtScale1": 1,
+    "runnersUp": [
+     [
+      "Hanae",
+      "Arunima",
+      "Silen",
+      "Ilka"
+     ],
+     [
+      "Spore",
+      "Ilka",
+      "Aurelio",
+      "Daven"
+     ],
+     [
+      "Spore",
+      "Reva",
+      "Ilka",
+      "Daven"
+     ]
+    ]
+   }
+  ]
+ },
+ "policies": {
+  "summary": {
+   "wins": {
+    "five": 7,
+    "deep": 2,
+    "wide": 3
+   },
+   "meanIntegrity": {
+    "wide": 85.04,
+    "wideBare": 83.51,
+    "five": 90.89,
+    "fiveBare": 72.21,
+    "deep": 80.36,
+    "lean": 43.44
+   }
+  },
+  "rows": [
+   {
+    "affixes": [
+     "wither",
+     "spiked"
+    ],
+    "bosses": [
+     "brood",
+     "sprinter",
+     "carapace"
+    ],
+    "order": [
+     "Wren",
+     "Sevim",
+     "Hanae",
+     "Ilka",
+     "Nour",
+     "Arunima"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 70,
+      "score": 0.89,
+      "gear": 1.5
+     },
+     "wideBare": {
+      "integrity": 67.67,
+      "score": 0.88,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 84.67,
+      "score": 0.94,
+      "gear": 9.83
+     },
+     "fiveBare": {
+      "integrity": 62.83,
+      "score": 0.85,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 72.5,
+      "score": 0.88,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 9.5,
+      "score": 0.61,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "brutal",
+     "spiked"
+    ],
+    "bosses": [
+     "brood",
+     "mirror",
+     "carapace"
+    ],
+    "order": [
+     "Wren",
+     "Sevim",
+     "Reva",
+     "Arunima",
+     "Hanae",
+     "Nadira"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 31.83,
+      "score": 0.76,
+      "gear": 0
+     },
+     "wideBare": {
+      "integrity": 31.83,
+      "score": 0.76,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 39.83,
+      "score": 0.78,
+      "gear": 8.67
+     },
+     "fiveBare": {
+      "integrity": 29.83,
+      "score": 0.74,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 42.67,
+      "score": 0.78,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 29.83,
+      "score": 0.74,
+      "gear": 6
+     }
+    },
+    "winner": "deep"
+   },
+   {
+    "affixes": [
+     "capped",
+     "flankers"
+    ],
+    "bosses": [
+     "sprinter",
+     "carapace",
+     "brood"
+    ],
+    "order": [
+     "Nour",
+     "Spore",
+     "Hanae",
+     "Sevim",
+     "Nahana",
+     "Nadira"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 100,
+      "score": 1,
+      "gear": 2
+     },
+     "wideBare": {
+      "integrity": 98,
+      "score": 0.99,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 100,
+      "score": 1,
+      "gear": 10
+     },
+     "fiveBare": {
+      "integrity": 82.33,
+      "score": 0.93,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 89.33,
+      "score": 0.97,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 52.17,
+      "score": 0.82,
+      "gear": 6
+     }
+    },
+    "winner": "wide"
+   },
+   {
+    "affixes": [
+     "flankers",
+     "spiked"
+    ],
+    "bosses": [
+     "purifier",
+     "sprinter",
+     "carapace"
+    ],
+    "order": [
+     "Nour",
+     "Spore",
+     "Hanae",
+     "Nahana",
+     "Wren",
+     "Arunima"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 85,
+      "score": 0.93,
+      "gear": 1.83
+     },
+     "wideBare": {
+      "integrity": 85.67,
+      "score": 0.93,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 91.83,
+      "score": 0.96,
+      "gear": 9.83
+     },
+     "fiveBare": {
+      "integrity": 70.67,
+      "score": 0.88,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 78.67,
+      "score": 0.91,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 43,
+      "score": 0.8,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "snapback",
+     "flankers"
+    ],
+    "bosses": [
+     "mirror",
+     "sprinter",
+     "brood"
+    ],
+    "order": [
+     "Nadira",
+     "Aurelio",
+     "Nahana",
+     "Wren",
+     "Hanae",
+     "Nour"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 100,
+      "score": 1,
+      "gear": 2.17
+     },
+     "wideBare": {
+      "integrity": 100,
+      "score": 1,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 99,
+      "score": 0.99,
+      "gear": 8.67
+     },
+     "fiveBare": {
+      "integrity": 91.67,
+      "score": 0.96,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 83.5,
+      "score": 0.93,
+      "gear": 7.83
+     },
+     "lean": {
+      "integrity": 28.67,
+      "score": 0.73,
+      "gear": 6
+     }
+    },
+    "winner": "wide"
+   },
+   {
+    "affixes": [
+     "spiked",
+     "capped"
+    ],
+    "bosses": [
+     "mirror",
+     "carapace",
+     "purifier"
+    ],
+    "order": [
+     "Spore",
+     "Reva",
+     "Ilka",
+     "Daven",
+     "Nour",
+     "Nadira"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 71.5,
+      "score": 0.89,
+      "gear": 1.5
+     },
+     "wideBare": {
+      "integrity": 63.67,
+      "score": 0.86,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 88.17,
+      "score": 0.95,
+      "gear": 9.67
+     },
+     "fiveBare": {
+      "integrity": 54.33,
+      "score": 0.81,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 80.33,
+      "score": 0.92,
+      "gear": 7.83
+     },
+     "lean": {
+      "integrity": 61.33,
+      "score": 0.84,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "provoke",
+     "scarce"
+    ],
+    "bosses": [
+     "purifier",
+     "sprinter",
+     "mirror"
+    ],
+    "order": [
+     "Nour",
+     "Ilka",
+     "Daven",
+     "Nadira",
+     "Arunima",
+     "Silen"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 98.5,
+      "score": 0.99,
+      "gear": 1.83
+     },
+     "wideBare": {
+      "integrity": 98.5,
+      "score": 0.99,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 99,
+      "score": 0.99,
+      "gear": 9.67
+     },
+     "fiveBare": {
+      "integrity": 91.83,
+      "score": 0.96,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 97.83,
+      "score": 0.99,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 87.5,
+      "score": 0.94,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "spiked",
+     "hardened"
+    ],
+    "bosses": [
+     "mirror",
+     "brood",
+     "purifier"
+    ],
+    "order": [
+     "Wren",
+     "Sevim",
+     "Ilka",
+     "Hanae",
+     "Ekene",
+     "Reva"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 84.67,
+      "score": 0.94,
+      "gear": 1.67
+     },
+     "wideBare": {
+      "integrity": 84,
+      "score": 0.92,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 98,
+      "score": 0.99,
+      "gear": 9.17
+     },
+     "fiveBare": {
+      "integrity": 59.67,
+      "score": 0.84,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 77.17,
+      "score": 0.91,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 57.33,
+      "score": 0.82,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "hardened",
+     "scarce"
+    ],
+    "bosses": [
+     "sprinter",
+     "purifier",
+     "brood"
+    ],
+    "order": [
+     "Reva",
+     "Ilka",
+     "Spore",
+     "Nour",
+     "Arunima",
+     "Aurelio"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 99.5,
+      "score": 1,
+      "gear": 2
+     },
+     "wideBare": {
+      "integrity": 99.5,
+      "score": 1,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 99,
+      "score": 0.99,
+      "gear": 10
+     },
+     "fiveBare": {
+      "integrity": 98.17,
+      "score": 0.99,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 100,
+      "score": 1,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 89.17,
+      "score": 0.95,
+      "gear": 6
+     }
+    },
+    "winner": "deep"
+   },
+   {
+    "affixes": [
+     "frost",
+     "provoke"
+    ],
+    "bosses": [
+     "purifier",
+     "sprinter",
+     "brood"
+    ],
+    "order": [
+     "Sevim",
+     "Ilka",
+     "Daven",
+     "Nadira",
+     "Aurelio",
+     "Ekene"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 95.67,
+      "score": 0.97,
+      "gear": 1.83
+     },
+     "wideBare": {
+      "integrity": 95,
+      "score": 0.97,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 99.67,
+      "score": 1,
+      "gear": 9
+     },
+     "fiveBare": {
+      "integrity": 75,
+      "score": 0.89,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 69.33,
+      "score": 0.88,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 24.33,
+      "score": 0.71,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "frost",
+     "brutal"
+    ],
+    "bosses": [
+     "mirror",
+     "carapace",
+     "purifier"
+    ],
+    "order": [
+     "Wren",
+     "Sevim",
+     "Reva",
+     "Aurelio",
+     "Arunima",
+     "Daven"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 85.17,
+      "score": 0.94,
+      "gear": 1.67
+     },
+     "wideBare": {
+      "integrity": 82.5,
+      "score": 0.93,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 93.83,
+      "score": 0.97,
+      "gear": 9.67
+     },
+     "fiveBare": {
+      "integrity": 60,
+      "score": 0.85,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 79,
+      "score": 0.91,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 29.67,
+      "score": 0.72,
+      "gear": 6
+     }
+    },
+    "winner": "five"
+   },
+   {
+    "affixes": [
+     "wither",
+     "flankers"
+    ],
+    "bosses": [
+     "mirror",
+     "sprinter",
+     "carapace"
+    ],
+    "order": [
+     "Hanae",
+     "Arunima",
+     "Silen",
+     "Sevim",
+     "Aurelio",
+     "Nahana"
+    ],
+    "results": {
+     "wide": {
+      "integrity": 98.67,
+      "score": 0.99,
+      "gear": 2
+     },
+     "wideBare": {
+      "integrity": 95.83,
+      "score": 0.98,
+      "gear": 0
+     },
+     "five": {
+      "integrity": 97.67,
+      "score": 0.98,
+      "gear": 9.33
+     },
+     "fiveBare": {
+      "integrity": 90.17,
+      "score": 0.96,
+      "gear": 0
+     },
+     "deep": {
+      "integrity": 94,
+      "score": 0.97,
+      "gear": 8
+     },
+     "lean": {
+      "integrity": 8.83,
+      "score": 0.67,
+      "gear": 6
+     }
+    },
+    "winner": "wide"
+   }
+  ]
+ },
+ "seconds": 63.3
+}

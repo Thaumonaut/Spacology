@@ -83,3 +83,7 @@ six-encounter voyage runs through scaling battles to a final archive report. Bat
 rows, Gear, round pressure, and results pass between the two full-page views through saved run state.
 
 Current limitations and verification evidence are recorded in [the systems audit](../docs/testing/spacology-v0.1.0-systems-audit.md). Crafting, Calls, modifier selection, and some Ops descriptions remain unfinished; this playable slice is not a complete implementation of the design.
+
+## affix-lab.html
+
+Affix team-building lab. Every voyage rolls a Brief (0–4 match-wide conditions within the category caps and compatibility rules, plus three bosses) before any choice. Any of 23 crewmates can be recruited, across six team types that each include their own sustainer: two start free, vouchers open berths 3–6 at rising prices (straight from the roster when every berth is full), and crew beyond four cost upkeep. Each battle's enemy strength is derived from what a themed crew can afford by then, with a gentler sector 1. The only random purchase is equipment, three offers per stop with rising rerolls. Battle reports state what each condition did, and a session log shows how much of the crew carried over between voyages. The model (`affix-lab-model.js`) also runs headless in `sim/affix-lab.js`. See [the design](../docs/design/affix-team-building.md) and [the lab notes](../docs/testing/affix-lab.md).

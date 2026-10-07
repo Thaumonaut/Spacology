@@ -24,6 +24,7 @@ Shared data lives in `roster.js` — 21 characters, 6 tags with both tiers, 8 en
 | `pipeline.js` | Genetic search — `designer.js` builds characters on a fixed power budget, `composer.js` assembles rosters, `evaluator.js` scores power and watchability separately, survivors breed | `best.json` |
 | `ladder.js` | Breakpoint per authored build | `ladder.csv` |
 | `counters.js` | Build × enemy-archetype matrix, absolute and relative | `counters.csv`, `counters-rel.csv` |
+| `affix-lab.js` | The affix lab's measurements on `prototypes/affix-lab-model.js`: affix × family matrix, designer-intent check, argmax churn over rolled Briefs, scripted berth-versus-equipment shoppers (the optimizer's crew and one themed crew per type), the route derived from the economy, and roster flattening. See [the lab notes](../docs/testing/affix-lab.md) | only with `--out` |
 
 `smoke/` holds five full-run harnesses that load a prototype's HTML, stub the DOM, and run it
 headless. They caught real bugs a parser never would.

@@ -36,6 +36,7 @@ document in this folder contradicts it, this one wins.
 | `synergy-notes.md` | Character-level combination testing |
 | `pipeline-notes.md` | The genetic search over rosters — designer / composer / evaluator |
 | `cw-teardown.md` | Teardown of the main reference point, with verdicts |
+| `affix-team-building.md` | **Prototype:** match-wide affixes that decide the team, open requisition with vouchers and upkeep, and random equipment as the only gamble, measured in `prototypes/affix-lab.html` and `sim/affix-lab.js` |
 
 ## Deferred expansion ideas
 
