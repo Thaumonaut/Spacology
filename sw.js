@@ -3,7 +3,7 @@ const ENEMY_ASSETS=[
   ...Object.values(self.SpacologyEnemyCatalogue.ARCHETYPE_PORTRAITS).flatMap(types=>Object.values(types)),
   ...Object.values(self.SpacologyEnemyCatalogue.HEROES).map(hero=>hero.portrait)
 ].map(path=>path.replace(/^\.\.\//,'./'));
-const CACHE='cast-art-refresh-4-offline-battle-launch-1-enemy-traits-1-tablet-toolbar-2-enemy-summoners-1-game-menu-1-voyage-nodes-1-treasure-carriers-1-spacology-v010-enemy-battle-art-1-shorter-text-2-j3k-support-3-field-xp-1-aether-priority-1-formation-1-weaver-cap-1-health-ai-2-recovery-2-weaver-roles-1-silen-sustained-turns-4-role-spending-1-copy-details-1-character-instances-1-defeated-slots-1';
+const CACHE='cast-art-refresh-4-offline-battle-launch-1-enemy-traits-1-tablet-toolbar-2-enemy-summoners-1-game-menu-1-voyage-nodes-1-treasure-carriers-1-spacology-v010-enemy-battle-art-1-shorter-text-2-j3k-support-3-field-xp-1-aether-priority-1-formation-1-weaver-cap-1-health-ai-2-recovery-2-weaver-roles-1-silen-sustained-turns-4-role-spending-1-copy-details-1-character-instances-1-defeated-slots-1-combat-core-1';
 const CORE=[
   './prototypes/enemy-summoning.js','./prototypes/enemy-traits.js',
   './prototypes/game-menu.css','./prototypes/game-menu.js','./prototypes/game-preferences.js',
@@ -15,7 +15,7 @@ const CORE=[
   './prototypes/session-store.js','./prototypes/weaver-roster.js','./prototypes/aether-weavers.html',
   './assets/cast/roonie-baelk-v7.png','./assets/cast/veska-reed-v3.png','./assets/cast/daven-pell-v7.png','./assets/cast/silen-newt-v1.png','./assets/cast/void-narwhal-navigator-v1.png',
   './','./index.html','./manifest.webmanifest',
-  './prototypes/spacology-v0.1.0.html','./prototypes/spacology-v0.1.0.js','./prototypes/recovery-scoring.js','./prototypes/crew-progression.js','./prototypes/voyage-settings.js','./prototypes/expedition-rules.js','./prototypes/aether-rules.js','./prototypes/ops-room.css','./prototypes/star-atlas.html','./prototypes/watchable-fight.html','./prototypes/art-gallery.html','./sim/enemy-catalogue.js',
+  './prototypes/spacology-v0.1.0.html','./prototypes/spacology-v0.1.0.js','./prototypes/recovery-scoring.js','./prototypes/crew-progression.js','./prototypes/combat-core.js','./prototypes/voyage-settings.js','./prototypes/expedition-rules.js','./prototypes/aether-rules.js','./prototypes/ops-room.css','./prototypes/star-atlas.html','./prototypes/watchable-fight.html','./prototypes/art-gallery.html','./sim/enemy-catalogue.js',
   './assets/app-icon-192.png','./assets/app-icon-512.png',
   './assets/crew/tarn-v1.webp','./assets/crew/ash-v1.webp','./assets/crew/quill-v1.webp','./assets/crew/maul-v1.webp',
   './assets/crew/bosk-v1.webp','./assets/crew/morrow-v1.webp','./assets/crew/spore-v1.webp',
