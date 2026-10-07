@@ -1,0 +1,15 @@
+{
+  "name": "spacology",
+  "private": true,
+  "description": "Spacology prototypes, simulations and tests. The site is static: no build step.",
+  "scripts": {
+    "serve": "node tests/serve.cjs",
+    "test": "node tests/run.cjs",
+    "test:unit": "node tests/run.cjs --unit",
+    "test:browser": "node tests/run.cjs --browser",
+    "test:balance": "node tests/run.cjs --balance"
+  },
+  "devDependencies": {
+    "playwright": "1.61.1"
+  }
+}

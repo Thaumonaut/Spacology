@@ -6,7 +6,20 @@ To test on an iPad on the same Wi-Fi, serve on a LAN interface, for example `pyt
 
 These scripts retain regression cases from the prototype reviews. They require Node.js, Playwright and Chromium. They run headlessly by default and use isolated browser contexts, so tests do not open windows or take desktop focus. Set `SPACOLOGY_HEADED=1` only when explicitly requesting a visible debugging run. Do not run the native-drag scripts concurrently; browser focus can interfere with those interactions.
 
-Serve the repository root:
+The simplest way to run them is from the repository root:
+
+```sh
+npm install            # once: installs the pinned Playwright, reusing browsers already downloaded
+npm test               # unit and browser tests, one file at a time, against a server on a free port
+npm test -- affix      # only files whose path contains "affix"
+npm run test:unit      # or test:browser, test:balance (slow, opt-in)
+node tests/run.cjs --browser affix-lab   # choose groups with --unit, --browser, --balance
+npm run serve          # the site at http://127.0.0.1:4173/ for manual play; add -- --host 0.0.0.0 for an iPad
+```
+
+The runner starts and stops its own server and runs files one at a time, so the native-drag scripts never overlap. A file that runs longer than 30 minutes is stopped and fails; set `SPACOLOGY_TEST_TIMEOUT` (seconds) to change the limit.
+
+To run a single script by hand, serve the repository root:
 
 ```sh
 python3 -m http.server 4173 --bind 127.0.0.1
