@@ -17,6 +17,7 @@ document in this folder contradicts it, this one wins.
 | File | What it covers |
 |---|---|
 | `glossary.md` | The working vocabulary: roles, character properties, enemy archetypes, combat constants |
+| `combat-engine.md` | The shared combat engine: what labs and sims can use from `prototypes/combat-core.js` (hooks, per-fight rules, metrics), and its open questions |
 | `enemy-catalogue.md` | Enemy factions, Null progression, hero specimens, and the procedural frontier grammar |
 | `crew.md` | The current 28-character lore cast, relationships, field names and species mix |
 | `art-direction.md` | Shared painterly anime/JRPG portrait language and species-specific constraints |

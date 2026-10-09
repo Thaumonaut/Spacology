@@ -3,7 +3,7 @@ const ENEMY_ASSETS=[
   ...Object.values(self.SpacologyEnemyCatalogue.ARCHETYPE_PORTRAITS).flatMap(types=>Object.values(types)),
   ...Object.values(self.SpacologyEnemyCatalogue.HEROES).map(hero=>hero.portrait)
 ].map(path=>path.replace(/^\.\.\//,'./'));
-const CACHE='cast-art-refresh-4-offline-battle-launch-1-enemy-traits-1-tablet-toolbar-2-enemy-summoners-1-game-menu-1-voyage-nodes-1-treasure-carriers-1-spacology-v010-enemy-battle-art-1-shorter-text-2-j3k-support-3-field-xp-1-aether-priority-1-formation-1-weaver-cap-1-health-ai-2-recovery-2-weaver-roles-1-silen-sustained-turns-4-role-spending-1-copy-details-1-character-instances-1-defeated-slots-1-combat-core-2';
+const CACHE='cast-art-refresh-4-offline-battle-launch-1-enemy-traits-1-tablet-toolbar-2-enemy-summoners-1-game-menu-1-voyage-nodes-1-treasure-carriers-1-spacology-v010-enemy-battle-art-1-shorter-text-2-j3k-support-3-field-xp-1-aether-priority-1-formation-1-weaver-cap-1-health-ai-2-recovery-2-weaver-roles-1-silen-sustained-turns-4-role-spending-1-copy-details-1-character-instances-1-defeated-slots-1-combat-core-3';
 const CORE=[
   './prototypes/enemy-summoning.js','./prototypes/enemy-traits.js',
   './prototypes/game-menu.css','./prototypes/game-menu.js','./prototypes/game-preferences.js',

@@ -15,7 +15,11 @@
    Host surface: rng() / COMBAT_RNG (every rule draw; inject a source or leave
    Math.random), rngFree(fn) for displays that call rule helpers, and
    voyageEncounter(state) + applyVoyageEncounter(enc) to set up a voyage battle
-   from a voyage state exactly as the page does.
+   from a voyage state exactly as the page does. COMBAT_HOOKS listens to the
+   fight, COMBAT_RULES changes it per fight, enemyAttack() adds an enemy attack
+   from a hook, u.frozen passes a crewmate's turns, and G.metrics counts what the
+   rest of G does not. All are described where they are declared; unset, they
+   change nothing (tests/unit/combat-hooks.cjs).
    ============================================================================ */
 
 /* ---- Data: constants, prototype teams, tags, targeting profiles, enemy kits (watchable-fight.html, lines 432–656 before extraction) ---- */
@@ -243,6 +247,49 @@ var FACTION_ORDER=['ossuary','mycelial','glasswake','tideworn','tannhul','custod
 var COMBAT_RNG=null;
 function rng(){return COMBAT_RNG?COMBAT_RNG():Math.random()}
 function rngFree(fn){var prev=COMBAT_RNG;COMBAT_RNG=function(){return .5};try{return fn()}finally{COMBAT_RNG=prev}}
+// Hooks: a host may listen to the fight. COMBAT_HOOKS maps an event name to a listener, or a list of them, called as
+// listener(payload, api). Unset, nothing is emitted and the fight is unchanged. Payloads carry live units, so a listener
+// may act on them (u.av+=60, u.frozen=1); u.av on the unit whose turn it is moves its next turn (foldPendingDelay), and
+// a unit moved below 0 acts next. Each emit site says which payload fields it reads back. Status damage names
+// the live enemy that applied it as src, even after it fell (enemyAttack refuses a fallen enemy).
+//   spend          {actor, amount, pool, kind}       after an Aether payment ('skill', or 'continuation' for Silen)
+//   gain           {actor, amount, pool, source}     before an Aether credit; amount may be set to any whole number from
+//                                                    0 up. What is taken away is reported on the action's event
+//                                                    (reportRefused).
+//                                                    Stolen Aether a Broken thief returns (enemy-traits.js) is not seen.
+//   outgoing       {src, tgt, kind, single, amount}  before mitigation; a listener either changes amount or returns a
+//                                                    factor, not both (p=>p.amount*=2 returns the new amount, which
+//                                                    would then multiply again). Every listener's factor applies.
+//   afterHit       {src, tgt, kind, single, broke, dmg, absorbed, killed, hit}   after every hit that landed
+//   break          {src, tgt}                        when an enemy's last shield layer falls
+//   afterIncoming  {src, tgt, kind, dmg, absorbed, hit}   after an enemy's hit on a crewmate landed
+// kind: basic, skill (the kit action: a paid skill in voyage fights, every turn in prototype fights), ult, follow,
+// chain (Harmony and overstrike hits after a Break), reflect, transfer (a guard intercepting), attack (an enemy's
+// turn), or a status's own name for status damage. single: true only for a crewmate's basic, skill or ult on the
+// action's one target; area hits, extra targets, follow-ups, chains and every enemy hit are not single.
+// The api: {G, rules, enemyAttack, U, liveFoes, livingCrew, rng}.
+var COMBAT_HOOKS=null;
+// Per-fight rules a host may change. The defaults change nothing. healMul and barrierMul scale what the crew restores
+// and grants; enemyAtkMul scales enemy damage; reformDelay adds AV before a Broken enemy reforms (below 0 it reforms
+// sooner, but never sooner than now); layerDelta adds enemy shield layers (or removes them, down to one) to every
+// enemy that enters, except the treasure carrier, which keeps its single layer.
+var COMBAT_RULES={healMul:1,barrierMul:1,enemyAtkMul:1,reformDelay:0,layerDelta:0};
+// Healing and barriers the crew gives pass through these. At the default 1 they return their input untouched.
+function healAmount(x){return COMBAT_RULES.healMul===1?x:Math.round(x*COMBAT_RULES.healMul)}
+function barrierAmount(x){return COMBAT_RULES.barrierMul===1?x:Math.round(x*COMBAT_RULES.barrierMul)}
+function countHeal(u,before){if(G.metrics&&u.hp>before)G.metrics.healed+=u.hp-before}
+function countBarrier(u,before){if(G.metrics&&u.bar>before)G.metrics.barrier+=u.bar-before}
+function combatHooked(name){var h=COMBAT_HOOKS&&COMBAT_HOOKS[name];return typeof h==='function'||Array.isArray(h)&&h.length>0}
+function combatEmit(name,payload){
+  if(!combatHooked(name))return undefined;
+  var api={G:G,rules:COMBAT_RULES,enemyAttack:enemyAttack,U:U,liveFoes:liveFoes,livingCrew:livingCrew,rng:rng},factor;
+  // Every listener's returned factor applies: the product of the finite numbers returned (each at least 0), else undefined.
+  [].concat(COMBAT_HOOKS[name]).forEach(function(listener){
+    var r=listener(payload,api);
+    if(typeof r==='number'&&isFinite(r))factor=(factor===undefined?1:factor)*Math.max(0,r);
+  });
+  return factor;
+}
 function enemyKitFor(archetype){
   var traitKit=SpacologyEnemyTraits.kit(archetype);if(traitKit)return traitKit;
   var label=window.SpacologyEnemyCatalogue&&window.SpacologyEnemyCatalogue.ARCHETYPES[archetype]
@@ -260,6 +307,11 @@ function build(team,planet){
      allyTurns:0,advances:0,advanceSaved:0,shieldedHits:0,alliedHits:0,breaks:0,chains:0,longest:1,supp:0,foeTurns:0,foeAttacks:0,recoveries:0,dealt:{},actions:0,
      limit:MAXROUND,deaths:0,heals:0,drains:0,lowest:100,downed:[],ults:0,biggest:0,
      pending:null,react:{},follows:0,doubles:0,firstMageSummon:true};
+  // Counters the rest of G does not keep: damage dealt by kind, what the crew healed, shielded and took, and Aether.
+  // lowestHp is the lowest health a crewmate (not a summon) reached: their starting health, then lowered by every hit,
+  // so a crewmate who goes down reaches 0, revived or not, and a last stand reaches 1. null with no crew. (G.lowest is
+  // the page's own figure: it starts at 100 whatever the crew's health.)
+  G.metrics={byKind:{},healed:0,barrier:0,taken:0,absorbed:0,aetherRefused:0,aetherPeak:0,lowestHp:null};
   t.crew.forEach(function(c,i){
     var hurt = CARRY && INJURED[c.n];
     var unitHp=window.SPACOLOGY_SESSION?(c.hp||100):100;
@@ -275,7 +327,9 @@ function build(team,planet){
       ult:c.ult||null, en:c.startEnergy||0, taken:0,
       hurt:!!hurt, hp:unitHp,max:unitHp,av:Math.max(1,10000/c.sp-(c.startAdvance||0)),alive:true});
     G.dealt[c.n]=0; });
+  G.units.forEach(function(u){if(u.side==='ally'&&!u.summon)G.metrics.lowestHp=G.metrics.lowestHp===null?u.hp:Math.min(G.metrics.lowestHp,u.hp)});
   if(window.SPACOLOGY_SESSION)G.aether=SpacologyAether.create(G.units);
+  if(G.aether)G.metrics.aetherPeak=G.aether.current;
   G.pool=[]; G.spawned=0;
   G.units=G.units.filter(function(u){return u.side!=='foe'});
   var catalogue=window.SpacologyEnemyCatalogue;
@@ -393,11 +447,18 @@ function spawnFoes(){
       sp:p.sp,baseSp:p.sp,haste:p.haste,hasteCap:p.hasteCap,hasteStacks:0,cleanse:p.cleanse,trait:p.trait,shieldPer:p.guard,dmg:p.dmg,elite:p.elite,eliteTier:p.eliteTier,hp:p.hp,max:p.hp,
       av:10000/p.sp*(0.5+rng()*0.5),alive:true,frac:0,struck:false,survey:0,
       shMax:p.layers,shL:p.layers,shC:p.guard,broken:false,regen:0,vuln:0});
+    applyLayerDelta(G.units[G.units.length-1]);
     added.push('f'+G.spawned); G.spawned++; live++;
   }
   SpacologyEnemyTraits.linkGuards(G.units);
   updateEnemyCounter();
   return added;
+}
+// The layerDelta rule: more or fewer shield layers for every enemy that enters, never below one for a shielded enemy.
+function applyLayerDelta(u){
+  var delta=COMBAT_RULES.layerDelta;if(!delta)return;
+  u.shMax=u.shL=Math.max(u.shMax>0?1:0,u.shMax+delta);
+  if(u.shL>0&&!(u.shC>0))u.shC=shieldCapacity(u);
 }
 function summonEnemy(actor,ev){
   var catalogue=window.SpacologyEnemyCatalogue;
@@ -409,6 +470,7 @@ function summonEnemy(actor,ev){
     nullStage:specimen.nullStage,nullSymptom:specimen.nullSymptom
   });
   if(!child)return false;
+  applyLayerDelta(child);
   G.units.push(child);ev.enemySummoned={id:child.id,name:child.n};
   ev.notes.push(actor.n+' calls '+child.n+' · '+(SpacologyEnemySummoning.MAX_CALLS-actor.summonCalls)+' calls remaining.');
   updateEnemyCounter();reflowFoes();queueReset(actor);return true;
@@ -511,7 +573,7 @@ function ultPolicy(u){
 }
 function nextUltimate(){
   var ready=[];
-  G.units.filter(function(u){return u.side==='ally'&&u.alive&&u.ult&&u.en>=EN.cost})
+  G.units.filter(function(u){return u.side==='ally'&&u.alive&&u.ult&&u.en>=EN.cost&&!(u.frozen>0)})
     .forEach(function(u){
       u.heldFor=(u.heldFor||0)+1;
       var r=ultPolicy(u);
@@ -538,7 +600,7 @@ function silenBonusTurn(){
   var chain=G.silenChain,session=window.SPACOLOGY_SESSION||{};
   if(!chain||!G.aether||G.aether.current<SpacologyAether.continuationCost(chain.index)+(chain.reserve||0))return null;
   var actor=U(chain.actor),target=U(chain.target);
-  if(!actor||!actor.alive||!SpacologyAether.overchargeEnabled(session,actor.n)||(session.aetherModes||{})[actor.n]==='build')return null;
+  if(!actor||!actor.alive||actor.frozen>0||!SpacologyAether.overchargeEnabled(session,actor.n)||(session.aetherModes||{})[actor.n]==='build')return null;
   if(!target||!target.alive)target=treasureTargets(liveFoes()).slice().sort(function(a,b){return b.hp-a.hp})[0];
   if(!target&&G.spawned>=G.pool.length)return null;
   return {actor:actor,target:target,chain:chain};
@@ -569,6 +631,9 @@ function timelineEntries(){
 /* ---- Resolving one action: shields, Breaks, tempo, Weaver kits, Aether planning, enemy traits (watchable-fight.html, lines 1690–2126 before extraction) ---- */
 /* ============ resolve one action (pure) ============ */
 function shieldCapacity(u){return u.shieldPer||SHPER;}
+// Whether act's attack can still damage tgt's shield, at every site that shreds: both still standing (a follow-up or a
+// hook may have felled either earlier in the action, and a fallen unit Breaks nothing), and a shield left to damage.
+function canShred(act,tgt){return act.alive&&tgt.alive&&!tgt.broken&&tgt.shL>0}
 function setEnemySpeed(u,speed){
   var ratio=u.sp/speed;
   // Preserve progress through the current wait, including a deferred queue reset.
@@ -576,13 +641,16 @@ function setEnemySpeed(u,speed){
   if(G.pending&&G.pending.id===u.id)G.pending.av*=ratio;
   u.sp=speed;
 }
-function breakEnemy(u){
+function breakEnemy(u,src){
   u.broken=true;u.vuln=1;u.skips=G.bon&&G.bon.dissect?2:0;
   if(u.hasteStacks){u.hasteStacks=0;setEnemySpeed(u,u.baseSp);}
   u.av+=(10000/u.sp)*(window.SPACOLOGY_SESSION?OPS_RECOVERY:BRK.delay);
+  if(COMBAT_RULES.reformDelay)u.av=Math.max(0,u.av+COMBAT_RULES.reformDelay); // a faster reform is due now, never in the past
   var returned=SpacologyEnemyTraits.interrupt(u,G.aether);
   if(returned.stored)traitNote(u.n+' releases '+returned.returned+' of '+returned.stored+' stored Aether.');
   G.breaks++;
+  if(src)(G.justBroke||(G.justBroke={}))[u.id]=src.id; // the breaker's next hit on u reports broke
+  combatEmit('break',{src:src||null,tgt:u});
 }
 function accelerateEnemy(u,damage){
   if(u.side!=='foe'||!u.alive||u.broken||!u.haste||damage<=0||u.hasteStacks>=u.hasteCap)return;
@@ -619,35 +687,50 @@ function weaverPartner(act,flag){
   return weaverAllies().filter(function(x){return x.id!==act.id&&!x[flag]&&(flag!=='weaverDiscount'||SpacologyAether.profile(x.n).cost>1)})
     .sort(function(a,b){return flag==='weaverDiscount'?((b===burst?1:0)-(a===burst?1:0)||SpacologyAether.profile(b.n).cost-SpacologyAether.profile(a.n).cost):a.av-b.av})[0];
 }
-function weaverBarrier(u,amount){var added=Math.round(amount*((G.bon&&G.bon.barrier)||1)*(u.barrierMul||1));var before=u.bar;u.bar=Math.min(160,u.bar+added);return u.bar-before}
+function weaverBarrier(u,amount){var added=barrierAmount(Math.round(amount*((G.bon&&G.bon.barrier)||1)*(u.barrierMul||1)));var before=u.bar;u.bar=Math.min(160,u.bar+added);countBarrier(u,before);return u.bar-before}
 function weaverGuard(act,tgt,amount,ev){
-  if(tgt.broken||tgt.shL<=0)return;
+  if(!canShred(act,tgt))return;
   var before=tgt.shL,pressure=amount*(isWeak(tgt,act.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
   while(pressure>0&&tgt.shL>0){if(pressure>=tgt.shC){pressure-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}else{tgt.shC-=pressure;pressure=0}}
   ev.shield={id:tgt.id,from:before,to:tgt.shL,match:isWeak(tgt,act.e)};
-  if(tgt.shL<=0){breakEnemy(tgt);ev.broke=tgt.id;cascade(ev,act,tgt,['break'])}
+  if(tgt.shL<=0){breakEnemy(tgt,act);ev.broke=tgt.id;cascade(ev,act,tgt,['break'])}
 }
 function weaverAfterBasic(act,ev){
   if(act.weaverTune)delete act.weaverTune;
-  if(act.n==='Daven'){var bar=weaverBarrier(act,6);ev.notes.push('Check the Brace: +'+bar+' barrier.');}
+  if(act.n==='Daven'&&act.alive){var bar=weaverBarrier(act,6);ev.notes.push('Check the Brace: +'+bar+' barrier.');}
   if(act.n==='Veska'){act.refrain=Math.min(3,(act.refrain||0)+1);ev.notes.push('Refrain '+act.refrain+'/3.');}
   if(act.n==='Roonie'){
     act.workshopBasics=(act.workshopBasics||0)+1;
     if(act.workshopBasics%2===0){var target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;ev.notes.push('Pocket Workshop: '+target.n+' next skill costs 1 less.');}}
   }
 }
+// Every Aether credit the core makes asks the gain hook first. A listener may set amount to any whole number from 0 up;
+// what it takes away is counted as refused (metrics.aetherRefused) and held in G.aetherRefusedPending until
+// resolveAction reports it on the action's event (see there), so every refusal is on exactly one event.
+function combatGain(actor,amount,source){
+  if(!combatHooked('gain'))return amount;
+  var p={actor:actor||null,amount:amount,pool:G.aether,source:source};
+  combatEmit('gain',p);
+  var allowed=Math.max(0,Math.floor(Number(p.amount)||0)),refused=Math.max(0,amount-allowed);
+  if(refused){
+    if(G.metrics)G.metrics.aetherRefused+=refused;
+    G.aetherRefusedPending=(G.aetherRefusedPending||0)+refused;
+  }
+  return allowed;
+}
 function weaverRefill(ev,amount){
   if(!G.aether||!amount)return;
+  var asked=amount;amount=combatGain(ev.actor,amount,'refill');
   var before=G.aether.current,gain=SpacologyAether.credit(G.aether,amount);
   ev.aether=ev.aether||{kind:'ultimate',delta:0,before:before,reason:'shared pool refill'};
   ev.aether.generated=(ev.aether.generated||0)+gain;
   ev.aether.delta+=gain;ev.aether.after=G.aether.current;
-  ev.notes.push('Restored '+gain+' Aether'+(gain<amount?' ('+(amount-gain)+' overflow)':'')+'.');
+  ev.notes.push('Restored '+gain+' Aether'+(gain<amount?' ('+(amount-gain)+' overflow)':'')+(asked>amount?' ('+(asked-amount)+' refused)':'')+'.');
 }
 function resolveSilenStrike(act,tgt,ev,index){
   weaverGuard(act,tgt,act.dmg*.5,ev);
   if(!tgt.alive)return;
-  var strike=hit(act,tgt,SpacologyAether.chainMultiplier(index));
+  var strike=hit(act,tgt,SpacologyAether.chainMultiplier(index),{kind:'skill'});
   strike.chain=false; // This is the turn's attack, not a follow-up.
   strike.pulse=index+1;strike.multiplier=SpacologyAether.chainMultiplier(index);strike.aetherAfter=G.aether.current;
   ev.hits.push(strike);
@@ -660,6 +743,7 @@ function resolveSilenBonus(bonus){
   var retargeted=tgt.id!==chain.target;chain.target=tgt.id;
   var cost=SpacologyAether.continuationCost(chain.index);
   if(!SpacologyAether.spendContinuation(G.aether,chain.index))return null;
+  combatEmit('spend',{actor:act,amount:cost,pool:G.aether,kind:'continuation'});
   G.allyTurns=(G.allyTurns||0)+1;act.lastStandGuard=false;
   if(chain.releasesReservation)G.aether.reserveAfter++;
   var ev={actor:act,hits:[],chains:[],notes:[],bonusTurn:true,bonusIndex:chain.index,
@@ -679,28 +763,29 @@ function resolveWeaverSkill(act,tgt,ev,plan){
   ev.notes.push(SpacologyWeavers.crew[act.n].kit.basic[0]);
   delete act.aetherPower; // Dedicated kits specify their own damage multipliers.
   if(act.n==='Hanae'){
-    weaverGuard(act,tgt,act.dmg,ev);ev.hits.push(hit(act,tgt,2));weaverRefill(ev,5);tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;
+    weaverGuard(act,tgt,act.dmg,ev);ev.hits.push(hit(act,tgt,2,{kind:'skill'}));weaverRefill(ev,5);if(act.alive){tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;}
     target=weaverPartner(act,'weaverTune');if(target){target.weaverTune=true;ev.notes.push(target.n+' next basic gathers +1 Aether.');}
   }else if(act.n==='Ivara'){
-    weaverGuard(act,tgt,act.dmg*1.5,ev);ev.hits.push(hit(act,tgt,3));tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;
+    weaverGuard(act,tgt,act.dmg*1.5,ev);ev.hits.push(hit(act,tgt,3,{kind:'skill'}));if(act.alive){tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id;}
   }else if(act.n==='Silen'){
     resolveSilenStrike(act,tgt,ev,0);
     G.silenChain={actor:act.id,target:tgt.id,index:1,reserve:plan.reserve||0,releasesReservation:plan.releasesReservation};
     if(!silenBonusTurn())G.silenChain=null;
     if(G.silenChain)ev.notes.push('Rising Current grants an immediate extra turn.');
   }else if(act.n==='Arunima'){
+    var delayed=0;
     G.units.filter(function(x){return x.side==='foe'&&x.alive}).forEach(function(x){
       weaverGuard(act,x,act.dmg*(2+.5*plan.extra),ev);
-      ev.hits.push(hit(act,x,3+plan.extra,{area:true}));if(x.alive)x.av+=15;
-    });ev.notes.push('Proof by Transit: '+((3+plan.extra)*100)+'% attack; all enemies delayed 15 AV.');
+      ev.hits.push(hit(act,x,3+plan.extra,{area:true,kind:'skill'}));if(x.alive&&act.alive){x.av+=15;delayed++;}
+    });ev.notes.push('Proof by Transit: '+((3+plan.extra)*100)+'% attack; '+(act.alive?'all enemies delayed 15 AV.':'Arunima fell partway; '+delayed+(delayed===1?' enemy':' enemies')+' delayed 15 AV.'));
   }else if(act.n==='Roonie'){
     target=weaverPartner(act,'weaverDiscount');if(target){target.weaverDiscount=true;bar=weaverBarrier(target,20);ev.mends=[{tgt:target.id,amt:0,bar:bar,ch:0}];ev.notes.push(target.n+' next skill costs 1 less.');}
     weaverRefill(ev,3);
   }else if(act.n==='Veska'){
-    var refrains=act.refrain||0,amount=Math.round((12+6*refrains)*((G.bon&&G.bon.healMul)||1));act.refrain=0;weaverRefill(ev,refrains);
-    ev.mends=weaverAllies().map(function(x){var before=x.hp;x.hp=Math.min(x.max,x.hp+amount);return {tgt:x.id,amt:x.hp-before,bar:0,ch:0}});G.heals++;
+    var refrains=act.refrain||0,amount=healAmount(Math.round((12+6*refrains)*((G.bon&&G.bon.healMul)||1)));act.refrain=0;weaverRefill(ev,refrains);
+    ev.mends=weaverAllies().map(function(x){var before=x.hp;x.hp=Math.min(x.max,x.hp+amount);countHeal(x,before);return {tgt:x.id,amt:x.hp-before,bar:0,ch:0}});G.heals++;
   }else if(act.n==='Daven'){
-    weaverGuard(act,tgt,act.dmg*1.5,ev);ev.hits.push(hit(act,tgt,2.25));bar=weaverBarrier(act,32);act.taunt=5;ev.mends=[{tgt:act.id,amt:0,bar:bar,ch:0}];ev.notes.push('Daven draws attacks until his next turn.');
+    weaverGuard(act,tgt,act.dmg*1.5,ev);ev.hits.push(hit(act,tgt,2.25,{kind:'skill'}));bar=act.alive?weaverBarrier(act,32):0;act.taunt=5;ev.mends=[{tgt:act.id,amt:0,bar:bar,ch:0}];ev.notes.push('Daven draws attacks until his next turn.');
   }
   act.en=Math.min(EN.cost,act.en+EN.act+EN.perHit);
   queueReset(act);return ev;
@@ -748,11 +833,11 @@ function resolveSummonAction(act,ev){
     ev.notes.push('Route Sweep: crew barriers raised'+(target?' and '+target.n+' advanced.':'.'));
   }else if(act.n==='J3K-036'){
     foes=G.units.filter(function(x){return x.side==='foe'&&x.alive});ev.aoe=true;
-    foes.forEach(function(x){weaverGuard(act,x,act.dmg*1.5,ev);x.survey=Math.max(x.survey||0,1);ev.hits.push(hit(act,x,.55,{area:true}));});
+    foes.forEach(function(x){weaverGuard(act,x,act.dmg*1.5,ev);x.survey=Math.max(x.survey||0,1);ev.hits.push(hit(act,x,.55,{area:true,kind:'skill'}));});
     ev.surveyedAll=true;ev.notes.push('Harmonic Survey: all enemies marked and dealt shield damage.');
   }else{
     target=crew.slice().sort(function(a,b){return a.hp/a.max-b.hp/b.max})[0];
-    if(target){before=target.hp;target.hp=Math.min(target.max,target.hp+18);bar=weaverBarrier(target,10);G.heals++;
+    if(target){before=target.hp;target.hp=Math.min(target.max,target.hp+healAmount(18));countHeal(target,before);bar=weaverBarrier(target,10);G.heals++;
       ev.heal={src:act.id,tgt:target.id,amt:target.hp-before,bar:bar,clutch:before<=18};}
     ev.notes.push('Sample Return: '+(target?target.n+' restored and protected.':'sample secured.'));
   }
@@ -905,26 +990,26 @@ function planAetherAction(u,target){
     canWait:remaining>nextTurn&&owner===u&&projected>=(spendLimit===null?SpacologyAether.budget(G.aether,u,session):spendLimit)});
 }
 function resolveBasic(act,tgt,ev,plan){
-  if(!tgt.broken&&tgt.shL>0){
+  if(canShred(act,tgt)){
     var before=tgt.shL,pressure=act.dmg*.75*(isWeak(tgt,act.e)?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
     while(pressure>0&&tgt.shL>0){if(pressure>=tgt.shC){pressure-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}else{tgt.shC-=pressure;pressure=0}}
     ev.shield={id:tgt.id,from:before,to:tgt.shL,match:isWeak(tgt,act.e)};
     if(tgt.shL<=0){
-      breakEnemy(tgt);ev.broke=tgt.id;
-      if(G.bon&&G.bon.overstrike){var over=hit(act,tgt,.9);over.over=true;ev.chains.push(over)}
+      breakEnemy(tgt,act);ev.broke=tgt.id;
+      if(G.bon&&G.bon.overstrike){var over=hit(act,tgt,.9,{kind:'chain'});over.over=true;ev.chains.push(over)}
       var harmony=livingCrew().filter(function(u){return u.e===act.e&&u.id!==act.id});
-      if(harmony.length){G.chains++;G.longest=Math.max(G.longest,harmony.length+1);harmony.forEach(function(u){ev.chains.push(hit(u,tgt,HARM*(u.followMul||1)))})}
+      if(harmony.length){G.chains++;G.longest=Math.max(G.longest,harmony.length+1);harmony.forEach(function(u){ev.chains.push(hit(u,tgt,HARM*(u.followMul||1),{kind:'chain'}))})}
       cascade(ev,act,tgt,['break']);
     }
   }
-  if(act.frac){tgt.frac=Math.min(12,(tgt.frac||0)+1);ev.fracs=[tgt.id]}
-  if(act.marks){tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id}
+  if(act.alive&&act.frac){tgt.frac=Math.min(12,(tgt.frac||0)+1);ev.fracs=[tgt.id]}
+  if(act.alive&&act.marks){tgt.survey=Math.max(tgt.survey||0,1);ev.surveyed=tgt.id}
   var basicMult=SpacologyWeavers.crew[act.n]?1.25:.75;
-  ev.hits.push(hit(act,tgt,basicMult));tgt.struck=true;
-  if(act.extraTargets)G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,basicMult*.7))});
+  ev.hits.push(hit(act,tgt,basicMult,{kind:'basic'}));if(act.alive)tgt.struck=true;
+  if(act.extraTargets)G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,basicMult*.7,{kind:'basic',single:false}))});
   act.en=Math.min(EN.cost,act.en+EN.act+EN.perHit);
   reactTo(ev,act,tgt,0);
-  var beforeAether=G.aether.current,gain=SpacologyAether.generate(G.aether,plan.gain);
+  var beforeAether=G.aether.current,allowed=combatGain(act,plan.gain,'basic'),gain=SpacologyAether.generate(G.aether,allowed);
   ev.aether={kind:'basic',delta:gain,before:beforeAether,after:G.aether.current,reason:plan.reason};
   weaverAfterBasic(act,ev);queueReset(act);return ev;
 }
@@ -944,7 +1029,7 @@ function settleEnemyTraits(){
       parent.summonCooldown=0;
       var specimen=SpacologyEnemyCatalogue.generateEnemy(u.id+'-brood-'+i,{faction:u.factionId||OPS_FACTION,archetype:'chaff',element:u.e});
       var child=SpacologyEnemySummoning.act(parent,G.units,FIELD,{n:specimen.typeName,typeName:specimen.typeName,specimenName:specimen.name,portrait:specimen.portrait,factionId:specimen.faction,factionName:specimen.factionName,factionRule:specimen.factionRule,bodyPlan:specimen.bodyPlan,material:specimen.material,adaptation:specimen.adaptation,nullStage:specimen.nullStage,nullSymptom:specimen.nullSymptom});
-      if(child){G.units.push(child);added=true;traitNote(u.n+' releases '+child.n+' (no recovery points).');}
+      if(child){applyLayerDelta(child);G.units.push(child);added=true;traitNote(u.n+' releases '+child.n+' (no recovery points).');}
     }
   });
   SpacologyEnemyTraits.linkGuards(G.units);
@@ -956,10 +1041,10 @@ function fieldCleanse(act,ev){
   patients.sort(function(a,b){function urgency(u){var s=u.ailments||{};return (s.bomb?10-s.bomb.turns:0)+(s.poison?s.poison.stacks*2:0)+Object.keys(s).length}return urgency(b)-urgency(a)});
   var target=patients[0];if(!target)return false;
   var removed=SpacologyEnemyTraits.cleanse(target),before=target.hp;
-  target.hp=Math.min(target.max,target.hp+Math.max(1,Math.round((act.heal||20)*.5)));
+  target.hp=Math.min(target.max,target.hp+healAmount(Math.max(1,Math.round((act.heal||20)*.5))));countHeal(target,before);
   ev.mends=[{tgt:target.id,amt:target.hp-before,bar:0,ch:0}];ev.supportAction=true;
   ev.notes.push(act.n+' cleanses '+removed+' status effects from '+target.n+'.');
-  if(G.aether){var beforeAether=G.aether.current,gain=SpacologyAether.generate(G.aether,SpacologyAether.profile(act.n).gain);ev.aether={kind:'basic',delta:gain,before:beforeAether,after:G.aether.current,reason:'field cleanse'};}
+  if(G.aether){var beforeAether=G.aether.current,asked=SpacologyAether.profile(act.n).gain,allowed=combatGain(act,asked,'basic'),gain=SpacologyAether.generate(G.aether,allowed);ev.aether={kind:'basic',delta:gain,before:beforeAether,after:G.aether.current,reason:'field cleanse'};}
   act.en=Math.min(EN.cost,act.en+EN.act);G.heals++;queueReset(act);return true;
 }
 function enemyTraitAction(act,tgt,ev){
@@ -982,16 +1067,35 @@ function finishCrewConditions(ev){
     var attacked=ev.hits.some(function(h){return h.src===act.id&&!h.skipped&&U(h.tgt)?.side==='foe'});
     SpacologyEnemyTraits.statusDamage(act,attacked).forEach(function(tick){
       if(!act.alive||act.recoveryGuard||act.lastStandGuard)return;
-      var source=U(tick.source)||{id:act.id,side:'foe',alive:true,dmg:tick.amount};
-      // Ticks persist after their source falls and share normal barrier/downing rules.
-      var h=hit(Object.assign({},source,{alive:true,side:'foe'}),act,1,{flat:tick.amount,condition:true});
+      var live=U(tick.source),source=live||{id:act.id,side:'foe',alive:true,dmg:tick.amount};
+      // Ticks persist after their source falls and share normal barrier/downing rules. The damage uses a living copy;
+      // hooks are told the live source (options.source), fallen or not.
+      var h=hit(Object.assign({},source,{alive:true,side:'foe'}),act,1,{flat:tick.amount,condition:true,kind:tick.kind,source:live||null});
       h.condition=tick.kind;ev.hits.push(h);ev.notes.push(act.n+' suffers '+tick.kind+' ('+h.dmg+' health damage).');
     });
   }
 }
+// Refused Aether (combatGain) is reported on the event of the action it happened in: as event.aether.refused when the
+// action has an Aether record, else as a top-level event.refused (Aether too), never as a stub event.aether (the page
+// reads ev.aether.kind). The count is drained here, after status ticks, and never reset, so a refusal made between
+// actions lands on the next event and the events always add up to metrics.aetherRefused.
+function reportRefused(event){
+  var n=G.aetherRefusedPending;if(!n)return;
+  if(event.aether)event.aether.refused=(event.aether.refused||0)+n;else event.refused=(event.refused||0)+n;
+  G.aetherRefusedPending=0;
+}
+// A hook may move the acting unit (u.av+=60), including from a status tick after its turn reset is queued. queueReset
+// sets the next wait without reading u.av and applyReset then overwrites u.av, so the actor's av at the end of the action
+// (exactly 0 unless a hook moved it: advanceCombat spent it, and the actor's own av is clamped at 0 there) is added to
+// the queued wait. A crewmate revived this action is skipped: the revival already set its wait.
+function foldPendingDelay(){
+  if(!G.pending)return;
+  var pu=U(G.pending.id);
+  if(pu&&!pu.recoveryGuard&&pu.av)G.pending.av+=pu.av;
+}
 function resolveAction(){
   var event;
-  try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];event=resolveActionCore();if(event){finishCrewConditions(event);settleEnemyTraits();if(G.traitSpawned){event.traitSpawned=true;G.traitSpawned=false;}if(event.notes)event.notes.push(...(G.traitNotes||[]));G.traitNotes=[];event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
+  try{G.units.forEach(function(u){u.recoveryGuard=false});G.damageTimeline=[];G.justBroke={};G.hookHits=[];event=resolveActionCore();if(event){finishCrewConditions(event);foldPendingDelay();if(G.hookHits.length&&event.hits)event.hits=event.hits.concat(G.hookHits);reportRefused(event);settleEnemyTraits();if(G.traitSpawned){event.traitSpawned=true;G.traitSpawned=false;}if(event.notes)event.notes.push(...(G.traitNotes||[]));G.traitNotes=[];event.timeline=G.damageTimeline.slice();if(event.hits)event.hits=event.hits.filter(h=>!h.skipped);if(event.chains)event.chains=event.chains.filter(h=>!h.skipped)}return event}
   finally{if(G){
     G.units.forEach(function(u){if(SpacologyVoyage.updateBoss(u)){var note='Boss phase 2: guard strength falls 40%; attack damage rises 35%.';if(event&&event.notes)event.notes.push(note);log(note,'rnd');}});
     settleTreasure(false);
@@ -1001,6 +1105,7 @@ function resolveAction(){
       SpacologyAether.sync(G.aether,G.units.filter(function(u){return u.side==='ally'&&!u.summon}));
       if(event&&event.aether)event.aether.after=G.aether.current;
       if(event&&event.notes&&G.aether.max<previousCap)event.notes.push('Aether capacity falls to '+G.aether.max+'.');
+      if(G.metrics)G.metrics.aetherPeak=Math.max(G.metrics.aetherPeak,G.aether.current);
     }
   }}
 }
@@ -1028,26 +1133,26 @@ function resolveActionCore(){
     var u2=au.ult;
     var fs2=G.units.filter(function(x){return x.side==='foe'&&x.alive});
     if(u2.kind==='aoe'){
-      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,u2.mult*(au.ultMul||1),{area:true}));
+      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,u2.mult*(au.ultMul||1),{area:true,kind:'ult'}));
         if(u2.frac) x.frac=Math.min(12,(x.frac||0)+u2.frac+((G.bon&&G.bon.stackUp)||0));
         if(u2.survey){ x.survey=u2.survey; ev1.surveyedAll=true; } });
     } else if(u2.kind==='nuke'){
       var bt2=chooseUltimateTarget(au,fs2);
       if(bt2){ var m2=u2.mult+(u2.eat&&bt2.frac?u2.eat*bt2.frac:0);
         if(u2.eat) bt2.frac=0;
-        ev1.hits.push(hit(au,bt2,m2*(au.ultMul||1))); }
+        ev1.hits.push(hit(au,bt2,m2*(au.ultMul||1),{kind:'ult'})); }
     } else if(u2.kind==='mend'){
       livingCrew().forEach(function(a){
-        var b4=a.hp; a.hp=Math.min(a.max,a.hp+u2.amt);
+        var b4=a.hp; a.hp=Math.min(a.max,a.hp+healAmount(u2.amt)); countHeal(a,b4);
         var cleansed=SpacologyEnemyTraits.cleanse(a);if(cleansed)ev1.notes.push(a.n+' cleansed of '+cleansed+' status effects.');
-        var barrier2=u2.barrier?Math.round(u2.barrier*(a.barrierMul||1)):0;
-        if(barrier2) a.bar=Math.min(160,a.bar+barrier2);
+        var barrier2=u2.barrier?barrierAmount(Math.round(u2.barrier*(a.barrierMul||1))):0;
+        if(barrier2){ var bar4=a.bar; a.bar=Math.min(160,a.bar+barrier2); countBarrier(a,bar4); }
         if(u2.charge) a.en=Math.min(EN.cost,a.en+u2.charge);
         ev1.mends=ev1.mends||[];
         ev1.mends.push({tgt:a.id,amt:a.hp-b4,bar:barrier2,ch:u2.charge||0}); });
     } else if(u2.kind==='lash'){
       var pool4=au.taken*u2.mult/Math.max(1,fs2.length);
-      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,(pool4/Math.max(1,au.dmg))*(au.ultMul||1),{area:true})); });
+      fs2.forEach(function(x){ ev1.hits.push(hit(au,x,(pool4/Math.max(1,au.dmg))*(au.ultMul||1),{area:true,kind:'ult'})); });
       ev1.lashed=Math.round(au.taken); au.taken=0;
     }
     if(G.aether&&u2.aether)weaverRefill(ev1,u2.aether);
@@ -1071,6 +1176,7 @@ function resolveActionCore(){
         .forEach(function(f){
           var d=Math.round(f.frac*7*(1+0.12*f.frac));
           f.hp=Math.max(0,f.hp-d);
+          if(G.metrics)G.metrics.byKind.bloom=(G.metrics.byKind.bloom||0)+d;
           G.biggest=Math.max(G.biggest,d);
           ev0.burn.push({id:f.id,dmg:d,stacks:f.frac});
           f.frac=0;
@@ -1086,15 +1192,18 @@ function resolveActionCore(){
     return {end:'Crew wins'};
   if(!alive.some(function(u){return u.side==='ally'&&!u.summon})) return {end:'Crew wiped'};
   alive.sort(function(a,b){return a.av-b.av});
-  var act=alive[0], adv=act.av;
+  var act=alive[0], adv=Math.max(0,act.av); // a unit overdue (a hook moved it below 0) acts now; time never runs back
   var oldRound=G.round;
   if(advanceCombat(adv))return {end:'Out of time'};
+  if(act.av<0)act.av=0; // the overdue part is spent by acting now; foldPendingDelay must not carry it into the next wait
   if(act.side==='ally'){G.allyTurns=(G.allyTurns||0)+1;act.lastStandGuard=false;}
   if(act.n==='Daven'){act.weaverRefundUsed=false;act.taunt=2;}
   var ev={actor:act,hits:[],chains:[],notes:[],roundStart:G.round>oldRound?G.round:null,suppressed:false};
 
   var fresh=spawnFoes();
   if(fresh.length){ ev.reinforced=fresh; reflowFoes(); }
+  // A frozen crewmate's turn passes: u.frozen counts the turns left. Reinforcements above still arrive.
+  if(act.side==='ally'&&act.frozen>0){ act.frozen--; ev.frozen=true; ev.notes.push(act.n+' is frozen and loses the turn.'); queueReset(act); return ev; }
   var pool=G.units.filter(function(u){return u.side!==act.side&&u.alive&&!(act.side==='foe'&&u.summon)});
   if(!pool.length && G.spawned>=G.pool.length) return {end:'Crew wins'};
   if(!pool.length) return ev;
@@ -1127,14 +1236,14 @@ function resolveActionCore(){
     if(act.cleanse&&act.frac){var shed=Math.min(act.frac,act.cleanse);act.frac-=shed;ev.notes.push(act.n+' sheds '+shed+' fracture.');}
     G.foeAttacks++;
     if(act.boss){act.bossAttacks++;if(act.bossAttacks%3===2)ev.notes.push('Boss is charging a heavy strike for its next attack. Break or delay it.');if(act.bossAttacks%3===0)ev.notes.push('Boss releases its heavy strike!');}
-    var h0=hit(act,tgt,special?special.plan.scale:act.boss&&act.bossAttacks%3===0?1.8:undefined); ev.hits.push(h0);
+    var h0=hit(act,tgt,special?special.plan.scale:act.boss&&act.bossAttacks%3===0?1.8:undefined,{kind:'attack'}); ev.hits.push(h0);
     if(special&&!h0.skipped&&!h0.guarded&&!h0.sheltered&&tgt.alive&&G.deaths===downsBefore){
       if(special.plan.status&&SpacologyEnemyTraits.applyStatus(tgt,special.plan.status,act.id,protectedAtImpact))ev.notes.push(tgt.n+' receives '+special.plan.status+'.');
       if(special.plan.delay&&!protectedAtImpact&&(tgt.delayImmuneUntil||0)<=G.av){tgt.av+=special.plan.delay;tgt.delayImmuneUntil=G.av+100;ev.notes.push(tgt.n+' delayed '+special.plan.delay+' AV.');}
     }
     cascade(ev,act,liveFoes()[0],['hurt']);
     if(tgt.reflect&&tgt.alive){
-      ev.reflect=hit(tgt,act,(h0.dmg*tgt.reflect)/Math.max(1,tgt.dmg));
+      ev.reflect=hit(tgt,act,(h0.dmg*tgt.reflect)/Math.max(1,tgt.dmg),{kind:'reflect'});
       ev.hits.push(ev.reflect); }
     queueReset(act); return ev; }
 
@@ -1149,6 +1258,7 @@ function resolveActionCore(){
     if(!SpacologyAether.spend(G.aether,payment))throw new Error('Aether changed during action');
     if(actionPlan.discount)delete act.weaverDiscount;
     ev.aether={kind:'skill',spent:payment.cost,delta:-payment.cost,before:beforeAether,after:G.aether.current,reason:actionPlan.reason};
+    combatEmit('spend',{actor:act,amount:payment.cost,pool:G.aether,kind:'skill'});
     act.aetherPower=(act.aoe||act.heal||act.kindle?1:1.5)*(actionPlan.extra?1.35:1);
     SpacologyAether.recordAction(G.aether,act,actionPlan,G.allyTurns,livingCrew().length);
   }
@@ -1192,15 +1302,15 @@ function resolveActionCore(){
       return u.hp/u.max<0.45})
       .sort(function(a,b){return a.hp/a.max-b.hp/b.max});
     if(hurt.length){
-      var pt=hurt[0], before2=pt.hp;
-      var room=pt.max-pt.hp, gain=Math.min(room,act.heal), spill=act.heal-gain;
-      pt.hp+=gain;
+      var pt=hurt[0], before2=pt.hp, mendAmt=healAmount(act.heal);
+      var room=pt.max-pt.hp, gain=Math.min(room,mendAmt), spill=mendAmt-gain;
+      pt.hp+=gain; countHeal(pt,before2);
       gain=Math.round(gain*((G.bon&&G.bon.healMul)||1));
-      if(act.over&&spill>0){ pt.bar=Math.min(90,
-        pt.bar+Math.round(spill*0.8*((G.bon&&G.bon.barrier)||1)*(pt.barrierMul||1))); }
+      if(act.over&&spill>0){ var barBefore2=pt.bar; pt.bar=Math.min(90,
+        pt.bar+barrierAmount(Math.round(spill*0.8*((G.bon&&G.bon.barrier)||1)*(pt.barrierMul||1)))); countBarrier(pt,barBefore2); }
       G.heals++;
       act.en=Math.min(EN.cost,act.en+EN.act+18);
-      ev.heal={src:act.id,tgt:pt.id,amt:gain,bar:act.over?Math.round(spill*0.8*(pt.barrierMul||1)):0,
+      ev.heal={src:act.id,tgt:pt.id,amt:gain,bar:act.over?barrierAmount(Math.round(spill*0.8*(pt.barrierMul||1))):0,
                clutch:before2<=18};
       queueReset(act); return ev;
     }
@@ -1225,39 +1335,40 @@ function resolveActionCore(){
     var all=G.units.filter(function(x){return x.side==='foe'&&x.alive});
     ev.aoe=true;
     all.forEach(function(x){
-      if(!x.broken&&x.shL>0){
+      if(canShred(act,x)){
         var b0=x.shL, p0=act.shred*(isWeak(x,act.e)?1:0.5)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
         while(p0>0&&x.shL>0){ if(p0>=x.shC){p0-=x.shC;x.shL--;x.shC=x.shL>0?shieldCapacity(x):0}
           else{x.shC-=p0;p0=0} }
         if(b0>x.shL) (ev.shreds=ev.shreds||[]).push({id:x.id,from:b0,to:x.shL});
-        if(x.shL<=0){ breakEnemy(x); (ev.broke2=ev.broke2||[]).push(x.id); }
+        if(x.shL<=0){ breakEnemy(x,act); (ev.broke2=ev.broke2||[]).push(x.id); }
       }
-      if(act.frac){ x.frac=Math.min(12,(x.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
+      if(act.alive&&act.frac){ x.frac=Math.min(12,(x.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
         (ev.fracs=ev.fracs||[]).push(x.id); }
-      ev.hits.push(hit(act,x,1,{area:true})); x.struck=true; });
+      ev.hits.push(hit(act,x,1,{area:true,kind:'skill'})); if(act.alive)x.struck=true; });
     reactTo(ev,act,all[0],0);
     queueReset(act); return ev;
   }
 
-  if(!tgt.broken&&tgt.shL>0){
+  if(canShred(act,tgt)){
     var before=tgt.shL, match=isWeak(tgt,act.e);
     var p=act.dmg*(match?1:UNMATCHED)*((G.bon&&G.bon.shredMul)||1)*(act.guardMul||1);
     while(p>0&&tgt.shL>0){ if(p>=tgt.shC){p-=tgt.shC;tgt.shL--;tgt.shC=tgt.shL>0?shieldCapacity(tgt):0}
       else{tgt.shC-=p;p=0} }
     ev.shield={id:tgt.id,from:before,to:tgt.shL,match:match};
     if(tgt.shL<=0){
-      breakEnemy(tgt);
-      if(G.bon&&G.bon.overstrike){ var h2=hit(act,tgt,0.9); h2.over=true; ev.chains.push(h2); }
+      breakEnemy(tgt,act);
+      if(G.bon&&G.bon.overstrike){ var h2=hit(act,tgt,0.9,{kind:'chain'}); h2.over=true; ev.chains.push(h2); }
       ev.broke=tgt.id;
       var al=livingCrew().filter(function(u){
         return u.e===act.e&&u.id!==act.id});
       if(al.length){ G.chains++; G.longest=Math.max(G.longest,al.length+1);
-        al.forEach(function(a){ ev.chains.push(hit(a,tgt,HARM*(a.followMul||1))); }); }
+        al.forEach(function(a){ ev.chains.push(hit(a,tgt,HARM*(a.followMul||1),{kind:'chain'})); }); }
       cascade(ev,act,tgt,['break']);
     }
   }
-  if(act.marks){ tgt.survey=act.marks; ev.surveyed=tgt.id; }
-  if(act.frac){ tgt.frac=Math.min(12,(tgt.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
+  // A crewmate felled earlier in this action (a hook's counterattack) marks, fractures and strikes nothing more.
+  if(act.alive&&act.marks){ tgt.survey=act.marks; ev.surveyed=tgt.id; }
+  if(act.alive&&act.frac){ tgt.frac=Math.min(12,(tgt.frac||0)+act.frac+((G.bon&&G.bon.stackUp)||0));
     ev.fracs=[tgt.id];
     if(act.spreadExtra){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.spreadExtra).forEach(function(x){x.frac=Math.min(12,(x.frac||0)+act.frac);ev.fracs.push(x.id)})} }
   var scale=1;
@@ -1270,11 +1381,11 @@ function resolveActionCore(){
     if(q.length){ var nx=q[0];
       advanceAlly(nx,(10000/nx.sp)*0.5);
       ev.advanced={id:nx.id,name:nx.n}; } }
-  ev.hits.push(hit(act,tgt,scale===1?undefined:scale));
-  if(act.extraTargets){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,.7))})}
+  ev.hits.push(hit(act,tgt,scale===1?undefined:scale,{kind:'skill'}));
+  if(act.extraTargets){G.units.filter(function(x){return x.side==='foe'&&x.alive&&x.id!==tgt.id}).slice(0,act.extraTargets).forEach(function(x){ev.hits.push(hit(act,x,.7,{kind:'skill',single:false}))})}
   if(act.dbl && tgt.survey>0 && tgt.alive){
-    var h2=hit(act,tgt,0.7); h2.dbl=true; ev.chains.push(h2); G.doubles++; }
-  tgt.struck=true;
+    var h2=hit(act,tgt,0.7,{kind:'follow'}); h2.dbl=true; ev.chains.push(h2); G.doubles++; }
+  if(act.alive)tgt.struck=true;
   reactTo(ev,act,tgt,0);
   queueReset(act);
   return ev;
@@ -1371,7 +1482,7 @@ function cascade(ev,src,cur,events){
     for(var k=0;k<(r.hits||1);k++){
       var t2=retarget(t); if(!t2) break;
       if(t2.survey>0) t2.survey--;
-      var h=hit(r,t2,r.ratio*(r.followMul||1)); h.follow=true; h.depth=ev.chains.length;
+      var h=hit(r,t2,r.ratio*(r.followMul||1),{kind:'follow'}); h.follow=true; h.depth=ev.chains.length;
       ev.chains.push(h);
       ev.touched=ev.touched||{}; ev.touched[t2.id]=1;
       var evs=['ally'];
@@ -1409,6 +1520,25 @@ function weightedPick(pool){
   for(var i=0;i<pool.length;i++){ r-=ws[i]; if(r<=0) return pool[i]; }
   return pool[pool.length-1];
 }
+// An extra enemy attack, for hooks: foe strikes target, or whoever its usual targeting picks, without spending its
+// turn. It lands like the attack on a turn (back-row and summoned crew are spared as there, follow-ups on 'hurt'
+// trigger, a Reflector answers) and is added to the current action's hits. A listener that answers attacks with
+// attacks must stop itself. A Broken enemy can strike; a fallen one and the treasure carrier, which never attacks,
+// cannot. Returns the hit, or null if there was nothing to attack.
+function enemyAttack(foe,target){
+  if(!G||!foe||foe.side!=='foe'||!foe.alive||foe.treasure)return null;
+  var tgt=target||weightedPick(G.units.filter(function(u){return u.side==='ally'&&u.alive&&!u.summon}));
+  if(!tgt||tgt.side!=='ally'||!tgt.alive)return null;
+  var extra=G.hookHits||(G.hookHits=[]),h=hit(foe,tgt,undefined,{kind:'attack'});
+  extra.push(h);
+  if(h.skipped)return h;
+  G.foeAttacks++;
+  var answer={actor:foe,hits:[],chains:[],notes:[]};
+  cascade(answer,foe,liveFoes()[0],['hurt']);
+  extra.push.apply(extra,answer.chains);
+  if(tgt.reflect&&tgt.alive&&foe.alive)extra.push(hit(tgt,foe,(h.dmg*tgt.reflect)/Math.max(1,tgt.dmg),{kind:'reflect'}));
+  return h;
+}
 function hit(src,tgt,scale,options){
   options=options||{};
   if(!src||!tgt||!src.alive||!tgt.alive||(window.SPACOLOGY_SESSION&&src.side==='foe'&&tgt.side==='ally'&&(tgt.row==='back'||tgt.summon)))return {src:src&&src.id,tgt:tgt&&tgt.id,dmg:0,skipped:true};
@@ -1418,7 +1548,30 @@ function hit(src,tgt,scale,options){
   h.lastStand=!stoodBefore&&!!tgt.lastStandUsed;
   settleEnemyTraits();
   if(G.damageTimeline)G.damageTimeline.push(h);
+  afterHit(src,tgt,h,options);
   return h;
+}
+// A hit's kind and whether it is the action's single target. Hooks and metrics read these; the event stream never does.
+function hitKind(src,options){return options.kind||(src.side==='foe'?'attack':'skill')}
+// The unit hooks are told dealt a hit: src, or options.source where the hit was dealt by a stand-in (a status tick's
+// living copy of its source). null means the source is not in the fight: the hit lands, but hooks do not hear of it.
+function hookSource(src,options){return 'source' in options?options.source:src}
+function hitSingle(kind,options){
+  if(options.single!==undefined)return !!options.single;
+  return !options.area&&!options.transfer&&!options.condition&&(kind==='basic'||kind==='skill'||kind==='ult');
+}
+// Counts a landed hit and tells the hooks. A guarded or sheltered hit landed for nothing, so it is reported with dmg 0.
+function afterHit(src,tgt,h,options){
+  var kind=hitKind(src,options),single=hitSingle(kind,options),m=G.metrics;
+  var broke=!!(G.justBroke&&G.justBroke[tgt.id]===src.id&&kind!=='chain'&&kind!=='follow');
+  if(broke)delete G.justBroke[tgt.id];
+  if(m){
+    if(src.side==='ally'&&tgt.side==='foe')m.byKind[kind]=(m.byKind[kind]||0)+(h.dmg||0);
+    if(tgt.side==='ally'){m.taken+=h.dmg||0;m.absorbed+=h.absorbed||0;}
+  }
+  var by=hookSource(src,options);if(!by)return;
+  combatEmit('afterHit',{src:by,tgt:tgt,kind:kind,single:single,broke:broke,dmg:h.dmg||0,absorbed:h.absorbed||0,killed:!!h.killed,hit:h});
+  if(tgt.side==='ally')combatEmit('afterIncoming',{src:by,tgt:tgt,kind:kind,dmg:h.dmg||0,absorbed:h.absorbed||0,hit:h});
 }
 function resolveHitDamage(src,tgt,scale,options){
   options=options||{};
@@ -1429,15 +1582,25 @@ function resolveHitDamage(src,tgt,scale,options){
 
   var amt=src.dmg*(scale||1)*(src.aetherPower||1)*SpacologyEnemyTraits.damageMultiplier(src,G.units);
   if(src.side==='ally'&&src.openingBoost&&!src.openingUsed){amt*=1+src.openingBoost;src.openingUsed=true;}
+  var flat=options.flat;
+  if(src.side==='foe'&&COMBAT_RULES.enemyAtkMul!==1){if(flat===undefined)amt*=COMBAT_RULES.enemyAtkMul;else flat=Math.round(flat*COMBAT_RULES.enemyAtkMul);}
+  var by=hookSource(src,options);
+  if(by&&combatHooked('outgoing')&&!options.transfer){ // a guard's share was already shaped as part of the original hit
+    var kind=hitKind(src,options),out={src:by,tgt:tgt,kind:kind,single:hitSingle(kind,options),amount:flat===undefined?amt:flat};
+    var factor=combatEmit('outgoing',out);
+    if(typeof factor==='number'&&isFinite(factor))out.amount*=factor;
+    var amount=Math.max(0,Number(out.amount)||0);
+    if(flat===undefined)amt=amount;else flat=Math.round(amount);
+  }
   var mult=1+(tgt.vuln>0?BRK.vuln:0)+(tgt.frac||0)*0.12;
   var soaked=false, absorbed=0;
   if(tgt.side==='foe'&&!tgt.broken&&tgt.shL>0){ mult*=SOAK; soaked=true; }
-  var d=options.flat===undefined?Math.round(amt*mult):options.flat;
+  var d=flat===undefined?Math.round(amt*mult):flat;
   if(tgt.side==='foe'&&!options.area&&!options.transfer){
     var guard=SpacologyEnemyTraits.protector(tgt,G.units);
-    if(guard&&d>0){var shared=Math.floor(d*.35);d-=shared;if(shared){hit(src,guard,1,{flat:shared,transfer:true});traitNote(guard.n+' intercepts '+shared+' damage for '+tgt.n+'.');}}
+    if(guard&&d>0){var shared=Math.floor(d*.35);d-=shared;if(shared){hit(src,guard,1,{flat:shared,transfer:true,kind:'transfer'});traitNote(guard.n+' intercepts '+shared+' damage for '+tgt.n+'.');}}
   }
-  if(tgt.side==='ally'&&G.ship&&G.ship.brace>0){d=Math.max(1,Math.round(d*.6));G.ship.brace--;}
+  if(tgt.side==='ally'&&G.ship&&G.ship.brace>0&&d>0){d=Math.max(1,Math.round(d*.6));G.ship.brace--;} // a hit of 0 (enemyAtkMul, outgoing) stays 0 and keeps the charge
   G.biggest=Math.max(G.biggest,d);
   if(src.side==='ally'){G.dealt[src.n]=(G.dealt[src.n]||0)+d;G.alliedHits=(G.alliedHits||0)+1;if(soaked)G.shieldedHits=(G.shieldedHits||0)+1;}
   var rawIn=d;
@@ -1448,6 +1611,7 @@ function resolveHitDamage(src,tgt,scale,options){
         var back=Math.round(rawIn*0.9);
         src.hp=Math.max(0,src.hp-back);
         G.ammoDmg=(G.ammoDmg||0)+back;
+        if(G.metrics)G.metrics.byKind.reflect=(G.metrics.byKind.reflect||0)+back;
         if(src.hp<=0&&src.alive) src.alive=false; } }
   }
   var hpBeforeDamage=tgt.hp;
@@ -1455,7 +1619,7 @@ function resolveHitDamage(src,tgt,scale,options){
   if(tgt.side==='ally'&&tgt.hp<=0&&!tgt.lastStandUsed&&window.SPACOLOGY_SESSION&&SpacologyDownRecovery.mode(window.SPACOLOGY_SESSION)==='lastStand'){
     tgt.hp=1;tgt.lastStandUsed=true;tgt.lastStandGuard=true;d=Math.max(0,hpBeforeDamage-1);G.lastStands=(G.lastStands||0)+1;
   }
-  if(tgt.side==='ally'){ G.lowest=Math.min(G.lowest,tgt.hp);
+  if(tgt.side==='ally'){ G.lowest=Math.min(G.lowest,tgt.hp); if(G.metrics&&!tgt.summon)G.metrics.lowestHp=G.metrics.lowestHp===null?tgt.hp:Math.min(G.metrics.lowestHp,tgt.hp); // before any revival: a downed crewmate reached 0
     tgt.en=Math.min(EN.cost,tgt.en+EN.taken); tgt.taken+=d; }
   var killed=false, cost=0,revival=null;
   if(tgt.hp<=0&&tgt.alive){ tgt.alive=false; killed=true;
@@ -1464,12 +1628,12 @@ function resolveHitDamage(src,tgt,scale,options){
       if(!window.SPACOLOGY_SESSION){G.limit=Math.max(G.round+1,G.limit-DEATHCOST);cost=DEATHCOST;}
       else{revival=SpacologyDownRecovery.recover(window.SPACOLOGY_SESSION,tgt,G);if(revival)killed=false;} } }
   if(G.aether&&!options.condition&&src.side==='foe'&&tgt.n==='Daven'&&tgt.alive&&!revival&&absorbed>0&&!tgt.weaverRefundUsed){
-    tgt.weaverRefundUsed=true;SpacologyAether.credit(G.aether,1);G.weaverRefunds=(G.weaverRefunds||0)+1;
+    tgt.weaverRefundUsed=true;SpacologyAether.credit(G.aether,combatGain(tgt,1,'refund'));G.weaverRefunds=(G.weaverRefunds||0)+1;
   }
   accelerateEnemy(tgt,d);
   if(src.side==='ally'&&src.drain&&src.alive&&src.hp<src.max){
-    var back=Math.round(d*src.drain);
-    src.hp=Math.min(src.max,src.hp+back); G.drains++;
+    var back=healAmount(Math.round(d*src.drain)),drainedFrom=src.hp;
+    src.hp=Math.min(src.max,src.hp+back); countHeal(src,drainedFrom); G.drains++;
     return {src:src.id,tgt:tgt.id,dmg:d,vuln:tgt.vuln>0,soaked:soaked,killed:killed,
             chain:!!scale,cost:cost,drain:back}; }
   return {src:src.id,tgt:tgt.id,dmg:d,vuln:tgt.vuln>0,soaked:soaked,absorbed:absorbed,
