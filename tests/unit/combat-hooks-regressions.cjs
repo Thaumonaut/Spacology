@@ -194,5 +194,30 @@ check('a crewmate felled mid-action delays, fractures and shields nothing after 
   assert.deepEqual(wrong.slice(0,5),[],wrong.length+' effects after the actor fell');
 });
 
+// The safe back row (a game rule, in every fight): no enemy damages a back-row crewmate by any route — turns, status
+// ticks, reflections, or an enemyAttack aimed straight at them from a hook.
+check('the back row is never damaged, in standalone and voyage fights',()=>{
+  const sessions=require('./combat-voyage-sessions.json');let backHits=0,aimed=0,checked=0;
+  const specs=[...['bloom','plate','ledger','relay','found','flat'].map(team=>({team,planet:'spread'})),...Object.values(sessions).map(x=>({session:x.session}))];
+  for(const spec of specs)for(let seed=1;seed<=8;seed++){
+    let back=[];
+    H.runFight({...spec,seed,
+      setup(ctx){back=ctx.G.units.filter(u=>u.side==='ally'&&u.row==='back');back.forEach(u=>u._hp=u.hp);
+        const core=ctx.resolveActionCore;ctx.resolveActionCore=function(){const e=core();checked++;
+          for(const u of back){if(u.hp<u._hp-1e-9)backHits++;u._hp=u.hp}return e}},
+      on:{afterHit(p,api){const foe=api.G.units.find(u=>u.side==='foe'&&u.alive&&!u.treasure),b=back.find(u=>u.alive);
+        if(foe&&b&&p.src&&p.src.side==='ally'&&!api.__aimed){api.__aimed=1;aimed++;api.enemyAttack(foe,b);api.__aimed=0}}}});
+  }
+  assert.ok(aimed>50&&checked>500,'enough attacks aimed at the back row ('+aimed+')');
+  assert.equal(backHits,0,backHits+' times a back-row crewmate lost health');
+});
+
+// A hit whose damage-based scale is 0 (a Reflect off a hit the barrier fully absorbed; a Lash with nothing stored) lands
+// at 0, not at full strength: with enemy attack at 0, nothing is reflected.
+check('a zero-scale hit deals nothing',()=>{
+  const r=H.runFight({team:'plate',planet:'spread',seed:7,rules:{enemyAtkMul:0}});
+  assert.equal(r.metrics.byKind.reflect||0,0,'reflected '+(r.metrics.byKind.reflect||0)+' off hits that dealt nothing');
+});
+
 if(failures.length){console.error(`\n${failures.length} failed`);process.exit(1);}
 console.log('PASS combat hooks regressions');

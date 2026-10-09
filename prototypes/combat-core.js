@@ -1115,7 +1115,7 @@ function resolveActionCore(){
   applyReset();settleTreasure(false);
   var living=G.units.filter(function(u){return u.alive});
   if(!living.some(function(u){return u.side==='foe'&&!u.treasure})&&G.spawned>=G.pool.length)return {end:'Crew wins'};
-  if(!living.some(function(u){return u.side==='ally'&&!u.summon&&(!window.SPACOLOGY_SESSION||u.row==='front')}))return {end:'Crew wiped'};
+  if(!living.some(function(u){return u.side==='ally'&&!u.summon&&u.row==='front'}))return {end:'Crew wiped'};
   if(G.av>=G.limit*100)return {end:'Out of time'};
   G.react={};          // every action gets a fresh cascade budget
   // the whole action resolves before any of it is drawn, so keep a snapshot
@@ -1509,13 +1509,9 @@ function reactTo(ev,src,tgt,depth){
 }
 function weightedPick(pool){
   // spread damage, but lean toward the wounded so pressure still builds
-  var front=pool.filter(function(u){return u.row==='front'});
-  if(window.SPACOLOGY_SESSION){pool=front;if(!pool.length)return null;}
-  if(front.length) pool=front.concat(pool.filter(function(u){return u.row!=='front'}));
-  var ws=pool.map(function(u){
-    var w=(1 + 1.6*(1-u.hp/u.max))*(u.taunt||1);
-    if(u.row==='back') w *= front.length? 0.18 : 1;
-    return w; });
+  // The back row is safe in every fight (a game rule: never invalidate the safe back row), so enemies only pick the front.
+  pool=pool.filter(function(u){return u.row==='front'});if(!pool.length)return null;
+  var ws=pool.map(function(u){return (1 + 1.6*(1-u.hp/u.max))*(u.taunt||1);});
   var sum=ws.reduce(function(a,b){return a+b},0), r=rng()*sum;
   for(var i=0;i<pool.length;i++){ r-=ws[i]; if(r<=0) return pool[i]; }
   return pool[pool.length-1];
@@ -1541,7 +1537,7 @@ function enemyAttack(foe,target){
 }
 function hit(src,tgt,scale,options){
   options=options||{};
-  if(!src||!tgt||!src.alive||!tgt.alive||(window.SPACOLOGY_SESSION&&src.side==='foe'&&tgt.side==='ally'&&(tgt.row==='back'||tgt.summon)))return {src:src&&src.id,tgt:tgt&&tgt.id,dmg:0,skipped:true};
+  if(!src||!tgt||!src.alive||!tgt.alive||(src.side==='foe'&&tgt.side==='ally'&&(tgt.row==='back'||tgt.summon)))return {src:src&&src.id,tgt:tgt&&tgt.id,dmg:0,skipped:true};
   var hpBefore=tgt.hp,barBefore=tgt.bar||0,stoodBefore=!!tgt.lastStandUsed;
   var h=(tgt.lastStandGuard||tgt.recoveryGuard)&&src.side==='foe'?{src:src.id,tgt:tgt.id,dmg:0,guarded:true}:resolveHitDamage(src,tgt,scale,options);
   h.hpBefore=hpBefore;h.hpAfter=tgt.hp;h.barBefore=barBefore;h.barAfter=tgt.bar||0;
@@ -1580,7 +1576,7 @@ function resolveHitDamage(src,tgt,scale,options){
     return {src:src.id,tgt:tgt.id,dmg:0,absorbed:0,soaked:true,killed:false,chain:!!scale,cost:0,sheltered:true};
   }
 
-  var amt=src.dmg*(scale||1)*(src.aetherPower||1)*SpacologyEnemyTraits.damageMultiplier(src,G.units);
+  var amt=src.dmg*(scale===undefined?1:scale)*(src.aetherPower||1)*SpacologyEnemyTraits.damageMultiplier(src,G.units);
   if(src.side==='ally'&&src.openingBoost&&!src.openingUsed){amt*=1+src.openingBoost;src.openingUsed=true;}
   var flat=options.flat;
   if(src.side==='foe'&&COMBAT_RULES.enemyAtkMul!==1){if(flat===undefined)amt*=COMBAT_RULES.enemyAtkMul;else flat=Math.round(flat*COMBAT_RULES.enemyAtkMul);}
