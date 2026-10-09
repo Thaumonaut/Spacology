@@ -31,6 +31,8 @@ document in this folder contradicts it, this one wins.
 | `store.md` | The pack store and the scrap economy |
 | `modifiers.md` | The world-condition pool and its category caps |
 | `run-variety-proposal.md` | **Design revision:** three seven-node sets, basic/elite/boss formats, reward nodes, and one modifier selection per set |
+| `weaver-voyage-walkthrough.md` | **Clean-sheet exploration:** Aether profiles for every character (generator, cadence, consumer, Weaver), and the Weavers as the build / hold / spend triangle, traced across a full voyage from each starting pair — selection order, Aether-keyed equipment sets and the burst-ceiling power curve |
+| `session-progression-proposal.md` | **Proposal:** deterministic requisition, the Charter pool, ranks as clauses rather than stats, six design lenses, and the argmax-churn variety test |
 | `recovery-inbox-and-equipment-proposal.md` | **Proposal:** top-left tiered reward caches, consumable adjustment tools, visible illustrated equipment, and direct equipping |
 | `synergy-deep-dive.md` | Structural analysis of synergy systems, with ratings against this game's constraints |
 | `synergy-notes.md` | Character-level combination testing |

@@ -1,0 +1,2840 @@
+{
+ "seeds": 60,
+ "results": {
+  "0": {
+   "A · build + spend": {
+    "sector": [
+     0.9941485283102387,
+     0.9395765709158138,
+     0.7283065494844084
+    ],
+    "boss": [
+     0.9985045809807415,
+     0.9543673900019333,
+     0.6005826916074819
+    ],
+    "elite": 0.7897154737702926,
+    "eliteWin": 0.5388888888888889,
+    "bossWin": 0.7333333333333333,
+    "complete": 1,
+    "integrity": 56.733333333333334,
+    "waste": 0.032892583622438964,
+    "peak": 12.017777777777777,
+    "bursts": 2.4588888888888887,
+    "chains": 0,
+    "crew": 5,
+    "sets": 3.7333333333333334,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "B · hold + spend": {
+    "sector": [
+     0.9833871704848068,
+     0.9329265906837075,
+     0.6795011817601486
+    ],
+    "boss": [
+     1,
+     0.9580971100008103,
+     0.560867729875804
+    ],
+    "elite": 0.7468164837037427,
+    "eliteWin": 0.5,
+    "bossWin": 0.7277777777777777,
+    "complete": 0.9833333333333333,
+    "integrity": 48.36666666666667,
+    "waste": 0.028210757409440176,
+    "peak": 11.528888888888888,
+    "bursts": 2.382222222222222,
+    "chains": 0,
+    "crew": 5,
+    "sets": 3.25,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Ivara",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Hanae",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "C · build + hold": {
+    "sector": [
+     0.925902508543737,
+     0.8622251156409318,
+     0.597041694655258
+    ],
+    "boss": [
+     0.9849523251858998,
+     0.9324564668364315,
+     0.552167287841468
+    ],
+    "elite": 0.598150336180986,
+    "eliteWin": 0.1864406779661017,
+    "bossWin": 0.6936416184971098,
+    "complete": 0.7666666666666667,
+    "integrity": 21.983333333333334,
+    "waste": 0.07589330989486495,
+    "peak": 9.575141242937853,
+    "bursts": 1.5661016949152542,
+    "chains": 0.4994350282485876,
+    "crew": 4.966666666666667,
+    "sets": 3.85,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Ivara",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Arunima",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 3,
+      "writs": 1
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 4,
+      "writs": 1
+     },
+     {
+      "node": 12,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 13,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "id": "Silen",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "A, no equipment": {
+    "sector": [
+     0.8557852946094852,
+     0.47626493383341845,
+     0.3284092071880755
+    ],
+    "boss": [
+     0.9506620707070705,
+     0.46999074183957806,
+     0
+    ],
+    "elite": 0.341939135127985,
+    "eliteWin": 0,
+    "bossWin": 0.4661016949152542,
+    "complete": 0,
+    "integrity": 0,
+    "waste": 0.12356963438459391,
+    "peak": 7.691964285714286,
+    "bursts": 1.7738095238095237,
+    "chains": 0,
+    "crew": 4.783333333333333,
+    "sets": 0,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 28,
+      "writs": 1
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 16,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 8,
+      "invest": 43,
+      "writs": 2
+     },
+     {
+      "node": 9,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 12,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 15,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 16,
+      "invest": 3,
+      "writs": 0
+     }
+    ]
+   },
+   "Wide, unequipped": {
+    "sector": [
+     0.9985385510728433,
+     0.8455939616514773,
+     0.486922087664164
+    ],
+    "boss": [
+     1,
+     0.9297660444725028,
+     0.34713867357904044
+    ],
+    "elite": 0.6370591438727947,
+    "eliteWin": 0.40555555555555556,
+    "bossWin": 0.6022727272727273,
+    "complete": 0.6833333333333333,
+    "integrity": 11.2,
+    "waste": 0.06386259129023532,
+    "peak": 10.433035714285714,
+    "bursts": 2.470982142857143,
+    "chains": 0.5993303571428571,
+    "crew": 7,
+    "sets": 0,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 17,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 4,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 6,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 43,
+      "writs": 2
+     },
+     {
+      "node": 9,
+      "invest": 3,
+      "writs": 1
+     },
+     {
+      "node": 9,
+      "id": "Silen",
+      "price": 5,
+      "source": "voucher",
+      "crewSize": 6
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 8,
+      "writs": 1
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 14,
+      "id": "Daven",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 7
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 16,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 17,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 19,
+      "invest": 3,
+      "writs": 0
+     }
+    ]
+   },
+   "Wide, equipped": {
+    "sector": [
+     0.998449371744602,
+     0.9591231319602953,
+     0.947589378556219
+    ],
+    "boss": [
+     1,
+     0.9757425006258951,
+     0.840883694465396
+    ],
+    "elite": 0.9418670496790885,
+    "eliteWin": 0.85,
+    "bossWin": 0.8222222222222222,
+    "complete": 1,
+    "integrity": 91.61666666666666,
+    "waste": 0.05190692874231833,
+    "peak": 12.525555555555556,
+    "bursts": 2.566666666666667,
+    "chains": 1.038888888888889,
+    "crew": 7,
+    "sets": 4.933333333333334,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 17,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 4,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 6,
+      "invest": 14,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 40,
+      "writs": 3
+     },
+     {
+      "node": 8,
+      "id": "Silen",
+      "price": 5,
+      "source": "voucher",
+      "crewSize": 6
+     },
+     {
+      "node": 8,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 12,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 14,
+      "id": "Daven",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 7
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     }
+    ]
+   },
+   "A, no stars": {
+    "sector": [
+     0.9932954570113698,
+     0.8762281480786213,
+     0.45474544061318767
+    ],
+    "boss": [
+     0.9942392244863971,
+     0.848031935050385,
+     0.42900705360634533
+    ],
+    "elite": 0.6450328595180314,
+    "eliteWin": 0.449438202247191,
+    "bossWin": 0.6547619047619048,
+    "complete": 0.75,
+    "integrity": 16.833333333333332,
+    "waste": 0.02739503312604154,
+    "peak": 10.603389830508474,
+    "bursts": 2.167231638418079,
+    "chains": 0,
+    "crew": 4.983333333333333,
+    "sets": 3.5833333333333335,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 15,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "Hull + Drive": {
+    "sector": [
+     0.9154463874867552,
+     0.7316980777860682,
+     0.5899995303641059
+    ],
+    "boss": [
+     0.8287409511559309,
+     0.8231187126672342,
+     0.4257199875155389
+    ],
+    "elite": 0.6258947605250439,
+    "eliteWin": 0.15151515151515152,
+    "bossWin": 0.4689655172413793,
+    "complete": 0.23333333333333334,
+    "integrity": 2.1333333333333333,
+    "waste": 0,
+    "peak": 0,
+    "bursts": 0,
+    "chains": 0,
+    "crew": 5.683333333333334,
+    "sets": 3.55,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Tarn",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Ojo",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 4,
+      "invest": 31,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 4,
+      "writs": 1
+     },
+     {
+      "node": 5,
+      "id": "Reva",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 7,
+      "invest": 7,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 8,
+      "promote": "Tarn",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Imke",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 9,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 11,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 5,
+      "writs": 1
+     },
+     {
+      "node": 13,
+      "promote": "Ojo",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "id": "Idris",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 14,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 15,
+      "promote": "Reva",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 16,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 17,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 19,
+      "invest": 3,
+      "writs": 1
+     }
+    ]
+   }
+  },
+  "2": {
+   "A · build + spend": {
+    "sector": [
+     0.973141822627439,
+     0.8075821390896991,
+     0.5477007831080346
+    ],
+    "boss": [
+     0.9857902986138851,
+     0.8957171767394779,
+     0.5034187942929265
+    ],
+    "elite": 0.6593421180396971,
+    "eliteWin": 0.3878787878787879,
+    "bossWin": 0.6770186335403726,
+    "complete": 0.55,
+    "integrity": 20.266666666666666,
+    "waste": 0.046713668410279734,
+    "peak": 9.912689173457508,
+    "bursts": 1.8509895227008148,
+    "chains": 0,
+    "crew": 5,
+    "sets": 3.466666666666667,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "B · hold + spend": {
+    "sector": [
+     0.9504292963638401,
+     0.7836631130457645,
+     0.5029666040616588
+    ],
+    "boss": [
+     0.9938511213093756,
+     0.873564046678107,
+     0.48237985547193735
+    ],
+    "elite": 0.6452932664619265,
+    "eliteWin": 0.37423312883435583,
+    "bossWin": 0.7019867549668874,
+    "complete": 0.45,
+    "integrity": 14.566666666666666,
+    "waste": 0.028839957035445757,
+    "peak": 9.543195266272189,
+    "bursts": 1.8544378698224853,
+    "chains": 0,
+    "crew": 4.966666666666667,
+    "sets": 3,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Ivara",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 6,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Hanae",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 17,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 1
+     },
+     {
+      "node": 9,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 3,
+      "insight": 3
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "C · build + hold": {
+    "sector": [
+     0.8806649004292194,
+     0.7064978793396646,
+     0.5141710205510823
+    ],
+    "boss": [
+     0.9697684775510121,
+     0.8780840792273101,
+     0.49393098997336315
+    ],
+    "elite": 0.5362986253549885,
+    "eliteWin": 0.11920529801324503,
+    "bossWin": 0.7194244604316546,
+    "complete": 0.25,
+    "integrity": 8.866666666666667,
+    "waste": 0.08151228002320635,
+    "peak": 7.329559748427673,
+    "bursts": 1.169811320754717,
+    "chains": 0.2779874213836478,
+    "crew": 4.766666666666667,
+    "sets": 3.55,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Ivara",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 6,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 8,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Arunima",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 20,
+      "writs": 2
+     },
+     {
+      "node": 10,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     }
+    ]
+   },
+   "A, no equipment": {
+    "sector": [
+     0.7890843080423707,
+     0.34218637598721174,
+     0.3308492975133615
+    ],
+    "boss": [
+     0.8856675932722654,
+     0.5206549381341835,
+     0
+    ],
+    "elite": 0.263263746292352,
+    "eliteWin": 0,
+    "bossWin": 0.5568181818181818,
+    "complete": 0,
+    "integrity": 0,
+    "waste": 0.140990580370708,
+    "peak": 5.961344537815126,
+    "bursts": 1.2252100840336135,
+    "chains": 0,
+    "crew": 4.366666666666666,
+    "sets": 0,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 28,
+      "writs": 1
+     },
+     {
+      "node": 5,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 6,
+      "invest": 5,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 8,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 3,
+      "writs": 0
+     }
+    ]
+   },
+   "Wide, unequipped": {
+    "sector": [
+     0.9706256574461004,
+     0.6710020826725376,
+     0.4161741105586991
+    ],
+    "boss": [
+     0.9916841913930976,
+     0.9130716495721067,
+     0.3270004038348756
+    ],
+    "elite": 0.5448423529616937,
+    "eliteWin": 0.3057324840764331,
+    "bossWin": 0.7272727272727273,
+    "complete": 0.15,
+    "integrity": 2.7666666666666666,
+    "waste": 0.07167921775815164,
+    "peak": 8.701219512195122,
+    "bursts": 1.801219512195122,
+    "chains": 0.4426829268292683,
+    "crew": 7,
+    "sets": 0,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 17,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 4,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 6,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 43,
+      "writs": 2
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 5,
+      "writs": 1
+     },
+     {
+      "node": 10,
+      "id": "Silen",
+      "price": 5,
+      "source": "voucher",
+      "crewSize": 6
+     },
+     {
+      "node": 10,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 27,
+      "writs": 2
+     },
+     {
+      "node": 14,
+      "id": "Daven",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 7
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 16,
+      "invest": 1,
+      "writs": 0
+     }
+    ]
+   },
+   "Wide, equipped": {
+    "sector": [
+     0.9876621694755079,
+     0.8425114354132217,
+     0.8457663502825715
+    ],
+    "boss": [
+     0.9941063309329564,
+     0.9745084645833777,
+     0.8072845278732321
+    ],
+    "elite": 0.817066335979693,
+    "eliteWin": 0.5875706214689266,
+    "bossWin": 0.8181818181818182,
+    "complete": 0.8833333333333333,
+    "integrity": 63.61666666666667,
+    "waste": 0.06027116326763131,
+    "peak": 10.946188340807176,
+    "bursts": 2.1065022421524664,
+    "chains": 0.7791479820627802,
+    "crew": 7,
+    "sets": 4.833333333333333,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 17,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 4,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 6,
+      "invest": 14,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 40,
+      "writs": 3
+     },
+     {
+      "node": 8,
+      "id": "Silen",
+      "price": 5,
+      "source": "voucher",
+      "crewSize": 6
+     },
+     {
+      "node": 8,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 27,
+      "writs": 1
+     },
+     {
+      "node": 12,
+      "invest": 3,
+      "writs": 1
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 21,
+      "writs": 1
+     },
+     {
+      "node": 14,
+      "id": "Daven",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 7
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     }
+    ]
+   },
+   "A, no stars": {
+    "sector": [
+     0.9732322478851063,
+     0.6554528112863373,
+     0.35613679717580754
+    ],
+    "boss": [
+     0.9866473725380351,
+     0.7628389976003243,
+     0.3752114332939608
+    ],
+    "elite": 0.5901521801564235,
+    "eliteWin": 0.31724137931034485,
+    "bossWin": 0.6402877697841727,
+    "complete": 0.21666666666666667,
+    "integrity": 4.366666666666666,
+    "waste": 0.0351019390236299,
+    "peak": 8.716096324461343,
+    "bursts": 1.6337135614702154,
+    "chains": 0,
+    "crew": 4.85,
+    "sets": 3.3,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 15,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "Hull + Drive": {
+    "sector": [
+     0.9208142017278512,
+     0.7858176448700726,
+     0.6222549523834632
+    ],
+    "boss": [
+     0.8116331655775345,
+     0.8434758268454741,
+     0.5046087235513258
+    ],
+    "elite": 0.6962692360201483,
+    "eliteWin": 0.2608695652173913,
+    "bossWin": 0.45806451612903226,
+    "complete": 0.43333333333333335,
+    "integrity": 13.333333333333334,
+    "waste": 0.00007913270554720265,
+    "peak": 0,
+    "bursts": 0,
+    "chains": 0,
+    "crew": 5.75,
+    "sets": 3.4833333333333334,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Tarn",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Ojo",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 4,
+      "invest": 31,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 4,
+      "writs": 1
+     },
+     {
+      "node": 5,
+      "id": "Reva",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 7,
+      "invest": 7,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 8,
+      "promote": "Tarn",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Imke",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 9,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 11,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 13,
+      "promote": "Ojo",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "id": "Idris",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 14,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 14,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 15,
+      "promote": "Reva",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "invest": 2,
+      "writs": 0
+     },
+     {
+      "node": 16,
+      "invest": 15,
+      "writs": 1
+     },
+     {
+      "node": 17,
+      "invest": 2,
+      "writs": 0
+     },
+     {
+      "node": 18,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 19,
+      "invest": 1,
+      "writs": 0
+     }
+    ]
+   }
+  },
+  "4": {
+   "A · build + spend": {
+    "sector": [
+     0.9637953155450233,
+     0.687259280977581,
+     0.436855910011528
+    ],
+    "boss": [
+     0.9849571710123898,
+     0.8363927284151645,
+     0.4373548713847941
+    ],
+    "elite": 0.6142051737783975,
+    "eliteWin": 0.31125827814569534,
+    "bossWin": 0.7122302158273381,
+    "complete": 0.23333333333333334,
+    "integrity": 7.966666666666667,
+    "waste": 0.06604852025911342,
+    "peak": 8.472568578553616,
+    "bursts": 1.4526184538653366,
+    "chains": 0,
+    "crew": 4.85,
+    "sets": 3.2333333333333334,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "B · hold + spend": {
+    "sector": [
+     0.9136271249974073,
+     0.6708761822243572,
+     0.4127893306677754
+    ],
+    "boss": [
+     0.9864988859810269,
+     0.8381823563466723,
+     0.48769796760575396
+    ],
+    "elite": 0.605436114446833,
+    "eliteWin": 0.22302158273381295,
+    "bossWin": 0.7348484848484849,
+    "complete": 0.21666666666666667,
+    "integrity": 6.016666666666667,
+    "waste": 0.036350733322819746,
+    "peak": 8.304347826086957,
+    "bursts": 1.4426877470355732,
+    "chains": 0,
+    "crew": 4.8,
+    "sets": 2.9166666666666665,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Ivara",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 6,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Hanae",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 17,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 1
+     },
+     {
+      "node": 9,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 3,
+      "insight": 3
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "C · build + hold": {
+    "sector": [
+     0.8679766068270055,
+     0.6284936486085702,
+     0.44925170524943964
+    ],
+    "boss": [
+     0.9692968074958367,
+     0.8360428360325423,
+     0.5376462918576871
+    ],
+    "elite": 0.5004321722511024,
+    "eliteWin": 0.09848484848484848,
+    "bossWin": 0.7380952380952381,
+    "complete": 0.16666666666666666,
+    "integrity": 4.466666666666667,
+    "waste": 0.08405382565169343,
+    "peak": 6.050477489768077,
+    "bursts": 0.9058663028649386,
+    "chains": 0.1446111869031378,
+    "crew": 4.683333333333334,
+    "sets": 3.183333333333333,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Ivara",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 6,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 8,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Arunima",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 15,
+      "promote": "Hanae",
+      "star": 3,
+      "insight": 3
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "id": "Silen",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "A, no equipment": {
+    "sector": [
+     0.7607188580338149,
+     0.2408111949618614,
+     0.28858376111628414
+    ],
+    "boss": [
+     0.8760533733515959,
+     0.37074899343835177,
+     0
+    ],
+    "elite": 0.21156865706396835,
+    "eliteWin": 0,
+    "bossWin": 0.5333333333333333,
+    "complete": 0,
+    "integrity": 0,
+    "waste": 0.15604075691411937,
+    "peak": 4.56648451730419,
+    "bursts": 0.9016393442622951,
+    "chains": 0,
+    "crew": 4.116666666666666,
+    "sets": 0,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 28,
+      "writs": 1
+     },
+     {
+      "node": 5,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 6,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 6,
+      "invest": 5,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 8,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 9,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 12,
+      "invest": 3,
+      "writs": 1
+     }
+    ]
+   },
+   "Wide, unequipped": {
+    "sector": [
+     0.9447612899318978,
+     0.5536645331646237,
+     0.37864855960383575
+    ],
+    "boss": [
+     0.9896994731916932,
+     0.8846814324222564,
+     0.30687915104402946
+    ],
+    "elite": 0.5090854885480275,
+    "eliteWin": 0.23529411764705882,
+    "bossWin": 0.7923076923076923,
+    "complete": 0.13333333333333333,
+    "integrity": 2.283333333333333,
+    "waste": 0.09435808240026089,
+    "peak": 7.378523489932886,
+    "bursts": 1.4093959731543624,
+    "chains": 0.2791946308724832,
+    "crew": 6.866666666666666,
+    "sets": 0,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 17,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 4,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 6,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 43,
+      "writs": 2
+     },
+     {
+      "node": 9,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 2,
+      "writs": 1
+     },
+     {
+      "node": 10,
+      "id": "Silen",
+      "price": 5,
+      "source": "voucher",
+      "crewSize": 6
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 5,
+      "writs": 1
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 21,
+      "writs": 1
+     },
+     {
+      "node": 14,
+      "id": "Daven",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 7
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 16,
+      "invest": 1,
+      "writs": 0
+     }
+    ]
+   },
+   "Wide, equipped": {
+    "sector": [
+     0.9781227358766786,
+     0.7472643853930031,
+     0.7554137435109872
+    ],
+    "boss": [
+     0.996928008566122,
+     0.9597278910008551,
+     0.7598643734257406
+    ],
+    "elite": 0.7429864350342462,
+    "eliteWin": 0.5060240963855421,
+    "bossWin": 0.8125,
+    "complete": 0.6166666666666667,
+    "integrity": 39.36666666666667,
+    "waste": 0.07662140663731548,
+    "peak": 9.526869158878505,
+    "bursts": 1.7616822429906542,
+    "chains": 0.5467289719626168,
+    "crew": 6.983333333333333,
+    "sets": 3.6666666666666665,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 3,
+      "invest": 19,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 17,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 4,
+      "invest": 11,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "invest": 11,
+      "writs": 1
+     },
+     {
+      "node": 6,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 6,
+      "invest": 5,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "id": "Veska",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 8,
+      "promote": "Hanae",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "invest": 43,
+      "writs": 2
+     },
+     {
+      "node": 9,
+      "invest": 3,
+      "writs": 0
+     },
+     {
+      "node": 10,
+      "invest": 3,
+      "writs": 1
+     },
+     {
+      "node": 10,
+      "id": "Silen",
+      "price": 5,
+      "source": "voucher",
+      "crewSize": 6
+     },
+     {
+      "node": 10,
+      "invest": 15,
+      "writs": 0
+     },
+     {
+      "node": 12,
+      "invest": 5,
+      "writs": 1
+     },
+     {
+      "node": 13,
+      "promote": "Arunima",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "invest": 24,
+      "writs": 1
+     },
+     {
+      "node": 14,
+      "id": "Daven",
+      "price": 0,
+      "source": "free voucher",
+      "crewSize": 7
+     },
+     {
+      "node": 15,
+      "promote": "Ivara",
+      "star": 2,
+      "insight": 2
+     }
+    ]
+   },
+   "A, no stars": {
+    "sector": [
+     0.9633992791958526,
+     0.5546527334252054,
+     0.2659274752257802
+    ],
+    "boss": [
+     0.9832118502338222,
+     0.7329046721615825,
+     0.32660343895169536
+    ],
+    "elite": 0.568985130223087,
+    "eliteWin": 0.2835820895522388,
+    "bossWin": 0.68,
+    "complete": 0.03333333333333333,
+    "integrity": 0.7,
+    "waste": 0.05710446758481692,
+    "peak": 7.515603799185889,
+    "bursts": 1.2890094979647218,
+    "chains": 0,
+    "crew": 4.7,
+    "sets": 3.066666666666667,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Hanae",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Arunima",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 7,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 12,
+      "writs": 1
+     },
+     {
+      "node": 7,
+      "id": "Ivara",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 8,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 8,
+      "id": "Roonie",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 15,
+      "invest": 18,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "id": "Veska",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     }
+    ]
+   },
+   "Hull + Drive": {
+    "sector": [
+     0.9402995896058773,
+     0.8125265525718904,
+     0.6291508278726942
+    ],
+    "boss": [
+     0.8569502668449407,
+     0.8813063534590116,
+     0.6107243612755464
+    ],
+    "elite": 0.7167593027741299,
+    "eliteWin": 0.34523809523809523,
+    "bossWin": 0.575,
+    "complete": 0.5666666666666667,
+    "integrity": 17.066666666666666,
+    "waste": 0,
+    "peak": 0,
+    "bursts": 0,
+    "chains": 0,
+    "crew": 5.816666666666666,
+    "sets": 3.8,
+    "purchases": [
+     {
+      "node": 1,
+      "id": "Tarn",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 1,
+      "id": "Ojo",
+      "price": 0,
+      "source": "starter"
+     },
+     {
+      "node": 4,
+      "invest": 31,
+      "writs": 1
+     },
+     {
+      "node": 4,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 5,
+      "invest": 4,
+      "writs": 1
+     },
+     {
+      "node": 5,
+      "id": "Reva",
+      "price": 2,
+      "source": "voucher",
+      "crewSize": 3
+     },
+     {
+      "node": 7,
+      "invest": 7,
+      "writs": 0
+     },
+     {
+      "node": 7,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 8,
+      "promote": "Tarn",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 8,
+      "id": "Imke",
+      "price": 3,
+      "source": "voucher",
+      "crewSize": 4
+     },
+     {
+      "node": 9,
+      "invest": 13,
+      "writs": 1
+     },
+     {
+      "node": 10,
+      "invest": 14,
+      "writs": 0
+     },
+     {
+      "node": 11,
+      "invest": 1,
+      "writs": 1
+     },
+     {
+      "node": 12,
+      "invest": 8,
+      "writs": 0
+     },
+     {
+      "node": 13,
+      "promote": "Ojo",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 13,
+      "id": "Idris",
+      "price": 4,
+      "source": "voucher",
+      "crewSize": 5
+     },
+     {
+      "node": 14,
+      "invest": 6,
+      "writs": 0
+     },
+     {
+      "node": 14,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 15,
+      "promote": "Reva",
+      "star": 2,
+      "insight": 2
+     },
+     {
+      "node": 15,
+      "invest": 14,
+      "writs": 1
+     },
+     {
+      "node": 15,
+      "invest": 2,
+      "writs": 0
+     },
+     {
+      "node": 16,
+      "invest": 6,
+      "writs": 1
+     },
+     {
+      "node": 17,
+      "invest": 4,
+      "writs": 0
+     },
+     {
+      "node": 18,
+      "invest": 1,
+      "writs": 0
+     },
+     {
+      "node": 19,
+      "invest": 3,
+      "writs": 0
+     }
+    ]
+   }
+  }
+ }
+}

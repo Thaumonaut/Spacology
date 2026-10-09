@@ -34,6 +34,7 @@
   }
   function decide(pool,actor,options={}){
     const p=profile(actor.n),reserve=options.reserve||0;
+    if(options.cost!==undefined)p.cost=options.cost; // a host's own cost table (the Weaver lab); unset, the live costs apply
     const discount=actor.weaverDiscount?Math.min(1,p.cost-1):0;
     p.cost=p.cost-discount+(actor.ailments?.hex?1:0);p.gain+=actor.weaverTune?1:0;
     if(!options.useful)return {kind:'basic',gain:p.gain,reason:'skill has no useful target'};

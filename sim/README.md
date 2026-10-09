@@ -132,3 +132,7 @@ Re-measured, the picture inverts:
 
 **Always confirm a constant does something before concluding it does not matter.** `BREAK_DELAY` reading
 exactly zero across its whole range, including at `10`, is what exposed both bugs.
+
+## Weaver voyage lab
+
+`node sim/weaver-voyage.js [seeds] [out.json]` plays the [Weaver voyage walkthrough](../docs/design/weaver-voyage-walkthrough.md)'s branches as scripted policies on the lab model (`prototypes/weaver-voyage-model.js`), which shares `aether-rules.js` with the live game. Results and method: [docs/testing/weaver-voyage-lab.md](../docs/testing/weaver-voyage-lab.md).
