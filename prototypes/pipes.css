@@ -1,0 +1,95 @@
+/* Pipes: chunky industrial pipes on steel plates, flow animated along wet lines. Shared frame in minigame-kit.css. */
+.pp-wrap{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+/* Tiles: 44px at least (8×8 fits a 390px phone), up to 72px, and the board fits the height of a 768px screen. */
+.pp-board{--n:5;display:grid;grid-template-columns:repeat(var(--n),1fr);gap:0;flex:none;
+  width:min(100%,calc(var(--n)*72px),max(calc(var(--n)*44px),calc(100vh - 320px)));aspect-ratio:1;
+  padding:0;border:2px solid #2f4352;border-radius:10px;background:#0a141c;overflow:hidden;box-shadow:inset 0 0 0 1px #00000080,0 10px 30px #0006}
+.mg .pp-tile{position:relative;min-height:0;min-width:0;aspect-ratio:1;padding:0;border:1px solid #1b2a35;border-radius:0;
+  background:linear-gradient(145deg,#1a2a35,#121e27);display:block;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.mg .pp-tile:hover:enabled{background:linear-gradient(145deg,#213744,#16242e);border-color:#2b4150}
+.pp-tile svg{display:block;width:100%;height:100%;overflow:visible}
+.pp-rot{transform-origin:50px 50px;transition:transform .18s cubic-bezier(.3,1.4,.5,1)}
+.pp-case{fill:none;stroke:#0b1218;stroke-width:36;stroke-linecap:round}
+circle.pp-case{fill:#0b1218;stroke:none}
+.pp-metal{fill:none;stroke:#7d8b95;stroke-width:28;stroke-linecap:round}
+circle.pp-metal{fill:#7d8b95;stroke:none}
+.pp-bore{fill:none;stroke:#1a242c;stroke-width:13;stroke-linecap:round}
+.pp-flange{fill:#a3b0b8;stroke:#0b1218;stroke-width:2}
+.pp-valve{fill:#c9d3d8;stroke:#0b1218;stroke-width:3}
+.pp-flow{fill:none;stroke:transparent;stroke-width:12;stroke-linecap:round}
+.pp-flow.pp-wet{stroke:var(--flow);stroke-dasharray:14 9;animation:pp-flow .7s linear infinite}
+.pp-flow.pp-new{animation:pp-fill .32s ease-out both,pp-flow .7s linear infinite;animation-delay:var(--dl,0ms),var(--dl,0ms)}
+@keyframes pp-flow{to{stroke-dashoffset:-23}}
+@keyframes pp-fill{from{opacity:0;stroke-width:2}to{opacity:1;stroke-width:12}}
+.pp-hop{stroke:#0b1218;stroke-width:44;stroke-linecap:butt}
+.pp-under .pp-metal{stroke:#5f6c75}
+/* endpoints */
+.pp-body{fill:#22343f;stroke:#0b1218;stroke-width:4}
+.pp-ring{fill:none;stroke:var(--tc);stroke-width:5}
+.pp-glyph{fill:var(--tc);font:800 26px/1 system-ui,sans-serif;text-anchor:middle}
+.pp-tile[data-type="ore"]{--tc:#e8a15a}.pp-tile[data-type="crystal"]{--tc:#c194f5}.pp-tile[data-type="water"]{--tc:#5fb8f0}
+.mg .pp-source{background:radial-gradient(circle,color-mix(in srgb,var(--tc) 28%,#14222c) 0,#121e27 70%)}
+.mg .pp-sink .pp-body{fill:#1a262e}
+.mg .pp-sink.pp-fed{background:radial-gradient(circle,color-mix(in srgb,var(--tc) 45%,#14222c) 0,#121e27 75%)}
+.pp-sink.pp-fed .pp-body{fill:color-mix(in srgb,var(--tc) 35%,#22343f)}
+.pp-sink.pp-sealed .pp-ring{stroke-width:8;filter:drop-shadow(0 0 6px var(--tc))}
+.pp-source .pp-ring{filter:drop-shadow(0 0 4px var(--tc))}
+/* empty slots */
+.mg .pp-slot:not([data-piece]),.mg .pp-slot[data-piece=""]{background:#0c161e}
+.pp-slotbox{fill:none;stroke:#5c7383;stroke-width:3;stroke-dasharray:8 6}
+.pp-plus{stroke:#5c7383;stroke-width:5;stroke-linecap:round}
+/* markers */
+.pp-drip{fill:var(--flow);animation:pp-drip 1s ease-in infinite}
+@keyframes pp-drip{0%{opacity:1;transform:translateY(0)}70%{opacity:.8}100%{opacity:0;transform:translateY(6px)}}
+.pp-open{fill:none;stroke:#8a99a3;stroke-width:2;opacity:.6}
+.pp-contam circle{fill:#e2425d;stroke:#fff;stroke-width:2.5}
+.pp-contam path{stroke:#fff;stroke-width:3;stroke-linecap:round}
+.pp-contam{animation:pp-alarm .8s ease-in-out infinite alternate;transform-box:fill-box;transform-origin:center}
+@keyframes pp-alarm{to{transform:scale(1.18)}}
+.mg .pp-tile.pp-bad{box-shadow:inset 0 0 0 2px #e2425d}
+/* lock: four corner bolts and a brighter plate */
+.pp-bolts{position:absolute;inset:3px;pointer-events:none;display:none;
+  background:radial-gradient(circle at 4px 4px,#d9c27f 2.5px,transparent 3px),radial-gradient(circle at calc(100% - 4px) 4px,#d9c27f 2.5px,transparent 3px),
+  radial-gradient(circle at 4px calc(100% - 4px),#d9c27f 2.5px,transparent 3px),radial-gradient(circle at calc(100% - 4px) calc(100% - 4px),#d9c27f 2.5px,transparent 3px)}
+.pp-locked .pp-bolts{display:block}
+.mg .pp-tile.pp-locked{background:linear-gradient(145deg,#26363f,#1a2830);border-color:#4d5a48}
+/* Guided: a subtle inner ring on tiles that can only fit one way */
+.mg .pp-tile.pp-forced::after{content:"";position:absolute;left:0;top:0;width:0;height:0;border-style:solid;border-width:11px 11px 0 0;border-color:#a5e0c9b0 transparent transparent transparent;pointer-events:none}
+.mg .pp-tile.pp-hinted{box-shadow:inset 0 0 0 3px var(--gold)}
+.pp-snap{animation:pp-snap .3s ease-out}
+@keyframes pp-snap{0%{filter:brightness(1.8)}100%{filter:none}}
+.pp-pulse{animation:pp-pulse .7s ease-out}
+@keyframes pp-pulse{0%{filter:brightness(1)}35%{filter:brightness(1.6) saturate(1.3)}100%{filter:brightness(1)}}
+.pp-done .pp-flow.pp-wet{animation-duration:.35s}
+.pp-done{box-shadow:0 0 0 2px var(--mint),0 0 40px #a5e0c955}
+/* tools */
+.pp-tools{display:flex;flex-direction:column;gap:10px;min-width:128px;flex:1 1 128px;max-width:240px}
+.pp-seg{display:flex;gap:0}.mg .pp-seg button{flex:1;border-radius:0;min-width:44px;padding:9px 3px;font-size:14px}
+.pp-seg button:first-child{border-radius:8px 0 0 8px}.pp-seg button:last-child{border-radius:0 8px 8px 0}
+.pp-seg button[aria-pressed="true"]{background:#a5e0c926;border-color:var(--mint);color:var(--mint);font-weight:700}
+.pp-tray-head{margin:4px 0 -4px}
+.pp-tray{display:flex;flex-wrap:wrap;gap:6px}
+.mg .pp-piece{display:flex;align-items:center;gap:4px;padding:4px 8px 4px 4px;min-width:44px}
+.pp-piece svg{width:36px;height:36px}
+.mg .pp-piece.on{border-color:var(--gold);background:#e7c18b1c}
+.pp-lines{display:grid;gap:5px}
+.pp-line{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);padding:5px 8px;border:1px solid var(--line);border-radius:8px}
+.pp-line i{width:12px;height:12px;border-radius:50%;background:var(--flow);opacity:.4;flex:none}
+.pp-line b{margin-left:auto;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+.pp-line.on{color:var(--ink);border-color:color-mix(in srgb,var(--flow) 60%,var(--line))}.pp-line.on i{opacity:1;box-shadow:0 0 8px var(--flow)}
+.pp-line.bad{border-color:#e2425d}.pp-line.bad b{color:var(--rose)}
+.mg .pp-run.armed{border-color:var(--gold);color:var(--gold)}
+/* side panel */
+.pp-levels{display:grid;gap:6px;margin:0 0 14px}
+.pp-level{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;cursor:pointer}
+.pp-level:has(input:checked){border-color:var(--mint);background:#a5e0c912}
+.pp-level input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--mint)}
+.pp-level span{display:flex;flex-direction:column}.pp-level small{color:var(--muted)}
+.pp-legend{list-style:none;margin:0;padding:0;display:grid;gap:5px;color:var(--muted)}
+.pp-legend li{display:flex;align-items:center;gap:8px}
+.pp-k{width:18px;height:18px;flex:none;display:inline-grid;place-items:center;font-style:normal;font-weight:800;font-size:12px;border-radius:4px}
+.pp-k-src{border-radius:50%;border:3px solid #e8a15a}.pp-k-sink{border:3px solid #5fb8f0;background:#5fb8f040}
+.pp-k-drip{border-radius:50%;background:#5fb8f0;transform:scale(.6)}.pp-k-bad{border-radius:50%;background:#e2425d;color:#fff}
+.pp-k-lock{background:radial-gradient(circle at 3px 3px,#d9c27f 2px,transparent 2.5px),radial-gradient(circle at 15px 15px,#d9c27f 2px,transparent 2.5px),#26363f}
+.pp-k-forced{background:linear-gradient(135deg,#a5e0c9 0 30%,#26363f 30%)}.pp-k-bridge{background:linear-gradient(90deg,transparent 35%,#7d8b95 35% 65%,transparent 65%),linear-gradient(0deg,transparent 35%,#5f6c75 35% 65%,transparent 65%)}
+@media (max-width:700px){.pp-tools{max-width:none;flex-basis:100%}.pp-seg{max-width:320px}}

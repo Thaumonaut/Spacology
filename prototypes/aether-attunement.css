@@ -1,0 +1,85 @@
+/* Aether attunement (boss study): boss strip, objective, reagent rack, board and wave. Frame, meters and result card come from minigame-kit.css. */
+.aa{display:flex;flex-direction:column;gap:12px}
+/* element colour + glyph: every element also has a distinct glyph and stripe angle, so colour is never the only cue */
+.el-order{--c:var(--order);--g:'■';--a:0deg}.el-chaos{--c:var(--chaos);--g:'✕';--a:45deg}.el-growth{--c:var(--growth);--g:'▲';--a:90deg}
+.el-void{--c:var(--void);--g:'●';--a:135deg}.el-decay{--c:var(--decay);--g:'◣';--a:22deg}.el-energy{--c:var(--energy);--g:'ϟ';--a:112deg}
+
+.aa-rack{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px}
+.mg .aa-swatch{position:relative;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:left;min-height:64px;padding:8px 12px;border:2px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 12%,var(--panel2))}
+.aa-swatch .aa-glyph{grid-row:1/3;display:grid;place-items:center;width:38px;height:38px;border-radius:9px;background:var(--c);color:#0b141c;font-size:20px;font-weight:900}
+.aa-swatch b{font-size:15px}.aa-swatch small{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aa-swatch em{position:absolute;top:5px;right:8px;font-style:normal;font-size:10px;color:var(--muted)}
+.mg .aa-swatch.previewing{border-color:var(--c);background:color-mix(in srgb,var(--c) 28%,var(--panel2));box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 30%,transparent),0 0 18px color-mix(in srgb,var(--c) 40%,transparent)}
+.mg .aa-swatch.hint::after{content:'HINT';position:absolute;bottom:5px;right:8px;font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--gold)}
+.aa-foreign{margin:0;font-size:12px;color:var(--muted)}
+.aa-tag{display:inline-flex;gap:4px;align-items:center;padding:1px 8px;border:1px dashed var(--c);border-radius:20px;color:var(--c)}
+.aa-muted{color:var(--muted)}.aa-small{font-size:12px;color:var(--muted)}
+
+/* board: square, fluid cells; never wider than the stage, and short enough to keep the palette in view */
+.aa-boardwrap{--bw:min(100%,max(300px,calc(100vh - 330px)));display:flex;flex-direction:column;align-items:center;gap:4px}
+/* the board's name, set small in its top corner, so each puzzle reads as an authored piece */
+.aa-motif{width:var(--bw);margin:0;text-align:right;font:italic 600 11px/1.2 Georgia,serif;letter-spacing:.04em;color:var(--muted);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aa-board{--n:8;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:2px;width:var(--bw);aspect-ratio:1;padding:6px;border-radius:14px;background:#050a10;border:1px solid var(--line);user-select:none;-webkit-user-select:none}
+.mg .aa-c{position:relative;min-height:0;min-width:0;padding:0;border:0;border-radius:4px;aspect-ratio:1;background:var(--c);color:#0b141c;font-size:clamp(8px,calc(56vmin / var(--n) * .42),18px);line-height:1;display:grid;place-items:center;overflow:visible;cursor:pointer;
+  background-image:repeating-linear-gradient(var(--a),transparent 0 5px,#0002 5px 7px)}
+.mg .aa-c:hover:enabled{background-color:var(--c);border:0;filter:brightness(1.12)}
+.aa-c::after{content:var(--g);opacity:.55;font-weight:900}
+/* attuned: brighter, unified, glyph softened; the region reads as one shape */
+.mg .aa-c.att{background-image:none;box-shadow:inset 0 0 0 1px #ffffff40,0 0 8px color-mix(in srgb,var(--c) 55%,transparent);filter:saturate(1.15) brightness(1.08)}
+.aa-c.att::after{opacity:.22}
+/* not in the crew: muted with a dashed edge — joins only by resonance */
+.mg .aa-c.fx{background:color-mix(in srgb,var(--c) 32%,#0a1118);background-image:repeating-linear-gradient(var(--a),transparent 0 3px,#ffffff10 3px 4px);color:var(--c);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 70%,transparent);outline:1px dashed color-mix(in srgb,var(--c) 70%,transparent);outline-offset:-3px}
+.aa-c.fx::after{opacity:.9}
+.mg .aa-c.scar{background:#0a0f14;background-image:repeating-linear-gradient(45deg,#ffffff0d 0 2px,transparent 2px 6px);cursor:default;color:#5a6670}
+.aa-c.scar::after{content:'⊘';opacity:.7}
+.aa-c.origin::before{content:'';position:absolute;inset:18%;border-radius:50%;border:2px solid #fff;opacity:.85;pointer-events:none}
+/* preview: cells that would join glow and lift; resonance cells get a dotted ring */
+.mg .aa-c.pre{z-index:1;outline:3px solid #fff;outline-offset:-3px;filter:brightness(1.25);animation:aa-pre 1s ease-in-out infinite}
+.mg .aa-c.res{z-index:1;outline:3px dotted #fff;outline-offset:-3px;filter:brightness(1.3)}
+/* the wave: each attuned cell pulses with a delay proportional to its distance from the origin */
+.aa-c.wave{animation:aa-wave .7s ease-out both;animation-delay:calc(var(--d) * 28ms)}
+.aa-c.new{animation:aa-in .55s cubic-bezier(.2,1.4,.4,1) both;animation-delay:calc(var(--d) * 28ms)}
+@keyframes aa-wave{0%{filter:brightness(1)}35%{filter:brightness(1.7) saturate(1.3)}100%{filter:saturate(1.15) brightness(1.08)}}
+@keyframes aa-in{0%{transform:scale(.55);filter:brightness(2)}60%{transform:scale(1.08)}100%{transform:none;filter:saturate(1.15) brightness(1.08)}}
+@keyframes aa-pre{50%{filter:brightness(1.45)}}
+
+.aa-fillbar{position:relative;height:30px;border-radius:15px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
+.aa-fill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,#4f9e88,var(--mint),#e7f7ef);transition:width .5s cubic-bezier(.2,.9,.3,1)}
+.aa-fillbar span{position:relative;display:block;text-align:center;font:700 12px/30px system-ui,sans-serif;color:var(--ink);text-shadow:0 1px 3px #000}
+.aa-actions{display:flex;gap:8px;justify-content:center}.aa-actions button{min-width:150px}
+.aa-roster{list-style:none;margin:0 0 12px;padding:0}.aa-roster li{display:flex;gap:8px;align-items:center;margin:4px 0}
+.aa-dot{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--c);color:#0b141c;font-size:12px;font-weight:900}
+@media (max-width:520px){.aa-rack{grid-template-columns:repeat(2,minmax(0,1fr))}.aa-board{padding:4px;gap:1px}.aa-actions button{min-width:0;flex:1}}
+
+/* boss strip: the hero under study and its buffs as cards; each sample targets one */
+.aa-boss{display:grid;grid-template-columns:minmax(150px,220px) minmax(0,1fr);gap:12px;align-items:stretch;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+.aa-bosshead h2{font:20px/1.15 Georgia,serif;margin:0 0 4px;overflow-wrap:anywhere}
+.aa-buffs{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.aa-buff{display:flex;flex-direction:column;gap:2px;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}
+.aa-buff b{font-size:13px}.aa-buff small{font-size:11px;color:var(--muted);line-height:1.3}
+.aa-buff em{margin-top:auto;padding-top:4px;font-style:normal;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.aa-buff[data-state="testing"]{border-color:var(--gold);box-shadow:0 0 0 2px #e7c18b33}.aa-buff[data-state="testing"] em{color:var(--gold)}
+.aa-buff[data-state="removed"]{border-color:var(--mint)}.aa-buff[data-state="removed"] b{text-decoration:line-through;text-decoration-color:var(--mint)}.aa-buff[data-state="removed"] em{color:var(--mint)}
+.aa-buff[data-state="weakened"]{border-color:var(--sky);border-style:dashed}.aa-buff[data-state="weakened"] em{color:var(--sky)}
+.aa-buff[data-state="untested"]{opacity:.55}
+/* the objective, big, with its live chip: green on par, amber off par, red when it can no longer be met */
+.aa-objective{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 14px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#132430,#0d1922);text-align:center}
+.aa-obj-kicker{flex-basis:100%;margin:0;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.aa-obj-text{margin:0;font:700 clamp(20px,3.4vw,30px)/1.2 Georgia,serif}
+.aa-el{display:inline-flex;align-items:center;gap:6px;color:var(--c)}.aa-el span{display:inline-grid;place-items:center;width:1.2em;height:1.2em;border-radius:6px;background:var(--c);color:#0b141c;font-size:.7em}
+.aa-obj-sep{color:var(--muted)}
+.aa-chip{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:800;letter-spacing:.04em;border:1px solid;white-space:nowrap}
+.aa-chip[data-state="par"],.aa-chip[data-state="met"]{color:var(--mint);border-color:#4f9e88;background:#a5e0c914}
+.aa-chip[data-state="over"]{color:var(--gold);border-color:#a8865a;background:#e7c18b1a}
+.aa-chip[data-state="lost"],.aa-chip[data-state="broken"]{color:var(--rose);border-color:#a8604f;background:#f0a08c1a}
+/* a previewed reagent that would break the objective */
+.aa-warn{display:none;position:absolute;bottom:4px;right:8px;font-style:normal;font-size:16px;line-height:1;color:var(--rose)}
+.mg .aa-swatch.warn{border-color:var(--rose)}.aa-swatch.warn .aa-warn{display:block}.mg .aa-swatch.warn.hint::after{content:none}
+/* Guided: rack groups the reaction touches */
+.mg .aa-c.frontier{box-shadow:inset 0 0 0 2px #ffffffb0}
+.aa-actions #aaNext{min-width:200px}
+.aa-levels{display:grid;gap:6px;margin:0 0 14px}
+.aa-level{display:flex;gap:8px;align-items:flex-start;padding:7px 9px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.aa-level input{margin-top:3px}.aa-level span{display:flex;flex-direction:column}.aa-level small{color:var(--muted);font-size:11px}
+.aa-level:has(input:checked){border-color:var(--mint);background:#a5e0c910}
+@media (max-width:640px){.aa-boss{grid-template-columns:1fr}.aa-buffs{grid-template-columns:repeat(2,minmax(0,1fr))}}

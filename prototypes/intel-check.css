@@ -1,0 +1,214 @@
+/* Manifest checking (intel-check): a progress strip on top, a paper supply manifest on the left, tabbed reference
+   documents on the right. */
+/* The desk needs the full stage width on iPad landscape, so the rules panel drops below the desk up to 1200px. */
+@media (max-width:1200px){.mg-layout{grid-template-columns:1fr}.mg-side{order:2}}
+.ic{--paper:#ece4cf;--paper2:#e1d7bd;--ink2:#1d2329;--inkm:#5b5546;--ok:#2f8a5b;--bad:#c2363c}
+
+/* Progress strip and the live consequence tick. */
+.ic-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-bottom:10px}
+.ic-strip{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-width:0}
+.ic-left-n{font-size:12px;color:var(--muted);margin-right:4px;white-space:nowrap}.ic-left-n b{color:var(--ink);font-size:15px}
+.ic-cell{position:relative;display:grid;place-items:center;width:36px;height:36px;border-radius:6px;background:var(--panel2);border:1px dashed var(--line);color:var(--muted);font:700 13px/1 system-ui}
+.ic-cell.now{border:2px solid var(--gold);color:var(--gold)}
+.ic button.ic-cell{width:44px;height:44px;padding:0;min-height:44px;background:var(--paper2);color:var(--ink2);border:2px solid}
+.ic .ic-cell.verified{border-color:var(--ok)}.ic .ic-cell.forged{border-color:var(--bad)}
+.ic .ic-cell.on{box-shadow:0 0 0 3px var(--gold)}
+.ic-cell i{position:absolute;right:2px;bottom:1px;font-style:normal;font-size:11px;font-weight:900;color:var(--ok)}
+.ic-cell.wrong i{color:var(--bad)}.ic .ic-cell.wrong{background:#f6d3cb}
+.ic .ic-citechip{min-width:44px;padding:0 10px;color:var(--rose);border-color:#8c3b3f;background:#2a1418;font-weight:700}
+.ic-tick{flex:1 1 100%;margin:0;font-size:13px;color:var(--muted);padding:6px 10px;border-left:3px solid var(--line);min-height:32px}
+.ic-tick.good{border-left-color:var(--ok);color:var(--ink)}
+.ic-tick.bad{border-left-color:var(--bad);color:#ffd2cc;background:#2a1418}
+
+/* Wide screens: the report has the left column to itself; strip, tick, tabs and documents share the right. */
+.ic-desk{display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);grid-template-areas:"left top" "left right";grid-template-rows:auto 1fr;gap:10px 16px;align-items:start}
+.ic-desk>.ic-top{grid-area:top;margin:0}.ic-left{grid-area:left}.ic-right{grid-area:right}
+.ic-left{position:sticky;top:76px;z-index:2;display:flex;flex-direction:column;gap:8px;min-width:0}
+.ic-right{display:flex;flex-direction:column;gap:8px;min-width:0}
+
+/* The manifest: a sheet of paper, with its destination under the header. */
+.ic-slot{position:relative}
+.ic-ghosts{position:absolute;inset:0;pointer-events:none;z-index:4}
+.ic-report{position:relative;overflow:hidden;background:linear-gradient(180deg,var(--paper),var(--paper2));color:var(--ink2);border-radius:6px 6px 10px 10px;padding:10px 12px 12px;
+  box-shadow:0 1px 0 #fff8 inset,0 14px 30px #0009,0 2px 0 #b6aa8a;border-top:6px solid #8aa7c4;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.ic-report header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px dashed #9d9278;padding-bottom:5px;margin-bottom:7px}
+.ic-report .eyebrow{color:#7a5a1c;margin:0}
+.ic-dest{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 6px;margin:-2px 0 6px;font-size:14px;line-height:1.3}
+.ic-dest .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkm)}.ic-dest small{color:var(--inkm);font-size:12px}
+.ic-dest[data-dest="lab"] b{color:#24527f}.ic-world{font:italic 12px Georgia,serif;color:var(--inkm)}
+.ic-fields{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ic .ic-field{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;min-height:46px;padding:4px 26px 4px 10px;text-align:left;
+  background:#fffaf0aa;color:var(--ink2);border:1px solid #c5b99a;border-radius:6px;transition:background .15s,box-shadow .15s}
+.ic button.ic-field:hover:enabled{background:#fff;border-color:#7a6a45;color:var(--ink2)}
+.ic-field .k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkm)}
+.ic-field .v{font-size:16px;line-height:1.2;overflow-wrap:anywhere}
+.ic-field.mono .v,.ic code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em}
+.ic-field.wide{grid-column:1/-1}
+.ic-field kbd{position:absolute;right:5px;bottom:3px;font:600 9px/1 system-ui;color:#8d826a;border:1px solid #c5b99a;border-radius:3px;padding:1px 3px}
+.ic-sight{grid-column:1/-1;display:flex;flex-direction:column;gap:4px}.ic-sight>.k{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkm)}
+.ic-sight>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px}
+.ic-sight .ic-field .k{display:none}
+/* Checklist: unchecked ○, ✓ or ✕ on every field; fields with nothing to check at this level are dimmed. */
+.ic-mark{position:absolute;right:6px;top:5px;font-style:normal;font-size:13px;font-weight:800;color:#a89c7e}
+.ic-mark::after{content:'○'}
+.ic-field.ic-na .ic-mark::after{content:'–'}.ic .ic-field.ic-na{opacity:.7}
+.ic .ic-field.ic-ok{border-color:var(--ok);background:#e3f1e6}.ic-field.ic-ok .ic-mark::after{content:'✓';color:var(--ok)}
+.ic .ic-field.ic-bad{border-color:var(--bad);background:#f6d3cb;box-shadow:0 0 0 2px #c2363c66}.ic-field.ic-bad .ic-mark::after{content:'✕';color:var(--bad)}
+.ic .ic-field.ic-sel{background:#fff;border-color:#b07a12;box-shadow:0 0 0 3px #e7a22a}
+.ic .ic-field.ic-rel{box-shadow:0 0 0 2px #4b84c4aa}
+.ic .ic-field.ic-proof{box-shadow:0 0 0 3px var(--bad);background:#f6d3cb}
+.ic-evrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch;margin:8px 0}
+.ic-evidence{margin:0;padding:6px 10px;min-height:44px;border-radius:6px;font-size:12.5px;line-height:1.35;color:var(--inkm);background:#0000000d;border:1px dashed #b3a785;display:flex;align-items:center;flex-wrap:wrap;gap:0 6px}
+.ic-evidence.found{color:#7c1d22;background:#c2363c1f;border:1px solid #c2363c88}.ic-evidence b{letter-spacing:.08em;font-size:11px}
+.ic .ic-checkall{background:#fffaf0;color:#24527f;border:2px solid #4b84c4;font-weight:700;white-space:nowrap}
+.ic .ic-checkall:hover:enabled{background:#dce9f6;color:#183c60}
+.ic-stamps{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ic .ic-sbtn{min-height:60px;font:800 17px/1 Georgia,serif;letter-spacing:.12em;border-width:3px;border-style:double;background:#fffaf0;border-radius:10px}
+.ic .ic-sbtn.ok{color:var(--ok);border-color:var(--ok)}.ic .ic-sbtn.bad{color:var(--bad);border-color:var(--bad)}
+.ic .ic-sbtn.ok:hover:enabled{background:#dcefe2;color:#1f6b44;border-color:var(--ok)}.ic .ic-sbtn.bad:hover:enabled{background:#f7dad6;color:#9c242a;border-color:var(--bad)}
+.ic-done{text-align:center;padding:30px 14px}
+/* Swiping leans the card and tints it towards the stamp it will get. */
+.ic-report.ic-dragging{transition:none;cursor:grabbing}
+.ic-report[data-lean="verified"]{box-shadow:0 0 0 4px var(--ok),0 14px 30px #0009}.ic-report[data-lean="forged"]{box-shadow:0 0 0 4px var(--bad),0 14px 30px #0009}
+.ic-report:not(.ic-dragging){transition:transform .12s ease-out}
+/* Review of a stamped report. */
+.ic-review-note{margin:8px 0;padding:7px 10px;border-radius:6px;font-size:12.5px;line-height:1.35}
+.ic-review-note.good{background:#2f8a5b22;color:#1f5a3a;border:1px solid #2f8a5b88}.ic-review-note.bad{background:#c2363c1f;color:#7c1d22;border:1px solid #c2363c88}
+.ic-review-note b{letter-spacing:.08em;font-size:11px;display:block}
+.ic-report.ic-reviewing{border-top-color:#b07a12}
+.ic-report.ic-reviewing .ic-stamps button{background:#fffaf0;color:var(--ink2);border-color:#a89c7e}
+.ic-report.ic-reviewing .ic-stamps .primary{background:#24527f;color:#fff;border-color:#24527f}
+
+/* The stamp: slam, ink, fly away. About 250 ms in all; the next card is already underneath. */
+.ic-ink{position:absolute;left:50%;top:44%;z-index:3;pointer-events:none;opacity:0;font:800 34px/1 Georgia,serif;letter-spacing:.14em;padding:8px 18px;border:5px double currentColor;border-radius:8px;
+  transform:translate(-50%,-50%) rotate(-12deg) scale(2.4);mix-blend-mode:multiply}
+.ic-ink.verified{color:var(--ok)}.ic-ink.forged{color:var(--bad)}
+.ic-ink.on{animation:ic-slam .1s cubic-bezier(.2,1.5,.4,1) forwards}
+.ic-ghost{position:absolute;left:0;right:0;top:0;margin:0}
+.ic-ghost.go-r{animation:ic-go-r .15s .1s ease-in forwards}.ic-ghost.go-l{animation:ic-go-l .15s .1s ease-in forwards}
+.ic-report.ic-return{animation:ic-return .2s ease-out}
+@keyframes ic-slam{0%{opacity:0;transform:translate(-50%,-50%) rotate(-20deg) scale(2.4)}70%{opacity:1;transform:translate(-50%,-50%) rotate(-11deg) scale(.92)}100%{opacity:.9;transform:translate(-50%,-50%) rotate(-12deg) scale(1)}}
+@keyframes ic-go-r{to{transform:translate(70%,24px) rotate(10deg);opacity:0}}
+@keyframes ic-go-l{to{transform:translate(-70%,24px) rotate(-10deg);opacity:0}}
+@keyframes ic-return{from{transform:translate(40px,20px) rotate(6deg);opacity:0}to{transform:none;opacity:1}}
+
+/* Citation slip: pinned to the corner on wide screens, inline above the report on phones. */
+.ic-slip{position:fixed;right:16px;bottom:16px;z-index:12;width:min(380px,calc(100vw - 32px));padding:12px 14px 10px;border-radius:4px;
+  background:repeating-linear-gradient(0deg,#fbe3dc 0 22px,#f2cfc6 22px 23px);color:#5a1418;border-left:6px solid var(--bad);box-shadow:0 14px 34px #000b;font-size:13px;line-height:1.4}
+.ic-slip[hidden]{display:none}
+.ic-slip p{margin:0 0 8px;font-weight:600}
+.ic-slip.in{animation:ic-slip .22s ease-out}
+.ic-slip-acts{display:flex;gap:8px;justify-content:flex-end}
+.ic .ic-slip-acts button{min-width:44px;background:#fffaf0;color:#7c1d22;border-color:#c2363c88;font-weight:700}
+.ic-pile{position:absolute;top:-10px;left:-10px;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--bad);color:#fff;font-weight:800;font-size:12px}
+@keyframes ic-slip{from{transform:translateX(110%) rotate(4deg)}to{transform:none}}
+
+.ic-inspect{margin:0;padding:8px 12px;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--panel);font-size:13px;color:var(--muted)}
+.ic-inspect b{color:var(--sky);letter-spacing:.08em;font-size:11px;margin-right:4px}
+.ic-inspect.good{border-color:#3f7a62;color:var(--ink)}.ic-inspect.good b{color:var(--mint)}
+.ic-inspect.bad{border-color:#8c3b3f;color:var(--ink);background:#2a1418}.ic-inspect.bad b{color:var(--rose)}
+
+/* Documents: tabs, one at a time. */
+.ic-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.ic .ic-tab{display:flex;align-items:center;gap:6px;background:var(--panel2);color:var(--muted)}
+.ic .ic-tab[aria-selected="true"]{background:var(--panel);color:var(--ink);border-color:var(--gold);box-shadow:inset 0 -3px 0 var(--gold)}
+.ic-doc{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 10px 10px}
+.ic-doc[hidden]{display:none}
+.ic-doc header{display:flex;align-items:center;gap:8px;margin-bottom:6px;min-height:24px}.ic-doc header b{font:15px/1.2 Georgia,serif}
+.ic-new{font-size:10px;font-weight:800;letter-spacing:.12em;color:#241a08;background:var(--gold);border-radius:20px;padding:3px 8px;white-space:nowrap;animation:ic-glow 1.6s ease-in-out 3}
+@keyframes ic-glow{50%{box-shadow:0 0 0 5px #e7c18b44}}
+.ic-entries{display:flex;flex-direction:column;gap:5px}
+.ic .ic-entry{display:grid;grid-template-columns:minmax(76px,auto) minmax(0,1fr);align-items:center;gap:4px 10px;width:100%;min-height:44px;padding:6px 10px;text-align:left;font-size:13px;background:var(--panel2)}
+.ic .ic-entry:disabled{opacity:.8}
+.ic-rg{font-weight:700;line-height:1.15}.ic-rg small{display:block;font-weight:400;font-size:10px;color:var(--muted);letter-spacing:.08em}
+.ic-val{min-width:0;overflow-wrap:anywhere;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.ic-val em{flex-basis:100%;font-size:12px;color:var(--gold);font-style:normal}
+.ic code{font-size:13px;color:var(--mint)}
+.ic-chip{font-style:normal;font-size:11.5px;padding:1px 7px;border-radius:20px;background:#ffffff12;border:1px solid #ffffff22}
+.ic .ic-rule{grid-template-columns:1fr}
+.ic-fhead,.ic-frow{display:grid;grid-template-columns:minmax(70px,1fr) repeat(var(--cols,2),minmax(0,1fr));gap:5px;align-items:center}
+.ic-fhead{font-size:10px;color:var(--muted);letter-spacing:.04em;line-height:1.2}
+.ic .ic-fcell{grid-template-columns:1fr;justify-items:center}
+.ic .ic-entry.ic-rel{border-color:#4b84c4;background:#16283a}
+.ic .ic-entry.ic-focus{border-color:var(--sky);box-shadow:0 0 0 2px var(--sky)}
+.ic .ic-entry.ic-sel{border-color:var(--gold);box-shadow:0 0 0 3px #e7c18b88;background:#2a2412}
+.ic .ic-entry.ic-proof{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad);background:#2a1418}
+.ic .ic-hint{animation:ic-hint 1.2s ease-in-out 3;outline:3px solid var(--gold);outline-offset:1px}
+@keyframes ic-hint{50%{outline-color:transparent}}
+.ic-clash{animation:ic-clash .45s ease-out}
+.ic-agree{animation:ic-agree .4s ease-out}
+@keyframes ic-clash{0%,100%{transform:none}20%{transform:translateX(-4px);box-shadow:0 0 0 4px #c2363c}60%{transform:translateX(4px);box-shadow:0 0 0 4px #c2363c}}
+@keyframes ic-agree{40%{box-shadow:0 0 0 4px #2f8a5b}}
+
+/* Visuals: specimen labels (silhouette in element colour, glyph, pips), cargo crate marks, seals, signatures, cargo
+   scans, the route map. */
+.el-order{fill:var(--order)}.el-chaos{fill:var(--chaos)}.el-growth{fill:var(--growth)}.el-void{fill:var(--void)}.el-decay{fill:var(--decay)}.el-energy{fill:var(--energy)}
+.ic-icon{width:30px;height:36px;flex:none;overflow:visible}
+.ic-crate{width:26px;height:26px;flex:none;fill:#8a6a3a;stroke:#3b2c14;stroke-width:1.6;stroke-linejoin:round}
+.ic .ic-specf{border-style:dashed;border-color:#4b84c4}
+/* Circling the mismatch: hidden rings on every visual, shown for the part that disagrees. */
+.ic .miss{display:none;fill:none;stroke:#c2363c;stroke-width:2.4;stroke-dasharray:4 2}
+.ic-sig .miss{fill:#c2363c33;stroke-width:1.2}
+.ic-field[data-miss="el"] .miss-el,.ic-field[data-miss="glyph"] .miss-glyph,.ic-field[data-miss="pips"] .miss-pips,.ic-field[data-miss="ring"] .miss-ring,
+.ic-field[data-miss="points"] .miss-points,.ic-field[data-miss="seg0"] .miss-seg0,.ic-field[data-miss="seg1"] .miss-seg1,.ic-field[data-miss="seg2"] .miss-seg2,
+.ic-field[data-miss="seg3"] .miss-seg3,.ic-field[data-miss="seg4"] .miss-seg4,.ic-field[data-miss="seg5"] .miss-seg5{display:inline}
+.ic-field.ic-sealf[data-miss="glyph"] .ic-seal .miss-glyph{display:inline}
+.ic-icon .sil{stroke:#1d2329;stroke-width:1.6}.ic-icon .sil.plain{fill:#d9d0b8}
+.ic .gly{fill:#1d2329;stroke:#1d2329;stroke-width:.6}.ic .gly .ln{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.ic-icon .pip{fill:#1d2329}.ic-doc .ic-icon .pip{fill:var(--ink)}
+.ic-sightf .v,.ic-sealf .v{display:flex;align-items:center;gap:6px}
+.ic .ic-sight .ic-field{padding-left:6px;padding-right:16px}
+/* Cargo lines and specimen crates: the mark and count on top, the name underneath, so four fit across a card. */
+.ic .ic-sightf .v{flex-direction:column;align-items:flex-start;gap:1px}
+.ic-ctop{display:flex;align-items:center;gap:5px}.ic-ctop b{font-size:16px}.ic-ctop .ic-icon{width:24px;height:29px}
+.ic-nm{font-size:12px;font-weight:600;line-height:1.15;overflow-wrap:normal}
+.ic-ct{display:flex;flex-direction:column;line-height:1.1;font-size:13px;font-weight:600;overflow-wrap:normal}.ic-ct b{font-size:16px}
+.ic-sealf .v span{font-size:12px;font-weight:600;overflow-wrap:normal}
+.ic-el{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap}.ic-el svg{width:15px;height:15px}
+.ic-legend{display:flex;flex-wrap:wrap;gap:4px 12px;padding:2px 2px 6px;color:var(--muted)}
+.ic-guide{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:5px}
+.ic .ic-gentry{grid-template-columns:30px minmax(0,1fr);gap:8px}
+.ic-gentry .ic-val{display:flex;flex-direction:column;align-items:flex-start;gap:2px}.ic-gentry .ic-val>span{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.ic-gentry i{font-style:normal;color:var(--muted);font-size:11px}
+.ic-seal{width:32px;height:32px;flex:none;overflow:visible}
+.ic-seal .ring{fill:#f4ecd8;stroke-width:3.2}.ring-gold{stroke:#d4a640}.ring-silver{stroke:#9aa6ae}.ring-teal{stroke:#2f9a8c}.ring-crimson{stroke:#c2363c}
+.ic-seal .star{fill:#6b5434}.ic-seal .sg{fill:#f4ecd8;stroke:#f4ecd8;stroke-width:.4}.ic-seal .sg .ln{fill:none;stroke-width:2;stroke-linecap:round}
+.ic-sealtag{display:inline-flex;align-items:center;gap:5px;margin-left:auto;font-size:12px;color:var(--muted)}.ic-sealtag .ic-seal{width:30px;height:30px}
+.ic-sig{width:96px;height:24px;flex:none}.ic-sig .wave{fill:none;stroke:#24527f;stroke-width:2;stroke-linejoin:round}.ic-sig .sep{stroke:#0000001f;stroke-width:1}
+.ic-doc .ic-sig .wave{stroke:var(--mint)}.ic-doc .ic-sig .sep{stroke:#ffffff1a}
+.ic-snap{width:54px;height:54px;flex:none}.ic-snap .scope{fill:#10261f;stroke:#2f8a5b;stroke-width:1.5}.ic-snap .grid{fill:none;stroke:#2f8a5b66}.ic-snap .blip{fill:#bdf3dc}
+.ic-snapf{flex-direction:row!important;align-items:center!important;gap:8px!important}.ic-snapf .k{writing-mode:vertical-rl;transform:rotate(180deg)}
+.ic-map{display:block;width:100%;max-width:360px;margin:0 auto 6px}.ic-map line{stroke:var(--line);stroke-width:2.5}
+.ic-map .rg circle{fill:var(--sky)}.ic-map .outer circle{fill:var(--muted)}.ic-map text{fill:var(--ink);font:11px system-ui;text-anchor:middle}
+.ic-logline .ic-chip.verified{color:var(--mint);border-color:#3f7a62}.ic-logline .ic-chip.forged{color:var(--rose);border-color:#8c3b3f}.ic-logline .ic-val{gap:4px 8px}
+.ic-empty{margin:4px 2px;color:var(--muted);font-size:13px}
+.ic .ic-sigcell{padding:4px}
+/* Dense reports (Hard and up): three columns and tighter fields so the whole card fits a 1024×768 screen. */
+.ic-dense .ic-fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+.ic-dense .ic-field[data-field="from"],.ic-dense .ic-field[data-field="cond"]{grid-column:span 2}.ic-dense .ic-field.wide{grid-column:1/-1}
+.ic-dense .ic-field[data-field="cond"] .v{font-size:14px}
+.ic-dense .ic-fields{gap:5px}.ic-dense .ic-field .v{font-size:15px}.ic .ic-dense .ic-field{min-height:44px;padding-top:2px;padding-bottom:2px}
+.ic-dense header{margin-bottom:5px;padding-bottom:4px}.ic-dense .ic-dest{margin-bottom:4px;font-size:13px}.ic-dense .ic-sight>.k{display:none}.ic .ic-dense .ic-sbtn{min-height:54px}.ic-dense .ic-evrow{margin:6px 0}
+
+/* The night shift (Endless): the night's NEW RULE banner and a gentle timer bar on each manifest. */
+.ic-banner{flex:1 1 100%;margin:0;padding:8px 12px;border-radius:10px;background:#2a2412;border:1px solid var(--gold);color:var(--ink);font-size:13px}
+.ic-banner[hidden]{display:none}.ic-banner b{color:var(--gold);letter-spacing:.1em;font-size:11px;margin-right:6px}
+.ic-banner.in{animation:ic-banner .5s ease-out}
+@keyframes ic-banner{0%{transform:translateY(-8px);opacity:0}60%{box-shadow:0 0 0 6px #e7c18b44}100%{transform:none;opacity:1}}
+.ic-timer{height:6px;margin:-4px -4px 8px;border-radius:3px;background:#0000001a;overflow:hidden}
+.ic-timer i{display:block;height:100%;width:100%;background:#4b84c4;transition:width .25s linear}.ic-timer i.low{background:var(--bad)}
+
+.ic-tools{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-top:14px}
+.ic-assist{display:flex;gap:0}
+.ic .ic-assist button{border-radius:0;margin-left:-1px}.ic .ic-assist button:first-child{border-radius:8px 0 0 8px}.ic .ic-assist button:last-child{border-radius:0 8px 8px 0}
+.ic .ic-assist button[aria-checked="true"]{border-color:var(--sky);color:var(--sky);background:#16283a;position:relative;z-index:1}
+.ic-keys{flex:1 1 320px;margin:0;font-size:12.5px;color:var(--muted)}.ic-keys b{color:var(--ink)}
+
+@media (max-width:760px){
+  .ic-desk{grid-template-columns:1fr;grid-template-areas:"top" "left" "right"}
+  .ic-left{position:static}
+  .ic-slip{position:relative;right:auto;bottom:auto;width:auto}
+  .ic-inspect{position:fixed;left:8px;right:8px;bottom:8px;z-index:6;box-shadow:0 8px 24px #000c}
+  .ic{padding-bottom:70px}
+  span.ic-cell{width:30px;height:30px;font-size:11px}
+}
+@media (prefers-reduced-motion: reduce){.ic-ghost{display:none}}

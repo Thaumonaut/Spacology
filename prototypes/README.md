@@ -3,6 +3,36 @@
 Standalone, self-contained experiments. Each file runs by opening it in a browser —
 no build step, no dependencies.
 
+## minigames.html
+
+Station games for the two support teams. The full design, the decisions behind each game and the playtest rules
+are in [`docs/design/three-teams-and-station-games.md`](../docs/design/three-teams-and-station-games.md). Each
+game is generated from a seed, proven solvable by its own solver, and has hints, undo, assist levels, an automatic
+fallback (Skip) and a result card with a near-miss line. The hub groups them by team and records play counts and
+separate fun and annoyance ratings in this browser; "Export playtests" downloads them.
+
+| Page | Team · phase | Inspired by | Produces |
+|---|---|---|---|
+| `aether-attunement.html` | Research · night | Flood-It | Boss study: buffs removed, weakness found |
+| `sensor-grid.html` | Research · night | Catdoku / Queens | Elective fight scouted, difficulty lowered |
+| `dna-sequencing.html` | Research · night | Shotgun sequencing assembly | Research assistance card flaws cleared |
+| `signal-decoding.html` | Research · day | Cyberpunk 2077 Breach Protocol | Blueprints for logistics |
+| `intel-check.html` | Research · day | Papers, Please | Verified manifests; Null sabotage stopped |
+| `core-assay.html` | Research · day | Spectrometry peak matching | Resource nodes for logistics |
+| `supply-run.html` | Logistics · night | Walk-and-collect idle games | Raw resources and crafted parts |
+| `gear-pack.html` | Logistics · night | Backpack Battles | Gear kits exploration ordered (the user finds this one unfun; open) |
+| `pallet-stacking.html` | Logistics · night | Honkai: Star Rail cargo stacking | Rockets: gear to the front, samples to the lab |
+| `route-planning.html` | Logistics · day | Mini Motorways / Cities: Skylines | The road network, built at night, watched by day |
+| `pipes.html` | Logistics · day | Rotating pipe puzzles | Base production layout |
+| `depot-sorting.html` | Logistics · day | Water-sort puzzles | Arrivals sorted for tonight's production |
+| `synergy-links.html` | Reserve | Flow Free | Not assigned to a team |
+
+`minigame-kit.js` and `minigame-kit.css` are the shared frame: the registry (`GAMES`, with `role` and `phase`),
+seeded randomness, meters, timer, result card, playtest storage, and an embedded station mode that posts
+`spacology:minigame-result` to a parent page. Each game's rules live in its `*-model.js`, tested by
+`tests/unit/<game>.cjs`; `tests/browser/<game>.cjs` and `tests/browser/minigames-hub.cjs` play them headlessly.
+Long runs should use `caffeinate -i npm test` so the Mac cannot sleep mid-test.
+
 ## watchable-fight.html
 
 The battle-watchability spike. Establishes the combat core that the real game will be

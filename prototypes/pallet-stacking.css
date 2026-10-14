@@ -1,0 +1,200 @@
+/* Rocket loading (file keeps the pallet-stacking name): side-view rockets with open cargo fairings drawn to scale.
+   --cell is set from the stage width by pallet-stacking.js. */
+.ps{--cell:48px;display:grid;gap:14px}
+.ps-panel{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px}
+.ps-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 12px;margin-bottom:8px}
+.ps-head .eyebrow{margin:0}.ps-head small{color:var(--muted);font-size:12px}
+
+/* Dock */
+.ps-dock-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.mg .ps-card{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;text-align:left;padding:8px 10px;min-height:64px;background:var(--panel2);position:relative}
+.mg .ps-card[aria-pressed="true"]{border-color:var(--mint);background:#1b3a37;box-shadow:0 0 0 2px var(--mint) inset}
+.ps-card .ps-mini{grid-row:span 2;display:grid;gap:1px;align-self:center}
+.ps-mini i{display:block;width:11px;height:11px;border-radius:2px;background:var(--c)}
+.ps-mini i.t-off{box-shadow:0 -2px 0 var(--rose)}.ps-mini i.t-on{box-shadow:0 -2px 0 var(--mint)}
+.ps-card b{font-size:13px;line-height:1.2}
+.ps-nums{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:2px 8px}
+.ps-nums .v{color:var(--gold);font-weight:700}
+.ps-tags{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px}
+.ps-tag{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
+.ps-tag.heavy{color:#e0c49a;border-color:#7a6440}.ps-tag.fragile{color:var(--rose);border-color:#8c5a4b}
+.ps-tag.top{color:var(--sky);border-color:#4b6a8c}
+.ps-empty{color:var(--muted);font-size:13px;margin:4px 0}
+
+/* Launch pad and rockets */
+.ps-yard{overflow:clip;padding:4px 0 2px}
+.ps-pallets{display:flex;flex-wrap:wrap;gap:18px 34px;justify-content:center;align-items:flex-end}
+.ps-pallet{display:flex;flex-direction:column;align-items:center;gap:4px}
+.ps-ptitle{display:flex;gap:10px;align-items:baseline;font-size:13px;width:calc(var(--w) * var(--cell));justify-content:space-between;flex-wrap:wrap}
+.ps-ptitle b{font-size:14px}.ps-ptitle span{color:var(--muted);font-variant-numeric:tabular-nums}
+.ps-fill{width:calc(var(--w) * var(--cell));height:7px;border-radius:4px;background:#22313d;overflow:hidden}
+.ps-fill i{display:block;height:100%;background:var(--sky);transition:width .25s}
+.ps-fill.full i{background:var(--mint);box-shadow:0 0 8px var(--mint)}
+.ps-fillnum{font-variant-numeric:tabular-nums}
+.ps-ptitle .ps-full{color:#112921;background:var(--mint);font-weight:800;font-size:11px;letter-spacing:.12em;padding:1px 8px;border-radius:10px;display:inline-block}
+.ps-bay.ps-filled{animation:ps-filled .6s ease-out}
+@keyframes ps-filled{0%{box-shadow:0 0 0 0 #a5e0c900}35%{box-shadow:0 0 0 6px #a5e0c999,0 0 30px #a5e0c966;transform:scale(1.03)}100%{box-shadow:0 0 0 0 #a5e0c900;transform:none}}
+.ps-marks{display:grid;grid-template-columns:repeat(var(--w),var(--cell));font-size:11px;color:var(--muted);text-align:center;height:18px;line-height:18px}
+.ps-marks span.ok{color:var(--mint);font-weight:800}.ps-marks span.no{color:var(--rose);opacity:.8}
+.ps-bay{position:relative;width:calc(var(--w) * var(--cell));height:calc(var(--h) * var(--cell));
+  background:linear-gradient(#ffffff0a 1px,transparent 1px) 0 0/var(--cell) var(--cell),linear-gradient(90deg,#ffffff0a 1px,transparent 1px) 0 0/var(--cell) var(--cell),#0a141d;
+  border:1px solid var(--line);border-bottom:0;border-top:2px dashed #e7c18b66;border-radius:6px 6px 0 0}
+.ps-bay::after{content:'fairing';position:absolute;left:50%;transform:translateX(-50%);top:2px;font-size:10px;color:#e7c18b88;pointer-events:none;letter-spacing:.05em;z-index:3}
+/* The taper: blocked shoulder cells above each column's ceiling, drawn as hatched hull. */
+.ps-block{position:absolute;left:calc(var(--x) * var(--cell));bottom:calc(var(--y) * var(--cell));width:var(--cell);height:calc(var(--bh) * var(--cell));z-index:2;pointer-events:none;
+  background:repeating-linear-gradient(135deg,#8fa3b4 0 4px,#5b6e7e 4px 9px);border-bottom:2px solid #c9d6e0;box-shadow:inset 0 0 0 1px #0006}
+.ps-keyblock{display:inline-block;width:14px;height:10px;vertical-align:middle;background:repeating-linear-gradient(135deg,#8fa3b4 0 3px,#5b6e7e 3px 6px);border-radius:2px}
+.mg .ps-col{position:absolute;top:0;bottom:0;width:var(--cell);left:calc(var(--i) * var(--cell));padding:0;border:0;border-radius:0;background:transparent;min-height:0;z-index:1}
+.mg .ps-col:hover:enabled{background:#a5e0c912}
+.mg .ps-col:focus-visible{outline-offset:-3px}
+.ps-col.ps-hint{background:repeating-linear-gradient(0deg,#e7c18b22 0 8px,transparent 8px 16px);animation:ps-glow 1.2s ease-in-out infinite}
+
+/* Crates */
+.ps-crate{position:absolute;left:calc(var(--x) * var(--cell));bottom:calc(var(--y) * var(--cell));width:calc(var(--cw) * var(--cell));height:calc(var(--ch) * var(--cell));z-index:2;padding:2px}
+.mg .ps-crate{border:0;background:transparent;min-height:0;border-radius:0;cursor:default}
+.ps-crate .body{position:absolute;inset:2px;border-radius:4px;background:linear-gradient(160deg,color-mix(in srgb,var(--c) 85%,#fff) 0,var(--c) 40%,color-mix(in srgb,var(--c) 70%,#000) 100%);
+  color:#10181f;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;font-size:11px;line-height:1.1;text-align:center;box-shadow:inset 0 -3px 0 #0003}
+.ps-crate .body .ic{font-size:calc(var(--cell) * .38);line-height:1}
+.ps-crate .body .nm{font-weight:700;padding:0 2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ps-crate .body .wv{font-variant-numeric:tabular-nums;opacity:.8}
+.ps-crate.heavy .body{box-shadow:inset 0 -6px 0 #0006,inset 0 0 0 2px #0005}
+.ps-crate.fragile .body{box-shadow:inset 0 0 0 2px #fff8,inset 0 -3px 0 #0003}
+.ps-crate.peak .body{clip-path:polygon(0 22%,50% 0,100% 22%,100% 100%,0 100%);padding-top:10%}
+.ps-crate .tops{position:absolute;left:2px;right:2px;top:0;height:4px;display:flex;gap:2px;z-index:1}
+.ps-crate .tops i{flex:1;border-radius:2px}
+.ps-crate .tops i.on{background:var(--mint)}.ps-crate .tops i.off{background:repeating-linear-gradient(90deg,var(--rose) 0 3px,transparent 3px 6px)}
+.ps-crate.peak .tops{display:none}
+.ps .ps-aiming .ps-crate{pointer-events:none}
+.mg .ps-crate.can-lift{cursor:pointer}
+.mg .ps-crate.can-lift:hover .body{filter:brightness(1.15)}
+.ps-crate.ps-hint .body{outline:3px solid var(--gold);animation:ps-glow 1.2s ease-in-out infinite}
+.ps-crate.ps-drop{animation:ps-drop .5s cubic-bezier(.4,0,.6,1)}
+@keyframes ps-drop{0%{transform:translateY(calc(var(--fall) * -1));opacity:.4}62%{transform:translateY(0);opacity:1}78%{transform:translateY(-5px) scaleY(.96)}100%{transform:none}}
+@keyframes ps-glow{50%{filter:brightness(1.35)}}
+
+/* Ghost: where the selected crate would land in the aimed column */
+.ps-ghost{position:absolute;left:calc(var(--x) * var(--cell));bottom:calc(var(--y) * var(--cell));width:calc(var(--cw) * var(--cell));height:calc(var(--ch) * var(--cell));
+  z-index:3;pointer-events:none;border:2px dashed var(--mint);border-radius:5px;background:#a5e0c926;display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--mint)}
+.ps-ghost.bad{border-color:var(--rose);background:#f0a08c22;color:var(--rose)}
+.ps-ghost[hidden]{display:none}
+
+/* The rocket: open fairing halves either side of the bay, a deck under it, then the engine section, nozzle and flame. */
+.ps-site{position:relative;display:flex;flex-direction:column;align-items:center;padding:0 18px}
+.ps-rocket{position:relative;display:flex;flex-direction:column;align-items:center}
+.ps-half{position:absolute;top:calc(var(--h) * var(--cell) * .3);width:8px;height:calc(var(--h) * var(--cell) * .68);background:linear-gradient(90deg,#c9d6e0,#8396a6);pointer-events:none}
+.ps-half.l{left:-10px;border-radius:10px 2px 2px 2px;transform:rotate(-16deg);transform-origin:bottom right}
+.ps-half.r{right:-10px;border-radius:2px 10px 2px 2px;transform:rotate(16deg);transform-origin:bottom left}
+.ps-base{width:calc(var(--w) * var(--cell) + 8px);height:10px;border-radius:2px;background:repeating-linear-gradient(90deg,#b8c4ce 0 18px,#7d8b97 18px 22px)}
+.ps-sled{position:relative;width:calc(var(--w) * var(--cell));height:26px;border-radius:0 0 6px 6px;background:linear-gradient(90deg,#4f6274,#9fb0bf 45%,#4f6274);box-shadow:0 4px 10px #0007}
+.ps-sled::before,.ps-sled::after{content:'';position:absolute;bottom:-4px;width:18px;height:26px;background:#c35d4b}
+.ps-sled::before{left:-16px;clip-path:polygon(100% 0,100% 100%,0 100%)}.ps-sled::after{right:-16px;clip-path:polygon(0 0,100% 100%,0 100%)}
+.ps-sled .cab{position:absolute;left:50%;bottom:-12px;width:26px;height:12px;margin-left:-13px;background:#38434d;clip-path:polygon(20% 0,80% 0,100% 100%,0 100%)}
+.ps-flame{position:absolute;left:50%;top:calc(100% + 12px);width:22px;height:0;margin-left:-11px;border-radius:0 0 50% 50%;background:radial-gradient(ellipse at top,#fff6c8,#ffb347 45%,#f0603000 75%);opacity:0;pointer-events:none}
+.ps-balance{position:relative;width:calc(var(--w) * var(--cell));height:16px;margin-top:6px;border-radius:8px;background:#f0a08c2b}
+.ps-balance .safe{position:absolute;left:25%;width:50%;top:0;bottom:0;background:#a5e0c933;border-left:1px solid #a5e0c988;border-right:1px solid #a5e0c988}
+.ps-balance .needle{position:absolute;top:-4px;bottom:-4px;width:4px;margin-left:-2px;border-radius:2px;background:var(--mint);transition:left .3s ease-out}
+.ps-balance .needle.bad{background:var(--rose)}
+.ps-balance .needle.proj{opacity:.55;background:var(--ink);transition:none}
+.ps-balance .needle.proj.bad{background:var(--rose)}
+.ps-balance .pivot{position:absolute;left:50%;bottom:-7px;margin-left:-6px;border:6px solid transparent;border-bottom-color:var(--muted);border-top:0}
+.ps-btext{font-size:12px;color:var(--muted);margin:2px 0 0;min-height:18px;text-align:center}
+.ps-btext.bad{color:var(--rose);font-weight:700}.ps-btext.ok{color:var(--mint)}
+.ps-pallet.tipping .ps-bay{border-color:#f0a08c99}
+
+/* Dispatch */
+.ps-go{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+.ps-stakes{margin:0;font-size:14px;flex:1 1 260px}.ps-stakes b{color:var(--gold)}.ps-stakes .bad{color:var(--rose)}.ps-stakes .ok{color:var(--mint)}
+.mg #psDispatch{min-height:52px;padding:10px 20px;font-size:16px}
+.mg #psDispatch.ps-hint{animation:ps-glow 1.2s ease-in-out infinite;box-shadow:0 0 0 3px var(--gold)}
+
+/* Liftoff: a short rumble, the flame lights, then the rocket rises out of the pad (the yard clips it). Off-centre
+   rockets lean on the pad and stay behind. */
+@keyframes ps-liftoff{0%{transform:none}8%{transform:translateX(-1px)}16%{transform:translateX(1px)}24%{transform:translateX(-1px)}32%{transform:none}100%{transform:translateY(-130vh)}}
+@keyframes ps-burn{0%{opacity:0;height:0}25%{opacity:1;height:30px}100%{opacity:1;height:70px}}
+@keyframes ps-orbit-in{0%,60%{opacity:0}100%{opacity:1}}
+.ps-departing .ps-pallet.level .ps-rocket,.ps-pallet.leaving .ps-rocket{animation:ps-liftoff 1.25s cubic-bezier(.55,0,.85,.35) forwards}
+.ps-departing .ps-pallet.level .ps-flame,.ps-pallet.leaving .ps-flame{animation:ps-burn 1.25s ease-in forwards}
+.ps-departing .ps-pallet.level:nth-child(2) .ps-rocket,.ps-departing .ps-pallet.level:nth-child(2) .ps-flame{animation-delay:.15s}
+.ps-departing .ps-pallet.level:nth-child(3) .ps-rocket,.ps-departing .ps-pallet.level:nth-child(3) .ps-flame{animation-delay:.3s}
+.ps-departing .ps-pallet.tipped .ps-rocket{transform:rotate(var(--lean));transform-origin:bottom center;transition:transform .5s ease-in;opacity:.7}
+.ps-pallet.leaving .ps-awaycover{animation:ps-orbit-in 1.3s linear both}
+@media (prefers-reduced-motion:reduce){.ps-departing .ps-pallet.level .ps-rocket,.ps-pallet.leaving .ps-rocket,.ps-flame,.ps-pallet.leaving .ps-awaycover{animation:none!important}}
+.ps-legend{font-size:12px;color:var(--muted);margin:8px 0 12px;padding-left:16px}.ps-legend li{margin:3px 0}
+@media (max-width:520px){.ps-dock-list{grid-template-columns:repeat(2,minmax(0,1fr))}.mg .ps-card{padding:6px 8px}.ps-panel{padding:10px}}
+
+/* Hover/focus preview for the selected crate; kept off the status line so it never hides an action message. */
+.ps-preview{min-height:20px;margin:0 0 6px;font-size:13px;color:var(--muted)}.ps-preview.bad{color:var(--rose)}
+
+/* ---- Voyage mode: legs, vehicles, depot -------------------------------------------------------------------------- */
+.ps-legbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px}
+.ps-legs{display:flex;gap:4px;flex-wrap:wrap}
+.ps-leg{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:1px solid var(--line);color:var(--muted)}
+.ps-leg.done{background:#a5e0c922;color:var(--mint);border-color:#a5e0c966}.ps-leg.now{background:var(--gold);color:#241a08;border-color:var(--gold)}
+.ps-report{margin:0;font-size:13px;color:var(--muted);flex:1 1 240px}.ps-report b{color:var(--mint)}
+#psDockNote.bad{color:var(--rose);font-weight:700}
+.ps-cardwrap{position:relative;display:grid}
+.mg .ps-scrap{position:absolute;top:4px;right:4px;min-height:30px;min-width:30px;padding:0;font-size:12px;color:var(--muted);background:transparent;border-color:transparent}
+.mg .ps-scrap:hover{color:var(--rose);border-color:#8c5a4b}
+.mg .ps-scrap.ps-hint{color:var(--rose);border-color:var(--gold);animation:ps-glow 1.2s ease-in-out infinite}
+.ps-card.ps-order{border-color:#8c7448}.ps-card.ps-new{background:#16262f}
+.ps-nums .cr{color:var(--gold);font-weight:700}.ps-nums .wait{color:var(--rose)}.ps-nums .new{color:var(--mint)}
+.ps-tag.lt{color:#241a08;background:var(--gold);border-color:var(--gold)}.ps-tag.lt.late{background:transparent;color:var(--rose);border-color:#8c5a4b}
+.ps-bars{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:center;width:calc(var(--w) * var(--cell));font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ps-bars .ps-fill{width:auto}.ps-bars .lbl.hot{color:var(--gold);font-weight:700}
+.ps-wfill{height:7px;border-radius:4px;background:#22313d;overflow:hidden}.ps-wfill i{display:block;height:100%;background:var(--leaf);transition:width .25s}.ps-wfill.full i{background:var(--gold)}
+.ps-wnote{margin:2px 0 0;font-size:12px;color:var(--gold);max-width:calc(var(--w) * var(--cell) + 40px);text-align:center}
+.mg .ps-depart{display:flex;flex-direction:column;align-items:center;gap:0;min-width:calc(var(--w) * var(--cell));margin-top:4px;font-weight:700}
+.ps-depart small{font-weight:400;font-size:11px;color:var(--muted)}
+.mg .ps-depart:not([aria-disabled]){background:#1b3a37;border-color:var(--mint)}
+.mg [aria-disabled="true"]{opacity:.6}
+.mg .ps-depart.ps-hint,.mg .ps-shopitem.ps-hint,.mg #psEndLeg.ps-hint{animation:ps-glow 1.2s ease-in-out infinite;box-shadow:0 0 0 3px var(--gold);opacity:1}
+.ps-away{margin:4px 0 0;font-size:12px;color:var(--sky);font-weight:700}
+.ps-awaycover{position:absolute;inset:0 0 -12px;z-index:4;border-radius:8px;display:grid;place-content:center;text-align:center;background:repeating-linear-gradient(135deg,#0a141dee 0 10px,#0f1d29ee 10px 20px);color:var(--sky)}
+.ps-awaycover b{font:34px/1 Georgia,serif}.ps-awaycover span{font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.ps-pallet.away:not(.leaving) .ps-rocket{opacity:.25}
+.mg #psEndLeg{min-height:52px;padding:10px 20px;font-size:16px}
+.ps-depot .ps-shop{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;margin-bottom:8px}
+.mg .ps-shopitem{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:8px 10px}
+.ps-shopitem b{font-size:13px}.ps-shopitem .price{color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums}.ps-shopitem small{grid-column:1/-1;color:var(--muted);font-size:11px}
+.ps-shopitem.owned .price{color:var(--mint)}
+.ps-reqs{list-style:none;padding:0;margin:0 0 10px;font-size:13px}.ps-reqs li{margin:4px 0}.ps-reqs .done{color:var(--mint)}.ps-reqs .wait{color:var(--gold)}.ps-reqs .risk{color:var(--rose)}
+.ps-cardwrap .ps-card{padding-right:36px}
+
+/* ---- Upgrade route, grouped depot, guard dialog, settings ---------------------------------------------------------- */
+.ps-group{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;background:#0c172188}
+.ps-ghead{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin-bottom:6px}.ps-ghead small{color:var(--muted);font-size:12px}
+.ps-route{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:0 0 8px}
+.ps-node{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:14px;border:1px solid var(--line);font-size:15px;color:var(--muted)}
+.ps-node small{font-size:11px}.ps-node.now{border-color:var(--mint);background:#a5e0c922;color:var(--ink)}.ps-node.past{opacity:.55}.ps-node.next small{color:var(--gold)}
+.ps-arrow{color:var(--muted)}
+.mg .ps-shopitem.ps-transform{border-color:#8c7448;background:#2a2312}
+.ps-more summary{cursor:pointer;color:var(--sky);font-size:12px;margin:2px 0 6px;min-height:28px}
+.ps-addrow{margin-top:4px}
+.ps-transformed{position:absolute;inset:0;z-index:5;display:grid;place-content:center;text-align:center;pointer-events:none;background:radial-gradient(circle,#e7c18b44,#0000 70%);animation:ps-trans 1.8s ease-out forwards}
+.ps-transformed small{font-size:11px;letter-spacing:.2em;color:var(--gold);font-weight:800}.ps-transformed b{font:22px/1.2 Georgia,serif;color:var(--ink)}
+@keyframes ps-trans{0%{opacity:0;transform:scale(.7)}15%{opacity:1;transform:scale(1.08)}70%{opacity:1;transform:none}100%{opacity:0}}
+/* Each stage looks different: a stubby hopper on landing legs, a finned lifter, a heavy lifter with side boosters. */
+.v-hopper .ps-sled{height:20px}.v-hopper .ps-sled::before,.v-hopper .ps-sled::after{width:6px;height:22px;bottom:-10px;background:#9fb0bf;clip-path:none}
+.v-hopper .ps-sled::before{left:-4px;transform:rotate(18deg)}.v-hopper .ps-sled::after{right:-4px;transform:rotate(-18deg)}
+.v-heavy .ps-sled{height:32px;background:linear-gradient(90deg,#5d4a3a,#c2a27e 45%,#5d4a3a)}
+.v-heavy .ps-sled::before,.v-heavy .ps-sled::after{width:14px;height:calc(var(--cell) * 1.6);bottom:0;border-radius:7px 7px 2px 2px;clip-path:none;background:linear-gradient(90deg,#e2e8ed,#93a3b0)}
+.v-heavy .ps-sled .cab{width:36px;margin-left:-18px}
+.ps-dest{margin:0;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 10px;border-radius:10px;border:1px solid var(--line);color:var(--muted);max-width:calc(var(--w) * var(--cell) + 40px);text-align:center}
+.ps-dest.front{color:#241a08;background:#e7c18b;border-color:#e7c18b}.ps-dest.lab{color:#10202a;background:#9fd6ff;border-color:#9fd6ff}
+.ps-dest.open{text-transform:none;letter-spacing:0;font-weight:400}
+.ps-tag.dest.front{color:#e7c18b;border-color:#8c7448}.ps-tag.dest.lab{color:#9fd6ff;border-color:#4b6a8c}
+.ps-guard{position:fixed;inset:0;z-index:15;display:grid;place-items:center;padding:16px;background:#03070bb3}
+.ps-guard[hidden]{display:none}
+.ps-guardcard{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 20px 60px #000a}
+.ps-guardcard h3{margin:0 0 8px;font:20px/1.2 Georgia,serif}.ps-guardcard p{margin:0 0 10px}
+.ps-guardbtns{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.ps-mute,.ps-guardpref{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);margin:0 0 12px;min-height:32px}
+.ps-mute input,.ps-guardpref input{width:20px;height:20px}
+.ps-settingsline{font-size:12px;color:var(--muted)}
+.ps-settings summary{cursor:pointer;min-height:32px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}.ps-settings summary span{font-size:12px;color:var(--muted)}
+.ps-settingsnote{font-size:13px;color:var(--muted);margin:8px 0}
+.ps-presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:10px}
+.mg .ps-presets button{display:flex;flex-direction:column;align-items:flex-start;text-align:left}.ps-presets small{font-size:11px;color:var(--muted)}
+.mg .ps-presets button.on{border-color:var(--mint);background:#1b3a37}
+.ps-setgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:10px}
+.ps-setgrid label{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted)}

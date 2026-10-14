@@ -12,6 +12,14 @@ one replaced. The older documents in this folder predate it and still use the cu
 **`design-record.md`** is the current consolidated specification. Where any other
 document in this folder contradicts it, this one wins.
 
+## Newest working direction
+
+**`three-teams-and-station-games.md`** records the user's decisions from 6–14 October 2026: the three modes
+(Exploration, Research, Logistics) on one globe, the asynchronous day/night clock, affixes vs exploration
+environment vs research assistance, the voyage phase and research's targets, the twelve station games and the
+playtest rules they follow, and what is still open. On those topics it is newer than `design-record.md`; its
+§12 lists where the older documents disagree.
+
 ## Current, supporting
 
 | File | What it covers |

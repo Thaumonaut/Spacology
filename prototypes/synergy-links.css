@@ -1,0 +1,51 @@
+/* Synergy links: one SVG board (1 unit per cell), fat rounded pipes, crew discs at the endpoints. */
+.sl{display:grid;gap:12px;justify-items:center}
+.sl-assist{display:flex;flex-wrap:wrap;align-items:center;gap:6px;justify-content:center}
+.sl-assist-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-right:2px}
+.mg .sl-assist button{min-height:44px;font-size:13px;padding:8px 12px;border-radius:22px}
+.mg .sl-assist button[aria-pressed="true"]{background:#2a2412;border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+.mg .sl-assist button[data-assist="off"][aria-pressed="true"]{background:#16302b;border-color:var(--mint);color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset}
+
+.sl-boardwrap{position:relative;width:min(100%,max(300px,calc(100vh - 260px)),760px)}
+.sl-board{display:block;width:100%;height:auto;aspect-ratio:1;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;
+  background:#060c12;border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 40px #0008, inset 0 0 0 1px #ffffff08;cursor:pointer}
+.sl-board:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.sl-cell{fill:#0f1a24;stroke:#ffffff10;stroke-width:.02;transition:fill .12s}
+.sl-cell.dead{fill:url(#slHatch);stroke:#ffffff06}
+.sl-pipe{fill:none;stroke-width:.38;stroke-linecap:round;stroke-linejoin:round}
+.sl-pipe.done{filter:drop-shadow(0 0 .09px currentColor) drop-shadow(0 0 .12px #ffffff55)}
+.sl-pipe.sl-glow{animation:sl-glow .7s ease-out}
+.sl-flow{fill:none;stroke:#ffffff66;stroke-width:.09;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:.04 .64;animation:sl-flow 1.1s linear infinite;pointer-events:none;mix-blend-mode:screen}
+.sl-ends{pointer-events:none}
+.sl-end-in{transform-box:fill-box;transform-origin:center}
+.sl-halo{opacity:0;transition:opacity .2s}
+.sl-end.done .sl-halo,.sl-end.active .sl-halo{opacity:.35}
+.sl-disc{stroke:#060c12;stroke-width:.05}
+.sl-initial{font:800 .42px system-ui,-apple-system,sans-serif;fill:#0b1218;pointer-events:none}
+.sl-end.sl-pop .sl-end-in{animation:sl-pop .45s cubic-bezier(.3,1.6,.5,1)}
+.sl-cursor{fill:#ffffff12;stroke:#ffffffaa;stroke-width:.05;pointer-events:none}
+.sl-cursor.bad{stroke:var(--rose)!important;fill:#f0a08c22}
+.sl-solved .sl-pipe{animation:sl-glow 1s ease-out}
+.sl-solved .sl-flow{stroke:#ffffffcc;animation-duration:.6s}
+.sl-solved .sl-board{box-shadow:0 0 0 2px var(--gold),0 0 44px #e7c18b55}
+
+.sl-caption{min-height:36px;display:flex;justify-content:center;align-items:center;transform:translateY(6px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:100%;text-align:center;margin-bottom:6px}
+.sl-caption span{display:inline-block;padding:6px 14px;border-radius:20px;background:#081018ee;border:2px solid var(--c);color:var(--ink);font-weight:700;font-size:14px;box-shadow:0 0 18px color-mix(in srgb,var(--c) 45%,transparent)}
+.sl-caption.show{opacity:1;transform:none}
+
+.sl-foot{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;width:min(100%,760px)}
+.sl-progress{margin:0;color:var(--muted);font-size:14px;flex:1 1 260px}
+.sl-progress .ok{color:var(--mint)}.sl-progress .warn{color:var(--gold)}
+
+.sl-list{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px}
+.sl-list li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start;padding:6px 8px;border-radius:8px;background:var(--panel2);border-left:4px solid var(--c);color:var(--muted)}
+.sl-list li b{color:var(--ink)}
+.sl-list li small{display:block;font-size:11px;line-height:1.35;margin-top:2px}
+.sl-list li.on{background:color-mix(in srgb,var(--c) 14%,var(--panel2))}
+.sl-sw{width:20px;height:20px;border-radius:50%;background:var(--c);color:#0b1218;font-weight:900;font-size:12px;display:grid;place-items:center;margin-top:1px}
+.sl-active{margin:0;color:var(--mint);font-size:13px}
+
+@keyframes sl-flow{to{stroke-dashoffset:-.68}}
+@keyframes sl-pop{0%{transform:scale(1)}45%{transform:scale(1.28)}100%{transform:scale(1)}}
+@keyframes sl-glow{0%{stroke-width:.38}35%{stroke-width:.5}100%{stroke-width:.38}}
+@media (max-width:520px){.sl-progress{font-size:13px}.mg .sl-assist button{font-size:12px;padding:8px 10px}}
