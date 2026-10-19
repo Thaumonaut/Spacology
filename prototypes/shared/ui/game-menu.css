@@ -1,3 +1,7 @@
+.title-screen .title-actions #titlePlaytests{justify-content:start;text-align:left;gap:2px;padding:10px 20px;font-size:12px;min-height:56px;letter-spacing:.04em;border-color:#597d7a}
+.title-screen #titlePlaytests small{font-size:10px;font-weight:400;letter-spacing:0;color:#a4bac7}
+.title-screen #titlePlaytests:hover{border-color:#dfc595}
+.main-menu-open .frame{overflow:hidden}
 /* Insets are shared by Ops, battle and full-screen menus. */
 :root{--game-safe-top:env(safe-area-inset-top,0px);--game-safe-right:env(safe-area-inset-right,0px);--game-safe-bottom:env(safe-area-inset-bottom,0px);--game-safe-left:env(safe-area-inset-left,0px)}
 @media(display-mode:standalone){:root{--game-safe-top:max(24px,env(safe-area-inset-top,0px))}}

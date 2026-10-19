@@ -4,7 +4,7 @@
 // too, greedy loaders get stuck and random play rarely clears it; the fairing taper (blocked shoulders, ceilings, the
 // solver honouring them); drop/support/centre-of-mass rules; atomic invalid moves; tiers; the auto fallback; hints that
 // always lead to a clear dock; the near-miss line. Voyage: rockets, refits, destinations, sample crates, lab orders.
-const assert=require('node:assert/strict'),P=require('../../prototypes/pallet-stacking-model.js'),Kit=require('../../prototypes/minigame-kit.js');
+const assert=require('node:assert/strict'),P=require('../../prototypes/minigames/pallet-stacking/pallet-stacking-model.js'),Kit=require('../../prototypes/shared/minigames/minigame-kit.js');
 const SEEDS=200,ids=P.PUZZLES.map(d=>d.id);
 const run=(pz,moves)=>{const st=P.create();for(const m of moves)assert.equal(P.apply(pz,st,m),null,P.describe(pz,m));return st;};
 const cleared=(pz,st)=>{const ev=P.evaluate(pz,st);return ev.cleared&&ev.allLevel;};

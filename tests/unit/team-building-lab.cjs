@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('node:assert/strict'),M=require('../../prototypes/team-building-model.js');
+const assert=require('node:assert/strict'),M=require('../../prototypes/labs/team-building/team-building-model.js');
 const state=M.create({mode:'target',engine:'counter',seed:41});state.target='Ilka';
 for(let i=0;i<2;i++){const chosen=M.offers(state,'crew').find(id=>id!=='Ilka');assert.equal(M.act(state,{type:'crew',id:chosen}),null);M.settle(state);}
 assert.equal(state.progress,2);assert.equal(state.owned.Ilka,undefined);

@@ -5,7 +5,7 @@ const {spawnSync}=require('node:child_process');
 const path=require('node:path');
 
 const ROOT=path.resolve(__dirname,'../..');
-const MODEL=path.join(ROOT,'prototypes/affix-lab-model.js'),SIM=path.join(ROOT,'sim/affix-lab.js');
+const MODEL=path.join(ROOT,'prototypes/labs/affix-lab/affix-lab-model.js'),SIM=path.join(ROOT,'sim/affix-lab.js');
 // Runs the CLI with `args`, after `setup` (source text with the model bound to M) has instrumented it. `report` is
 // evaluated at exit and printed on a REPORT line.
 function sim(args,{setup='',report='null'}={}){

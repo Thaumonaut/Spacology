@@ -11,7 +11,7 @@
 // Loads as a classic script (window.Pipes) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=root.MiniGameKit||(typeof require==='function'?require('./minigame-kit.js'):null);
+  const Kit=root.MiniGameKit||(typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):null);
   const BIT=[1,2,4,8],DX=[0,1,0,-1],DY=[-1,0,1,0],DIR_NAME=['north','east','south','west'],opp=d=>(d+2)&3;
   const rotM=(m,r)=>{r=((r%4)+4)%4;for(let k=0;k<r;k++)m=((m<<1)|(m>>3))&15;return m;};
   const pop=m=>(m&1)+((m>>1)&1)+((m>>2)&1)+((m>>3)&1);

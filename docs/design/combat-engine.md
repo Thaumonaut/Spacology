@@ -1,6 +1,6 @@
 # The shared combat engine
 
-The live combat rules live in `prototypes/combat-core.js`. The watchable fight loads them as a classic script, and `prototypes/combat-headless.js` runs them in Node (`runFight(spec)`), one isolated context per fight. They were moved out of `watchable-fight.html` unchanged. `tests/unit/combat-headless.cjs` checks 15 recorded fights against the live page, and `tests/browser/combat-core-parity.cjs` checks the page itself, action by action.
+The live combat rules live in `prototypes/shared/combat/combat-core.js`. The watchable fight loads them as a classic script, and `prototypes/shared/combat/combat-headless.js` runs them in Node (`runFight(spec)`), one isolated context per fight. They were moved out of `watchable-fight.html` unchanged. `tests/unit/combat-headless.cjs` checks 15 recorded fights against the live page, and `tests/browser/combat-core-parity.cjs` checks the page itself, action by action.
 
 ## What a host can use
 

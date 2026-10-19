@@ -1,3 +1,5 @@
+// Historical harness for the old inline battle prototype. For current combat use
+// prototypes/shared/combat/combat-headless.js and tests/unit/combat-headless.cjs.
 const path=require('path');
 // Minimal DOM shim so the prototype's logic can be exercised without a browser.
 const fs=require('fs');

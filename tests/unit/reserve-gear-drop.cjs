@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
-const source=fs.readFileSync(require.resolve('../../prototypes/spacology-v0.1.0.js'),'utf8');
+const source=fs.readFileSync(require.resolve('../../prototypes/demo/spacology-v0.1.0.js'),'utf8');
 const start=source.indexOf('function handleDrop(');
 const end=source.indexOf("\ndocument.addEventListener('click'",start);
 function drop(from,gear,ref='Bosk'){

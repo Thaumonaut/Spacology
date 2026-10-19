@@ -4,7 +4,7 @@
 // (retract, cut, restart, endpoints block, complete links stop); invalid moves leave the state untouched; tiers with
 // hints and assists; auto below Perfect; dead ends and forced-link cascades; hints that cut wrong lines and always
 // converge; the near-miss line. Prints generation timings.
-const assert=require('node:assert/strict'),S=require('../../prototypes/synergy-links-model.js'),Kit=require('../../prototypes/minigame-kit.js');
+const assert=require('node:assert/strict'),S=require('../../prototypes/minigames/synergy-links/synergy-links-model.js'),Kit=require('../../prototypes/shared/minigames/minigame-kit.js');
 const SEEDS=200,ids=S.DIFFICULTIES.map(d=>d.id);
 const solvedState=pz=>{const st=S.create(pz);pz.solution.forEach((p,k)=>assert.equal(S.apply(pz,st,{type:'stroke',pair:k,cells:p}),null));return st;};
 

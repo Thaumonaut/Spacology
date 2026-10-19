@@ -4,7 +4,7 @@
 // changes the par line; careful and plain greedy miss par), chip states, ⚠ breaks, buffs removed per sample, round
 // tiers, hints that stay optimal and speak the objective, near-miss lines, and the fallback.
 // Run: node tests/unit/aether-attunement.cjs   (AA_SEEDS=n to change the per-difficulty round count, default 120)
-const assert=require('node:assert/strict'),A=require('../../prototypes/aether-attunement-model.js'),I=A._internal;
+const assert=require('node:assert/strict'),A=require('../../prototypes/minigames/aether-attunement/aether-attunement-model.js'),I=A._internal;
 const SYM={D4:['mx','my','r180','t','r90','r270','at'],C4:['r90','r180','r270'],D2:['mx','my'],C2:['r180'],MX:['mx']};
 const MAP={mx:(x,y,s)=>[s-1-x,y],my:(x,y,s)=>[x,s-1-y],r180:(x,y,s)=>[s-1-x,s-1-y],t:(x,y)=>[y,x],r90:(x,y,s)=>[s-1-y,x],r270:(x,y,s)=>[y,s-1-x],at:(x,y,s)=>[s-1-y,s-1-x]};
 const SEEDS=Number(process.env.AA_SEEDS)||120;
@@ -151,7 +151,7 @@ assert.ok(chips.over>0&&chips.lost>0,'amber and red chip states both occur from 
 }
 
 // ---- hints: from the start they reproduce the par line; off the line every hint is optimal under the objective ----
-const rnd=require('../../prototypes/minigame-kit.js').rng(99);let hintChecks=0,holdText=0;
+const rnd=require('../../prototypes/shared/minigames/minigame-kit.js').rng(99);let hintChecks=0,holdText=0;
 for(const D of A.DIFFICULTIES)for(let seed=1;seed<=20;seed++)for(const P of gen(seed,D.id).samples){
   let h=A.initial(P);
   while(!A.done(P,h)){const x=A.hint(P,h);assert.ok(x.text.length>10);if(/^Hold \w+ for last/.test(x.text))holdText++;h=A.apply(P,h,x.colour).state;}

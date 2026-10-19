@@ -21,7 +21,7 @@ Two distinct deployed crew with the same ancestral-world affiliation give all de
 
 This common effect is deliberately a first balance test, not six final bespoke planet kits. It lets testers assess whether ancestry creates interesting formation decisions before introducing six more combat rules. Crew departments retain their existing separate bonuses.
 
-The runtime source of truth is `prototypes/expedition-rules.js`, used by the Ops rail, atlas and battle loader. The visible star atlas is `prototypes/star-atlas.html`.
+The runtime source of truth is `prototypes/shared/voyage/expedition-rules.js`, used by the Ops rail, atlas and battle loader. The visible star atlas is `prototypes/star-atlas.html`.
 
 ## Questions for the next lore pass
 

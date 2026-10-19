@@ -52,13 +52,13 @@ body{padding:0}.frame{width:100vw;height:100vh;max-height:none;aspect-ratio:auto
 .title-screen{position:absolute;inset:0;z-index:200;display:grid;align-items:end;background:#071018 url('../assets/title/spacology-splash-v2.webp') center/cover no-repeat}.title-screen[hidden]{display:none}.title-screen:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,7,10,.88),rgba(3,7,10,.28) 52%,rgba(3,7,10,.06)),linear-gradient(0deg,rgba(3,7,10,.85),transparent 55%)}.title-copy{position:relative;z-index:1;padding:clamp(34px,7vw,76px);max-width:610px}.title-copy .eyebrow{font-size:9px}.title-copy h1{font:400 clamp(56px,9vw,106px)/.8 Georgia,serif;letter-spacing:-.06em;margin:12px 0 20px}.title-copy p{max-width:46ch;color:#c6d1d8;font-size:12px}.title-actions{display:flex;gap:8px;margin-top:22px}.title-actions button,.title-actions a{min-height:42px;padding:0 17px;border:1px solid var(--line2);border-radius:5px;background:rgba(8,18,27,.88);color:var(--blue);font-size:8px;font-weight:800;text-decoration:none;display:grid;place-items:center;cursor:pointer}.title-actions .primary{background:var(--amber);border-color:var(--amber);color:#251805}
 @media(max-width:800px){.inventory .item[draggable=true]{touch-action:pan-x}}
 </style>
-<link rel="stylesheet" href="ops-room.css">
+<link rel="stylesheet" href="demo/ops-room.css">
 <style>.returning-to-ops #titleScreen{display:none!important}</style>
 <script>if(new URLSearchParams(location.search).get('return')==='1')document.documentElement.classList.add('returning-to-ops');</script>
-<link rel="stylesheet" href="game-menu.css">
+<link rel="stylesheet" href="shared/ui/game-menu.css">
 </head>
 <body><div class="frame">
-  <section class="title-screen" id="titleScreen" aria-label="Spacology main menu"><div class="title-orbit" aria-hidden="true"></div><div class="title-copy"><div class="eyebrow">STAR SINGER · EXPEDITION CONTROL</div><h1>Spacology</h1><p>Build a field crew. Explore an impossible ecology. Bring a record home.</p><nav class="title-actions" aria-label="Main menu"><button class="primary" id="enterOps">CONTINUE VOYAGE</button><button id="titleNewVoyage">NEW VOYAGE</button><button id="titleSettings">SETTINGS</button><button id="titleHelp">HOW TO PLAY</button></nav><div class="title-secondary"><a href="art-gallery.html">Art archive ↗</a><a href="aether-weavers.html">Weaver expeditions ↗</a></div></div><aside class="save-preview" id="savePreview" aria-label="Saved voyage"></aside><footer class="title-footer"><span>EXPLORATION BEGINS WITH CURIOSITY</span><span>LOCAL PLAYTEST · v0.1</span></footer></section>
+  <section class="title-screen" id="titleScreen" aria-label="Spacology main menu"><div class="title-orbit" aria-hidden="true"></div><div class="title-copy"><div class="eyebrow">STAR SINGER · EXPEDITION CONTROL</div><h1>Spacology</h1><p>Build a field crew. Explore an impossible ecology. Bring a record home.</p><nav class="title-actions" aria-label="Main menu"><button class="primary" id="enterOps">CONTINUE VOYAGE</button><button id="titleNewVoyage">NEW VOYAGE</button><a id="titlePlaytests" href="minigames.html">PLAYTEST LIBRARY <small>Station games · Autobattle · Experiments</small></a><button id="titleSettings">SETTINGS</button><button id="titleHelp">HOW TO PLAY</button></nav><div class="title-secondary"><a href="art-gallery.html">Art archive ↗</a><a href="aether-weavers.html">Weaver expeditions ↗</a></div></div><aside class="save-preview" id="savePreview" aria-label="Saved voyage"></aside><footer class="title-footer"><span>EXPLORATION BEGINS WITH CURIOSITY</span><span>LOCAL PLAYTEST · v0.1</span></footer></section>
   <header class="topbar"><div class="status"><div class="room"><b>Ops room</b><span>VOYAGE 01 · PHOMOUS</span></div><div class="stat integrity"><b>74%</b><span>INTEGRITY</span></div><div class="stat gold"><b id="gold">102</b><span>GOLD</span></div></div><nav class="round-map" aria-label="Current round map"><div class="node complete"><i>✓</i><b>ARRIVE</b></div><div class="node complete"><i>✓</i><b>SALVAGE</b></div><div class="node complete"><i>✓</i><b>CONTACT</b></div><div class="node current"><i>1</i><b>OPS</b></div><div class="node"><i>5</i><b>FIELDWORK</b></div><div class="node"><i>6</i><b>BATTLE</b></div><div class="node"><i>7</i><b>RECOVER</b></div></nav><div class="run-meta"><b>ROUND 1 · CONTAINMENT</b><span>Major enemy ahead · Survey I</span><nav class="run-icons" aria-label="Voyage controls"><a class="round-icon" href="art-gallery.html" aria-label="Open art archive">Archive</a><button class="round-icon" data-info="modifiers" aria-label="Open voyage rules">Rules</button><button class="round-icon" data-info="map" aria-label="Open voyage route">Route</button><button class="round-icon" data-open-inbox aria-label="Open recovery inbox">Inbox<span class="toolbar-badge" hidden></span></button><button class="round-icon toolbar-menu" id="pauseGame" aria-label="Open pause menu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4h10M3 8h10M3 12h10"/></svg>Menu</button><button id="retreatRun" hidden>RETREAT</button></nav></div></header>
 
   <section class="supply"><div class="pack-select" id="packSelect">
@@ -116,21 +116,21 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>renderInventory
 const info={modifiers:['SURVEY III','Difficulty and modifiers','Enemies use advanced behavior. Scarce Salvage reduces automatic returns by 20%.'],map:['ROUND MAP','Route detail','Completed nodes remain visible. Upcoming nodes reveal encounter type, fieldwork, and major enemies without revealing rewards.'],['pack-odds']:['PACK RULES','What a sealed pack tells you','Every pack reveals its theme, category ranges, price, themed chance, and pack-level Prime chance. Exact cards and rarity remain concealed.'],['all-harmonies']:['TEAM BONUS INDEX','All team bonuses','Pin the team bonuses you are building. The rail always shows names and breakpoints; exact effects stay in detail.'],manage:['INVENTORY','Manage and filter','Filter by equippable now, team-bonus breakpoint, fieldwork fit, duplicates, upgrade-ready, and unlocked.'],forge:['CRAFTING','Forge and upgrade','Spend Scrap and discovered recipes to upgrade Gear, ship items, or characters. Crafting broadens builds without permanent voyage stats.'],attune:['CRAFTING','Craft an attunement','Combine 20 matching fragments to create a targeted attunement pack for that element or mechanic. It narrows the pool without guaranteeing one character.'],barracks:['EXPERIMENTAL','Barracks · 120 gold','Recruit from three discovered characters once per voyage. This keeps uncertainty while offering an expensive recovery option.'],calls:['NEXT ROUND','Calls loaded','Focus and Hold are equipped. Each can be used once in the next fight.'],['next-settings']:['NEXT ROUND','Round settings','Review Calls, combat speed, auto-pause on observation progress, and target-priority behaviour.']};document.querySelectorAll('[data-info]').forEach(b=>b.onclick=()=>{const x=info[b.dataset.info];showModal(`<div class="eyebrow">${x[0]}</div><h2>${x[1]}</h2><p class="lede">${x[2]}</p>`)});
 document.getElementById('closeModal').onclick=()=>overlay.classList.remove('open');overlay.onclick=e=>{if(e.target===overlay)overlay.classList.remove('open')};renderInventory('characters');
 </script>
-<script src="voyage-settings.js"></script>
-<script src="voyage-rules.js"></script>
-<script src="session-store.js"></script>
-<script src="game-preferences.js"></script>
-<script src="game-menu.js"></script>
-<script src="expedition-rules.js"></script>
-<script src="treasure-rules.js"></script>
-<script src="field-progression.js"></script>
-<script src="weaver-roster.js"></script>
-<script src="formation-rules.js"></script>
-<script src="down-recovery.js"></script>
-<script src="aether-rules.js"></script>
+<script src="shared/voyage/voyage-settings.js"></script>
+<script src="shared/voyage/voyage-rules.js"></script>
+<script src="shared/voyage/session-store.js"></script>
+<script src="shared/ui/game-preferences.js"></script>
+<script src="shared/ui/game-menu.js"></script>
+<script src="shared/voyage/expedition-rules.js"></script>
+<script src="shared/voyage/treasure-rules.js"></script>
+<script src="shared/voyage/field-progression.js"></script>
+<script src="shared/combat/weaver-roster.js"></script>
+<script src="shared/combat/formation-rules.js"></script>
+<script src="shared/combat/down-recovery.js"></script>
+<script src="shared/combat/aether-rules.js"></script>
 <script src="../sim/enemy-catalogue.js"></script>
-<script src="crew-progression.js"></script>
-<script src="spacology-v0.1.0.js"></script>
+<script src="shared/voyage/crew-progression.js"></script>
+<script src="demo/spacology-v0.1.0.js"></script>
 
 <script>if('serviceWorker'in navigator)navigator.serviceWorker.register('../sw.js');</script>
 </body></html>

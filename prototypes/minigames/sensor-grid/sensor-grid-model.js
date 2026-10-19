@@ -13,7 +13,7 @@
 // Loads as a classic script (window.SensorGrid) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   // level: the deepest deduction a puzzle may need. 0 = single-step rules (last open cell, a zone confined to one line,
   // a cell that would wipe out a zone/line); 1 = also k zones confined to k lines; 2 = also one-cell "what if" checks.

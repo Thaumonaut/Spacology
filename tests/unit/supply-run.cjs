@@ -3,7 +3,7 @@
 // station IN/OUT pads, dispatch, scrap bin, locked zones); unlock pads, coin piles and coin streaming; workers walking
 // their default loops; recipe unlocking and requests that climb the ladder; display data for every node, station and
 // pad; chain highlight data; par replay and determinism over many seeds; Skip, tiers, hints and near-miss lines.
-const assert=require('node:assert/strict'),P=require('../../prototypes/supply-run-model.js');
+const assert=require('node:assert/strict'),P=require('../../prototypes/minigames/supply-run/supply-run-model.js');
 const SEEDS=40,ids=P.DIFFICULTIES.map(d=>d.id),U=P.U;
 const t0=Date.now();
 const fresh=(d='normal',seed=1)=>{const pz=P.generate(seed,d);return {pz,st:P.create(pz,{fx:true})};};

@@ -1,6 +1,6 @@
 'use strict';
 // Weaver voyage lab: pool-mutation hooks, voyage legality, determinism.
-const assert=require('node:assert/strict'),M=require('../../prototypes/weaver-voyage-model.js');
+const assert=require('node:assert/strict'),M=require('../../prototypes/labs/weaver-voyage/weaver-voyage-model.js');
 
 const empty=()=>Object.fromEntries(M.SLOTS.map(k=>[k,null]));
 function rigOf(set,n=5){const r=empty();M.SLOTS.slice(0,n).forEach((k,i)=>r[k]={uid:900+i,set,slot:k});return r}

@@ -9,8 +9,7 @@ themselves a record of what was tried and abandoned.
 **`glossary.md`** is the working vocabulary — standard industry terms only, and what each
 one replaced. The older documents in this folder predate it and still use the custom names.
 
-**`design-record.md`** is the current consolidated specification. Where any other
-document in this folder contradicts it, this one wins.
+**`design-record.md`** is the older consolidated combat/voyage baseline. It remains useful for topics not revised below; it does not override the newer three-team/station-game decisions. Proposals and isolated labs are not silently promoted to implemented rules. See the [repository map](../../README.md) for the latest source checkpoint and [reuse guide](../architecture.md) for code ownership.
 
 ## Newest working direction
 
@@ -25,7 +24,7 @@ playtest rules they follow, and what is still open. On those topics it is newer 
 | File | What it covers |
 |---|---|
 | `glossary.md` | The working vocabulary: roles, character properties, enemy archetypes, combat constants |
-| `combat-engine.md` | The shared combat engine: what labs and sims can use from `prototypes/combat-core.js` (hooks, per-fight rules, metrics), and its open questions |
+| `combat-engine.md` | The shared combat engine: what labs and sims can use from `prototypes/shared/combat/combat-core.js` (hooks, per-fight rules, metrics), and its open questions |
 | `enemy-catalogue.md` | Enemy factions, Null progression, hero specimens, and the procedural frontier grammar |
 | `crew.md` | The current 28-character lore cast, relationships, field names and species mix |
 | `art-direction.md` | Shared painterly anime/JRPG portrait language and species-specific constraints |

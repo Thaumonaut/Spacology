@@ -6,7 +6,7 @@
 //  node sim/weaver-voyage.js [seeds=60] [out.json]
 // ============================================================================
 'use strict';
-const M=require('../prototypes/weaver-voyage-model.js');
+const M=require('../prototypes/labs/weaver-voyage/weaver-voyage-model.js');
 // SCALE='{"hp":[...],"atk":[...]}' overrides enemy scaling for a calibration sweep.
 if(process.env.SCALE)Object.assign(M.SCALE,JSON.parse(process.env.SCALE));
 const SEEDS=Number(process.argv[2]||60),OUT=process.argv[3];

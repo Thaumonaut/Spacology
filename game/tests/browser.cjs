@@ -1,9 +1,9 @@
 const {chromium}=((req)=>req('playwright'))(require('node:module').createRequire(require('node:path').join(__dirname,'..','..','package.json')));
 const assert=require('node:assert/strict');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),{execSync}=require('node:child_process');
-const A=require('../../prototypes/aether-attunement-model.js');
-const G=require('../../prototypes/gear-pack-model.js');
-const PM=require('../../prototypes/pallet-stacking-model.js');
+const A=require('../../prototypes/minigames/aether-attunement/aether-attunement-model.js');
+const G=require('../../prototypes/minigames/gear-pack/gear-pack-model.js');
+const PM=require('../../prototypes/minigames/pallet-stacking/pallet-stacking-model.js');
 
 const GAME=path.resolve(__dirname,'..'),DIST=path.join(GAME,'dist');
 const SHOTS=process.env.SHOTS||`/tmp/spacology-expedition-${Date.now()}`;

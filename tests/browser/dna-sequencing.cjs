@@ -3,7 +3,7 @@
 // node tests/browser/dna-sequencing.cjs (or: node tests/run.cjs dna-sequencing). SPACOLOGY_HEADED=1 opens a visible
 // browser for debugging only.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const M=require('../../prototypes/dna-sequencing-model.js');
+const M=require('../../prototypes/minigames/dna-sequencing/dna-sequencing-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 async function noOverflow(p,where){await p.waitForTimeout(250);const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
 // Reduced motion: no transitions, shakes or staggered reveals, so no step waits on an animation to settle and the

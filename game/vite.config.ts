@@ -4,8 +4,10 @@ import {fileURLToPath} from 'node:url';
 import {readFileSync} from 'node:fs';
 
 const repo=fileURLToPath(new URL('../',import.meta.url));
-const files=['prototypes/minigame-kit.js','prototypes/minigame-kit.css',
-  ...['aether-attunement','gear-pack','pallet-stacking'].flatMap(id=>['.html','.css','.js','-model.js'].map(ext=>`prototypes/${id}${ext}`)),
+const files=['prototypes/shared/minigames/minigame-kit.js','prototypes/shared/minigames/minigame-kit.css',
+  ...['aether-attunement','gear-pack','pallet-stacking'].flatMap(id=>[
+    `prototypes/${id}.html`,
+    ...['.css','.js','-model.js'].map(ext=>`prototypes/minigames/${id}/${id}${ext}`)]),
   ...['daven-pell-v7','hanae-mori-v3','arunima-das-v4'].map(id=>`assets/cast/${id}.png`)];
 const allowed=new Set(files);
 const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.png':'image/png'};

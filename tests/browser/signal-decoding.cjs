@@ -3,7 +3,7 @@
 // the model's par route (every daemon uploaded, shared codes marked as chained, an improved blueprint delivered).
 // Headless unless SPACOLOGY_HEADED=1. Serve the repository root, then: node tests/run.cjs signal-decoding
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const M=require('../../prototypes/signal-decoding-model.js');
+const M=require('../../prototypes/minigames/signal-decoding/signal-decoding-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 const url=(seed,diff)=>`${BASE}/prototypes/signal-decoding.html?seed=${seed}&difficulty=${diff}`;
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}

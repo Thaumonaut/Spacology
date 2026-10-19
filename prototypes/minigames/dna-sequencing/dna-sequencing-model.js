@@ -23,7 +23,7 @@
 // Loads as a classic script (window.DnaSequencing) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   const FIT=4,RUNS=3,NODE_BUDGET=400000;
   const BASES=[

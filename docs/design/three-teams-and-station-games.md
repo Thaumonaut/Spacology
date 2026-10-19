@@ -174,7 +174,7 @@ Discussed and favoured; the details are **open**.
 ## 6 · The station games
 
 Twelve team games plus one in reserve. All are in `prototypes/`, all are registered in
-`prototypes/minigame-kit.js` (`GAMES`, with `role` and `phase`), and all are listed on
+`prototypes/shared/minigames/minigame-kit.js` (`GAMES`, with `role` and `phase`), and all are listed on
 `prototypes/minigames.html`. Each has a unit test and a headless browser test.
 
 | Team | Phase | Game | File id | Produces | Status |

@@ -2,7 +2,7 @@
 // widths, headlessly. Serve the repository root (npm run serve), then: node tests/browser/core-assay.cjs
 // (or: node tests/run.cjs core-assay). SPACOLOGY_HEADED=1 opens a visible browser for debugging only.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const A=require('../../prototypes/core-assay-model.js');
+const A=require('../../prototypes/minigames/core-assay/core-assay-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 async function noOverflow(p,where){await p.waitForTimeout(300);const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});

@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const F=require('../../prototypes/field-progression.js');
+const F=require('../../prototypes/shared/voyage/field-progression.js');
 const fresh=()=>({level:1,capacity:4,shipSlots:1,gold:100,round:1,maxRounds:6});
 const s=fresh();F.normalize(s);
 assert.equal(s.fieldXP,0);

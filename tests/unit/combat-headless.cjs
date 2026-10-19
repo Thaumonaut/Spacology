@@ -1,6 +1,6 @@
 'use strict';
-// The headless host runs the live combat rules (prototypes/combat-core.js) and reproduces the live page exactly.
-const assert=require('node:assert/strict'),crypto=require('crypto'),H=require('../../prototypes/combat-headless.js');
+// The headless host runs the live combat rules (prototypes/shared/combat/combat-core.js) and reproduces the live page exactly.
+const assert=require('node:assert/strict'),crypto=require('crypto'),H=require('../../prototypes/shared/combat/combat-headless.js');
 const prints=require('./combat-fingerprints.json').fights;
 const sha=v=>crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const view=r=>({end:r.end,steps:r.steps,events:r.events,units:r.units,aether:r.aether});

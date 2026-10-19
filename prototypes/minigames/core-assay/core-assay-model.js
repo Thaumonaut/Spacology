@@ -18,7 +18,7 @@
 // Loads as a classic script (window.CoreAssay) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   // unique: how many minerals (in the hidden deduction order) get a unique key channel; the rest are chained onto a
   // channel shared with earlier minerals. extraUnique: whether chained minerals may also get a unique extra peak.

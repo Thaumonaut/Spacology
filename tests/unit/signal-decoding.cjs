@@ -3,7 +3,7 @@
 // daemons back to back are longer than the buffer, and the planted overlaps are real; an exact solver checked against
 // brute force; a random legal player rarely uploads everything; the pick rule, chained uploads, invalid moves, tiers,
 // near-miss, auto fallback and hints; blueprint outputs (improved, complete, fragments that carry over, nothing).
-const assert=require('node:assert/strict'),M=require('../../prototypes/signal-decoding-model.js'),K=require('../../prototypes/minigame-kit.js');
+const assert=require('node:assert/strict'),M=require('../../prototypes/minigames/signal-decoding/signal-decoding-model.js'),K=require('../../prototypes/shared/minigames/minigame-kit.js');
 
 const value=(pz,picks)=>M.evaluate(pz,picks).value;
 const contains=(a,b)=>{for(let o=0;o+b.length<=a.length;o++)if(b.every((x,i)=>a[o+i]===x))return true;return false;};

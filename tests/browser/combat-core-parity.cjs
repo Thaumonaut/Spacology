@@ -48,6 +48,15 @@ const summary=Object.entries(out).map(([k,v])=>`${k}: ${v.steps} actions, ${v.en
 if(process.env.SPACOLOGY_SESSIONS_OUT)fs.writeFileSync(process.env.SPACOLOGY_SESSIONS_OUT,JSON.stringify(sessions,null,1)+'\n');
 if(mode==='record'){fs.writeFileSync(file,JSON.stringify(out));console.log('recorded '+Object.keys(out).length+' fights\n'+summary);return}
 const base=JSON.parse(fs.readFileSync(file,'utf8'));
+if(base.fights){
+  const crypto=require('node:crypto');
+  for(const [key,fixture] of Object.entries(base.fights)){
+    assert.ok(out[key],key+' exists');
+    assert.equal(out[key].steps,fixture.steps,key+' action count');
+    assert.equal(crypto.createHash('sha256').update(JSON.stringify(out[key])).digest('hex'),fixture.sha256,key+' event stream');
+  }
+  console.log('PASS combat parity: '+Object.keys(base.fights).length+' live fights match retained fingerprints');return;
+}
 for(const k of Object.keys(base)){
   const a=JSON.stringify(base[k]),b=JSON.stringify(out[k]);if(a===b)continue;
   const ea=base[k].events,eb=(out[k]||{}).events||[];const i=ea.findIndex((e,j)=>JSON.stringify(e)!==JSON.stringify(eb[j]));

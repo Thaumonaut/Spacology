@@ -2,7 +2,7 @@
 // widths, headlessly. Serve the repository root (npm run serve), then: node tests/browser/depot-sorting.cjs
 // (or: node tests/run.cjs depot-sorting). SPACOLOGY_HEADED=1 opens a visible browser for debugging only.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const D=require('../../prototypes/depot-sorting-model.js');
+const D=require('../../prototypes/minigames/depot-sorting/depot-sorting-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 const TYPE_INDEX=Object.fromEntries(D.TYPES.map((t,i)=>[t.id,i]));
 async function noOverflow(p,where){await p.waitForTimeout(150);const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
@@ -118,7 +118,7 @@ try{
 
     // Undo to here: wander into a dead end (if this depot has one within reach) and the hint offers the rewind.
     if(tag===1024){
-      await open();const K=require('../../prototypes/minigame-kit.js'),rng=K.rng(99);let s=P.start,path=[],dead=null;
+      await open();const K=require('../../prototypes/shared/minigames/minigame-kit.js'),rng=K.rng(99);let s=P.start,path=[],dead=null;
       for(let tries=0;tries<200&&!dead;tries++){s=P.start;path=[];for(let k=0;k<30;k++){const ms=D.legalMoves(P,s);if(!ms.length)break;const m=rng.pick(ms);path.push(m);s=D.apply(P,s,m).state;if(D.solve(P,s,{budget:15000}).exhausted){dead=path.slice();break;}}}
       assert.ok(dead,'a dead end within reach');{for(const m of dead)await move(m);
         assert.match(await p.locator('#mgStatus').innerText(),/No (route|moves)/);

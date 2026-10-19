@@ -5,7 +5,7 @@
 // errors or overflow at 1280, 1024 and 390. Headless unless SPACOLOGY_HEADED=1.
 // Serve the repository root (npm run serve), then: node tests/browser/aether-attunement.cjs  (or node tests/run.cjs aether-attunement)
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const A=require('../../prototypes/aether-attunement-model.js');
+const A=require('../../prototypes/minigames/aether-attunement/aether-attunement-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 const url=(seed,d)=>`${BASE}/prototypes/aether-attunement.html?seed=${seed}&difficulty=${d}`;
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}

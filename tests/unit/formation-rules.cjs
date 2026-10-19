@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),F=require('../../prototypes/formation-rules.js');
+const assert=require('node:assert/strict'),F=require('../../prototypes/shared/combat/formation-rules.js');
 const names=s=>[...s.field,...s.support,...s.reserve].filter(Boolean).sort();
 assert.equal(F.position('Arunima'),'field');assert.equal(F.position('Silen'),'field');assert.equal(F.position('Roonie'),'support');
 for(const n of ['Ivara','Hanae','Quill','Maul'])assert.equal(F.position(n),'both');

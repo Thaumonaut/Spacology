@@ -14,7 +14,7 @@
 // budget). Loads as a classic script (window.DepotSorting) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   const TYPES=[
     {id:'ore',label:'Ore',plural:'ore',color:'#d0805a',feeds:'refinery'},

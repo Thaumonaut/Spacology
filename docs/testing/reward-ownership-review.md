@@ -25,4 +25,4 @@ The review used an isolated, frozen snapshot because the shared checkout had sta
 
 Snapshot review tree: `5e48f971f1d3d216207610860ad3d4b87b462311`.
 
-Reviewed `prototypes/spacology-v0.1.0.js` SHA-256: `767d65344eaffd65b5e5072a60a114433f4a0a38beb923f87c35f485e47c56e4`.
+Reviewed `prototypes/demo/spacology-v0.1.0.js` SHA-256: `767d65344eaffd65b5e5072a60a114433f4a0a38beb923f87c35f485e47c56e4`.

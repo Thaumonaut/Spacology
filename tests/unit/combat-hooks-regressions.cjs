@@ -1,6 +1,6 @@
 'use strict';
 // Regressions for the combat core's host surface, one case per bug found by review. Each case reports on its own.
-const assert=require('node:assert/strict'),H=require('../../prototypes/combat-headless.js');
+const assert=require('node:assert/strict'),H=require('../../prototypes/shared/combat/combat-headless.js');
 const sessions=require('./combat-voyage-sessions.json');
 const RELAY={team:'relay',planet:'spread',seed:7};
 const failures=[];

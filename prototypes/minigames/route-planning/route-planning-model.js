@@ -27,7 +27,7 @@
 //   links, keeping each only if a simulated day comes out better. Perfect: at par or better. Good: 85% of par.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   const TICK=0.25,DAY_SECONDS=40,DAY_TICKS=DAY_SECONDS/TICK;
   const DIRS=[[0,-1],[1,0],[0,1],[-1,0]],DIR_NAMES=['north','east','south','west'];

@@ -2,8 +2,8 @@
 // DNA sequencing (shotgun assembly) model: determinism; 200 seeds per difficulty with unique offsets, uniquely
 // identifiable contamination and a logical way in; the consensus; run feedback counts; atomic invalid moves; tiers and
 // the reduced automatic result; hints that are always right and converge; a Relaxed cascade that never misplaces.
-const assert=require('node:assert/strict'),M=require('../../prototypes/dna-sequencing-model.js');
-const Kit=require('../../prototypes/minigame-kit.js');
+const assert=require('node:assert/strict'),M=require('../../prototypes/minigames/dna-sequencing/dna-sequencing-model.js');
+const Kit=require('../../prototypes/shared/minigames/minigame-kit.js');
 const t0=Date.now();
 const blank=P=>P.frags.map(f=>f.bases.map(()=>0));
 

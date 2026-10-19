@@ -1,7 +1,12 @@
 # Simulation and balance tools
 
-Headless models of the fight, used to measure builds without playing them. Plain Node, no
-dependencies. All nine tools run — `cd sim && node <tool>.js`.
+Headless models of the fight, used to measure builds without playing them. Plain Node, no runtime dependencies.
+
+## Current live resolver
+
+Use `require('../prototypes/shared/combat/combat-headless.js').runFight(spec)` for the preserved demo's actual rules, seeded battles and combat hooks. Its 15 retained event fingerprints are checked in `tests/unit/combat-headless.cjs` and the browser parity harness. See [architecture and reuse](../docs/architecture.md).
+
+The older engines below and the affix, Weaver-voyage and team-building lab models are **independent experiments**, not equivalent to live combat. Their recorded measurements apply to those models only.
 
 ## Two independent engines
 
@@ -24,10 +29,9 @@ Shared data lives in `roster.js` — 21 characters, 6 tags with both tiers, 8 en
 | `pipeline.js` | Genetic search — `designer.js` builds characters on a fixed power budget, `composer.js` assembles rosters, `evaluator.js` scores power and watchability separately, survivors breed | `best.json` |
 | `ladder.js` | Breakpoint per authored build | `ladder.csv` |
 | `counters.js` | Build × enemy-archetype matrix, absolute and relative | `counters.csv`, `counters-rel.csv` |
-| `affix-lab.js` | The affix lab's measurements on `prototypes/affix-lab-model.js`: affix × family matrix, designer-intent check, argmax churn over rolled Briefs, scripted berth-versus-equipment shoppers (the optimizer's crew and one themed crew per type), the route derived from the economy, and roster flattening. See [the lab notes](../docs/testing/affix-lab.md) | only with `--out` |
+| `affix-lab.js` | The affix lab's measurements on `prototypes/labs/affix-lab/affix-lab-model.js`: affix × family matrix, designer-intent check, argmax churn over rolled Briefs, scripted berth-versus-equipment shoppers (the optimizer's crew and one themed crew per type), the route derived from the economy, and roster flattening. See [the lab notes](../docs/testing/affix-lab.md) | only with `--out` |
 
-`smoke/` holds five full-run harnesses that load a prototype's HTML, stub the DOM, and run it
-headless. They caught real bugs a parser never would.
+`smoke/` holds five **legacy** HTML-scraping harnesses. They record checks from earlier prototypes, not the maintained test suite; `smoke-test.js` assumes the old inline battle script and must not be used with the current modular stage. Use the live headless host and `tests/` for new work. The legacy harnesses are retained rather than rewritten or presented as current evidence.
 
 ## Method rules, earned from failures
 
@@ -135,4 +139,4 @@ exactly zero across its whole range, including at `10`, is what exposed both bug
 
 ## Weaver voyage lab
 
-`node sim/weaver-voyage.js [seeds] [out.json]` plays the [Weaver voyage walkthrough](../docs/design/weaver-voyage-walkthrough.md)'s branches as scripted policies on the lab model (`prototypes/weaver-voyage-model.js`), which shares `aether-rules.js` with the live game. Results and method: [docs/testing/weaver-voyage-lab.md](../docs/testing/weaver-voyage-lab.md).
+`node sim/weaver-voyage.js [seeds] [out.json]` plays the [Weaver voyage walkthrough](../docs/design/weaver-voyage-walkthrough.md)'s branches as scripted policies on the lab model (`prototypes/labs/weaver-voyage/weaver-voyage-model.js`), which shares `aether-rules.js` with the live game. Results and method: [docs/testing/weaver-voyage-lab.md](../docs/testing/weaver-voyage-lab.md).

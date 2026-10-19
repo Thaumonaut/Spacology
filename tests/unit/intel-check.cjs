@@ -9,7 +9,7 @@
 // moves; tiers; auto below Perfect; hints that never reveal the verdict; near-miss; assist tiers, one-tap and Check all,
 // evidence auto-attach, citations and the consequence tick; the shipments-cleared output; Veteran (12–14 manifests,
 // five tells); the night shift's rule rotation, nights, run and personal best.
-const assert=require('node:assert/strict'),M=require('../../prototypes/intel-check-model.js');
+const assert=require('node:assert/strict'),M=require('../../prototypes/minigames/intel-check/intel-check-model.js');
 const SEEDS=200,ids=['easy','normal','hard','expert','veteran'],t0=Date.now();
 const run=(pz,moves)=>{const st=M.create(pz);for(const m of moves)assert.equal(M.apply(pz,st,m),null,JSON.stringify(m));return st;};
 const stampAll=(pz,verdicts,evidence=true)=>{const st=M.create(pz);pz.reports.forEach((r,i)=>{if(evidence&&r.forged)M.apply(pz,st,{type:'compare',field:r.tell.field,entry:r.tell.entry});M.apply(pz,st,{type:'stamp',verdict:verdicts[i]});});return st;};
