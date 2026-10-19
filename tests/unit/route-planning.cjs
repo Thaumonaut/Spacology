@@ -3,7 +3,7 @@
 // new every night); par replays to exactly par and beats Skip; day/night (no edits by day); pathing, tile capacity,
 // queues and junction time; no gridlock; one-way joins and their capacity; warehouses; costs and refunds; undo; the
 // dusk report; tiers, hints and the near-miss line.
-const assert=require('node:assert/strict'),P=require('../../prototypes/route-planning-model.js');
+const assert=require('node:assert/strict'),P=require('../../prototypes/minigames/route-planning/route-planning-model.js');
 const started=Date.now(),SEEDS=Number(process.env.RP_SEEDS)||3;
 
 // ---- generated puzzles ----------------------------------------------------------------------------------------------

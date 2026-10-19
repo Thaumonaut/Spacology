@@ -5,7 +5,7 @@
 // horizontal overflow and no console errors throughout; at 1280 also Pause / 2×, Skip (auto) and relaxed timers.
 // Run with `node tests/run.cjs supply-run`. Headless unless SPACOLOGY_HEADED=1. SHOTS=dir saves screenshots.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const P=require('../../prototypes/supply-run-model.js');
+const P=require('../../prototypes/minigames/supply-run/supply-run-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 const RUNS=[{viewport:{width:1280,height:900},difficulty:'normal',seed:11},{viewport:{width:1024,height:768},difficulty:'normal',seed:23},{viewport:{width:390,height:844},difficulty:'easy',seed:5}];
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}

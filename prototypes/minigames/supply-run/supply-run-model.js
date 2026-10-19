@@ -31,7 +31,7 @@
 //   the same shift with recorded heading changes. Perfect ≥ 85 % of par, Good ≥ 60 %, Partial = something filled.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   const TICK_MS=100,TPS=10,U=1000,MAP={w:40*U,h:25*U},EDGE=600;
   const SPEED=450,WORKER_SPEED=300,SLOW=0.5;

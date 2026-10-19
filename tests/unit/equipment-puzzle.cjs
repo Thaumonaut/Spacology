@@ -1,5 +1,5 @@
 'use strict';
-const assert=require('node:assert/strict'),P=require('../../prototypes/equipment-puzzle-model.js'),M=require('../../prototypes/team-building-model.js');
+const assert=require('node:assert/strict'),P=require('../../prototypes/minigames/equipment-puzzle/equipment-puzzle-model.js'),M=require('../../prototypes/labs/team-building/team-building-model.js');
 const state=P.create(0),before=JSON.stringify(state);
 assert.ok(P.place(state,{index:0,x:3,y:2,rotation:0}));assert.equal(JSON.stringify(state),before,'Invalid placement must not lose or move a part');
 assert.equal(P.place(state,{index:0,x:1,y:0,rotation:0}),null);const stable=JSON.stringify(state);assert.ok(P.place(state,{index:1,x:1,y:0,rotation:0}));assert.equal(JSON.stringify(state),stable);

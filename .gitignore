@@ -7,6 +7,7 @@ counters-rel.csv
 ladder.csv
 node_modules/
 /runner-next/dist/
+/dist/
 
 # Local terrain inference outputs and Python caches
 artifacts/terrain-diffusion/

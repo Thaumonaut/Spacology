@@ -3,7 +3,7 @@
 // own moves, at par); par is minimal (an independent brute force on Easy); synergy matters; the Power and Focus rules;
 // atomic invalid moves; tiers; the automatic fallback below Perfect; hints legal and leading to par; Relaxed best spots;
 // the near-miss and output lines.
-const assert=require('node:assert/strict'),G=require('../../prototypes/gear-pack-model.js'),K=require('../../prototypes/minigame-kit.js');
+const assert=require('node:assert/strict'),G=require('../../prototypes/minigames/gear-pack/gear-pack-model.js'),K=require('../../prototypes/shared/minigames/minigame-kit.js');
 const play=(P,st,m)=>{const r=G.apply(P,st,m);assert.ok(!r.error,`${JSON.stringify(m)}: ${r.error}`);return r.state;};
 const started=Date.now();
 

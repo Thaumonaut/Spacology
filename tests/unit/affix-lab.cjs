@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const M=require('../../prototypes/affix-lab-model.js');
+const M=require('../../prototypes/labs/affix-lab/affix-lab-model.js');
 
 const TEAMS={aether:['Hanae','Arunima','Daven','Nahana'],carry:['Silen','Ekene','Daven','Nahana'],break:['Wren','Sevim','Daven','Nahana'],
   dot:['Nour','Spore','Daven','Nahana'],counter:['Reva','Ilka','Nahana','Nadira'],followup:['Nadira','Aurelio','Daven','Nahana']};
@@ -337,7 +337,7 @@ for(let seed=1;seed<=2000;seed++)for(let count=0;count<=4;count++){
 // The frost card tells the truth: if the pool takes Aether while a crewmate is still frozen, the card must not say
 // the pool stays frozen while anyone is.
 {
-  const A=require('../../prototypes/aether-rules.js');
+  const A=require('../../prototypes/shared/combat/aether-rules.js');
   const teamPlan=A.teamPlan,credit=A.credit;let crew=null,thawedEarly=0;
   A.teamPlan=function(p,a,o){crew=o.crew;return teamPlan.apply(this,arguments);};
   A.credit=function(){const got=credit.apply(this,arguments);if(got>0&&(crew||[]).some(u=>u.frozen&&u.alive))thawedEarly++;return got;};

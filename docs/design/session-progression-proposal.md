@@ -82,7 +82,7 @@ answered that was not also chosen, and the genre quietly changes from puzzle to 
 This is not a theoretical hole. On the current 21-node route
 ([voyage-nodes.md](../testing/voyage-nodes.md)), all three modifier stops are
 *"Optional modifier or pass"*, and passing is a valid line all the way down. The only
-non-optional difficulty is the departure selector, and `prototypes/voyage-settings.js` defines it
+non-optional difficulty is the departure selector, and `prototypes/shared/voyage/voyage-settings.js` defines it
 as:
 
 ```js

@@ -11,7 +11,7 @@
 // route map. Loads as a classic script (window.IntelCheck) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   // ---- lore -------------------------------------------------------------------------------------------------------
   // Depots sit in the regions of docs/design/worlds.md; each world's three fronts are held by a named lieutenant.

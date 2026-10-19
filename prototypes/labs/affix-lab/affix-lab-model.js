@@ -3,7 +3,7 @@
   // Affix team-building lab: the Brief, open requisition, a random equipment supply and a seeded combat model.
   // Shared by prototypes/affix-lab.html and sim/affix-lab.js. These are lab kits, not live combat parity;
   // see docs/design/affix-team-building.md. Aether costs, capacity and spending decisions come from aether-rules.js.
-  const A=root.SpacologyAether||(typeof module!=='undefined'&&module.exports?require('./aether-rules.js'):null);
+  const A=root.SpacologyAether||(typeof module!=='undefined'&&module.exports?require('../../shared/combat/aether-rules.js'):null);
 
   // ---- Random numbers -------------------------------------------------------------------------------------------
   function hash(...parts){

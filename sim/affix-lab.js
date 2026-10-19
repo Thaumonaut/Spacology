@@ -9,7 +9,7 @@
 // Writes a file only when --out is given. Method notes: docs/testing/affix-lab.md.
 const fs=require('fs');
 const path=require('path');
-const M=require('../prototypes/affix-lab-model.js');
+const M=require('../prototypes/labs/affix-lab/affix-lab-model.js');
 
 const args=process.argv.slice(2);
 const command=args[0]&&!args[0].startsWith('--')?args[0]:'baseline';

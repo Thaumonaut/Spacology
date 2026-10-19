@@ -5,7 +5,7 @@
 // UI (drags and taps) to reach Perfect at par. No errors, no horizontal overflow, and the map fits 1024×768.
 // Run with `node tests/run.cjs route-planning`, or serve the repo root on 4173 and run this file. SHOTS=dir saves screenshots.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const P=require('../../prototypes/route-planning-model.js');
+const P=require('../../prototypes/minigames/route-planning/route-planning-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
 const RUNS=[{viewport:{width:1280,height:900},difficulty:'normal',seed:39,full:true},{viewport:{width:1024,height:768},difficulty:'easy',seed:3},{viewport:{width:390,height:844},difficulty:'easy',seed:5}];

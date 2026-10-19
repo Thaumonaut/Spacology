@@ -28,7 +28,7 @@ Duplicate recruits add 12% base HP and attack per extra copy up to three copies.
 
 ## Shared model and limits
 
-[The model](../../prototypes/team-building-model.js) runs identically in Node and the browser. It is an isolated AV event simulation, **not the live fight resolver**. Experimental kits borrow existing character names/art but are explicitly different from shipped kits.
+[The model](../../prototypes/labs/team-building/team-building-model.js) runs identically in Node and the browser. It is an isolated AV event simulation, **not the live fight resolver**. Experimental kits borrow existing character names/art but are explicitly different from shipped kits.
 
 It models direct damage, designated carry amplification and action advance, shared Aether, poison application and enemy-turn ticks, ultra-break, shields reforming on enemy turns, received-hit retaliation, ally targeting priority, barriers, healing, gear, and deaths. Enemy advance moves a genuine scheduled turn and can accelerate poison, incoming attacks, or shield reformation. Ultra-break belongs to Wren and triggers on allied final-layer breaks while she lives, avoiding last-hit ownership starvation. Fracture is not treated as poison.
 

@@ -1,7 +1,8 @@
 # Prototypes
 
-Standalone, self-contained experiments. Each file runs by opening it in a browser —
-no build step, no dependencies.
+Stable public HTML entry points backed by grouped implementations. Open **[the playtest library](minigames.html)** for current tests, the preserved demo, and labeled studies/archive. Serve with `npm run serve`; use `npm run build:pages && npm run serve:pages` for the complete site including the two built apps.
+
+Implementation map: `demo/` is the preserved voyage; `minigames/<id>/` holds each game's model/controller/styles; `labs/<name>/` holds independent experiments; `shared/` holds combat, voyage, minigame shell, and menus. Public page URLs stay here for compatibility. See [architecture and reuse](../docs/architecture.md).
 
 ## relay-runner.html
 
@@ -33,7 +34,7 @@ separate fun and annoyance ratings in this browser; "Export playtests" downloads
 | `depot-sorting.html` | Logistics · day | Water-sort puzzles | Arrivals sorted for tonight's production |
 | `synergy-links.html` | Reserve | Flow Free | Not assigned to a team |
 
-`minigame-kit.js` and `minigame-kit.css` are the shared frame: the registry (`GAMES`, with `role` and `phase`),
+`shared/minigames/minigame-kit.js` and its CSS are the shared frame: the registry (`GAMES`, with `role` and `phase`),
 seeded randomness, meters, timer, result card, playtest storage, and an embedded station mode that posts
 `spacology:minigame-result` to a parent page. Each game's rules live in its `*-model.js`, tested by
 `tests/unit/<game>.cjs`; `tests/browser/<game>.cjs` and `tests/browser/minigames-hub.cjs` play them headlessly.
@@ -45,8 +46,7 @@ Isolated team-building experiment: compare two-recruit packs, choose-one drafts,
 
 ## watchable-fight.html
 
-The battle-watchability spike. Establishes the combat core that the real game will be
-built from:
+The reusable animated battle stage used by the preserved demo. Rules live in `shared/combat/combat-core.js`; choreography and stage styling live alongside it in `battle-presentation.js` and `battle-stage.css`. The following describes its original design; current rule constants remain in the shared modules:
 
 - **Turn order** — speed-based ATB (`av = 10000/sp`) with a visible track of upcoming turns.
 - **Elements** (`order, chaos, growth, void, decay, energy`) — enemies carry two weaknesses.
@@ -118,7 +118,7 @@ The prototype uses the current progression assumptions: four starting character 
 on-field character, one ship equipment slot, pack prices in the 11–14 gold range, direct keep/sell/scrap
 card decisions, and rising enemy health, field size, and wave counts. Ops and combat share one session state.
 Characters and equipment can be dragged to their destinations, packs have a Take All action, and a
-six-encounter voyage runs through scaling battles to a final archive report. Battles use the original
+three-sector, 21-node voyage runs through scaling battles to a final archive report (legacy six-encounter saves remain supported). Battles use the original
 `watchable-fight.html` engine and its complete animation choreography; the configured Ops formation,
 rows, Gear, round pressure, and results pass between the two full-page views through saved run state.
 

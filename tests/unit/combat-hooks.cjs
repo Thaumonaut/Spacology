@@ -1,6 +1,6 @@
 'use strict';
-// The combat core's host surface (hooks, per-fight rules, metrics, state), driven through prototypes/combat-headless.js.
-const assert=require('node:assert/strict'),crypto=require('crypto'),H=require('../../prototypes/combat-headless.js');
+// The combat core's host surface (hooks, per-fight rules, metrics, state), driven through prototypes/shared/combat/combat-headless.js.
+const assert=require('node:assert/strict'),crypto=require('crypto'),H=require('../../prototypes/shared/combat/combat-headless.js');
 const prints=require('./combat-fingerprints.json').fights,sessions=require('./combat-voyage-sessions.json');
 const sha=v=>crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const view=r=>({end:r.end,steps:r.steps,events:r.events,units:r.units,aether:r.aether});

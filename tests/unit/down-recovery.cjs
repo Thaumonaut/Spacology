@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict'),R=require('../../prototypes/down-recovery.js');
+const assert=require('node:assert/strict'),R=require('../../prototypes/shared/combat/down-recovery.js');
 const state={downRecovery:'revive'},unit={hp:0,max:101,sp:100,av:5,alive:false},battle={limit:5,av:100};
 assert.deepEqual(R.recover(state,unit,battle),{hp:51,costAV:50});assert.equal(battle.limit,4.5);assert.equal(battle.av,100);assert.equal(unit.av,100);assert(unit.alive&&unit.recoveryGuard);
 unit.hp=0;R.recover(state,unit,battle);assert.equal(battle.limit,4);assert.equal(battle.revives,2);assert.equal(battle.recoveryAV,100);

@@ -36,7 +36,7 @@
 // Loads as a classic script (window.AetherAttunement) or with require() in Node.
 (function(root){
   'use strict';
-  const Kit=(typeof module==='object'&&module.exports&&typeof require==='function')?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=(typeof module==='object'&&module.exports&&typeof require==='function')?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
   const ELEMENTS=['order','chaos','growth','void','decay','energy'];
   const GLYPHS={order:'■',chaos:'✕',growth:'▲',void:'●',decay:'◣',energy:'ϟ'};
   const SLACK=2; // clean with the objective met within par+SLACK still removes the buff

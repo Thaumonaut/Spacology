@@ -11,7 +11,7 @@
 // ============================================================================
 (function(root){
   'use strict';
-  const A=root.SpacologyAether||(typeof module!=='undefined'&&module.exports?require('./aether-rules.js'):null);
+  const A=root.SpacologyAether||(typeof module!=='undefined'&&module.exports?require('../../shared/combat/aether-rules.js'):null);
   if(!A)throw new Error('weaver-voyage-model needs aether-rules.js');
 
   function rng(seed){let a=seed>>>0||1;return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
@@ -151,7 +151,7 @@
   const quality=p=>p.quality===undefined?.5:p.quality;
 
   // ---- The Brief: affixes ----------------------------------------------------
-  // Ported from the affix lab (prototypes/affix-lab-model.js on the affix-team-building branch): the player picks how
+  // Ported from the affix lab (prototypes/labs/affix-lab/affix-lab-model.js on the affix-team-building branch): the player picks how
   // many affixes (0–4), the voyage picks which, within category caps and compatibility. Every rule affix closes one
   // door and opens another. `rules(R)` edits the fight's rules; `report(m)` turns fight metrics into one sentence.
   // Not ported: Poison withers (no Weaver poisons, so it would be a pure gift). Proposed in the affix doc and not yet

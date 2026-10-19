@@ -1,30 +1,19 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spacology · Mini-games</title><link rel="stylesheet" href="minigame-kit.css"><style>
-.hub-intro{max-width:760px;margin:6px 0 22px}.hub-intro h2{font:clamp(30px,4vw,44px)/1.1 Georgia,serif;margin:6px 0 10px}.hub-intro p{color:var(--muted)}
-.hub-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-.hub-role h3{margin:0 0 10px;font:20px Georgia,serif}
-.hub-card{display:block;text-decoration:none;color:var(--ink);padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px;min-height:var(--tap)}
-.hub-card:hover{border-color:var(--mint)}.hub-card b{font-size:17px}.hub-card p{margin:6px 0 0;font-size:13px;color:var(--muted)}
-.hub-card .hub-stat{margin-top:10px;font-size:12px;color:var(--gold)}
-.hub-empty{font-size:13px;color:var(--muted);padding:16px;border:1px dashed var(--line);border-radius:12px}
-.hub-foot{margin-top:24px;font-size:13px;color:var(--muted)}
-@media (max-width:900px){.hub-roles{grid-template-columns:1fr}}
-</style></head><body class="mg">
-<header class="mg-head"><a class="brand" href="minigames.html">SPACOLOGY <span>/ MINI-GAMES</span></a><h1>Co-op station puzzles</h1><button id="hubExport" class="mg-quiet">Export playtests</button></header>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Spacology · Playtest library</title>
+<link rel="stylesheet" href="shared/minigames/minigame-kit.css"><link rel="stylesheet" href="library/library.css">
+</head><body class="mg library">
+<header class="mg-head"><a class="brand" href="spacology-v0.1.0.html?menu=1">SPACOLOGY <span>/ TEST RANGE</span></a><a class="return-demo" href="spacology-v0.1.0.html?menu=1">Return to demo</a><button id="hubExport" class="mg-quiet">Export station playtests</button></header>
 <main class="mg-main">
-<section class="hub-intro"><p class="eyebrow">ONE SHIP, THREE TEAMS</p><h2>Exploration fights. Research and logistics make it possible.</h2><p>Station puzzles for the two support teams. Research turns samples and signals into easier battles and blueprints; logistics builds, packs and moves the gear, supplies and samples. Night games prepare the next day; day games process what arrived. Each puzzle is generated from a seed and proven solvable. Rate each one after you finish: fun and annoyance are recorded separately.</p></section>
+<section class="hub-intro"><div><p class="eyebrow">EXPEDITION CONTROL · PLAYTEST LIBRARY</p><h1>Choose your next test.</h1><p>The preserved voyage, current experiments, and the studies behind them. Each opens its existing game—not a replacement.</p></div><a class="demo-launch" href="spacology-v0.1.0.html?menu=1"><span class="eyebrow">PRESERVED DEMO</span><b>Return to the Star Singer</b><span>Ops, crew building & animated autobattles →</span></a></section>
+<nav class="hub-filters" aria-label="Test categories">
+<button data-filter="current" aria-pressed="true">Playable tests</button><button data-filter="Research" aria-pressed="false">Research</button><button data-filter="Logistics" aria-pressed="false">Logistics</button><button data-filter="Exploration" aria-pressed="false">Exploration</button><button data-filter="Combat" aria-pressed="false">Autobattle</button><button data-filter="Reference" aria-pressed="false">Studies & archive</button>
+</nav>
+<div class="hub-toolbar"><label for="hubSearch">Find a test <input id="hubSearch" type="search" placeholder="Name or mechanic…"></label><p id="hubCount" role="status" aria-live="polite"></p></div>
 <div class="hub-roles" id="hubRoles"></div>
-<p class="hub-foot">Ratings, times and results are kept in this browser. “Export playtests” downloads them as JSON.</p>
+<p id="hubEmpty" hidden>No tests match. Try a different name or category.</p>
+<footer class="hub-foot"><p>Station ratings, times, and results stay in this browser. Equipment and team-building labs have their own export controls. Runner records are separate. Nothing here resets your voyage.</p><a href="../docs/architecture.md">Code & reuse guide</a> · <a href="../docs/design/README.md">Design status</a></footer>
+<noscript>Enable JavaScript to filter the library. <a href="README.md">The prototype index</a> lists the retained entry points.</noscript>
 </main>
-<script src="minigame-kit.js"></script><script>
-(function(){
-  'use strict';
-  const K=MiniGameKit,data=K.load(),roles=['Research','Logistics','Reserve'];
-  const stat=id=>{const s=data.sessions.filter(v=>v.game===id);if(!s.length)return 'Not played yet';
-    const fun=s.map(v=>v.rating&&v.rating.fun).filter(Boolean),ann=s.map(v=>v.rating&&v.rating.annoyance).filter(Boolean),avg=a=>(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1);
-    const best=['perfect','good','partial','failed','auto'].find(t=>s.some(v=>v.tier===t));
-    return `${s.length} played · best ${K.TIERS[best].label}`+(fun.length?` · fun ${avg(fun)}`:'')+(ann.length?` · annoyance ${avg(ann)}`:'');};
-  document.getElementById('hubRoles').innerHTML=roles.map(role=>{const games=K.GAMES.filter(g=>g.role===role);
-    return `<section class="hub-role"><h3><span class="mg-role mg-role-${role.toLowerCase()}">${role}</span></h3>${games.length?games.map(g=>`<a class="hub-card" href="${g.file}" data-game="${g.id}"><b>${K.esc(g.title)}</b><p>${K.esc(g.output)}</p><p>${g.phase&&g.phase!=='—'?K.esc(g.phase)+' · ':''}Inspired by ${K.esc(g.inspiredBy)}</p><div class="hub-stat">${K.esc(stat(g.id))}</div></a>`).join(''):'<div class="hub-empty">No mini-game built yet.</div>'}</section>`;}).join('');
-  document.getElementById('hubExport').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(K.load(),null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='spacology-minigames-playtests.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
-})();
-</script></body></html>
+<script src="shared/minigames/minigame-kit.js"></script><script src="library/catalogue.js"></script><script src="library/library.js"></script>
+</body></html>

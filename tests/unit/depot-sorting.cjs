@@ -3,7 +3,7 @@
 // the move rule and its edge cases, invalid moves leaving the state untouched, seals and loading bays, the hold,
 // Relaxed cascades that never break solvability, correct hints (next move and undo-to-here), tiers, the auto fallback
 // and near-miss lines.
-const assert=require('node:assert/strict'),D=require('../../prototypes/depot-sorting-model.js'),K=require('../../prototypes/minigame-kit.js');
+const assert=require('node:assert/strict'),D=require('../../prototypes/minigames/depot-sorting/depot-sorting-model.js'),K=require('../../prototypes/shared/minigames/minigame-kit.js');
 const t0=Date.now(),SEEDS=200;
 const play=(P,s,moves)=>moves.reduce((st,m)=>{const r=D.apply(P,st,m);assert.ok(r.ok,r.reason);return r.state;},s);
 const counts=s=>{const c={};for(const b of s)for(const t of b)c[t]=(c[t]||0)+1;return c;};

@@ -2,7 +2,7 @@
 // Pipes (rotating pipe puzzle) model: determinism, 200 seeds per difficulty planted, valid and counted unique by the
 // solver (cross-checked against brute force on small boards), rules (leaks, contamination, bridges, slots), atomic
 // invalid moves, locks, the Relaxed cascade, hints that are always right, tiers, the auto fallback and near-miss lines.
-const assert=require('node:assert/strict'),M=require('../../prototypes/pipes-model.js');
+const assert=require('node:assert/strict'),M=require('../../prototypes/minigames/pipes/pipes-model.js');
 const t0=Date.now(),budget=ms=>Date.now()-t0<ms;
 const N=P=>P.n*P.n;
 

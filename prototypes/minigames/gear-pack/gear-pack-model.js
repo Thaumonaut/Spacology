@@ -9,7 +9,7 @@
 // Pure rules, no DOM: deterministic from (seed, difficulty). Loads as a classic script (window.GearPack) or in Node.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
   const STATS=['Guard','Pace','Burst','Mend'];
   const STAT_INFO={Guard:{color:'#92b9e4',icon:'⛨'},Pace:{color:'#8fd18a',icon:'»'},Burst:{color:'#f0a08c',icon:'✶'},Mend:{color:'#c7a8f0',icon:'✚'}};
   const POWER=1,FOCUS=2,MAXK=5;

@@ -487,7 +487,7 @@ Re-tune against the next playtest.
 
 ## Affixes merged from the affix lab (6 October 2026)
 
-The affix lab's conditions (`prototypes/affix-lab-model.js` on the `worktree-affix-team-building`
+The affix lab's conditions (`prototypes/labs/affix-lab/affix-lab-model.js` on the `worktree-affix-team-building`
 branch, read but not modified) now drive this lab's Brief.
 
 **Shields and Breaks**, ported from the affix lab's `strike()` so its affixes behave the same here.
@@ -696,7 +696,7 @@ unchanged.** From that playtest:
 
 ## What's modelled, and what isn't
 
-- **Spending decisions** come from the live [`aether-rules.js`](../../prototypes/aether-rules.js)
+- **Spending decisions** come from the live [`aether-rules.js`](../../prototypes/shared/combat/aether-rules.js)
   `teamPlan`: reservations, Arunima's one-turn burst wait, Ivara's conservative spending, Roonie's
   discount, Silen's rising-cost chain. Kits follow [aether-weavers.md](../design/aether-weavers.md).
 - **Capacity** is 6 + 1 per living Weaver + 2 for Ivara, +2 per Deep Hold set, ± the sector

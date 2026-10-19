@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const S=require('../../prototypes/enemy-summoning.js'),C=require('../../sim/enemy-catalogue.js');
+const S=require('../../prototypes/shared/combat/enemy-summoning.js'),C=require('../../sim/enemy-catalogue.js');
 const parent=()=>({id:'f0',side:'foe',archetype:'summoner',alive:true,max:100,dmg:10,sp:100,baseSp:100,weak:['order','growth'],e:'order',shieldPer:20});
 let actor=parent(),units=[actor];
 let first=S.act(actor,units,3,{n:'Needleling'});assert(first);units.push(first);assert.equal(first.hp,35);assert.equal(first.dmg,7);assert.equal(first.av,100);assert.notEqual(first.weak,actor.weak);assert.equal(first.enemyMinion,true);assert.equal(S.label(actor),'ATTACK NEXT');

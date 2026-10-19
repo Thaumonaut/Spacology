@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
-const M=require('../prototypes/team-building-model.js');
+const M=require('../prototypes/labs/team-building/team-building-model.js');
 const seedCount=Number(process.env.LAB_SEEDS||100);
 if(!Number.isInteger(seedCount)||seedCount<1||seedCount>10000)throw new Error('LAB_SEEDS must be 1–10000');
 function score(id,state,formation=false){const c=M.roster[id],core=M.engines[state.engine].core;if(!formation&&state.owned[id]>=3)return -100;return (core.includes(id)?60:0)+(c.engine===state.engine?20:0)+(c.refill?18:0)+(c.heal||c.barrier?15:0)+(c.enemyAdvance&&['dot','counter'].includes(state.engine)?30:0)+(!formation&&state.owned[id]?-45:12)+(id===M.engines[state.engine].starter?50:0)+(!Object.keys(state.owned).some(x=>M.roster[x].role==='Sustain')&&c.role==='Sustain'?25:0);}
@@ -51,7 +51,7 @@ for(const engine of ['dot','counter'])for(const enabled of [false,true]){
   const records=Array.from({length:40},(_,i)=>M.fight(state,{encounter:M.encounters[2],scale:1.4,seed:i+1}));
   mechanics.push({engine,enemyAdvance:enabled,wins:records.filter(r=>r.won).length,trials:40,attacks:Math.round(records.reduce((s,r)=>s+r.metrics.enemyAttacks,0)/40),payoff:Math.round(records.reduce((s,r)=>s+r.metrics[engine==='dot'?'dot':'retaliation'],0)/40),downs:records.reduce((s,r)=>s+r.metrics.deaths,0)/40});
 }
-const output={modelVersion:1,modelSha256:require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(__dirname,'../prototypes/team-building-model.js'))).digest('hex'),method:'Isolated shared JS event model; not live resolver parity. Seeds 1–N, 6 stages, 12 gold/stage; recruit 6, gear 4, refresh 2. Packs grant two random recruits; drafts one of three; target guarantee replaces the third purchase. Focused policy uses authored preference scores, random policy samples offers. Neither measures player enjoyment. Combat fixtures are five unique rank-1 characters with no gear, 20 fixed seeds per cell. No live-game balance claims.',seedCount,acquisition,combat,mechanics};
+const output={modelVersion:1,modelSha256:require('node:crypto').createHash('sha256').update(fs.readFileSync(path.join(__dirname,'../prototypes/labs/team-building/team-building-model.js'))).digest('hex'),method:'Isolated shared JS event model; not live resolver parity. Seeds 1–N, 6 stages, 12 gold/stage; recruit 6, gear 4, refresh 2. Packs grant two random recruits; drafts one of three; target guarantee replaces the third purchase. Focused policy uses authored preference scores, random policy samples offers. Neither measures player enjoyment. Combat fixtures are five unique rank-1 characters with no gear, 20 fixed seeds per cell. No live-game balance claims.',seedCount,acquisition,combat,mechanics};
 const destination=process.argv[2]||path.join(__dirname,'../docs/testing/team-building-lab-results.json');fs.writeFileSync(destination,JSON.stringify(output,null,2)+'\n');
 console.table(acquisition.filter(r=>r.policy==='focused').map(({engine,mode,connectedPct,meanFirstConnected,meanClears,meanUnused,meanDuplicates})=>({engine,mode,connectedPct,meanFirstConnected,meanClears,meanUnused,meanDuplicates})));
 console.table(mechanics);console.log('Wrote '+destination);

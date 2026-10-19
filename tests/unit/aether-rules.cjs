@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const A=require('../../prototypes/aether-rules.js');
+const A=require('../../prototypes/shared/combat/aether-rules.js');
 const units=[{n:'Aurel',alive:true},{n:'Coda',alive:true},{n:'Nour',alive:true}];
 const pool=A.create(units);
 assert.equal(pool.current,3);assert.equal(pool.max,11);

@@ -1,0 +1,21 @@
+.library .mg-main{max-width:1440px;margin:auto;padding:28px 4vw 40px}
+.library .mg-head{flex-wrap:wrap;padding-top:max(12px,env(safe-area-inset-top))}
+.return-demo{margin-left:auto;font-size:13px}
+.hub-intro{display:grid;grid-template-columns:1fr minmax(260px,.6fr);gap:32px;align-items:center;margin:8px 0 28px}
+.hub-intro h1{font:clamp(32px,4vw,48px)/1.1 Georgia,serif;margin:8px 0 12px}
+.hub-intro p:not(.eyebrow){color:var(--muted);max-width:62ch;font-size:14px}
+.demo-launch{display:grid;gap:10px;text-decoration:none;padding:24px;border:1px solid #8d7858;border-radius:12px;background:linear-gradient(100deg,#101c25e8,#101c2577),url('../../assets/title/spacology-splash-v2.webp') center/cover}
+.demo-launch b{color:var(--ink);font:24px Georgia,serif}.demo-launch>span:last-child{font-size:12px}
+.hub-filters{display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:16px}
+.hub-filters button[aria-pressed=true]{background:var(--mint);color:#112921;border-color:var(--mint);font-weight:700}
+.hub-toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:18px 0 24px;font-size:13px;color:var(--muted)}
+.hub-toolbar label{display:flex;align-items:center;gap:12px}.hub-toolbar input{min-width:0;width:240px}.hub-toolbar p{margin:0}
+.hub-role{margin-bottom:26px}.hub-role h2{display:flex;gap:12px;align-items:center;margin:0 0 12px;font:23px Georgia,serif}.hub-role h2 span{font:12px system-ui;color:var(--muted)}
+.hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.mg .hub-card{display:flex;flex-direction:column;gap:10px;text-decoration:none;color:var(--ink);padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);min-width:0}
+.hub-card:hover{border-color:var(--mint);background:#182d37}.hub-card-head{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;justify-content:space-between}
+.hub-card b{font-size:16px}.hub-status{color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:.06em}.hub-card p{margin:0;color:var(--muted);font-size:13px}
+.hub-stat{font-size:12px;color:var(--gold)}.hub-open{margin-top:auto;padding-top:4px;font-size:12px;color:var(--mint)}
+.hub-foot{border-top:1px solid var(--line);padding-top:14px;font-size:12px;color:var(--muted);max-width:85ch}
+@media(max-width:1000px){.hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.hub-intro{grid-template-columns:1fr;gap:12px}.hub-grid{grid-template-columns:1fr}.hub-toolbar{align-items:flex-start;flex-direction:column}.hub-toolbar label{width:100%}.hub-toolbar input{flex:1}.library .mg-head .brand{font-size:14px}.return-demo{margin-left:0}.library #hubExport{font-size:12px}.hub-filters button{flex:1 0 auto;font-size:13px}.library .mg-main{padding-top:16px}}

@@ -31,7 +31,7 @@
 // a shoulder and counts each column's free cells up to its own ceiling.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   // top: 'flat' supports every column, 'narrow' only the middle (drops one column at each end), 'peak' nothing,
   // 'lid' only the left half (a hinged lid). Fragile crates support nothing whatever their shape.

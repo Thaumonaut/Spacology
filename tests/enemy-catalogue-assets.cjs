@@ -35,18 +35,17 @@ delete catalogue.FACTIONS['test-future'];
 delete catalogue.ARCHETYPE_PORTRAITS['test-future'];
 
 const battleHtml = fs.readFileSync(path.resolve(__dirname, '../prototypes/watchable-fight.html'), 'utf8');
-// The combat rules moved to combat-core.js; the wiring checks read the page and the core together.
-const battleCore = fs.readFileSync(path.resolve(__dirname, '../prototypes/combat-core.js'), 'utf8');
-new Function(battleCore);
-const battleScripts = [...battleHtml.matchAll(/<script>([\s\S]*?)<\/script>/g)];
-assert(battleScripts.length, 'battle prototype has no inline script');
-battleScripts.forEach((match) => new Function(match[1]));
+const battleScripts = [...battleHtml.matchAll(/<script src="([^"]+)"><\/script>/g)]
+  .map(match => fs.readFileSync(path.resolve(__dirname, '../prototypes', match[1]), 'utf8'));
+assert(battleScripts.length, 'battle prototype has no scripts');
+battleScripts.forEach(source => new Function(source));
+const battleSource = battleScripts.join('\n');
 [
   // Boss nodes name themselves first; generated specimens still take their type name.
   'specimen?specimen.typeName',
   'portrait:specimen&&specimen.portrait',
   'portrait:p.portrait',
   'var art=u.portrait||typeArt'
-].forEach((marker) => assert(battleHtml.includes(marker) || battleCore.includes(marker), `battle does not preserve catalogue field: ${marker}`));
+].forEach((marker) => assert(battleSource.includes(marker), `battle does not preserve catalogue field: ${marker}`));
 
 console.log('PASS all 70 faction/type combinations have names, generated-enemy portraits, and battle wiring');

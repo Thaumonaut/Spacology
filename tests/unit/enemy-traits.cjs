@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const T=require('../../prototypes/enemy-traits.js'),A=require('../../prototypes/aether-rules.js'),C=require('../../sim/enemy-catalogue.js');
+const T=require('../../prototypes/shared/combat/enemy-traits.js'),A=require('../../prototypes/shared/combat/aether-rules.js'),C=require('../../sim/enemy-catalogue.js');
 const foe=(archetype,id=archetype)=>({id,n:id,archetype,side:'foe',alive:true,hp:100,max:100,shL:1,shC:20,shMax:1,sp:100,baseSp:100,dmg:10,weak:['order'],shieldPer:20});
 const crew=(id='crew')=>({id,n:'Silen',side:'ally',row:'front',alive:true,hp:100,max:100,bar:0,av:50,sp:100});
 let medic=foe('mender'),a=foe('chaff','a'),b=foe('chaff','b');a.hp=20;b.hp=50;

@@ -40,7 +40,7 @@ at the start, with a Catdoku-style board as the reference.
 
 How it works:
 - The coloured shapes are drawn by one layer under the cells (`.sg-shapes`, filled by `paintShapes()` in
-  `prototypes/sensor-grid.js`). For each zone it draws an underlay in the zone's seam shade, then its open part and
+  `prototypes/minigames/sensor-grid/sensor-grid.js`). For each zone it draws an underlay in the zone's seam shade, then its open part and
   its crossed-out part. Each is a single `clip-path` outline traced from the union of its cells, pulled in 3 px on
   every side, with outer corners curved at 10 px and inner corners at 6 px.
 - Between zones the dark board shows through a 6 px gap. Inside a zone, the two parts sit 6 px apart over the
@@ -49,6 +49,6 @@ How it works:
   **out** when it carries a ×, or when a placed sensor rules it out, and repaints the shapes. Zooming repaints them too.
 - **Why the gap widths can't differ:** a gap that is wider on one side of an edge, or drawn on one side only, moves
   that edge off the grid line while its neighbours stay put, so edges step. Versions 14–17 all show this.
-- `.sg-out` in `prototypes/sensor-grid.css` dims the tile with `color-mix` (not `opacity`, so the ✕ is unaffected),
+- `.sg-out` in `prototypes/minigames/sensor-grid/sensor-grid.css` dims the tile with `color-mix` (not `opacity`, so the ✕ is unaffected),
   removes the texture, and draws the bold white ✕.
 - When the map is solved, islands are cleared. This works with or without reduced motion.

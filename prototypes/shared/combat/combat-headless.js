@@ -1,5 +1,5 @@
 // ============================================================================
-//  Headless host for the live combat rules (prototypes/combat-core.js).
+//  Headless host for the live combat rules (prototypes/shared/combat/combat-core.js).
 //
 //  Loads the same scripts, in the same order, as watchable-fight.html into an
 //  isolated Node context, stubs the page's redraw calls with no-ops, and runs a
@@ -21,11 +21,11 @@
 // ============================================================================
 'use strict';
 const vm=require('vm'),fs=require('fs'),path=require('path');
-const ROOT=__dirname;
+const ROOT=path.resolve(__dirname,'../..');
 // watchable-fight.html's script order; page-only scripts (menus, preferences) are left out.
-const SCRIPTS=['voyage-settings.js','voyage-rules.js','recovery-scoring.js','session-store.js','expedition-rules.js','treasure-rules.js',
-  'field-progression.js','weaver-roster.js','formation-rules.js','down-recovery.js','aether-rules.js','../sim/enemy-catalogue.js',
-  'enemy-summoning.js','enemy-traits.js','crew-progression.js','combat-core.js'];
+const SCRIPTS=['shared/voyage/voyage-settings.js','shared/voyage/voyage-rules.js','shared/voyage/recovery-scoring.js','shared/voyage/session-store.js','shared/voyage/expedition-rules.js','shared/voyage/treasure-rules.js',
+  'shared/voyage/field-progression.js','shared/combat/weaver-roster.js','shared/combat/formation-rules.js','shared/combat/down-recovery.js','shared/combat/aether-rules.js','../sim/enemy-catalogue.js',
+  'shared/combat/enemy-summoning.js','shared/combat/enemy-traits.js','shared/voyage/crew-progression.js','shared/combat/combat-core.js'];
 const SOURCES=SCRIPTS.map(f=>{const file=path.join(ROOT,f);return new vm.Script(fs.readFileSync(file,'utf8'),{filename:file})});
 // The page functions the rules call to redraw or log. Headless, they do nothing.
 const UI=['clr','pxClear','pxResize','log','ribbons','paintAll','track','chainNote','aiNote','injNote','updateEnemyCounter','reflowFoes','paintTreasure'];

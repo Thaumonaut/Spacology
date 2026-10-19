@@ -2,7 +2,7 @@
 // Core assay (spectrum decomposition) model: determinism, proven-unique and logic-solvable samples, the deduction chain
 // and stray-peak guarantees, rules, atomic invalid moves, hints that are always right, Relaxed fills, tiers, the auto
 // fallback, nodes and near-miss lines. Run: node tests/unit/core-assay.cjs
-const assert=require('node:assert/strict'),A=require('../../prototypes/core-assay-model.js');
+const assert=require('node:assert/strict'),A=require('../../prototypes/minigames/core-assay/core-assay-model.js');
 const t0=Date.now();
 const SEEDS=200;
 

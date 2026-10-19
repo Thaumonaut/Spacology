@@ -2,7 +2,7 @@
 // READY stamp, stat-bar sources, Undo, Hint, Skip, drag (tray to frame, frame back to tray, with the ghost and live
 // preview), the Guided and Relaxed assists, and that the frames fit 1024×768 with no overflow or console errors.
 // Serve the repository root (npm run serve), then: node tests/browser/gear-pack.cjs. SHOTS=<dir> saves screenshots.
-const {chromium}=require('playwright');const assert=require('node:assert/strict');const G=require('../../prototypes/gear-pack-model.js');
+const {chromium}=require('playwright');const assert=require('node:assert/strict');const G=require('../../prototypes/minigames/gear-pack/gear-pack-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS,SEED=12;
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});

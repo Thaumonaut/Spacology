@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const storage=new Map(),context={localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},matchMedia:()=>({matches:true}),SpacologyStore:{run:'mainRun'}};context.window=context;vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../../prototypes/game-preferences.js'),'utf8'),context);
+const storage=new Map(),context={localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},matchMedia:()=>({matches:true}),SpacologyStore:{run:'mainRun'}};context.window=context;vm.createContext(context);vm.runInContext(fs.readFileSync(path.join(__dirname,'../../prototypes/shared/ui/game-preferences.js'),'utf8'),context);
 const P=context.SpacologyPreferences,clone=value=>JSON.parse(JSON.stringify(value));
 assert.equal(P.load().reducedMotion,true);assert.equal(P.load().autoBattle,true);
 const saved=P.save({speed:'2',effects:'off',reducedMotion:false,autoBattle:false,pauseOnHide:true,recovery:'revive'});assert.deepEqual(clone(P.load()),clone(saved));assert.equal(saved.speed,2);

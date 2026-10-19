@@ -7,7 +7,7 @@
 // output is that blueprint for logistics to build (improved on Perfect, complete on Good, fragments on Partial).
 // Loads as a classic script (window.SignalDecoding) or with require().
 (function(root,factory){
-  const kit=typeof module==='object'&&module.exports?require('./minigame-kit.js'):root.MiniGameKit;
+  const kit=typeof module==='object'&&module.exports?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
   const api=factory(kit);
   if(typeof module==='object'&&module.exports)module.exports=api;else root.SignalDecoding=api;
 })(typeof globalThis==='object'?globalThis:this,function(K){

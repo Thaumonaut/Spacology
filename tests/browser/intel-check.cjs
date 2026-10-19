@@ -10,7 +10,7 @@
 // shift is played to night 2's NEW RULE banner, and three mistakes end the shift with a saved personal best.
 // Run with `node tests/run.cjs intel-check`. SHOTS=dir saves screenshots.
 const {chromium}=require('playwright');const assert=require('node:assert/strict');
-const M=require('../../prototypes/intel-check-model.js');
+const M=require('../../prototypes/minigames/intel-check/intel-check-model.js');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
 async function targets(p,where){

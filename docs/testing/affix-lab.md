@@ -1,6 +1,6 @@
 # Affix lab: how to play it, how it was measured, and what it found
 
-Lab for [affix team building](../design/affix-team-building.md). Model: `prototypes/affix-lab-model.js`, shared by
+Lab for [affix team building](../design/affix-team-building.md). Model: `prototypes/labs/affix-lab/affix-lab-model.js`, shared by
 the page and `sim/affix-lab.js`. Saved results: [`affix-lab-results.json`](affix-lab-results.json) holds the last
 complete run (24 Briefs, 2 seeds, with every tuning and economy value recorded). It was made on the 14-crew roster,
 before the charter, and will be replaced when the agreed pool is measured.

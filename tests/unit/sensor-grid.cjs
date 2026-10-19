@@ -1,7 +1,7 @@
 'use strict';
 // Sensor placement (Catdoku / Queens) model: determinism, proven-unique and logic-solvable maps, rules, atomic invalid
 // moves, the auto-× assist, hints that are always correct, tiers, the auto fallback and near-miss lines.
-const assert=require('node:assert/strict'),S=require('../../prototypes/sensor-grid-model.js');
+const assert=require('node:assert/strict'),S=require('../../prototypes/minigames/sensor-grid/sensor-grid-model.js');
 const {EMPTY,SENSOR,X,AUTO}=S;
 const t0=Date.now();
 // Big maps (9×9 to 15×15) take fewer seeds in the heavy loops: small maps keep their counts, 9–12 take a few dozen, 15 a few.
@@ -242,7 +242,7 @@ for(const d of S.DIFFICULTIES)for(let seed=1;seed<=seedsFor(d,40);seed++){
 // ×s only ever land on non-answer cells, auto-dropped sensors only on answer cells, and every cascade terminates.
 let drops=0,deduced=0;
 const verify2=(r,Q,sol)=>{assert.equal(r.paused,false);r.marks.forEach((m,i)=>{if(m===SENSOR)assert.ok(sol.has(i));if((m===S.DEDUCED||m===AUTO)&&sol.has(i))assert.fail('answer cell crossed out');});};
-const shuffled=(list,seed)=>{const r=require('../../prototypes/minigame-kit.js').rng(seed);return r.shuffle(list);};
+const shuffled=(list,seed)=>{const r=require('../../prototypes/shared/minigames/minigame-kit.js').rng(seed);return r.shuffle(list);};
 for(const d of S.DIFFICULTIES)for(let seed=1;seed<=seedsFor(d,100);seed++){
   const Q=S.generate(seed,d.id),sol=new Set(Q.solution),N=Q.n*Q.n;
   const verify=(r,tag)=>{

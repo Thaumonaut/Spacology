@@ -22,7 +22,7 @@
 //   wall-clock time, so generation is deterministic.
 (function(root){
   'use strict';
-  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('./minigame-kit.js'):root.MiniGameKit;
+  const Kit=typeof module==='object'&&module.exports&&typeof require==='function'?require('../../shared/minigames/minigame-kit.js'):root.MiniGameKit;
 
   const DIFFICULTIES=[
     {id:'easy',label:'5×5 · 4 links',size:5,pairs:[4,4],maxStraight:0,target:45},
@@ -31,7 +31,7 @@
     {id:'expert',label:'8×8 · 7–8 links',size:8,pairs:[7,8],maxStraight:1,target:120},
     {id:'large',label:'10×10 · relaxed',size:10,pairs:[11,12],maxStraight:2,budget:25000,target:180}
   ];
-  // The seven Weavers (prototypes/weaver-roster.js, docs/design/aether-weavers.md).
+  // The seven Weavers (prototypes/shared/combat/weaver-roster.js, docs/design/aether-weavers.md).
   const CREW={
     Hanae:{name:'Hanae',full:'Hanae Mori',weaver:'Gatherer',initial:'H',element:'energy'},
     Ivara:{name:'Ivara',full:'Ivara',weaver:'Reservoir',initial:'I',element:'void'},

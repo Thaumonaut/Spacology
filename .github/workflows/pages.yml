@@ -1,4 +1,4 @@
-name: Deploy Spacology prototype
+name: Deploy Spacology playtest library
 
 on:
   push:
@@ -25,10 +25,34 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            game/package-lock.json
+            runner-next/package-lock.json
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm --prefix game ci
+          npm --prefix runner-next ci
+          npx playwright install --with-deps chromium
+      - name: Check expedition types and runner rules
+        run: |
+          npm --prefix game run check
+          npm --prefix game test
+          npm --prefix runner-next test
+      - name: Build Pages artifact
+        run: npm run build:pages
+      - name: Check published paths and offline demo
+        run: npm run test:pages
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: dist
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
