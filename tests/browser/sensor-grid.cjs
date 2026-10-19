@@ -25,8 +25,9 @@ try{
     const tap=async i=>{if(touch)await cell(i).tap();else await cell(i).click();};
     const press=async sel=>{if(touch)await p.locator(sel).tap();else await p.locator(sel).click();};
     const open=async()=>{await p.goto(url);await p.locator('#sgBoard').waitFor();};
-    const sensorUntil=async i=>{for(let k=0;k<3&&!/sg-sensor/.test(await cls(i));k++)await tap(i);};
-    // Each answer cell: tap until it holds a sensor (two taps from empty, one from a × or auto-×).
+    const mode=async m=>press(m==='x'?'#sgModeX':'#sgModeSensor');
+    const sensorUntil=async i=>{if(!/sg-sensor/.test(await cls(i)))await tap(i);};
+    // Each answer cell: one tap in Sensor mode (the default) places a sensor, from empty, × or auto-×.
     const solveRest=async()=>{for(const i of P.solution)await sensorUntil(i);};
     const center=async i=>{await cell(i).scrollIntoViewIfNeeded();const b=await cell(i).boundingBox();return [b.x+b.width/2,b.y+b.height/2];};
     const meter=async()=>p.locator('#mgMeters').innerText();
@@ -45,16 +46,23 @@ try{
     {const box=await cell(0).boundingBox();assert.ok(box.width>=44&&box.height>=44,`cells must be at least 44px at ${tag}, got ${box.width}`);}
     await noOverflow(p,'start '+tag);await shot('start');
 
-    // Tap cycles empty → × → sensor → empty. A sensor auto-×s exactly the cells it rules out (drawn as .sg-ax, not
+    // The Sensor | ✕ switch: a tap places the selected mark and a second tap clears it; in ✕ mode a tap on a sensor
+    // clears it. The choice is remembered. A sensor auto-×s exactly the cells it rules out (drawn as .sg-ax, not
     // .sg-x); removing it clears them. Undo and Redo step through moves; keys place and clear.
     const wrong=[...Array(N).keys()].find(i=>!sol.has(i));
+    assert.equal(await p.locator('#sgModeSensor').getAttribute('aria-checked'),'true','Sensor is the default tap');
+    await mode('x');assert.equal(await p.locator('#sgModeX').getAttribute('aria-checked'),'true');
     await tap(wrong);assert.match(await cls(wrong),/sg-x/);
+    await tap(wrong);assert.doesNotMatch(await cls(wrong),/sg-x|sg-sensor/,'a second ✕ tap clears it');
+    await tap(wrong);assert.match(await cls(wrong),/sg-x/);
+    assert.equal(await p.evaluate(()=>localStorage.getItem('spacologySensorTapModeV1')),'x','the switch is remembered');
+    await mode('sensor');
     await tap(wrong);assert.match(await cls(wrong),/sg-sensor/);assert.doesNotMatch(await cls(wrong),/sg-x/);
     assert.equal(await count('.sg-ax'),G.attacks[wrong].length,'auto-× marks row, column, zone and neighbours');
     assert.equal(await count('.sg-x'),0,'auto-× is drawn apart from manual ×');
     await press('#mgUndo');assert.match(await cls(wrong),/sg-x/);assert.equal(await count('.sg-ax'),0,'auto-× goes with the sensor');
     await press('#sgRedo');assert.match(await cls(wrong),/sg-sensor/);assert.equal(await count('.sg-ax'),G.attacks[wrong].length);
-    await press('#mgUndo');await press('#mgUndo');assert.doesNotMatch(await cls(wrong),/sg-sensor|sg-x/);
+    for(let k=0;k<4;k++)await press('#mgUndo');assert.doesNotMatch(await cls(wrong),/sg-sensor|sg-x/);
     assert.equal(await p.locator('#mgUndo').isDisabled(),true);assert.equal(await p.locator('#sgRedo').isDisabled(),false);
     await cell(wrong).focus();await p.keyboard.press('s');assert.match(await cls(wrong),/sg-sensor/);
     await p.keyboard.press('Delete');assert.doesNotMatch(await cls(wrong),/sg-sensor/);assert.equal(await count('.sg-ax'),0);
@@ -62,7 +70,7 @@ try{
 
     // Highlight: hovering (mouse) or tapping (touch) a cell lights its row, column and zone softly.
     {const i=P.n+1,want=new Set([...G.rows[G.row[i]],...G.cols[G.col[i]],...G.zones[G.reg[i]]]);
-      if(touch){await tap(i);await tap(i);await tap(i);}else await cell(i).hover();
+      if(touch){await tap(i);await tap(i);}else await cell(i).hover();
       assert.equal(await count('.sg-cell.sg-hl'),want.size);assert.equal(await count('[data-row].sg-hl'),1);assert.equal(await count('[data-col].sg-hl'),1);
       if(!touch)await p.mouse.move(1,1);}
 

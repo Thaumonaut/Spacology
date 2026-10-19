@@ -35,7 +35,7 @@
     rules:[
       'The map is the battlefield of the upcoming <b>elective fight</b>, the harder optional battle. Place <b>one sensor</b> in every row, every column and every terrain zone.',
       '<b>Sensors never touch</b>, not even diagonally.',
-      '<b>Tap</b> a cell: × → sensor → clear. <b>Drag</b> across cells to × many at once. <b>Auto-×</b> crosses out what each sensor rules out.',
+      '<b>Tap</b> a cell to place what the <b>Sensor | ✕</b> switch is set to (tap again to clear it). <b>Drag</b> across cells to ✕ many at once. <b>Auto-×</b> crosses out what each sensor rules out.',
       '<b>Probe</b> (or right-click) tries a sensor without committing: the cells it would rule out are shaded and any line or zone left empty turns red. Probes are free.',
       '<b>Assist level</b> (side panel): Guided crosses out the obvious for you; Relaxed also drops forced sensors in. Perfect is kept for Puzzle.',
       'Every map has exactly one answer, reachable by logic alone. Solve it and each zone reveals the enemy contact holding it.',
@@ -61,7 +61,59 @@
     const t=diff(0,-1),r=diff(1,0),b=diff(0,1),l=diff(-1,0);
     return [t&&'sg-bt',r&&'sg-br',b&&'sg-bb',l&&'sg-bl',t&&l&&'sg-rtl',t&&r&&'sg-rtr',b&&l&&'sg-rbl',b&&r&&'sg-rbr'].filter(Boolean).join(' ');
   }
+  // ---------- Shapes: each zone drawn as smooth outlines rather than per-cell tiles ----------
+  // For every zone: an underlay in the zone's seam shade, and on top its open part and its crossed-out part. Each is
+  // one clip-path traced from the union of its cells, pulled in by GAP on every side, with every corner curved (CONVEX
+  // outward corners, CONCAVE inward ones). Between zones the dark board shows through a 2×GAP gap; inside a zone the
+  // two parts sit 2×GAP apart over the seam-coloured underlay. Edges always land GAP from a grid line, so they align.
+  const GAP=3,CONVEX=10,CONCAVE=6;let lastOut=null,shapeEls=new Map();
+  function outline(set,c){
+    const n=P.n,inSet=(x,y)=>x>=0&&y>=0&&x<n&&y<n&&set.has(y*n+x),segs=new Map(),key=(x,y)=>x+','+y;
+    const add=(x1,y1,x2,y2)=>{const k=key(x1,y1);if(!segs.has(k))segs.set(k,[]);segs.get(k).push([x1,y1,x2,y2]);};
+    for(const i of set){const x=i%n,y=(i-x)/n;   // edges run with the inside on their right (clockwise on screen)
+      if(!inSet(x,y-1))add(x,y,x+1,y);if(!inSet(x+1,y))add(x+1,y,x+1,y+1);if(!inSet(x,y+1))add(x+1,y+1,x,y+1);if(!inSet(x-1,y))add(x,y+1,x,y);}
+    let d='';
+    for(;;){
+      let start=null;for(const [k,l] of segs)if(l.length){start=l[0];break;}if(!start)break;
+      const pts=[];let seg=start;
+      for(;;){const list=segs.get(key(seg[0],seg[1]));list.splice(list.indexOf(seg),1);pts.push([seg[0],seg[1]]);
+        if(seg[2]===start[0]&&seg[3]===start[1])break;
+        const nx=segs.get(key(seg[2],seg[3]))||[],dx=seg[2]-seg[0],dy=seg[3]-seg[1];if(!nx.length)break;
+        // where two shapes touch only at a corner, keep turning right so each loop closes on its own shape
+        seg=nx.length>1?(nx.find(q=>(dx*(q[3]-q[1])-dy*(q[2]-q[0]))>0)||nx[0]):nx[0];}
+      // corners only: drop points where the direction does not change
+      const v=[];for(let k=0;k<pts.length;k++){const a=pts[(k-1+pts.length)%pts.length],b=pts[k],e=pts[(k+1)%pts.length];
+        if((b[0]-a[0])*(e[1]-b[1])-(b[1]-a[1])*(e[0]-b[0])!==0)v.push(b);}
+      const m=v.length,q=v.map((b,k)=>{const a=v[(k-1+m)%m],e=v[(k+1)%m];
+        const d1=[Math.sign(b[0]-a[0]),Math.sign(b[1]-a[1])],d2=[Math.sign(e[0]-b[0]),Math.sign(e[1]-b[1])];
+        const turn=d1[0]*d2[1]-d1[1]*d2[0];   // > 0: a right turn, an outer corner
+        return {x:b[0]*c+GAP*(-d1[1]-d2[1]),y:b[1]*c+GAP*(d1[0]+d2[0]),d1,d2,convex:turn>0};});
+      let path='';
+      q.forEach((p,k)=>{const prev=q[(k-1+m)%m],next=q[(k+1)%m];
+        const lin=Math.hypot(p.x-prev.x,p.y-prev.y),lout=Math.hypot(next.x-p.x,next.y-p.y);
+        const r=Math.min(p.convex?CONVEX:CONCAVE,lin/2,lout/2);
+        const ax=p.x-p.d1[0]*r,ay=p.y-p.d1[1]*r,bx=p.x+p.d2[0]*r,by=p.y+p.d2[1]*r;
+        path+=(k?'L':'M')+ax.toFixed(1)+' '+ay.toFixed(1)+'Q'+p.x.toFixed(1)+' '+p.y.toFixed(1)+' '+bx.toFixed(1)+' '+by.toFixed(1);});
+      d+=path+'Z';
+    }
+    return d;
+  }
+  function paintShapes(out){
+    lastOut=out;const host=document.getElementById('sgShapes');if(!host||!P)return;
+    const c=zoom.fit*zoom.z,n=P.n,want=new Set();
+    const shape=(id,cls,set)=>{want.add(id);let el=shapeEls.get(id);
+      if(!el){el=document.createElement('i');shapeEls.set(id,el);host.appendChild(el);}
+      el.className='sg-shape '+cls;const d=set.size?outline(set,c):'';
+      el.style.clipPath=d?`path(evenodd,"${d}")`:'inset(50%)';};
+    G.zones.forEach((cellsOf,z)=>{const T=S.terrainOf(P,z),open=new Set(),gone=new Set();
+      for(const i of cellsOf)(out[i]?gone:open).add(i);
+      shape('u'+z,'sg-u sg-t-'+T.id,new Set(cellsOf));
+      shape('o'+z,'sg-o sg-t-'+T.id,open);
+      shape('x'+z,'sg-xs sg-t-'+T.id,gone);});
+    for(const [id,el] of shapeEls)if(!want.has(id)){el.remove();shapeEls.delete(id);}
+  }
   function build(){
+    shapeEls=new Map();lastOut=null;
     const first=new Set(G.zones.map(z=>z[0])),n=P.n;
     shell.stage.innerHTML=`<div class="sg-wrap">
 <div class="sg-zoom" role="group" aria-label="Zoom"${n<9?' hidden':''}><button id="sgZoomOut" class="sg-tool" aria-label="Zoom out" title="Zoom out (−)">−</button><button id="sgZoomFit" class="sg-tool" title="Fit the map to the screen (0)">Fit</button><button id="sgZoomIn" class="sg-tool" aria-label="Zoom in" title="Zoom in (+)">+</button><span id="sgZoomLevel" class="sg-zoom-level" aria-live="polite">100%</span><small class="sg-zoom-tip">Pinch or two fingers to zoom and pan · ctrl + wheel</small></div>
@@ -69,13 +121,14 @@
 <div class="sg-frame" style="--n:${n}">
   <div class="sg-cols" aria-hidden="true">${Array.from({length:n},(_,x)=>`<span class="sg-head" data-col="${x}"><b>${S.colName(x)}</b><i></i></span>`).join('')}</div>
   <div class="sg-rows" aria-hidden="true">${Array.from({length:n},(_,y)=>`<span class="sg-head" data-row="${y}"><b>${y+1}</b><i></i></span>`).join('')}</div>
-  <div class="sg-board" id="sgBoard" role="grid" aria-label="Sensor map, ${n} by ${n}">${
+  <div class="sg-board" id="sgBoard" role="grid" aria-label="Sensor map, ${n} by ${n}"><div class="sg-shapes" id="sgShapes" aria-hidden="true"></div>${
       Array.from({length:n},(_,y)=>`<div role="row" class="sg-row">${Array.from({length:n},(_,x)=>{const i=y*n+x,z=P.region[i],T=S.terrainOf(P,z);
         return `<button role="gridcell" class="sg-cell sg-t-${T.id} ${edges(i)}" data-cell="${i}" data-zone="${z}" tabindex="-1">${first.has(i)?`<span class="sg-glyph" aria-hidden="true">${T.glyph}</span>`:''}<i class="sg-fx" aria-hidden="true"></i><i class="sg-mark" aria-hidden="true"></i></button>`;}).join('')}</div>`).join('')
   }</div>
 </div>
 </div>
 <div class="sg-tools" role="toolbar" aria-label="Solving tools">
+  <div class="sg-modes" role="radiogroup" aria-label="A tap places"><button id="sgModeSensor" class="sg-tool sg-mode" role="radio" data-tapmode="sensor" title="Tap places a sensor (M to switch)"><i class="sg-mode-ico sg-mode-dish" aria-hidden="true"></i>Sensor</button><button id="sgModeX" class="sg-tool sg-mode" role="radio" data-tapmode="x" title="Tap places a ✕ (M to switch)"><i class="sg-mode-ico" aria-hidden="true">✕</i>Cross</button></div>
   <button id="sgProbe" class="sg-tool" aria-pressed="false" title="Tap cells to try sensors without committing (also: right-click, or P)"><i class="sg-ico" aria-hidden="true"></i>Probe</button>
   <button id="sgCommit" class="sg-tool" title="Turn every probe into a real sensor">Commit probes</button>
   <button id="sgClear" class="sg-tool" title="Remove every probe">Clear probes</button>
@@ -84,7 +137,7 @@
   <button id="sgRedo" class="sg-tool" title="Redo (Y)">Redo</button>
 </div>
 <div class="sg-note" id="sgNote" aria-live="polite" hidden></div>
-<p class="sg-help">Tap: × → sensor → clear · Drag: × many · Right-click or Probe: try a sensor · Keys: arrows, Space, X, S, P, Delete, Z / Y</p>
+<p class="sg-help">Tap: place the selected tool · Drag: ✕ many · Right-click or Probe: try a sensor · Keys: arrows, Space, M (switch tool), X, S, P, Delete, Z / Y</p>
 <p class="sg-zones-head">ELECTIVE FIGHT · ENEMY CONTACTS</p>
 <ul class="sg-zones" id="sgZones" aria-label="Battlefield zones of the elective fight">${P.zones.map((Z,r)=>{const T=S.terrainOf(P,r);
       return `<li class="sg-zone sg-t-${T.id}" data-zone="${r}"><b class="sg-sw" aria-hidden="true">${T.glyph}</b><span><em>${esc(T.name)}</em><small class="sg-contact">Contact unscouted</small></span><i class="sg-ok" aria-hidden="true"></i></li>`;}).join('')}</ul></div>`;
@@ -97,6 +150,8 @@
     $('sgZoomOut').addEventListener('click',()=>setZoom(zoom.z/1.25));
     $('sgZoomFit').addEventListener('click',()=>setZoom(1));
     tools.view.addEventListener('wheel',e=>{if(!e.ctrlKey&&!e.metaKey)return;e.preventDefault();setZoom(zoom.z*Math.exp(-e.deltaY*.01),{x:e.clientX,y:e.clientY});},{passive:false});
+    for(const b of document.querySelectorAll('[data-tapmode]'))b.addEventListener('click',()=>{if(b.dataset.tapmode!==tapMode)setTapMode(b.dataset.tapmode);});
+    updateModes();
     tools.probe.addEventListener('click',()=>setProbeMode(!probeMode));
     tools.commit.addEventListener('click',commitProbes);
     tools.clear.addEventListener('click',()=>clearProbes(true));
@@ -106,8 +161,8 @@
     wire(board);
   }
 
-  // Input, as in Queens. A tap cycles empty → × → sensor → empty: × comes first because ruling cells out is by far the
-  // most frequent action (a solve is mostly ×s and only n sensors), so the common action costs one tap. Dragging across
+  // Input. A tap places whatever the Sensor | ✕ switch is set to, and tapping the same mark again clears it, so every
+  // action is one tap (the old Queens-style cycle needed two taps per sensor). The choice is remembered. Dragging across
   // cells paints × on every empty cell it crosses (or erases ×s when the drag starts on a ×): marking a whole row or a
   // zone's leftovers in one stroke is what makes the genre feel quick on touch. One drag = one undo step.
   // In probe mode a tap toggles a probe instead; right-click (and a long-press where the browser maps it to the
@@ -158,7 +213,7 @@
     board.addEventListener('click',e=>{
       const c=e.target.closest('[data-cell]');if(!c||suppressClick)return;
       const i=+c.dataset.cell;focus=i;setHl(i);
-      if(probeMode)toggleProbe(i);else move(i,{cycle:true});
+      if(probeMode)toggleProbe(i);else tapMark(i);
     });
     board.addEventListener('focusin',e=>{const c=e.target.closest('[data-cell]');if(c&&e.target.matches(':focus-visible'))setHl(+c.dataset.cell);});
     board.addEventListener('keydown',e=>{
@@ -169,6 +224,7 @@
       if(k==='x'){e.preventDefault();move(i,{mark:marks[i]===X?EMPTY:X});}
       else if(k==='s'){e.preventDefault();move(i,{mark:marks[i]===SENSOR?EMPTY:SENSOR});}
       else if(k==='p'){e.preventDefault();toggleProbe(i);}
+      else if(k==='m'){e.preventDefault();setTapMode(tapMode==='sensor'?'x':'sensor');}
       else if(k==='+'||k==='='){e.preventDefault();setZoom(zoom.z*1.25);cells[i].focus();}
       else if(k==='-'||k==='_'){e.preventDefault();setZoom(zoom.z/1.25);cells[i].focus();}
       else if(k==='0'){e.preventDefault();setZoom(1);cells[i].focus();}
@@ -193,6 +249,7 @@
   function applyZoom(z){
     zoom.z=Math.min(zoom.max,Math.max(zoom.min,z));
     tools.frame.style.setProperty('--cs',(zoom.fit*zoom.z).toFixed(2)+'px');
+    if(lastOut)paintShapes(lastOut);
     tools.view.classList.toggle('sg-zoomed',zoom.z>1.001);
     tools.zoomLevel.textContent=Math.round(zoom.z*100)+'%';
   }
@@ -249,6 +306,19 @@
     for(const c of [...checked])if(marks[c]!==SENSOR)checked.delete(c);
   }
 
+  // Tap mode: 'sensor' or 'x'. A sensor tap on an empty or crossed cell places a sensor; a cross tap marks ✕. Tapping a
+  // cell that already holds the selected mark clears it; a sensor tapped in cross mode is cleared too.
+  const MODE_KEY='spacologySensorTapModeV1';
+  let tapMode=(()=>{try{return localStorage.getItem(MODE_KEY)==='x'?'x':'sensor';}catch{return 'sensor';}})();
+  function setTapMode(m){tapMode=m;try{localStorage.setItem(MODE_KEY,m);}catch{}updateModes();shell.status(m==='sensor'?'Tap places a sensor.':'Tap places a ✕.');}
+  function updateModes(){for(const b of document.querySelectorAll('[data-tapmode]')){const on=b.dataset.tapmode===tapMode;b.setAttribute('aria-checked',on);b.classList.toggle('sg-mode-on',on);}}
+  function tapMark(i){
+    const m=marks[i];
+    // A short pulse on the tapped cell confirms the tap landed, even when the move only clears a mark.
+    const el=cells[i];if(el){el.classList.remove('sg-tapped');void el.offsetWidth;el.classList.add('sg-tapped');}
+    if(tapMode==='sensor')move(i,{mark:m===SENSOR?EMPTY:SENSOR});
+    else move(i,{mark:m===X||m===SENSOR?EMPTY:X});
+  }
   function move(cell,m){
     if(busy())return;finishAnim();
     const r=S.apply(P,marks,{cell,...m});
@@ -451,13 +521,19 @@
     const outOfPlay=new Set(),sensors=[];for(let i=0;i<shown.length;i++)if(shown[i]===SENSOR)sensors.push(i);
     for(const s_ of sensors)for(let k=0;k<shown.length;k++){if(k===s_||shown[k]===SENSOR)continue;
       if(G.row[k]===G.row[s_]||G.col[k]===G.col[s_]||G.reg[k]===G.reg[s_]||(Math.abs(G.row[k]-G.row[s_])<=1&&Math.abs(G.col[k]-G.col[s_])<=1))outOfPlay.add(k);}
+    // Dynamic islands: each zone splits into its open part and its crossed-out part, and each part is drawn as its own
+    // rounded shape (see paintShapes): dark gaps between colours, seams in a dim shade where one colour splits.
+    // Once the map is solved everything rejoins.
+    const whole=closing||shell.ended,out=new Uint8Array(shown.length);
+    if(!whole)for(let i=0;i<shown.length;i++){const m=shown[i];out[i]=m!==SENSOR&&!(!autoView&&probes.has(i))&&(m===X||m===AUTO||m===DEDUCED||outOfPlay.has(i))?1:0;}
+    paintShapes(out);
     for(const el of cells){
       const i=+el.dataset.cell,m=shown[i],pb=!autoView&&probes.has(i);
       el.classList.toggle('sg-sensor',m===SENSOR);el.classList.toggle('sg-x',m===X&&!pb);el.classList.toggle('sg-ax',m===AUTO&&!pb);el.classList.toggle('sg-dx',m===DEDUCED&&!pb);
       el.classList.toggle('sg-cand',cand.has(i)&&!pb);el.classList.toggle('sg-ghost',ghosts.has(i));
       el.classList.toggle('sg-bad',A.bad.has(i));el.classList.toggle('sg-auto',!!autoView&&m===SENSOR);
       el.classList.toggle('sg-lit',revealed.has(P.region[i]));
-      el.classList.toggle('sg-out',m!==SENSOR&&!pb&&(m===X||m===AUTO||m===DEDUCED||outOfPlay.has(i)));
+      el.classList.toggle('sg-out',!!out[i]);
       el.classList.toggle('sg-probe',pb);el.classList.toggle('sg-pclash',pclash.has(i));el.classList.toggle('sg-pshade',shade.has(i));
       el.classList.toggle('sg-pdead',deadCells.has(i));el.classList.toggle('sg-forced',forced.has(i));
       el.classList.toggle('sg-wrong',checked.has(i)&&m===SENSOR);el.classList.toggle('sg-harea',hintFocus.has(i));

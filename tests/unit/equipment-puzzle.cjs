@@ -1,0 +1,19 @@
+'use strict';
+const assert=require('node:assert/strict'),P=require('../../prototypes/equipment-puzzle-model.js'),M=require('../../prototypes/team-building-model.js');
+const state=P.create(0),before=JSON.stringify(state);
+assert.ok(P.place(state,{index:0,x:3,y:2,rotation:0}));assert.equal(JSON.stringify(state),before,'Invalid placement must not lose or move a part');
+assert.equal(P.place(state,{index:0,x:1,y:0,rotation:0}),null);const stable=JSON.stringify(state);assert.ok(P.place(state,{index:1,x:1,y:0,rotation:0}));assert.equal(JSON.stringify(state),stable);
+assert.deepEqual(P.cells(P.pieces.bore.shape,1).map(p=>p.slice()).sort(),[[0,0],[0,1],[0,2]]);
+const goals=['volley','break','counter','dot'];for(let i=0;i<4;i++){const s=P.create(i),solutions=P.solutions(s,goals[i],M.roster[s.owner],25);assert.ok(solutions.length>0,'Puzzle '+i+' must be solvable');for(const placement of solutions){const candidate=P.create(i);for(const p of placement)assert.equal(P.place(candidate,p),null);const evaluation=P.evaluate(candidate,M.roster[candidate.owner]);assert.ok(evaluation.status.find(r=>r.id===goals[i]).active);assert.ok(evaluation.draw<=evaluation.supply);}}
+// The first frame can run two mechanisms, but only with both cells and a completely packed board.
+const packed=P.create(0);for(const p of [{index:3,x:0,y:0,rotation:0},{index:4,x:2,y:1,rotation:0},{index:1,x:0,y:1,rotation:0},{index:2,x:1,y:2,rotation:1},{index:0,x:3,y:1,rotation:1},{index:5,x:2,y:3,rotation:0}])assert.equal(P.place(packed,p),null);
+let evaluated=P.evaluate(packed,M.roster.Silen);assert.equal(evaluated.usedCells,14);assert.equal(evaluated.draw,4);assert.equal(evaluated.effects.volley,true);assert.equal(evaluated.effects.breakRefund,true);
+P.remove(packed,5);evaluated=P.evaluate(packed,M.roster.Silen);assert.equal(evaluated.draw,2);assert.equal(evaluated.status.filter(s=>s.active).length,1,'Three power must not run two two-power mechanisms');
+packed.priority=['break',...packed.priority.filter(id=>id!=='break')];assert.equal(P.evaluate(packed,M.roster.Silen).effects.breakRefund,true);assert.equal(P.evaluate(packed,M.roster.Silen).effects.volley,undefined);
+// A remote source must not donate power to a disconnected pair.
+const isolated=P.create();isolated.blocked=[];isolated.inventory=['cell','lens','sequencer'];for(const p of [{index:0,x:2,y:0,rotation:0},{index:1,x:0,y:2,rotation:0},{index:2,x:1,y:3,rotation:0}])assert.equal(P.place(isolated,p),null);assert.equal(P.evaluate(isolated,M.roster.Silen).effects.volley,undefined);assert.match(P.evaluate(isolated,M.roster.Silen).status.find(s=>s.id==='volley').reason,/power cell/);
+const fixture=M.create({engine:'hypercarry',sandbox:true,seed:41});fixture.team=['Silen','Aurel','Ekene','Roonie','Nahana'];const bare=M.fight(fixture,{encounter:M.encounters[1],seed:41}),enabled=M.fight(fixture,{encounter:M.encounters[1],seed:41,circuits:{Silen:{volley:true}}});assert.equal(bare.metrics.circuitTriggers,0);assert.ok(enabled.metrics.circuitTriggers>0);assert.notDeepEqual(enabled,bare);
+const breakTeam=M.create({engine:'break',sandbox:true});breakTeam.team=['Wren','Quill','Aurel','Roonie','Nahana'];assert.ok(M.fight(breakTeam,{seed:41,encounter:M.encounters[3],circuits:{Wren:{breakRefund:true}}}).metrics.circuitTriggers>0);
+const dotTeam=M.create({engine:'dot',sandbox:true});dotTeam.team=['Nour','Spore','Redcap','Latch','Nahana'];assert.ok(M.fight(dotTeam,{circuits:{Nour:{poisonRefund:true}}}).metrics.circuitTriggers>0);
+const counterTeam=M.create({engine:'counter',sandbox:true});counterTeam.team=['Reva','Ilka','Latch','Roonie','Nahana'];assert.ok(M.fight(counterTeam,{encounter:M.encounters[2],circuits:{Reva:{barrierReturn:true}}}).metrics.circuitTriggers>0);
+console.log('Equipment puzzle passed: atomic invalid placements, rotation, all four solvable frames, full-board dual mechanism, power contention, priority, disconnected power, and real combat triggers.');

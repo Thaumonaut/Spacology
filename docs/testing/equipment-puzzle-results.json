@@ -1,0 +1,134 @@
+{
+  "modelVersion": 1,
+  "method": "Single-powered-mechanism layout enumeration capped at 1000 per frame, plus 40 paired seeds per frame with the same five-person rank-1 team and no stat gear. Layout count is capped, not a count of all solutions. This tests geometry solvability and actual conditional triggers, not player satisfaction or live-game parity.",
+  "results": [
+    {
+      "problem": "coverage",
+      "mechanism": "volley",
+      "enumeratedLayouts": 1000,
+      "enumerationCap": 1000,
+      "example": [
+        {
+          "index": 0,
+          "x": 0,
+          "y": 0,
+          "rotation": 0
+        },
+        {
+          "index": 1,
+          "x": 0,
+          "y": 1,
+          "rotation": 0
+        },
+        {
+          "index": 2,
+          "x": 2,
+          "y": 1,
+          "rotation": 0
+        }
+      ],
+      "trials": 40,
+      "bareWins": 40,
+      "workingWins": 40,
+      "meanTriggers": 1.575,
+      "meanBareAV": 351.475,
+      "meanWorkingAV": 347.625
+    },
+    {
+      "problem": "reform",
+      "mechanism": "break",
+      "enumeratedLayouts": 656,
+      "enumerationCap": 1000,
+      "example": [
+        {
+          "index": 0,
+          "x": 1,
+          "y": 0,
+          "rotation": 0
+        },
+        {
+          "index": 1,
+          "x": 0,
+          "y": 1,
+          "rotation": 0
+        },
+        {
+          "index": 2,
+          "x": 3,
+          "y": 0,
+          "rotation": 0
+        }
+      ],
+      "trials": 40,
+      "bareWins": 40,
+      "workingWins": 40,
+      "meanTriggers": 3.525,
+      "meanBareAV": 341.325,
+      "meanWorkingAV": 328.35
+    },
+    {
+      "problem": "exposure",
+      "mechanism": "counter",
+      "enumeratedLayouts": 1000,
+      "enumerationCap": 1000,
+      "example": [
+        {
+          "index": 0,
+          "x": 0,
+          "y": 0,
+          "rotation": 0
+        },
+        {
+          "index": 1,
+          "x": 0,
+          "y": 1,
+          "rotation": 0
+        },
+        {
+          "index": 2,
+          "x": 1,
+          "y": 2,
+          "rotation": 0
+        }
+      ],
+      "trials": 40,
+      "bareWins": 40,
+      "workingWins": 40,
+      "meanTriggers": 1.85,
+      "meanBareAV": 438.2,
+      "meanWorkingAV": 419.425
+    },
+    {
+      "problem": "culture",
+      "mechanism": "dot",
+      "enumeratedLayouts": 96,
+      "enumerationCap": 1000,
+      "example": [
+        {
+          "index": 0,
+          "x": 0,
+          "y": 0,
+          "rotation": 0
+        },
+        {
+          "index": 1,
+          "x": 2,
+          "y": 0,
+          "rotation": 0
+        },
+        {
+          "index": 2,
+          "x": 3,
+          "y": 2,
+          "rotation": 0
+        }
+      ],
+      "trials": 40,
+      "bareWins": 9,
+      "workingWins": 13,
+      "meanTriggers": 2.1,
+      "meanBareAV": 437.875,
+      "meanWorkingAV": 435.8
+    }
+  ]
+}

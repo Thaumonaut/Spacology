@@ -37,6 +37,8 @@ playtest rules they follow, and what is still open. On those topics it is newer 
 | `dictionary.md` | The controlled vocabulary, and the promotion/demotion rules that keep it from sprawling |
 | `roster-design.md` | The six tags with measured breakpoint tables per world |
 | `store.md` | The pack store and the scrap economy |
+| `team-roles-and-acquisition-plan.md` | **Proposal:** primary combat roles, team engines, enemy-pressure experiments, sustain revisions, and reliable character/gear acquisition |
+| `voyage-team-building-design-panel.md` | **Exploration:** five independent agent perspectives on growing pouches and alternative puzzles across a 20+ node voyage |
 | `modifiers.md` | The world-condition pool and its category caps |
 | `run-variety-proposal.md` | **Design revision:** three seven-node sets, basic/elite/boss formats, reward nodes, and one modifier selection per set |
 | `weaver-voyage-walkthrough.md` | **Clean-sheet exploration:** Aether profiles for every character (generator, cadence, consumer, Weaver), and the Weavers as the build / hold / spend triangle, traced across a full voyage from each starting pair — selection order, Aether-keyed equipment sets and the burst-ceiling power curve |

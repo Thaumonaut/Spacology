@@ -3,6 +3,12 @@
 Standalone, self-contained experiments. Each file runs by opening it in a browser —
 no build step, no dependencies.
 
+## relay-runner.html
+
+An endless combat runner sketch. Drag or use A/D or the arrow keys to steer while the ship fires automatically. Shoot through one of three upgrade walls, enter the open lane to collect its power, and survive increasingly large enemy waves. Hull damage ends the run; distance and a local personal best give each attempt a score. The pause button and P/Escape pause the simulation. This experiment is separate from the current voyage build.
+
+Its 2.5D, instanced-rendering follow-up lives in [`../runner-next/`](../runner-next/README.md).
+
 ## minigames.html
 
 Station games for the two support teams. The full design, the decisions behind each game and the playtest rules
@@ -32,6 +38,10 @@ seeded randomness, meters, timer, result card, playtest storage, and an embedded
 `spacology:minigame-result` to a parent page. Each game's rules live in its `*-model.js`, tested by
 `tests/unit/<game>.cjs`; `tests/browser/<game>.cjs` and `tests/browser/minigames-hub.cjs` play them headlessly.
 Long runs should use `caffeinate -i npm test` so the Mac cannot sleep mid-test.
+
+## team-building-lab.html
+
+Isolated team-building experiment: compare two-recruit packs, choose-one drafts, and nominated recruitment guarantees over six preparation stages. Test hypercarry, ultra-break, DoT, retaliation, and multi-carry formations, assign gear, and export decisions and enjoyment ratings. A free-build sandbox exposes all recruits, gear, and encounter profiles. The shared model also runs in `sim/team-building-lab.js`; these are experimental rules, not live combat balance. See [play instructions, results, and limitations](../docs/testing/team-building-lab.md).
 
 ## watchable-fight.html
 
