@@ -46,7 +46,13 @@
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clock=ms=>{const s=Math.max(0,Math.round(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
 
-  function load(){try{const v=JSON.parse(root.localStorage.getItem(STORE));return v&&v.version===1?v:{version:1,sessions:[]};}catch{return {version:1,sessions:[]};}}
+  function load(){
+    try{
+      const v=JSON.parse(root.localStorage.getItem(STORE));
+      if(v&&v.version===1&&Array.isArray(v.sessions))return {...v,sessions:v.sessions.filter(s=>s&&typeof s==='object'&&!Array.isArray(s))};
+    }catch{}
+    return {version:1,sessions:[]};
+  }
   function store(v){try{root.localStorage.setItem(STORE,JSON.stringify(v));return true;}catch{return false;}}
   function download(name,data){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
