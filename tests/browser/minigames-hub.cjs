@@ -12,7 +12,7 @@ try{
     await p.locator(`[data-game="${g.id}"]`).click();await p.waitForURL(new RegExp(g.file));await p.locator('#mgStage').waitFor();
     assert.ok(await p.locator('#mgStage *').count()>0,g.id+' renders a puzzle');
     assert.match(await p.locator('.mg-head h1').innerText(),new RegExp(g.title));
-    await p.locator('.mg-head .brand').click();await p.waitForURL(/minigames\.html/);
+    await p.locator('a[href="minigames.html"]:visible').click();await p.waitForURL(/minigames\.html/);
   }
   // Skipping a puzzle records a session; the hub reports it.
   await p.goto(BASE+'/prototypes/sensor-grid.html?seed=7&difficulty=easy');await p.locator('#mgAuto').click();await p.locator('#mgResult:not([hidden])').waitFor();
