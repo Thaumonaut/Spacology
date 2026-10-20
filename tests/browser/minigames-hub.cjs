@@ -36,6 +36,16 @@ try{
   await p.waitForURL(/minigames\.html/);assert.equal(await p.locator('a[data-entry="battle"]').count(),1);
   await p.locator('.return-demo').click();await p.locator('#titlePlaytests').waitFor();
   assert.equal(await p.evaluate(()=>localStorage.getItem('spacologyRunV010')),save,'library leaves the demo save untouched');
+  for(const sessions of [null,[null]]){
+    await p.evaluate(sessions=>localStorage.setItem('spacologyMinigamesV1',JSON.stringify({version:1,sessions})),sessions);
+    await p.goto(BASE+'/prototypes/minigames.html');
+    assert.equal(await p.locator('.hub-card[data-game]').count(),K.GAMES.length,'malformed history does not break the library');
+    await p.goto(BASE+'/prototypes/sensor-grid.html?seed=7&difficulty=easy');
+    await p.locator('#mgAuto').click();await p.locator('#mgResult:not([hidden])').waitFor();
+    await p.locator('[data-rate="fun"][data-v="4"]').click();
+    await p.goto(BASE+'/prototypes/minigames.html');
+    assert.match(await p.locator('[data-game="sensor-grid"] .hub-stat').innerText(),/1 played · best Automatic · fun 4\.0/);
+  }
   assert.deepEqual(errors,[]);
   console.log('PASS minigames hub: all '+K.GAMES.length+' games linked and open; a finished puzzle and its rating show on the hub.');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});

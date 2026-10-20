@@ -94,3 +94,9 @@ Enemy-trait regression coverage is in `tests/browser/enemy-traits.cjs` and `test
 `offline-battle-launch.cjs` allows the service worker, takes the browser offline in Ops, then checks that launching a battle loads the cached combat page and starts an action. Run it against a local HTTP server with `NODE_PATH` pointing to Playwright's `node_modules` directory.
 
 `battle-safe-area.cjs` starts a real voyage battle and checks that the header and Play control respect shared tablet safe-area insets.
+
+### Element pairs
+
+`npm test -- element-pairs` checks the model and headless Chromium gameplay, including phone/tablet/landscape layouts, a full clearing solution, row collapse, exact undo, retry confirmation and exhaustion recovery. Runtime errors are collected across every page.
+
+Set `ELEMENT_PAIRS_BROWSER=webkit` to run the same browser interactions in WebKit. Set `ELEMENT_PAIRS_OFFLINE` to the absolute path of a self-contained game HTML to also check local-file interactions with networking blocked, plus a small sandboxed `srcdoc` preview without storage access. The sandbox's 300×150 default viewport guards against short/narrow previews incorrectly using the two-column landscape layout.
