@@ -22,6 +22,7 @@ try{
   for(const [viewport,difficulty,seed] of [[{width:1280,height:900},'expert',12],[{width:1024,height:768},'hard',5],[{width:390,height:844},'normal',7]]){
     const tag=viewport.width,touch=tag!==1280,p=await browser.newPage({serviceWorkers:'block',viewport,hasTouch:touch});const errors=[];
     p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    await p.addInitScript(()=>{window.inputLog=[];for(const type of ['touchstart','touchend','pointerup','pointercancel','click'])document.addEventListener(type,e=>{inputLog.push([type,e.target.closest('button')?.id,e.target.closest('[data-bay]')?.dataset.bay,e.clientX,e.clientY,scrollY]);if(inputLog.length>16)inputLog.shift();},true);});
     const shot=async name=>{if(SHOTS)await p.screenshot({path:`${SHOTS}/depot-sorting-${name}-${tag}.png`,fullPage:true});};
     const P=D.generate(seed,difficulty),url=`${BASE}/prototypes/depot-sorting.html?seed=${seed}&difficulty=${difficulty}`;
     const bay=i=>p.locator(`#dpBoard [data-bay="${i}"]`);
@@ -31,6 +32,12 @@ try{
     const press=async sel=>{if(touch)await p.locator(sel).tap();else await p.locator(sel).click();};
     const board=()=>p.locator('#dpBoard [data-bay]').evaluateAll(els=>els.map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)));
     const state=async()=>(await board()).map(b=>b.map(t=>TYPE_INDEX[t]));
+    const undo=async expected=>{
+      await press('#mgUndo');
+      try{await p.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('#dpBoard [data-bay]')].map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)))===JSON.stringify(want),expected.map(b=>b.map(t=>D.TYPES[t].id)));}
+      catch(e){console.error('Undo input at '+tag,await p.evaluate(()=>JSON.stringify({events:inputLog,status:document.getElementById('mgStatus').textContent})));throw e;}
+      assert.deepEqual(await state(),expected,'undo at '+tag);
+    };
     const move=async m=>{await tap(m.from);await tap(m.to);await idle();};
     const meter=()=>p.locator('#mgMeters').innerText();
     const tier=async()=>{await p.locator('#mgResult:not([hidden])').waitFor();return p.locator('#mgTier').innerText();};
@@ -70,7 +77,7 @@ try{
     // A legal move, then undo: the board and the move count go back.
     {const m=P.solution[0],want=D.apply(P,P.start,m).state;await move(m);
       assert.deepEqual(await state(),want);assert.match(await meter(),/Moves\s*1/i);
-      await press('#mgUndo');assert.deepEqual(await state(),P.start);assert.match(await meter(),/Moves\s*0/i);
+      await undo(P.start);assert.match(await meter(),/Moves\s*0/i);
       assert.equal(await p.locator('#mgUndo').isDisabled(),true);}
 
     // Drag: mouse on desktop, a real finger (CDP touch events) on touch viewports. The run drops where it is released.
@@ -83,10 +90,12 @@ try{
         // Sideways first (vertical swipes scroll the page), then on to the target bay.
         const side=b.x>=a.x?1:-1;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:a.x+side*16,y:a.y}]});
         for(let k=1;k<=6;k++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:a.x+side*16+(b.x-a.x-side*16)*k/6,y:a.y+(b.y-a.y)*k/6}]});
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+        // Lift from rest: a fling suppresses the next tap in Chromium.
+        await p.waitForTimeout(200);
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();}
       await idle();assert.deepEqual(await state(),D.apply(P,P.start,m).state,'drag moved the run at '+tag);
       assert.equal(await p.locator('.dp-ghost-run').count(),0);assert.match(await meter(),/Moves\s*1/i);
-      await press('#mgUndo');assert.deepEqual(await state(),P.start);}
+      await undo(P.start);}
 
     // Guided: a lifted stack lights exactly its legal drops and dims the rest.
     {await setLevel('guided');const f=P.solution[0].from;await tap(f);

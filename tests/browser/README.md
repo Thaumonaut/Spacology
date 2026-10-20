@@ -19,6 +19,12 @@ npm run serve          # the site at http://127.0.0.1:4173/ for manual play; add
 
 The runner starts and stops its own server and runs files one at a time, so the native-drag scripts never overlap. A file that runs longer than 30 minutes is stopped and fails; set `SPACOLOGY_TEST_TIMEOUT` (seconds) to change the limit.
 
+## Release gate
+
+`npm run test:browser:release` runs all 13 station-game regressions plus the playtest library, offline Ops-to-battle launch and battle safe-area checks. The Pages workflow runs this focused gate, the full root unit suite, app checks and the built-site smoke test for pull requests into `main` or `station-games-checkpoint`, as well as before publication. Pull requests only validate; deployment still requires a push to `main` or manual dispatch and a successful validation job.
+
+This is not a claim that the entire historical browser suite is green. `touch-interactions.cjs` and `voyage-return.cjs` still assume that Continue is visible before a voyage starts; both failed on the unchanged station-games source before the cleanup. The latter also assumes the older six-encounter route. They remain in `npm run test:browser` unchanged, outside the focused release gate, pending fixture modernization. The maintained offline-launch regression starts the current 21-node voyage through its departure UI.
+
 To run a single script by hand, serve the repository root:
 
 ```sh
