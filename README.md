@@ -72,7 +72,7 @@ Open `http://127.0.0.1:4173/`. The complete preview uses `dist/`, just like Page
 
 ```sh
 npm run test:unit
-npm test -- minigames-hub offline-battle-launch
+npm run test:browser:release
 npm --prefix game run check
 npm --prefix game test
 npm --prefix game run test:browser
@@ -83,4 +83,4 @@ npm run test:pages
 
 `npm test` runs the root unit and browser suites; filters select files by name. Browser tests are **headless** unless `SPACOLOGY_HEADED=1` is explicitly requested. See [browser tests](tests/browser/README.md) for parity and slower tests.
 
-The [Pages workflow](.github/workflows/pages.yml) builds both apps and publishes only `dist/`, not the checkout or dependencies. It runs on pushes to `main` or manual dispatch; merging into a checkpoint branch alone does not publish it. Pages checks serve under `/Spacology/` to catch subpath errors. The demo, battle and registered station games are precached for offline use after the demo's service worker installs; the newer apps and reference studies need an initial online visit.
+The [Pages workflow](.github/workflows/pages.yml) validates pull requests into `main` and `station-games-checkpoint`. It builds both apps and publishes only `dist/`, not the checkout or dependencies, after successful validation on pushes to `main` or manual dispatch; pull requests and checkpoint merges do not publish it. Pages checks serve under `/Spacology/` to catch subpath errors. The demo, battle and registered station games are precached for offline use after the demo's service worker installs; the newer apps and reference studies need an initial online visit.

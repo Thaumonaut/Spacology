@@ -35,6 +35,7 @@ try{
       else if(a.type==='erase'){await tool('erase');await dragTiles(a.tiles);}
       else{await tool(a.type);await tapTile(a.tile);}
       const r=P.edit(pz,model,a);assert.equal(r.why,undefined,'model accepts '+JSON.stringify(a));
+      await p.waitForFunction(want=>Number(document.getElementById('mgMeters').innerText.match(/CREDITS\s*(\d+)/i)[1])===want,model.credits);
       assert.equal(await credits(),model.credits,'credits after '+JSON.stringify(a)+'; '+await p.locator('#mgStatus').innerText());
     }
     const credits=async()=>Number((await p.locator('#mgMeters').innerText()).match(/CREDITS\s*(\d+)/i)[1]);
