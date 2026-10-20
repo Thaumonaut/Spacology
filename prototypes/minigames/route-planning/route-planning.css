@@ -117,5 +117,5 @@
 .rp-sw{display:inline-grid;place-items:center;width:30px;height:22px;border-radius:5px;font-style:normal;font-weight:800;flex:none;background:#0b141c}
 .rp-sw-prod{color:#fff;background:#24301f}.rp-sw-cons{color:#0b141c;background:#e9eef0}.rp-sw-wh{color:#b9a7f0;background:#2f2a40}
 .rp-sw-river{background:#24577a}.rp-sw-rough{background:#2a2a22}.rp-sw-mount{background:#5b5468}.rp-sw-heat{background:#ff3b3b99}.rp-sw-ow{color:#9aa7b2}
-@media (max-width:600px){.rp-clock{margin-left:0;min-width:0;flex:1}.mg .rp-tools button{min-width:0;flex:1 1 22%;padding:4px 4px}}
+@media (max-width:600px){.rp-clock{margin-left:0;min-width:0;flex:1}.mg .rp-tools button{min-width:0;flex:1 1 22%;padding:4px 4px;font-size:12px}}
 @media (prefers-reduced-motion: reduce){.rp-arrow,.rp-ghost,.rp-locate,.rp-heat.live{animation:none}}

@@ -54,6 +54,7 @@ try{
     assert.equal(await credits(),pz.credits0);assert.match(await p.locator('#rpPhase').innerText(),/NIGHT 1/);
     // Touch targets.
     for(const sel of ['#rpStart','#rpDusk','#rpRelaxed','[data-speed]','[data-tool]','#mgHint','#mgUndo','#mgAuto']){const b=await p.locator(sel).first().boundingBox();assert.ok(b.height>=44&&b.width>=40,`${sel} ${b.width}x${b.height} at ${tag}`);}
+    assert.deepEqual(await p.locator('[data-tool]').evaluateAll(buttons=>buttons.filter(b=>b.scrollWidth>b.clientWidth).map(b=>b.dataset.tool)),[],`tool labels fit their buttons at ${tag}`);
     await noOverflow(p,'start '+tag);
     // The whole map fits on screen at once (1024×768 included).
     {await p.locator('#rpMap').scrollIntoViewIfNeeded();const b=await p.locator('#rpMap').boundingBox();assert.ok(b.height<=viewport.height&&b.y>=-1&&b.y+b.height<=viewport.height+1,`map fits at ${tag}: ${JSON.stringify(b)}`);}
