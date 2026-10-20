@@ -1,0 +1,172 @@
+/* Sensor placement: a calm terrain map of soft coloured zones, the battlefield of the elective fight being scouted. Frame and result card come from minigame-kit.css.
+   Each terrain has its own colour AND a texture + glyph, so zones stay readable without colour vision. */
+.sg-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;justify-items:center}
+/* Toolbar: probe mode, commit / clear probes, mistake check, redo. Every button is a ≥44px touch target (kit). */
+.sg-tools{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%}
+.mg .sg-tool{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;font-size:14px}
+.mg .sg-tool small{font-size:11px;color:var(--muted)}
+.mg .sg-tool[aria-pressed="true"]{background:#1d3b52;border-color:var(--sky);color:#fff;box-shadow:0 0 0 2px #92b9e455}
+.sg-ico{width:16px;height:16px;border-radius:50%;border:2px dashed currentColor;flex:none}
+.sg-note{width:min(100%,680px);margin:0;padding:8px 12px;border:1px solid var(--line);border-left:3px solid var(--sky);border-radius:8px;background:#92b9e40f;font-size:13px;color:var(--ink)}
+.sg-note span{display:inline}.sg-note.sg-note-bad{border-left-color:#e5484d;background:#e5484d14}.sg-note.sg-note-bad span{color:var(--rose)}
+.sg-note.sg-note-ok span{color:var(--mint)}
+/* Board frame: column letters on top, row numbers on the left; each shows ✓, its open-cell count, or red trouble. */
+/* The cell size --cs is set in px by the script (fit to the space, times the zoom), so the board is always laid out at
+   its real size: no transforms, and taps, drags and focus land where they look. */
+.sg-frame{--hw:24px;--pad:5px;--gap:4px;--cs:44px;display:grid;grid-template-columns:var(--hw) minmax(0,1fr);grid-template-rows:auto auto;column-gap:var(--gap);row-gap:3px;
+  width:calc(var(--n) * var(--cs) + 2 * var(--pad) + var(--hw) + var(--gap));flex:none;margin:0 auto}
+/* The map's window: scrolls (pans) when zoomed in, never pushes the page sideways. One finger on the margins pans
+   natively; on the board one finger taps and drags ×s, two fingers pinch and pan. */
+.sg-view{width:100%;max-width:100%;min-width:0;overflow:auto;max-height:calc(100vh - 110px);overscroll-behavior:contain;display:flex;padding:2px 0 6px;touch-action:pan-x pan-y}
+.sg-view.sg-zoomed{box-shadow:inset 0 0 0 1px var(--line);border-radius:12px;padding:6px}
+/* Zoomed in, the column letters and row numbers stay pinned to the window's top and left edges. */
+.sg-view.sg-zoomed .sg-cols{position:sticky;top:-6px;z-index:3;background:#0c1721ee}
+.sg-view.sg-zoomed .sg-rows{position:sticky;left:-6px;z-index:3;background:#0c1721ee}
+.sg-zoom{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.sg-zoom[hidden]{display:none}
+.mg .sg-modes{display:inline-flex;border:1px solid var(--line,#ffffff2a);border-radius:10px;overflow:hidden;margin-right:6px}
+.mg .sg-modes .sg-mode{border:0;border-radius:0;margin:0;background:transparent;color:var(--muted)}
+.mg .sg-modes .sg-mode+.sg-mode{border-left:1px solid var(--line,#ffffff2a)}
+.mg .sg-modes .sg-mode.sg-mode-on{background:#1d3b52;color:#fff;box-shadow:inset 0 -3px 0 var(--sky)}
+.mg .sg-mode-ico{font-style:normal;font-weight:800;display:inline-grid;place-items:center;width:16px;height:16px}
+.mg .sg-mode-dish::before{content:"";width:12px;height:12px;border-radius:50%;background:currentColor;box-shadow:0 0 0 2px #0006}
+.sg-cell.sg-tapped .sg-fx{animation:sg-tap .28s ease-out}
+@keyframes sg-tap{0%{box-shadow:inset 0 0 0 3px #fff9}100%{box-shadow:inset 0 0 0 3px #fff0}}
+@media (prefers-reduced-motion:reduce){.sg-cell.sg-tapped .sg-fx{animation:none}}
+.mg .sg-zoom .sg-tool{min-width:44px;justify-content:center;font-weight:700}
+.sg-zoom-level{min-width:48px;text-align:center;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px}
+.sg-zoom-tip{font-size:11px;color:var(--muted)}
+.sg-cols{grid-column:2;grid-row:1;display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));padding:0 var(--pad)}
+.sg-rows{grid-column:1;grid-row:2;display:grid;grid-template-rows:repeat(var(--n),minmax(0,1fr));padding:var(--pad) 0}
+.sg-head{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;padding:2px 0;border-radius:6px;font-size:11px;line-height:1.1;color:var(--muted);transition:background .15s}
+.sg-head b{font-weight:700}.sg-head i{font-style:normal;font-size:10px;opacity:.85;font-variant-numeric:tabular-nums}
+.sg-head.sg-ok b,.sg-head.sg-ok i{color:var(--mint);opacity:1}.sg-head.sg-ok i{font-weight:800;font-size:12px}
+.sg-head.sg-bad b,.sg-head.sg-bad i{color:var(--rose);opacity:1}
+.sg-head.sg-hl{background:#ffffff14;color:var(--ink)}
+.sg-head.sg-pdead{background:#e5484d40;color:#fff}.sg-head.sg-pdead i{color:#fff}
+.sg-board{--edge:#0b1218;position:relative;grid-column:2;grid-row:2;display:grid;width:100%;
+  padding:var(--pad);border-radius:16px;background:var(--edge);box-shadow:0 10px 30px #0008,0 0 0 1px #2b3d4c;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.sg-board.sg-probing{box-shadow:0 10px 30px #0008,0 0 0 2px var(--sky)}
+.sg-board.sg-probing .sg-cell{cursor:crosshair}
+.sg-board.sg-won::after{content:"";position:absolute;inset:0;border-radius:16px;pointer-events:none;
+  background:linear-gradient(100deg,#0000 35%,#fff7 50%,#0000 65%) no-repeat;background-size:250% 100%;animation:sg-sweep 1.1s ease-out forwards}
+.sg-row{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr))}
+/* The coloured shapes are drawn by .sg-shapes underneath (one smooth outline per zone part, see paintShapes in
+   sensor-grid.js). Cells are transparent tap targets on top that carry the marks, sensors and overlays. */
+.mg .sg-cell{position:relative;z-index:1;aspect-ratio:1;min-width:0;min-height:0;padding:0;margin:0;border:0;border-radius:0;display:grid;place-items:center;
+  background:transparent;box-shadow:none;color:#0b1218;font-size:calc(var(--cs) * .42);line-height:1;transition:filter .15s;touch-action:none}
+.mg .sg-cell:hover:enabled{background:#ffffff14;border:0;border-radius:8px}
+.sg-shapes{position:absolute;left:var(--pad);top:var(--pad);width:calc(var(--n) * var(--cs));height:calc(var(--n) * var(--cs));pointer-events:none}
+.sg-shape{position:absolute;inset:0;--grid:linear-gradient(#0b12181c 1px,#0000 1px) 0 0/var(--cs) var(--cs),linear-gradient(90deg,#0b12181c 1px,#0000 1px) 0 0/var(--cs) var(--cs)}
+.sg-shape.sg-u{background:color-mix(in srgb,var(--zc) 45%,var(--edge))}
+.sg-shape.sg-o{background:var(--grid),var(--tex),var(--zc)}
+.sg-shape.sg-xs{background:var(--grid),color-mix(in srgb,var(--zc) 58%,var(--edge))}
+.mg .sg-cell:focus-visible{outline:3px solid #fff;outline-offset:-4px}
+/* Terrains: bright, calm colours with a subtle pattern each. */
+.sg-t-marsh{--zc:#7fd3b0;--tex:repeating-linear-gradient(0deg,#0000 0 7px,#0b121814 7px 9px)}
+.sg-t-ridge{--zc:#b9a6ef;--tex:repeating-linear-gradient(45deg,#0000 0 6px,#0b121816 6px 8px)}
+.sg-t-thicket{--zc:#c7dc78;--tex:radial-gradient(circle,#0b12181c 0 2px,#0000 2.5px) 0 0/10px 10px}
+.sg-t-ash{--zc:#cbc1b6;--tex:radial-gradient(circle,#0b121822 0 1px,#0000 1.5px) 0 0/5px 5px}
+.sg-t-ice{--zc:#a3d3f7;--tex:repeating-linear-gradient(45deg,#0000 0 9px,#ffffff38 9px 10px),repeating-linear-gradient(-45deg,#0000 0 9px,#ffffff38 9px 10px)}
+.sg-t-crater{--zc:#f3b673;--tex:repeating-radial-gradient(circle at 50% 50%,#0000 0 6px,#0b121814 6px 8px)}
+.sg-t-reef{--zc:#f39fab;--tex:repeating-linear-gradient(90deg,#0000 0 7px,#0b121814 7px 9px)}
+.sg-t-spore{--zc:#f2dc7a;--tex:radial-gradient(circle,#0b12181c 0 3px,#0000 3.5px) 3px 3px/15px 15px}
+/* Extra terrains for the big maps (9+ zones): new hues, each with its own pattern too. */
+.sg-t-dune{--zc:#dcbb8a;--tex:repeating-linear-gradient(160deg,#0000 0 6px,#0b121814 6px 8px)}
+.sg-t-basalt{--zc:#8fa2d4;--tex:repeating-linear-gradient(0deg,#0000 0 5px,#0b121816 5px 6px),repeating-linear-gradient(90deg,#0000 0 5px,#0b121816 5px 6px)}
+.sg-t-moss{--zc:#97c98a;--tex:radial-gradient(circle,#0b121820 0 1.5px,#0000 2px) 0 0/7px 7px}
+.sg-t-ember{--zc:#ee8f78;--tex:repeating-linear-gradient(-45deg,#0000 0 4px,#0b121814 4px 6px)}
+.sg-t-salt{--zc:#e8ece6;--tex:repeating-linear-gradient(45deg,#0000 0 11px,#0b121812 11px 12px)}
+.sg-t-kelp{--zc:#62c3c4;--tex:repeating-linear-gradient(90deg,#0000 0 4px,#0b121812 4px 5px)}
+.sg-t-bloom{--zc:#e2a0dd;--tex:radial-gradient(circle,#ffffff40 0 3px,#0000 3.5px) 0 0/12px 12px}
+.sg-glyph{position:absolute;top:3px;left:5px;font-size:.5em;opacity:.45;pointer-events:none}.sg-sensor .sg-glyph{opacity:0}
+/* Marks: a crisp sensor dish and a ×, the same whether you or the game placed it. */
+.sg-mark{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;font-style:normal}
+.sg-sensor .sg-mark::before{content:"";width:50%;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,#fff 0 15%,#14222d 17% 40%,#92b9e4 42% 52%,#14222d 54% 100%);box-shadow:0 0 0 2px #fffc,0 3px 6px #0b121866}
+.sg-x .sg-mark::before{content:"×";font-size:.95em;font-weight:500;color:#0b121885}
+/* Out of play: a × (yours or the game's), or a cell a placed sensor rules out, joins its zone's crossed-out part: a
+   dimmed shape (only the tile dims; its bold white ✕ stays bright), split from the open part by a seam in a dim shade of its
+   colour, while colours meet with a dark gap of the same width (edges are set in render()). The open cells stay one connected, textured mass, so what is
+   still in play reads as a shape that shrinks as you solve. Cells a probe would rule out keep their hatching. */
+.mg .sg-cell.sg-out .sg-mark::before{content:"✕";color:#fff;font-weight:900;font-size:.78em;text-shadow:0 1px 2px #0b121866}
+/* The game's ×s (a sensor's auto-× and Guided / Relaxed deductions) look exactly like yours, so what is ruled out
+   reads at a glance however it got there. */
+.sg-ax .sg-mark::before,.sg-dx .sg-mark::before{content:"×";font-size:.95em;font-weight:500;color:#0b121885}
+/* Relaxed: cells that could still hold a sensor glow softly. */
+.sg-cand .sg-fx{box-shadow:inset 0 0 0 2px #ffffffa0,inset 0 0 14px #fffbe6aa}
+/* Relaxed probe chain: a faint ghost sensor where the chain would drop one. */
+.sg-ghost .sg-mark::before{content:"";width:46%;aspect-ratio:1;border-radius:50%;border:2px dotted #14222d99;background:#92b9e440}
+/* Cascade playback: ×s ripple in from the move (delay set per cell), forced sensors drop in with a pop. */
+.sg-xin::before{animation:sg-xin .28s ease-out var(--d,0ms) backwards}
+.sg-drop::before{animation:sg-drop .42s cubic-bezier(.3,1.6,.5,1)}
+@keyframes sg-xin{from{transform:scale(.2);opacity:0}to{transform:none;opacity:1}}
+@keyframes sg-drop{0%{transform:translateY(-40%) scale(1.5);opacity:0}60%{transform:scale(.92);opacity:1;box-shadow:0 0 0 6px #a5e0c999,0 0 18px #a5e0c9}100%{transform:none}}
+.mg .sg-cell.sg-bad{animation:sg-glow 1.1s ease-in-out infinite alternate}
+.sg-bad .sg-mark::before{background:radial-gradient(circle,#fff 0 15%,#5a1b17 17% 40%,#f0a08c 42% 52%,#5a1b17 54% 100%);box-shadow:0 0 0 3px #e5484d,0 0 14px #e5484d}
+.sg-auto .sg-mark::before{opacity:.8}
+/* Overlays (one element per cell, so they never fight the cell's own filters): probe shading, red "nowhere to go",
+   a dotted ring on a cell a probe would force, and the Check's "not in the answer" badge. */
+.sg-fx{position:absolute;inset:var(--g,3px);border-radius:8px;pointer-events:none}
+.sg-pshade .sg-fx{background:repeating-linear-gradient(135deg,#0b121852 0 3px,#0000 3px 8px)}
+.sg-pdead .sg-fx{background:#e5484d38;box-shadow:inset 0 0 0 2px #e5484dcc}
+.sg-forced .sg-fx::before{content:"";position:absolute;inset:24%;border:2px dotted #0b1218b0;border-radius:50%}
+.sg-wrong .sg-fx{box-shadow:inset 0 0 0 3px #e5484d}
+.sg-wrong .sg-fx::after{content:"!";position:absolute;top:2px;right:3px;width:min(16px,40%);height:min(16px,40%);border-radius:50%;background:#e5484d;color:#fff;font:800 11px/16px system-ui;text-align:center;display:grid;place-items:center}
+/* Probe: a translucent, dashed sensor. Red when it clashes with a sensor or another probe. */
+.sg-probe .sg-mark::before{content:"";width:58%;aspect-ratio:1;border-radius:50%;border:3px dashed #14222dcc;
+  background:radial-gradient(circle,#14222d66 0 22%,#92b9e455 24% 60%,#0000 62%)}
+.sg-pclash .sg-mark::before{border-color:#c0262c;background:radial-gradient(circle,#c0262c88 0 22%,#f0a08c66 24% 60%,#0000 62%)}
+/* Soft highlight of the hovered/tapped cell's row, column and zone, and the area a hint reasons about. */
+.mg .sg-cell.sg-hl::after,.mg .sg-cell.sg-harea::after{content:"";position:absolute;inset:0;pointer-events:none;background:#ffffff1f}
+.mg .sg-cell.sg-harea::after{background:#fff6e033;box-shadow:inset 0 0 0 1px #fff8}
+.sg-cheer .sg-mark::before{animation:sg-cheer .7s ease-out}
+.mg .sg-cell.sg-hinted{outline:3px solid #fff;outline-offset:-5px;animation:sg-hint 1.1s ease-in-out 2}
+.mg .sg-cell.sg-lit{filter:brightness(1.12) saturate(1.1)}
+.sg-flare{animation:sg-flare .6s ease-out}
+@keyframes sg-glow{from{filter:none}to{filter:brightness(.85) sepia(.4) hue-rotate(-30deg) saturate(2)}}
+@keyframes sg-hint{50%{outline-color:#ffffff44}}
+@keyframes sg-flare{0%{filter:brightness(1.6)}100%{filter:brightness(1.12) saturate(1.1)}}
+@keyframes sg-cheer{0%{transform:scale(1)}35%{transform:scale(1.3);box-shadow:0 0 0 6px #fff9,0 0 22px #a5e0c9}100%{transform:scale(1)}}
+@keyframes sg-sweep{from{background-position:120% 0;opacity:1}to{background-position:-20% 0;opacity:0}}
+.sg-help{margin:0;font-size:12px;color:var(--muted);text-align:center}
+/* Zone swatches: colour + glyph + name; ✓ once covered; the contact once revealed. */
+.sg-zones-head{margin:4px 0 -4px;width:min(100%,680px);font-size:10px;font-weight:700;letter-spacing:.17em;color:var(--gold)}
+.sg-zones{list-style:none;margin:0;padding:0;width:min(100%,680px);display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.sg-zone{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);min-width:0}
+.sg-sw{display:grid;place-items:center;width:32px;height:32px;flex:none;border-radius:8px;background-color:var(--zc);background-image:var(--tex);color:#0b1218;font-size:15px}
+.sg-zone span{display:flex;flex-direction:column;min-width:0}.sg-zone em{font-style:normal;font-weight:700;font-size:14px}
+.sg-zone small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sg-zone .sg-ok{margin-left:auto;font-style:normal;font-weight:800;color:var(--mint);opacity:0;transition:opacity .2s}
+.sg-zone.sg-done{border-color:#4f7d6c}.sg-zone.sg-done .sg-ok{opacity:1}
+.sg-zone.sg-known{border-color:var(--gold);background:#e7c18b14}.sg-zone.sg-known small{color:var(--gold);white-space:normal}
+.sg-zone.sg-hl{border-color:#ffffff66}
+.sg-zone.sg-empty small{color:var(--rose)}
+.sg-zone.sg-pdead{border-color:#e5484d;background:#e5484d1f}.sg-zone.sg-pdead small{color:var(--rose)}
+/* Side panel: assist toggle, tool help and legend. */
+.sg-levels{display:grid;gap:6px;margin:0 0 14px}
+.sg-level{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;cursor:pointer}
+.sg-level:has(input:checked){border-color:var(--mint);background:#a5e0c912}
+.sg-level input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--mint)}
+.sg-level span{display:flex;flex-direction:column}.sg-level small{color:var(--muted)}
+.sg-toolhelp{margin:0 0 14px;padding-left:18px;color:var(--muted)}.sg-toolhelp li{margin:5px 0}.sg-toolhelp b{color:var(--ink)}
+.sg-side-top{margin-top:16px}
+.sg-assist{display:flex;gap:10px;align-items:flex-start;min-height:44px;margin:0 0 14px;cursor:pointer}
+.sg-assist input{width:22px;height:22px;margin:2px 0 0;flex:none;accent-color:var(--mint)}
+.sg-assist span{display:flex;flex-direction:column}.sg-assist small{color:var(--muted)}
+.sg-legend{list-style:none;padding:0;margin:0 0 6px;display:grid;gap:6px;color:var(--muted)}
+.sg-legend li{display:flex;align-items:center;gap:8px}
+.sg-k{display:grid;place-items:center;width:20px;height:20px;border-radius:5px;flex:none;background:#c7dc78;color:#0b1218;font-style:normal;font-size:14px;line-height:1}
+.sg-k-sensor{background:radial-gradient(circle,#fff 0 15%,#14222d 17% 40%,#92b9e4 42% 52%,#14222d 54%)}
+.sg-k-x{color:#0b1218a0}.sg-k-ax{color:#0b121860;font-size:10px}
+.sg-k-probe{background:radial-gradient(circle,#14222d66 0 22%,#92b9e455 24% 60%,#c7dc78 62%);border:2px dashed #14222d}
+.sg-k-shade{background:repeating-linear-gradient(135deg,#0b121852 0 3px,#c7dc78 3px 7px)}
+.sg-k-dx{color:#1d4a7a90;font-size:12px;font-weight:600}
+.sg-k-cand{box-shadow:inset 0 0 0 2px #fff,inset 0 0 8px #fffbe6}
+.sg-k-ghost{background:radial-gradient(circle,#92b9e470 0 40%,#c7dc78 42%);border:2px dotted #14222d99}
+.sg-k-wrong{background:#e5484d;color:#fff;font-weight:800;border-radius:50%}
+.sg-k-bad{background:#f0a08c;box-shadow:0 0 0 2px #e5484d}.sg-k-ok{background:var(--panel);color:var(--mint);border:1px solid #4f7d6c}
+/* Phones: slimmer gutters and page margins so even the 8×8 map keeps ≥44px cells at 390px wide. */
+@media (max-width:520px){.mg-main{padding-left:6px;padding-right:6px}.sg-frame{--hw:16px;--pad:3px;--gap:2px}.sg-head{font-size:10px}
+  .sg-glyph{top:1px;left:3px}.sg-zones{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.mg .sg-tool{padding:8px 10px}}

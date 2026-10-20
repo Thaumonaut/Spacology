@@ -6,7 +6,26 @@ To test on an iPad on the same Wi-Fi, serve on a LAN interface, for example `pyt
 
 These scripts retain regression cases from the prototype reviews. They require Node.js, Playwright and Chromium. They run headlessly by default and use isolated browser contexts, so tests do not open windows or take desktop focus. Set `SPACOLOGY_HEADED=1` only when explicitly requesting a visible debugging run. Do not run the native-drag scripts concurrently; browser focus can interfere with those interactions.
 
-Serve the repository root:
+The simplest way to run them is from the repository root:
+
+```sh
+npm install            # once: installs the pinned Playwright, reusing browsers already downloaded
+npm test               # unit and browser tests, one file at a time, against a server on a free port
+npm test -- affix      # only files whose path contains "affix"
+npm run test:unit      # or test:browser, test:balance (slow, opt-in)
+node tests/run.cjs --browser affix-lab   # choose groups with --unit, --browser, --balance
+npm run serve          # the site at http://127.0.0.1:4173/ for manual play; add -- --host 0.0.0.0 for an iPad
+```
+
+The runner starts and stops its own server and runs files one at a time, so the native-drag scripts never overlap. A file that runs longer than 30 minutes is stopped and fails; set `SPACOLOGY_TEST_TIMEOUT` (seconds) to change the limit.
+
+## Release gate
+
+`npm run test:browser:release` runs all 13 station-game regressions plus the playtest library, offline Ops-to-battle launch and battle safe-area checks. The Pages workflow runs this focused gate, the full root unit suite, app checks and the built-site smoke test for pull requests into `main` or `station-games-checkpoint`, as well as before publication. Pull requests only validate; deployment still requires a push to `main` or manual dispatch and a successful validation job.
+
+This is not a claim that the entire historical browser suite is green. `touch-interactions.cjs` and `voyage-return.cjs` still assume that Continue is visible before a voyage starts; both failed on the unchanged station-games source before the cleanup. The latter also assumes the older six-encounter route. They remain in `npm run test:browser` unchanged, outside the focused release gate, pending fixture modernization. The maintained offline-launch regression starts the current 21-node voyage through its departure UI.
+
+To run a single script by hand, serve the repository root:
 
 ```sh
 python3 -m http.server 4173 --bind 127.0.0.1

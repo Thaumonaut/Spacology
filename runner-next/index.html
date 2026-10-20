@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#080e1c">
+  <title>Relay Run: Horizon</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a href="../prototypes/relay-runner.html" class="brand"><span>✦</span> SPACOLOGY <i>/</i> RELAY RUN</a>
+      <div class="top-tag">NEXT GENERATION PROTOTYPE <b>2.5D</b></div>
+    </header>
+    <div class="layout">
+      <section class="stage" aria-label="Relay Run game">
+        <canvas id="scene" aria-label="Perspective runner. Drag or use arrow keys to steer."></canvas>
+        <div id="gateLabels" class="gate-labels" aria-hidden="true"></div>
+        <div class="hud">
+          <div><small>WAVE</small><strong id="wave">01</strong></div>
+          <div><small>DISTANCE</small><strong id="distance">0 <em>m</em></strong></div>
+          <div><small>SHOOTERS</small><strong id="health" class="hull">8</strong></div>
+          <button id="pause" class="pause" type="button" aria-label="Pause game" disabled>Ⅱ</button>
+        </div>
+        <div class="breach-meter" aria-label="Squad health">
+          <span>SQUAD HEALTH</span><div><b id="squadFill"></b></div><strong id="squadHealth">8 / 8</strong>
+        </div>
+        <div class="horizon-tag">THE HORIZON NEVER STOPS <span>✦</span></div>
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        <div id="overlay" class="overlay">
+          <div class="overlay-card">
+            <div class="sigil">✦</div>
+            <p id="overlayKicker" class="kicker">THE NEXT RELAY EXPERIMENT</p>
+            <h1 id="overlayTitle">See what’s<br><i>coming.</i></h1>
+            <p id="overlayText">Every shooter fights. Enemies that escape remove shooters. Recruit on the left and unlock stationary guns on the right.</p>
+            <button id="start" class="start" type="button">START RUN <span>↗</span></button>
+            <small>Drag to steer · A / D or ← / → · P to pause</small>
+          </div>
+        </div>
+        <div class="bottom-hud"><span>← RECRUIT</span><span>↑ HOLD THE LINE</span><span>STATIONARY GUNS →</span></div>
+      </section>
+      <aside class="panel">
+        <div class="overline"><span>FIELD NOTES / 08</span><b>LIVE BUILD</b></div>
+        <h2>Grow your<br><i>squad.</i></h2>
+        <p>Lead moving blue shooters down the road. Recruit on the left while the swarm pushes through the middle. Build fixed guns on the right in later waves.</p>
+        <div class="rule"></div>
+        <div class="feature"><span class="feature-mark cyan">01</span><div><strong>Build your defense</strong><p>Break left walls for more moving shooters. From wave 5, break tougher right walls to install a stationary cannon. A shock gun follows later.</p></div></div>
+        <div class="feature"><span class="feature-mark coral">02</span><div><strong>Protect your squad</strong><p>Shooters are your health. Each escaped enemy removes one; brutes and bosses take more. Recruit again before the swarm empties your squad.</p></div></div>
+        <div class="feature"><span class="feature-mark gold">03</span><div><strong>Stress the engine</strong><p>The load test runs 2,000 enemies and 6,000 bullets with collision checks.</p></div></div>
+        <div class="rule"></div>
+        <div class="telemetry"><span>SQUAD <b id="squadCount">8</b></span><span>GUNS <b id="gunStatus">C0 S0</b></span><span>ESCAPED <b id="escapedCount">0</b></span><span>ENEMIES <b id="enemyCount">0</b></span><span>BOSSES <b id="bossCount">0</b></span><span>BULLETS <b id="bulletCount">0</b></span><span>FPS <b id="fps">—</b></span><span>FRAME P95 <b id="frame95">—</b></span><span>QUALITY <b id="quality">100%</b></span></div>
+        <button id="stress" class="stress" type="button">RUN 8,000 ENTITY LOAD TEST <span>↗</span></button>
+        <div class="best"><span>PERSONAL BEST</span><strong id="best">0 m</strong></div>
+        <p class="disclaimer">Built as a separate project so the first runner remains playable.</p>
+      </aside>
+    </div>
+  </main>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Spacology · Playtest library</title>
+<link rel="stylesheet" href="shared/minigames/minigame-kit.css"><link rel="stylesheet" href="library/library.css">
+</head><body class="mg library">
+<header class="mg-head"><a class="brand" href="spacology-v0.1.0.html?menu=1">SPACOLOGY <span>/ TEST RANGE</span></a><a class="return-demo" href="spacology-v0.1.0.html?menu=1">Return to demo</a><button id="hubExport" class="mg-quiet">Export station playtests</button></header>
+<main class="mg-main">
+<section class="hub-intro"><div><p class="eyebrow">EXPEDITION CONTROL · PLAYTEST LIBRARY</p><h1>Choose your next test.</h1><p>The preserved voyage, current experiments, and the studies behind them. Each opens its existing game—not a replacement.</p></div><a class="demo-launch" href="spacology-v0.1.0.html?menu=1"><span class="eyebrow">PRESERVED DEMO</span><b>Return to the Star Singer</b><span>Ops, crew building & animated autobattles →</span></a></section>
+<nav class="hub-filters" aria-label="Test categories">
+<button data-filter="current" aria-pressed="true">Playable tests</button><button data-filter="Research" aria-pressed="false">Research</button><button data-filter="Logistics" aria-pressed="false">Logistics</button><button data-filter="Exploration" aria-pressed="false">Exploration</button><button data-filter="Combat" aria-pressed="false">Autobattle</button><button data-filter="Reference" aria-pressed="false">Studies & archive</button>
+</nav>
+<div class="hub-toolbar"><label for="hubSearch">Find a test <input id="hubSearch" type="search" placeholder="Name or mechanic…"></label><p id="hubCount" role="status" aria-live="polite"></p></div>
+<div class="hub-roles" id="hubRoles"></div>
+<p id="hubEmpty" hidden>No tests match. Try a different name or category.</p>
+<footer class="hub-foot"><p>Station ratings, times, and results stay in this browser. Equipment and team-building labs have their own export controls. Runner records are separate. Nothing here resets your voyage.</p><a href="../docs/architecture.md">Code & reuse guide</a> · <a href="../docs/design/README.md">Design status</a></footer>
+<noscript>Enable JavaScript to filter the library. <a href="README.md">The prototype index</a> lists the retained entry points.</noscript>
+</main>
+<script src="shared/minigames/minigame-kit.js"></script><script src="library/catalogue.js"></script><script src="library/library.js"></script>
+</body></html>

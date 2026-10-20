@@ -1,0 +1,2658 @@
+{
+  "modelVersion": 1,
+  "modelSha256": "308012f18edce46582fed7146f45711251ccc14f77e70a3288b946d7ce2b5ac2",
+  "method": "Isolated shared JS event model; not live resolver parity. Seeds 1–N, 6 stages, 12 gold/stage; recruit 6, gear 4, refresh 2. Packs grant two random recruits; drafts one of three; target guarantee replaces the third purchase. Focused policy uses authored preference scores, random policy samples offers. Neither measures player enjoyment. Combat fixtures are five unique rank-1 characters with no gear, 20 fixed seeds per cell. No live-game balance claims.",
+  "seedCount": 100,
+  "acquisition": [
+    {
+      "policy": "focused",
+      "engine": "hypercarry",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 96,
+      "meanFirstConnected": 1.9,
+      "meanClears": 5.32,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.68,
+      "meanUnique": 7.65,
+      "meanUnused": 2.65,
+      "meanDuplicates": 6.35,
+      "meanUnassignedGear": 0.94,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "focused",
+      "engine": "hypercarry",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.37,
+      "meanClears": 5.18,
+      "meanDefeats": 0.01,
+      "meanTimeouts": 0.81,
+      "meanUnique": 5.16,
+      "meanUnused": 0.2,
+      "meanDuplicates": 2.84,
+      "meanUnassignedGear": 0.72,
+      "meanRerolls": 2.1,
+      "meanGoldLeft": 7.8
+    },
+    {
+      "policy": "focused",
+      "engine": "hypercarry",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.34,
+      "meanClears": 5.2,
+      "meanDefeats": 0.01,
+      "meanTimeouts": 0.79,
+      "meanUnique": 5.17,
+      "meanUnused": 0.18,
+      "meanDuplicates": 2.83,
+      "meanUnassignedGear": 0.71,
+      "meanRerolls": 2.18,
+      "meanGoldLeft": 7.64
+    },
+    {
+      "policy": "focused",
+      "engine": "break",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 92,
+      "meanFirstConnected": 2.61,
+      "meanClears": 5.91,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.09,
+      "meanUnique": 7.29,
+      "meanUnused": 2.31,
+      "meanDuplicates": 6.71,
+      "meanUnassignedGear": 1.51,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "focused",
+      "engine": "break",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.84,
+      "meanClears": 5.83,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.17,
+      "meanUnique": 4.59,
+      "meanUnused": 0.06,
+      "meanDuplicates": 3.41,
+      "meanUnassignedGear": 1.44,
+      "meanRerolls": 2.71,
+      "meanGoldLeft": 6.58
+    },
+    {
+      "policy": "focused",
+      "engine": "break",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.72,
+      "meanClears": 5.81,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.19,
+      "meanUnique": 4.56,
+      "meanUnused": 0.06,
+      "meanDuplicates": 3.44,
+      "meanUnassignedGear": 1.45,
+      "meanRerolls": 2.73,
+      "meanGoldLeft": 6.54
+    },
+    {
+      "policy": "focused",
+      "engine": "dot",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.72,
+      "meanClears": 5.85,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.15,
+      "meanUnique": 8.07,
+      "meanUnused": 3.07,
+      "meanDuplicates": 5.93,
+      "meanUnassignedGear": 1.28,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "focused",
+      "engine": "dot",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.43,
+      "meanClears": 5.86,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.14,
+      "meanUnique": 5.95,
+      "meanUnused": 0.95,
+      "meanDuplicates": 2.05,
+      "meanUnassignedGear": 1.08,
+      "meanRerolls": 1.32,
+      "meanGoldLeft": 9.36
+    },
+    {
+      "policy": "focused",
+      "engine": "dot",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.43,
+      "meanClears": 5.91,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.09,
+      "meanUnique": 5.95,
+      "meanUnused": 0.95,
+      "meanDuplicates": 2.05,
+      "meanUnassignedGear": 1.02,
+      "meanRerolls": 1.31,
+      "meanGoldLeft": 9.38
+    },
+    {
+      "policy": "focused",
+      "engine": "counter",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.43,
+      "meanClears": 5.06,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.94,
+      "meanUnique": 8.1,
+      "meanUnused": 3.1,
+      "meanDuplicates": 5.9,
+      "meanUnassignedGear": 1.55,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "focused",
+      "engine": "counter",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.64,
+      "meanClears": 4.33,
+      "meanDefeats": 0.03,
+      "meanTimeouts": 1.64,
+      "meanUnique": 4.95,
+      "meanUnused": 0.2,
+      "meanDuplicates": 3.05,
+      "meanUnassignedGear": 1.45,
+      "meanRerolls": 0.86,
+      "meanGoldLeft": 10.28
+    },
+    {
+      "policy": "focused",
+      "engine": "counter",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.58,
+      "meanClears": 4.34,
+      "meanDefeats": 0.03,
+      "meanTimeouts": 1.63,
+      "meanUnique": 4.91,
+      "meanUnused": 0.19,
+      "meanDuplicates": 3.09,
+      "meanUnassignedGear": 1.46,
+      "meanRerolls": 0.76,
+      "meanGoldLeft": 10.48
+    },
+    {
+      "policy": "focused",
+      "engine": "multi",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 97,
+      "meanFirstConnected": 1.73,
+      "meanClears": 5.68,
+      "meanDefeats": 0,
+      "meanTimeouts": 0.32,
+      "meanUnique": 7.33,
+      "meanUnused": 2.33,
+      "meanDuplicates": 6.67,
+      "meanUnassignedGear": 0.8,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "focused",
+      "engine": "multi",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.82,
+      "meanClears": 5.27,
+      "meanDefeats": 0.01,
+      "meanTimeouts": 0.72,
+      "meanUnique": 4.47,
+      "meanUnused": 0.04,
+      "meanDuplicates": 3.53,
+      "meanUnassignedGear": 0.71,
+      "meanRerolls": 2.75,
+      "meanGoldLeft": 6.5
+    },
+    {
+      "policy": "focused",
+      "engine": "multi",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.67,
+      "meanClears": 5.26,
+      "meanDefeats": 0.01,
+      "meanTimeouts": 0.73,
+      "meanUnique": 4.46,
+      "meanUnused": 0.04,
+      "meanDuplicates": 3.54,
+      "meanUnassignedGear": 0.69,
+      "meanRerolls": 2.76,
+      "meanGoldLeft": 6.48
+    },
+    {
+      "policy": "random",
+      "engine": "hypercarry",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 92,
+      "meanFirstConnected": 1.9,
+      "meanClears": 5.09,
+      "meanDefeats": 0.1,
+      "meanTimeouts": 0.81,
+      "meanUnique": 7.65,
+      "meanUnused": 2.65,
+      "meanDuplicates": 6.35,
+      "meanUnassignedGear": 2.67,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "hypercarry",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 84,
+      "meanFirstConnected": 2.68,
+      "meanClears": 4.66,
+      "meanDefeats": 0.07,
+      "meanTimeouts": 1.27,
+      "meanUnique": 5.58,
+      "meanUnused": 0.74,
+      "meanDuplicates": 2.42,
+      "meanUnassignedGear": 2.89,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "hypercarry",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 93,
+      "meanFirstConnected": 2.57,
+      "meanClears": 4.71,
+      "meanDefeats": 0.06,
+      "meanTimeouts": 1.23,
+      "meanUnique": 5.69,
+      "meanUnused": 0.8,
+      "meanDuplicates": 2.31,
+      "meanUnassignedGear": 2.93,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "break",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 89,
+      "meanFirstConnected": 2.65,
+      "meanClears": 5.66,
+      "meanDefeats": 0.01,
+      "meanTimeouts": 0.33,
+      "meanUnique": 7.29,
+      "meanUnused": 2.31,
+      "meanDuplicates": 6.71,
+      "meanUnassignedGear": 2.36,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "break",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 76,
+      "meanFirstConnected": 3.03,
+      "meanClears": 5.51,
+      "meanDefeats": 0.02,
+      "meanTimeouts": 0.47,
+      "meanUnique": 5.4,
+      "meanUnused": 0.6,
+      "meanDuplicates": 2.6,
+      "meanUnassignedGear": 2.48,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "break",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 94,
+      "meanFirstConnected": 3.21,
+      "meanClears": 5.64,
+      "meanDefeats": 0.01,
+      "meanTimeouts": 0.35,
+      "meanUnique": 5.48,
+      "meanUnused": 0.62,
+      "meanDuplicates": 2.52,
+      "meanUnassignedGear": 2.52,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "dot",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 99,
+      "meanFirstConnected": 1.79,
+      "meanClears": 5.42,
+      "meanDefeats": 0.14,
+      "meanTimeouts": 0.44,
+      "meanUnique": 8.07,
+      "meanUnused": 3.07,
+      "meanDuplicates": 5.93,
+      "meanUnassignedGear": 2.35,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "dot",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 96,
+      "meanFirstConnected": 2.57,
+      "meanClears": 5.28,
+      "meanDefeats": 0.07,
+      "meanTimeouts": 0.65,
+      "meanUnique": 5.86,
+      "meanUnused": 0.94,
+      "meanDuplicates": 2.14,
+      "meanUnassignedGear": 2.57,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "dot",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 98,
+      "meanFirstConnected": 2.37,
+      "meanClears": 5.48,
+      "meanDefeats": 0.07,
+      "meanTimeouts": 0.45,
+      "meanUnique": 6.02,
+      "meanUnused": 1.06,
+      "meanDuplicates": 1.98,
+      "meanUnassignedGear": 2.55,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "counter",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 100,
+      "meanFirstConnected": 1.56,
+      "meanClears": 4.93,
+      "meanDefeats": 0.12,
+      "meanTimeouts": 0.95,
+      "meanUnique": 8.1,
+      "meanUnused": 3.1,
+      "meanDuplicates": 5.9,
+      "meanUnassignedGear": 2.12,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "counter",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 91,
+      "meanFirstConnected": 2.21,
+      "meanClears": 4.6,
+      "meanDefeats": 0.05,
+      "meanTimeouts": 1.35,
+      "meanUnique": 5.77,
+      "meanUnused": 0.9,
+      "meanDuplicates": 2.23,
+      "meanUnassignedGear": 2.05,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "counter",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 98,
+      "meanFirstConnected": 2.31,
+      "meanClears": 4.57,
+      "meanDefeats": 0.04,
+      "meanTimeouts": 1.39,
+      "meanUnique": 6.02,
+      "meanUnused": 1.05,
+      "meanDuplicates": 1.98,
+      "meanUnassignedGear": 2.04,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "multi",
+      "mode": "packs",
+      "runs": 100,
+      "connectedPct": 99,
+      "meanFirstConnected": 1.81,
+      "meanClears": 5.31,
+      "meanDefeats": 0.07,
+      "meanTimeouts": 0.62,
+      "meanUnique": 7.33,
+      "meanUnused": 2.33,
+      "meanDuplicates": 6.67,
+      "meanUnassignedGear": 2.57,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "multi",
+      "mode": "draft",
+      "runs": 100,
+      "connectedPct": 85,
+      "meanFirstConnected": 2.47,
+      "meanClears": 4.98,
+      "meanDefeats": 0.09,
+      "meanTimeouts": 0.93,
+      "meanUnique": 5.26,
+      "meanUnused": 0.58,
+      "meanDuplicates": 2.74,
+      "meanUnassignedGear": 2.79,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    },
+    {
+      "policy": "random",
+      "engine": "multi",
+      "mode": "target",
+      "runs": 100,
+      "connectedPct": 97,
+      "meanFirstConnected": 2.58,
+      "meanClears": 5.25,
+      "meanDefeats": 0.07,
+      "meanTimeouts": 0.68,
+      "meanUnique": 5.66,
+      "meanUnused": 0.78,
+      "meanDuplicates": 2.34,
+      "meanUnassignedGear": 2.89,
+      "meanRerolls": 0,
+      "meanGoldLeft": 12
+    }
+  ],
+  "combat": [
+    {
+      "engine": "hypercarry",
+      "encounter": "survey",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 2.1,
+      "meanDamage": {
+        "direct": 240,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "survey",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 2.95,
+      "meanDamage": {
+        "direct": 320,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "survey",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3,
+      "meanDamage": {
+        "direct": 400,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "survey",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.3,
+      "meanDamage": {
+        "direct": 480,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "survey",
+      "scale": 2,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.3,
+      "meanDamage": {
+        "direct": 640,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "swarm",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.3,
+      "meanDamage": {
+        "direct": 315,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "swarm",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.75,
+      "meanDamage": {
+        "direct": 420,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "swarm",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 8.3,
+      "meanDamage": {
+        "direct": 525,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "swarm",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 10.85,
+      "meanDamage": {
+        "direct": 630,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "swarm",
+      "scale": 2,
+      "wins": 4,
+      "trials": 20,
+      "meanEnemyAttacks": 13.85,
+      "meanDamage": {
+        "direct": 780,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "pressure",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.3,
+      "meanDamage": {
+        "direct": 315,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "pressure",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.15,
+      "meanDamage": {
+        "direct": 420,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "pressure",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.65,
+      "meanDamage": {
+        "direct": 525,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "pressure",
+      "scale": 1.5,
+      "wins": 16,
+      "trials": 20,
+      "meanEnemyAttacks": 9.35,
+      "meanDamage": {
+        "direct": 622,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "pressure",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 10.85,
+      "meanDamage": {
+        "direct": 602,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "reform",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.85,
+      "meanDamage": {
+        "direct": 390,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "reform",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.1,
+      "meanDamage": {
+        "direct": 520,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "reform",
+      "scale": 1.25,
+      "wins": 16,
+      "trials": 20,
+      "meanEnemyAttacks": 8.85,
+      "meanDamage": {
+        "direct": 642,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "reform",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 9.65,
+      "meanDamage": {
+        "direct": 644,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "reform",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 10.95,
+      "meanDamage": {
+        "direct": 583,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "chip",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 8.45,
+      "meanDamage": {
+        "direct": 495,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "chip",
+      "scale": 1,
+      "wins": 5,
+      "trials": 20,
+      "meanEnemyAttacks": 11.6,
+      "meanDamage": {
+        "direct": 563,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "chip",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 9.95,
+      "meanDamage": {
+        "direct": 362,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "chip",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.7,
+      "meanDamage": {
+        "direct": 267,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "chip",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 5.8,
+      "meanDamage": {
+        "direct": 206,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "boss",
+      "scale": 0.75,
+      "wins": 8,
+      "trials": 20,
+      "meanEnemyAttacks": 6.65,
+      "meanDamage": {
+        "direct": 624,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "boss",
+      "scale": 1,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.85,
+      "meanDamage": {
+        "direct": 649,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "boss",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.9,
+      "meanDamage": {
+        "direct": 642,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "boss",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.9,
+      "meanDamage": {
+        "direct": 630,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "hypercarry",
+      "encounter": "boss",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.95,
+      "meanDamage": {
+        "direct": 551,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "survey",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 1,
+      "meanDamage": {
+        "direct": 118,
+        "dot": 0,
+        "ultra": 122,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "survey",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 1.9,
+      "meanDamage": {
+        "direct": 198,
+        "dot": 0,
+        "ultra": 122,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "survey",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 2.35,
+      "meanDamage": {
+        "direct": 251,
+        "dot": 0,
+        "ultra": 149,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "survey",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 2.95,
+      "meanDamage": {
+        "direct": 292,
+        "dot": 0,
+        "ultra": 188,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "survey",
+      "scale": 2,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4,
+      "meanDamage": {
+        "direct": 413,
+        "dot": 0,
+        "ultra": 227,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "swarm",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 1.75,
+      "meanDamage": {
+        "direct": 91,
+        "dot": 0,
+        "ultra": 224,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "swarm",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.3,
+      "meanDamage": {
+        "direct": 175,
+        "dot": 0,
+        "ultra": 245,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "swarm",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.8,
+      "meanDamage": {
+        "direct": 265,
+        "dot": 0,
+        "ultra": 260,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "swarm",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.75,
+      "meanDamage": {
+        "direct": 376,
+        "dot": 0,
+        "ultra": 254,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "swarm",
+      "scale": 2,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 10.1,
+      "meanDamage": {
+        "direct": 428,
+        "dot": 0,
+        "ultra": 412,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "pressure",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.1,
+      "meanDamage": {
+        "direct": 190,
+        "dot": 0,
+        "ultra": 125,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "pressure",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.95,
+      "meanDamage": {
+        "direct": 261,
+        "dot": 0,
+        "ultra": 159,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "pressure",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5,
+      "meanDamage": {
+        "direct": 311,
+        "dot": 0,
+        "ultra": 214,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "pressure",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.45,
+      "meanDamage": {
+        "direct": 393,
+        "dot": 0,
+        "ultra": 237,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "pressure",
+      "scale": 2,
+      "wins": 17,
+      "trials": 20,
+      "meanEnemyAttacks": 8.5,
+      "meanDamage": {
+        "direct": 498,
+        "dot": 0,
+        "ultra": 335,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "reform",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4,
+      "meanDamage": {
+        "direct": 250,
+        "dot": 0,
+        "ultra": 140,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "reform",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.4,
+      "meanDamage": {
+        "direct": 277,
+        "dot": 0,
+        "ultra": 243,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "reform",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7,
+      "meanDamage": {
+        "direct": 400,
+        "dot": 0,
+        "ultra": 250,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "reform",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.25,
+      "meanDamage": {
+        "direct": 417,
+        "dot": 0,
+        "ultra": 363,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "reform",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 9.4,
+      "meanDamage": {
+        "direct": 450,
+        "dot": 0,
+        "ultra": 352,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "chip",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.1,
+      "meanDamage": {
+        "direct": 280,
+        "dot": 0,
+        "ultra": 215,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "chip",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.3,
+      "meanDamage": {
+        "direct": 360,
+        "dot": 0,
+        "ultra": 300,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "chip",
+      "scale": 1.25,
+      "wins": 3,
+      "trials": 20,
+      "meanEnemyAttacks": 10.3,
+      "meanDamage": {
+        "direct": 367,
+        "dot": 0,
+        "ultra": 279,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "chip",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 8.15,
+      "meanDamage": {
+        "direct": 211,
+        "dot": 0,
+        "ultra": 124,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "chip",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 5.95,
+      "meanDamage": {
+        "direct": 181,
+        "dot": 0,
+        "ultra": 122,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "boss",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.35,
+      "meanDamage": {
+        "direct": 452,
+        "dot": 0,
+        "ultra": 186,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "boss",
+      "scale": 1,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.55,
+      "meanDamage": {
+        "direct": 541,
+        "dot": 0,
+        "ultra": 217,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "boss",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.6,
+      "meanDamage": {
+        "direct": 524,
+        "dot": 0,
+        "ultra": 206,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "boss",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.6,
+      "meanDamage": {
+        "direct": 514,
+        "dot": 0,
+        "ultra": 202,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "break",
+      "encounter": "boss",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.7,
+      "meanDamage": {
+        "direct": 464,
+        "dot": 0,
+        "ultra": 164,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "survey",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.1,
+      "meanDamage": {
+        "direct": 170,
+        "dot": 70,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "survey",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.35,
+      "meanDamage": {
+        "direct": 241,
+        "dot": 79,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "survey",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.75,
+      "meanDamage": {
+        "direct": 298,
+        "dot": 102,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "survey",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.4,
+      "meanDamage": {
+        "direct": 345,
+        "dot": 135,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "survey",
+      "scale": 2,
+      "wins": 15,
+      "trials": 20,
+      "meanEnemyAttacks": 5.9,
+      "meanDamage": {
+        "direct": 428,
+        "dot": 205,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "swarm",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.35,
+      "meanDamage": {
+        "direct": 246,
+        "dot": 69,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "swarm",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.65,
+      "meanDamage": {
+        "direct": 289,
+        "dot": 131,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "swarm",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 8.85,
+      "meanDamage": {
+        "direct": 331,
+        "dot": 194,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "swarm",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 10.7,
+      "meanDamage": {
+        "direct": 382,
+        "dot": 248,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "swarm",
+      "scale": 2,
+      "wins": 16,
+      "trials": 20,
+      "meanEnemyAttacks": 12.3,
+      "meanDamage": {
+        "direct": 497,
+        "dot": 332,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "pressure",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.2,
+      "meanDamage": {
+        "direct": 208,
+        "dot": 107,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "pressure",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.5,
+      "meanDamage": {
+        "direct": 270,
+        "dot": 150,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "pressure",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.95,
+      "meanDamage": {
+        "direct": 314,
+        "dot": 211,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "pressure",
+      "scale": 1.5,
+      "wins": 18,
+      "trials": 20,
+      "meanEnemyAttacks": 9.45,
+      "meanDamage": {
+        "direct": 370,
+        "dot": 252,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "pressure",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 12.95,
+      "meanDamage": {
+        "direct": 360,
+        "dot": 283,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "reform",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.4,
+      "meanDamage": {
+        "direct": 253,
+        "dot": 137,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "reform",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.1,
+      "meanDamage": {
+        "direct": 321,
+        "dot": 199,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "reform",
+      "scale": 1.25,
+      "wins": 13,
+      "trials": 20,
+      "meanEnemyAttacks": 8.5,
+      "meanDamage": {
+        "direct": 381,
+        "dot": 251,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "reform",
+      "scale": 1.5,
+      "wins": 4,
+      "trials": 20,
+      "meanEnemyAttacks": 9.95,
+      "meanDamage": {
+        "direct": 411,
+        "dot": 284,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "reform",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 11.95,
+      "meanDamage": {
+        "direct": 383,
+        "dot": 290,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "chip",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.6,
+      "meanDamage": {
+        "direct": 313,
+        "dot": 182,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "chip",
+      "scale": 1,
+      "wins": 5,
+      "trials": 20,
+      "meanEnemyAttacks": 10.3,
+      "meanDamage": {
+        "direct": 308,
+        "dot": 244,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "chip",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 8.55,
+      "meanDamage": {
+        "direct": 210,
+        "dot": 193,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "chip",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.15,
+      "meanDamage": {
+        "direct": 174,
+        "dot": 146,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "chip",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 5.3,
+      "meanDamage": {
+        "direct": 143,
+        "dot": 96,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "boss",
+      "scale": 0.75,
+      "wins": 3,
+      "trials": 20,
+      "meanEnemyAttacks": 7.5,
+      "meanDamage": {
+        "direct": 341,
+        "dot": 244,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "boss",
+      "scale": 1,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.6,
+      "meanDamage": {
+        "direct": 338,
+        "dot": 239,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "boss",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.65,
+      "meanDamage": {
+        "direct": 313,
+        "dot": 222,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "boss",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.45,
+      "meanDamage": {
+        "direct": 297,
+        "dot": 215,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "dot",
+      "encounter": "boss",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.3,
+      "meanDamage": {
+        "direct": 280,
+        "dot": 204,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "survey",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.4,
+      "meanDamage": {
+        "direct": 227,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 13
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "survey",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.05,
+      "meanDamage": {
+        "direct": 299,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 21
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "survey",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.75,
+      "meanDamage": {
+        "direct": 371,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 29
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "survey",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.15,
+      "meanDamage": {
+        "direct": 441,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 39
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "survey",
+      "scale": 2,
+      "wins": 8,
+      "trials": 20,
+      "meanEnemyAttacks": 7,
+      "meanDamage": {
+        "direct": 564,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 60
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "swarm",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.05,
+      "meanDamage": {
+        "direct": 300,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 15
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "swarm",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 10.15,
+      "meanDamage": {
+        "direct": 389,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 31
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "swarm",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 11.9,
+      "meanDamage": {
+        "direct": 481,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 44
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "swarm",
+      "scale": 1.5,
+      "wins": 11,
+      "trials": 20,
+      "meanEnemyAttacks": 13.35,
+      "meanDamage": {
+        "direct": 557,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 61
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "swarm",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 15.45,
+      "meanDamage": {
+        "direct": 588,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 95
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "pressure",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.4,
+      "meanDamage": {
+        "direct": 283,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 32
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "pressure",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 8.35,
+      "meanDamage": {
+        "direct": 365,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 55
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "pressure",
+      "scale": 1.25,
+      "wins": 19,
+      "trials": 20,
+      "meanEnemyAttacks": 9.9,
+      "meanDamage": {
+        "direct": 440,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 84
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "pressure",
+      "scale": 1.5,
+      "wins": 11,
+      "trials": 20,
+      "meanEnemyAttacks": 11.1,
+      "meanDamage": {
+        "direct": 499,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 111
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "pressure",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 12.65,
+      "meanDamage": {
+        "direct": 484,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 173
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "reform",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.2,
+      "meanDamage": {
+        "direct": 353,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 37
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "reform",
+      "scale": 1,
+      "wins": 17,
+      "trials": 20,
+      "meanEnemyAttacks": 9.2,
+      "meanDamage": {
+        "direct": 451,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 66
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "reform",
+      "scale": 1.25,
+      "wins": 1,
+      "trials": 20,
+      "meanEnemyAttacks": 9.95,
+      "meanDamage": {
+        "direct": 474,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 89
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "reform",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 10.75,
+      "meanDamage": {
+        "direct": 475,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 111
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "reform",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 11.9,
+      "meanDamage": {
+        "direct": 461,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 172
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "chip",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 9.25,
+      "meanDamage": {
+        "direct": 402,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 93
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "chip",
+      "scale": 1,
+      "wins": 6,
+      "trials": 20,
+      "meanEnemyAttacks": 11.95,
+      "meanDamage": {
+        "direct": 435,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 161
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "chip",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 11.55,
+      "meanDamage": {
+        "direct": 283,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 177
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "chip",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 9.15,
+      "meanDamage": {
+        "direct": 215,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 165
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "chip",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 6.7,
+      "meanDamage": {
+        "direct": 174,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 155
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "boss",
+      "scale": 0.75,
+      "wins": 1,
+      "trials": 20,
+      "meanEnemyAttacks": 7.85,
+      "meanDamage": {
+        "direct": 463,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 92
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "boss",
+      "scale": 1,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.7,
+      "meanDamage": {
+        "direct": 466,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 123
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "boss",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.7,
+      "meanDamage": {
+        "direct": 460,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 154
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "boss",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.7,
+      "meanDamage": {
+        "direct": 443,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 191
+      }
+    },
+    {
+      "engine": "counter",
+      "encounter": "boss",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7.75,
+      "meanDamage": {
+        "direct": 376,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 177
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "survey",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 1,
+      "meanDamage": {
+        "direct": 240,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "survey",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 1.9,
+      "meanDamage": {
+        "direct": 320,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "survey",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 2.75,
+      "meanDamage": {
+        "direct": 400,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "survey",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3,
+      "meanDamage": {
+        "direct": 480,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "survey",
+      "scale": 2,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.3,
+      "meanDamage": {
+        "direct": 640,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "swarm",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4,
+      "meanDamage": {
+        "direct": 315,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "swarm",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.75,
+      "meanDamage": {
+        "direct": 420,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "swarm",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.5,
+      "meanDamage": {
+        "direct": 525,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "swarm",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.8,
+      "meanDamage": {
+        "direct": 630,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "swarm",
+      "scale": 2,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 9.5,
+      "meanDamage": {
+        "direct": 840,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "pressure",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.1,
+      "meanDamage": {
+        "direct": 315,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "pressure",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.05,
+      "meanDamage": {
+        "direct": 420,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "pressure",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 4.95,
+      "meanDamage": {
+        "direct": 525,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "pressure",
+      "scale": 1.5,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.35,
+      "meanDamage": {
+        "direct": 630,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "pressure",
+      "scale": 2,
+      "wins": 13,
+      "trials": 20,
+      "meanEnemyAttacks": 9.3,
+      "meanDamage": {
+        "direct": 805,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "reform",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 3.95,
+      "meanDamage": {
+        "direct": 390,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "reform",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5.15,
+      "meanDamage": {
+        "direct": 520,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "reform",
+      "scale": 1.25,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6.65,
+      "meanDamage": {
+        "direct": 650,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "reform",
+      "scale": 1.5,
+      "wins": 19,
+      "trials": 20,
+      "meanEnemyAttacks": 8.05,
+      "meanDamage": {
+        "direct": 777,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "reform",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 9.6,
+      "meanDamage": {
+        "direct": 826,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "chip",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 6,
+      "meanDamage": {
+        "direct": 495,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "chip",
+      "scale": 1,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 7.65,
+      "meanDamage": {
+        "direct": 660,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "chip",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 10.5,
+      "meanDamage": {
+        "direct": 599,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "chip",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 8,
+      "meanDamage": {
+        "direct": 386,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "chip",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 5.35,
+      "meanDamage": {
+        "direct": 276,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "boss",
+      "scale": 0.75,
+      "wins": 20,
+      "trials": 20,
+      "meanEnemyAttacks": 5,
+      "meanDamage": {
+        "direct": 638,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "boss",
+      "scale": 1,
+      "wins": 6,
+      "trials": 20,
+      "meanEnemyAttacks": 6.9,
+      "meanDamage": {
+        "direct": 805,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "boss",
+      "scale": 1.25,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7,
+      "meanDamage": {
+        "direct": 789,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "boss",
+      "scale": 1.5,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7,
+      "meanDamage": {
+        "direct": 767,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    },
+    {
+      "engine": "multi",
+      "encounter": "boss",
+      "scale": 2,
+      "wins": 0,
+      "trials": 20,
+      "meanEnemyAttacks": 7,
+      "meanDamage": {
+        "direct": 693,
+        "dot": 0,
+        "ultra": 0,
+        "retaliation": 0
+      }
+    }
+  ],
+  "mechanics": [
+    {
+      "engine": "dot",
+      "enemyAdvance": false,
+      "wins": 40,
+      "trials": 40,
+      "attacks": 8,
+      "payoff": 266,
+      "downs": 0.05
+    },
+    {
+      "engine": "dot",
+      "enemyAdvance": true,
+      "wins": 37,
+      "trials": 40,
+      "attacks": 9,
+      "payoff": 237,
+      "downs": 0.175
+    },
+    {
+      "engine": "counter",
+      "enemyAdvance": false,
+      "wins": 20,
+      "trials": 40,
+      "attacks": 10,
+      "payoff": 97,
+      "downs": 0
+    },
+    {
+      "engine": "counter",
+      "enemyAdvance": true,
+      "wins": 30,
+      "trials": 40,
+      "attacks": 10,
+      "payoff": 100,
+      "downs": 0
+    }
+  ]
+}

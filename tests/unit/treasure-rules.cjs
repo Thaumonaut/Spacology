@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const context = {window:{}, crypto:require('node:crypto').webcrypto};
 vm.createContext(context);
-vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../../prototypes/treasure-rules.js'),'utf8'),context);
+vm.runInContext(fs.readFileSync(require('node:path').join(__dirname,'../../prototypes/shared/voyage/treasure-rules.js'),'utf8'),context);
 const T = context.window.SpacologyTreasure;
 const state = seed => ({treasureSeed:seed, round:1, maxRounds:6, gold:40, scrap:0, crystals:0, gear:[]});
 const copy = value => JSON.parse(JSON.stringify(value));

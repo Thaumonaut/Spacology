@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spacology · Affix lab</title><link rel="stylesheet" href="labs/affix-lab/affix-lab.css"></head>
+<body>
+<header class="top"><a href="spacology-v0.1.0.html" class="brand">SPACOLOGY <span>/ EXPERIMENTS</span></a><span class="badge">AFFIX LAB</span><span class="spacer"></span><button id="export" type="button">Export sessions</button></header>
+<main>
+<section class="intro">
+  <div><p class="eyebrow">Anyone can join · the equipment is random · the Brief decides</p><h1>Read the Brief. Build the answer.</h1>
+  <p class="muted">Every voyage rolls its conditions and bosses before you choose anyone. Recruit any crewmate you like: two start free, and each extra berth costs more than the last. The only randomness you buy is equipment: three offers per stop, rerolls rising. Six team types, each with its own sustainer. Nine fights, three sectors, and the first battles ramp up gently.</p></div>
+  <aside class="panel small"><b>Experimental rules.</b> A seeded model for <a href="../docs/design/affix-team-building.md">the affix team-building design</a>. Aether spending comes from the live <code>aether-rules.js</code>; the fights are a lab simulation, not the live resolver, and the kits are lab abstractions of the real characters. Progress stays in this browser.</aside>
+</section>
+<form id="setup" class="panel row">
+  <label>Conditions<select id="affixCount"><option value="0">Calm · no conditions</option><option value="1">Light · one condition</option><option value="2" selected>Standard · two conditions</option><option value="3">Hard · three conditions</option><option value="4">Expert · four conditions</option></select></label>
+  <label>Seed<input id="seed" type="number" min="1" max="4294967295" value="41" required></label>
+  <button type="button" id="randomSeed">Random seed</button>
+  <button class="primary" type="submit">New voyage</button>
+</form>
+<p id="message" role="status" aria-live="polite"></p>
+<section class="panel" aria-labelledby="briefTitle"><p class="eyebrow">The Brief</p><h2 id="briefTitle">This voyage's conditions</h2><div id="affixes" class="affixes"></div><div id="bosses" class="bosses"></div>
+  <label class="small muted" style="display:block;margin-top:14px">Before you choose anyone: "This voyage I'm going to try…" <textarea id="plan"></textarea></label></section>
+<section class="panel"><div id="route" class="route" aria-label="Voyage route"></div></section>
+<section id="status" class="status" aria-label="Voyage status"></section>
+<section class="panel" id="summary" hidden></section>
+<div class="layout">
+  <div class="stack">
+    <section class="panel" id="nextPanel"></section>
+    <section class="panel" id="reportPanel" hidden></section>
+    <section class="panel"><p class="eyebrow">Requisition</p><h2>Anyone can join</h2><p id="rosterNote" class="small muted"></p><div id="roster"></div></section>
+  </div>
+  <div class="stack">
+    <section class="panel"><p class="eyebrow">Crew</p><h2>Berths</h2><p id="berthNote" class="small muted"></p><div id="berths" class="berths"></div>
+      <div class="row" style="margin-top:10px"><button id="voucher" type="button"></button></div></section>
+    <section class="panel"><p class="eyebrow">Supply</p><h2>Equipment</h2><p class="small muted">Three random offers each stop. Every item fits a kind of crewmate; each also makes its wearer a little stronger.</p>
+      <div id="offers" class="offers"></div>
+      <div class="row" style="margin-top:10px"><button id="reroll" type="button"></button></div>
+      <h3 style="margin-top:14px">Hold</h3><div id="hold" class="hold"></div></section>
+  </div>
+</div>
+<section class="panel"><p class="eyebrow">Across sessions</p><h2>Did you build the same team again?</h2>
+  <p class="small muted">Finished voyages you save appear here, with how many crew carried over from the voyage before. Play five in a row: the failure this lab guards against only shows up across sessions.</p>
+  <div id="sessions" class="tablewrap"></div>
+  <div class="row" style="margin-top:10px"><button id="clearLog" type="button">Clear the session log</button></div></section>
+<footer>Local experiment · <a href="../docs/testing/affix-lab.md">How to playtest and what the simulation found</a></footer>
+</main>
+<script src="shared/combat/formation-rules.js"></script><script src="shared/combat/aether-rules.js"></script><script src="labs/affix-lab/affix-lab-model.js"></script><script src="labs/affix-lab/affix-lab.js"></script>
+</body></html>

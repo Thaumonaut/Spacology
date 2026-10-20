@@ -1,4 +1,4 @@
-const assert=require('node:assert/strict');const C=require('../../prototypes/crew-progression.js');
+const assert=require('node:assert/strict');const C=require('../../prototypes/shared/voyage/crew-progression.js');
 const base=()=>({field:['Tarn'],support:[],reserve:[],crewUpgrades:{},crewCopies:[],nextCopyId:1,copyProgression:1,level:1,crystals:20,scrap:0,equipped:{Tarn:['Bore Bit']}});
 function add(s,n){const r=C.receive(s,n);assert(!r.error,r.error);C.apply(s,r.state)}
 let s=base();for(let i=2;i<=9;i++){add(s,'Tarn');assert.equal(C.total(s,'Tarn'),i);assert(C.slots(s)<=6)}assert.equal(C.rank(s,'Tarn'),1);assert.deepEqual(s.crewCopies.map(c=>c.rank),[1,1]);assert(!C.receive(s,'Tarn').error);s.level=5;C.merge(s,'Tarn');assert.equal(C.rank(s,'Tarn'),2);assert.equal(s.crewCopies.length,0);assert.deepEqual(s.field,['Tarn']);assert.deepEqual(s.equipped.Tarn,['Bore Bit']);console.log('PASS 3/9 copies merge, level-5 gate, copy conservation and equipped placement');

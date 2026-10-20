@@ -1,0 +1,65 @@
+{
+ "note": "SHA-256 of each fight recorded from the live watchable-fight.html by tests/browser/combat-core-parity.cjs (seeded Math.random). Regenerate only for an intended rule change.",
+ "fights": {
+  "bloom/spread": {
+   "steps": 50,
+   "sha256": "e04deb01f409e19e5c04c597ea8b448f884d2614029f6880d653625799006104"
+  },
+  "bloom/order": {
+   "steps": 49,
+   "sha256": "7c2de338eb7c102216670534313e2afdd5b1f57d7af0751f3d35768c77050709"
+  },
+  "plate/spread": {
+   "steps": 72,
+   "sha256": "49f4193d19c863797c32e3b7f5ca64ab22f705cb340c954a2f5a485a3757b382"
+  },
+  "plate/order": {
+   "steps": 76,
+   "sha256": "ee4e976dbc22872eeea2ef58b0fbf019f8a5e45f07711ee91360b7a1308ff0cc"
+  },
+  "ledger/spread": {
+   "steps": 36,
+   "sha256": "1941b643987ac60797984e32385733d2d2160cfba1a62467c3dfa8ae88fb8a0d"
+  },
+  "ledger/order": {
+   "steps": 33,
+   "sha256": "e9e5fa64f2faefa2cde4f7b052997e6ae348786ac424dc2ac3e84567afbbd920"
+  },
+  "relay/spread": {
+   "steps": 64,
+   "sha256": "9362286ec35e0911bb1d6aced40244c26889407bed87f39a6f8601812dcc6363"
+  },
+  "relay/order": {
+   "steps": 77,
+   "sha256": "0e05aa2439a8a1c376c9b1d291a608f195eb9f5117dd40c231a69906c15e031c"
+  },
+  "found/spread": {
+   "steps": 45,
+   "sha256": "f8228b4cc0e5e3b5a3cdc6afddfe4b33ac999874decf68504f75c0a4be4f0eb8"
+  },
+  "found/order": {
+   "steps": 46,
+   "sha256": "ff21b993e3a7075faa1fa5a04032f16a110891433791a8afd8775e2c0729f036"
+  },
+  "flat/spread": {
+   "steps": 34,
+   "sha256": "04daa64e19066f75523b55c5aa8d593ea01f439161fb348de4fa9a9b14137698"
+  },
+  "flat/order": {
+   "steps": 29,
+   "sha256": "d0587109ddc4fa2b9f69285689cf14fe7917ff89307f1b73e78c923acc75ed63"
+  },
+  "voyage/bridged": {
+   "steps": 41,
+   "sha256": "29c899e0ee837217a9e0710cad80ffbff2c143654a10b4af31d274d96b77d4ad"
+  },
+  "voyage/weavers": {
+   "steps": 14,
+   "sha256": "9af61766ab010819833cf8a907d5dd7367a5e6cc7783f6a6ad0eb60057987d75"
+  },
+  "voyage/silen": {
+   "steps": 25,
+   "sha256": "05daac85043e10edd5d7788aab60bfa361bd82626627b30e96edd711709b2533"
+  }
+ }
+}

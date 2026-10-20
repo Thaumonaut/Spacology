@@ -1,0 +1,117 @@
+/* Route planning: a road network on a tile grid. The SVG uses 100 units per tile and scales to fit the stage. */
+.rp{display:grid;gap:8px}
+.rp-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.rp-phase{font-size:12px;font-weight:800;letter-spacing:.14em;padding:8px 12px;border-radius:20px;border:1px solid var(--line);white-space:nowrap}
+.rp-phase.night{color:#c9c2ff;border-color:#5a4f9a;background:#211d3a}
+.rp-phase.day{color:#241a08;background:var(--gold);border-color:var(--gold)}
+.rp-phase.done{color:var(--muted)}
+.mg .rp-start{min-width:128px}
+.rp-speed{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.mg .rp-speed button{border:0;border-radius:0;min-width:46px;background:var(--panel2)}
+.mg .rp-speed button+button{border-left:1px solid var(--line)}
+.mg .rp-speed button[aria-pressed="true"]{background:var(--sky);color:#0d1b2a;font-weight:800}
+.mg #rpRelaxed[aria-pressed="true"]{border-color:var(--mint);color:var(--mint);background:#1b3a37}
+.rp-clock{display:flex;flex-direction:column;gap:3px;margin-left:auto;min-width:110px;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);text-align:right}
+.rp-clock i{display:block;height:6px;border-radius:3px;background:#22313d;overflow:hidden}
+.rp-clock b{display:block;height:100%;width:0;background:var(--gold);transition:width .25s linear}
+
+.rp-tools{display:flex;flex-wrap:wrap;gap:6px}
+.mg .rp-tools button{display:flex;flex-direction:column;align-items:center;line-height:1.1;padding:5px 9px;min-width:64px}
+.rp-tools small{font-size:10px;color:var(--muted)}
+.mg .rp-tools button[aria-pressed="true"]{border-color:var(--leaf);background:#24331d;box-shadow:inset 0 0 0 1px var(--leaf)}
+.rp-news{margin:0;font-size:13px;color:var(--muted);min-height:1.4em}
+.rp-newtag-inline{color:#241a08;background:var(--gold);border-radius:6px;padding:1px 6px;font-size:11px;letter-spacing:.08em}
+
+/* Map */
+.rp-mapwrap{position:relative;border:1px solid var(--line);border-radius:14px;background:#0b141c;padding:4px;user-select:none;-webkit-user-select:none}
+#rpMap{display:block;width:100%;height:auto;max-height:max(280px,calc(100vh - 300px));touch-action:pinch-zoom;cursor:crosshair}
+.is-day #rpMap{cursor:default}
+.rp-t{stroke:#ffffff0a;stroke-width:1}
+.rp-t-grass{fill:#15222c}.rp-t-river{fill:#24577a}.rp-t-rough{fill:#2a2a22}.rp-t-mountain{fill:#2e2a33}
+.is-night .rp-t-grass{fill:#121c26}
+.rp-mount{fill:#5b5468;stroke:#857d93;stroke-width:3}
+.rp-rough circle{fill:#5e5a44}
+.rp-coord{font:600 22px system-ui,sans-serif;fill:#ffffff40}
+.rp-heat{fill:#ff3b3b;pointer-events:none}
+.rp-heat.past{fill:#ff6b5b}
+.rp-heat.live{animation:rp-throb 1s ease-in-out infinite}
+@keyframes rp-throb{50%{fill:#ff8a5b}}
+.rp-road path{fill:none;stroke-linecap:round}
+.rp-road circle{stroke:none}
+.rp-tier-dirt path{stroke:#8a7552;stroke-width:22;stroke-dasharray:14 8}.rp-tier-dirt circle{fill:#8a7552}
+.rp-tier-road path{stroke:#9aa7b2;stroke-width:30}.rp-tier-road circle{fill:#9aa7b2}
+.rp-tier-highway path{stroke:#d7e2ea;stroke-width:42}.rp-tier-highway circle{fill:#d7e2ea}
+.rp-bridge{fill:#6b5a43;stroke:#a68b62;stroke-width:3}
+.rp-junction{fill:#e7c18b}
+.rp-roundabout{fill:none;stroke:var(--mint);stroke-width:6}
+.rp-arrow{fill:none;stroke:#0b141c;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;animation:rp-flow 1s linear infinite}
+@keyframes rp-flow{from{transform:translateX(-10px)}to{transform:translateX(10px)}}
+.rp-ghost{fill:none;stroke:var(--leaf);stroke-width:26;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:16 12;opacity:.8;animation:rp-march 1s linear infinite;pointer-events:none}
+.rp-ghost.erase{stroke:var(--rose)}.rp-ghost.oneway{stroke:var(--sky)}.rp-ghost.bad{stroke:var(--rose);opacity:.6}
+.rp-ghost.hint{stroke:var(--gold);stroke-width:32;filter:drop-shadow(0 0 10px #e7c18baa)}
+.rp-ghost-tile{fill:#b8cf8b22;stroke:#b8cf8b88;stroke-width:3;pointer-events:none}
+.rp-ghost-tile.bad{fill:#f0a08c22;stroke:#f0a08c88}.rp-ghost-tile.hint{fill:#e7c18b22;stroke:var(--gold)}
+@keyframes rp-march{to{stroke-dashoffset:-28}}
+
+/* Buildings */
+.rp-b-body{fill:#1d2c38;stroke:#9fb0bd;stroke-width:5}
+.rp-producer .rp-b-body{fill:#24301f;stroke-width:7}
+.rp-consumer .rp-b-body{fill:#e9eef0;stroke:#e9eef0}
+.rp-b-icon{font:700 52px system-ui,sans-serif;paint-order:stroke;stroke:#0b141c;stroke-width:3}
+.rp-b-icon.need{font-size:40px}
+.rp-consumer .rp-b-icon{stroke:#e9eef0}
+.rp-b-out,.rp-b-in{fill:none;stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.rp-b-in{stroke:#e7c18b}
+.rp-stock{fill:#0b141c;stroke:#ffffff55;stroke-width:2}.rp-stock.on{fill:#fff}
+.rp-req{font:700 18px system-ui,sans-serif;paint-order:stroke;stroke:#e9eef0;stroke-width:2}
+.rp-ring-bg{fill:none;stroke:#ffffff1c;stroke-width:8}
+.rp-ring{fill:none;stroke:var(--mint);stroke-width:8;stroke-linecap:round;transition:stroke-dasharray .2s}
+.rp-ring.warn{stroke:var(--gold)}.rp-ring.full{stroke:var(--rose)}
+.rp-consumer.starved .rp-b-body{stroke:var(--rose)}
+.rp-label rect{fill:#0b141ce0;stroke:#ffffff38;stroke-width:2}
+.rp-label text{font:700 24px system-ui,sans-serif;fill:#fff}
+.rp-newtag{font:800 17px system-ui,sans-serif;letter-spacing:.08em;fill:var(--gold);paint-order:stroke;stroke:#0b141c;stroke-width:5}
+.rp-building.new .rp-b-body{animation:rp-new 1.2s ease-in-out infinite}
+@keyframes rp-new{50%{stroke:var(--gold)}}
+.rp-wh .rp-b-body{fill:#2f2a40;stroke:#b9a7f0}
+.rp-wh-roof{fill:none;stroke:#b9a7f0;stroke-width:6;stroke-linejoin:round}
+.rp-wh-bar rect{stroke:#0b141c;stroke-width:1}.rp-wh-bar rect.empty{fill:#ffffff18}
+.rp-building{cursor:pointer}
+
+/* Vehicles and effects */
+.rp-veh rect{stroke:#0b141c;stroke-width:3}
+.rp-veh text{font:700 16px system-ui,sans-serif;fill:#0b141c}
+.rp-veh.queued rect{stroke:#ff5b5b;stroke-width:4}
+.rp-pop{pointer-events:none}
+.rp-pop circle{fill:none;stroke-width:6;animation:rp-ring .9s ease-out forwards;transform-box:fill-box;transform-origin:center}
+.rp-pop text{font:800 30px system-ui,sans-serif;paint-order:stroke;stroke:#0b141c;stroke-width:5;animation:rp-rise .9s ease-out forwards}
+@keyframes rp-ring{from{transform:scale(.5);opacity:1}to{transform:scale(1.4);opacity:0}}
+@keyframes rp-rise{from{transform:translateY(0);opacity:1}to{transform:translateY(-34px);opacity:0}}
+.rp-locate{fill:none;stroke:var(--gold);stroke-width:8;animation:rp-pulse 1s ease-in-out infinite;transform-box:fill-box;transform-origin:center;pointer-events:none}
+@keyframes rp-pulse{50%{transform:scale(1.25);opacity:.5}}
+
+.rp-card{position:absolute;right:10px;top:10px;width:min(280px,calc(100% - 20px));background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;box-shadow:0 10px 30px #0008}
+.rp-card[hidden]{display:none}
+.rp-card p{margin:5px 0 0}.rp-card i{font-style:normal;font-weight:700}
+.rp-card-kind{margin-left:8px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.mg .rp-card-x{position:absolute;right:4px;top:4px;min-height:36px;min-width:36px;padding:2px;background:transparent;border:0}
+.rp-preview{margin:0;min-height:1.3em;font-size:13px;color:var(--muted)}
+.rp-hintbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 12px;border:1px solid #e7c18b66;border-radius:10px;background:#e7c18b14;color:var(--gold)}
+.rp-hintbar span{flex:1 1 220px}
+.rp-hintbar[hidden],.rp-report[hidden]{display:none}
+.rp-report{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:10px 14px}
+.rp-report h3{margin:0 0 6px;font:18px Georgia,serif}
+.rp-tally{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}.rp-tally b{color:var(--mint);font-size:16px}.rp-tally em{color:var(--rose);font-style:normal}
+.rp-problems{margin:8px 0 0;padding-left:20px}
+.rp-problems li{margin:4px 0}
+.rp-problems li{display:list-item}
+.rp-problems li span{margin-right:8px}
+.mg .rp-problems button{min-height:var(--tap);padding:4px 12px}
+.rp-allgood{margin:6px 0 0;color:var(--mint)}
+.rp-legend{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:5px;color:var(--muted)}
+.rp-legend li{display:flex;gap:8px;align-items:center}
+.rp-sw{display:inline-grid;place-items:center;width:30px;height:22px;border-radius:5px;font-style:normal;font-weight:800;flex:none;background:#0b141c}
+.rp-sw-prod{color:#fff;background:#24301f}.rp-sw-cons{color:#0b141c;background:#e9eef0}.rp-sw-wh{color:#b9a7f0;background:#2f2a40}
+.rp-sw-river{background:#24577a}.rp-sw-rough{background:#2a2a22}.rp-sw-mount{background:#5b5468}.rp-sw-heat{background:#ff3b3b99}.rp-sw-ow{color:#9aa7b2}
+@media (max-width:600px){.rp-clock{margin-left:0;min-width:0;flex:1}.mg .rp-tools button{min-width:0;flex:1 1 22%;padding:4px 4px}}
+@media (prefers-reduced-motion: reduce){.rp-arrow,.rp-ghost,.rp-locate,.rp-heat.live{animation:none}}

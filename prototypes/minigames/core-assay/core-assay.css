@@ -1,0 +1,116 @@
+/* Core assay: a phosphor spectrum scope on dark glass, the residual strip below, and the mineral library.
+   Frame and result card come from minigame-kit.css. Every button is a ≥44px target (kit --tap). */
+.ca-wrap{--ph:#8dffc4;--amber:#f2b860;--red:#ff6f6f;--stray:#c9a2ff;display:grid;gap:10px}
+.ca-samples{display:flex;flex-wrap:wrap;gap:6px}
+.ca-pill{font-size:12px;padding:3px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.ca-pill-on{border-color:var(--ph);color:var(--ink)}.ca-pill-ok{color:var(--mint);border-color:#4d7d6a}.ca-pill-bad{color:var(--rose);border-color:#8c5a4b}
+
+/* Dock: scope + tools, pinned under the sticky page header. */
+.ca-dock{position:sticky;top:var(--ca-top,0px);z-index:4;display:grid;gap:8px;padding:6px 0 8px;background:linear-gradient(var(--bg) 85%,#080f1700)}
+/* Scope */
+.ca-scope{position:relative;padding:10px 10px 6px 28px;border-radius:14px;background:
+  repeating-linear-gradient(0deg,#ffffff05 0 1px,transparent 1px 3px),radial-gradient(ellipse at 50% 30%,#0d2219 0,#050c0a 75%);
+  border:1px solid #1f3a30;box-shadow:inset 0 0 40px #000c,0 8px 26px #0007;cursor:crosshair;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.ca-scope:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.ca-plot{position:relative;height:clamp(120px,22vh,220px)}
+.ca-grid{position:absolute;inset:0;width:100%;height:100%}
+.ca-grid line{stroke:#2a4a3d;stroke-width:1;vector-effect:non-scaling-stroke;stroke-dasharray:2 4}
+.ca-ylab{position:absolute;left:-24px;top:0;bottom:0;width:20px;font-size:9px;color:#5f8a78;text-align:right}
+.ca-ylab span{position:absolute;right:0;transform:translateY(50%)}
+.ca-cols{position:absolute;inset:0;display:grid;grid-template-columns:repeat(var(--C),minmax(0,1fr))}
+.ca-col{position:relative;overflow:hidden}
+.ca-col::before{content:'';position:absolute;inset:0;background:transparent;transition:background .15s}
+.ca-col.ca-hover::before{background:#ffffff0c}
+.ca-col.ca-cursor::before{background:#8dffc41a;box-shadow:inset 1px 0 #8dffc455,inset -1px 0 #8dffc455}
+.ca-col.ca-hlpeak::before{background:#e7c18b22}
+.ca-col.ca-flagged::before{background:repeating-linear-gradient(45deg,#c9a2ff22 0 4px,transparent 4px 8px)}
+.ca-band{position:absolute;left:12%;right:12%;background:#8dffc412;border-top:1px solid #8dffc438;border-bottom:1px solid #8dffc438;border-radius:2px}
+.ca-stack{position:absolute;left:20%;right:20%;top:0;bottom:0;display:flex;flex-direction:column-reverse;pointer-events:none}
+.ca-seg{display:block;flex:none;height:0;background:var(--mc);opacity:.78;border-top:1px solid #0009;transition:height .32s cubic-bezier(.3,1.4,.5,1);box-shadow:0 0 6px var(--mc)}
+.ca-star,.ca-clip{position:absolute;left:0;right:0;top:0;text-align:center;font-size:10px;line-height:1;display:none;pointer-events:none}
+.ca-unique .ca-star{display:block;color:var(--gold);text-shadow:0 0 6px var(--gold)}
+.ca-over-top .ca-clip{display:block;color:var(--red);top:auto;bottom:auto}
+.ca-trace{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.ca-trace polyline{fill:none;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+.ca-line{stroke:var(--ph);stroke-width:2}
+.ca-glow{stroke:#8dffc455;stroke-width:7;filter:blur(2px)}
+.ca-axis{display:grid;grid-template-columns:repeat(var(--C),minmax(0,1fr));font-size:9px;color:#6d9a87;height:13px;line-height:13px}
+.ca-axis span{text-align:center;white-space:nowrap}
+
+/* Residual strip: amber bars up (needs more), red bars down (too much), green ticks where a channel matches. */
+.ca-res{position:relative;display:grid;grid-template-columns:repeat(var(--C),minmax(0,1fr));height:54px;border-top:1px dashed #2a4a3d;margin-top:2px}
+.ca-res::before{content:'';position:absolute;left:0;right:0;top:50%;border-top:1px solid #2a4a3d}
+.ca-rcol{position:relative}
+.ca-rbar{position:absolute;left:22%;right:22%;height:0;transition:height .3s ease,background .2s;border-radius:2px}
+.ca-r-under .ca-rbar{bottom:50%;background:var(--amber);box-shadow:0 0 6px #f2b86088}
+.ca-r-over .ca-rbar{top:50%;background:var(--red);box-shadow:0 0 6px #ff6f6f88}
+.ca-r-match .ca-rbar{top:calc(50% - 2px);height:4px;background:#8dffc455}
+.ca-r-match.ca-signal .ca-rbar{top:calc(50% - 6px);height:12px;background:var(--ph);box-shadow:0 0 8px var(--ph)}
+.ca-r-stray .ca-rbar,.ca-r-badflag .ca-rbar{top:calc(50% - 9px);height:18px;border-radius:9px}
+.ca-r-stray .ca-rbar{background:var(--stray);box-shadow:0 0 8px var(--stray)}
+.ca-r-badflag .ca-rbar{background:transparent;border:2px dashed var(--red)}
+.ca-rcol.ca-cursor{background:#8dffc412}
+.ca-flatline{position:absolute;left:0;right:0;top:calc(50% - 1.5px);height:3px;border-radius:2px;background:var(--ph);box-shadow:0 0 10px var(--ph),0 0 22px var(--ph);transform:scaleX(0);transform-origin:left;transition:transform .5s ease-out;pointer-events:none;z-index:1}
+.ca-flat .ca-flatline{transform:scaleX(1)}
+.ca-flat .ca-r-match .ca-rbar{opacity:.25}
+.ca-flat .ca-line{stroke:#c9ffe2}
+.ca-flat{border-color:#3d8a68;box-shadow:inset 0 0 40px #000c,0 0 22px #8dffc433}
+.ca-sweep{animation:ca-sweep .6s ease-out}
+@keyframes ca-sweep{0%{filter:brightness(1)}35%{filter:brightness(2.2)}100%{filter:brightness(1)}}
+
+/* Tools */
+.ca-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.ca-read{display:flex;gap:6px;align-items:stretch;flex:1 1 380px;min-width:0}
+.mg .ca-step{min-width:44px;padding:6px 10px}
+.ca-readout{flex:1;min-width:0;margin:0;padding:5px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel2);font-size:13px;line-height:1.35;font-variant-numeric:tabular-nums}
+.ca-readout small{color:var(--muted)}
+.ca-k-match{color:var(--mint)}.ca-k-under{color:var(--amber)}.ca-k-over{color:var(--red)}.ca-k-stray{color:var(--stray)}.ca-k-badflag{color:var(--red)}
+.ca-acts{display:flex;gap:8px;flex:0 1 auto;margin-left:auto}
+.mg .ca-flagbtn{border-color:#6a5a8c;color:var(--stray)}
+.mg .ca-flagbtn[aria-pressed="true"]{background:#2c2142;border-color:var(--stray);color:#fff}
+.mg .ca-flagbtn.ca-flag-wrong{border-color:var(--red);box-shadow:0 0 0 2px #ff6f6f55}
+.mg #caTest.ca-ready{box-shadow:0 0 0 3px #8dffc455,0 0 18px #8dffc466}
+.ca-found{margin:0;padding:8px 12px;border:1px solid #3d8a68;border-left:4px solid var(--ph);border-radius:10px;background:#8dffc414;animation:mg-rise .3s ease-out}
+.ca-found p{margin:0}.ca-found .eyebrow{color:var(--mint)}
+
+/* Library */
+.ca-lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:6px}
+.ca-row{display:grid;grid-template-columns:26px minmax(0,1fr) auto;grid-template-areas:'ico name name' 'ico sig amts';column-gap:8px;row-gap:2px;align-items:center;padding:5px 8px 6px;border:1px solid var(--line);border-left:4px solid var(--mc);border-radius:10px;background:var(--panel);transition:background .15s,border-color .15s}
+.ca-row.ca-hl{background:#16283a}
+.ca-row.ca-onch{border-color:var(--mc);border-left-width:4px;box-shadow:0 0 0 1px var(--mc) inset}
+.ca-row.ca-wrong{border-color:var(--red);background:#ff6f6f14}
+.ca-row.ca-filled{background:#8dffc40c}
+.ca-ico{grid-area:ico;font-size:20px;color:var(--mc);text-align:center;text-shadow:0 0 8px var(--mc)}
+.ca-name{grid-area:name;min-width:0;line-height:1.2;display:flex;gap:6px;align-items:baseline}
+.ca-name b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ca-name em{font-style:normal;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);border:1px solid #7a6440;border-radius:8px;padding:0 4px;vertical-align:1px}
+.ca-sig{grid-area:sig;display:flex;flex-wrap:wrap;gap:3px;align-content:center;min-width:0}
+.ca-chip{font-size:10px;padding:0 4px;border-radius:5px;background:#ffffff0d;color:var(--muted);font-variant-numeric:tabular-nums;border:1px solid transparent}
+.ca-chip small{font-size:9px;opacity:.8;margin-left:1px}
+.ca-chip.ca-chip-off{color:var(--ink)}
+.ca-chip.ca-chip-on{border-color:var(--ph);color:#fff}
+.ca-chip.ca-unique{background:#e7c18b2a;color:var(--gold)}.ca-chip.ca-unique::before{content:'★';margin-right:1px}
+.ca-amts{grid-area:amts;display:flex;gap:3px}
+.mg .ca-amt{min-width:44px;padding:4px 0;font-weight:700;font-variant-numeric:tabular-nums;transition:background .15s,color .15s,transform .1s}
+.mg .ca-amt[aria-pressed="true"],.mg .ca-amt[aria-pressed="true"]:hover:enabled{background:var(--mc);color:#0b1218;border-color:var(--mc);box-shadow:0 0 10px var(--mc)}
+.ca-unset .ca-amt{border-style:dashed}
+.ca-badge{font-size:9px;letter-spacing:.12em;text-transform:uppercase;margin-left:auto}
+.ca-badge:empty{display:none}
+.ca-wrong .ca-badge{color:var(--red)}.ca-hinted .ca-badge{color:var(--gold)}.ca-filled .ca-badge{color:var(--mint)}
+
+/* Assist level */
+.ca-assist{display:flex;gap:4px;margin-bottom:6px}
+.mg .ca-assist button{flex:1;padding:6px 4px;font-size:13px}
+.mg .ca-assist button[aria-pressed="true"]{background:#1d3b52;border-color:var(--sky);color:#fff}
+.ca-assist-note{margin:0 0 6px;font-size:12px;color:var(--muted)}
+
+@media (max-width:620px){
+  .ca-scope{padding:8px 6px 4px 22px}
+  .ca-ylab{left:-20px}
+  .ca-read{flex-basis:100%}
+  .ca-acts{width:100%}.ca-acts button{flex:1}
+  .ca-readout{font-size:12px}
+  .ca-readout .ca-contrib,.ca-readout .ca-peaks{display:none}
+  .ca-plot{height:clamp(110px,17vh,170px)}
+  .ca-res{height:44px}
+}

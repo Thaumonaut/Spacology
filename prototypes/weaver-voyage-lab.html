@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Spacology · Weaver voyage lab</title><link rel="stylesheet" href="labs/weaver-voyage/weaver-voyage-lab.css"></head>
+<body>
+<header class="topbar">
+  <a href="spacology-v0.1.0.html" class="brand">SPACOLOGY <span>/ WEAVER VOYAGE LAB</span></a>
+  <span class="spacer"></span>
+  <button id="openBrief" class="ghost">Brief</button><button id="openLog" class="ghost">Log</button><button id="openNotes" class="ghost">Notes</button><button id="openExport" class="ghost">Export</button><button id="openRestart" class="ghost">Restart</button>
+</header>
+<div id="hud" class="hud" aria-label="Voyage status"></div>
+<section id="drawer" class="drawer" hidden></section>
+<p id="message" class="message" role="status" aria-live="polite"></p>
+<main id="screen"></main>
+<div id="actionbar" class="actionbar"><span id="actionHint" class="hint"></span><button id="primary" class="primary"></button></div>
+<script src="shared/combat/formation-rules.js"></script><script src="shared/combat/aether-rules.js"></script><script src="labs/weaver-voyage/weaver-voyage-model.js"></script><script src="labs/weaver-voyage/weaver-voyage-lab.js"></script>
+</body></html>

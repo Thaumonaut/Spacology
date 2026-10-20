@@ -1,12 +1,52 @@
 # Prototypes
 
-Standalone, self-contained experiments. Each file runs by opening it in a browser —
-no build step, no dependencies.
+Stable public HTML entry points backed by grouped implementations. Open **[the playtest library](minigames.html)** for current tests, the preserved demo, and labeled studies/archive. Serve with `npm run serve`; use `npm run build:pages && npm run serve:pages` for the complete site including the two built apps.
+
+Implementation map: `demo/` is the preserved voyage; `minigames/<id>/` holds each game's model/controller/styles; `labs/<name>/` holds independent experiments; `shared/` holds combat, voyage, minigame shell, and menus. Public page URLs stay here for compatibility. See [architecture and reuse](../docs/architecture.md).
+
+## relay-runner.html
+
+An endless combat runner sketch. Drag or use A/D or the arrow keys to steer while the ship fires automatically. Shoot through one of three upgrade walls, enter the open lane to collect its power, and survive increasingly large enemy waves. Hull damage ends the run; distance and a local personal best give each attempt a score. The pause button and P/Escape pause the simulation. This experiment is separate from the current voyage build.
+
+Its 2.5D, instanced-rendering follow-up lives in [`../runner-next/`](../runner-next/README.md).
+
+## minigames.html
+
+Station games for the two support teams. The full design, the decisions behind each game and the playtest rules
+are in [`docs/design/three-teams-and-station-games.md`](../docs/design/three-teams-and-station-games.md). Each
+game is generated from a seed, proven solvable by its own solver, and has hints, undo, assist levels, an automatic
+fallback (Skip) and a result card with a near-miss line. The hub groups them by team and records play counts and
+separate fun and annoyance ratings in this browser; "Export playtests" downloads them.
+
+| Page | Team · phase | Inspired by | Produces |
+|---|---|---|---|
+| `aether-attunement.html` | Research · night | Flood-It | Boss study: buffs removed, weakness found |
+| `sensor-grid.html` | Research · night | Catdoku / Queens | Elective fight scouted, difficulty lowered |
+| `dna-sequencing.html` | Research · night | Shotgun sequencing assembly | Research assistance card flaws cleared |
+| `signal-decoding.html` | Research · day | Cyberpunk 2077 Breach Protocol | Blueprints for logistics |
+| `intel-check.html` | Research · day | Papers, Please | Verified manifests; Null sabotage stopped |
+| `core-assay.html` | Research · day | Spectrometry peak matching | Resource nodes for logistics |
+| `supply-run.html` | Logistics · night | Walk-and-collect idle games | Raw resources and crafted parts |
+| `gear-pack.html` | Logistics · night | Backpack Battles | Gear kits exploration ordered (the user finds this one unfun; open) |
+| `pallet-stacking.html` | Logistics · night | Honkai: Star Rail cargo stacking | Rockets: gear to the front, samples to the lab |
+| `route-planning.html` | Logistics · day | Mini Motorways / Cities: Skylines | The road network, built at night, watched by day |
+| `pipes.html` | Logistics · day | Rotating pipe puzzles | Base production layout |
+| `depot-sorting.html` | Logistics · day | Water-sort puzzles | Arrivals sorted for tonight's production |
+| `synergy-links.html` | Reserve | Flow Free | Not assigned to a team |
+
+`shared/minigames/minigame-kit.js` and its CSS are the shared frame: the registry (`GAMES`, with `role` and `phase`),
+seeded randomness, meters, timer, result card, playtest storage, and an embedded station mode that posts
+`spacology:minigame-result` to a parent page. Each game's rules live in its `*-model.js`, tested by
+`tests/unit/<game>.cjs`; `tests/browser/<game>.cjs` and `tests/browser/minigames-hub.cjs` play them headlessly.
+Long runs should use `caffeinate -i npm test` so the Mac cannot sleep mid-test.
+
+## team-building-lab.html
+
+Isolated team-building experiment: compare two-recruit packs, choose-one drafts, and nominated recruitment guarantees over six preparation stages. Test hypercarry, ultra-break, DoT, retaliation, and multi-carry formations, assign gear, and export decisions and enjoyment ratings. A free-build sandbox exposes all recruits, gear, and encounter profiles. The shared model also runs in `sim/team-building-lab.js`; these are experimental rules, not live combat balance. See [play instructions, results, and limitations](../docs/testing/team-building-lab.md).
 
 ## watchable-fight.html
 
-The battle-watchability spike. Establishes the combat core that the real game will be
-built from:
+The reusable animated battle stage used by the preserved demo. Rules live in `shared/combat/combat-core.js`; choreography and stage styling live alongside it in `battle-presentation.js` and `battle-stage.css`. The following describes its original design; current rule constants remain in the shared modules:
 
 - **Turn order** — speed-based ATB (`av = 10000/sp`) with a visible track of upcoming turns.
 - **Elements** (`order, chaos, growth, void, decay, energy`) — enemies carry two weaknesses.
@@ -78,8 +118,16 @@ The prototype uses the current progression assumptions: four starting character 
 on-field character, one ship equipment slot, pack prices in the 11–14 gold range, direct keep/sell/scrap
 card decisions, and rising enemy health, field size, and wave counts. Ops and combat share one session state.
 Characters and equipment can be dragged to their destinations, packs have a Take All action, and a
-six-encounter voyage runs through scaling battles to a final archive report. Battles use the original
+three-sector, 21-node voyage runs through scaling battles to a final archive report (legacy six-encounter saves remain supported). Battles use the original
 `watchable-fight.html` engine and its complete animation choreography; the configured Ops formation,
 rows, Gear, round pressure, and results pass between the two full-page views through saved run state.
 
 Current limitations and verification evidence are recorded in [the systems audit](../docs/testing/spacology-v0.1.0-systems-audit.md). Crafting, Calls, modifier selection, and some Ops descriptions remain unfinished; this playable slice is not a complete implementation of the design.
+
+## affix-lab.html
+
+Affix team-building lab. Every voyage rolls a Brief (0–4 match-wide conditions within the category caps and compatibility rules, plus three bosses) before any choice. Any of 23 crewmates can be recruited, across six team types that each include their own sustainer: two start free, vouchers open berths 3–6 at rising prices (straight from the roster when every berth is full), and crew beyond four cost upkeep. Each battle's enemy strength is derived from what a themed crew can afford by then, with a gentler sector 1. The only random purchase is equipment, three offers per stop with rising rerolls. Battle reports state what each condition did, and a session log shows how much of the crew carried over between voyages. The model (`affix-lab-model.js`) also runs headless in `sim/affix-lab.js`. See [the design](../docs/design/affix-team-building.md) and [the lab notes](../docs/testing/affix-lab.md).
+
+## weaver-voyage-lab.html
+
+Weaver voyage lab: a full 21-node voyage with 19 crew. The seven Aether Weavers plus four families: Break, Blight (poison), Hull (returned damage) and Drive (follow-ups). Crew are bought with vouchers and promoted ★1–★4 with Insight, and ★3 upgrades each kit. Gear is 5-piece sets on HoYoverse's pattern (a stat at 2 pieces, an action-keyed perk at 5, plus threshold, conversion and team-buff sets), in ★1–★4 tiers bought in two-set packs. The voyage opens with two Supply runs. Enemies carry caches that are opened on the Prepare screen, and every voyage rolls a Brief of 0–4 affixes. The model (`weaver-voyage-model.js`) runs headless in `sim/weaver-voyage.js`. See [the walkthrough](../docs/design/weaver-voyage-walkthrough.md) and [the lab notes](../docs/testing/weaver-voyage-lab.md).

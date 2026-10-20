@@ -1,6 +1,6 @@
 # Formation roles and downed recovery
 
-Primary damage dealers and protectors deploy in front. Supports deploy in back. Damage/support hybrids and sub-DPS can use either row. `prototypes/formation-rules.js` contains the complete assignment table and updates the shared character metadata.
+Primary damage dealers and protectors deploy in front. Supports deploy in back. Damage/support hybrids and sub-DPS can use either row. `prototypes/shared/combat/formation-rules.js` contains the complete assignment table and updates the shared character metadata.
 
 Arunima deploys in front; Roonie deploys in back. Ivara is a damage / reservoir hybrid; he, Hanae, Quill, Maul and other hybrids can use either row. Back-row crew still use their abilities and generate Aether, but cannot be targeted or damaged by enemy attacks. The prior 18% target weight was inconsistent with the safe-back-row UI and has been removed for voyage battles.
 

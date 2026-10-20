@@ -27,9 +27,9 @@ dialog{width:min(1040px,calc(100% - 28px));max-height:92vh;padding:0;border:1px 
   <section data-section="enemy"><div class="archive-head"><div><div class="eyebrow" id="enemyCount">Null-corrupted catalogue</div><h2>Enemy factions</h2><p>Named hero encounters carry authored stories. Beneath them, every combat type has its own faction-specific body and portrait so generated expeditions remain visually readable and varied.</p></div></div><div class="grid" id="enemyGrid"></div><div class="faction-groups" id="enemyTypeGroups"></div></section>
 </main>
 <dialog id="archiveDialog" aria-labelledby="dialogTitle"><div class="dialog-grid"><div class="dialog-art" id="dialogArt" role="img"></div><div class="dialog-copy"><div class="eyebrow" id="dialogEyebrow"></div><h2 id="dialogTitle"></h2><p class="lede" id="dialogSummary"></p><div class="facts" id="dialogFacts"></div><div class="moves" id="dialogMoves"></div><button class="close" id="dialogClose" type="button">BACK TO ARCHIVE</button></div></div></dialog>
-<script src="session-store.js"></script>
-<script src="expedition-rules.js"></script>
-<script src="weaver-roster.js"></script>
+<script src="shared/voyage/session-store.js"></script>
+<script src="shared/voyage/expedition-rules.js"></script>
+<script src="shared/combat/weaver-roster.js"></script>
 <script src="../sim/enemy-catalogue.js"></script>
 <script>
 const rules=window.SpacologyExpedition,enemyData=window.SpacologyEnemyCatalogue;

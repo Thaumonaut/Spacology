@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const context={window:{},crypto:require('node:crypto').webcrypto};vm.createContext(context);
-for(const file of ['voyage-settings','voyage-rules','treasure-rules','recovery-scoring'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../../prototypes/'+file+'.js'),'utf8'),context);
+for(const file of ['voyage-settings','voyage-rules','treasure-rules','recovery-scoring'])vm.runInContext(fs.readFileSync(path.join(__dirname,'../../prototypes/shared/voyage/'+file+'.js'),'utf8'),context);
 const {SpacologyVoyage:V,SpacologyVoyageSettings:D,SpacologyTreasure:T,SpacologyRecovery:R}=context.window;
 context.window.SpacologyExpedition={modifiers:{test:{category:'stat'},same:{category:'stat'}},activeModifiers:s=>s.modifiers};
 const state=seed=>T.normalize({voyageVersion:1,treasureSeed:seed,round:1,maxRounds:21,gold:42,integrity:70,modifiers:[],modifierChoices:[]});

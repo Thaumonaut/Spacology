@@ -10,7 +10,7 @@ This extends the [run variety proposal](run-variety-proposal.md): three seven-no
 
 The following describes the starting point before the treasure-carrier implementation; carrier rewards now have their own saved drops and claimable caches as linked above.
 
-`applyBattleResult()` in `prototypes/spacology-v0.1.0.js` credits battle gold, crystals and equipment immediately. `showInbox()` displays receipts marked “already credited.” A duplicate battle equipment drop becomes four scrap automatically. Pack equipment follows a different keep/equip/dismantle flow.
+`applyBattleResult()` in `prototypes/demo/spacology-v0.1.0.js` credits battle gold, crystals and equipment immediately. `showInbox()` displays receipts marked “already credited.” A duplicate battle equipment drop becomes four scrap automatically. Pack equipment follows a different keep/equip/dismantle flow.
 
 Crew have two equipment slots. Inventory gear sits behind a tab; crew cards show generic filled or empty diamonds. Item details already contain suggested wearers, effect descriptions and combination recipes. The Forge can make basic items or consume two ingredients plus scrap for an advanced item. Full equipment slots are disabled in the detail-panel equip flow, although other equip paths can replace an item.
 

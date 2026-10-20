@@ -1,0 +1,85 @@
+/* DNA sequencing: fragments are strips of chunky rounded base tiles on wires; a consensus row fills in underneath. Frame
+   and result card come from minigame-kit.css. Every base has its own colour AND glyph (▲ ● ■ ◆), so it reads without
+   colour; missing data is a dim "?" tile. */
+/* The board is wide: below 1180px the side panel stacks under it, so 1024px screens get the full width. */
+@media (max-width:1180px){.mg-layout{grid-template-columns:1fr}.mg-side{order:2}}
+.dna-wrap{display:grid;gap:10px;min-width:0}
+.dna-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mg .dna-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;font-size:14px}
+.mg .dna-nudge{min-width:48px;font-size:16px}
+.mg .dna-tool[aria-pressed="true"]{background:#3a2a1c;border-color:var(--gold);color:#fff;box-shadow:0 0 0 2px #e7c18b55}
+.dna-goal{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dna-goal b{color:var(--ink)}
+/* The frame scrolls sideways on phones; on wider screens the tiles shrink to fit and it never scrolls. */
+.dna-frame{max-width:100%;overflow-x:auto;overflow-y:hidden;padding:10px 8px 8px;border:1px solid var(--line);border-radius:14px;
+  background:#0b1218;box-shadow:0 10px 30px #0008;overscroll-behavior-x:contain}
+.dna-board{--cw:44px;--rh:54px;--gut:28px;position:relative;width:calc(var(--gut) + var(--W) * var(--cw));user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+/* Column backdrops: green where two or more reads agree, red where they clash. */
+.dna-cols{position:absolute;left:var(--gut);top:0;bottom:0;display:grid;grid-template-columns:repeat(var(--W),var(--cw));pointer-events:none}
+.dna-colbg{border-radius:8px;transition:background .25s,box-shadow .25s}
+.dna-colbg.dna-c-agree{background:#a5e0c914;box-shadow:inset 0 0 0 1px #a5e0c940}
+.dna-colbg.dna-c-clash{background:#e5484d1c;box-shadow:inset 0 0 0 1px #e5484d44}
+.dna-row{position:relative;display:flex;height:var(--rh)}
+.dna-label{position:sticky;left:-8px;z-index:5;background:#0b1218;border-radius:6px;width:var(--gut);flex:none;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.05em}
+.dna-track{position:relative;flex:none;width:calc(var(--W) * var(--cw));height:100%}
+.dna-track::before{content:'';position:absolute;left:4px;right:4px;top:50%;height:2px;margin-top:-1px;background:#2b3d4c55;border-radius:2px}
+/* A fragment: one strip that moves as a whole. */
+.dna-frag{position:absolute;left:0;top:4px;bottom:4px;width:calc(var(--n) * var(--cw));display:flex;border-radius:12px;cursor:grab;touch-action:none;
+  transition:transform .22s cubic-bezier(.2,.9,.3,1.2),box-shadow .2s;will-change:transform;outline-offset:1px}
+.dna-frag::before{content:'';position:absolute;left:6px;right:6px;top:50%;height:4px;margin-top:-2px;background:#4b6272;border-radius:3px}
+.dna-frag.dna-drag{transition:none;cursor:grabbing;z-index:4;filter:brightness(1.08);box-shadow:0 10px 18px #000a,0 0 0 3px #fff5}
+.dna-frag.dna-sel{box-shadow:0 0 0 3px var(--gold),0 6px 12px #0009;z-index:3}
+.dna-frag.dna-hinted{box-shadow:0 0 0 3px var(--sky),0 0 16px var(--sky);z-index:3}
+.dna-frag.dna-guide{box-shadow:0 0 0 2px var(--sky)}
+/* Guided: where a fragment is forced to go. */
+.dna-ghost{position:absolute;left:0;top:2px;bottom:2px;width:calc(var(--n) * var(--cw));border:2px dashed #92b9e4aa;border-radius:12px;background:#92b9e40f;pointer-events:none;transition:transform .2s}
+.dna-ghost[hidden]{display:none}
+.dna-tile{position:relative;flex:none;width:calc(var(--cw) - 2px);margin:0 1px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:10px;border:2px solid #0006;background:var(--bc);color:#0d1a14;font-weight:900;
+  box-shadow:inset 0 -4px 0 #0003,inset 0 2px 0 #fff5,0 2px 4px #0006;transition:opacity .2s,filter .2s,box-shadow .2s}
+.dna-tile i{font-style:normal;font-size:calc(min(var(--cw),52px) * .46);line-height:1}
+.dna-tile small{font-size:10px;line-height:1;opacity:.75;font-weight:800}
+.dna-narrow .dna-tile small{display:none}
+.dna-narrow .dna-tile{border-radius:7px;border-width:1px}
+.dna-b0{--bc:#8fd18a}.dna-b1{--bc:#6fc8e8}.dna-b2{--bc:#e9d38a}.dna-b3{--bc:#e8899b}
+/* Missing data: a dim, hollow "?". */
+.dna-tile.dna-miss{background:#18242e;border:2px dashed #3a4d5c;color:#5d7282;box-shadow:none}
+.dna-tile.dna-miss i{font-size:calc(min(var(--cw),52px) * .38)}
+/* Agreeing reads glow and gently pulse; clashing reads get a red rim. */
+.dna-tile.dna-agree{box-shadow:inset 0 -4px 0 #0003,inset 0 2px 0 #fff6,0 0 10px #a5e0c9aa;animation:dna-pulse 2.4s ease-in-out infinite}
+.dna-tile.dna-clash{box-shadow:inset 0 -4px 0 #e5484d,inset 0 2px 0 #fff5,0 2px 4px #0006}
+/* Flagged contamination: grey, hatched, out of the consensus. */
+.dna-tile.dna-cut{background:repeating-linear-gradient(135deg,#46525c 0 5px,#3a444d 5px 10px);color:#9aa6ae;filter:saturate(0);opacity:.75;animation:none;border-color:#0006;box-shadow:none}
+.dna-tile.dna-pending{outline:3px solid var(--gold);outline-offset:-3px}
+.dna-board.dna-flagging .dna-frag{cursor:crosshair}
+.dna-board.dna-flagging .dna-tile:not(.dna-cut):not(.dna-miss){outline:1px dashed #e7c18b88;outline-offset:-4px}
+.dna-board.dna-flagging .dna-tile.dna-pending{outline:3px solid var(--gold);outline-offset:-3px}
+/* The consensus row: "?" where nothing is known, a dim base from one read, a full base where reads agree, a red ✕. */
+.dna-consensus-row{margin-top:8px;border-top:1px solid var(--line);padding-top:6px;height:calc(var(--rh) + 6px)}
+.dna-cons{display:grid;grid-template-columns:repeat(var(--W),var(--cw));width:calc(var(--W) * var(--cw))}
+.dna-cell{display:grid;place-items:center;margin:2px 1px;border-radius:9px;border:1px dashed #2b3d4c;color:#4d6170;font-weight:900;transition:background .25s,color .25s}
+.dna-cell i{font-style:normal;font-size:calc(min(var(--cw),52px) * .42)}
+.dna-cell.dna-s-single{background:color-mix(in srgb,var(--bc) 28%,#0b1218);color:#0d1a14aa;border-style:solid;border-color:#0004}
+.dna-cell.dna-s-agree{background:var(--bc);color:#0d1a14;border:2px solid #0006;box-shadow:inset 0 -3px 0 #0003,0 0 10px #a5e0c966}
+.dna-cell.dna-s-conflict{background:#3a1519;color:#ff7a82;border:2px solid #e5484d}
+.dna-cell.dna-in{animation:dna-in .45s cubic-bezier(.2,.9,.3,1.4)}
+.dna-cell.dna-wave{animation:dna-wave .7s ease-out both}
+.dna-foot{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);align-items:center}
+.dna-key{display:inline-flex;align-items:center;gap:5px}
+.dna-key i{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--bc);color:#0d1a14;font-style:normal;font-size:12px;font-weight:900}
+.dna-key i.dna-k-miss{background:#18242e;border:1px dashed #3a4d5c;color:#5d7282}
+.dna-key i.dna-k-cut{background:repeating-linear-gradient(135deg,#46525c 0 4px,#3a444d 4px 8px)}
+.dna-key i.dna-k-agree{background:#a5e0c933;box-shadow:inset 0 0 0 1px #a5e0c988}
+.dna-key i.dna-k-clash{background:#e5484d33;box-shadow:inset 0 0 0 1px #e5484d}
+/* Side panel: assist level and sound. */
+.dna-levels{display:grid;gap:6px;margin:0 0 14px}
+.dna-level{display:flex;gap:10px;align-items:flex-start;min-height:44px;padding:7px 9px;border:1px solid var(--line);border-radius:9px;cursor:pointer}
+.dna-level:has(input:checked){border-color:var(--mint);background:#a5e0c912}
+.dna-level input,.dna-opt input{width:20px;height:20px;margin:2px 0 0;flex:none;accent-color:var(--mint)}
+.dna-level span{display:flex;flex-direction:column}.dna-level small{color:var(--muted)}
+.dna-opt{display:flex;gap:10px;align-items:center;min-height:44px;margin:0 0 12px;cursor:pointer}
+.dna-help{margin:0 0 12px;padding-left:18px;color:var(--muted)}.dna-help li{margin:4px 0}.dna-help b{color:var(--ink)}
+@keyframes dna-pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
+@keyframes dna-in{0%{transform:scale(.4) translateY(-14px);opacity:.2}60%{transform:scale(1.15)}100%{transform:none;opacity:1}}
+@keyframes dna-wave{0%{transform:none}35%{transform:translateY(-6px) scale(1.08);box-shadow:0 0 14px var(--gold)}100%{transform:none}}
+@media (max-width:520px){.dna-goal{margin-left:0;width:100%}}
