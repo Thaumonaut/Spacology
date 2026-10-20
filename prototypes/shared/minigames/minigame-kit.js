@@ -20,7 +20,8 @@
     {id:'route-planning',file:'route-planning.html',title:'Route planning',role:'Logistics',phase:'Day',inspiredBy:'Mini Motorways / Cities: Skylines',output:'The network that carries everything where it needs to go'},
     {id:'pipes',file:'pipes.html',title:'Pipes',role:'Logistics',phase:'Day',inspiredBy:'Rotating pipe puzzles',output:'A base layout connecting extractors, refineries and power'},
     {id:'depot-sorting',file:'depot-sorting.html',title:'Depot sorting',role:'Logistics',phase:'Day',inspiredBy:'Water-sort puzzles',output:'Arrivals sorted into the right bays for tonight’s production'},
-    {id:'synergy-links',file:'synergy-links.html',title:'Synergy links',role:'Reserve',phase:'—',inspiredBy:'Flow Free',output:'Kept in reserve: a connection puzzle not currently assigned to a team'}
+    {id:'synergy-links',file:'synergy-links.html',title:'Synergy links',role:'Reserve',phase:'—',inspiredBy:'Flow Free',output:'Kept in reserve: a connection puzzle not currently assigned to a team'},
+    {id:'element-pairs',file:'element-pairs.html',title:'Element pairs',role:'Reserve',phase:'—',inspiredBy:'Number matching and finite solitaire deals',output:'Research candidate: clear the board. No voyage rewards or material processing connected.'}
   ];
   const TIERS={
     perfect:{label:'Perfect',note:'Best possible result'},
@@ -50,7 +51,7 @@
   function download(name,data){const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
   // shell(spec) builds the page frame inside <body> and returns the controls a game needs.
-  // spec: {id, rules:[...], difficulties:[{id,label,target}], onNew({seed,difficulty}), onAuto(), onUndo?, onHint?}
+  // spec: {id, rules:[...], difficulties:[{id,label,target}], onNew({seed,difficulty}), onAuto(), onUndo?, onHint?, timed?, auto?}
   function shell(spec){
     const game=GAMES.find(g=>g.id===spec.id);if(!game)throw new Error('Unknown mini-game '+spec.id);
     const doc=root.document,params=new URLSearchParams(root.location.search);
@@ -62,7 +63,7 @@
     doc.body.classList.add('mg');
     if(embedded)doc.body.classList.add('mg-embedded');
     doc.body.innerHTML=`<header class="mg-head"><a class="brand" href="minigames.html">SPACOLOGY <span>/ MINI-GAMES</span></a><span class="mg-role mg-role-${game.role.toLowerCase()}">${game.role}</span><h1>${esc(game.title)}</h1><button id="mgExport" class="mg-quiet">Export playtests</button></header>
-<main class="mg-main"><section class="mg-bar"><div class="mg-meters" id="mgMeters"></div><div class="mg-controls"><label>Difficulty<select id="mgDifficulty">${diffs.map(d=>`<option value="${d.id}">${esc(d.label)}</option>`).join('')}</select></label><label>Seed<input id="mgSeed" type="number" min="1" max="4294967295"></label><button id="mgNew">New puzzle</button>${spec.onHint?'<button id="mgHint">Hint</button>':''}${spec.onUndo?'<button id="mgUndo">Undo</button>':''}<button id="mgAuto" class="mg-quiet" title="Run the automatic fallback at a reduced result">Skip (auto)</button></div></section>
+<main class="mg-main"><section class="mg-bar"><div class="mg-meters" id="mgMeters"></div><div class="mg-controls"><label>Difficulty<select id="mgDifficulty">${diffs.map(d=>`<option value="${d.id}">${esc(d.label)}</option>`).join('')}</select></label><label>Seed<input id="mgSeed" type="number" min="1" max="4294967295"></label><button id="mgNew">New puzzle</button>${spec.onHint?'<button id="mgHint">Hint</button>':''}${spec.onUndo?'<button id="mgUndo">Undo</button>':''}${spec.auto===false?'':'<button id="mgAuto" class="mg-quiet" title="Run the automatic fallback at a reduced result">Skip (auto)</button>'}</div></section>
 <p id="mgStatus" class="mg-status" role="status" aria-live="polite"></p>
 <div class="mg-layout"><section id="mgStage" class="mg-stage"></section><aside class="mg-side"><p class="eyebrow">HOW IT WORKS</p><ul class="mg-rules">${spec.rules.map(r=>`<li>${r}</li>`).join('')}</ul><p class="eyebrow">WHAT IT PRODUCES</p><p class="mg-output">${esc(game.output)}</p><p class="mg-inspired">Inspired by ${esc(game.inspiredBy)}</p><div id="mgSideExtra"></div></aside></div></main>
 <div id="mgResult" class="mg-result" hidden><div class="mg-card" role="dialog" aria-modal="true" aria-labelledby="mgTier"><p class="eyebrow" id="mgTierNote"></p><h2 id="mgTier"></h2><p id="mgHeadline" class="mg-headline"></p><p id="mgNear" class="mg-near"></p><dl id="mgStats" class="mg-stats"></dl><p id="mgProduces" class="mg-produces"></p>
@@ -72,9 +73,9 @@
     $('mgDifficulty').value=difficulty;$('mgSeed').value=seed;
     const target=()=>(diffs.find(d=>d.id===difficulty)||{}).target||60;
     function tick(){const t=$('mgTime');if(t)t.textContent=clock((ended||Date.now())-(started||Date.now()))+' / '+clock(target()*1000);}
-    function meters(list){$('mgMeters').innerHTML=list.concat([{label:'Time',value:'',id:'mgTime'}]).map(m=>`<div class="mg-meter ${m.tone?'mg-'+m.tone:''}"><span>${esc(m.label)}</span><b ${m.id?`id="${m.id}"`:''}>${esc(m.value)}</b></div>`).join('');tick();}
+    function meters(list){$('mgMeters').innerHTML=list.concat(spec.timed===false?[]:[{label:'Time',value:'',id:'mgTime'}]).map(m=>`<div class="mg-meter ${m.tone?'mg-'+m.tone:''}"><span>${esc(m.label)}</span><b ${m.id?`id="${m.id}"`:''}>${esc(m.value)}</b></div>`).join('');tick();}
     function status(text,tone){const s=$('mgStatus');s.textContent=text||'';s.className='mg-status'+(tone?' mg-'+tone:'');}
-    function begin(){if(!started){started=Date.now();timer=setInterval(tick,500);}}
+    function begin(){if(!started){started=Date.now();if(spec.timed!==false)timer=setInterval(tick,500);}}
     function log(type,detail){events.push({type,at:started?Date.now()-started:0,...(detail||{})});}
     function fresh(){
       ended=0;started=0;clearInterval(timer);events=[];current=null;$('mgResult').hidden=true;
@@ -84,13 +85,13 @@
     function finish(result){
       if(ended)return;ended=Date.now();if(!started)started=ended;clearInterval(timer);tick();
       const tier=TIERS[result.tier]?result.tier:'partial';
-      current={game:spec.id,seed,difficulty,tier,score:result.score??null,ms:ended-started,targetMs:target()*1000,stats:result.stats||{},events,
+      current={game:spec.id,seed,difficulty,tier,score:result.score??null,ms:ended-started,targetMs:spec.timed===false?null:target()*1000,stats:result.stats||{},events,
         rating:{},startedAt:new Date(started).toISOString()};
       const data=load();data.sessions.push(current);if(data.sessions.length>500)data.sessions.splice(0,data.sessions.length-500);if(!store(data))status('Browser storage unavailable; export to keep these results.','warn');
       $('mgTier').textContent=TIERS[tier].label;$('mgTier').className='mg-tier-'+tier;$('mgTierNote').textContent=TIERS[tier].note;
       $('mgHeadline').textContent=result.headline||'';$('mgNear').textContent=result.nearMiss||'';$('mgNear').hidden=!result.nearMiss;
       $('mgProduces').innerHTML=result.output?`<b>Delivered:</b> ${esc(result.output)}`:'';
-      const stats={Time:clock(current.ms)+(current.ms>current.targetMs?' (over target)':''),...(result.stats||{})};
+      const stats={...(spec.timed===false?{}:{Time:clock(current.ms)+(current.ms>current.targetMs?' (over target)':'')}),...(result.stats||{})};
       $('mgStats').innerHTML=Object.entries(stats).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('');
       doc.querySelectorAll('[data-rate]').forEach(b=>b.classList.remove('on'));$('mgNote').value='';
       $('mgResult').hidden=false;$('mgAgain').focus();
@@ -103,7 +104,7 @@
     $('mgReview').onclick=()=>{$('mgResult').hidden=true;if(!$('mgStatus').textContent)status('Board shown as you left it. Press “New puzzle” to continue.');};
     $('mgDifficulty').onchange=e=>{difficulty=e.target.value;fresh();};
     $('mgSeed').onchange=e=>{seed=(Number(e.target.value)>>>0)||1;e.target.value=seed;fresh();};
-    $('mgAuto').onclick=()=>{if(ended)return;begin();log('auto');const r=spec.onAuto();finish({...r,tier:'auto'});};
+    if($('mgAuto'))$('mgAuto').onclick=()=>{if(ended)return;begin();log('auto');const r=spec.onAuto();finish({...r,tier:'auto'});};
     if(spec.onHint)$('mgHint').onclick=()=>{if(ended)return;begin();log('hint');spec.onHint();};
     if(spec.onUndo)$('mgUndo').onclick=()=>{if(ended)return;log('undo');spec.onUndo();};
     $('mgExport').onclick=()=>download('spacology-minigames-playtests.json',load());

@@ -4,7 +4,7 @@ const ENEMY_ASSETS=[
   ...Object.values(self.SpacologyEnemyCatalogue.ARCHETYPE_PORTRAITS).flatMap(types=>Object.values(types)),
   ...Object.values(self.SpacologyEnemyCatalogue.HEROES).map(hero=>hero.portrait)
 ].map(path=>path.replace(/^\.\.\//,'./'));
-const CACHE='spacology-playtest-library-v1';
+const CACHE='spacology-playtest-library-v2-element-pairs';
 const CORE=[
   './prototypes/minigames.html','./prototypes/library/catalogue.js','./prototypes/library/library.js','./prototypes/library/library.css',
   './prototypes/shared/combat/battle-stage.css','./prototypes/shared/combat/battle-presentation.js',
