@@ -8,20 +8,20 @@
 //   the four types.
 // - A run is several days. At night the clock stops: lay, re-tier or erase roads, set one-way edges, build roundabouts
 //   and warehouses, and spend credits. By day nothing can be edited; the traffic runs and you watch where it slows.
-//   New stations appear each night ("NEW TONIGHT") and demand rises day by day.
+//   New stations appear each night ("NEW TONIGHT") at sites visible from the start; they never clear roads.
 // - Roads join along the direction they were dragged (and a single tapped tile joins all its neighbours), so two
 //   parallel roads side by side stay separate. A road on a river tile is a bridge (four times the cost); rough ground
-//   costs double; mountains cannot be built on. Erasing refunds half (all of it on the night the road was laid).
+//   costs double; mountains cannot be built on. Erasing refunds the full current value; re-tiering exchanges values.
 // - Each request is served by the nearest source that holds the item (a producer, or a warehouse), by travel time on
 //   the network. A vehicle leaves with one item along the fastest path given the traffic at that moment, delivers, then
-//   drives home. Road tiles hold one vehicle per direction (two on a one-way stretch or a highway); a junction (three
-//   or more joins) holds one vehicle in total and costs extra time unless it is a roundabout. Vehicles queue behind a
-//   full tile: one trunk road jams, a few parallel roads flow.
+//   drives home. Local / collector / arterial tiles hold 1 / 2 / 3 vehicles per direction. Junctions share that capacity
+//   and cost extra time; roundabouts use separate entry lanes. Simultaneous moves respect capacity, including in loops.
+//   Buildings are endpoints unless a road is explicitly drawn through them (or was already there when they opened).
 // - A producer whose store is full sends its surplus to the nearest warehouse with space; a warehouse serves requests
 //   like a producer.
 // - A request open longer than the patience limit starves its consumer for that day. Starving is gentle: it only costs
 //   that day's clean-day bonus. Score: one point per delivery, plus 8 for each day where no consumer starved.
-//   Credits: 1 per delivery and 5 each dusk.
+//   Credits: 1 per delivery, 20 each dusk and 10 per building opening the next night, independent of performance.
 // - Par is the score of the automatic planner, which builds every night with the same budget: it links every unserved
 //   need with the cheapest road, then tries bypasses (two-way or one-way), roundabouts, warehouses and extra producer
 //   links, keeping each only if a simulated day comes out better. Perfect: at par or better. Good: 85% of par.
@@ -41,13 +41,13 @@
   const T_GRASS=0,T_RIVER=1,T_ROUGH=2,T_MOUNT=3;
   // Road tiers: credits per tile, ticks to cross a tile, vehicles per direction.
   const ROADS=[null,
-    {id:'dirt',label:'Dirt track',cost:1,ticks:6,cap:1},
-    {id:'road',label:'Road',cost:2,ticks:3,cap:1},
-    {id:'highway',label:'Highway',cost:5,ticks:2,cap:2}];
-  const TIER_ID={dirt:1,road:2,highway:3};
-  const JUNCTION_TICKS=2,BUILDING_TICKS=2,ROUND_COST=6,ROUND_CAP=2,ONEWAY_COST=1;
+    {id:'dirt',label:'Local',role:'Short access streets',cost:1,ticks:6,cap:1},
+    {id:'road',label:'Collector',role:'Gather neighbourhood traffic',cost:2,ticks:3,cap:2},
+    {id:'highway',label:'Arterial',role:'High-volume cross-map trunks',cost:5,ticks:2,cap:3}];
+  const TIER_ID={dirt:1,road:2,highway:3,local:1,collector:2,arterial:3};
+  const JUNCTION_TICKS=2,BUILDING_TICKS=2,ROUND_COST=6,ONEWAY_COST=1;
   const WH_COST=24,WH_CAP=6,WH_UP_COST=12,WH_UP=4,WH_MAX_UP=3;
-  const PROD_CAP=4,MAX_OPEN=4,DELIVERY_CREDIT=1,STIPEND=5,CLEAN_BONUS=8,STUCK_TICKS=32,LOAD_EVERY=4,RELAXED=1.75;
+  const PROD_CAP=4,MAX_OPEN=4,DELIVERY_CREDIT=1,STIPEND=20,GROWTH_CREDIT=10,CLEAN_BONUS=8,LOAD_EVERY=4,RELAXED=1.75;
   const TYPES=[
     {sym:'●',name:'fuel',color:'#e7c18b'},
     {sym:'▲',name:'munitions',color:'#f08c7a'},
@@ -79,11 +79,12 @@
     const probe=create({...pz,credits0:1e6});
     const before=probe.credits;connectPass(pz,probe,null);
     pz.connectCost=before-probe.credits;
-    pz.credits0=Math.ceil((pz.connectCost*1.3+12)/5)*5;
+    pz.credits0=Math.ceil((pz.connectCost*1.6+30)/5)*5;
     if(opts&&opts.noPlan)return pz;
-    const t0=Date.now(),plan=planRun(pz,{refine:true});
+    const t0=Date.now(),refined=planRun(pz,{refine:true}),a=planRun(pz,{refine:false});
+    const plan=refined.result.score>=a.result.score?refined:a;
     pz.plan=plan.nights;pz.par=plan.result.score;pz.parStats=plan.result;pz.planUse=plan.use;pz.planMs=Date.now()-t0;
-    const a=planRun(pz,{refine:false});pz.autoScore=a.result.score;
+    pz.autoScore=a.result.score;
     return pz;
   }
 
@@ -155,7 +156,10 @@
         opts.push({x,y});
       }}
       if(!opts.length)return null;
-      const p=r.pick(opts);taken.push(p);
+      const district=stations.filter(o=>o.kind===sp.kind&&(o.x<riverCol(o.y))===west);
+      const distance=p=>Math.min(...district.map(o=>Math.abs(o.x-p.x)+Math.abs(o.y-p.y)));
+      const nearby=district.length?opts.filter(p=>distance(p)<=5):[];
+      const p=r.pick(nearby.length?nearby:opts);taken.push(p);
       terrain[at(p.x,p.y)]=T_GRASS;
       const id=stations.length;
       if(sp.kind==='producer'){const nm=pn[pi++%pn.length];stations.push({id,kind:'producer',x:p.x,y:p.y,tile:at(p.x,p.y),type:sp.type,needs:[],day:sp.day,short:nm,name:`${nm} ${TYPES[sp.type].name} works`});}
@@ -196,12 +200,6 @@
   function restore(sim,s){sim.net=clone(s.net);sim.wh=clone(s.wh);sim.credits=s.credits;sim.ver++;}
 
   function enterNight(pz,sim){
-    // Tonight's new stations clear their ground (full refund).
-    for(const st of pz.stations)if(st.day===sim.day){
-      const i=st.tile;
-      if(sim.net.tier[i]){sim.credits+=sim.net.paid[i]+sim.net.rbPaid[i];clearTile(pz,sim,i);}
-      const k=whAt(sim,i);if(k>=0){sim.credits+=sim.wh[k].paid;removeWarehouse(pz,sim,k);}
-    }
     sim.ver++;sim.nightStart=snapshot(sim);sim.tonight=[];sim.log[sim.day-1]=sim.tonight;
   }
   function clearTile(pz,sim,i){
@@ -216,13 +214,12 @@
   }
   function join(pz,sim,a,b){
     const d=dirTo(pz,a,b);if(d<0)return false;
-    if(isBuilding(pz,sim,a)&&isBuilding(pz,sim,b))return false;
+    if(isBuilding(pz,sim,a)&&isBuilding(pz,sim,b)&&!sim.net.tier[a]&&!sim.net.tier[b])return false;
     if(!isNode(pz,sim,a)||!isNode(pz,sim,b))return false;
     if(sim.net.e[a]&(1<<d))return false;
     sim.net.e[a]|=1<<d;sim.net.e[b]|=1<<OPP(d);return true;
   }
   const buildCost=(pz,idx,tier)=>ROADS[tier].cost*TERRAIN[pz.terrain[idx]].mult;
-  const refundOf=(sim,paid,built)=>built===sim.day?paid:Math.floor(paid/2);
 
   // ---- night edits ----------------------------------------------------------------------------------------------------
   // road {tiles, tier}: lay (or re-tier) road along a dragged path of adjacent tiles and join consecutive tiles; a single
@@ -256,19 +253,20 @@
     if(a.type==='road'){
       const w=tilesOk(pz,a.tiles);if(w)return w;
       const tier=TIER_ID[a.tier||'road'];if(!tier)return 'No such road type.';
+      const tiles=[...new Set(a.tiles)],endpoints=new Set([a.tiles[0],a.tiles[a.tiles.length-1]]);
+      const accessOnly=t=>isBuilding(pz,sim,t)&&endpoints.has(t)&&!n.tier[t];
       let cost=0,changed=false;
-      for(const t of a.tiles){
-        if(isBuilding(pz,sim,t))continue;
+      for(const t of tiles){
+        if(accessOnly(t))continue;
         if(pz.terrain[t]===T_MOUNT)return 'Mountains cannot be built on.';
-        if(pz.bAt[t]>=0&&pz.stations[pz.bAt[t]].day<=sim.day)continue;
         if(n.tier[t]===tier)continue;
-        if(n.tier[t])cost+=Math.max(0,buildCost(pz,t,tier)-n.paid[t]);else cost+=buildCost(pz,t,tier);
+        cost+=buildCost(pz,t,tier)-n.paid[t];
       }
       if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
-      for(const t of a.tiles){
-        if(isBuilding(pz,sim,t)||n.tier[t]===tier)continue;
-        if(n.tier[t]){const c=Math.max(0,buildCost(pz,t,tier)-n.paid[t]);n.paid[t]+=c;sim.credits-=c;}
-        else{const c=buildCost(pz,t,tier);n.paid[t]=c;n.built[t]=sim.day;sim.credits-=c;}
+      sim.credits-=cost;
+      for(const t of tiles){
+        if(accessOnly(t)||n.tier[t]===tier)continue;
+        n.paid[t]=buildCost(pz,t,tier);n.built[t]=sim.day;
         n.tier[t]=tier;changed=true;
       }
       if(a.tiles.length===1){const t=a.tiles[0];if(n.tier[t])for(let d=0;d<4;d++){const b=neighbour(pz,t,d);if(b>=0&&join(pz,sim,t,b))changed=true;}}
@@ -280,8 +278,8 @@
       let changed=false;
       for(const t of a.tiles){
         if(!Number.isInteger(t)||t<0||t>=pz.W*pz.H)return 'Off the map.';
-        if(n.tier[t]){sim.credits+=refundOf(sim,n.paid[t],n.built[t])+refundOf(sim,n.rbPaid[t],n.rb[t]);clearTile(pz,sim,t);changed=true;}
-        const k=whAt(sim,t);if(k>=0){sim.credits+=refundOf(sim,sim.wh[k].paid,sim.wh[k].built);removeWarehouse(pz,sim,k);changed=true;}
+        if(n.tier[t]){sim.credits+=n.paid[t]+n.rbPaid[t];clearTile(pz,sim,t);changed=true;}
+        const k=whAt(sim,t);if(k>=0){sim.credits+=sim.wh[k].paid;removeWarehouse(pz,sim,k);changed=true;}
       }
       return changed?null:'Nothing to erase there.';
     }
@@ -301,14 +299,14 @@
     if(a.type==='roundabout'){
       const t=a.tile;if(!Number.isInteger(t)||t<0||t>=pz.W*pz.H)return 'Off the map.';
       if(!n.tier[t])return 'A roundabout goes on a road tile.';
-      if(n.rb[t]){sim.credits+=refundOf(sim,n.rbPaid[t],n.rb[t]);n.rb[t]=0;n.rbPaid[t]=0;return null;}
+      if(n.rb[t]){sim.credits+=n.rbPaid[t];n.rb[t]=0;n.rbPaid[t]=0;return null;}
       if(popcount(n.e[t])<3)return 'A roundabout only helps where three or more roads meet.';
       if(ROUND_COST>sim.credits)return `That needs ${ROUND_COST} credits; you have ${sim.credits}.`;
       sim.credits-=ROUND_COST;n.rb[t]=sim.day;n.rbPaid[t]=ROUND_COST;return null;
     }
     if(a.type==='warehouse'){
       const t=a.tile;if(!Number.isInteger(t)||t<0||t>=pz.W*pz.H)return 'Off the map.';
-      if(n.tier[t]||isBuilding(pz,sim,t)||pz.bAt[t]>=0&&pz.stations[pz.bAt[t]].day<=sim.day)return 'A warehouse needs empty ground.';
+      if(n.tier[t]||isBuilding(pz,sim,t)||pz.bAt[t]>=0)return 'A warehouse needs empty ground outside a planned building site.';
       if(pz.terrain[t]===T_RIVER||pz.terrain[t]===T_MOUNT)return 'A warehouse needs dry, flat ground.';
       if(WH_COST>sim.credits)return `That needs ${WH_COST} credits; you have ${sim.credits}.`;
       sim.credits-=WH_COST;sim.wh.push({tile:t,cap:WH_CAP,ups:0,stock:new Array(TYPES.length).fill(0),inc:new Array(TYPES.length).fill(0),paid:WH_COST,built:sim.day});
@@ -332,12 +330,12 @@
     const N=pz.W*pz.H,n=sim.net,out=new Array(N),ticks=new Int16Array(N),cap=new Int16Array(N),shared=new Uint8Array(N),bld=new Uint8Array(N);
     for(let i=0;i<N;i++){
       out[i]=[];
-      const b=isBuilding(pz,sim,i);bld[i]=b?1:0;
+      const b=isBuilding(pz,sim,i);bld[i]=b&&!n.tier[i]?1:0;
       if(!n.tier[i]&&!b)continue;
       for(let d=0;d<4;d++)if(n.e[i]&(1<<d)&&!(n.blk[i]&(1<<d))){const j=neighbour(pz,i,d);if(j>=0&&(n.tier[j]||isBuilding(pz,sim,j)))out[i].push(j);}
-      if(b){ticks[i]=BUILDING_TICKS;cap[i]=999;continue;}
+      if(b&&!n.tier[i]){ticks[i]=BUILDING_TICKS;cap[i]=999;continue;}
       const R=ROADS[n.tier[i]],junction=popcount(n.e[i])>=3;
-      if(junction){shared[i]=1;ticks[i]=R.ticks+(n.rb[i]?0:JUNCTION_TICKS);cap[i]=n.rb[i]?ROUND_CAP:1;}
+      if(junction){shared[i]=n.rb[i]?0:1;ticks[i]=R.ticks+(n.rb[i]?0:JUNCTION_TICKS);cap[i]=R.cap;}
       else{ticks[i]=R.ticks;cap[i]=R.cap*(isOneWay(pz,sim,i)?2:1);}
     }
     const g={N,out,ticks,cap,shared,bld};
@@ -353,7 +351,7 @@
     }
     return true;
   }
-  // Binary-heap Dijkstra from src. Buildings other than src are end points only: vehicles never drive through them.
+  // Binary-heap Dijkstra from src. Buildings without an explicit through road remain endpoints.
   function dijkstra(g,src,weight){
     const N=g.N,dist=new Float64Array(N).fill(Infinity),prev=new Int32Array(N).fill(-1),hc=[],hn=[];
     const push=(c,v)=>{let i=hc.length;hc.push(c);hn.push(v);while(i>0){const p=(i-1)>>1;if(hc[p]<hc[i]||(hc[p]===hc[i]&&hn[p]<=hn[i]))break;[hc[p],hc[i]]=[hc[i],hc[p]];[hn[p],hn[i]]=[hn[i],hn[p]];i=p;}};
@@ -385,13 +383,14 @@
   // Tiles on the shortest path ignoring one-way rules and traffic (the baseline for detours).
   function plainTiles(pz,sim,src,dst){
     const N=pz.W*pz.H,seen=new Int32Array(N).fill(-1),q=[src];seen[src]=0;
-    for(let h=0;h<q.length;h++){const a=q[h];if(a===dst)return seen[a];if(a!==src&&isBuilding(pz,sim,a))continue;
+    for(let h=0;h<q.length;h++){const a=q[h];if(a===dst)return seen[a];if(a!==src&&isBuilding(pz,sim,a)&&!sim.net.tier[a])continue;
       for(let d=0;d<4;d++)if(sim.net.e[a]&(1<<d)){const b=neighbour(pz,a,d);if(b>=0&&seen[b]<0){seen[b]=seen[a]+1;q.push(b);}}}
     return -1;
   }
 
   // ---- the day ------------------------------------------------------------------------------------------------------------
   const demTicks=(pz,day)=>Math.max(8,Math.round(pz.dem*Math.pow(1-pz.growth,day-1)/TICK));
+  const growthCredit=(pz,day)=>pz.stations.filter(s=>s.day===day&&day>1).length*GROWTH_CREDIT;
   const patienceTicks=(pz,sim)=>Math.round(pz.patience*(sim.relaxed?RELAXED:1)/TICK);
   function startDay(pz,sim){
     if(sim.phase!=='night')return false;
@@ -460,8 +459,8 @@
       if(best<0)continue;
       sim.st[i].stock--;sim.wh[best].inc[s.type]++;newVehicle(sim,'stock',s.tile,sim.wh[best].tile,s.type,pathTo(R,sim.wh[best].tile),-1);
     }
-    // Movement: in vehicle order, each vehicle that has crossed its tile tries to enter the next one.
-    const q=new Array(g.N).fill(0);let dead=false;
+    // Reserve simultaneous departures before admitting arrivals, so even a full loop can advance without overfilling.
+    const q=new Array(g.N).fill(0),moves=[];let dead=false;
     for(const v of sim.veh){
       if(v.t>0&&--v.t>0)continue;
       const cur=v.path[v.i],nxt=v.path[v.i+1];
@@ -470,9 +469,33 @@
         arrive(pz,sim,v,nxt);if(v.dead)dead=true;continue;
       }
       const d=dirTo(pz,cur,nxt);
-      const full=g.shared[nxt]?(occ[nxt*4]+occ[nxt*4+1]+occ[nxt*4+2]+occ[nxt*4+3])>=g.cap[nxt]:occ[nxt*4+d]>=g.cap[nxt];
-      if(full&&v.wait<STUCK_TICKS){v.wait++;q[nxt]++;if(q[nxt]===1)ds.jam[nxt]++;continue;}
-      if(v.slot>=0)occ[v.slot]--;v.slot=nxt*4+d;occ[v.slot]++;v.i++;v.t=g.ticks[nxt];v.wait=0;
+      moves.push({v,nxt,slot:nxt*4+d,accepted:true});
+    }
+    const key=slot=>g.shared[slot>>2]?slot&~3:slot,projected=occ.slice(),incoming=new Map();
+    for(let i=0;i<g.N;i++)if(g.shared[i]){projected[i*4]+=projected[i*4+1]+projected[i*4+2]+projected[i*4+3];projected.fill(0,i*4+1,i*4+4);}
+    for(const m of moves){
+      if(m.v.slot>=0)projected[key(m.v.slot)]--;
+      const k=key(m.slot);projected[k]++;
+      if(!incoming.has(k))incoming.set(k,[]);incoming.get(k).push(m);
+    }
+    const pending=[];
+    for(const [k,list] of incoming){
+      // Reject newest / least-waiting traffic first; queued approaches get the next turn.
+      list.sort((a,b)=>a.v.wait-b.v.wait||b.v.id-a.v.id);
+      if(projected[k]>g.cap[k>>2])pending.push(k);
+    }
+    for(let h=0;h<pending.length;h++){
+      const k=pending[h],list=incoming.get(k);
+      while(projected[k]>g.cap[k>>2]){
+        const m=list.shift();m.accepted=false;projected[k]--;
+        if(m.v.slot>=0){const old=key(m.v.slot);projected[old]++;if(projected[old]>g.cap[old>>2])pending.push(old);}
+      }
+    }
+    for(const m of moves)if(m.accepted&&m.v.slot>=0)occ[m.v.slot]--;
+    for(const m of moves){
+      const {v,nxt}=m;
+      if(!m.accepted){v.wait++;q[nxt]++;if(q[nxt]===1)ds.jam[nxt]++;continue;}
+      v.slot=m.slot;occ[v.slot]++;v.i++;v.t=g.ticks[nxt];v.wait=0;
     }
     if(dead)sim.veh=sim.veh.filter(v=>!v.dead);
     sim.q=q;
@@ -515,9 +538,10 @@
       if(x.starved)starved.push(i);x.starved=false;
     }
     const clean=!starved.length;if(clean){sim.cleanDays++;sim.score+=CLEAN_BONUS;}
-    sim.credits+=STIPEND;
+    const grant=growthCredit(pz,sim.day+1);
+    sim.credits+=STIPEND+grant;
     let worst=null;for(const i of starved)if(!worst||ds.wait[i]<worst.ticks)worst={st:i,type:ds.waitType[i],ticks:ds.wait[i]};
-    const summary={day:sim.day,deliveries:ds.deliveries,clean,starved,worst,score:sim.score-ds.score0,fromWh:ds.fromWh};
+    const summary={day:sim.day,deliveries:ds.deliveries,clean,starved,worst,score:sim.score-ds.score0,fromWh:ds.fromWh,grant};
     sim.days.push(summary);
     sim.report={day:sim.day,summary,problems:problems(pz,sim),ds};
     sim.day++;sim.tick=0;
@@ -628,12 +652,12 @@
     for(;;){
       let u=-1,ud=Infinity;for(const i of open)if(!done[i]&&(dist[i]<ud||(dist[i]===ud&&i<u))){ud=dist[i];u=i;}
       if(u<0||u===b)break;done[u]=1;
-      if(u!==a&&isBuilding(pz,sim,u))continue;
+      if(u!==a&&isBuilding(pz,sim,u)&&!n.tier[u])continue;
       for(let d=0;d<4;d++){
         const v=neighbour(pz,u,d);if(v<0||done[v])continue;
         let c;
         if(v===b)c=0.01;
-        else if(isBuilding(pz,sim,v)||pz.bAt[v]>=0&&pz.stations[pz.bAt[v]].day<=sim.day)continue;
+        else if(isBuilding(pz,sim,v)&&!n.tier[v])continue;
         else if(pz.terrain[v]===T_MOUNT)continue;
         else if(n.tier[v]){
           if(n.tier[v]===3)continue;
@@ -789,7 +813,7 @@
     }
     return {nights:sim.log.map(n=>n.slice()),result:result(pz,sim),sim,use};
   }
-  // Skip: the remaining nights are auto-built with plain links only (no bypasses), so it scores below par.
+  // Skip: the remaining nights are auto-built with collector links only (no refinements).
   function auto(pz,sim){planRun(pz,{refine:false,sim});return result(pz,sim);}
   // Tonight's hint: the planner's first step from here, with its reason.
   function hint(pz,sim){
@@ -801,9 +825,9 @@
   }
 
   const api={TICK,DAY_SECONDS,DAY_TICKS,DIRS,DIR_NAMES,TERRAIN,ROADS,TIER_ID,TYPES,DIFFICULTIES,JUNCTION_TICKS,BUILDING_TICKS,
-    ROUND_COST,ONEWAY_COST,WH_COST,WH_CAP,WH_UP_COST,WH_UP,PROD_CAP,MAX_OPEN,DELIVERY_CREDIT,STIPEND,CLEAN_BONUS,STUCK_TICKS,RELAXED,
+    ROUND_COST,ONEWAY_COST,WH_COST,WH_CAP,WH_UP_COST,WH_UP,PROD_CAP,MAX_OPEN,DELIVERY_CREDIT,STIPEND,GROWTH_CREDIT,CLEAN_BONUS,RELAXED,
     generate,create,clone,edit,undo,costOf,startDay,step,runDay,skipToDusk,replay,simulate,result,tier,parFor,nearMiss,
     planNight,planRun,auto,hint,buildPath,graph,routes,freeRoutes,isJunction,isOneWay,stationAt,whAt,isBuilding,neighbour,dirTo,
-    patienceTicks,demTicks,placeName,buildCost,supply,popcount};
+    patienceTicks,demTicks,growthCredit,placeName,buildCost,supply,popcount};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.RoutePlanning=api;
 })(typeof globalThis==='object'?globalThis:this);

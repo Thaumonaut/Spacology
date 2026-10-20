@@ -21,6 +21,10 @@
 .mg .rp-tools button[aria-pressed="true"]{border-color:var(--leaf);background:#24331d;box-shadow:inset 0 0 0 1px var(--leaf)}
 .rp-news{margin:0;font-size:13px;color:var(--muted);min-height:1.4em}
 .rp-newtag-inline{color:#241a08;background:var(--gold);border-radius:6px;padding:1px 6px;font-size:11px;letter-spacing:.08em}
+.rp-site rect{fill:#142536;fill-opacity:.55;stroke:#8fb8ec;stroke-width:3;stroke-dasharray:9 7}
+.rp-site text{fill:#9fb7cf;font:600 25px system-ui,sans-serif}
+.rp-through{fill:var(--mint);font:700 18px system-ui,sans-serif;paint-order:stroke;stroke:#0b141c;stroke-width:5px}
+.rp-sw-dirt{color:#8a7552}.rp-sw-road{color:#9aa7b2}.rp-sw-highway{color:#d7e2ea}.rp-sw-site{color:#8fb8ec;border:1px dashed #8fb8ec}
 
 /* Map */
 .rp-mapwrap{position:relative;border:1px solid var(--line);border-radius:14px;background:#0b141c;padding:4px;user-select:none;-webkit-user-select:none}

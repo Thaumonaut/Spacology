@@ -40,6 +40,11 @@ try{
 
     // Readability: every station is labelled "Makes ▲" or "Needs ▲ ■", the legend explains them, par is shown.
     assert.equal(await p.locator('[data-station]').count(),active.length);
+    assert.equal(await p.locator('[data-planned]').count(),pz.stations.length-active.length,'every future site is visible from night one');
+    assert.match(await p.locator('[data-tool="dirt"]').innerText(),/Local/);
+    assert.match(await p.locator('[data-tool="road"]').innerText(),/Collector/);
+    assert.match(await p.locator('[data-tool="highway"]').innerText(),/Arterial/);
+    assert.match(await p.locator('[data-tool="erase"]').innerText(),/full refund/);
     const labels=await p.locator('.rp-label text').allTextContents();
     for(const s of active)assert.ok(labels.includes(s.kind==='producer'?`Makes ${P.TYPES[s.type].sym}`:`Needs ${s.needs.map(t=>P.TYPES[t].sym).join(' ')}`),`label for ${s.name}`);
     const legend=await p.locator('.rp-legend').innerText();assert.match(legend,/Producer/);assert.match(legend,/Consumer/);assert.match(legend,/Warehouse/);assert.match(legend,/One-way/);
@@ -55,6 +60,9 @@ try{
     await tapTile(prod.tile);assert.match(await p.locator('#rpCard').innerText(),new RegExp(`${prod.name}[\\s\\S]*Makes ${P.TYPES[prod.type].sym}`));
     await p.locator('.rp-card-x').click();assert.equal(await p.locator('#rpCard').isHidden(),true);
     await shot('night1');
+    const planned=pz.stations.find(s=>s.day===2);
+    await tapTile(planned.tile);assert.match(await p.locator('#rpCard').innerText(),/Planned · night 2[\s\S]*stay intact/);
+    await p.locator('.rp-card-x').click();
 
     // A drag lays road, with a cost preview while dragging; undo takes it back.
     {const t=pz.plan[0][0].tiles.slice(0,4);const c=await center(t[0]);await p.mouse.move(c.x,c.y);await p.mouse.down();
@@ -67,6 +75,17 @@ try{
     {const h=P.hint(pz,P.create(pz));await p.locator('#mgHint').click();
       assert.equal(await p.locator('#rpHintText').innerText(),h.text);assert.match(h.text,/needs .* Link it to/);assert.ok(await p.locator('.rp-ghost.hint').count()>0);
       await shot('hint');await p.locator('#rpHintDismiss').click();assert.equal(await p.locator('#rpHintBar').isHidden(),true);}
+
+    // Re-tiering an existing stretch pays / refunds the difference, including terrain; Undo restores the empty map.
+    {
+      const tiles=pz.plan[0][0].tiles.slice(0,4);
+      for(const tier of ['road','highway','dirt']){
+        await play({type:'road',tier,tiles});assert.equal(await credits(),model.credits,'re-tier credits agree with model');
+      }
+      await play({type:'erase',tiles});assert.equal(await credits(),pz.credits0,'complete rebuild round trip costs nothing');
+      for(let i=0;i<4;i++){await p.locator('#mgUndo').click();assert.ok(P.undo(pz,model));}
+      assert.equal(await credits(),pz.credits0);
+    }
 
     if(full){
       // The planner's whole run, night by night, through drags and taps; each dusk is checked against the model.
@@ -95,11 +114,13 @@ try{
           assert.equal(await p.locator('#rpReport').isVisible(),true);
           assert.match(await p.locator('#rpReport h3').innerText(),/Dusk report · day 1/);
           assert.equal(await p.locator('.rp-problems li').count(),model.report.problems.length);
-          assert.ok(model.report.problems.length>=2);
-          assert.equal(await p.locator('.rp-problems li span').first().innerText(),model.report.problems[0].text);
-          assert.ok(await p.locator('.rp-heat').count()>0,'heat overlay on congested tiles');
-          await p.locator('[data-locate="0"]').click();assert.ok(await p.locator('.rp-locate').count()>0,'located');
-          assert.match(await p.locator('#mgStatus').innerText(),/^Located: /);
+          assert.ok(model.report.problems.length<=3);
+          if(model.report.problems.length){
+            assert.equal(await p.locator('.rp-problems li span').first().innerText(),model.report.problems[0].text);
+            await p.locator('[data-locate="0"]').click();assert.ok(await p.locator('.rp-locate').count()>0,'located');
+            assert.match(await p.locator('#mgStatus').innerText(),/^Located: /);
+          }else assert.match(await p.locator('.rp-allgood').innerText(),/traffic flowed freely/);
+          if(model.report.ds.jam.some(n=>n/pz.dayTicks>=0.04))assert.ok(await p.locator('.rp-heat').count()>0,'heat overlay on congested tiles');
           await noOverflow(p,'report '+tag);await shot('dusk1');
         }
         if(night<pz.days)assert.match(await p.locator('#rpPhase').innerText(),new RegExp(`NIGHT ${night+1}`));
@@ -125,6 +146,12 @@ try{
       assert.ok(spot>=0);await play({type:'warehouse',tile:spot});
       assert.equal(await p.locator('.rp-wh').count(),1,'warehouse drawn');assert.equal(await credits(),model.credits);
       await tapTile(spot);assert.match(await p.locator('#rpCard').innerText(),/Warehouse[\s\S]*Holds 0\//);await p.locator('.rp-card-x').click();
+      // Build across tomorrow's parcel; its roads and joins must survive the opening, and remain refundable afterward.
+      const approaches=P.DIRS.map((_,d)=>P.neighbour(pz,planned.tile,d)).filter(t=>t>=0&&pz.terrain[t]!==3&&!P.isBuilding(pz,model,t));
+      assert.ok(approaches.length>=2);
+      const through=[approaches[0],planned.tile,approaches[1]];
+      await play({type:'road',tiles:through});
+      const savedJoins=model.net.e[planned.tile];
       await shot('built');
       // Day 1, skipped to dusk: the report appears and matches the model; night 2 brings a NEW TONIGHT station.
       await p.locator('#rpStart').click();P.runDay(pz,model);
@@ -134,6 +161,12 @@ try{
       assert.match(await p.locator('#rpPhase').innerText(),/NIGHT 2/);
       const fresh=pz.stations.filter(s=>s.day===2);assert.equal(await p.locator('.rp-newtag').count(),fresh.length);
       assert.equal(await p.locator('[data-station]').count(),pz.stations.filter(s=>s.day<=2).length);
+      assert.equal(await p.locator(`[data-through="${planned.id}"]`).count(),1,'new building keeps its through road');
+      assert.equal(await p.locator('[data-planned]').count(),pz.stations.filter(s=>s.day>2).length);
+      const opened=await p.evaluate(t=>({tier:RoutePlanningUI.sim.net.tier[t],joins:RoutePlanningUI.sim.net.e[t]}),planned.tile);
+      assert.deepEqual(opened,{tier:2,joins:savedJoins});
+      await tapTile(planned.tile);assert.match(await p.locator('#rpCard').innerText(),/Through road: Collector/);await p.locator('.rp-card-x').click();
+      await play({type:'erase',tiles:[planned.tile]});assert.equal(await credits(),model.credits,'old road refunds in full');
       assert.match(await p.locator('#mgMeters').innerText(),new RegExp(`SCORE / PAR\\s*${model.score} / ${pz.par}`,'i'));
       await noOverflow(p,'night2 '+tag);await shot('night2');
       // Skip (auto) builds the rest and ends at a reduced result.
