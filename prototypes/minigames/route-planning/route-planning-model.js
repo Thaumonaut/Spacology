@@ -253,8 +253,8 @@
     if(a.type==='road'){
       const w=tilesOk(pz,a.tiles);if(w)return w;
       const tier=TIER_ID[a.tier||'road'];if(!tier)return 'No such road type.';
-      const tiles=[...new Set(a.tiles)],endpoints=new Set([a.tiles[0],a.tiles[a.tiles.length-1]]);
-      const accessOnly=t=>isBuilding(pz,sim,t)&&endpoints.has(t)&&!n.tier[t];
+      const tiles=[...new Set(a.tiles)],interior=new Set(a.tiles.slice(1,-1));
+      const accessOnly=t=>isBuilding(pz,sim,t)&&!interior.has(t)&&!n.tier[t];
       let cost=0,changed=false;
       for(const t of tiles){
         if(accessOnly(t))continue;
@@ -469,28 +469,32 @@
         arrive(pz,sim,v,nxt);if(v.dead)dead=true;continue;
       }
       const d=dirTo(pz,cur,nxt);
-      moves.push({v,nxt,slot:nxt*4+d,accepted:true});
+      moves.push({v,nxt,slot:nxt*4+d,accepted:false});
     }
-    const key=slot=>g.shared[slot>>2]?slot&~3:slot,projected=occ.slice(),incoming=new Map();
+    const key=slot=>g.shared[slot>>2]?slot&~3:slot,projected=occ.slice(),outgoing=new Map(),reserved=[];
     for(let i=0;i<g.N;i++)if(g.shared[i]){projected[i*4]+=projected[i*4+1]+projected[i*4+2]+projected[i*4+3];projected.fill(0,i*4+1,i*4+4);}
+    moves.sort((a,b)=>b.v.wait-a.v.wait||a.v.id-b.v.id);
     for(const m of moves){
+      if(m.v.slot<0)continue;
+      const k=key(m.v.slot);if(!outgoing.has(k))outgoing.set(k,[]);outgoing.get(k).push(m);
+    }
+    function reserve(m){
+      const start=reserved.length,k=key(m.slot);m.accepted=true;reserved.push(m);
       if(m.v.slot>=0)projected[key(m.v.slot)]--;
-      const k=key(m.slot);projected[k]++;
-      if(!incoming.has(k))incoming.set(k,[]);incoming.get(k).push(m);
-    }
-    const pending=[];
-    for(const [k,list] of incoming){
-      // Reject newest / least-waiting traffic first; queued approaches get the next turn.
-      list.sort((a,b)=>a.v.wait-b.v.wait||b.v.id-a.v.id);
-      if(projected[k]>g.cap[k>>2])pending.push(k);
-    }
-    for(let h=0;h<pending.length;h++){
-      const k=pending[h],list=incoming.get(k);
-      while(projected[k]>g.cap[k>>2]){
-        const m=list.shift();m.accepted=false;projected[k]--;
-        if(m.v.slot>=0){const old=key(m.v.slot);projected[old]++;if(projected[old]>g.cap[old>>2])pending.push(old);}
+      projected[k]++;
+      // Reserve a departure to make room; a full cycle can release all its spaces together.
+      for(const next of outgoing.get(k)||[]){
+        if(projected[k]<=g.cap[k>>2])break;
+        if(!next.accepted)reserve(next);
       }
+      if(projected[k]<=g.cap[k>>2])return true;
+      while(reserved.length>start){
+        const r=reserved.pop();r.accepted=false;projected[key(r.slot)]--;
+        if(r.v.slot>=0)projected[key(r.v.slot)]++;
+      }
+      return false;
     }
+    for(const m of moves)if(!m.accepted)reserve(m);
     for(const m of moves)if(m.accepted&&m.v.slot>=0)occ[m.v.slot]--;
     for(const m of moves){
       const {v,nxt}=m;

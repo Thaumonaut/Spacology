@@ -61,6 +61,12 @@ function vehicle(pz,sim,path,id,t=0){
   P.runDay(pz,sim);assert.ok(P.freeRoutes(pz,sim,20).dist[29]<Infinity,'through road survives the next night');
 }
 {
+  const pz=fixture([{kind:'consumer',tile:11}]),sim=P.create(pz);
+  assert.equal(edit(pz,sim,{type:'road',tiles:[11,12,22,21,11,10]}),10,'a revisited endpoint is charged once as a through road');
+  assert.equal(sim.net.tier[11],2);
+  assert.ok(P.freeRoutes(pz,sim,12).dist[10]<Infinity,'an interior visit overrides free endpoint access');
+}
+{
   const pz=fixture([{kind:'consumer',tile:22,day:2}]),sim=P.create(pz);
   assert.match(P.edit(pz,sim,{type:'warehouse',tile:22}).why,/planned/,'future parcels cannot be occupied by warehouses');
   edit(pz,sim,{type:'road',tier:'arterial',tiles:[21,22,23]});
@@ -83,6 +89,16 @@ function vehicle(pz,sim,path,id,t=0){
   assert.ok(sim.veh.every(v=>v.i===2),'a completely full one-way loop moves together immediately');
   for(let tick=0;tick<30;tick++){P.step(pz,sim);capacity(pz,sim);}
   assert.ok(sim.veh.every(v=>v.i>=7),'full loop keeps advancing without a timeout');
+}
+{
+  const pz=fixture(),sim=P.create(pz),ring=[11,12,22,21];
+  edit(pz,sim,{type:'road',tier:'local',tiles:[...ring,11]});
+  for(const tiles of [[1,11],[2,12],[23,22],[20,21]])edit(pz,sim,{type:'road',tier:'local',tiles});
+  P.startDay(pz,sim);
+  const circulating=ring.map((_,k)=>vehicle(pz,sim,[ring[(k+3)%4],...Array.from({length:40},(_,i)=>ring[(k+i)%4])],k+1));
+  const entering=vehicle(pz,sim,[0,1,11,12,22],5);entering.wait=100;
+  for(let tick=0;tick<30;tick++){P.step(pz,sim);capacity(pz,sim);}
+  assert.ok(circulating.every(v=>v.i>=4),'a queued approach cannot permanently freeze a full junction loop');
 }
 for(const roundabout of [false,true]){
   const pz=fixture(),sim=P.create(pz);
@@ -114,6 +130,13 @@ for(const roundabout of [false,true]){
   for(const [tier,cap] of [['local',1],['collector',2],['arterial',3]]){
     if(tier!=='local')edit(pz,sim,{type:'road',tier,tiles:[21,22,23]});
     assert.equal(P.graph(pz,sim).cap[22],cap,'upgrading improves shared junction capacity');
+  }
+}
+for(const {id} of P.DIFFICULTIES)for(const seed of [1,4]){
+  const pz=P.generate(seed,id,{noPlan:true}),sim=P.create(pz);
+  while(sim.phase!=='done'){
+    P.planNight(pz,sim,{refine:false});P.startDay(pz,sim);
+    while(sim.phase==='day'){P.step(pz,sim);capacity(pz,sim);}
   }
 }
 console.log('PASS network fairness: reversible terrain costs, atomic edits, through buildings, protected growth, capacity-safe full loops, long queues and fair junctions');

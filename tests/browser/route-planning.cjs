@@ -22,11 +22,12 @@ try{
     const center=i=>p.evaluate(([i,W])=>{const svg=document.getElementById('rpMap'),m=svg.getScreenCTM(),pt=new DOMPoint((i%W)*100+50,Math.floor(i/W)*100+50).matrixTransform(m);return {x:pt.x,y:pt.y};},[i,pz.W]);
     const tool=id=>p.locator(`[data-tool="${id}"]`).click();
     async function dragTiles(tiles){
+      await p.locator('#rpMap').scrollIntoViewIfNeeded();
       const c=await center(tiles[0]);await p.mouse.move(c.x,c.y);await p.mouse.down();
       for(const t of tiles.slice(1)){const q=await center(t);await p.mouse.move(q.x,q.y,{steps:2});}
       await p.mouse.up();
     }
-    async function tapTile(t){const c=await center(t);await p.mouse.click(c.x,c.y);}
+    async function tapTile(t){await p.locator('#rpMap').scrollIntoViewIfNeeded();const c=await center(t);await p.mouse.click(c.x,c.y);}
     // Replays one model edit through the UI, and on the model alongside.
     async function play(a){
       if(a.type==='road'){await tool(TOOL[a.tier||'road']);await dragTiles(a.tiles);}
@@ -34,6 +35,7 @@ try{
       else if(a.type==='erase'){await tool('erase');await dragTiles(a.tiles);}
       else{await tool(a.type);await tapTile(a.tile);}
       const r=P.edit(pz,model,a);assert.equal(r.why,undefined,'model accepts '+JSON.stringify(a));
+      assert.equal(await credits(),model.credits,'credits after '+JSON.stringify(a)+'; '+await p.locator('#mgStatus').innerText());
     }
     const credits=async()=>Number((await p.locator('#mgMeters').innerText()).match(/CREDITS\s*(\d+)/i)[1]);
     const active=pz.stations.filter(s=>s.day===1);
@@ -61,7 +63,7 @@ try{
     await p.locator('.rp-card-x').click();assert.equal(await p.locator('#rpCard').isHidden(),true);
     await shot('night1');
     const planned=pz.stations.find(s=>s.day===2);
-    await tapTile(planned.tile);assert.match(await p.locator('#rpCard').innerText(),/Planned · night 2[\s\S]*stay intact/);
+    await tapTile(planned.tile);assert.match(await p.locator('#rpCard').innerText(),/Planned · night 2[\s\S]*stay intact/i);
     await p.locator('.rp-card-x').click();
 
     // A drag lays road, with a cost preview while dragging; undo takes it back.
