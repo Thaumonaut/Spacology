@@ -1,30 +1,26 @@
-name: Deploy Spacology playtest library
+name: Validate and deploy Spacology playtest library
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main, station-games-checkpoint]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -40,6 +36,10 @@ jobs:
           npm --prefix game ci
           npm --prefix runner-next ci
           npx playwright install --with-deps chromium
+      - name: Check root unit rules
+        run: npm run test:unit
+      - name: Check station games and preserved demo
+        run: npm run test:browser:release
       - name: Check expedition types and runner rules
         run: |
           npm --prefix game run check
@@ -50,9 +50,27 @@ jobs:
       - name: Check published paths and offline demo
         run: npm run test:pages
       - name: Upload site
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
