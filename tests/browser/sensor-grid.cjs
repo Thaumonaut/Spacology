@@ -23,8 +23,15 @@ try{
     const cell=i=>p.locator(`#mgStage [data-cell="${i}"]`),cls=async i=>(await cell(i).getAttribute('class'))||'';
     const count=sel=>p.locator('#mgStage '+sel).count();
     const tier=async()=>{await p.locator('#mgResult:not([hidden])').waitFor();return p.locator('#mgTier').innerText();};
-    const tap=async i=>{if(touch)await cell(i).tap();else await cell(i).click();};
-    const press=async sel=>{if(touch)await p.locator(sel).tap();else await p.locator(sel).click();};
+    const cdp=touch?await p.context().newCDPSession(p):null;
+    const tap=i=>press(`#mgStage [data-cell="${i}"]`);
+    // Keep taps and drags on one touch input channel: switching channels can swallow the next tap's click.
+    const press=async sel=>{
+      const target=p.locator(sel);if(!touch)return target.click();
+      await target.click({trial:true});const b=await target.boundingBox();
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:b.x+b.width/2,y:b.y+b.height/2}]});
+      await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    };
     const open=async()=>{await p.goto(url);await p.locator('#sgBoard').waitFor();};
     const mode=async m=>press(m==='x'?'#sgModeX':'#sgModeSensor');
     const undoStroke=async row=>{
@@ -89,7 +96,7 @@ try{
       await undoStroke(row);}
     // On the touch viewport, a real finger drag (CDP touch events) paints too, and does not also cycle the first cell.
     if(touch){
-      const cdp=await p.context().newCDPSession(p),row=[N-5,N-4,N-3],pts=[];for(const i of row){const [x,y]=await center(i);pts.push({x,y});}
+      const row=[N-5,N-4,N-3],pts=[];for(const i of row){const [x,y]=await center(i);pts.push({x,y});}
       await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[pts[0]]});
       for(const pt of pts.slice(1))for(let k=1;k<=4;k++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:pts[0].x+(pt.x-pts[0].x)*k/4,y:pt.y}]});
       await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
