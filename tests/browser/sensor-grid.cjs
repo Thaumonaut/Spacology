@@ -26,6 +26,11 @@ try{
     const press=async sel=>{if(touch)await p.locator(sel).tap();else await p.locator(sel).click();};
     const open=async()=>{await p.goto(url);await p.locator('#sgBoard').waitFor();};
     const mode=async m=>press(m==='x'?'#sgModeX':'#sgModeSensor');
+    const undoStroke=async row=>{
+      await press('#mgUndo');
+      await p.waitForFunction(row=>row.every(i=>!document.querySelector(`#mgStage [data-cell="${i}"]`).classList.contains('sg-x')),row);
+      for(const i of row)assert.doesNotMatch(await cls(i),/sg-x/,'undo stroke at '+tag);
+    };
     const sensorUntil=async i=>{if(!/sg-sensor/.test(await cls(i)))await tap(i);};
     // Each answer cell: one tap in Sensor mode (the default) places a sensor, from empty, × or auto-×.
     const solveRest=async()=>{for(const i of P.solution)await sensorUntil(i);};
@@ -79,7 +84,7 @@ try{
       for(const i of row.slice(1)){const [x,y]=await center(i);await p.mouse.move(x,y,{steps:4});}
       await p.mouse.up();
       for(const i of row)assert.match(await cls(i),/sg-x/,'dragged cell '+S.label(P,i)+' is × at '+tag+': '+(await p.locator('#mgStatus').innerText()));
-      await press('#mgUndo');for(const i of row)assert.doesNotMatch(await cls(i),/sg-x/);}
+      await undoStroke(row);}
     // On the touch viewport, a real finger drag (CDP touch events) paints too, and does not also cycle the first cell.
     if(touch){
       const cdp=await p.context().newCDPSession(p),row=[N-5,N-4,N-3],pts=[];for(const i of row){const [x,y]=await center(i);pts.push({x,y});}
@@ -87,7 +92,7 @@ try{
       for(const pt of pts.slice(1))for(let k=1;k<=4;k++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:pts[0].x+(pt.x-pts[0].x)*k/4,y:pt.y}]});
       await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
       for(const i of row){assert.match(await cls(i),/sg-x/,'touch-dragged cell '+S.label(P,i)+' is ×');assert.doesNotMatch(await cls(i),/sg-sensor/);}
-      await press('#mgUndo');for(const i of row)assert.doesNotMatch(await cls(i),/sg-x/);
+      await undoStroke(row);
     }
 
     // Two touching sensors clash (the second sits on an auto-×, one tap): both glow red, meter and status name it.

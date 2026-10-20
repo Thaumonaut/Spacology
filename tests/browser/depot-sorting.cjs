@@ -31,6 +31,11 @@ try{
     const press=async sel=>{if(touch)await p.locator(sel).tap();else await p.locator(sel).click();};
     const board=()=>p.locator('#dpBoard [data-bay]').evaluateAll(els=>els.map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)));
     const state=async()=>(await board()).map(b=>b.map(t=>TYPE_INDEX[t]));
+    const undo=async expected=>{
+      await press('#mgUndo');
+      await p.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('#dpBoard [data-bay]')].map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)))===JSON.stringify(want),expected.map(b=>b.map(t=>D.TYPES[t].id)));
+      assert.deepEqual(await state(),expected,'undo at '+tag);
+    };
     const move=async m=>{await tap(m.from);await tap(m.to);await idle();};
     const meter=()=>p.locator('#mgMeters').innerText();
     const tier=async()=>{await p.locator('#mgResult:not([hidden])').waitFor();return p.locator('#mgTier').innerText();};
@@ -70,7 +75,7 @@ try{
     // A legal move, then undo: the board and the move count go back.
     {const m=P.solution[0],want=D.apply(P,P.start,m).state;await move(m);
       assert.deepEqual(await state(),want);assert.match(await meter(),/Moves\s*1/i);
-      await press('#mgUndo');assert.deepEqual(await state(),P.start);assert.match(await meter(),/Moves\s*0/i);
+      await undo(P.start);assert.match(await meter(),/Moves\s*0/i);
       assert.equal(await p.locator('#mgUndo').isDisabled(),true);}
 
     // Drag: mouse on desktop, a real finger (CDP touch events) on touch viewports. The run drops where it is released.
@@ -86,7 +91,7 @@ try{
         await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
       await idle();assert.deepEqual(await state(),D.apply(P,P.start,m).state,'drag moved the run at '+tag);
       assert.equal(await p.locator('.dp-ghost-run').count(),0);assert.match(await meter(),/Moves\s*1/i);
-      await press('#mgUndo');assert.deepEqual(await state(),P.start);}
+      await undo(P.start);}
 
     // Guided: a lifted stack lights exactly its legal drops and dims the rest.
     {await setLevel('guided');const f=P.solution[0].from;await tap(f);

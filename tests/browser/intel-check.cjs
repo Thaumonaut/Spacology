@@ -188,7 +188,7 @@ try{
     await p.goto(`${BASE}/prototypes/intel-check.html?seed=${seed}&difficulty=veteran`);await onReport(0);
     const vet=M.generate(seed,'veteran');assert.equal(await p.locator('.ic-tab').count(),vet.docs.length);assert.equal(await p.locator('.ic-rule').count(),5,'five tells');
     assert.equal(await p.locator('#icStrip .ic-cell').count(),vet.reports.length);
-    if(tag===1024){const box=await p.locator('#icReport').boundingBox();assert.ok(box.y+box.height<=768,`Veteran manifest fits unscrolled (bottom ${box.y+box.height})`);}
+    if(tag===1024){const box=await p.locator('#icReport').boundingBox();assert.ok(box.y+box.height<=viewport.height+1,`Veteran manifest fits unscrolled within subpixel rounding (bottom ${box.y+box.height})`);}
     await targets(p,'veteran '+tag);await noOverflow(p,'veteran '+tag);
 
     // The night shift: play one night right, see night 2's NEW RULE banner, then three mistakes end the run with a best.
