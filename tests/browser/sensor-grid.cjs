@@ -17,6 +17,7 @@ try{
   for(const [viewport,difficulty,seed] of [[{width:1280,height:900},'expert',12],[{width:1024,height:768},'hard',5],[{width:390,height:844},'easy',7]]){
     const tag=viewport.width,touch=tag!==1280,p=await browser.newPage({serviceWorkers:'block',viewport,hasTouch:touch});const errors=[];
     p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    await p.addInitScript(()=>{window.inputLog=[];for(const type of ['touchstart','touchend','pointerup','pointercancel','click'])document.addEventListener(type,e=>{inputLog.push([type,e.target.closest('button')?.id,e.target.closest('[data-cell]')?.dataset.cell,e.clientX,e.clientY,scrollY]);if(inputLog.length>16)inputLog.shift();},true);});
     const shot=async name=>{if(SHOTS)await p.screenshot({path:`${SHOTS}/sensor-grid-${name}-${tag}.png`,fullPage:true});};
     const P=S.generate(seed,difficulty),G=S.geo(P),sol=new Set(P.solution),N=P.n*P.n,url=`${BASE}/prototypes/sensor-grid.html?seed=${seed}&difficulty=${difficulty}`;
     const cell=i=>p.locator(`#mgStage [data-cell="${i}"]`),cls=async i=>(await cell(i).getAttribute('class'))||'';
@@ -28,7 +29,8 @@ try{
     const mode=async m=>press(m==='x'?'#sgModeX':'#sgModeSensor');
     const undoStroke=async row=>{
       await press('#mgUndo');
-      await p.waitForFunction(row=>row.every(i=>!document.querySelector(`#mgStage [data-cell="${i}"]`).classList.contains('sg-x')),row);
+      try{await p.waitForFunction(row=>row.every(i=>!document.querySelector(`#mgStage [data-cell="${i}"]`).classList.contains('sg-x')),row);}
+      catch(e){console.error('Undo input at '+tag,await p.evaluate(()=>JSON.stringify({events:inputLog,status:document.getElementById('mgStatus').textContent})));throw e;}
       for(const i of row)assert.doesNotMatch(await cls(i),/sg-x/,'undo stroke at '+tag);
     };
     const sensorUntil=async i=>{if(!/sg-sensor/.test(await cls(i)))await tap(i);};

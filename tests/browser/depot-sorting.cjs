@@ -22,6 +22,7 @@ try{
   for(const [viewport,difficulty,seed] of [[{width:1280,height:900},'expert',12],[{width:1024,height:768},'hard',5],[{width:390,height:844},'normal',7]]){
     const tag=viewport.width,touch=tag!==1280,p=await browser.newPage({serviceWorkers:'block',viewport,hasTouch:touch});const errors=[];
     p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    await p.addInitScript(()=>{window.inputLog=[];for(const type of ['touchstart','touchend','pointerup','pointercancel','click'])document.addEventListener(type,e=>{inputLog.push([type,e.target.closest('button')?.id,e.target.closest('[data-bay]')?.dataset.bay,e.clientX,e.clientY,scrollY]);if(inputLog.length>16)inputLog.shift();},true);});
     const shot=async name=>{if(SHOTS)await p.screenshot({path:`${SHOTS}/depot-sorting-${name}-${tag}.png`,fullPage:true});};
     const P=D.generate(seed,difficulty),url=`${BASE}/prototypes/depot-sorting.html?seed=${seed}&difficulty=${difficulty}`;
     const bay=i=>p.locator(`#dpBoard [data-bay="${i}"]`);
@@ -33,7 +34,8 @@ try{
     const state=async()=>(await board()).map(b=>b.map(t=>TYPE_INDEX[t]));
     const undo=async expected=>{
       await press('#mgUndo');
-      await p.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('#dpBoard [data-bay]')].map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)))===JSON.stringify(want),expected.map(b=>b.map(t=>D.TYPES[t].id)));
+      try{await p.waitForFunction(want=>JSON.stringify([...document.querySelectorAll('#dpBoard [data-bay]')].map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)))===JSON.stringify(want),expected.map(b=>b.map(t=>D.TYPES[t].id)));}
+      catch(e){console.error('Undo input at '+tag,await p.evaluate(()=>JSON.stringify({events:inputLog,status:document.getElementById('mgStatus').textContent})));throw e;}
       assert.deepEqual(await state(),expected,'undo at '+tag);
     };
     const move=async m=>{await tap(m.from);await tap(m.to);await idle();};

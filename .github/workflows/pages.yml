@@ -36,10 +36,10 @@ jobs:
           npm --prefix game ci
           npm --prefix runner-next ci
           npx playwright install --with-deps chromium
-      - name: Check root unit rules
-        run: npm run test:unit
       - name: Check station games and preserved demo
         run: npm run test:browser:release
+      - name: Check root unit rules
+        run: npm run test:unit
       - name: Check expedition types and runner rules
         run: |
           npm --prefix game run check
