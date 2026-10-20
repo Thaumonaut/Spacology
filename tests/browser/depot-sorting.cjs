@@ -28,15 +28,8 @@ try{
     const bay=i=>p.locator(`#dpBoard [data-bay="${i}"]`);
     const cls=async i=>(await bay(i).getAttribute('class'))||'';
     const idle=()=>p.locator('#dpBoard[data-busy="0"]').waitFor();
-    const cdp=touch?await p.context().newCDPSession(p):null;
-    const tap=i=>press(`#dpBoard [data-bay="${i}"]`);
-    // Keep taps and drags on one touch input channel: switching channels can swallow the next tap's click.
-    const press=async sel=>{
-      const target=p.locator(sel);if(!touch)return target.click();
-      await target.click({trial:true});const b=await target.boundingBox();
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:b.x+b.width/2,y:b.y+b.height/2}]});
-      await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-    };
+    const tap=async i=>{if(touch)await bay(i).tap();else await bay(i).click();};
+    const press=async sel=>{if(touch)await p.locator(sel).tap();else await p.locator(sel).click();};
     const board=()=>p.locator('#dpBoard [data-bay]').evaluateAll(els=>els.map(e=>[...e.querySelectorAll('.dp-stack .dp-crate')].map(c=>c.dataset.type)));
     const state=async()=>(await board()).map(b=>b.map(t=>TYPE_INDEX[t]));
     const undo=async expected=>{
@@ -92,12 +85,14 @@ try{
       const a=await center(m.from),b=await center(m.to);
       if(!touch){await p.mouse.move(a.x,a.y);await p.mouse.down();await p.mouse.move((a.x+b.x)/2,a.y-60,{steps:5});
         assert.equal(await p.locator('.dp-ghost-run').count(),1,'a ghost run follows the pointer');await p.mouse.move(b.x,b.y,{steps:5});await p.mouse.up();}
-      else{
+      else{const cdp=await p.context().newCDPSession(p);
         await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[a]});
         // Sideways first (vertical swipes scroll the page), then on to the target bay.
         const side=b.x>=a.x?1:-1;await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:a.x+side*16,y:a.y}]});
         for(let k=1;k<=6;k++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:a.x+side*16+(b.x-a.x-side*16)*k/6,y:a.y+(b.y-a.y)*k/6}]});
-        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+        // Lift from rest: a fling suppresses the next tap in Chromium.
+        await p.waitForTimeout(200);
+        await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();}
       await idle();assert.deepEqual(await state(),D.apply(P,P.start,m).state,'drag moved the run at '+tag);
       assert.equal(await p.locator('.dp-ghost-run').count(),0);assert.match(await meter(),/Moves\s*1/i);
       await undo(P.start);}
