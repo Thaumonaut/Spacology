@@ -23,6 +23,15 @@ try{
   await p.locator('#world').focus();const x=(await state(p)).camera.x;await p.keyboard.press('ArrowRight');assert.ok((await state(p)).camera.x>x);await p.keyboard.press('r');await ready(p);assert.equal((await state(p)).camera.span,32);
   await p.locator('#economy').click();await ready(p);assert.equal((await state(p)).step,2);assert.deepEqual((await state(p)).deposit,original);await p.locator('#economy').click();await ready(p);
   const before=(await state(p)).camera;await p.mouse.move(rect.x+rect.width*.65,rect.y+rect.height*.45);await p.mouse.down();await p.mouse.move(rect.x+rect.width*.65+80,rect.y+rect.height*.45+30,{steps:5});await p.mouse.up();await ready(p);assert.notDeepEqual((await state(p)).camera,before,'drag pans');
+  for(const [dx,dy] of [[70,0],[-70,0],[0,60],[0,-60],[45,35]]){
+    await p.locator('#close').click();await ready(p);
+    const landmark=await p.evaluate(()=>MicroWorldLab.project(49,8,58)),bounds=await p.locator('#world').boundingBox();
+    const x=bounds.x+bounds.width*.8,y=bounds.y+bounds.height*.6;
+    await p.mouse.move(x,y);await p.mouse.down();await p.mouse.move(x+dx,y+dy,{steps:4});await p.mouse.up();await ready(p);
+    const moved=await p.evaluate(()=>MicroWorldLab.project(49,8,58));
+    assert.ok(Math.abs(moved.x-landmark.x-dx)<1&&Math.abs(moved.y-landmark.y-dy)<1,`terrain follows drag by (${dx}, ${dy}) pixels`);
+    assert.equal(await p.locator('#inspection').isVisible(),false,'drag does not inspect terrain');
+  }
   await p.locator('#wide').click();await ready(p);assert.equal((await state(p)).step,4);await p.locator('#close').click();await ready(p);
   const snapshot=await state(p);assert.ok(snapshot.meshCacheBytes<=snapshot.meshCacheLimit&&snapshot.meshCacheEntries<=320);assert.ok(snapshot.voxelCacheBytes<=4*1024*1024&&snapshot.voxelCacheEntries<=128);assert.ok(snapshot.cacheHits>0,'warm data reused');
   await p.locator('#metrics').click();assert.equal(await p.locator('#performance').isVisible(),true);assert.match(await p.locator('#metricList').innerText(),/Not measured/);
@@ -37,9 +46,31 @@ try{
     await p.setViewportSize({width,height});await p.locator('#close').click();await ready(p);
     assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),'fixed-screen layout');
     const canvas=await p.locator('#world').boundingBox();assert.ok(canvas.height>=100&&canvas.width<=width);
-    for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','metrics']){const r=await p.locator('#'+id).boundingBox();assert.ok(r.width>=44&&r.height>=44&&r.y+r.height<=height,'visible touch targets');}
+    for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','metrics','densityBase','densityFine']){const r=await p.locator('#'+id).boundingBox();assert.ok(r.width>=44&&r.height>=44&&r.y+r.height<=height,'visible touch targets');}
     await p.locator('#metrics').click();assert.ok(await p.locator('#performance').evaluate(el=>el.scrollWidth<=el.clientWidth),'dialog does not overflow');await p.keyboard.press('Escape');
   }
+  // Density changes actual cells, not metres, resource identity or camera framing.
+  await p.setViewportSize({width:1280,height:850});await p.locator('#close').click();await ready(p);
+  const baseline=await state(p);await p.locator('#densityFine').click();await ready(p);const fine=await state(p);
+  assert.equal(fine.cellMetres,.125);assert.deepEqual(fine.chunkCells,[64,192,64]);assert.equal(fine.chunkMetres,8);assert.equal(fine.step,1);
+  assert.equal(fine.worldId,baseline.worldId);assert.equal(fine.deposit.id,baseline.deposit.id);assert.notEqual(fine.dataId,baseline.dataId);assert.deepEqual(fine.camera,baseline.camera);
+  await p.waitForFunction(n=>MicroWorldLab.snapshot().triangles>n,baseline.triangles);
+  assert.equal(await p.locator('#densityFine').getAttribute('aria-pressed'),'true');assert.match(p.url(),/cell=0.125/);
+  for(const a of fine.actors)assert.equal(a.y,M.createWorld(2718,.125).ground(a.x,a.z));
+  assert.ok(fine.meshCacheBytes<=32*1024*1024&&fine.voxelCacheBytes<=4*1024*1024,'fine mode respects unchanged budgets');
+  await p.locator('#metrics').click();assert.match(await p.locator('#metricList').innerText(),/0.125 m/);await p.keyboard.press('Escape');
+  for(let i=0;i<8;i++)await p.locator('#zoomIn').click();await ready(p);assert.equal((await state(p)).camera.span,8,'fine voxels can be inspected close up');await p.locator('#close').click();await ready(p);
+  await p.locator('#rootMarker').click();assert.match(await p.locator('#inspectPosition').innerText(),new RegExp(fine.deposit.id));await p.locator('#closeInspection').click();
+  await p.reload();await ready(p);assert.equal((await state(p)).cellMetres,.125,'reload retains density');
+  await p.locator('#wide').click();await ready(p);assert.equal((await state(p)).step,8,'wide views keep metre-scale LOD');
+  await p.locator('#densityBase').click();await p.locator('#densityFine').click();await p.locator('#densityBase').click();await ready(p);
+  assert.equal((await state(p)).cellMetres,.25);assert.equal((await state(p)).dataId,baseline.dataId,'rapid switches reject obsolete meshes');
+  const edge=await p.evaluate(()=>{
+    const canvas=document.getElementById('world'),r=canvas.getBoundingClientRect(),view={canvas,width:r.width,height:r.height,aspect:r.width/r.height},camera={x:64,z:64,span:140},world=MicroWorld.createWorld(2718);
+    const projected=MicroRenderer.prototype.project.call(view,camera,127.875,world.ground(127.875,64),64);
+    return MicroRenderer.prototype.pick.call(view,camera,r.left+projected.x,r.top+projected.y,world);
+  });
+  assert.ok(edge.x>=0&&edge.x<128&&Math.abs(edge.x-127.875)<.2&&Math.abs(edge.z-64)<.2,'off-map air does not hide valid edge terrain');
   assert.ok(requests.every(r=>r.startsWith(BASE)),'no external runtime dependency');assert.deepEqual(errors,[]);
   if(process.env.SPACOLOGY_ARTIFACT_DIR){fs.mkdirSync(process.env.SPACOLOGY_ARTIFACT_DIR,{recursive:true});await p.setViewportSize({width:1280,height:850});await p.locator('#wide').click();await ready(p);await p.locator('#notice').waitFor({state:'hidden'});await p.screenshot({path:path.join(process.env.SPACOLOGY_ARTIFACT_DIR,'microvoxel-wide.png')});await p.locator('#close').click();await ready(p);await p.locator('#notice').waitFor({state:'hidden'});await p.screenshot({path:path.join(process.env.SPACOLOGY_ARTIFACT_DIR,'microvoxel-site.png')});fs.writeFileSync(path.join(process.env.SPACOLOGY_ARTIFACT_DIR,'microvoxel-browser-metrics.json'),JSON.stringify(await state(p),null,2));}
   await context.close();
@@ -51,10 +82,21 @@ try{
     await copy.goto(pathToFileURL(file).href);await ready(copy);assert.deepEqual((await state(copy)).deposit,original);
     await copy.locator('#close').click();await ready(copy);await copy.locator('#rootMarker').click();assert.match(await copy.locator('#inspectBody').innerText(),/western fault/);
     await copy.locator('#info').click();await copy.locator('#seed').fill('39');await copy.locator('#seedForm button').click();await ready(copy);assert.equal((await state(copy)).seed,39);
+    await copy.locator('#densityFine').click();await copy.locator('#close').click();await ready(copy);assert.equal((await state(copy)).cellMetres,.125,'fine offline package uses the real worker');
     assert.deepEqual(copyErrors,[],'exact single-file copy runs offline');assert.ok(copyRequests.every(r=>!/^https?:/.test(r)),'no network loads from the package');await offline.close();
   }finally{fs.rmSync(temporary,{recursive:true,force:true});}
   // Touch input uses the same pointer map and controls.
-  const touch=await browser.newContext({serviceWorkers:'block',hasTouch:true,isMobile:true,viewport:{width:390,height:844}}),phone=await touch.newPage();await phone.goto(URL);await ready(phone);await phone.locator('#close').tap();await ready(phone);await phone.locator('#rootMarker').tap();assert.equal(await phone.locator('#inspection').isVisible(),true);await phone.locator('#closeInspection').tap();await phone.locator('#zoomIn').tap();await ready(phone);assert.ok((await state(phone)).camera.span<32);await touch.close();
+  const touch=await browser.newContext({serviceWorkers:'block',hasTouch:true,isMobile:true,viewport:{width:390,height:844}}),phone=await touch.newPage();await phone.goto(URL);await ready(phone);await phone.locator('#close').tap();await ready(phone);await phone.locator('#rootMarker').tap();assert.equal(await phone.locator('#inspection').isVisible(),true);await phone.locator('#closeInspection').tap();await phone.locator('#zoomIn').tap();await ready(phone);assert.ok((await state(phone)).camera.span<32);
+  await phone.locator('#densityFine').tap();await ready(phone);assert.equal((await state(phone)).cellMetres,.125);
+  const finger=await touch.newCDPSession(phone);
+  for(const [dx,dy] of [[0,45],[0,-45],[45,0],[-45,0]]){
+    const landmark=await phone.evaluate(()=>MicroWorldLab.project(49,8,58)),r=await phone.locator('#world').boundingBox(),x=r.x+r.width*.75,y=r.y+r.height*.6;
+    await finger.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    for(let i=1;i<=4;i++)await finger.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+dx*i/4,y:y+dy*i/4}]});
+    await finger.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await ready(phone);
+    const moved=await phone.evaluate(()=>MicroWorldLab.project(49,8,58));assert.ok(Math.abs(moved.x-landmark.x-dx)<1&&Math.abs(moved.y-landmark.y-dy)<1,'terrain follows native touch drag in both axes');
+  }
+  await finger.detach();await touch.close();
   const unsupported=await browser.newContext();await unsupported.addInitScript(()=>{const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return type==='webgl2'?null:get.call(this,type,...args);};});const fallback=await unsupported.newPage();await fallback.goto(URL);await fallback.locator('#notice').waitFor();assert.match(await fallback.locator('#notice').innerText(),/WebGL2 is unavailable/);assert.equal(await fallback.locator('#close').isDisabled(),true);assert.ok(await fallback.locator('.brand').isVisible());await unsupported.close();
   const lost=await browser.newPage();await lost.goto(URL);await ready(lost);await lost.evaluate(()=>document.getElementById('world').getContext('webgl2').getExtension('WEBGL_lose_context').loseContext());await lost.waitForFunction(()=>MicroWorldLab.snapshot().failed);assert.match(await lost.locator('#notice').innerText(),/context lost/);await lost.close();
   console.log('PASS microvoxel browser: rendered world, input/projection, crew/pause, seed/LOD identity, bounded caches, export, responsive/touch, reduced motion, WebGL fallback/context loss; zero runtime errors');

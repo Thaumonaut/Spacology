@@ -7,7 +7,9 @@
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
-  function createWorld(seed=2718){
+  function createWorld(seed=2718,cellMetres=CELL){
+    if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
+    const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=HEIGHT*density;
     seed=Number(seed)>>>0;
     const id=`catchment:${REVISION}:${seed}`,trees=new Map();
     function geography(x,z){
@@ -20,15 +22,15 @@
       const bank=clamp((riverDistance-2.3)/8,0,1);
       h=5+(h-5)*bank;
       const exposed=ridge>.45||fault<1.4&&x<45;
-      return {height:clamp(Math.floor(h/CELL),1,HEIGHT-28),riverDistance,ridge,fault,clearing,exposed,wet:riverDistance<12};
+      return {height:clamp(Math.floor(h/cellMetres),1,heightCells-28*density),riverDistance,ridge,fault,clearing,exposed,wet:riverDistance<12};
     }
-    function ground(x,z){return geography((Math.floor(x/CELL)+.5)*CELL,(Math.floor(z/CELL)+.5)*CELL).height*CELL;}
+    function ground(x,z){if(x<0||z<0||x>=EXTENT||z>=EXTENT)return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
     function tree(gx,gz){
       if(gx<0||gz<0||gx>25||gz>25)return null;
       const key=gz*26+gx;if(trees.has(key))return trees.get(key);
       const x=(gx+.2+.6*hash(gx,gz,seed+9))*5,z=(gz+.2+.6*hash(gx,gz,seed+11))*5;
       const g=geography(x,z);
-      const value=x<1||z<1||x>EXTENT-1||z>EXTENT-1||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:12+Math.floor(hash(gx,gz,seed+4)*9),radius:5+Math.floor(hash(gx,gz,seed+5)*3)};
+      const value=x<1||z<1||x>EXTENT-1||z>EXTENT-1||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
       if(value)Object.freeze(value);trees.set(key,value);return value;
     }
     // Choose a root from exposed, fault-adjacent rock; the rule and identity survive all render changes.
@@ -36,51 +38,55 @@
     for(let z=40;z<77;z+=.5)for(let x=34;x<44;x+=.5){const g=geography(x,z);if(g.exposed&&g.fault<1){const s=Math.hypot(x-42,z-58);if(s<score){score=s;rootSite={x,z};}}}
     const deposit=Object.freeze({id:`${id}:ore:root`,kind:'Ferrite',x:rootSite.x,z:rootSite.z,y:ground(rootSite.x,rootSite.z),rule:'Exposed basalt along the western fault above the river catchment',geology:'Fault-exposed basalt',surveyed:true});
     function column(vx,vz){
-      const values=new Uint8Array(HEIGHT);
-      const x=(vx+.5)*CELL,z=(vz+.5)*CELL;
+      const values=new Uint8Array(heightCells);
+      const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
       if(x<0||z<0||x>=EXTENT||z>=EXTENT)return values;
       const g=geography(x,z),h=g.height;
-      values.fill(MAT.basalt,0,Math.max(0,h-4));
-      values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4),h);
+      values.fill(MAT.basalt,0,Math.max(0,h-4*density));
+      values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
       values[h-1]=g.exposed?MAT.basalt:g.riverDistance<9?MAT.sand:MAT.grass;
-      if(Math.hypot(x-deposit.x,z-deposit.z)<1.15&&g.exposed)values.fill(MAT.ore,h-3,h);
-      if(h<24&&g.riverDistance<7)values.fill(MAT.water,h,24);
+      if(Math.hypot(x-deposit.x,z-deposit.z)<1.15&&g.exposed)values.fill(MAT.ore,h-3*density,h);
+      if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       const gx=Math.floor(x/5),gz=Math.floor(z/5);
       for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
-        const dist=Math.hypot((x-t.x)/CELL,(z-t.z)/CELL),top=t.base+t.height;
-        if(dist<.72)values.fill(MAT.bark,t.base,top);
+        const dist=Math.hypot((x-t.x)/cellMetres,(z-t.z)/cellMetres),top=t.base+t.height;
+        if(dist<.72*density)values.fill(MAT.bark,t.base,top);
         if(dist<t.radius){
           const rise=Math.sqrt(t.radius*t.radius-dist*dist);
-          const low=Math.max(t.base+5,Math.floor(top-rise*.55)),high=Math.min(HEIGHT,Math.ceil(top+rise*.65));
+          const low=Math.max(t.base+5*density,Math.floor(top-rise*.55)),high=Math.min(heightCells,Math.ceil(top+rise*.65));
           for(let y=low;y<high;y++)if(!values[y])values[y]=MAT.leaf;
         }
       }
-      if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(vx,vz,seed+52)>.994&&values[h]===0)values[h]=MAT.flower;
+      if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);
       return values;
     }
     function generateChunk(cx,cz){
       if(!Number.isInteger(cx)||!Number.isInteger(cz))throw new Error('Integer chunk coordinates required');
-      const offsets=new Uint16Array(CHUNK*CHUNK+1),ends=[],materials=[];
-      for(let z=0;z<CHUNK;z++)for(let x=0;x<CHUNK;x++){
-        const i=z*CHUNK+x,v=column(cx*CHUNK+x,cz*CHUNK+z);offsets[i]=ends.length;
-        for(let y=0;y<HEIGHT;){const material=v[y];let end=y+1;while(end<HEIGHT&&v[end]===material)end++;ends.push(end);materials.push(material);y=end;}
+      const offsets=new Uint16Array(chunkCells*chunkCells+1),ends=[],materials=[];
+      for(let z=0;z<chunkCells;z++)for(let x=0;x<chunkCells;x++){
+        const i=z*chunkCells+x,v=column(cx*chunkCells+x,cz*chunkCells+z);offsets[i]=ends.length;
+        for(let y=0;y<heightCells;){const material=v[y];let end=y+1;while(end<heightCells&&v[end]===material)end++;ends.push(end);materials.push(material);y=end;}
       }
-      offsets[CHUNK*CHUNK]=ends.length;
-      const chunk={cx,cz,offsets,ends:Uint8Array.from(ends),materials:Uint8Array.from(materials)};
+      if(ends.length>65535)throw new Error('Column runs exceed the chunk offset format');
+      offsets[chunkCells*chunkCells]=ends.length;
+      const chunk={cx,cz,size:chunkCells,height:heightCells,cell:cellMetres,offsets,ends:Uint8Array.from(ends),materials:Uint8Array.from(materials)};
       chunk.bytes=chunk.offsets.byteLength+chunk.ends.byteLength+chunk.materials.byteLength;
       return chunk;
     }
-    return Object.freeze({id,seed,revision:REVISION,deposit,geography,ground,column,tree,generateChunk});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}`,seed,revision:REVISION,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk});
   }
   function voxel(chunk,x,y,z){
+    const {size:CHUNK,height:HEIGHT}=chunk;
     if(x<0||z<0||y<0||x>=CHUNK||z>=CHUNK||y>=HEIGHT)return MAT.air;
     const i=z*CHUNK+x;
     for(let r=chunk.offsets[i];r<chunk.offsets[i+1];r++)if(y<chunk.ends[r])return chunk.materials[r];
     return MAT.air;
   }
   function meshChunk(world,chunk,step=1){
-    if(![1,2,4].includes(step))throw new Error('Render step must be 1, 2 or 4');
+    const {size:CHUNK,height:HEIGHT}=chunk;
+    if(chunk.cell!==world.cell)throw new Error('Chunk resolution does not match the world');
+    if(![1,2,4,8].includes(step))throw new Error('Render step must be 1, 2, 4 or 8');
     const nx=CHUNK/step,ny=HEIGHT/step,dims=[nx,ny,nx],halo=nx+2;
     const dense=new Uint8Array(halo*halo*(ny+2));
     const at=(x,y,z)=>dense[(z+1)*halo*(ny+2)+(y+1)*halo+x+1];

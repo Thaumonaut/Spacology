@@ -90,10 +90,11 @@
       else part(0,1.2,-.28,.42,.5,.22,12);
     }
     project(camera,x,y,z){const halfY=camera.span/2/this.aspect,dx=x-camera.x,dz=z-camera.z;return {x:this.width*(.5+(dx*CY-dz*SY)/camera.span),y:this.height*(.5-((y-8)*C-(dx*SY+dz*CY)*S)/(2*halfY))};}
+    pan(camera,dx,dy){const horizontal=-dx*camera.span/this.width,forward=-dy*camera.span/(this.width*S);camera.x+=horizontal*CY+forward*SY;camera.z+=-horizontal*SY+forward*CY;}
     pick(camera,clientX,clientY,world){
       const r=this.canvas.getBoundingClientRect(),horizontal=(clientX-r.left-r.width/2)/r.width*camera.span,vertical=(.5-(clientY-r.top)/r.height)*camera.span/this.aspect;
       // March from the camera-facing end, so a cliff cannot select hidden ground behind itself.
-      for(let y=24;y>=0;y-=.0625){const forward=((y-8)*C-vertical)/S,x=camera.x+horizontal*CY+forward*SY,z=camera.z-horizontal*SY+forward*CY,ground=world.ground(x,z);if(y<=ground)return {x,z,y:ground};}
+      for(let y=world.heightMetres;y>=0;y-=.0625){const forward=((y-8)*C-vertical)/S,x=camera.x+horizontal*CY+forward*SY,z=camera.z-horizontal*SY+forward*CY,ground=world.ground(x,z);if(ground!==null&&y<=ground)return {x,z,y:ground};}
       return {x:-1,y:0,z:-1};
     }
   }

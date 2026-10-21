@@ -16,6 +16,15 @@ The lab SHALL provide orthographic close/wide views of the same river catchment 
 #### Scenario: Inspect the root
 - **WHEN** the root is selected from either view
 - **THEN** the same stable ID, coordinates and geographic reason are shown
+#### Scenario: Drag the landscape
+- **WHEN** a finger or cursor drags an unclamped terrain view in any screen direction
+- **THEN** a fixed terrain landmark moves by the same screen displacement, without vertical inversion
+
+### Requirement: Measured finer-density comparison
+The lab SHALL offer 25 cm and 12.5 cm authoritative voxel cells with the same physical catchment, chunk volumes, feature scale and resource identity. The 25 cm baseline SHALL remain the default. Metrics and exports SHALL identify density, and cache limits SHALL remain unchanged.
+#### Scenario: Compare cell sizes
+- **WHEN** density changes at a fixed camera position
+- **THEN** finer voxel ground regenerates, camera framing and resource X/Z remain fixed, obsolete replies cannot populate the view, and measurements restart for the new density
 
 ### Requirement: Honest fallback
 The lab SHALL communicate unsupported WebGL2, worker failures and context loss without pretending the world is ready. Missing chunks SHALL have a loading state. Economy rendering SHALL NOT change voxel truth.

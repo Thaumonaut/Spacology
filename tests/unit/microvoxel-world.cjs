@@ -26,6 +26,7 @@ for(let i=0;i<forward.length;i++){
 }
 assert.deepEqual(w.generateChunk(5,7),forward[1],'regeneration is byte-identical');
 assert.ok(w.generateChunk(-1,-1).materials.every(m=>m===0),'out of bounds is empty');
+for(const [x,z] of [[-1,64],[128,64],[64,-1],[64,128]])assert.equal(w.ground(x,z),null,'off-map ground cannot block a pick ray');
 assert.throws(()=>w.generateChunk(.5,0));assert.throws(()=>M.meshChunk(w,forward[0],3));
 function coverage(mesh){
   const data=new DataView(mesh.buffer);let area=0;
@@ -68,6 +69,26 @@ for(const [c,side] of [[forward[0],1],[forward[1],0]]){
 }
 const clearing=w.generateChunk(6,7),coarse=M.meshChunk(w,clearing,4),dv=new DataView(coarse.buffer);
 assert.ok(Array.from({length:coarse.count},(_,i)=>dv.getUint8(i*8+7)).includes(M.MAT.grass),'coarse render preserves grass, not buried soil');
+const fine=M.createWorld(2718,.125),fineChunk=fine.generateChunk(4,7);
+assert.equal(fine.chunkMetres,w.chunkMetres);assert.equal(fine.heightMetres,w.heightMetres);
+assert.equal(fine.chunkCells,w.chunkCells*2);assert.equal(fine.heightCells,w.heightCells*2);
+assert.equal(fine.id,w.id);assert.equal(fine.deposit.id,w.deposit.id);assert.notEqual(fine.dataId,w.dataId);
+for(const field of ['x','z','rule','geology'])assert.equal(fine.deposit[field],w.deposit[field],'resource meaning and map position do not move');
+assert.equal(fine.ground(49,58),8);assert.equal(fine.column(0,0).length,192);
+assert.throws(()=>M.createWorld(2718,.1));assert.throws(()=>M.meshChunk(fine,forward[0]));
+assert.ok(fineChunk.bytes<fine.chunkCells*fine.chunkCells*fine.heightCells*.2);
+for(let z=0;z<fineChunk.size;z++)for(let x=0;x<fineChunk.size;x++){
+  const col=fine.column(fineChunk.cx*fineChunk.size+x,fineChunk.cz*fineChunk.size+z);
+  for(let y=0;y<fineChunk.height;y++)assert.equal(M.voxel(fineChunk,x,y,z),col[y],'fine runs remain lossless through 192 vertical cells');
+}
+for(const step of [1,2,4,8])coverage(M.meshChunk(fine,fineChunk,step));
+assert.deepEqual(fineChunk,M.createWorld(2718,.125).generateChunk(4,7),'fine chunks regenerate byte-identically');
+for(let z=0;z<26;z++)for(let x=0;x<26;x++){
+  const a=w.tree(x,z),b=fine.tree(x,z);assert.equal(!!a,!!b);
+  if(a){assert.equal(a.x,b.x);assert.equal(a.z,b.z);assert.equal(a.height*w.cell,b.height*fine.cell);assert.equal(a.radius*w.cell,b.radius*fine.cell);}
+}
+const riverZ=58,riverFine=fine.column(Math.floor(M.riverX(riverZ)/fine.cell),Math.floor(riverZ/fine.cell));
+assert.equal(riverFine[6/fine.cell-1],M.MAT.water);assert.equal(riverFine[6/fine.cell],M.MAT.air,'water level stays at six metres');
 let disposed=[];const cache=new M.BudgetCache(2,10,v=>disposed.push(v.id));
 cache.set('a',{bytes:4,id:'a'});cache.set('b',{bytes:4,id:'b'});cache.get('a');cache.set('c',{bytes:4,id:'c'});assert.deepEqual(disposed,['b']);assert.equal(cache.bytes,8);
 cache.set('a',{bytes:7,id:'a2'});assert.deepEqual(disposed,['b','a','c']);assert.equal(cache.bytes,7);
