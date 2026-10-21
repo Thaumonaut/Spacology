@@ -16,6 +16,40 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     const row=(t,n)=>Array.from({length:n*2+1},(_,k)=>t+k-n),col=(t,n)=>Array.from({length:n*2+1},(_,k)=>t+(k-n)*puzzle.W);
     await reset();
     assert.equal(await p.locator('.rp-coord').nth(puzzle.W-1).textContent(),'AB','dense grids use readable column names beyond Z');
+    for(const s of puzzle.stations){
+      const plot=p.locator(`[data-${s.day===1?'station':'planned'}="${s.id}"] .rp-plot-recipe`),text=await plot.textContent();
+      assert.match(text,/TAKES[\s\S]*RETURNS/,'active and future plots have explicit input/output labels');
+      if(s.recipe)for(const [type,qty] of Object.entries(s.recipe.input))assert.ok(text.includes(`${qty} ${P.TYPES[type].name}`),'every ingredient is named with its batch quantity');
+      if(s.kind==='producer')assert.ok(text.includes(`1 ${P.TYPES[s.type].name}`),'output is named with its quantity');
+      else assert.match(text,/Gear kit[\s\S]*RETURNSNothing/,'dispatch is an explicit sink');
+    }
+    assert.deepEqual(await p.locator('.rp-plot').evaluateAll(plots=>plots.flatMap(plot=>{const r=plot.querySelector('rect').getBBox();return [...plot.querySelectorAll('text:not(.rp-port-label)')].filter(t=>{const b=t.getBBox();return b.x<r.x||b.x+b.width>r.x+r.width||b.y<r.y||b.y+b.height>r.y+r.height;}).map(t=>t.textContent);})),[],'all plot text fits its footprint');
+    for(const s of puzzle.stations.filter(s=>s.day===1)){
+      await inspect(s.footprint[0]);
+      assert.deepEqual(await p.locator('.rp-recipe dt').allTextContents(),['Takes','Returns']);
+      const text=await p.locator('.rp-recipe').innerText();
+      if(s.recipe)for(const [type,qty] of Object.entries(s.recipe.input))assert.ok(text.includes(`${qty} ${P.TYPES[type].name}`),'card matches Supply Run recipe');
+      const expected=puzzle.stations.filter(other=>other.day===1&&((other.kind==='producer'&&s.needs.includes(other.type))||(s.kind==='producer'&&other.needs.includes(s.type))));
+      assert.equal(await p.locator('.rp-chain-path').count(),expected.length,'selection highlights direct suppliers and destinations automatically');
+      assert.equal(await p.locator('.rp-plot.selected').count(),1);
+      for(const other of expected){
+        assert.equal(await p.locator(`[data-site="${other.id}"]`).count(),1,'named partner can be located');
+        const incoming=other.kind==='producer'&&s.needs.includes(other.type),src=incoming?other:s,dst=incoming?s:other;
+        const arrow=p.locator(`.rp-chain-path[data-from="${src.id}"][data-to="${dst.id}"]`);
+        assert.equal(await arrow.count(),1,'arrow runs from output to matching input');
+        assert.equal(await arrow.getAttribute('marker-end'),`url(#rpFlow${src.type})`,'direction is visible, not only encoded by color');
+      }
+      await p.locator('.rp-card-x').click();assert.equal(await p.locator('.rp-chain-path').count(),0,'closing selection clears supply guides');
+    }
+    const workshop=puzzle.stations.find(s=>s.type===4),refinery=puzzle.stations.find(s=>s.type===2),mine=puzzle.stations.find(s=>s.type===0);
+    await inspect(workshop.footprint[0]);
+    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-recipes-card-${width}.png`});
+    const fittedView=await p.locator('#rpMap').getAttribute('viewBox');await p.locator(`[data-site="${refinery.id}"]`).click();
+    assert.equal(await p.locator('#rpMap').getAttribute('viewBox'),fittedView,'locating a partner in Fit keeps the entire network visible');
+    assert.match(await p.locator('#rpCard').innerText(),/Refinery[\s\S]*2 Ore[\s\S]*1 Plate/,'follow a named input to its supplier');
+    await p.locator(`[data-site="${mine.id}"]`).click();assert.match(await p.locator('.rp-recipe').innerText(),/Nothing · raw extraction[\s\S]*1 Ore/);
+    const future=puzzle.stations.find(s=>s.day>1&&s.type===2);await p.locator(`[data-site="${future.id}"]`).click();assert.match(await p.locator('#rpCard').innerText(),/Planned · night 3[\s\S]*2 Ore[\s\S]*1 Plate/i,'future partner is marked planned, not active');
+    await p.locator('#rpFit').click();await p.locator('.rp-card-x').click();
     const consumer=puzzle.stations.find(s=>s.kind==='consumer'),factory=puzzle.stations.find(s=>s.recipe);
     await inspect(consumer.footprint[0]);assert.match(await p.locator('#rpCard').innerText(),/Routine order[\s\S]*Dispatch peak[\s\S]*due/);
     await p.locator('[data-chain]').click();assert.ok(await p.locator('.rp-chain-path').count()>=5,'entire upstream chain is highlighted');await p.locator('.rp-card-x').click();
@@ -43,7 +77,9 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     const street=center-2;assert.equal(model.net.e[street]&1,0,'parallel street remains disconnected');await inspect(street);await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});assert.equal(model.net.e[street-1]&1,0,'only selected link is added');await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});await p.locator('.rp-card-x').click();
     const warehouse=model.net.tier.flatMap((tier,i)=>tier?P.DIRS.map((_,d)=>P.neighbour(puzzle,i,d)):[]).find(tile=>tile>=0&&!P.costOf(puzzle,model,{type:'warehouse',tile}).why);assert.notEqual(warehouse,undefined);
     await tool('warehouse');await tap(warehouse);await sync({type:'warehouse',tile:warehouse});await inspect(warehouse);
+    assert.match(await p.locator('.rp-recipe').innerText(),/Nothing until assigned[\s\S]*Same goods · no processing/,'warehouse stages goods rather than transforming them');
     await p.locator('#rpStockTarget').selectOption(`${consumer.id}:4`);await p.locator('#rpStockQty').fill('3');await p.locator('#rpStockForm [type="submit"]').click();await sync({type:'prepare',tile:warehouse,target:consumer.id,item:4,qty:3});assert.match(await p.locator('#rpCard').innerText(),/Reserved for/);
+    assert.match(await p.locator('.rp-recipe').innerText(),/Gear kit[\s\S]*Same goods/,'warehouse names the assigned stock');
     await p.locator('[data-unprepare]').click();await sync({type:'unprepare',tile:warehouse});assert.equal(await p.locator('[data-unprepare]').count(),0);
     await p.locator('.rp-card-x').click();await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.deepEqual(await p.evaluate(()=>window.RoutePlanningUI.sim.wh[0].plan),model.wh[0].plan,'reservation edits support undo');
     for(let k=0;k<10;k++)await p.locator('#rpZoomIn').click();assert.equal(await p.locator('#rpZoomIn').isDisabled(),true);assert.equal(await p.locator('#rpFit').innerText(),'600%');await p.locator('#rpFit').click();

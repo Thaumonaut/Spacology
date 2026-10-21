@@ -1,4 +1,4 @@
-// Route planning (roads): loads fixed seeds headlessly at 1280, 1024 and 390 wide. Checks the "Makes" and "Needs"
+// Route planning (roads): loads fixed seeds headlessly at 1280, 1024 and 390 wide. Checks the Takes/Returns recipes,
 // labels and the field guide, building cards, a drag-laid road with its cost preview, undo, the night hint and Apply, a
 // one-way drag (arrows), a warehouse, phase-specific controls, 4× and Skip to dusk, the heat overlay, the dusk report
 // with Locate, NEW TONIGHT stations the next night, Skip (auto); and at 1280 replays every night through the UI.
@@ -57,7 +57,7 @@ try{
     const credits=async()=>Number((await p.locator('#mgMeters').innerText()).match(/CREDITS\s*(\d+)/i)[1]);
     const active=pz.stations.filter(s=>s.day===1);
 
-    // Readability: every station is labelled "Makes ▲" or "Needs ▲ ■"; secondary rules remain in the field guide.
+    // Named recipes stay on every plot; secondary rules remain in the field guide.
     assert.equal(await p.locator('[data-station]').count(),active.length);
     assert.equal(await p.locator('[data-planned]').count(),pz.stations.length-active.length,'every future site is visible from night one');
     assert.match(await p.locator('[data-tool="dirt"]').innerText(),/Dirt track/);
@@ -65,12 +65,11 @@ try{
     assert.match(await p.locator('[data-tool="road"]').innerText(),/Collector/);
     assert.match(await p.locator('[data-tool="highway"]').innerText(),/Freeway/);
     assert.match(await p.locator('[data-tool="erase"]').innerText(),/full refund/);
-    const labels=await p.locator('.rp-label text').allTextContents();
-    for(const s of active)assert.ok(labels.includes(s.kind==='producer'?`Makes ${P.TYPES[s.type].sym}`:`Needs ${s.needs.map(t=>P.TYPES[t].sym).join(' ')}`),`label for ${s.name}`);
+    for(const s of active){const label=await p.locator(`[data-station="${s.id}"] .rp-plot-recipe`).textContent();assert.match(label,/TAKES[\s\S]*RETURNS/);assert.ok(label.includes(P.TYPES[s.kind==='producer'?s.type:s.needs[0]].name),`named goods for ${s.name}`);}
     assert.equal(await p.locator('#rpDrawer').isHidden(),true);
     const firstMap=await mapRect();
     await p.locator('#rpHelp').click();
-    const legend=await p.locator('.rp-legend').innerText();assert.match(legend,/Producer/);assert.match(legend,/Consumer/);assert.match(legend,/Warehouse/);assert.match(legend,/One-way/);
+    const legend=await p.locator('.rp-legend').innerText();assert.match(legend,/Producer/);assert.match(legend,/Dispatch/);assert.match(legend,/Warehouse/);assert.match(legend,/One-way/);
     assert.equal(await p.locator('#rpHelp').getAttribute('aria-expanded'),'true');await stable(firstMap,'field guide');
     await p.keyboard.press('Escape');assert.equal(await p.locator('#rpDrawer').isHidden(),true);
     await p.locator('#rpSettings').click();
@@ -89,7 +88,7 @@ try{
     await screen('start '+tag);
     // Tapping a building opens its card.
     const prod=active.find(s=>s.kind==='producer');
-    await tapTile(prod.tile);assert.match(await p.locator('#rpCard').innerText(),new RegExp(`${prod.name}[\\s\\S]*Makes ${P.TYPES[prod.type].sym}`));await stable(firstMap,'building card');
+    await tapTile(prod.tile);assert.match(await p.locator('#rpCard').innerText(),new RegExp(`${prod.name}[\\s\\S]*Takes[\\s\\S]*Returns[\\s\\S]*1 ${P.TYPES[prod.type].name}`,'i'));await stable(firstMap,'building card');
     await p.locator('.rp-card-x').click();assert.equal(await p.locator('#rpCard').isHidden(),true);
     await shot('night1');
     const planned=pz.stations.find(s=>s.day===2);

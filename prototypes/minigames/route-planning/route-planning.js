@@ -25,7 +25,7 @@
     ended=false,locate=null,locateTimer=0,card=null,count={edits:0,undos:0,hints:0,rejected:0,locates:0};
   const shell=K.shell({id:'route-planning',defaultDifficulty:'normal',
     difficulties:P.DIFFICULTIES.map(d=>({id:d.id,label:d.label,target:d.target})),
-    rules:['<b>Night</b>: the clock stops. <b>Drag</b> across tiles to lay road from the <b>producers</b> (“Makes ▲”) to the <b>consumers</b> (“Needs ▲ ■”). Roads join along the way you drag, so parallel roads stay separate.',
+    rules:['<b>Night</b>: the clock stops. Each plot names what it <b>Takes</b> and <b>Returns</b>. Connect matching outputs to inputs by dragging roads between marked entrances. Vehicles carry goods automatically. Roads join along the way you drag, so parallel roads stay separate.',
       'Supply chain: <b>2 ore → plate</b>, <b>2 crystal → cell</b>, then <b>plate + cell → gear kit</b>. Factories need delivered inputs and processing time. Only <b>on-time final dispatch deliveries</b> score; late goods still clear their order and earn construction credit.',
       'Press <b>Start day</b> to watch the traffic. You cannot build by day; use 1×, 2×, 4× or <b>Skip to dusk</b>.',
       '<b>Locals</b> serve every entrance; <b>collectors</b> only large buildings. <b>Freeways</b> need normal ground, directional ramps and uninterrupted distance to accelerate. Corners and queues erase speed. <b>Dirt tracks</b> can cross mountains.',
@@ -105,6 +105,13 @@
   });
   const reduced=()=>window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const sym=t=>P.TYPES[t].sym,tcol=t=>P.TYPES[t].color;
+  const inputs=s=>s.recipe?Object.entries(s.recipe.input).map(([type,qty])=>({type:Number(type),qty})):s.needs.map(type=>({type,qty:null}));
+  const itemText=({type,qty})=>(qty===null?'':qty+' ')+P.TYPES[type].name;
+  const takes=s=>inputs(s).map(itemText);
+  const returns=s=>s.kind==='producer'?`1 ${P.TYPES[s.type].name}`:'Nothing · final dispatch';
+  function recipeCard(s){
+    return `<dl class="rp-recipe"><div><dt>Takes</dt><dd>${esc(takes(s).join(' + ')||'Nothing · raw extraction')}</dd></div><div><dt>Returns</dt><dd>${esc(returns(s))}</dd></div></dl>`;
+  }
   const cx=i=>(i%pz.W)*U+U/2,cy=i=>Math.floor(i/pz.W)*U+U/2;
   const tileXY=i=>({x:i%pz.W,y:Math.floor(i/pz.W)});
   const column=x=>{let label='';for(let n=x+1;n>0;n=Math.floor((n-1)/26))label=String.fromCharCode(65+(n-1)%26)+label;return label;};
@@ -132,6 +139,7 @@
     closeDrawer();showMore(false);
     $('rpReport').hidden=true;$('rpReportOpen').hidden=true;$('rpReportOpen').setAttribute('aria-expanded','false');
     $('rpHintBar').hidden=true;$('rpCard').hidden=true;
+    clearTimeout(locateTimer);$('rpLocate').innerHTML='';
     keyboardTile=0;$('rpFocus').innerHTML='';fitMap();
     side();terrain();render();
     shell.status('Connect mines → refineries → workshop → dispatch. Inspect sites for recipes and peaks.');
@@ -316,28 +324,33 @@
     shell.status(relaxed?`Relaxed: consumers wait ${P.RELAXED}× as long before they starve. Par is recomputed for it.`:'Standard patience.');};
 
   // ---- building card ----------------------------------------------------------------------------------------------------
-  function openCard(t){closeReport();hideHint();if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;renderCard();}
-  function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);card=null;el.hidden=true;$('rpGhost').innerHTML='';if(focused)svg.focus({preventScroll:true});}
+  function openCard(t){closeReport();hideHint();clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;renderCard();if(pz.logistics){renderBuildings();if(pz.bAt[t]>=0)showChain(pz.bAt[t],false);}}
+  function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);card=null;el.hidden=true;$('rpGhost').innerHTML='';clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz?.logistics)renderBuildings();if(focused)svg.focus({preventScroll:true});}
+  function partners(s){
+    const incoming=pz.stations.filter(src=>src.kind==='producer'&&s.needs.includes(src.type));
+    const outgoing=s.kind==='producer'?pz.stations.filter(dst=>dst.needs.includes(s.type)):[];
+    const buttons=(sites,inbound)=>sites.map(site=>`<button type="button" data-site="${site.id}"><span>${inbound?'From':'To'} ${esc(site.name)} · ${coord(site.tile)}</span><small>${esc(P.TYPES[inbound?site.type:s.type].name)}${site.day>sim.day?` · opens night ${site.day}`:''}</small></button>`).join('');
+    return `<section class="rp-partners" aria-label="Compatible supply partners"><p>Connect entrances; goods move automatically.</p>${buttons(incoming,true)}${buttons(outgoing,false)}${!incoming.length&&!outgoing.length?'<p>No matching sites yet.</p>':''}</section>`;
+  }
   function renderCard(){
     const el=$('rpCard');if(card===null){el.hidden=true;return;}
     const focused=el.contains(document.activeElement)?document.activeElement.className:null;
     const id=P.stationAt(pz,sim,card),k=P.whAt(sim,card);let html='';
     if(id<0&&pz.bAt[card]>=0){const s=pz.stations[pz.bAt[card]];
-      html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Planned · night ${s.day}</span><p>${s.kind==='producer'?'Makes '+esc(P.supply(s.type)):'Needs '+s.needs.map(t=>esc(P.supply(t))).join(' and ')}.</p><p>Reserved ${s.plot.w}×${s.plot.h} footprint. Use the marked ${s.large?'local/collector':'local'} entrance; its through street will stay intact when this site opens.</p>`;
+      html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Planned · night ${s.day}</span>${recipeCard(s)}${partners(s)}<p>Reserved ${s.plot.w}×${s.plot.h} footprint. Use the marked ${s.large?'local/collector':'local'} entrance; its through street will stay intact when this site opens.</p>`;
     }
     else if(id>=0){const s=pz.stations[id],x=sim.st[id];
       if(s.kind==='producer'){
-        const inputs=s.recipe?Object.entries(s.recipe.input).map(([t,n])=>`${n} ${P.supply(t)}`).join(' + '):null;
-        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">${s.recipe?'Factory':'Producer'}</span><p>Makes <i style="color:${tcol(s.type)}">${esc(P.supply(s.type))}</i>${inputs?` from ${esc(inputs)} in ${s.recipe.ticks*P.TICK} s`:', early output peak 0–10 s (×2), then slower output'}.</p><p>Output ${x.stock}/${P.OUTPUT_CAP}${x.stock>=P.OUTPUT_CAP?' · full: production paused':''}</p>`;
-        if(s.recipe)html+=`<p>Inputs: ${s.needs.map(t=>`${sym(t)} ${x.input[t]} stored · ${x.reqs.filter(r=>r.type===t&&r.v).length} in transit`).join('; ')}.</p><p>${s.needs.some(t=>x.input[t]<s.recipe.input[t])?'Waiting for inputs':'Processing when output has room'}.</p>`;
+        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">${s.recipe?'Factory':'Producer'}</span>${recipeCard(s)}${partners(s)}<p>Output ${x.stock}/${P.OUTPUT_CAP}${x.stock>=P.OUTPUT_CAP?' · full: production paused':''}${s.recipe?'':' · early output peak 0–10 s (×2), then slower output'}.</p>`;
+        if(s.recipe)html+=`<p>Per batch · ${s.recipe.ticks*P.TICK} s processing time.</p><p>Inputs: ${s.needs.map(t=>`${esc(P.TYPES[t].name)}: ${x.input[t]} stored · ${x.reqs.filter(r=>r.type===t&&r.v).length} in transit`).join('; ')}.</p><p>${s.needs.some(t=>x.input[t]<s.recipe.input[t])?'Waiting for '+s.needs.filter(t=>x.input[t]<s.recipe.input[t]).map(t=>esc(P.TYPES[t].name)).join(' + '):'Processing when output has room'}.</p>`;
       }
       else{const open=x.reqs.length,oldest=open?Math.max(...x.reqs.map(r=>r.age)):0;
-        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Consumer</span><p>Needs ${s.needs.map(t=>`<i style="color:${tcol(t)}">${esc(P.supply(t))}</i>`).join(' and ')}.</p><ul class="rp-schedule">${P.schedule(pz,Math.min(sim.day,pz.days),id,sim.relaxed).map(e=>`<li><b>${e.tick*P.TICK} s</b> · ${e.label}: ${e.qty} ${sym(e.type)} · due ${e.deadline*P.TICK} s</li>`).join('')}</ul>
-          <p>${open?`Waiting for ${x.reqs.map(r=>sym(r.type)).join(' ')} · oldest ${Math.round(oldest*P.TICK)} s of ${Math.round(P.patienceTicks(pz,sim)*P.TICK)} s`:'Nothing waiting'}${x.starved?' · <em>starved today</em>':''}</p>`;}
+        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Dispatch</span>${recipeCard(s)}${partners(s)}<p>Final orders score when delivered on time.</p><ul class="rp-schedule">${P.schedule(pz,Math.min(sim.day,pz.days),id,sim.relaxed).map(e=>`<li><b>${e.tick*P.TICK} s</b> · ${e.label}: ${e.qty} ${esc(P.TYPES[e.type].name)} · due ${e.deadline*P.TICK} s</li>`).join('')}</ul>
+          <p>${open?`Waiting for ${x.reqs.map(r=>esc(P.TYPES[r.type].name)).join(', ')} · oldest ${Math.round(oldest*P.TICK)} s of ${Math.round(P.patienceTicks(pz,sim)*P.TICK)} s`:'Nothing waiting'}${x.starved?' · <em>starved today</em>':''}</p>`;}
     }else if(k>=0){const w=sim.wh[k],used=w.stock.reduce((a,b)=>a+b,0),incoming=sim.veh.filter(v=>v.kind==='stock'&&v.dst===w.tile);
       const eta=incoming.length?Math.min(...incoming.map(v=>v.t+P.freeRoutes(pz,sim,v.path[v.i]).dist[w.tile]))*P.TICK:null;
       const options=pz.stations.filter(s=>s.day<=sim.day&&s.needs.length).flatMap(s=>s.needs.map(t=>({value:`${s.id}:${t}`,text:`${s.name} · ${P.supply(t)}`})));
-      html=`<b>Warehouse ${coord(card)}</b><span class="rp-card-kind">Staging</span><p>Holds ${used}/${w.cap}: ${w.stock.map((n,t)=>n?`${n} ${sym(t)}`:'').filter(Boolean).join(', ')||'empty'} · ${w.inc.reduce((a,b)=>a+b,0)} inbound.${eta===null?'':` Nearest inbound: ~${eta.toFixed(1)} s free-flow, plus queues.`}</p><p>${w.plan?`Reserved for ${esc(pz.stations[w.plan.target].name)}: target ${w.plan.qty} ${sym(w.plan.type)}.`:'Assign a destination to request stock deliberately; unassigned warehouses do not pull goods.'} Inventory survives dusk; storage also reserves room for cargo recalled in transit.</p>
+      html=`<b>Warehouse ${coord(card)}</b><span class="rp-card-kind">Staging</span><dl class="rp-recipe"><div><dt>Takes</dt><dd>${w.plan?esc(P.TYPES[w.plan.type].name):'Nothing until assigned'}</dd></div><div><dt>Returns</dt><dd>Same goods · no processing</dd></div></dl><p>Holds ${used}/${w.cap}: ${w.stock.map((n,t)=>n?`${n} ${esc(P.TYPES[t].name)}`:'').filter(Boolean).join(', ')||'empty'} · ${w.inc.reduce((a,b)=>a+b,0)} inbound.${eta===null?'':` Nearest inbound: ~${eta.toFixed(1)} s free-flow, plus queues.`}</p><p>${w.plan?`Reserved for ${esc(pz.stations[w.plan.target].name)}: target ${w.plan.qty} ${esc(P.TYPES[w.plan.type].name)}.`:'Assign a destination to request stock deliberately; unassigned warehouses do not pull goods.'} Inventory survives dusk; storage also reserves room for cargo recalled in transit.</p>
         ${sim.phase==='night'?`<form id="rpStockForm"><label>Prepare for<select id="rpStockTarget">${options.map(o=>`<option value="${o.value}" ${w.plan&&o.value===`${w.plan.target}:${w.plan.type}`?'selected':''}>${esc(o.text)}</option>`).join('')}</select></label><label>Stock target<input id="rpStockQty" type="number" min="1" max="${w.cap}" value="${w.plan?.qty||Math.min(4,w.cap)}"></label><button class="primary" type="submit">Reserve stock</button>${w.plan?'<button type="button" data-unprepare>Release reserve</button>':''}</form>`:''}`;}
     else if(sim.net.tier[card]){const road=P.ROADS[sim.net.tier[card]],g=P.graph(pz,sim);
       html=`<b>Road ${coord(card)}</b><span class="rp-card-kind">${esc(road.label)}</span><p>${esc(road.role)} · capacity ${g.cap[card]}${g.shared[card]?' shared at junction':' per direction'} · cruising ${g.ticks[card]*P.TICK} s/tile (turns, acceleration and controls add time).</p><p>Refund value: ${sim.net.paid[card]+sim.net.rbPaid[card]} credits, fully refundable.${sim.net.over[card]?' Grade-separated: no turns.':P.isJunction(sim,card)?` Control: ${sim.net.control[card]}.`:''}</p>${sim.phase==='day'?`<p>${sim.q[card]||0} vehicles queued here.</p>`:''}`;
@@ -358,6 +371,7 @@
   }
   $('rpCard').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b||card===null)return;
+    if(b.hasAttribute('data-site')){const s=pz.stations[Number(b.dataset.site)];openCard(s.tile);if(zoom>1){viewX=(s.plot.x+s.plot.w/2)*U;viewY=(s.plot.y+s.plot.h/2)*U;camera();}return;}
     if(b.hasAttribute('data-connection'))doEdit({type:'connection',tile:card,dir:Number(b.dataset.connection)});
     if(b.hasAttribute('data-unprepare'))doEdit({type:'unprepare',tile:card});
     if(b.hasAttribute('data-overpass'))doEdit({type:'overpass',tile:card});
@@ -369,10 +383,15 @@
     }else if(b.hasAttribute('data-ramp-confirm'))doEdit(JSON.parse(b.getAttribute('data-ramp-confirm')));
     if(b.hasAttribute('data-chain'))showChain(pz.bAt[card]);
   });
-  function showChain(id){
-    const seen=new Set(),edges=[];function visit(dst){if(seen.has(dst.id))return;seen.add(dst.id);for(const type of dst.needs)for(const src of pz.stations)if(src.kind==='producer'&&src.type===type&&src.day<=sim.day){edges.push({src,dst,type});visit(src);}}
-    visit(pz.stations[id]);$('rpLocate').innerHTML=edges.map(({src,dst,type})=>{const path=P.pathTo(P.freeRoutes(pz,sim,src.tile),dst.tile)||[src.tile,dst.tile];return `<path class="rp-chain-path" style="stroke:${tcol(type)}" d="${path.map((t,k)=>`${k?'L':'M'}${cx(t)} ${cy(t)}`).join(' ')}"/>`;}).join('')+[...seen].map(i=>`<circle class="rp-locate" cx="${cx(pz.stations[i].tile)}" cy="${cy(pz.stations[i].tile)}" r="50"/>`).join('');
-    clearTimeout(locateTimer);locateTimer=setTimeout(()=>{$('rpLocate').innerHTML='';},10000);shell.status('Highlighted upstream chain. Dashed straight links indicate missing road routes.');
+  function showChain(id,whole=true){
+    const seen=new Set([id]),edges=new Map();
+    function visit(site){for(const src of pz.stations)if(src.kind==='producer')for(const dst of pz.stations)if(dst.needs.includes(src.type)&&(src.id===site.id||dst.id===site.id)){
+      if(src.day>sim.day||dst.day>sim.day)continue;
+      edges.set(`${src.id}:${dst.id}`,{src,dst,type:src.type});
+      for(const next of [src,dst])if(!seen.has(next.id)){seen.add(next.id);if(whole)visit(next);}
+    }}
+    visit(pz.stations[id]);$('rpLocate').innerHTML=`<defs>${P.TYPES.map((t,i)=>`<marker id="rpFlow${i}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="${t.color}"/></marker>`).join('')}</defs>`+[...edges.values()].map(({src,dst,type})=>{const route=P.pathTo(P.freeRoutes(pz,sim,src.tile),dst.tile),path=route||[src.tile,dst.tile];return `<path class="rp-chain-path${route?'':' missing'}" data-from="${src.id}" data-to="${dst.id}" marker-end="url(#rpFlow${type})" style="stroke:${tcol(type)}" d="${path.map((t,k)=>`${k?'L':'M'}${cx(t)} ${cy(t)}`).join(' ')}"/>`;}).join('')+[...seen].map(i=>`<circle class="rp-locate" cx="${cx(pz.stations[i].tile)}" cy="${cy(pz.stations[i].tile)}" r="50"/>`).join('');
+    clearTimeout(locateTimer);if(whole){locateTimer=setTimeout(()=>{$('rpLocate').innerHTML='';},10000);shell.status('Arrows show goods moving from supplier to destination. Dashed links need a road route.');}
   }
 
   // ---- drawing ------------------------------------------------------------------------------------------------------------
@@ -380,8 +399,8 @@
     const types=P.TYPES.slice(0,pz.types);
     shell.side(`<p class="eyebrow">LEGEND</p><ul class="rp-legend">
       ${types.map((t,i)=>`<li><i class="rp-sw" style="color:${t.color}">${t.sym}</i>${esc(t.name)}</li>`).join('')}
-      <li><i class="rp-sw rp-sw-prod">▲↗</i><span><b>Producer</b>: “Makes ▲”, sends goods out</span></li>
-      <li><i class="rp-sw rp-sw-cons">↘▲</i><span><b>Consumer</b>: “Needs ▲ ■”; its ring fills while it waits</span></li>
+      <li><i class="rp-sw rp-sw-prod">▲↗</i><span><b>Producer / factory</b>: sends its “Returns” goods to sites that “Take” them</span></li>
+      <li><i class="rp-sw rp-sw-cons">↘▲</i><span><b>Dispatch</b>: takes finished gear kits; returns no goods. On-time final orders score.</span></li>
       <li><i class="rp-sw rp-sw-wh">▦</i><span><b>Warehouse</b>: holds a mix of goods</span></li>
       ${P.ROADS.slice(1).map(r=>`<li><i class="rp-sw rp-sw-${r.id}">━</i><span><b>${r.label}</b>: ${r.role}, ${r.cap}/direction</span></li>`).join('')}
       <li><i class="rp-sw rp-sw-site">▧</i><span><b>Planned site</b>: fixed arrival day; roads survive</span></li>
@@ -504,16 +523,16 @@
     let buildings='',sites='';
     for(const s of pz.stations){
       const p=s.plot,x=p.x*U+8,y=p.y*U+8,w=p.w*U-16,h=p.h*U-16,mx=x+w/2,my=y+h/2,active=s.day<=sim.day,st=sim.st[s.id],color=s.kind==='producer'?tcol(s.type):'#dae8ef';
-      const goods=s.kind==='producer'?`Makes ${sym(s.type)}`:`Needs ${s.needs.map(sym).join(' ')}`;
+      const inGoods=takes(s),outGoods=s.kind==='producer'?returns(s):'Nothing',name=s.recipe?s.recipe.name:s.kind==='producer'?P.TYPES[s.type].name+' mine':'Dispatch';
       const blocked=s.recipe&&s.needs.some(t=>st.input[t]<s.recipe.input[t]),oldest=st.reqs.length?Math.max(...st.reqs.map(r=>r.age)):0;
       const status=!active?`OPENS NIGHT ${s.day}`:s.recipe?blocked?'WAITING FOR INPUTS':'ASSEMBLING':s.kind==='producer'?`${st.stock}/${P.OUTPUT_CAP} OUTPUT`:st.reqs.length?`${st.reqs.length} WAITING · ${Math.round(oldest*P.TICK)}s`:'SCHEDULED DISPATCH';
-      const content=`<g class="rp-building rp-plot ${active?'':'rp-site'} ${s.recipe?'rp-factory':''}" ${active?`data-station="${s.id}"`:`data-planned="${s.id}"`}><title>${esc(s.name)} · ${esc(goods)} · ${s.large?'local or collector':'local'} entrance</title><rect class="rp-b-body" x="${x}" y="${y}" width="${w}" height="${h}" rx="18" style="stroke:${color}"/><text class="rp-plot-name" x="${mx}" y="${my-37}" text-anchor="middle">${esc(s.short)}</text><g class="rp-label"><text x="${mx}" y="${my+3}" text-anchor="middle" style="fill:${color}">${goods}</text></g><text class="rp-plot-status" x="${mx}" y="${my+40}" text-anchor="middle">${status}</text><path class="rp-entrance" d="M${cx(s.tile)} ${cy(s.tile)} L${x} ${cy(s.tile)}"/><circle class="rp-port" cx="${cx(s.tile)}" cy="${cy(s.tile)}" r="17"/><text class="rp-port-label" x="${cx(s.tile)}" y="${cy(s.tile)+40}" text-anchor="middle">${s.large?'L/C':'L'}</text></g>`;
+      const content=`<g class="rp-building rp-plot ${active?'':'rp-site'} ${s.recipe?'rp-factory':''}${card===s.tile?' selected':''}" ${active?`data-station="${s.id}"`:`data-planned="${s.id}"`}><title>${esc(s.name)} · Takes: ${esc(inGoods.join(' + ')||'nothing')} · Returns: ${esc(outGoods)} · ${s.large?'local or collector':'local'} entrance</title><rect class="rp-b-body" x="${x}" y="${y}" width="${w}" height="${h}" rx="18" style="stroke:${color}"/><text class="rp-plot-name" x="${mx}" y="${y+28}" text-anchor="middle">${esc(name)}</text><g class="rp-plot-recipe" text-anchor="middle"><text class="rp-recipe-label" x="${mx}" y="${y+51}">TAKES</text>${(inGoods.length?inGoods:['Nothing · mine']).map((line,i)=>`<text class="rp-recipe-item" x="${mx}" y="${y+73+i*22}">${esc(line)}</text>`).join('')}<text class="rp-recipe-label" x="${mx}" y="${y+117}">RETURNS</text><text class="rp-recipe-item" x="${mx}" y="${y+139}" style="fill:${color}">${esc(outGoods)}</text></g><text class="rp-plot-status" x="${mx}" y="${y+166}" text-anchor="middle">${status}</text><path class="rp-entrance" d="M${cx(s.tile)} ${cy(s.tile)} L${x} ${cy(s.tile)}"/><circle class="rp-port" cx="${cx(s.tile)}" cy="${cy(s.tile)}" r="17"/><text class="rp-port-label" x="${cx(s.tile)}" y="${cy(s.tile)+40}" text-anchor="middle">${s.large?'L/C':'L'}</text></g>`;
       if(active)buildings+=content;else sites+=content;
       if(active&&sim.day>1&&s.day===sim.day)buildings+=`<text class="rp-newtag" x="${mx}" y="${y-8}" text-anchor="middle">NEW TONIGHT</text>`;
       if(active&&sim.net.tier[s.tile])buildings+=`<circle data-through="${s.id}" class="rp-port" cx="${cx(s.tile)}" cy="${cy(s.tile)}" r="12"/>`;
       if(sim.net.e[s.tile]&&!sim.net.tier[s.tile])for(let d=0;d<4;d++)if(sim.net.e[s.tile]&(1<<d))buildings+=`<path class="rp-access" d="M${cx(s.tile)} ${cy(s.tile)} L${cx(s.tile)+P.DIRS[d][0]*U/2} ${cy(s.tile)+P.DIRS[d][1]*U/2}"/>`;
     }
-    for(const wh of sim.wh){const x=cx(wh.tile),y=cy(wh.tile);buildings+=`<g class="rp-building rp-wh" data-wh="${wh.tile}"><rect class="rp-b-body" x="${x-40}" y="${y-40}" width="170" height="170" rx="16"/><text class="rp-plot-name" x="${x+45}" y="${y+10}" text-anchor="middle">WAREHOUSE</text><text class="rp-plot-status" x="${x+45}" y="${y+48}" text-anchor="middle">${wh.stock.reduce((a,b)=>a+b,0)}/${wh.cap} · ${wh.plan?'RESERVED':'UNASSIGNED'}</text><circle class="rp-port" cx="${x}" cy="${y}" r="17"/></g>`;}
+    for(const wh of sim.wh){const x=cx(wh.tile),y=cy(wh.tile);buildings+=`<g class="rp-building rp-wh" data-wh="${wh.tile}"><rect class="rp-b-body" x="${x-40}" y="${y-40}" width="170" height="170" rx="16"/><text class="rp-plot-name rp-wh-name" x="${x+45}" y="${y-12}" text-anchor="middle">Warehouse</text><g class="rp-plot-recipe" text-anchor="middle"><text class="rp-recipe-label" x="${x+45}" y="${y+10}">TAKES</text><text class="rp-recipe-item" x="${x+45}" y="${y+30}">${wh.plan?esc(P.TYPES[wh.plan.type].name):'Assign stock'}</text><text class="rp-recipe-label" x="${x+45}" y="${y+54}">RETURNS</text><text class="rp-recipe-item" x="${x+45}" y="${y+74}">Same goods</text></g><text class="rp-plot-status rp-wh-status" x="${x+45}" y="${y+106}" text-anchor="middle">${wh.stock.reduce((a,b)=>a+b,0)}/${wh.cap} · ${wh.plan?'RESERVED':'UNASSIGNED'}</text><circle class="rp-port" cx="${x}" cy="${y}" r="17"/></g>`;}
     $('rpSites').innerHTML=sites;$('rpBuildings').innerHTML=buildings;
   }
   function renderVehicles(frac){
@@ -549,7 +568,7 @@
     if(sim.phase!=='night'||ended){el.textContent=sim.phase==='day'?'Early output 0–10s · dispatch peaks 24–26s. Inspect a site for its chain and exact schedule.':'';return;}
     const fresh=pz.stations.filter(s=>s.day===sim.day);
     const next=pz.stations.filter(s=>s.day===sim.day+1);
-    el.innerHTML=`<b class="rp-newtag-inline">NEW TONIGHT</b> ${fresh.map(s=>`${esc(s.name)} (${s.kind==='producer'?'Makes '+sym(s.type):'Needs '+s.needs.map(sym).join(' ')})`).join(', ')}. ${next.length?`Next night: ${next.length} planned site${next.length===1?'':'s'} open; +${P.STIPEND+P.growthCredit(pz,sim.day+1)} construction credits at dusk.`:`+${P.STIPEND} construction credits at dusk.`}`;
+    el.innerHTML=`<b class="rp-newtag-inline">NEW TONIGHT</b> ${fresh.map(s=>`${esc(s.name)} (${s.kind==='producer'?'Returns '+esc(P.TYPES[s.type].name):'Takes '+s.needs.map(t=>esc(P.TYPES[t].name)).join(' + ')})`).join(', ')}. ${next.length?`Next night: ${next.length} planned site${next.length===1?'':'s'} open; +${P.STIPEND+P.growthCredit(pz,sim.day+1)} construction credits at dusk.`:`+${P.STIPEND} construction credits at dusk.`}`;
   }
   // The on-demand dusk recap and the day's three worst problems, each with Locate.
   function report(){
