@@ -2,7 +2,7 @@
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process'),{pathToFileURL}=require('node:url');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',URL=BASE+'/prototypes/microvoxel-world.html?seed=2718';
 const M=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');
-const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.ready>0&&s.ready===s.visible&&!s.pending;},null,{timeout:60000});
+const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.ready>0&&s.ready===s.visible&&!s.pending&&!s.moving;},null,{timeout:60000});
 const state=p=>p.evaluate(()=>MicroWorldLab.snapshot());
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
@@ -90,7 +90,9 @@ try{
   await p.locator('#info').click();await p.locator('#worldSize').selectOption('256');await p.locator('#seedForm button').click();await ready(p);
   let regional=await state(p);assert.equal(regional.extent,256);assert.equal(regional.deposit.id,original.id);assert.equal(regional.camera.x,128);assert.ok(regional.visible<320&&regional.meshCacheEntries<=320&&regional.meshCacheBytes<=regional.meshCacheLimit);
   assert.match(p.url(),/extent=256/);assert.equal(await p.locator('#wide').innerText(),'Region');assert.match(await p.locator('#seedLabel').innerText(),/256 m × 256 m/);
-  await p.locator('#world').focus();for(let i=0;i<9;i++)await p.keyboard.press('ArrowRight');await ready(p);regional=await state(p);
+  await p.locator('#world').focus();await p.keyboard.down('ArrowRight');
+  try{await p.waitForFunction(()=>MicroWorldLab.snapshot().camera.x>193,null,{timeout:60000});}finally{await p.keyboard.up('ArrowRight');}
+  await ready(p);regional=await state(p);
   assert.ok(regional.camera.x>192,'camera pans well beyond the previous eastern border');assert.ok(regional.visible>0&&regional.ready===regional.visible&&regional.voxelCacheBytes<=4*1024*1024);
   await p.locator('#close').click();await ready(p);assert.equal((await state(p)).deposit.id,original.id,'root is reachable from the new region');
   await p.locator('#densityFine').click();await ready(p);assert.equal((await state(p)).extent,256);assert.equal((await state(p)).cellMetres,.125);

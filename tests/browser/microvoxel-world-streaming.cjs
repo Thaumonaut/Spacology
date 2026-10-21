@@ -1,7 +1,7 @@
 'use strict';
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process'),{pathToFileURL}=require('node:url');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',M=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');
-const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.visible>0&&s.ready===s.visible&&!s.pending;},null,{timeout:90000});
+const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.visible>0&&s.ready===s.visible&&!s.pending&&!s.moving;},null,{timeout:90000});
 const state=p=>p.evaluate(()=>MicroWorldLab.snapshot());
 const terrainImage=p=>p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.getElementById('world').toDataURL('image/png')))));
 async function jump(p,cx,cz){await p.locator('#info').click();await p.locator('#chunkX').fill(String(cx));await p.locator('#chunkZ').fill(String(cz));await p.locator('#travelForm button').click();await ready(p);}
