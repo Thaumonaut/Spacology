@@ -66,6 +66,11 @@ function cargo(p,s,type){return p.stations.reduce((n,b)=>n+(b.kind==='producer'&
   assert.ok(P.freeRoutes(p,s,street).dist[main]<Infinity);assert.ok(P.freeRoutes(p,s,offMain).dist[offStreet]<Infinity);
   assert.ok(!P.graph(p,s).out[offStreet].includes(offStreet-p.W),'off ramp cannot be entered backwards');
   assert.ok(P.pathTo(P.freeRoutes(p,s,offStreet),offMain).length>4,'reaching that mainline requires a detour via the on-ramp');
+  const on=[street,street-p.W,street-2*p.W,main],off=[offMain,offMain+p.W,offMain+2*p.W,offStreet];
+  for(const ramp of [on,off])for(const path of [ramp,[...ramp].reverse(),ramp.slice(0,2),ramp.slice(-2)]){
+    reject(p,s,{type:'oneway',tiles:path},/Ramp direction is fixed/);
+    for(let k=1;k<ramp.length;k++){assert.ok(P.graph(p,s).out[ramp[k-1]].includes(ramp[k]));assert.ok(!P.graph(p,s).out[ramp[k]].includes(ramp[k-1]),'rejected edits preserve all reverse restrictions');}
+  }
   reject(p,s,{type:'road',tier:'highway',tiles:freeway},/already there/);
   assert.ok(P.undo(p,s));assert.deepEqual(s.net,before.net);assert.equal(s.credits,before.credits);
   const edge=3*p.W+1;reject(p,s,{type:'interchange',tile:edge,side:2},/fit|ramp|freeway/);

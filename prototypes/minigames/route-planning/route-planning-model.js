@@ -337,6 +337,7 @@
     if(a.type==='oneway'){
       const w=tilesOk(pz,a.tiles);if(w)return w;
       if(a.tiles.length<2)return 'Drag along a road to set its direction.';
+      if(a.tiles.some(t=>n.tier[t]===5))return 'Ramp direction is fixed. Erase and rebuild the ramp to change it.';
       const steps=[];
       for(let i=1;i<a.tiles.length;i++){const x=a.tiles[i-1],y=a.tiles[i],d=dirTo(pz,x,y);if(!(n.e[x]&(1<<d)))return 'One-way works along an existing road.';steps.push([x,y,d]);}
       // The same drag again turns the stretch back into a two-way road.
