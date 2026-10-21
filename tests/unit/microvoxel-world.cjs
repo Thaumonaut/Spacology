@@ -75,7 +75,31 @@ assert.equal(fine.chunkCells,w.chunkCells*2);assert.equal(fine.heightCells,w.hei
 assert.equal(fine.id,w.id);assert.equal(fine.deposit.id,w.deposit.id);assert.notEqual(fine.dataId,w.dataId);
 for(const field of ['x','z','rule','geology'])assert.equal(fine.deposit[field],w.deposit[field],'resource meaning and map position do not move');
 assert.equal(fine.ground(49,58),8);assert.equal(fine.column(0,0).length,192);
+const region=M.createWorld(2718,.25,256),regionFine=M.createWorld(2718,.125,256);
+assert.equal(region.extent,256);assert.equal(region.chunkMetres,w.chunkMetres);assert.equal(region.deposit.id,w.deposit.id);assert.deepEqual(region.deposit,w.deposit);
+assert.notEqual(region.dataId,w.dataId,'chunk identity includes footprint: old edge halos differ');
+assert.equal(regionFine.extent,256);assert.equal(regionFine.deposit.id,fine.deposit.id);assert.notEqual(regionFine.dataId,region.dataId);
+for(const [cx,cz] of [[4,7],[15,15],[0,0]])assert.deepEqual(region.generateChunk(cx,cz),w.generateChunk(cx,cz),'expanding the world does not change existing voxel ground or vegetation');
+for(const [gx,gz] of [[0,0],[8,6],[25,25]])assert.deepEqual(region.tree(gx,gz),w.tree(gx,gz));
+for(const [x,z] of [[128,64],[128.125,128.125],[225,195],[255.875,255.875]])assert.notEqual(region.ground(x,z),null,'expanded bounds contain geography');
+for(const [x,z] of [[256,100],[64,256],[-1,20]])assert.equal(region.ground(x,z),null);
+assert.ok(region.generateChunk(24,24).materials.some(m=>m!==M.MAT.air),'newly explored ground is inhabited');
+assert.deepEqual(region.generateChunk(20,20),M.createWorld(2718,.25,256).generateChunk(20,20),'regional chunk order and reload are deterministic');
+const border=region.generateChunk(15,16);coverage(M.meshChunk(region,border,4));coverage(M.meshChunk(region,region.generateChunk(16,16),4));
+const variantSeeds=[0,1,39,2718,4294967295];
+assert.ok(new Set(variantSeeds.map(seed=>M.createWorld(seed,.25,256).ground(195,195))).size>1,'seed changes generated terrain in the extended region');
+for(const seed of variantSeeds){const current=M.createWorld(seed,.25,256),again=M.createWorld(seed,.25,256);assert.deepEqual(current.deposit,again.deposit);assert.ok(current.geography(current.deposit.x,current.deposit.z).exposed);assert.deepEqual(current.generateChunk(19,22),again.generateChunk(19,22));}
+assert.throws(()=>M.createWorld(2718,.25,512));
 assert.throws(()=>M.createWorld(2718,.1));assert.throws(()=>M.meshChunk(fine,forward[0]));
+const transitions=new M.BudgetCache(3,30),transitionDisposals=[];
+transitions.dispose=value=>transitionDisposals.push(value.name);
+for(const name of ['old:a','old:b','old:c'])transitions.set(name,{name,bytes:10});
+for(const name of ['a','b','c']){
+  const retain=['a','b','c'].filter(n=>n!==name).map(n=>transitions.items.has('new:'+n)?'new:'+n:'old:'+n);
+  transitions.set('new:'+name,{name:'new:'+name,bytes:10},retain);
+  assert.ok(['a','b','c'].every(n=>transitions.items.has('old:'+n)||transitions.items.has('new:'+n)),'every old chunk remains covered as its replacement arrives');
+}
+assert.deepEqual([...transitions.items.keys()].sort(),['new:a','new:b','new:c']);assert.deepEqual(transitionDisposals,['old:a','old:b','old:c']);
 assert.ok(fineChunk.bytes<fine.chunkCells*fine.chunkCells*fine.heightCells*.2);
 for(let z=0;z<fineChunk.size;z++)for(let x=0;x<fineChunk.size;x++){
   const col=fine.column(fineChunk.cx*fineChunk.size+x,fineChunk.cz*fineChunk.size+z);

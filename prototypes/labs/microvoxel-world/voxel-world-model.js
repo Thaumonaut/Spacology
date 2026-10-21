@@ -7,8 +7,9 @@
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
-  function createWorld(seed=2718,cellMetres=CELL){
+  function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
+    if(![EXTENT,EXTENT*2].includes(extent))throw new Error('World extent must be 128 or 256 metres');
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=HEIGHT*density;
     seed=Number(seed)>>>0;
     const id=`catchment:${REVISION}:${seed}`,trees=new Map();
@@ -24,13 +25,15 @@
       const exposed=ridge>.45||fault<1.4&&x<45;
       return {height:clamp(Math.floor(h/cellMetres),1,heightCells-28*density),riverDistance,ridge,fault,clearing,exposed,wet:riverDistance<12};
     }
-    function ground(x,z){if(x<0||z<0||x>=EXTENT||z>=EXTENT)return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
+    function ground(x,z){if(x<0||z<0||x>=extent||z>=extent)return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
     function tree(gx,gz){
-      if(gx<0||gz<0||gx>25||gz>25)return null;
-      const key=gz*26+gx;if(trees.has(key))return trees.get(key);
+      const grid=Math.ceil(extent/5);
+      if(gx<0||gz<0||gx>=grid||gz>=grid)return null;
+      const key=gz*grid+gx;if(trees.has(key))return trees.get(key);
       const x=(gx+.2+.6*hash(gx,gz,seed+9))*5,z=(gz+.2+.6*hash(gx,gz,seed+11))*5;
       const g=geography(x,z);
-      const value=x<1||z<1||x>EXTENT-1||z>EXTENT-1||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
+      const edge=gx<Math.ceil(EXTENT/5)&&gz<Math.ceil(EXTENT/5)?EXTENT:extent;
+      const value=x<1||z<1||x>edge-1||z>edge-1||x>extent-1||z>extent-1||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
       if(value)Object.freeze(value);trees.set(key,value);return value;
     }
     // Choose a root from exposed, fault-adjacent rock; the rule and identity survive all render changes.
@@ -40,7 +43,7 @@
     function column(vx,vz){
       const values=new Uint8Array(heightCells);
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
-      if(x<0||z<0||x>=EXTENT||z>=EXTENT)return values;
+      if(x<0||z<0||x>=extent||z>=extent)return values;
       const g=geography(x,z),h=g.height;
       values.fill(MAT.basalt,0,Math.max(0,h-4*density));
       values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
@@ -74,7 +77,7 @@
       chunk.bytes=chunk.offsets.byteLength+chunk.ends.byteLength+chunk.materials.byteLength;
       return chunk;
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}`,seed,revision:REVISION,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision:REVISION,extent,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
@@ -130,7 +133,7 @@
   class BudgetCache{
     constructor(maxEntries=144,maxBytes=32*1024*1024,dispose=()=>{}){this.maxEntries=maxEntries;this.maxBytes=maxBytes;this.dispose=dispose;this.items=new Map();this.bytes=0;}
     get(key){const v=this.items.get(key);if(v){this.items.delete(key);this.items.set(key,v);}return v;}
-    set(key,value){this.delete(key);if(value.bytes>this.maxBytes){this.dispose(value);return false;}this.items.set(key,value);this.bytes+=value.bytes;while(this.items.size>this.maxEntries||this.bytes>this.maxBytes)this.delete(this.items.keys().next().value);return true;}
+    set(key,value,retain=[]){this.delete(key);if(value.bytes>this.maxBytes){this.dispose(value);return false;}for(const k of retain)this.get(k);this.items.set(key,value);this.bytes+=value.bytes;while(this.items.size>this.maxEntries||this.bytes>this.maxBytes)this.delete(this.items.keys().next().value);return true;}
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
