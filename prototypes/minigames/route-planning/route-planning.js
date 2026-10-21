@@ -324,7 +324,7 @@
     shell.status(relaxed?`Relaxed: consumers wait ${P.RELAXED}× as long before they starve. Par is recomputed for it.`:'Standard patience.');};
 
   // ---- building card ----------------------------------------------------------------------------------------------------
-  function openCard(t){closeReport();hideHint();clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;renderCard();if(pz.logistics){renderBuildings();if(pz.bAt[t]>=0)showChain(pz.bAt[t],false);}}
+  function openCard(t){closeReport();hideHint();clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;$('rpCard').scrollTop=0;renderCard();if(pz.logistics){renderBuildings();if(pz.bAt[t]>=0)showChain(pz.bAt[t],false);}}
   function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);card=null;el.hidden=true;$('rpGhost').innerHTML='';clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz?.logistics)renderBuildings();if(focused)svg.focus({preventScroll:true});}
   function partners(s){
     const incoming=pz.stations.filter(src=>src.kind==='producer'&&s.needs.includes(src.type));
@@ -334,7 +334,8 @@
   }
   function renderCard(){
     const el=$('rpCard');if(card===null){el.hidden=true;return;}
-    const focused=el.contains(document.activeElement)?document.activeElement.className:null;
+    const active=el.contains(document.activeElement)?document.activeElement:null,scrollTop=el.scrollTop;
+    const focused=active?.hasAttribute('data-site')?`[data-site="${Number(active.dataset.site)}"]`:active?.id==='rpCardTitle'?'#rpCardTitle':['rp-card-x','rp-card-focus'].includes(active?.className)?'.'+active.className:null;
     const id=P.stationAt(pz,sim,card),k=P.whAt(sim,card);let html='';
     if(id<0&&pz.bAt[card]>=0){const s=pz.stations[pz.bAt[card]];
       html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Planned · night ${s.day}</span>${recipeCard(s)}${partners(s)}<p>Reserved ${s.plot.w}×${s.plot.h} footprint. Use the marked ${s.large?'local/collector':'local'} entrance; its through street will stay intact when this site opens.</p>`;
@@ -363,15 +364,17 @@
     }else{closeCard();return;}
     if(id>=0){const s=pz.stations[id];html+=`<p>Entrance: ${s.large?'local or collector':'paved local only'}. ${sim.net.tier[card]?'Compatible through street preserved.':'End a street at the entrance, or run a compatible street through its access tile.'}</p><button data-chain>Show supply chain</button>`;}
     el.innerHTML=html+'<button class="rp-card-focus">Zoom here</button><button class="rp-card-x" aria-label="Close">✕</button>';el.hidden=false;
+    el.querySelector('b').id='rpCardTitle';el.querySelector('b').tabIndex=-1;
     el.querySelector('.rp-card-x').onclick=closeCard;
     el.querySelector('.rp-card-focus').onclick=()=>{keyboardTile=card;viewX=cx(card);viewY=cy(card);zoom=Math.max(zoom,Math.min(6,Math.ceil(48/(svg.getScreenCTM().a*U)*zoom)));pan=false;closeCard();camera();svg.focus({preventScroll:true});};
     if(el.querySelector('#rpStockForm'))el.querySelector('#rpStockForm').onsubmit=e=>{e.preventDefault();const [target,item]=$('rpStockTarget').value.split(':').map(Number);doEdit({type:'prepare',tile:card,target,item,qty:Number($('rpStockQty').value)});};
     if(el.querySelector('#rpControl'))$('rpControl').onchange=()=>doEdit({type:'control',tile:card,control:$('rpControl').value});
-    if(focused==='rp-card-x'||focused==='rp-card-focus')el.querySelector('.'+focused).focus({preventScroll:true});
+    if(focused)el.querySelector(focused)?.focus({preventScroll:true});
+    el.scrollTop=scrollTop;
   }
   $('rpCard').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b||card===null)return;
-    if(b.hasAttribute('data-site')){const s=pz.stations[Number(b.dataset.site)];openCard(s.tile);if(zoom>1){viewX=(s.plot.x+s.plot.w/2)*U;viewY=(s.plot.y+s.plot.h/2)*U;camera();}return;}
+    if(b.hasAttribute('data-site')){const s=pz.stations[Number(b.dataset.site)];openCard(s.tile);$('rpCardTitle').focus({preventScroll:true});if(zoom>1){viewX=(s.plot.x+s.plot.w/2)*U;viewY=(s.plot.y+s.plot.h/2)*U;camera();}return;}
     if(b.hasAttribute('data-connection'))doEdit({type:'connection',tile:card,dir:Number(b.dataset.connection)});
     if(b.hasAttribute('data-unprepare'))doEdit({type:'unprepare',tile:card});
     if(b.hasAttribute('data-overpass'))doEdit({type:'overpass',tile:card});

@@ -54,6 +54,23 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     await inspect(consumer.footprint[0]);assert.match(await p.locator('#rpCard').innerText(),/Routine order[\s\S]*Dispatch peak[\s\S]*due/);
     await p.locator('[data-chain]').click();assert.ok(await p.locator('.rp-chain-path').count()>=5,'entire upstream chain is highlighted');await p.locator('.rp-card-x').click();
     await inspect(factory.footprint[0]);assert.match(await p.locator('#rpCard').innerText(),/Inputs:[\s\S]*stored[\s\S]*in transit/);await p.locator('.rp-card-x').click();
+    await p.locator('#rpStart').click();await p.locator('#rpPause').click();await inspect(consumer.footprint[0]);
+    for(const speed of [1,2,4]){
+      await p.locator(`[data-speed="${speed}"]`).click();await p.locator('#rpPause').click();
+      await p.locator(`[data-site="${workshop.id}"]`).focus();
+      const before=await p.locator('#rpCard').evaluate(el=>{el.scrollTop=Math.min(150,el.scrollHeight-el.clientHeight-30);return {top:el.scrollTop,tick:window.RoutePlanningUI.sim.tick};});
+      assert.ok(before.top>0,'dispatch inspector has scrollable content');
+      await p.waitForFunction(tick=>window.RoutePlanningUI.sim.tick>=tick+3,before.tick);
+      const after=await p.locator('#rpCard').evaluate(el=>el.scrollTop);
+      assert.ok(Math.abs(after-before.top)<=1,`scroll is stable at ${speed}×: ${before.top} → ${after}`);
+      assert.equal(await p.evaluate(()=>document.activeElement.dataset.site),String(workshop.id),'daytime updates preserve the focused partner');
+      await p.locator('#rpPause').click();
+    }
+    await reset();await inspect(refinery.footprint[0]);await p.locator(`[data-site="${mine.id}"]`).focus();await p.keyboard.press('Enter');
+    assert.equal(await p.evaluate(()=>document.getElementById('rpCard').contains(document.activeElement)),true,'keyboard partner navigation keeps focus inside the new inspector');
+    assert.equal(await p.locator('#rpCard').evaluate(el=>el.scrollTop),0,'new partner inspector starts with its recipe visible');
+    await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.dataset.site),String(refinery.id),'keyboard browsing continues with the new partner list');
+    await reset();
     let center=-1,side=2;
     for(let y=2;y<puzzle.H-4&&center<0;y++)for(let x=4;x<puzzle.W-4;x++){
       const t=y*puzzle.W+x,copy=P.clone(model);if(P.edit(puzzle,copy,{type:'road',tier:'highway',tiles:row(t,4)}).why)continue;
