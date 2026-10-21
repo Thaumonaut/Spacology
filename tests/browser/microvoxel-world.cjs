@@ -11,6 +11,12 @@ try{
   await p.goto(URL);await ready(p);const original=(await state(p)).deposit;
   assert.equal((await state(p)).step,4);await p.locator('#rootMarker').click();assert.match(await p.locator('#inspectBody').innerText(),/basalt.*fault/);assert.match(await p.locator('#inspectPosition').innerText(),/ore:root/);await p.locator('#closeInspection').click();
   await p.locator('#close').click();await ready(p);assert.equal((await state(p)).step,1);assert.deepEqual((await state(p)).deposit,original);
+  await p.locator('#zoomOut').click();await p.locator('#zoomOut').click();
+  await p.waitForFunction(()=>{const s=MicroWorldLab.snapshot();return s.step===2&&s.renderStep===1&&s.ready<s.visible&&s.renderReady>0;});
+  const heldPixel=await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>{const gl=document.getElementById('world').getContext('webgl2'),out=new Uint8Array(4);gl.readPixels(gl.drawingBufferWidth/2,gl.drawingBufferHeight/2,1,1,gl.RGBA,gl.UNSIGNED_BYTE,out);resolve([...out]);})));
+  assert.ok(heldPixel[1]>heldPixel[0]&&heldPixel[1]>heldPixel[2],'terrain remains rendered while the next LOD loads');
+  await ready(p);await p.waitForFunction(()=>MicroWorldLab.snapshot().renderStep===2);assert.equal((await state(p)).renderReady,(await state(p)).visible,'LOD swaps only after full view is ready');
+  await p.locator('#close').click();await ready(p);await p.waitForFunction(()=>MicroWorldLab.snapshot().renderStep===1);
   // Check a real pixel is drawn (not merely a successfully allocated WebGL canvas).
   const pixel=await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>{const gl=document.getElementById('world').getContext('webgl2'),out=new Uint8Array(4);gl.readPixels(gl.drawingBufferWidth/2,gl.drawingBufferHeight/2,1,1,gl.RGBA,gl.UNSIGNED_BYTE,out);resolve([...out]);})));
   assert.ok(pixel[0]>20&&pixel[1]>pixel[0]&&pixel[1]>pixel[2]&&pixel[3]===255,'clearing has rendered green pixels, not an empty canvas');
@@ -54,6 +60,7 @@ try{
   const baseline=await state(p);await p.locator('#densityFine').click();await ready(p);const fine=await state(p);
   assert.equal(fine.cellMetres,.125);assert.deepEqual(fine.chunkCells,[64,192,64]);assert.equal(fine.chunkMetres,8);assert.equal(fine.step,1);
   assert.equal(fine.worldId,baseline.worldId);assert.equal(fine.deposit.id,baseline.deposit.id);assert.notEqual(fine.dataId,baseline.dataId);assert.deepEqual(fine.camera,baseline.camera);
+  assert.equal(fine.renderStep,1,'density regeneration cannot reuse previous world geometry');
   await p.waitForFunction(n=>MicroWorldLab.snapshot().triangles>n,baseline.triangles);
   assert.equal(await p.locator('#densityFine').getAttribute('aria-pressed'),'true');assert.match(p.url(),/cell=0.125/);
   for(const a of fine.actors)assert.equal(a.y,M.createWorld(2718,.125).ground(a.x,a.z));
@@ -63,6 +70,7 @@ try{
   await p.locator('#rootMarker').click();assert.match(await p.locator('#inspectPosition').innerText(),new RegExp(fine.deposit.id));await p.locator('#closeInspection').click();
   await p.reload();await ready(p);assert.equal((await state(p)).cellMetres,.125,'reload retains density');
   await p.locator('#wide').click();await ready(p);assert.equal((await state(p)).step,8,'wide views keep metre-scale LOD');
+  await p.waitForFunction(()=>MicroWorldLab.snapshot().renderStep===8);assert.ok((await state(p)).meshCacheBytes<=32*1024*1024);
   await p.locator('#densityBase').click();await p.locator('#densityFine').click();await p.locator('#densityBase').click();await ready(p);
   assert.equal((await state(p)).cellMetres,.25);assert.equal((await state(p)).dataId,baseline.dataId,'rapid switches reject obsolete meshes');
   const edge=await p.evaluate(()=>{

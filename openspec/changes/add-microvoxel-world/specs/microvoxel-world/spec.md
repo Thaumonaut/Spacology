@@ -10,6 +10,9 @@ The lab SHALL compress voxel data and generate visible surface meshes outside th
 #### Scenario: Pan and zoom repeatedly
 - **WHEN** the camera changes the visible chunks or render resolution
 - **THEN** the queue prioritizes the current view, residency stays bounded, and LOD does not mutate world truth
+#### Scenario: Cross a render LOD threshold
+- **WHEN** a complete view zooms to a different render step
+- **THEN** its previous meshes remain drawable until the new visible set is ready, before an atomic LOD handoff, without a blank terrain frame
 
 ### Requirement: Inhabited orthographic proof
 The lab SHALL provide orthographic close/wide views of the same river catchment with distinct vegetation, a clearing, rock formation, a geographically conditioned resource and animated explorer/worker. It SHALL support touch, keyboard, pause and reduced motion with no external runtime dependency.

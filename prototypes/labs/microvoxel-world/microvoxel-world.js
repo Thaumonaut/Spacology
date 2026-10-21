@@ -3,7 +3,7 @@
   const M=MicroWorld,$=id=>document.getElementById(id),canvas=$('world');
   const params=new URLSearchParams(location.search),initial=Number(params.get('seed')??2718),initialCell=Number(params.get('cell')??M.CELL);
   let world=M.createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL);
-  let renderer,worker,epoch=0,busy=false,failed=false,paused=false,economy=false,simTime=0,selection=null,visible=[],step=2;
+  let renderer,worker,epoch=0,busy=false,failed=false,paused=false,economy=false,simTime=0,selection=null,visible=[],step=2,renderStep=null;
   const camera={x:60,z:62,span:88},frameSamples=[],generationSamples=[],meshSamples=[],actors=[];
   let voxelCacheBytes=0,voxelCacheEntries=0,cacheHits=0,completed=0,workerStarted=0,firstReadyMs=null;
   let born=performance.now();const motion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -34,6 +34,7 @@
     if(failed)return;
     renderer.resize(economy);epoch++;
     step=camera.span>80?1/world.cell:camera.span>44?.5/world.cell:1;if(economy)step=Math.min(1/world.cell,step*2);
+    if(renderStep===null)renderStep=step;
     visible=[];
     const size=world.chunkMetres,count=M.EXTENT/size;
     for(let cz=0;cz<count;cz++)for(let cx=0;cx<count;cx++){
@@ -59,7 +60,7 @@
       if(data.token===epoch&&data.cell===world.cell&&!failed){
         voxelCacheBytes=data.voxelCacheBytes;voxelCacheEntries=data.voxelCacheEntries;cacheHits+=Number(data.cacheHit);completed++;
         push(generationSamples,data.generateMs);push(meshSamples,data.meshMs);
-        const mesh=renderer.upload(data);mesh.quads=data.quads;mesh.exposedFaces=data.exposedFaces;
+        const mesh=renderer.upload(data);mesh.step=data.step;mesh.quads=data.quads;mesh.exposedFaces=data.exposedFaces;
         if(!cache.set(key(data.cx,data.cz,data.step),mesh)){fail('A chunk exceeded the mesh budget. Reload with Economy enabled.');return;}
       }
       pump();
@@ -74,7 +75,7 @@
   $('pause').onclick=togglePause;
   $('economy').onclick=()=>{economy=!economy;$('economy').setAttribute('aria-pressed',String(economy));updateView();};
   function regenerate(seed,cell){
-    world=M.createWorld(seed,cell);cache.clear();voxelCacheBytes=0;voxelCacheEntries=0;cacheHits=completed=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;identity();resetActors();$('closeInspection').click();
+    world=M.createWorld(seed,cell);cache.clear();renderStep=null;voxelCacheBytes=0;voxelCacheEntries=0;cacheHits=completed=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;identity();resetActors();$('closeInspection').click();
     const url=new URL(location.href);url.searchParams.set('seed',seed);url.searchParams.set('cell',cell);history.replaceState(null,'',url);updateView();
   }
   for(const [id,cell] of [['densityBase',.25],['densityFine',.125]])$(id).onclick=()=>{if(!failed&&world.cell!==cell)regenerate(world.seed,cell);};
@@ -95,13 +96,13 @@
     e.preventDefault();if(failed)return;const seed=Number($('seed').value);if(!Number.isInteger(seed)||seed<0||seed>4294967295)return;
     regenerate(seed,world.cell);$('notes').close();
   };
-  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:M.REVISION,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,pending:busy,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a})),meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
+  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:M.REVISION,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a})),meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   rootAPI();
   function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>renderer?.project(camera,x,y,z)});}
   $('export').onclick=()=>{const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`microvoxel-${world.seed}-metrics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   function hud(){
     const s=snapshot();if(!failed){const missing=s.visible-s.ready;message(missing?`Streaming ${missing} / ${s.visible} chunks…`:'');$('summary').textContent=`${s.ready}/${s.visible} chunks · ${bytes(s.meshCacheBytes)} GPU · p95 ${s.frameP95.toFixed(1)} ms`;}
-    const fields=[['Frame p50 / p95 / p99',`${s.frameP50.toFixed(1)} / ${s.frameP95.toFixed(1)} / ${s.frameP99.toFixed(1)} ms`],['Frame sample count',s.frameSamples],['First complete view',firstReadyMs===null?'Loading':`${(firstReadyMs/1000).toFixed(2)} s`],['Voxel runs · worker cache',`${bytes(s.voxelCacheBytes)} / 4 MiB`],['Worker cached chunks',`${s.voxelCacheEntries} / 128`],['Vertex buffers · GPU estimate',`${bytes(s.meshCacheBytes)} / 32 MiB`],['GPU cached chunks',`${s.meshCacheEntries} / 320`],['Active / ready chunks',`${s.visible} / ${s.ready}`],['Generation / meshing p95',`${s.generationP95.toFixed(1)} / ${s.meshingP95.toFixed(1)} ms`],['Worker warm data hits',s.cacheHits],['Draw calls / triangles',`${s.drawCalls} / ${s.triangles.toLocaleString()}`],['Render step / pixel ratio',`${s.step}× / ${s.pixelRatio.toFixed(1)}×`],['Ground cell / world extent',`${world.cell} m / ${M.EXTENT} m`],['Whole-process memory','Not measured']];
+    const fields=[['Frame p50 / p95 / p99',`${s.frameP50.toFixed(1)} / ${s.frameP95.toFixed(1)} / ${s.frameP99.toFixed(1)} ms`],['Frame sample count',s.frameSamples],['First complete view',firstReadyMs===null?'Loading':`${(firstReadyMs/1000).toFixed(2)} s`],['Voxel runs · worker cache',`${bytes(s.voxelCacheBytes)} / 4 MiB`],['Worker cached chunks',`${s.voxelCacheEntries} / 128`],['Vertex buffers · GPU estimate',`${bytes(s.meshCacheBytes)} / 32 MiB`],['GPU cached chunks',`${s.meshCacheEntries} / 320`],['Active / ready chunks',`${s.visible} / ${s.ready}`],['Generation / meshing p95',`${s.generationP95.toFixed(1)} / ${s.meshingP95.toFixed(1)} ms`],['Worker warm data hits',s.cacheHits],['Draw calls / triangles',`${s.drawCalls} / ${s.triangles.toLocaleString()}`],['Render step / pixel ratio',`${s.renderStep}× displayed / ${s.step}× requested / ${s.pixelRatio.toFixed(1)}×`],['Ground cell / world extent',`${world.cell} m / ${M.EXTENT} m`],['Whole-process memory','Not measured']];
     $('metricList').replaceChildren(...fields.flatMap(([k,v])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=v;return [dt,dd];}));
   }
   let previous=performance.now(),lastHud=0;
@@ -110,8 +111,9 @@
     if(!document.hidden&&!failed){
       if(renderer.lost){fail('Graphics context lost. Reload this page to rebuild the world.');return;}
       push(frameSamples,delta);if(!paused)simTime+=Math.min(delta/1000,.05);updateActors();
+      if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       renderer.begin(camera,motion.matches?0:simTime,economy);
-      for(const v of visible){const mesh=cache.get(v.key);if(mesh)renderer.draw(mesh,[v.cx*world.chunkMetres,0,v.cz*world.chunkMetres],[world.cell*step,world.cell*step,world.cell*step]);}
+      for(const v of visible){const mesh=cache.get(key(v.cx,v.cz,renderStep))||cache.get(v.key);if(mesh)renderer.draw(mesh,[v.cx*world.chunkMetres,0,v.cz*world.chunkMetres],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step]);}
       for(const a of actors)renderer.actor(a,simTime,motion.matches);
       if(firstReadyMs===null&&visible.length&&visible.every(v=>cache.items.has(v.key)))firstReadyMs=performance.now()-born;
       const d=world.deposit,p=renderer.project(camera,d.x,d.y+.7,d.z);$('rootMarker').style.left=`${p.x}px`;$('rootMarker').style.top=`${p.y}px`;$('rootMarker').hidden=p.x<0||p.y<0||p.x>canvas.clientWidth||p.y>canvas.clientHeight;
