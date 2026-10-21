@@ -8,33 +8,39 @@
   const K=window.MiniGameKit,P=window.RoutePlanning,esc=K.esc;
   const U=100,SVGNS='http://www.w3.org/2000/svg';
   const TOOLS=[
-    {id:'dirt',label:'Local',cost:`${P.ROADS[1].cost}/tile · 1/lane`,tip:'Cheap, slow access streets: one vehicle per direction. Downgrading returns the full price difference.'},
-    {id:'road',label:'Collector',cost:`${P.ROADS[2].cost}/tile · 2/lane`,tip:'Neighbourhood links: two vehicles per direction. Drag through a building to add a through road; start or end there for free access. A single tile tap joins its neighbours.'},
-    {id:'highway',label:'Arterial',cost:`${P.ROADS[3].cost}/tile · 3/lane`,tip:'Fast cross-map trunks: three vehicles per direction, including more junction capacity. Upgrades cost only the price difference. Joins appear only where you draw them.'},
+    {id:'local',label:'Local',cost:`${P.ROADS[4].cost}/tile · access`,tip:'Paved access for every building. Good at tight turns. Drawn edges alone create connections; adjacent roads stay separate.'},
+    {id:'road',label:'Collector',cost:`${P.ROADS[2].cost}/tile · 2/lane`,tip:'Faster district distributors. Large factories and warehouses can connect; small buildings need local streets.'},
+    {id:'highway',label:'Freeway',cost:`${P.ROADS[3].cost}/tile · 3/lane`,tip:'Normal ground only; no building access or at-grade intersections. Needs straight distance to accelerate. Use ramps to connect.'},
     {id:'erase',label:'Erase',cost:'full refund',tip:'Drag to remove road or a warehouse. Recover its full current construction value, on any night.'},
+    {id:'dirt',label:'Dirt track',cost:`${P.ROADS[1].cost}/tile`,tip:'Slow, low-capacity remote roads. Can cross mountains; connect to a paved street before a building entrance.'},
+    {id:'ramp',label:'Ramp',cost:'3/tile · one-way',tip:'Drag from street to freeway for an on-ramp, or freeway to street for an off-ramp. Leave two empty approach tiles. Inspect a freeway for a complete ramp-pair template.'},
+    {id:'overpass',label:'Overpass',cost:`${P.OVERPASS_COST} + approaches`,tip:'Tap a straight road with two approach tiles on each side. Builds a collector underneath; crossing traffic cannot turn. Tap again to remove the structure.'},
     {id:'oneway',label:'One-way',cost:`${P.ONEWAY_COST}/join`,tip:'Drag along a road to make it one-way in that direction: it carries twice as much. The same drag again makes it two-way.'},
-    {id:'roundabout',label:'Roundabout',cost:String(P.ROUND_COST),tip:'Tap a junction (three or more joins). Separate entry lanes replace its shared capacity, and remove the junction delay. Downstream roads can still congest. Tap again for a full refund.'},
-    {id:'warehouse',label:'Warehouse',cost:String(P.WH_COST),tip:`Tap empty ground beside a road. Full producers send surplus here (up to ${P.WH_CAP}), and it serves nearby requests.`},
+    {id:'roundabout',label:'Roundabout',cost:String(P.ROUND_COST),tip:'A slow yielding junction with a 3×3 footprint. Circulating traffic has priority. Inspect junctions to choose Stop or Signals instead.'},
+    {id:'warehouse',label:'Warehouse',cost:String(P.WH_COST),tip:`Place beside a local or collector, leaving room east and south. Inspect it to reserve up to ${P.WH_CAP} goods for a named factory or dispatch peak.`},
     {id:'whcap',label:'+Storage',cost:String(P.WH_UP_COST),tip:`Tap a warehouse to add ${P.WH_UP} spaces.`}
   ];
   const toolCost=t=>{const [price,capacity]=t.cost.split(' · ');return esc(price)+(capacity?`<span class="rp-tool-cap"> · ${esc(capacity)}</span>`:'');};
-  let pz=null,sim=null,tool='road',drag=null,hint=null,running=false,paused=false,speed=1,relaxed=false,launched=false,acc=0,last=0,raf=0,
+  let pz=null,sim=null,tool='local',drag=null,hint=null,running=false,paused=false,speed=1,relaxed=false,launched=false,acc=0,last=0,raf=0,
     ended=false,locate=null,locateTimer=0,card=null,count={edits:0,undos:0,hints:0,rejected:0,locates:0};
   const shell=K.shell({id:'route-planning',defaultDifficulty:'normal',
     difficulties:P.DIFFICULTIES.map(d=>({id:d.id,label:d.label,target:d.target})),
     rules:['<b>Night</b>: the clock stops. <b>Drag</b> across tiles to lay road from the <b>producers</b> (“Makes ▲”) to the <b>consumers</b> (“Needs ▲ ■”). Roads join along the way you drag, so parallel roads stay separate.',
+      'Supply chain: <b>2 ore → plate</b>, <b>2 crystal → cell</b>, then <b>plate + cell → gear kit</b>. Factories need delivered inputs and processing time. Only <b>on-time final dispatch deliveries</b> score; late goods still clear their order and earn construction credit.',
       'Press <b>Start day</b> to watch the traffic. You cannot build by day; use 1×, 2×, 4× or <b>Skip to dusk</b>.',
-      '<b>Local</b> streets are cheap access roads (1 vehicle/direction). <b>Collectors</b> gather traffic (2); fast <b>arterials</b> carry it across the map (3). Junction capacity scales with the road. Red tiles show queues.',
-      'A river road is a <b>bridge</b> (×4 cost); rough ground costs ×2; mountains block. <b>One-way</b> stretches carry double. <b>Roundabouts</b> separate entry lanes, but cannot fix a full downstream road. <b>Warehouses</b> store surplus nearby.',
+      '<b>Locals</b> serve every entrance; <b>collectors</b> only large buildings. <b>Freeways</b> need normal ground, directional ramps and uninterrupted distance to accelerate. Corners and queues erase speed. <b>Dirt tracks</b> can cross mountains.',
+      'River crossings are <b>bridges</b> (×4 cost); rough ground costs ×2. Parallel roads never auto-connect, even when tapped or upgraded. Inspect a road to toggle individual connections. Freeway ramp-pair templates and junction controls are in the inspector.',
+      '<b>Stops</b> halt vehicles and share one crossing slot. <b>Signals</b> release alternating north/south and east/west batches, with clearance intervals. <b>Roundabouts</b> slow and yield to circulating traffic; they require room. <b>Overpasses</b> carry independent straight flows, without turns.',
+      '<b>Schedules</b>: raw output peaks in the first 10 seconds. Inspect a dispatch site for its exact order quantities and times. Inspect a <b>warehouse</b> to intentionally stock a selected good for that destination. Reserved goods cannot be taken by other customers. Inventory persists overnight.',
       `Rebuild freely: <b>full refunds</b> on every night; re-tiering pays or returns only the difference. Each dusk pays <b>${P.STIPEND} construction credits</b> plus <b>${P.GROWTH_CREDIT} per new building</b>, even if deliveries failed.`,
-      'Dashed <b>planned sites</b> show every future building and its arrival day. New buildings <b>never erase roads</b>. Drag a road through a building to keep through traffic flowing; ending there gives free access. Demand still rises each night.',
-      `Score: 1 per delivery, <b>+${P.CLEAN_BONUS}</b> for each day nobody starved (a ring that fills past its limit). Starving never ends the run. Reach the planner’s <b>par</b> for Perfect.`],
+      'Dashed <b>planned plots</b> show future footprints and opening nights. Solid building footprints stay clear; marked entrance tiles can carry a compatible through street. New buildings never erase roads. Use <b>Zoom here</b> for finger-sized construction, Fit for overview.',
+      `Score: 1 per on-time dispatch delivery, <b>+${P.CLEAN_BONUS}</b> for each day nobody missed a deadline. Late orders remain deliverable but do not score. Reach the planner’s <b>par</b> for Perfect.`],
     onNew,onAuto,onUndo,onHint});
   const stage=shell.stage;
   document.body.classList.add('rp-screen');
   stage.innerHTML=`<div class="rp" id="rpRoot">
     <header class="rp-header">
-      <div class="rp-identity"><a class="rp-back" href="minigames.html" aria-label="Back to mini-games">← <span>MINI-GAMES</span></a><div><span class="rp-title">ROUTE / PLANNING</span><span id="rpPhase" class="rp-phase">NIGHT</span></div></div>
+      <div class="rp-identity"><a class="rp-back" href="minigames.html" aria-label="Back to mini-games">← <span>MINI-GAMES</span></a><div><span class="rp-title">ROUTE / LOGISTICS</span><span id="rpPhase" class="rp-phase">NIGHT</span></div></div>
       <div class="rp-hud" id="rpHud"></div>
       <div class="rp-header-actions"><button id="rpHelp" aria-controls="rpDrawer" aria-expanded="false" aria-label="How to play">?</button><button id="rpSettings" aria-controls="rpDrawer" aria-expanded="false" aria-label="Game settings">⚙</button></div>
     </header>
@@ -50,7 +56,7 @@
     <footer class="rp-command">
       <div class="rp-nightbar" id="rpNightBar"><div class="rp-tools" id="rpTools" role="toolbar" aria-label="Night construction tools">
         ${TOOLS.slice(0,4).map(t=>`<button data-tool="${t.id}" aria-pressed="${t.id==='road'}" title="${esc(t.tip)}"><b>${esc(t.label)}</b><small>${toolCost(t)}</small></button>`).join('')}
-        <div class="rp-more-wrap"><button id="rpMore" aria-controls="rpExtras" aria-expanded="false"><b>More</b><small id="rpMoreLabel">4 tools</small></button>
+        <div class="rp-more-wrap"><button id="rpMore" aria-controls="rpExtras" aria-expanded="false"><b>More</b><small id="rpMoreLabel">${TOOLS.length-4} tools</small></button>
           <div id="rpExtras" role="group" aria-label="Specialist tools" hidden>${TOOLS.slice(4).map(t=>`<button data-tool="${t.id}" aria-pressed="false" title="${esc(t.tip)}"><b>${esc(t.label)}</b><small>${toolCost(t)}</small></button>`).join('')}</div></div>
       </div><div class="rp-actions" id="rpNightActions"><button id="rpStart" class="primary rp-start">☀ Start day</button></div></div>
       <div class="rp-daybar" id="rpDayBar" hidden><div class="rp-clock"><span id="rpClock"></span><i><b id="rpClockBar"></b></i></div><button id="rpPause" aria-pressed="false">Pause</button><div class="rp-speed" role="group" aria-label="Playback speed">${[1,2,4].map(s=>`<button data-speed="${s}" aria-pressed="${s===1}">${s}×</button>`).join('')}</div><button id="rpDusk" title="Run the rest of the day at once">⏭ Skip to dusk</button></div>
@@ -101,17 +107,18 @@
   const sym=t=>P.TYPES[t].sym,tcol=t=>P.TYPES[t].color;
   const cx=i=>(i%pz.W)*U+U/2,cy=i=>Math.floor(i/pz.W)*U+U/2;
   const tileXY=i=>({x:i%pz.W,y:Math.floor(i/pz.W)});
-  const coord=i=>{const {x,y}=tileXY(i);return String.fromCharCode(65+x)+(y+1);};
+  const column=x=>{let label='';for(let n=x+1;n>0;n=Math.floor((n-1)/26))label=String.fromCharCode(65+(n-1)%26)+label;return label;};
+  const coord=i=>{const {x,y}=tileXY(i);return column(x)+(y+1);};
   let zoom=1,viewX=0,viewY=0,pan=false,panDrag=null,keyboardTile=0;
   function camera(){
     const w=(pz.W*U+40)/zoom,h=(pz.H*U+60)/zoom;
     svg.setAttribute('viewBox',`${viewX-w/2} ${viewY-h/2} ${w} ${h}`);
-    $('rpZoomOut').disabled=zoom<=1;$('rpZoomIn').disabled=zoom>=3;
+    $('rpZoomOut').disabled=zoom<=1;$('rpZoomIn').disabled=zoom>=6;
     $('rpFit').textContent=zoom===1?'Fit':`${Math.round(zoom*100)}%`;
     $('rpPan').setAttribute('aria-pressed',String(pan));$('rpMap').classList.toggle('panning',pan);
   }
   function fitMap(){zoom=1;viewX=pz.W*U/2;viewY=pz.H*U/2-10;pan=false;panDrag=null;camera();}
-  function zoomMap(delta){zoom=Math.max(1,Math.min(3,zoom+delta));if(zoom===1)fitMap();else camera();}
+  function zoomMap(delta){zoom=Math.max(1,Math.min(6,zoom+delta));if(zoom===1)fitMap();else camera();}
   $('rpZoomIn').onclick=()=>zoomMap(0.5);$('rpZoomOut').onclick=()=>zoomMap(-0.5);$('rpFit').onclick=fitMap;
   $('rpPan').onclick=()=>{pan=!pan;camera();};
 
@@ -119,15 +126,15 @@
   function onNew({seed,difficulty}){
     stop();pz=P.generate(seed,difficulty);relaxed=false;sim=P.create(pz,{relaxed});
     hint=null;launched=false;ended=false;paused=false;acc=0;drag=null;card=null;locate=null;count={edits:0,undos:0,hints:0,rejected:0,locates:0};
-    tool='road';stage.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===tool)));
-    $('rpMoreLabel').textContent='4 tools';$('rpMore').classList.remove('selected');
+    tool='local';stage.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===tool)));
+    $('rpMoreLabel').textContent=`${TOOLS.length-4} tools`;$('rpMore').classList.remove('selected');
     $('rpRelaxed').disabled=false;$('rpRelaxed').setAttribute('aria-pressed','false');$('rpRelaxed').textContent='Relaxed: off';
     closeDrawer();showMore(false);
     $('rpReport').hidden=true;$('rpReportOpen').hidden=true;$('rpReportOpen').setAttribute('aria-expanded','false');
     $('rpHintBar').hidden=true;$('rpCard').hidden=true;
     keyboardTile=0;$('rpFocus').innerHTML='';fitMap();
     side();terrain();render();
-    shell.status('Connect matching shapes, then start the day.');
+    shell.status('Connect mines → refineries → workshop → dispatch. Inspect sites for recipes and peaks.');
   }
   function stop(){running=false;cancelAnimationFrame(raf);raf=0;}
   function startDay(){
@@ -207,7 +214,7 @@
     return x>=0&&y>=0&&x<pz.W&&y<pz.H?y*pz.W+x:-1;
   }
   const isB=i=>P.isBuilding(pz,sim,i);
-  const DRAGGERS=new Set(['road','dirt','highway','erase','oneway']);
+  const DRAGGERS=new Set(['local','road','dirt','highway','ramp','erase','oneway']);
   svg.addEventListener('pointerdown',e=>{
     if(!pz)return;
     e.preventDefault();svg.setPointerCapture?.(e.pointerId);
@@ -272,11 +279,13 @@
     else{drag={tiles:[keyboardTile],id:'keyboard'};endDrag({pointerId:'keyboard'});}
   });
   function action(tiles){
-    if(tool==='road'||tool==='dirt'||tool==='highway')return {type:'road',tier:tool,tiles:tiles.slice()};
+    if(['local','road','dirt','highway'].includes(tool))return {type:'road',tier:tool,tiles:tiles.slice()};
+    if(tool==='ramp')return {type:'ramp',tiles:tiles.slice()};
     if(tool==='erase')return {type:'erase',tiles:tiles.slice()};
     if(tool==='oneway'){if(tiles.length<2){shell.status('Drag along a road (at least two tiles) to make it one-way in that direction.','warn');return null;}return {type:'oneway',tiles:tiles.slice()};}
     const t=tiles[tiles.length-1];
     if(tool==='roundabout')return {type:'roundabout',tile:t};
+    if(tool==='overpass')return {type:'overpass',tile:t};
     if(tool==='warehouse')return {type:'warehouse',tile:t};
     if(tool==='whcap')return {type:'whcap',tile:t};
     return null;
@@ -294,7 +303,7 @@
   stage.querySelector('#rpTools').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(!b)return;tool=b.dataset.tool;
     pan=false;camera();
     stage.querySelectorAll('[data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
-    $('rpMoreLabel').textContent=$('rpExtras').contains(b)?TOOLS.find(t=>t.id===tool).label:'4 tools';
+    $('rpMoreLabel').textContent=$('rpExtras').contains(b)?TOOLS.find(t=>t.id===tool).label:`${TOOLS.length-4} tools`;
     $('rpMore').classList.toggle('selected',$('rpExtras').contains(b));
     showMore(false);
     shell.status(TOOLS.find(t=>t.id===tool).tip);});
@@ -307,30 +316,63 @@
     shell.status(relaxed?`Relaxed: consumers wait ${P.RELAXED}× as long before they starve. Par is recomputed for it.`:'Standard patience.');};
 
   // ---- building card ----------------------------------------------------------------------------------------------------
-  function openCard(t){closeReport();hideHint();card=t;renderCard();}
-  function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);card=null;el.hidden=true;if(focused)svg.focus({preventScroll:true});}
+  function openCard(t){closeReport();hideHint();if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;renderCard();}
+  function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);card=null;el.hidden=true;$('rpGhost').innerHTML='';if(focused)svg.focus({preventScroll:true});}
   function renderCard(){
     const el=$('rpCard');if(card===null){el.hidden=true;return;}
     const focused=el.contains(document.activeElement)?document.activeElement.className:null;
     const id=P.stationAt(pz,sim,card),k=P.whAt(sim,card);let html='';
     if(id<0&&pz.bAt[card]>=0){const s=pz.stations[pz.bAt[card]];
-      html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Planned · night ${s.day}</span><p>${s.kind==='producer'?'Makes '+esc(P.supply(s.type)):'Needs '+s.needs.map(t=>esc(P.supply(t))).join(' and ')}.</p><p>This site is fixed for this seed. Roads through it will stay intact when the building opens. Keep warehouses outside planned sites.</p>`;
+      html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Planned · night ${s.day}</span><p>${s.kind==='producer'?'Makes '+esc(P.supply(s.type)):'Needs '+s.needs.map(t=>esc(P.supply(t))).join(' and ')}.</p><p>Reserved ${s.plot.w}×${s.plot.h} footprint. Use the marked ${s.large?'local/collector':'local'} entrance; its through street will stay intact when this site opens.</p>`;
     }
     else if(id>=0){const s=pz.stations[id],x=sim.st[id];
-      if(s.kind==='producer')html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Producer</span><p>Makes <i style="color:${tcol(s.type)}">${esc(P.supply(s.type))}</i>, one every ${(pz.prodTicks*P.TICK).toFixed(1)} s.</p><p>Stock ${x.stock}/${P.PROD_CAP}${x.stock>=P.PROD_CAP?' · full: production paused':''}</p>`;
+      if(s.kind==='producer'){
+        const inputs=s.recipe?Object.entries(s.recipe.input).map(([t,n])=>`${n} ${P.supply(t)}`).join(' + '):null;
+        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">${s.recipe?'Factory':'Producer'}</span><p>Makes <i style="color:${tcol(s.type)}">${esc(P.supply(s.type))}</i>${inputs?` from ${esc(inputs)} in ${s.recipe.ticks*P.TICK} s`:', early output peak 0–10 s (×2), then slower output'}.</p><p>Output ${x.stock}/${P.OUTPUT_CAP}${x.stock>=P.OUTPUT_CAP?' · full: production paused':''}</p>`;
+        if(s.recipe)html+=`<p>Inputs: ${s.needs.map(t=>`${sym(t)} ${x.input[t]} stored · ${x.reqs.filter(r=>r.type===t&&r.v).length} in transit`).join('; ')}.</p><p>${s.needs.some(t=>x.input[t]<s.recipe.input[t])?'Waiting for inputs':'Processing when output has room'}.</p>`;
+      }
       else{const open=x.reqs.length,oldest=open?Math.max(...x.reqs.map(r=>r.age)):0;
-        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Consumer</span><p>Needs ${s.needs.map(t=>`<i style="color:${tcol(t)}">${esc(P.supply(t))}</i>`).join(' and ')}, one request every ${(P.demTicks(pz,Math.min(sim.day,pz.days))*P.TICK).toFixed(1)} s.</p>
+        html=`<b>${esc(s.name)}</b><span class="rp-card-kind">Consumer</span><p>Needs ${s.needs.map(t=>`<i style="color:${tcol(t)}">${esc(P.supply(t))}</i>`).join(' and ')}.</p><ul class="rp-schedule">${P.schedule(pz,Math.min(sim.day,pz.days),id,sim.relaxed).map(e=>`<li><b>${e.tick*P.TICK} s</b> · ${e.label}: ${e.qty} ${sym(e.type)} · due ${e.deadline*P.TICK} s</li>`).join('')}</ul>
           <p>${open?`Waiting for ${x.reqs.map(r=>sym(r.type)).join(' ')} · oldest ${Math.round(oldest*P.TICK)} s of ${Math.round(P.patienceTicks(pz,sim)*P.TICK)} s`:'Nothing waiting'}${x.starved?' · <em>starved today</em>':''}</p>`;}
-    }else if(k>=0){const w=sim.wh[k],used=w.stock.reduce((a,b)=>a+b,0);
-      html=`<b>Warehouse ${coord(card)}</b><span class="rp-card-kind">Storage</span><p>Holds ${used}/${w.cap}: ${w.stock.map((n,t)=>n?`${n} ${sym(t)}`:'').filter(Boolean).join(', ')||'empty'}.</p><p>Full producers send surplus here; it serves requests when it is the nearest source.</p>`;}
+    }else if(k>=0){const w=sim.wh[k],used=w.stock.reduce((a,b)=>a+b,0),incoming=sim.veh.filter(v=>v.kind==='stock'&&v.dst===w.tile);
+      const eta=incoming.length?Math.min(...incoming.map(v=>v.t+P.freeRoutes(pz,sim,v.path[v.i]).dist[w.tile]))*P.TICK:null;
+      const options=pz.stations.filter(s=>s.day<=sim.day&&s.needs.length).flatMap(s=>s.needs.map(t=>({value:`${s.id}:${t}`,text:`${s.name} · ${P.supply(t)}`})));
+      html=`<b>Warehouse ${coord(card)}</b><span class="rp-card-kind">Staging</span><p>Holds ${used}/${w.cap}: ${w.stock.map((n,t)=>n?`${n} ${sym(t)}`:'').filter(Boolean).join(', ')||'empty'} · ${w.inc.reduce((a,b)=>a+b,0)} inbound.${eta===null?'':` Nearest inbound: ~${eta.toFixed(1)} s free-flow, plus queues.`}</p><p>${w.plan?`Reserved for ${esc(pz.stations[w.plan.target].name)}: target ${w.plan.qty} ${sym(w.plan.type)}.`:'Assign a destination to request stock deliberately; unassigned warehouses do not pull goods.'} Inventory survives dusk; storage also reserves room for cargo recalled in transit.</p>
+        ${sim.phase==='night'?`<form id="rpStockForm"><label>Prepare for<select id="rpStockTarget">${options.map(o=>`<option value="${o.value}" ${w.plan&&o.value===`${w.plan.target}:${w.plan.type}`?'selected':''}>${esc(o.text)}</option>`).join('')}</select></label><label>Stock target<input id="rpStockQty" type="number" min="1" max="${w.cap}" value="${w.plan?.qty||Math.min(4,w.cap)}"></label><button class="primary" type="submit">Reserve stock</button>${w.plan?'<button type="button" data-unprepare>Release reserve</button>':''}</form>`:''}`;}
     else if(sim.net.tier[card]){const road=P.ROADS[sim.net.tier[card]],g=P.graph(pz,sim);
-      html=`<b>Road ${coord(card)}</b><span class="rp-card-kind">${esc(road.label)}</span><p>${esc(road.role)} · capacity ${g.cap[card]}${g.shared[card]?' shared at junction':' per entry direction'} · ${g.ticks[card]*P.TICK} s per tile.</p><p>Road value: ${sim.net.paid[card]} credits, fully refundable.${sim.net.rb[card]?' Roundabout: separate entry lanes.':''}</p>${sim.phase==='day'?`<p>${sim.q[card]||0} vehicles queued here.</p>`:''}`;
+      html=`<b>Road ${coord(card)}</b><span class="rp-card-kind">${esc(road.label)}</span><p>${esc(road.role)} · capacity ${g.cap[card]}${g.shared[card]?' shared at junction':' per direction'} · cruising ${g.ticks[card]*P.TICK} s/tile (turns, acceleration and controls add time).</p><p>Refund value: ${sim.net.paid[card]+sim.net.rbPaid[card]} credits, fully refundable.${sim.net.over[card]?' Grade-separated: no turns.':P.isJunction(sim,card)?` Control: ${sim.net.control[card]}.`:''}</p>${sim.phase==='day'?`<p>${sim.q[card]||0} vehicles queued here.</p>`:''}`;
+      if(sim.phase==='night'){
+        html+=`<fieldset class="rp-connections"><legend>Connections · tap to toggle</legend>${P.DIR_NAMES.map((name,d)=>`<button data-connection="${d}" aria-pressed="${!!(sim.net.e[card]&(1<<d))}">${name} ${sim.net.e[card]&(1<<d)?'●':'○'}</button>`).join('')}</fieldset>`;
+        if((P.isJunction(sim,card)||sim.net.rbPaid[card])&&![3,5].includes(sim.net.tier[card])&&!sim.net.over[card])html+=`<label>Junction control<select id="rpControl">${['stop','signal','roundabout'].map(c=>`<option ${sim.net.control[card]===c?'selected':''} value="${c}">${c==='stop'?'Stop · free':c==='signal'?`Signals · ${P.SIGNAL_COST}`:`Roundabout · ${P.ROUND_COST} · 3×3`}</option>`).join('')}</select></label>`;
+        if([5,10,15].includes(sim.net.e[card])&&sim.net.tier[card]!==5)html+='<button data-overpass>'+ (sim.net.over[card]?'Remove overpass':'Build overpass')+'</button>';
+        if(sim.net.tier[card]===3&&[5,10].includes(sim.net.e[card]))html+=`<label>Ramp-pair template side<select id="rpRampSide">${(sim.net.e[card]===10?[2,0]:[1,3]).map(d=>`<option value="${d}">${P.DIR_NAMES[d]}</option>`).join('')}</select></label><button data-interchange>Preview ramp pair</button>`;
+      }
     }else{closeCard();return;}
-    if(id>=0)html+=`<p>${sim.net.tier[card]?'Through road: '+P.ROADS[sim.net.tier[card]].label+'.':'Access only. Drag a road through this tile to allow passing traffic.'}</p>`;
+    if(id>=0){const s=pz.stations[id];html+=`<p>Entrance: ${s.large?'local or collector':'paved local only'}. ${sim.net.tier[card]?'Compatible through street preserved.':'End a street at the entrance, or run a compatible street through its access tile.'}</p><button data-chain>Show supply chain</button>`;}
     el.innerHTML=html+'<button class="rp-card-focus">Zoom here</button><button class="rp-card-x" aria-label="Close">✕</button>';el.hidden=false;
     el.querySelector('.rp-card-x').onclick=closeCard;
-    el.querySelector('.rp-card-focus').onclick=()=>{keyboardTile=card;viewX=cx(card);viewY=cy(card);zoom=Math.max(2,zoom);pan=false;closeCard();camera();svg.focus({preventScroll:true});};
+    el.querySelector('.rp-card-focus').onclick=()=>{keyboardTile=card;viewX=cx(card);viewY=cy(card);zoom=Math.max(zoom,Math.min(6,Math.ceil(48/(svg.getScreenCTM().a*U)*zoom)));pan=false;closeCard();camera();svg.focus({preventScroll:true});};
+    if(el.querySelector('#rpStockForm'))el.querySelector('#rpStockForm').onsubmit=e=>{e.preventDefault();const [target,item]=$('rpStockTarget').value.split(':').map(Number);doEdit({type:'prepare',tile:card,target,item,qty:Number($('rpStockQty').value)});};
+    if(el.querySelector('#rpControl'))$('rpControl').onchange=()=>doEdit({type:'control',tile:card,control:$('rpControl').value});
     if(focused==='rp-card-x'||focused==='rp-card-focus')el.querySelector('.'+focused).focus({preventScroll:true});
+  }
+  $('rpCard').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b||card===null)return;
+    if(b.hasAttribute('data-connection'))doEdit({type:'connection',tile:card,dir:Number(b.dataset.connection)});
+    if(b.hasAttribute('data-unprepare'))doEdit({type:'unprepare',tile:card});
+    if(b.hasAttribute('data-overpass'))doEdit({type:'overpass',tile:card});
+    if(b.hasAttribute('data-interchange')){
+      const a={type:'interchange',tile:card,side:Number($('rpRampSide').value)},r=P.costOf(pz,sim,a);
+      if(r.why){shell.status(r.why,'warn');return;}
+      b.textContent=`Build ramp pair · ${r.cost} credits`;b.removeAttribute('data-interchange');b.setAttribute('data-ramp-confirm',JSON.stringify(a));
+      const copy=P.clone(sim);P.edit(pz,copy,a);$('rpGhost').innerHTML=copy.net.tier.map((tier,i)=>tier&&!sim.net.tier[i]?`<rect class="rp-ghost-tile" x="${cx(i)-44}" y="${cy(i)-44}" width="88" height="88" rx="10"/>`:'').join('');
+    }else if(b.hasAttribute('data-ramp-confirm'))doEdit(JSON.parse(b.getAttribute('data-ramp-confirm')));
+    if(b.hasAttribute('data-chain'))showChain(pz.bAt[card]);
+  });
+  function showChain(id){
+    const seen=new Set(),edges=[];function visit(dst){if(seen.has(dst.id))return;seen.add(dst.id);for(const type of dst.needs)for(const src of pz.stations)if(src.kind==='producer'&&src.type===type&&src.day<=sim.day){edges.push({src,dst,type});visit(src);}}
+    visit(pz.stations[id]);$('rpLocate').innerHTML=edges.map(({src,dst,type})=>{const path=P.pathTo(P.freeRoutes(pz,sim,src.tile),dst.tile)||[src.tile,dst.tile];return `<path class="rp-chain-path" style="stroke:${tcol(type)}" d="${path.map((t,k)=>`${k?'L':'M'}${cx(t)} ${cy(t)}`).join(' ')}"/>`;}).join('')+[...seen].map(i=>`<circle class="rp-locate" cx="${cx(pz.stations[i].tile)}" cy="${cy(pz.stations[i].tile)}" r="50"/>`).join('');
+    clearTimeout(locateTimer);locateTimer=setTimeout(()=>{$('rpLocate').innerHTML='';},10000);shell.status('Highlighted upstream chain. Dashed straight links indicate missing road routes.');
   }
 
   // ---- drawing ------------------------------------------------------------------------------------------------------------
@@ -345,7 +387,7 @@
       <li><i class="rp-sw rp-sw-site">▧</i><span><b>Planned site</b>: fixed arrival day; roads survive</span></li>
       <li><i class="rp-sw rp-sw-river"></i>River: roads here are bridges (×4)</li>
       <li><i class="rp-sw rp-sw-rough"></i>Rough ground (×2)</li>
-      <li><i class="rp-sw rp-sw-mount"></i>Mountain (no roads)</li>
+      <li><i class="rp-sw rp-sw-mount"></i>Mountain (dirt tracks only)</li>
       <li><i class="rp-sw rp-sw-heat"></i>Jam: vehicles queued here</li>
       <li><i class="rp-sw rp-sw-ow">➜</i>One-way (double capacity)</li></ul>`);
   }
@@ -356,7 +398,7 @@
       if(t===3)h+=`<path class="rp-mount" d="M${x+14} ${y+82} L${x+44} ${y+26} L${x+60} ${y+52} L${x+70} ${y+40} L${x+88} ${y+82}Z"/>`;
       if(t===2)h+=`<g class="rp-rough"><circle cx="${x+28}" cy="${y+30}" r="5"/><circle cx="${x+68}" cy="${y+48}" r="6"/><circle cx="${x+38}" cy="${y+74}" r="4"/></g>`;
     }
-    for(let x=0;x<pz.W;x++)h+=`<text class="rp-coord" x="${x*U+U/2}" y="-12" text-anchor="middle">${String.fromCharCode(65+x)}</text>`;
+    for(let x=0;x<pz.W;x++)h+=`<text class="rp-coord" x="${x*U+U/2}" y="-12" text-anchor="middle">${column(x)}</text>`;
     $('rpTerrain').innerHTML=h;
   }
   function render(){renderTop();renderRoads();renderTick();renderVehicles(0);drawHint();renderCard();renderNews();}
@@ -397,6 +439,8 @@
       const jn=P.isJunction(sim,i);
       top+=`<g class="rp-road rp-tier-${tier}${jn?' junction':''}" data-tile="${i}">${segs?`<path d="${segs}"/>`:''}<circle cx="${x}" cy="${y}" r="${tier==='highway'?20:tier==='road'?15:11}"/></g>`;
       if(n.rb[i])top+=`<circle class="rp-roundabout" cx="${x}" cy="${y}" r="22"/>`;
+      if(n.control[i]==='signal')top+=`<rect class="rp-signal" x="${x-14}" y="${y-22}" width="28" height="44" rx="8"/><circle class="rp-signal-light" cx="${x}" cy="${y-7}" r="7"/>`;
+      if(n.over[i]){const vertical=n.over[i].axis===0;top+=`<path class="rp-over-deck" d="M${x-(vertical?0:50)} ${y-(vertical?50:0)} L${x+(vertical?0:50)} ${y+(vertical?50:0)}"/><path class="rp-over-top rp-tier-${tier}" d="M${x-(vertical?0:50)} ${y-(vertical?50:0)} L${x+(vertical?0:50)} ${y+(vertical?50:0)}"/>`;}
       else if(jn)top+=`<circle class="rp-junction" cx="${x}" cy="${y}" r="7"/>`;
       void isWh;
       // One-way joins: arrows marching along the allowed direction.
@@ -418,6 +462,7 @@
     $('rpHeat').innerHTML=h;
   }
   function renderBuildings(){
+    if(pz.logistics){renderLogisticsBuildings();return;}
     let h='',sites='';const pt=P.patienceTicks(pz,sim);
     for(const s of pz.stations){
       if(s.day>sim.day&&sim.phase!=='done'){
@@ -455,11 +500,27 @@
     }
     $('rpSites').innerHTML=sites;$('rpBuildings').innerHTML=h;
   }
+  function renderLogisticsBuildings(){
+    let buildings='',sites='';
+    for(const s of pz.stations){
+      const p=s.plot,x=p.x*U+8,y=p.y*U+8,w=p.w*U-16,h=p.h*U-16,mx=x+w/2,my=y+h/2,active=s.day<=sim.day,st=sim.st[s.id],color=s.kind==='producer'?tcol(s.type):'#dae8ef';
+      const goods=s.kind==='producer'?`Makes ${sym(s.type)}`:`Needs ${s.needs.map(sym).join(' ')}`;
+      const blocked=s.recipe&&s.needs.some(t=>st.input[t]<s.recipe.input[t]),oldest=st.reqs.length?Math.max(...st.reqs.map(r=>r.age)):0;
+      const status=!active?`OPENS NIGHT ${s.day}`:s.recipe?blocked?'WAITING FOR INPUTS':'ASSEMBLING':s.kind==='producer'?`${st.stock}/${P.OUTPUT_CAP} OUTPUT`:st.reqs.length?`${st.reqs.length} WAITING · ${Math.round(oldest*P.TICK)}s`:'SCHEDULED DISPATCH';
+      const content=`<g class="rp-building rp-plot ${active?'':'rp-site'} ${s.recipe?'rp-factory':''}" ${active?`data-station="${s.id}"`:`data-planned="${s.id}"`}><title>${esc(s.name)} · ${esc(goods)} · ${s.large?'local or collector':'local'} entrance</title><rect class="rp-b-body" x="${x}" y="${y}" width="${w}" height="${h}" rx="18" style="stroke:${color}"/><text class="rp-plot-name" x="${mx}" y="${my-37}" text-anchor="middle">${esc(s.short)}</text><g class="rp-label"><text x="${mx}" y="${my+3}" text-anchor="middle" style="fill:${color}">${goods}</text></g><text class="rp-plot-status" x="${mx}" y="${my+40}" text-anchor="middle">${status}</text><path class="rp-entrance" d="M${cx(s.tile)} ${cy(s.tile)} L${x} ${cy(s.tile)}"/><circle class="rp-port" cx="${cx(s.tile)}" cy="${cy(s.tile)}" r="17"/><text class="rp-port-label" x="${cx(s.tile)}" y="${cy(s.tile)+40}" text-anchor="middle">${s.large?'L/C':'L'}</text></g>`;
+      if(active)buildings+=content;else sites+=content;
+      if(active&&sim.day>1&&s.day===sim.day)buildings+=`<text class="rp-newtag" x="${mx}" y="${y-8}" text-anchor="middle">NEW TONIGHT</text>`;
+      if(active&&sim.net.tier[s.tile])buildings+=`<circle data-through="${s.id}" class="rp-port" cx="${cx(s.tile)}" cy="${cy(s.tile)}" r="12"/>`;
+      if(sim.net.e[s.tile]&&!sim.net.tier[s.tile])for(let d=0;d<4;d++)if(sim.net.e[s.tile]&(1<<d))buildings+=`<path class="rp-access" d="M${cx(s.tile)} ${cy(s.tile)} L${cx(s.tile)+P.DIRS[d][0]*U/2} ${cy(s.tile)+P.DIRS[d][1]*U/2}"/>`;
+    }
+    for(const wh of sim.wh){const x=cx(wh.tile),y=cy(wh.tile);buildings+=`<g class="rp-building rp-wh" data-wh="${wh.tile}"><rect class="rp-b-body" x="${x-40}" y="${y-40}" width="170" height="170" rx="16"/><text class="rp-plot-name" x="${x+45}" y="${y+10}" text-anchor="middle">WAREHOUSE</text><text class="rp-plot-status" x="${x+45}" y="${y+48}" text-anchor="middle">${wh.stock.reduce((a,b)=>a+b,0)}/${wh.cap} · ${wh.plan?'RESERVED':'UNASSIGNED'}</text><circle class="rp-port" cx="${x}" cy="${y}" r="17"/></g>`;}
+    $('rpSites').innerHTML=sites;$('rpBuildings').innerHTML=buildings;
+  }
   function renderVehicles(frac){
     if(sim.phase!=='day'){$('rpVehicles').innerHTML='';return;}
     const g=P.graph(pz,sim);let h='';
     for(const v of sim.veh){
-      const cur=v.path[v.i],prev=v.i>0?v.path[v.i-1]:cur,total=g.ticks[cur]||1;
+      const cur=v.path[v.i],prev=v.i>0?v.path[v.i-1]:cur,total=v.total||g.ticks[cur]||1;
       let f=v.i>0?1-(Math.max(0,v.t-frac))/total:0;if(v.wait>0)f=1;f=Math.max(0,Math.min(1,f));
       // Keep to the right-hand side of the road so the two directions read apart.
       const d=P.dirTo(pz,prev,cur),off=d<0?0:12,ox=d<0?0:-P.DIRS[d][1]*off,oy=d<0?0:P.DIRS[d][0]*off;
@@ -485,7 +546,7 @@
   }
   function renderNews(){
     const el=$('rpNews');
-    if(sim.phase!=='night'||ended){el.textContent=sim.phase==='day'?`Requests every ${(P.demTicks(pz,sim.day)*P.TICK).toFixed(1)} s per consumer. Tap a building to inspect it.`:'';return;}
+    if(sim.phase!=='night'||ended){el.textContent=sim.phase==='day'?'Early output 0–10s · dispatch peaks 24–26s. Inspect a site for its chain and exact schedule.':'';return;}
     const fresh=pz.stations.filter(s=>s.day===sim.day);
     const next=pz.stations.filter(s=>s.day===sim.day+1);
     el.innerHTML=`<b class="rp-newtag-inline">NEW TONIGHT</b> ${fresh.map(s=>`${esc(s.name)} (${s.kind==='producer'?'Makes '+sym(s.type):'Needs '+s.needs.map(sym).join(' ')})`).join(', ')}. ${next.length?`Next night: ${next.length} planned site${next.length===1?'':'s'} open; +${P.STIPEND+P.growthCredit(pz,sim.day+1)} construction credits at dusk.`:`+${P.STIPEND} construction credits at dusk.`}`;

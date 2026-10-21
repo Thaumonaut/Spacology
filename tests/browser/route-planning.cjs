@@ -9,7 +9,7 @@ const P=require('../../prototypes/minigames/route-planning/route-planning-model.
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',SHOTS=process.env.SHOTS;
 async function noOverflow(p,where){const o=await p.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);assert.ok(o<=1,`horizontal overflow ${o}px on ${where}`);}
 const RUNS=[{viewport:{width:1280,height:900},difficulty:'normal',seed:39,full:true},{viewport:{width:1024,height:768},difficulty:'easy',seed:3},{viewport:{width:390,height:844},difficulty:'easy',seed:5}];
-const TOOL={road:'road',dirt:'dirt',highway:'highway'};
+const TOOL={road:'road',local:'local',dirt:'dirt',highway:'highway'};
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
   for(const {viewport,difficulty,seed,full} of RUNS){
@@ -21,7 +21,7 @@ try{
     await p.locator('[data-station]').first().waitFor();
     const center=i=>p.evaluate(([i,W])=>{const svg=document.getElementById('rpMap'),m=svg.getScreenCTM(),pt=new DOMPoint((i%W)*100+50,Math.floor(i/W)*100+50).matrixTransform(m);return {x:pt.x,y:pt.y};},[i,pz.W]);
     const tool=async id=>{
-      if(['oneway','roundabout','warehouse','whcap'].includes(id)&&await p.locator('#rpExtras').isHidden())await p.locator('#rpMore').click();
+      if(await p.locator(`[data-tool="${id}"]`).isHidden())await p.locator('#rpMore').click();
       await p.locator(`[data-tool="${id}"]`).click();
     };
     const mapRect=()=>p.locator('#rpMap').boundingBox();
@@ -60,9 +60,10 @@ try{
     // Readability: every station is labelled "Makes ▲" or "Needs ▲ ■"; secondary rules remain in the field guide.
     assert.equal(await p.locator('[data-station]').count(),active.length);
     assert.equal(await p.locator('[data-planned]').count(),pz.stations.length-active.length,'every future site is visible from night one');
-    assert.match(await p.locator('[data-tool="dirt"]').innerText(),/Local/);
+    assert.match(await p.locator('[data-tool="dirt"]').innerText(),/Dirt track/);
+    assert.match(await p.locator('[data-tool="local"]').innerText(),/Local/);
     assert.match(await p.locator('[data-tool="road"]').innerText(),/Collector/);
-    assert.match(await p.locator('[data-tool="highway"]').innerText(),/Arterial/);
+    assert.match(await p.locator('[data-tool="highway"]').innerText(),/Freeway/);
     assert.match(await p.locator('[data-tool="erase"]').innerText(),/full refund/);
     const labels=await p.locator('.rp-label text').allTextContents();
     for(const s of active)assert.ok(labels.includes(s.kind==='producer'?`Makes ${P.TYPES[s.type].sym}`:`Needs ${s.needs.map(t=>P.TYPES[t].sym).join(' ')}`),`label for ${s.name}`);
@@ -97,7 +98,7 @@ try{
 
     // A phone can zoom to finger-sized tiles, pan without buying roads, then recover the whole network with Fit.
     await tapTile(prod.tile);await p.locator('.rp-card-focus').click();
-    assert.equal(await p.locator('#rpFit').innerText(),'200%');
+    assert.notEqual(await p.locator('#rpFit').innerText(),'Fit');
     const zoomed=await p.locator('#rpMap').getAttribute('viewBox');
     if(tag===390)assert.ok(await p.locator('#rpMap').evaluate(s=>s.getScreenCTM().a*100)>=44,'zoomed phone tile is a touch target');
     const beforePan=await credits();await p.locator('#rpPan').click();
@@ -132,13 +133,14 @@ try{
     }
 
     // A drag lays road, with a cost preview while dragging; undo takes it back.
-    {const t=pz.plan[0][0].tiles.slice(0,4);const c=await center(t[0]);await p.mouse.move(c.x,c.y);await p.mouse.down();
+    {await tool('local');const t=pz.plan[0][0].tiles.slice(0,4);const c=await center(t[0]);await p.mouse.move(c.x,c.y);await p.mouse.down();
       for(const x of t.slice(1)){const q=await center(x);await p.mouse.move(q.x,q.y,{steps:2});}
       assert.match(await p.locator('#rpPreview').innerText(),/costs \d+ credits/);assert.ok(await p.locator('.rp-ghost').count()>0,'ghost while dragging');
       await p.mouse.up();
-      assert.ok(await p.locator('.rp-road').count()>=3,'road drawn');assert.ok(await credits()<pz.credits0);
+      const expected=P.clone(model);assert.equal(P.edit(pz,expected,{type:'road',tier:'local',tiles:t}).why,undefined);
+      assert.equal(await p.locator('.rp-road').count(),expected.net.tier.filter(Boolean).length,'road tiles match preview/model');assert.equal(await credits(),expected.credits);
       await p.locator('#rpPan').click();await tapTile(t.find(i=>!P.isBuilding(pz,model,i)));
-      assert.match(await p.locator('#rpCard').innerText(),/Road [A-Z]\d+[\s\S]*Collector[\s\S]*fully refundable/i);
+      assert.match(await p.locator('#rpCard').innerText(),/Road [A-Z]\d+[\s\S]*Local[\s\S]*fully refundable/i);
       await p.locator('.rp-card-x').click();await tool('road');
       await p.locator('#mgUndo').click();assert.equal(await p.locator('.rp-road').count(),0);assert.equal(await credits(),pz.credits0);}
     // The hint is the planner's first step, shown as a ghost with its reason.
@@ -149,7 +151,8 @@ try{
 
     // Re-tiering an existing stretch pays / refunds the difference, including terrain; Undo restores the empty map.
     {
-      const tiles=pz.plan[0][0].tiles.slice(0,4);
+      const start=pz.terrain.findIndex((_,i)=>i%pz.W<pz.W-4&&[i,i+1,i+2,i+3].every(t=>pz.terrain[t]===0&&pz.bAt[t]<0));
+      assert.ok(start>=0);const tiles=[start,start+1,start+2,start+3];
       for(const tier of ['road','highway','dirt']){
         await play({type:'road',tier,tiles});assert.equal(await credits(),model.credits,'re-tier credits agree with model');
       }
@@ -221,20 +224,22 @@ try{
       const h=P.hint(pz,model);await p.locator('#mgHint').click();await p.locator('#rpHintApply').click();
       for(const a of h.acts)P.edit(pz,model,a);
       assert.equal(await credits(),model.credits);
-      const road=h.act.tiles.filter(t=>!P.isBuilding(pz,model,t)),run=road.slice(1,4);
-      await play({type:'oneway',tiles:run});assert.ok(await p.locator('.rp-arrow').count()>=2,'one-way arrows');
+      const road=h.act.tiles.filter(t=>!P.isBuilding(pz,model,t)),run=road.slice(0,3);
+      await play({type:'oneway',tiles:run});assert.equal(await p.locator('.rp-arrow').count(),run.length-1,'one-way arrows');
       // The same drag again turns it back to two-way.
       await play({type:'oneway',tiles:run});assert.equal(await p.locator('.rp-arrow').count(),0);
       await play({type:'oneway',tiles:run});
-      let spot=-1;for(const t of road){for(let d=0;d<4&&spot<0;d++){const n=P.neighbour(pz,t,d);if(n>=0&&!model.net.tier[n]&&!P.isBuilding(pz,model,n)&&pz.bAt[n]<0&&(pz.terrain[n]===0||pz.terrain[n]===2))spot=n;}if(spot>=0)break;}
+      for(const a of pz.plan[0])if(!P.costOf(pz,model,a).why)await play(a);
+      let spot=-1;for(const t of model.net.tier.flatMap((tier,i)=>tier?[i]:[])){for(let d=0;d<4&&spot<0;d++){const n=P.neighbour(pz,t,d);if(n>=0&&!P.costOf(pz,model,{type:'warehouse',tile:n}).why)spot=n;}if(spot>=0)break;}
       assert.ok(spot>=0);await play({type:'warehouse',tile:spot});
       assert.equal(await p.locator('.rp-wh').count(),1,'warehouse drawn');assert.equal(await credits(),model.credits);
       await tapTile(spot);assert.match(await p.locator('#rpCard').innerText(),/Warehouse[\s\S]*Holds 0\//);await p.locator('.rp-card-x').click();
       // Build across tomorrow's parcel; its roads and joins must survive the opening, and remain refundable afterward.
-      const approaches=P.DIRS.map((_,d)=>P.neighbour(pz,planned.tile,d)).filter(t=>t>=0&&pz.terrain[t]!==3&&!P.isBuilding(pz,model,t));
+      const approaches=P.DIRS.map((_,d)=>P.neighbour(pz,planned.tile,d)).filter(t=>t>=0&&pz.terrain[t]!==3&&pz.bAt[t]<0&&model.net.reserved[t]<0);
       assert.ok(approaches.length>=2);
       const through=[approaches[0],planned.tile,approaches[1]];
-      await play({type:'road',tiles:through});
+      if(P.costOf(pz,model,{type:'road',tier:'local',tiles:through}).why==='That road is already there.')await play({type:'erase',tiles:[planned.tile]});
+      await play({type:'road',tier:'local',tiles:through});
       const savedJoins=model.net.e[planned.tile];
       await shot('built');
       // Day 1, skipped to dusk: the report appears and matches the model; night 2 brings a NEW TONIGHT station.
@@ -255,8 +260,8 @@ try{
       assert.equal(await p.locator(`[data-through="${planned.id}"]`).count(),1,'new building keeps its through road');
       assert.equal(await p.locator('[data-planned]').count(),pz.stations.filter(s=>s.day>2).length);
       const opened=await p.evaluate(t=>({tier:RoutePlanningUI.sim.net.tier[t],joins:RoutePlanningUI.sim.net.e[t]}),planned.tile);
-      assert.deepEqual(opened,{tier:2,joins:savedJoins});
-      await tapTile(planned.tile);assert.match(await p.locator('#rpCard').innerText(),/Through road: Collector/);await p.locator('.rp-card-x').click();
+      assert.deepEqual(opened,{tier:4,joins:savedJoins});
+      await tapTile(planned.tile);assert.match(await p.locator('#rpCard').innerText(),/Compatible through street preserved/);await p.locator('.rp-card-x').click();
       await play({type:'erase',tiles:[planned.tile]});assert.equal(await credits(),model.credits,'old road refunds in full');
       assert.match(await p.locator('#mgMeters').innerText(),new RegExp(`SCORE / PAR\\s*${model.score} / ${pz.par}`,'i'));
       await noOverflow(p,'night2 '+tag);await shot('night2');
