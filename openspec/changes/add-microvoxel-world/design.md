@@ -1,3 +1,10 @@
+## Floating-origin experiment
+
+An opt-in `extent=infinite` uses a separate `micro-wilds-1` generator, leaving finite material fixtures unchanged. Signed chunk coordinates plus normalized metre offsets are the navigation authority. The explorer is rendered at X/Z zero; chunk origins are `(chunk - playerChunk) * 8 - localOffset`. CPU ground and halo queries use logical coordinates; no large world values reach vertex positioning uniforms. Drag/arrows move the logical position, and a chunk jump control makes long-distance regeneration testable. Movement is a streaming probe, not collision/pathfinding.
+
+The experiment bounds chunk coordinates at ±16,777,215 (roughly ±134,218 km), far below JS integer precision limits and within the generator's integer hash range. This is an engineering guardrail, not an infinite allocation. Terrain remains immutable and generated on demand. Vegetation memoization is capped at 2,048 grid entries in addition to the existing 128-chunk / 4 MiB voxel and 320-entry / 32 MiB mesh budgets. Only current position is retained in the URL; future discoveries/buildings would require a sparse persistence layer, which this experiment does not implement.
+
+Seeded broad noise fields condition ridges, wet corridors and exposed basalt for the streamed generator. They are a continuity/streaming fixture, not routed rivers or finished fantasy-world geology. Root identity uses the streamed generator revision and is stable across density/eviction. There is no assertion that finite and streamed worlds have the same geography.
 ## Context
 Reuse the existing static prototype/library/Pages and Node/headless Playwright infrastructure. Existing terrain studies do not supply the requested microvoxel representation. Keep this proof independent and use WebGL2 without adding a second build pipeline or external runtime dependency. This is a bounded surface-world experiment, not a general destructive voxel engine.
 

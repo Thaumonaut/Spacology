@@ -118,4 +118,41 @@ cache.set('a',{bytes:4,id:'a'});cache.set('b',{bytes:4,id:'b'});cache.get('a');c
 cache.set('a',{bytes:7,id:'a2'});assert.deepEqual(disposed,['b','a','c']);assert.equal(cache.bytes,7);
 assert.equal(cache.set('huge',{bytes:11,id:'huge'}),false);assert.ok(!cache.items.has('huge'));cache.clear();assert.equal(cache.bytes,0);
 for(let i=0;i<1000;i++){cache.set(String(i),{id:i,bytes:i%4+1});assert.ok(cache.bytes<=10&&cache.items.size<=2);}
-console.log('PASS microvoxel world: stable seeds/provenance, lossless runs, ground agreement, greedy face coverage, seam ownership, LOD material and bounded disposal');
+assert.deepEqual(M.movePosition({cx:0,cz:0,x:.125,z:7.875},-.25,.25),{cx:-1,cz:1,x:7.875,z:.125});
+assert.deepEqual(M.movePosition({cx:-1,cz:1,x:7.875,z:.125},.25,-.25),{cx:0,cz:0,x:.125,z:7.875});
+assert.deepEqual(M.positionAt(-8.125,8.125),{cx:-2,cz:1,x:7.875,z:.125});
+for(const c of [-M.MAX_CHUNK,-1000000,-1,0,1,1000000,M.MAX_CHUNK]){
+  const p={cx:c,cz:-c||0,x:4,z:4};assert.deepEqual(M.movePosition(M.movePosition(p,.125,-.125),-.125,.125),p,'sub-voxel movement survives at distant chunks');
+}
+assert.equal(M.movePosition({cx:M.MAX_CHUNK,cz:0,x:7,z:0},10,0).cx,M.MAX_CHUNK);
+assert.ok(M.movePosition({cx:M.MAX_CHUNK,cz:-M.MAX_CHUNK,x:7,z:0},10,-10).x<8);
+assert.equal(M.movePosition({cx:-M.MAX_CHUNK,cz:0,x:0,z:0},-10,0).x,0);
+assert.throws(()=>M.movePosition({cx:.5,cz:0,x:0,z:0}));assert.throws(()=>M.movePosition({cx:0,cz:0,x:NaN,z:0}));
+const wild=M.createWorld(2718,.25,'infinite'),wildFine=M.createWorld(2718,.125,'infinite');
+assert.notEqual(wild.id,w.id);assert.equal(wild.deposit.id,wildFine.deposit.id);assert.equal(wild.deposit.x,wildFine.deposit.x);assert.equal(wild.deposit.z,wildFine.deposit.z);
+const origins=[[-1,-1],[0,0],[1,-1],[1000000,-1000000],[-M.MAX_CHUNK,M.MAX_CHUNK]];
+const chunks=origins.map(([x,z])=>wild.generateChunk(x,z));
+for(const [index,[cx,cz]] of [...origins.entries()].reverse()){
+  const chunk=wild.generateChunk(cx,cz);assert.deepEqual(chunk,chunks[index]);assert.deepEqual(chunk,M.createWorld(2718,.25,'infinite').generateChunk(cx,cz));
+  const col=wild.column(cx*wild.chunkCells,cz*wild.chunkCells);assert.ok(col.some(v=>v!==0));assert.equal(wild.ground(cx*8+.125,cz*8+.125),wild.geography(cx*8+.125,cz*8+.125).height*.25);
+  for(let y=0;y<chunk.height;y++)assert.equal(M.voxel(chunk,0,y,0),col[y]);
+  coverage(M.meshChunk(wild,chunk,4));
+}
+for(const step of [1,2,4,8])coverage(M.meshChunk(wildFine,wildFine.generateChunk(-1,0),step));
+const signedChunk=wild.generateChunk(-1,0),signedMesh=M.meshChunk(wild,signedChunk,1),signedData=new DataView(signedMesh.buffer),neighbour=wild.generateChunk(0,0);
+for(let byte=0;byte<signedMesh.buffer.byteLength;byte+=48){
+  if(signedData.getUint8(byte+6)!==1||signedData.getUint16(byte,true)!==wild.chunkCells)continue;
+  const ys=[],zs=[];for(let v=0;v<6;v++){ys.push(signedData.getUint16(byte+v*8+2,true));zs.push(signedData.getUint16(byte+v*8+4,true));}
+  for(let z=Math.min(...zs);z<Math.max(...zs);z++)for(let y=Math.min(...ys);y<Math.max(...ys);y++)assert.equal(M.voxel(neighbour,0,y,z),M.MAT.air,'signed zero boundary has no internal border faces');
+}
+assert.throws(()=>wild.generateChunk(M.MAX_CHUNK+1,0));
+for(let i=0;i<10000;i++)wild.tree(i,-i);
+assert.equal(wild.vegetationEntries(),2048,'vegetation memoization cannot accumulate with travel');
+assert.deepEqual(wild.generateChunk(-1,-1),chunks[0],'vegetation cache eviction cannot change regenerated material');
+const wildFingerprints=[];
+for(const seed of [0,1,2,3,7,15,39,2718,4294967295]){
+  for(const cell of [.25,.125]){const current=M.createWorld(seed,cell,'infinite'),d=current.deposit;assert.ok(current.column(Math.floor(d.x/cell),Math.floor(d.z/cell)).includes(M.MAT.ore));assert.equal(current.deposit.id,M.createWorld(seed,.25,'infinite').deposit.id);}
+  const current=M.createWorld(seed,.25,'infinite');wildFingerprints.push([-200,0,200].flatMap(z=>[-200,0,200].map(x=>current.geography(x,z).riverDistance.toFixed(3))).join(','));
+}
+assert.equal(new Set(wildFingerprints).size,wildFingerprints.length,'streamed wet corridors vary across seeds');
+console.log('PASS microvoxel world: finite fixtures, signed/distant coordinates, regenerated runs and mesh coverage, streamed seed/root identity, bounded vegetation and disposal');

@@ -1,6 +1,6 @@
 # Microvoxel World Lab
 
-Open `prototypes/microvoxel-world.html` through `npm run serve`, or the **Microvoxel World** Exploration entry in the playtest library. No build or external runtime dependencies. WebGL2 and workers are required. This is a bounded engineering/visual proof for [Epic #8](https://github.com/Thaumonaut/Spacology/issues/8), not a replacement for the world editor, voyage, Supply Run or route-planning prototype.
+Open `prototypes/microvoxel-world.html` through `npm run serve`, or the **Microvoxel World** Exploration entry in the playtest library. No build or external runtime dependencies. WebGL2 and workers are required. This is an engineering/visual proof for [Epic #8](https://github.com/Thaumonaut/Spacology/issues/8), with bounded worlds and an opt-in streaming experiment, not a replacement for the world editor, voyage, Supply Run or route-planning prototype.
 
 ## World truth
 
@@ -48,6 +48,18 @@ Run `node tools/survey-microvoxel.cjs 256 0.25` (or `256 0.125`) to sample seven
 
 `node tools/benchmark-microvoxel.cjs 2718 0.25 256` benchmarks 64 chunks entirely beyond the original boundary; unlike a whole-world estimate, this shows the actual cost of generating an equal physical patch in the expanded region. The chunk origin is in its JSON output; browser viewport, loading and cache estimates are separate.
 
+## Infinite streaming experiment
+
+Choose **Field notes → World footprint → Infinite streaming experiment → Generate**, or open `?extent=infinite&seed=2718`. Both finite footprints remain available; 128 m / 25 cm is still the default. This mode uses a separate **`micro-wilds-1`** generator and root identity, leaving the finite generator's material fixtures unchanged. Seeded ridge, fracture and wet-corridor fields vary across coordinates and seeds; they are a streaming fixture, **not routed hydrology or finished fantasy geography**.
+
+- Navigation stores signed 8 m chunk coordinates plus local metre offsets in `[0, 8)`: `{cx, cz, x, z}`. Negative boundaries normalize rather than wrapping. URL parameters `cx`, `cz`, `lx`, `lz` retain this compact location alongside mode, seed and density. Density changes keep the logical location and root identity but re-quantize ground.
+- One articulated explorer stays at render X/Z zero. Dragging moves terrain under them; arrows travel, **Surroundings** widens the current view, and **Root site / R** returns home. Field notes also provides a chunk-centre jump for testing distant coordinates. This is free traversal: slopes, vegetation and water do not obstruct movement, and there is no route/collision simulation.
+- Chunk origins sent to WebGL are `(chunk - playerChunk) * 8 - localOffset`. CPU generation/ground queries use logical coordinates, but GPU positions remain local. Surface-detail coordinates are bounded separately; a distant selection/root marker projects relative to the current explorer.
+- Residency stays capped at **128 voxel chunks / 4 MiB**, **320 meshes / 32 MiB**, and **2,048 memoized vegetation entries per world instance** (main thread and worker). There is no visited-chunk collection. Returning after eviction regenerates the same material runs; cold terrain can visibly stream in again. These are explicit buffer/cache limits, not whole-process memory measurements.
+- “Infinite” means on-demand generation, **not literal infinity**. Navigation and chunk generation stop at **±16,777,215 chunks** (about ±134,218 km); movement clamps there rather than wrapping. Terrain is immutable. Only the URL location persists: discoveries, buildings, edits and world-wide history are not stored.
+
+`node tools/benchmark-microvoxel.cjs 2718 0.25 infinite` samples 64 chunks starting at `(1000000, -1000000)`—8,000 km from zero on each axis. Optional final arguments select a different chunk origin. The same full-resolution patch encoded **580,112 bytes** at 25 cm and **2,320,106 bytes** at 12.5 cm in this fixture, versus 6,291,456 / 50,331,648 dense bytes. These are storage measurements, not device FPS results. Automated regressions cover signed rebasing, distant/guardrail-near travel, return-image equality after eviction, URL reload, density, GPU position bounds, portrait LOD/cache pressure and the offline package. The earlier iOS Simulator results concern the finite world; **streamed-mode iOS and physical-device performance are unverified**.
+
 ## Verification and portable copy
 
 ```sh
@@ -55,6 +67,7 @@ npm test -- microvoxel-world
 node tools/benchmark-microvoxel.cjs 2718
 node tools/benchmark-microvoxel.cjs 2718 0.125
 node tools/survey-microvoxel.cjs 256 0.25
+node tools/benchmark-microvoxel.cjs 2718 0.25 infinite
 node tools/package-microvoxel.cjs /existing/directory/microvoxel-world.html
 ```
 

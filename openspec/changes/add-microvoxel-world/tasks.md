@@ -15,3 +15,8 @@
 - [x] Add an opt-in 256 m region, verify 128 m material continuity, measure bounded streaming beyond the previous border, and survey multiple seeds without claiming macro geography is finished.
 - [x] Run relevant tests and release/Pages checks; open a separate PR.
 - [ ] Human visual approval and real-device performance gate (not automated).
+
+## Floating-origin experiment
+- [x] Add opt-in seeded signed-chunk terrain and normalized chunk/local coordinates; cap vegetation memoization.
+- [x] Anchor an explorer at render origin, stream local terrain, retain logical selection/root identity, and expose travel/URL state.
+- [x] Regress negative boundaries, distant precision, order-independent regeneration, finite-mode continuity and cache residency; package the same implementation.

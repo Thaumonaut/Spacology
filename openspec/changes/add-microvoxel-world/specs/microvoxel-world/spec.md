@@ -43,3 +43,15 @@ The lab SHALL communicate unsupported WebGL2, worker failures and context loss w
 #### Scenario: Rendering unavailable
 - **WHEN** WebGL2 cannot initialize
 - **THEN** the page displays a useful unavailable message and retains navigation
+
+### Requirement: Opt-in floating-origin streaming experiment
+The lab SHALL retain both finite footprints and offer a separate deterministic streamed generator. Logical position SHALL use signed 8 m chunk coordinates and local offsets in [0, 8). The explorer SHALL remain at render X/Z zero while terrain moves beneath it. GPU coordinates SHALL remain local, not grow with travel. Generated voxel, mesh and vegetation caches SHALL remain bounded regardless of distance. No world-wide visited-chunk collection SHALL be retained.
+#### Scenario: Travel across signed chunk boundaries
+- **WHEN** the user drags, uses arrows or jumps to distant positive or negative chunks
+- **THEN** chunk normalization preserves continuous displacement, nearby chunks stream from seed/revision/coordinates, terrain sampling and selection use logical coordinates, and the explorer stays at local X/Z zero
+#### Scenario: Return after eviction
+- **WHEN** the user returns to a previous logical location after distant travel or reload
+- **THEN** material runs regenerate identically without saving the terrain; URL state retains mode, seed, density and compact logical position
+#### Scenario: Reach the numeric guardrail
+- **WHEN** travel would exceed signed chunk magnitude 16,777,215
+- **THEN** navigation clamps at the documented guardrail rather than silently wrapping noise or using unsafe positions; the experiment does not claim literal mathematical infinity, hydrological realism or complete persistence

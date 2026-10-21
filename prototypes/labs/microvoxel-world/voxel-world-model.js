@@ -7,13 +7,35 @@
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
+  const MAX_CHUNK=16777215,CHUNK_METRES=CELL*CHUNK;
+  function movePosition(position,dx=0,dz=0){
+    if(![position.cx,position.cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=MAX_CHUNK)||![position.x,position.z,dx,dz].every(Number.isFinite))throw new Error('Valid chunk/local coordinates required');
+    const result={};
+    for(const [axis,delta] of [['x',dx],['z',dz]]){
+      const local=position[axis]+delta,shift=Math.floor(local/CHUNK_METRES),chunk=position['c'+axis]+shift;
+      result['c'+axis]=clamp(chunk,-MAX_CHUNK,MAX_CHUNK);
+      result[axis]=chunk< -MAX_CHUNK?0:chunk>MAX_CHUNK?CHUNK_METRES-1/1024:local-shift*CHUNK_METRES;
+    }
+    return result;
+  }
+  const positionAt=(x,z)=>movePosition({cx:0,cz:0,x:0,z:0},x,z);
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
-    if(![EXTENT,EXTENT*2].includes(extent))throw new Error('World extent must be 128 or 256 metres');
+    if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-1':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=HEIGHT*density;
     seed=Number(seed)>>>0;
-    const id=`catchment:${REVISION}:${seed}`,trees=new Map();
+    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}`,trees=new Map();
     function geography(x,z){
+      if(infinite){
+        const warp=(noise(x*.006,z*.006,seed+101)-.5)*50;
+        const riverDistance=Math.abs(noise((x+warp)*.012,z*.012,seed+103)-.5)*180;
+        const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
+        const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
+        const bank=clamp((riverDistance-2.3)/8,0,1);
+        const h=5+(2+noise(x*.032,z*.032,seed)*3+noise(x*.13,z*.13,seed+1)*.8+ridge**4*6)*bank;
+        return {height:clamp(Math.floor(h/cellMetres),1,heightCells-28*density),riverDistance,ridge,fault,clearing:0,exposed:ridge>.82||fault<1.4,wet:riverDistance<12};
+      }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
       const fault=Math.abs(x-(39+3*Math.sin(z*.075)));
@@ -25,25 +47,28 @@
       const exposed=ridge>.45||fault<1.4&&x<45;
       return {height:clamp(Math.floor(h/cellMetres),1,heightCells-28*density),riverDistance,ridge,fault,clearing,exposed,wet:riverDistance<12};
     }
-    function ground(x,z){if(x<0||z<0||x>=extent||z>=extent)return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
+    function ground(x,z){if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
     function tree(gx,gz){
       const grid=Math.ceil(extent/5);
-      if(gx<0||gz<0||gx>=grid||gz>=grid)return null;
-      const key=gz*grid+gx;if(trees.has(key))return trees.get(key);
+      if(!infinite&&(gx<0||gz<0||gx>=grid||gz>=grid))return null;
+      const key=`${gx}:${gz}`;if(trees.has(key))return trees.get(key);
       const x=(gx+.2+.6*hash(gx,gz,seed+9))*5,z=(gz+.2+.6*hash(gx,gz,seed+11))*5;
       const g=geography(x,z);
       const edge=gx<Math.ceil(EXTENT/5)&&gz<Math.ceil(EXTENT/5)?EXTENT:extent;
-      const value=x<1||z<1||x>edge-1||z>edge-1||x>extent-1||z>extent-1||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
-      if(value)Object.freeze(value);trees.set(key,value);return value;
+      const value=(!infinite&&(x<1||z<1||x>edge-1||z>edge-1||x>extent-1||z>extent-1))||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
+      if(value)Object.freeze(value);if(trees.size>=2048)trees.delete(trees.keys().next().value);trees.set(key,value);return value;
     }
-    // Choose a root from exposed, fault-adjacent rock; the rule and identity survive all render changes.
+    // Root geology and identity survive render/cache changes.
     let rootSite=null,score=Infinity;
-    for(let z=40;z<77;z+=.5)for(let x=34;x<44;x+=.5){const g=geography(x,z);if(g.exposed&&g.fault<1){const s=Math.hypot(x-42,z-58);if(s<score){score=s;rootSite={x,z};}}}
-    const deposit=Object.freeze({id:`${id}:ore:root`,kind:'Ferrite',x:rootSite.x,z:rootSite.z,y:ground(rootSite.x,rootSite.z),rule:'Exposed basalt along the western fault above the river catchment',geology:'Fault-exposed basalt',surveyed:true});
+    if(infinite){
+      for(let z=-128;z<=128;z+=2)for(let x=-128;x<=128;x+=2){const g=geography(x,z);if(g.exposed&&g.riverDistance>12&&[.0625,.125].every(offset=>geography(x+offset,z+offset).exposed)){const s=Math.hypot(x,z);if(s<score){score=s;rootSite={x,z};}}}
+      if(!rootSite)throw new Error('No dry basalt root in the starting survey');
+    }else for(let z=40;z<77;z+=.5)for(let x=34;x<44;x+=.5){const g=geography(x,z);if(g.exposed&&g.fault<1){const s=Math.hypot(x-42,z-58);if(s<score){score=s;rootSite={x,z};}}}
+    const deposit=Object.freeze({id:`${id}:ore:root`,kind:'Ferrite',x:rootSite.x,z:rootSite.z,y:ground(rootSite.x,rootSite.z),rule:infinite?'Dry exposed basalt in the seeded ridge and fracture fields':'Exposed basalt along the western fault above the river catchment',geology:infinite?'Ridge/fracture-exposed basalt':'Fault-exposed basalt',surveyed:true});
     function column(vx,vz){
       const values=new Uint8Array(heightCells);
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
-      if(x<0||z<0||x>=extent||z>=extent)return values;
+      if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       const g=geography(x,z),h=g.height;
       values.fill(MAT.basalt,0,Math.max(0,h-4*density));
       values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
@@ -65,7 +90,7 @@
       return values;
     }
     function generateChunk(cx,cz){
-      if(!Number.isInteger(cx)||!Number.isInteger(cz))throw new Error('Integer chunk coordinates required');
+      if(![cx,cz].every(n=>Number.isInteger(n)&&(!infinite||Math.abs(n)<=MAX_CHUNK)))throw new Error('Chunk coordinates exceed the supported range');
       const offsets=new Uint16Array(chunkCells*chunkCells+1),ends=[],materials=[];
       for(let z=0;z<chunkCells;z++)for(let x=0;x<chunkCells;x++){
         const i=z*chunkCells+x,v=column(cx*chunkCells+x,cz*chunkCells+z);offsets[i]=ends.length;
@@ -77,7 +102,7 @@
       chunk.bytes=chunk.offsets.byteLength+chunk.ends.byteLength+chunk.materials.byteLength;
       return chunk;
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision:REVISION,extent,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,vegetationEntries:()=>trees.size});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
@@ -137,6 +162,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAT,COLORS,hash,riverX,createWorld,voxel,meshChunk,BudgetCache};
+  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,COLORS,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

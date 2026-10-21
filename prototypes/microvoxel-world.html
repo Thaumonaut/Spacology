@@ -8,13 +8,13 @@
 <body>
   <header class="topbar">
     <a class="brand" href="minigames.html" aria-label="Back to playtest library">S<span>SPACOLOGY</span></a>
-    <div class="title"><span class="eyebrow">WORLD LAB / 001</span><h1>The ferrite catchment</h1></div>
+    <div class="title"><span class="eyebrow">WORLD LAB / 001</span><h1 id="worldTitle">The ferrite catchment</h1></div>
     <button id="info" aria-haspopup="dialog">Field notes <span aria-hidden="true">↗</span></button>
   </header>
   <main>
     <section class="viewport" aria-label="Orthographic microvoxel world">
       <canvas id="world" tabindex="0" aria-label="World map. Drag or arrow keys to pan; plus and minus to zoom; R to return to the root; Space to pause. Tap terrain to inspect."></canvas>
-      <div class="map-caption"><span class="eyebrow">SURVEYED REGION</span><b>Basalt ridge / river basin</b><span id="seedLabel"></span></div>
+      <div class="map-caption"><span class="eyebrow" id="regionLabel">SURVEYED REGION</span><b id="regionDetail">Basalt ridge / river basin</b><span id="seedLabel"></span><span id="positionLabel" hidden></span></div>
       <div class="compass" aria-hidden="true">N<br>↑</div>
       <button id="rootMarker" class="root-marker" aria-label="Inspect surveyed ferrite root"><span class="diamond" aria-hidden="true"></span><span>FERRITE <small>ROOT 01</small></span></button>
       <span id="groundMarker" class="ground-marker" hidden aria-hidden="true"></span>
@@ -39,14 +39,18 @@
   </main>
   <dialog id="notes">
     <form method="dialog"><button class="close" aria-label="Close field notes">×</button></form>
-    <span class="eyebrow">BOUNDED WORLD PROOF</span><h2>Small cells.<br>One coherent landscape.</h2>
+    <span class="eyebrow">WORLD LAB PROOF</span><h2>Small cells.<br>One coherent landscape.</h2>
     <p>A <strong>128 × 128 m catchment or 256 × 256 m region</strong> made from 25 cm or 12.5 cm material voxels. The western basalt fault exposes ferrite above a river basin. One root is already surveyed; camera zoom does not reveal hidden resources. The larger region extends the same seeded geography beyond the original boundary; pan to explore it.</p>
     <p>The density buttons compare the same geography, seed and resource identity. <strong>12.5 cm regenerates finer voxel ground</strong>, not just a closer camera. Trees, water, crew and world bounds keep their metre scale. Choose Root site, then + to inspect full detail; wider views use render-only LOD. The 25 cm baseline remains the default. Performance samples reset when density changes.</p>
     <p>The explorer walks the clearing; the worker carries supplies. Their feet follow the same voxel-ground queries used by inspection. Natural terrain is not editable. This is a visual/engineering lab, not yet the persistent Logistics game.</p>
     <h3>How it stays small</h3>
     <ul><li>Vertical material runs, rather than objects for every cell.</li><li>Worker-generated greedy surface meshes; internal faces never reach the GPU.</li><li>View-based chunk requests, bounded CPU/GPU caches and explicit buffer disposal.</li><li>Render-only LOD; camera zoom never changes the selected voxel ground or deposit IDs.</li><li>Reusable character parts; no per-frame voxel meshing. Economy caps pixel density and uses coarser render sampling.</li></ul>
     <p class="muted">Fixed 50° orthographic tilt and the 128 m / 25 cm starting size are prototype defaults. The regional view shows only a portion of the larger world at once to respect chunk-cache limits. Geography is still a single river/ridge template with seeded surface variation, not a finished procedural planet. No phone performance claim.</p>
-    <form id="seedForm"><label for="worldSize">World footprint</label><select id="worldSize"><option value="128">128 × 128 m catchment (baseline)</option><option value="256">256 × 256 m region (four times the area)</option></select><label for="seed">World seed</label><div class="seed-row"><input id="seed" type="number" min="0" max="4294967295" step="1" required><button type="submit">Generate</button></div></form>
+    <form id="seedForm"><label for="worldSize">World footprint</label><select id="worldSize"><option value="128">128 × 128 m catchment (baseline)</option><option value="256">256 × 256 m region (four times the area)</option><option value="infinite">Infinite streaming experiment (separate geography)</option></select><label for="seed">World seed</label><div class="seed-row"><input id="seed" type="number" min="0" max="4294967295" step="1" required><button type="submit">Generate</button></div></form>
+    <h3>World beneath your feet</h3>
+    <p>Choose the infinite experiment to keep an explorer at the rendering origin while dragging the world underneath them. Arrows travel; +/− zoom; Root site returns home. Only nearby chunks stay in memory. Seeded ridges and wet corridors are a streaming fixture, not finished river drainage or a planet. Travel ignores obstacles, water and slopes; this is not character navigation.</p>
+    <p class="muted">Location is an 8 m chunk pair plus a small local offset, retained in the URL. No terrain or visited-world history is saved. Numeric guardrail: ±16,777,215 chunks (about ±134,218 km), not literal infinity. Existing finite worlds are unchanged.</p>
+    <form id="travelForm" hidden><h3>Long-distance probe</h3><div class="travel-coordinates"><label>Chunk X<input id="chunkX" type="number" value="125" min="-16777215" max="16777215" step="1" required></label><label>Chunk Z<input id="chunkZ" type="number" value="0" min="-16777215" max="16777215" step="1" required></label></div><button type="submit">Travel to chunk centre</button></form>
     <p id="worldId" class="muted identity"></p>
   </dialog>
   <dialog id="performance">
