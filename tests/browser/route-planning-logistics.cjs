@@ -107,6 +107,7 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     await p.locator('.rp-card-x').click();const parallel=row(center-puzzle.W,3);await draw('local',parallel);
     assert.equal(model.net.tier[center-puzzle.W],2,'local drag across an existing collector preserves its tier');assert.equal(model.net.paid[center-puzzle.W],P.buildCost(puzzle,center-puzzle.W,2),'collector ledger is preserved');
     await inspect(center-puzzle.W);await p.locator('#rpRoadType').selectOption('dirt');await sync({type:'road',tier:'dirt',tiles:[center-puzzle.W]});await p.locator('#rpRoadType').selectOption('road');await sync({type:'road',tier:'road',tiles:[center-puzzle.W]});await p.locator('.rp-card-x').click();
+    await inspect(center-puzzle.W);const unchanged=await p.evaluate(()=>JSON.stringify(RoutePlanningUI.sim.net));await p.locator('#rpRoadType').selectOption('highway');assert.equal(await p.locator('#rpRoadType').inputValue(),'road','rejected resurfacing restores the real road type');assert.equal(await p.evaluate(()=>JSON.stringify(RoutePlanningUI.sim.net)),unchanged);await p.locator('.rp-card-x').click();
     const street=center-2;assert.equal(model.net.e[street]&1,0,'parallel street remains disconnected');
     await draw('local',[street-puzzle.W,street]);assert.equal(model.net.tier[street],2,'local endpoint connects without downgrading collector');assert.ok(model.net.e[street]&1);assert.equal(model.net.e[street-1]&1,0,'a connector only joins its intended endpoint');
     await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));await inspect(street);await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});assert.equal(model.net.e[street-1]&1,0,'only selected link is added');await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});await p.locator('.rp-card-x').click();
@@ -119,7 +120,19 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     await p.locator('.rp-card-x').click();await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.deepEqual(await p.evaluate(()=>window.RoutePlanningUI.sim.wh[0].plan),model.wh[0].plan,'reservation edits support undo');
     for(let k=0;k<10;k++)await p.locator('#rpZoomIn').click();assert.equal(await p.locator('#rpZoomIn').isDisabled(),true);assert.equal(await p.locator('#rpFit').innerText(),'600%');await p.locator('#rpFit').click();
     assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.documentElement.scrollHeight<=innerHeight+1),'no page scroll with contextual controls');
-    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-logistics-${width}.png`});assert.deepEqual(errors,[]);await p.close();
+    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-logistics-${width}.png`});
+    await reset();await p.locator('#rpSettings').click();assert.equal(await p.locator('#rpUnlimited').getAttribute('aria-pressed'),'false');
+    await p.locator('#rpUnlimited').click();await sync({type:'budget',unlimited:true});assert.equal(await p.locator('#rpUnlimited').getAttribute('aria-pressed'),'true');assert.match(await p.locator('#mgMeters').innerText(),/∞/);
+    await p.locator('#rpRelaxed').click();assert.equal(await p.evaluate(()=>RoutePlanningUI.sim.unlimited),true,'relaxed mode preserves unlimited budget');await p.locator('#rpRelaxed').click();
+    await p.locator('#rpDrawerClose').click();
+    let spent=0;for(let i=0;i<puzzle.W*puzzle.H&&model.credits>=0;i++)if(!P.costOf(puzzle,model,{type:'road',tier:'highway',tiles:[i]}).why){await draw('highway',[i]);spent++;}
+    assert.ok(spent>0&&model.credits<0,'unlimited mode builds beyond the original budget');assert.match(await p.locator('#mgMeters').innerText(),/∞/);
+    await p.locator('#rpSettings').click();await p.locator('#rpUnlimited').click();assert.equal(await p.locator('#rpUnlimited').getAttribute('aria-pressed'),'true','cannot silently switch an overspent network back to finite');assert.match(await p.locator('#mgStatus').innerText(),/Refund roads/);await p.locator('#rpDrawerClose').click();
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.ok(model.credits>=0);assert.match(await p.locator('#mgMeters').innerText(),/∞/);
+    await p.locator('#rpSettings').click();await p.locator('#rpUnlimited').click();await sync({type:'budget',unlimited:false});assert.doesNotMatch(await p.locator('#mgMeters').innerText(),/∞/);await p.locator('#rpDrawerClose').click();
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.match(await p.locator('#mgMeters').innerText(),/∞/,'undo restores budget mode');
+    await p.locator('#rpStart').click();await p.locator('#rpPause').click();await p.locator('#rpSettings').click();assert.equal(await p.locator('#rpUnlimited').isDisabled(),true,'budget changes only at night');await p.locator('#rpDrawerClose').click();await p.locator('#rpDusk').click();assert.equal(await p.evaluate(()=>RoutePlanningUI.sim.unlimited),true,'mode survives dusk');
+    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.documentElement.scrollHeight<=innerHeight+1));assert.deepEqual(errors,[]);await p.close();
   }}finally{await browser.close();}
   console.log('PASS contextual logistics at desktop and touch phone sizes: plot/peak/recipe cards and chains, complete ramp preview/cancel/build, grade separation, signals/roundabout/stops, explicit parallel links, warehouse reservation/release/undo, 600% precision zoom; no page scroll or browser errors');
 })().catch(e=>{console.error(e);process.exitCode=1;});

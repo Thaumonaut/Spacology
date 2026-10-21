@@ -16,6 +16,18 @@ function capacity(p,s){const g=P.graph(p,s);for(let i=0;i<g.N;i++){
 }}
 function cargo(p,s,type){return p.stations.reduce((n,b)=>n+(b.kind==='producer'&&b.type===type?s.st[b.id].stock:0)+(s.st[b.id].input[type]||0),0)+s.wh.reduce((n,w)=>n+w.stock[type],0)+s.veh.filter(v=>v.kind!=='home'&&v.type===type).length;}
 {
+  const p=fixture();p.credits0=1;const s=P.create(p),stamp={type:'interchange',tile:5*p.W+8,side:2},layout=P.interchangeLayout(p,s,stamp);
+  reject(p,s,stamp,/credits/);edit(p,s,{type:'budget',unlimited:true});edit(p,s,stamp);
+  assert.ok(s.credits<0);assert.ok(Number.isFinite(s.credits),'unlimited accounting remains finite for JSON export');
+  reject(p,s,{type:'budget',unlimited:false},/Refund roads/);
+  reject(p,s,{type:'road',tier:'highway',tiles:[layout.street[0]]},/ramp|freeway/);
+  const saved=JSON.parse(JSON.stringify(s.log)),replayed=P.replay(p,saved);assert.deepEqual(replayed.errors,[]);assert.equal(replayed.unlimited,true);
+  edit(p,s,{type:'erase',tiles:layout.tiles});assert.equal(s.credits,p.credits0,'full refunds retain the standard-budget ledger');
+  edit(p,s,{type:'budget',unlimited:false});assert.equal(s.unlimited,false);assert.ok(P.undo(p,s));assert.equal(s.unlimited,true);
+  for(let i=0;i<3;i++)assert.ok(P.undo(p,s));assert.equal(s.unlimited,false);assert.equal(s.credits,p.credits0);assert.ok(s.net.tier.every(t=>t===0),'undo restores the entire sandbox trial');
+  const unlimited=P.create(p,{unlimited:true});P.startDay(p,unlimited);reject(p,unlimited,{type:'budget',unlimited:false},/night/);P.skipToDusk(p,unlimited);assert.equal(unlimited.unlimited,true,'budget mode survives dusk');
+}
+{
   for(const diff of P.DIFFICULTIES)for(let seed=1;seed<=12;seed++){
     const p=P.generate(seed,diff.id,{noPlan:true});assert.deepEqual(p,P.generate(seed,diff.id,{noPlan:true}));assert.ok(p.W>=28&&p.H>=20);
     assert.equal(p.stations.filter(s=>s.day===1).length,6);const footprint=new Set();
@@ -88,6 +100,10 @@ function cargo(p,s,type){return p.stations.reduce((n,b)=>n+(b.kind==='producer'&
   assert.ok(!P.graph(p,s).out[offStreet].includes(offStreet-p.W),'off ramp cannot be entered backwards');
   assert.ok(P.pathTo(P.freeRoutes(p,s,offStreet),offMain).length>4,'reaching that mainline requires a detour via the on-ramp');
   const on=[street,street-p.W,main],off=[offMain,offMain+p.W,offStreet];
+  const branch=off[1]+1;
+  for(const tiles of [[branch,off[1]],[off[1],branch]])reject(p,s,{type:'road',tier:'local',tiles,preserve:true},/ramp tool/);
+  edit(p,s,{type:'road',tier:'local',tiles:[branch]});reject(p,s,{type:'connection',tile:branch,dir:3},/ramp tool/);
+  assert.ok(P.undo(p,s));
   for(const ramp of [on,off])for(const path of [ramp,[...ramp].reverse(),ramp.slice(0,2),ramp.slice(-2)]){
     reject(p,s,{type:'oneway',tiles:path},/Ramp direction is fixed/);
     for(let k=1;k<ramp.length;k++){assert.ok(P.graph(p,s).out[ramp[k-1]].includes(ramp[k]));assert.ok(!P.graph(p,s).out[ramp[k]].includes(ramp[k-1]),'rejected edits preserve all reverse restrictions');}

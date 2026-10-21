@@ -197,7 +197,7 @@
   // ---- state ----------------------------------------------------------------------------------------------------------
   function create(pz,opts){
     const N=pz.W*pz.H;
-    const sim={phase:'night',day:1,tick:0,relaxed:!!(opts&&opts.relaxed),credits:pz.credits0,
+    const sim={phase:'night',day:1,tick:0,relaxed:!!(opts&&opts.relaxed),unlimited:!!opts?.unlimited,credits:pz.credits0,
       net:{tier:new Array(N).fill(0),e:new Array(N).fill(0),blk:new Array(N).fill(0),rb:new Array(N).fill(0),paid:new Array(N).fill(0),built:new Array(N).fill(0),rbPaid:new Array(N).fill(0),control:new Array(N).fill('stop'),over:new Array(N).fill(null),reserved:new Array(N).fill(-1)},
       wh:[],
       st:pz.stations.map(s=>({stock:pz.logistics?s.initialStock||0:0,input:TYPES.map((_,t)=>s.initialInput?.[t]||0),acc:0,reqs:[],next:0,dacc:0,starved:false})),
@@ -216,8 +216,8 @@
   const neighbour=(pz,idx,d)=>{const x=idx%pz.W,y=(idx-x)/pz.W,nx=x+DIRS[d][0],ny=y+DIRS[d][1];return nx>=0&&ny>=0&&nx<pz.W&&ny<pz.H?ny*pz.W+nx:-1;};
   const dirTo=(pz,a,b)=>{for(let d=0;d<4;d++)if(neighbour(pz,a,d)===b)return d;return -1;};
   const isJunction=(sim,idx)=>sim.net.tier[idx]>0&&popcount(sim.net.e[idx])>=3;
-  function snapshot(sim){return {net:clone(sim.net),wh:clone(sim.wh),credits:sim.credits};}
-  function restore(sim,s){sim.net=clone(s.net);sim.wh=clone(s.wh);sim.credits=s.credits;sim.ver++;}
+  function snapshot(sim){return {net:clone(sim.net),wh:clone(sim.wh),credits:sim.credits,unlimited:sim.unlimited};}
+  function restore(sim,s){sim.net=clone(s.net);sim.wh=clone(s.wh);sim.credits=s.credits;sim.unlimited=!!s.unlimited;sim.ver++;}
 
   function enterNight(pz,sim){
     sim.ver++;sim.nightStart=snapshot(sim);sim.tonight=[];sim.log[sim.day-1]=sim.tonight;
@@ -234,9 +234,9 @@
     for(let d=0;d<4;d++){const b=neighbour(pz,i,d);if(b>=0){sim.net.e[b]&=~(1<<OPP(d));sim.net.blk[b]&=~(1<<OPP(d));}}
     sim.net.e[i]=0;sim.net.blk[i]=0;sim.wh.splice(k,1);
   }
-  function join(pz,sim,a,b){
+  function join(pz,sim,a,b,ramp=false){
     const d=dirTo(pz,a,b);if(d<0)return false;
-    if(pz.logistics&&connectionWhy(pz,sim,a,b))return false;
+    if(pz.logistics&&connectionWhy(pz,sim,a,b,ramp))return false;
     if(isBuilding(pz,sim,a)&&isBuilding(pz,sim,b)&&!sim.net.tier[a]&&!sim.net.tier[b])return false;
     if(!isNode(pz,sim,a)||!isNode(pz,sim,b))return false;
     if(sim.net.e[a]&(1<<d))return false;
@@ -246,8 +246,9 @@
 
   function roadAllowed(pz,i,tier){return !(pz.terrain[i]===T_MOUNT&&tier!==1||tier===3&&pz.terrain[i]===T_ROUGH);}
   function roadTier(sim,i,d){const o=sim.net.over[i];return o&&d%2!==o.axis?o.tier:sim.net.tier[i];}
-  function connectionWhy(pz,sim,a,b){
+  function connectionWhy(pz,sim,a,b,ramp=false){
     const d=dirTo(pz,a,b),ta=roadTier(sim,a,d),tb=roadTier(sim,b,OPP(d));
+    if(!ramp&&(ta===5||tb===5)&&!(sim.net.e[a]&(1<<d)))return 'Use the directional ramp tool to connect ramps.';
     for(const [i,tier] of [[a,tb],[b,ta]]){
       const id=pz.bAt[i],w=whAt(sim,i),st=id>=0?pz.stations[id]:null;
       if(st&&st.tile!==i)return 'Roads cannot occupy a reserved building footprint.';
@@ -289,6 +290,11 @@
   function apply(pz,sim,a){
     if(!a||typeof a!=='object')return 'No edit.';
     const n=sim.net;
+    if(a.type==='budget'){
+      if(typeof a.unlimited!=='boolean')return 'Choose a budget mode.';
+      if(!a.unlimited&&sim.credits<0)return 'Refund roads until your standard budget is nonnegative, or start a new game.';
+      sim.unlimited=a.unlimited;return null;
+    }
     if(a.type==='road'){
       const w=tilesOk(pz,a.tiles);if(w)return w;
       const tier=!pz.logistics&&a.tier==='local'?1:TIER_ID[a.tier||'road'];if(!tier||tier===5)return 'Use the directional ramp tool for ramps.';
@@ -309,7 +315,7 @@
         if(n.tier[t]===roadType(t))continue;
         cost+=buildCost(pz,t,tier)-n.paid[t];
       }
-      if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
+      if(!sim.unlimited&&cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
       sim.credits-=cost;
       for(const t of tiles){
         if(accessOnly(t)||n.tier[t]===roadType(t))continue;
@@ -344,7 +350,7 @@
       // The same drag again turns the stretch back into a two-way road.
       const already=steps.every(([x,y,d])=>!(n.blk[x]&(1<<d))&&(n.blk[y]&(1<<OPP(d))));
       let cost=0;if(!already)cost=steps.filter(([x,y,d])=>!(n.blk[y]&(1<<OPP(d)))||(n.blk[x]&(1<<d))).length*ONEWAY_COST;
-      if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
+      if(!sim.unlimited&&cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
       sim.credits-=cost;
       for(const [x,y,d] of steps){n.blk[x]&=~(1<<d);if(already)n.blk[y]&=~(1<<OPP(d));else n.blk[y]|=1<<OPP(d);}
       return null;
@@ -355,7 +361,7 @@
       if(!n.tier[t])return 'A roundabout goes on a road tile.';
       if(n.rb[t]){sim.credits+=n.rbPaid[t];n.rb[t]=0;n.rbPaid[t]=0;return null;}
       if(popcount(n.e[t])<3)return 'A roundabout only helps where three or more roads meet.';
-      if(ROUND_COST>sim.credits)return `That needs ${ROUND_COST} credits; you have ${sim.credits}.`;
+      if(!sim.unlimited&&ROUND_COST>sim.credits)return `That needs ${ROUND_COST} credits; you have ${sim.credits}.`;
       sim.credits-=ROUND_COST;n.rb[t]=sim.day;n.rbPaid[t]=ROUND_COST;return null;
     }
     if(a.type==='warehouse'){
@@ -363,7 +369,7 @@
       if(n.tier[t]||isBuilding(pz,sim,t)||pz.bAt[t]>=0||n.reserved[t]>=0)return 'A warehouse needs empty ground outside a planned building site.';
       if(pz.terrain[t]===T_RIVER||pz.terrain[t]===T_MOUNT)return 'A warehouse needs dry, flat ground.';
       if(pz.logistics&&!DIRS.some((_,d)=>{const b=neighbour(pz,t,d);return b>=0&&[2,4].includes(n.tier[b]);}))return 'Place a warehouse beside a local or collector road.';
-      if(WH_COST>sim.credits)return `That needs ${WH_COST} credits; you have ${sim.credits}.`;
+      if(!sim.unlimited&&WH_COST>sim.credits)return `That needs ${WH_COST} credits; you have ${sim.credits}.`;
       sim.credits-=WH_COST;sim.wh.push({tile:t,cap:WH_CAP,ups:0,stock:new Array(TYPES.length).fill(0),inc:new Array(TYPES.length).fill(0),paid:WH_COST,built:sim.day});
       if(pz.logistics){const east=neighbour(pz,t,1),body=[east,neighbour(pz,t,2),east>=0?neighbour(pz,east,2):-1];if(body.some(i=>i<0||n.tier[i]||pz.bAt[i]>=0||isBuilding(pz,sim,i)||n.reserved[i]>=0||pz.terrain[i]===T_RIVER||pz.terrain[i]===T_MOUNT))return 'A warehouse needs room east and south of its entrance.';sim.wh.at(-1).footprint=body;for(const i of body)n.reserved[i]=t;}
       for(let d=0;d<4;d++){const b=neighbour(pz,t,d);if(b>=0&&(n.tier[b]===2||n.tier[b]===4||!pz.logistics&&n.tier[b]))join(pz,sim,t,b);}
@@ -372,7 +378,7 @@
     if(a.type==='whcap'){
       const k=whAt(sim,a.tile);if(k<0)return 'No warehouse there.';
       const w=sim.wh[k];if(w.ups>=WH_MAX_UP)return 'That warehouse is as big as it gets.';
-      if(WH_UP_COST>sim.credits)return `That needs ${WH_UP_COST} credits; you have ${sim.credits}.`;
+      if(!sim.unlimited&&WH_UP_COST>sim.credits)return `That needs ${WH_UP_COST} credits; you have ${sim.credits}.`;
       sim.credits-=WH_UP_COST;w.paid+=WH_UP_COST;w.ups++;w.cap+=WH_UP;return null;
     }
     if(a.type==='connection'){
@@ -400,9 +406,9 @@
       const f=on?end:start,adj=on?a.tiles.at(-2):a.tiles[1],d=dirTo(pz,f,adj);
       const main=n.e[f]&DIRS.reduce((mask,_,k)=>mask|(n.tier[neighbour(pz,f,k)]===3?1<<k:0),0);
       if(n.over[f]||!main||(main&((1<<d)|(1<<OPP(d))))||(n.e[f]&(1<<d)))return 'Join the side of a straight freeway or its end, perpendicular to the mainline.';
-      const cost=middle.reduce((sum,i)=>sum+buildCost(pz,i,5),0);if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
+      const cost=middle.reduce((sum,i)=>sum+buildCost(pz,i,5),0);if(!sim.unlimited&&cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
       sim.credits-=cost;for(const i of middle){n.tier[i]=5;n.paid[i]=buildCost(pz,i,5);n.built[i]=sim.day;}
-      for(let k=1;k<a.tiles.length;k++){const x=a.tiles[k-1],y=a.tiles[k],d=dirTo(pz,x,y),why=connectionWhy(pz,sim,x,y);if(why)return why;join(pz,sim,x,y);n.blk[y]|=1<<OPP(d);}
+      for(let k=1;k<a.tiles.length;k++){const x=a.tiles[k-1],y=a.tiles[k],d=dirTo(pz,x,y),why=connectionWhy(pz,sim,x,y,true);if(why)return why;join(pz,sim,x,y,true);n.blk[y]|=1<<OPP(d);}
       return null;
     }
     if(a.type==='prepare'){
@@ -434,7 +440,7 @@
     if(n.control[t]===c)return 'That control is already installed.';
     const corners=[t-pz.W-1,t-pz.W+1,t+pz.W-1,t+pz.W+1];
     if(c==='roundabout'&&(t%pz.W===0||t%pz.W===pz.W-1||corners.some(i=>i<0||i>=pz.W*pz.H||n.tier[i]||pz.bAt[i]>=0||isBuilding(pz,sim,i)||n.reserved[i]>=0)))return 'A roundabout needs a clear 3×3 footprint around its approaches.';
-    const cost=(c==='signal'?SIGNAL_COST:c==='roundabout'?ROUND_COST:0)-n.rbPaid[t];if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
+    const cost=(c==='signal'?SIGNAL_COST:c==='roundabout'?ROUND_COST:0)-n.rbPaid[t];if(!sim.unlimited&&cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
     sim.credits-=cost;for(let i=0;i<n.reserved.length;i++)if(n.reserved[i]===t)n.reserved[i]=-1;
     n.control[t]=c;n.rb[t]=c==='roundabout'?sim.day:0;n.rbPaid[t]=c==='signal'?SIGNAL_COST:c==='roundabout'?ROUND_COST:0;
     if(c==='roundabout')for(const i of corners)n.reserved[i]=t;
@@ -449,7 +455,7 @@
     for(const d of [side,side+2]){let i=t;for(let k=0;k<2;k++){i=neighbour(pz,i,d);if(i<0||pz.bAt[i]>=0||isBuilding(pz,sim,i)||n.reserved[i]>=0||!roadAllowed(pz,i,tier)||n.tier[i]&&n.tier[i]!==tier)return 'The lower road needs two clear collector approach tiles on each side.';approaches.push(i);}}
     for(const d of [axis,axis+2]){let i=t;for(let k=0;k<2;k++){i=neighbour(pz,i,d);if(i<0||!n.tier[i]||pz.bAt[i]>=0)return 'The upper road needs two existing straight approach tiles on each side.';}}
     const cost=OVERPASS_COST-n.rbPaid[t]+approaches.reduce((sum,i)=>sum+(n.tier[i]?0:buildCost(pz,i,tier)),0);
-    if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
+    if(!sim.unlimited&&cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
     sim.credits-=cost;n.over[t]={axis,tier};n.control[t]='overpass';n.rb[t]=0;n.rbPaid[t]=OVERPASS_COST;
     for(let i=0;i<n.reserved.length;i++)if(n.reserved[i]===t)n.reserved[i]=-1;
     for(const i of approaches)if(!n.tier[i]){n.tier[i]=tier;n.paid[i]=buildCost(pz,i,tier);n.built[i]=sim.day;}

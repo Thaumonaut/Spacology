@@ -68,6 +68,7 @@
   $('rpHud').append($('mgMeters'));
   $('rpFeedback').append($('mgStatus'));
   $('rpNightActions').prepend($('mgUndo'),$('mgHint'));
+  $('rpSettingsBody').insertAdjacentHTML('afterbegin','<button id="rpUnlimited" aria-pressed="false" title="Ignore construction budgets. Toggle at night; road, traffic and production rules still apply.">Unlimited credits: off</button>');
   $('rpSettingsBody').append(document.querySelector('.mg-controls'),$('mgExport'));
   $('rpGuideBody').append(document.querySelector('.mg-side'));
   let drawer=null;
@@ -189,7 +190,7 @@
     shell.finish({tier:t,score:res.score,
       headline:`${res.deliveries} deliveries over ${pz.days} days, ${res.cleanDays} clean day${res.cleanDays===1?'':'s'}. Score ${res.score} against par ${par}.`,
       nearMiss:P.nearMiss(pz,sim,relaxed),
-      stats:{Score:`${res.score} / ${par}`,Deliveries:res.deliveries,'Clean days':`${res.cleanDays}/${pz.days}`,Edits:count.edits,Hints:count.hints,Relaxed:relaxed?'on':'off'},
+      stats:{Score:`${res.score} / ${par}`,Deliveries:res.deliveries,'Clean days':`${res.cleanDays}/${pz.days}`,Edits:count.edits,Hints:count.hints,Relaxed:relaxed?'on':'off',Budget:sim.unlimited?'Unlimited':'Standard'},
       output:`a road network that made ${res.deliveries} deliveries`});
   }
   function onAuto(){
@@ -315,7 +316,7 @@
     let why=null,cost=0;
     if(a&&!(tool==='oneway'&&p.length<2)){const r=P.costOf(pz,sim,a);why=r.why||null;cost=r.cost||0;}
     g.innerHTML=`<path class="rp-ghost ${tool} ${why?'bad':''}" d="${d}"/>`+p.map(t=>`<rect class="rp-ghost-tile ${why?'bad':''}" x="${cx(t)-U/2+6}" y="${cy(t)-U/2+6}" width="${U-12}" height="${U-12}" rx="14"/>`).join('');
-    $('rpPreview').textContent=(resurface?'Resurface · ':'')+(p.length<2&&tool==='oneway'?'Drag along the road.':why?'✕ '+why:cost>0?`${p.length} tile${p.length===1?'':'s'}: costs ${cost} credits (you have ${sim.credits}).`:cost<0?`Refunds ${-cost} credits.`:'Free.');
+    $('rpPreview').textContent=(resurface?'Resurface · ':'')+(p.length<2&&tool==='oneway'?'Drag along the road.':why?'✕ '+why:sim.unlimited?'Unlimited credits · terrain and connection rules still apply.':cost>0?`${p.length} tile${p.length===1?'':'s'}: costs ${cost} credits (you have ${sim.credits}).`:cost<0?`Refunds ${-cost} credits.`:'Free.');
   }
   stage.querySelector('#rpTools').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(!b)return;tool=b.dataset.tool;
     closeCard();resurface=false;$('rpResurface').setAttribute('aria-pressed','false');
@@ -332,6 +333,7 @@
   $('rpRelaxed').onclick=()=>{if(launched||ended)return;relaxed=!relaxed;const edits=sim.tonight.slice();sim=P.create(pz,{relaxed});for(const a of edits)P.edit(pz,sim,a);
     $('rpRelaxed').setAttribute('aria-pressed',String(relaxed));$('rpRelaxed').textContent='Relaxed: '+(relaxed?'on':'off');render();
     shell.status(relaxed?`Relaxed: consumers wait ${P.RELAXED}× as long before they starve. Par is recomputed for it.`:'Standard patience.');};
+  $('rpUnlimited').onclick=()=>{if(doEdit({type:'budget',unlimited:!sim.unlimited}))shell.status(sim.unlimited?'Unlimited credits on. All construction is available; terrain, access and traffic rules still apply.':'Standard budget restored.');};
 
   // ---- building card ----------------------------------------------------------------------------------------------------
   function openCard(t){interchangeDraft=null;closeReport();hideHint();clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;$('rpCard').scrollTop=0;renderCard();if(pz.logistics){renderBuildings();if(pz.bAt[t]>=0)showChain(pz.bAt[t],false);}}
@@ -397,7 +399,7 @@
     el.querySelector('.rp-card-focus').onclick=()=>{keyboardTile=card;viewX=cx(card);viewY=cy(card);zoom=Math.max(zoom,Math.min(6,Math.ceil(48/(svg.getScreenCTM().a*U)*zoom)));pan=false;closeCard();camera();svg.focus({preventScroll:true});};
     if(el.querySelector('#rpStockForm'))el.querySelector('#rpStockForm').onsubmit=e=>{e.preventDefault();const [target,item]=$('rpStockTarget').value.split(':').map(Number);doEdit({type:'prepare',tile:card,target,item,qty:Number($('rpStockQty').value)});};
     if(el.querySelector('#rpControl'))$('rpControl').onchange=()=>doEdit({type:'control',tile:card,control:$('rpControl').value});
-    if(el.querySelector('#rpRoadType'))$('rpRoadType').onchange=()=>doEdit({type:'road',tier:$('rpRoadType').value,tiles:[card]});
+    if(el.querySelector('#rpRoadType'))$('rpRoadType').onchange=()=>{if(!doEdit({type:'road',tier:$('rpRoadType').value,tiles:[card]}))$('rpRoadType').value=P.ROADS[sim.net.tier[card]].id;};
     if(focused)el.querySelector(focused)?.focus({preventScroll:true});
     el.scrollTop=scrollTop;
   }
@@ -465,7 +467,8 @@
     shell.undoEnabled(night&&sim.tonight.length>0&&!ended);
     shell.controls({hint:night&&!ended});
     const res=P.result(pz,sim),par=P.parFor(pz,relaxed);
-    shell.meters([{label:'Credits',value:String(sim.credits),tone:sim.credits<5?'warn':''},
+    $('rpUnlimited').disabled=!night||ended;$('rpUnlimited').setAttribute('aria-pressed',String(sim.unlimited));$('rpUnlimited').textContent='Unlimited credits: '+(sim.unlimited?'on':'off');
+    shell.meters([{label:'Credits',value:sim.unlimited?'∞':String(sim.credits),tone:!sim.unlimited&&sim.credits<5?'warn':''},
       {label:'Deliveries',value:String(res.deliveries)},
       {label:'Score / par',value:`${res.score} / ${par}`,tone:res.score>=par?'good':''}]);
   }
