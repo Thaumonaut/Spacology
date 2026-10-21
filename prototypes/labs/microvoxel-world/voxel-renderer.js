@@ -90,6 +90,7 @@
       else part(0,1.2,-.28,.42,.5,.22,12);
     }
     project(camera,x,y,z){const halfY=camera.span/2/this.aspect,dx=x-camera.x,dz=z-camera.z;return {x:this.width*(.5+(dx*CY-dz*SY)/camera.span),y:this.height*(.5-((y-8)*C-(dx*SY+dz*CY)*S)/(2*halfY))};}
+    screenDirection(right,down){return {x:right*CY+down*SY,z:-right*SY+down*CY};}
     pan(camera,dx,dy){const horizontal=-dx*camera.span/this.width,forward=-dy*camera.span/(this.width*S);camera.x+=horizontal*CY+forward*SY;camera.z+=-horizontal*SY+forward*CY;}
     bounds(camera,height){
       const points=[];

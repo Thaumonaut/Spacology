@@ -11,7 +11,7 @@
     const saved={cx:Number(params.get('cx')),cz:Number(params.get('cz')),x:Number(params.get('lx')),z:Number(params.get('lz'))};
     if(['cx','cz','lx','lz'].every(k=>params.has(k))&&[saved.cx,saved.cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=M.MAX_CHUNK)&&[saved.x,saved.z].every(n=>Number.isFinite(n)&&n>=0&&n<8))position=M.movePosition(saved);
   }
-  let voxelCacheBytes=0,voxelCacheEntries=0,cacheHits=0,completed=0,retainedMeshes=0,workerStarted=0,firstReadyMs=null,viewDirty=false,persistOnStop=false;
+  let voxelCacheBytes=0,voxelCacheEntries=0,cacheHits=0,completed=0,retainedMeshes=0,placeholders=0,workerStarted=0,firstReadyMs=null,viewDirty=false,persistOnStop=false;
   const heldKeys=new Set(),velocity={x:0,z:0};
   let born=performance.now();const motion=matchMedia('(prefers-reduced-motion: reduce)');
   const cache=new M.BudgetCache(320,32*1024*1024,mesh=>renderer?.dispose(mesh));
@@ -20,6 +20,8 @@
   try{renderer=new MicroRenderer(canvas);worker=new Worker('labs/microvoxel-world/voxel-worker.js');}
   catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;
+  const placeholderStep=()=>step*world.cell<.25?Math.min(1/world.cell,step*4):null;
+  const fallback=v=>{const coarse=placeholderStep();return [v.key,key(v.cx,v.cz,renderStep),coarse&&key(v.cx,v.cz,coarse)].find(k=>k&&cache.items.has(k));};
   const percentile=(list,p)=>{if(!list.length)return 0;const sorted=[...list].sort((a,b)=>a-b);return sorted[Math.floor((sorted.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>240)list.shift();};
   const bytes=n=>n<1048576?`${(n/1024).toFixed(1)} KiB`:`${(n/1048576).toFixed(2)} MiB`;
@@ -78,21 +80,22 @@
   }
   function pump(){
     if(busy||failed||viewDirty)return;
-    const next=visible.find(v=>!cache.items.has(v.key));
+    const coarse=placeholderStep();let next=coarse&&visible.find(v=>!fallback(v)),requestStep=coarse;
+    if(!next){next=visible.find(v=>!cache.items.has(v.key));requestStep=step;}
     if(!next)return;
-    busy=true;workerStarted=performance.now();worker.postMessage({dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,cx:next.cx,cz:next.cz,step,token:epoch});
+    busy=true;workerStarted=performance.now();worker.postMessage({dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,cx:next.cx,cz:next.cz,step:requestStep,token:epoch});
   }
   if(worker){
     worker.onerror=()=>fail('The world worker could not load. Serve the lab over HTTP, then reload.');
     worker.onmessage=({data})=>{
       busy=false;if(data.error){if(data.dataId===world.dataId)fail(`World generation failed: ${data.error}`);else pump();return;}
-      const wanted=visible.some(v=>v.cx===data.cx&&v.cz===data.cz&&(data.step===step||data.step===renderStep));
+      const wanted=visible.some(v=>v.cx===data.cx&&v.cz===data.cz&&(data.step===step||data.step===renderStep||data.step===placeholderStep()));
       if(data.dataId===world.dataId&&wanted&&!failed){
         voxelCacheBytes=data.voxelCacheBytes;voxelCacheEntries=data.voxelCacheEntries;vegetationEntries=data.vegetationEntries;cacheHits+=Number(data.cacheHit);completed++;
-        if(data.token!==epoch)retainedMeshes++;
+        if(data.token!==epoch)retainedMeshes++;if(data.step!==step&&data.step===placeholderStep())placeholders++;
         push(generationSamples,data.generateMs);push(meshSamples,data.meshMs);
         const mesh=renderer.upload(data);mesh.step=data.step;mesh.quads=data.quads;mesh.exposedFaces=data.exposedFaces;
-        const retain=visible.filter(v=>v.cx!==data.cx||v.cz!==data.cz).map(v=>cache.items.has(v.key)?v.key:key(v.cx,v.cz,renderStep));
+        const retain=visible.filter(v=>v.cx!==data.cx||v.cz!==data.cz).map(fallback).filter(Boolean);
         if(!cache.set(key(data.cx,data.cz,data.step),mesh,retain)){fail('A chunk exceeded the mesh budget. Reload with Economy enabled.');return;}
       }
       pump();
@@ -119,7 +122,7 @@
   function regenerate(seed,cell,extent=world.extent){
     const resized=extent!==world.extent;
     const reseeded=seed!==world.seed;
-    stopKeys();world=M.createWorld(seed,cell,extent);cache.clear();renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
+    stopKeys();world=M.createWorld(seed,cell,extent);cache.clear();renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=placeholders=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
     if(world.infinite&&(resized||reseeded)){position=M.positionAt(world.deposit.x+4,world.deposit.z+4);travelled=0;Object.assign(camera,{x:0,z:0,span:32});}
     else if(resized)Object.assign(camera,{x:world.extent/2,z:world.extent/2,span:world.extent===128?140:maximumSpan()});
     identity();resetActors();$('closeInspection').click();
@@ -132,17 +135,20 @@
   canvas.addEventListener('pointerup',e=>{if(!dragging||dragging.id!==e.pointerId)return;if(dragging.moved<6){const q=logical(),groundWorld=world.infinite?{heightMetres:world.heightMetres,ground:(x,z)=>world.ground(q.x+x,q.z+z)}:world,p=renderer.pick(camera,e.clientX,e.clientY,groundWorld);if(p.y>0&&(world.infinite||p.x>=0&&p.x<world.extent&&p.z>=0&&p.z<world.extent))inspect(world.infinite?{...p,x:p.x+q.x,z:p.z+q.z}:p);}dragging=null;if(world.infinite)persist();});
   canvas.addEventListener('pointercancel',()=>{dragging=null;if(world.infinite)persist();});
   canvas.addEventListener('wheel',e=>{e.preventDefault();if(!failed)zoom(Math.exp(Math.max(-.4,Math.min(.4,e.deltaY*.001))));},{passive:false});
+  const ARROWS=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
+  window.addEventListener('keydown',e=>{
+    if(failed||!ARROWS.includes(e.key)||e.altKey||e.ctrlKey||e.metaKey||document.querySelector('dialog[open]')||e.target.closest?.('input,select,textarea,[contenteditable]'))return;
+    e.preventDefault();if(!heldKeys.has(e.key)){heldKeys.add(e.key);const d=renderer.screenDirection(e.key==='ArrowLeft'?-.05:e.key==='ArrowRight'?.05:0,e.key==='ArrowUp'?-.05:e.key==='ArrowDown'?.05:0);moveCamera(d.x,d.z);}persistOnStop=world.infinite;
+  });
+  window.addEventListener('keyup',e=>heldKeys.delete(e.key));
   canvas.addEventListener('keydown',e=>{
     if(failed)return;
-    if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(!heldKeys.has(e.key)){heldKeys.add(e.key);moveCamera(e.key==='ArrowLeft'?-.05:e.key==='ArrowRight'?.05:0,e.key==='ArrowUp'?-.05:e.key==='ArrowDown'?.05:0);}persistOnStop=world.infinite;}
     if(['+','=','-',' ','r','R'].includes(e.key)){e.preventDefault();if(e.repeat)return;if(e.key===' ')togglePause();else if(e.key==='r'||e.key==='R')$('close').click();else zoom(e.key==='-'?1/.78:.78);}
     if(e.key==='Escape')$('closeInspection').click();
   });
-  canvas.addEventListener('keyup',e=>heldKeys.delete(e.key));
-  canvas.addEventListener('blur',stopKeys);
   window.addEventListener('blur',stopKeys);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)stopKeys();});
-  $('info').onclick=()=>$('notes').showModal();$('metrics').onclick=()=>$('performance').showModal();
+  $('info').onclick=()=>{stopKeys();$('notes').showModal();};$('metrics').onclick=()=>{stopKeys();$('performance').showModal();};
   $('closeNotes').onclick=()=>$('notes').close();$('closePerformance').onclick=()=>$('performance').close();
   function actionForm(id,action){
     const form=$(id),run=()=>{if(!failed&&form.reportValidity())action();};
@@ -160,7 +166,7 @@
     if(![cx,cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=M.MAX_CHUNK))return;
     position=M.movePosition({cx,cz,x:4,z:4});updateActors();$('closeInspection').click();persist();updateView();$('notes').close();
   });
-  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a})),meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
+  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a})),meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   rootAPI();
   function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);}});}
   $('export').onclick=()=>{const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`microvoxel-${world.seed}-metrics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -170,7 +176,7 @@
     if(world.infinite)$('positionLabel').textContent=`CHUNK ${position.cx}, ${position.cz} · LOCAL ${position.x.toFixed(2)}, ${position.z.toFixed(2)} m`;
     const fields=[['Frame p50 / p95 / p99',`${s.frameP50.toFixed(1)} / ${s.frameP95.toFixed(1)} / ${s.frameP99.toFixed(1)} ms`],['Frame sample count',s.frameSamples],['First complete view',firstReadyMs===null?'Loading':`${(firstReadyMs/1000).toFixed(2)} s`],['Voxel runs · worker cache',`${bytes(s.voxelCacheBytes)} / 4 MiB`],['Worker cached chunks',`${s.voxelCacheEntries} / 128`],['Vertex buffers · GPU estimate',`${bytes(s.meshCacheBytes)} / 32 MiB`],['GPU cached chunks',`${s.meshCacheEntries} / 320`],['Active / ready chunks',`${s.visible} / ${s.ready}`],['Generation / meshing p95',`${s.generationP95.toFixed(1)} / ${s.meshingP95.toFixed(1)} ms`],['Worker warm data hits',s.cacheHits],['Draw calls / triangles',`${s.drawCalls} / ${s.triangles.toLocaleString()}`],['Render step / pixel ratio',`${s.renderStep}× displayed / ${s.step}× requested / ${s.pixelRatio.toFixed(1)}×`],['Ground cell / world extent',`${world.cell} m / ${world.extent} m`],['Whole-process memory','Not measured']];
     fields.push(['Vegetation memo entries',`${vegetationEntries} worker + ${s.mainVegetationEntries} main / 2,048 each`]);
-    fields.push(['Useful meshes retained after view changes',retainedMeshes]);
+    fields.push(['Useful meshes retained after view changes',retainedMeshes],['Coarse placeholders while fine detail loads',placeholders]);
     if(world.infinite)fields.push(['Logical chunk / local metres',`${position.cx}, ${position.cz} / ${position.x.toFixed(3)}, ${position.z.toFixed(3)}`],['Largest render chunk origin',`${s.maxRenderOrigin.toFixed(2)} m`],['Travelled (excludes jumps)',`${travelled.toFixed(1)} m`]);
     $('metricList').replaceChildren(...fields.flatMap(([k,v])=>{const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=k;dd.textContent=v;return [dt,dd];}));
   }
@@ -179,7 +185,7 @@
     const delta=now-previous;previous=now;
     if(!document.hidden&&!failed){
       if(renderer.lost){fail('Graphics context lost. Reload this page to rebuild the world.');return;}
-      const dt=Math.min(delta/1000,.05),dx=Number(heldKeys.has('ArrowRight'))-Number(heldKeys.has('ArrowLeft')),dz=Number(heldKeys.has('ArrowDown'))-Number(heldKeys.has('ArrowUp')),length=Math.hypot(dx,dz)||1,speed=Math.min(12,Math.max(2,camera.span*.18)),ease=1-Math.exp(-dt*14);
+      const dt=Math.min(delta/1000,.05),{x:dx,z:dz}=renderer.screenDirection(Number(heldKeys.has('ArrowRight'))-Number(heldKeys.has('ArrowLeft')),Number(heldKeys.has('ArrowDown'))-Number(heldKeys.has('ArrowUp'))),length=Math.hypot(dx,dz)||1,speed=Math.min(12,Math.max(2,camera.span*.18)),ease=1-Math.exp(-dt*(dx||dz?16:36));
       velocity.x+=(dx/length*speed-velocity.x)*ease;velocity.z+=(dz/length*speed-velocity.z)*ease;
       if(!dx&&!dz&&Math.hypot(velocity.x,velocity.z)<.01){velocity.x=velocity.z=0;if(persistOnStop&&!heldKeys.size){persistOnStop=false;persist();}}
       if(velocity.x||velocity.z)moveCamera(velocity.x*dt,velocity.z*dt);
@@ -188,7 +194,7 @@
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       for(const v of visible){
-        const requested=cache.get(v.key),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested;
+        const requested=cache.get(v.key),coarse=placeholderStep(),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested||coarse&&cache.items.get(key(v.cx,v.cz,coarse));
         if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,0,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,0,(v.cz%512)*8]:[p.x,0,p.z]);}
       }
       for(const a of actors)renderer.actor(a,simTime,motion.matches||world.infinite&&now-lastTravel>180);

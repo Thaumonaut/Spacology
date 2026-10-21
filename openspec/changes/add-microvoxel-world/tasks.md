@@ -22,3 +22,4 @@
 - [x] Regress negative boundaries, distant precision, order-independent regeneration, finite-mode continuity and cache residency; package the same implementation.
 - [x] Explain blocked source-file worker startup; regress safe launch guidance and form-free modal/generation/travel actions in a restricted packaged preview.
 - [x] Retain still-needed fine meshes across pan updates, coalesce pointer-driven view work per frame, and add smooth held-key travel with stale-world response isolation in source and standalone regressions.
+- [x] Start held-arrow travel on keydown regardless of control focus, stop promptly on keyup, and cover fast fine-density drags with coarse placeholders before full-detail meshes.
