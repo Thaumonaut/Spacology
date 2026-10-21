@@ -1,0 +1,138 @@
+'use strict';
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),P=require('../../prototypes/minigames/route-planning/route-planning-model.js');
+const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
+(async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
+  try{for(const width of [1280,390]){
+    const p=await browser.newPage({viewport:{width,height:width===390?844:900},hasTouch:width===390,isMobile:width===390,serviceWorkers:'block'}),errors=[];
+    p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+    const puzzle=P.generate(1,'easy');let model=P.create(puzzle);
+    async function reset(){await p.goto(`${BASE}/prototypes/route-planning.html?seed=1&difficulty=easy`);await p.locator('[data-station]').first().waitFor();model=P.create(puzzle);}
+    async function point(i){return p.evaluate(([i,W])=>new DOMPoint((i%W)*100+50,Math.floor(i/W)*100+50).matrixTransform(document.getElementById('rpMap').getScreenCTM()).toJSON(),[i,puzzle.W]);}
+    async function tap(i){const q=await point(i);if(width===390)await p.touchscreen.tap(q.x,q.y);else await p.mouse.click(q.x,q.y);}
+    async function inspect(i){if(await p.locator('#rpPan').getAttribute('aria-pressed')!=='true')await p.locator('#rpPan').click();await tap(i);await p.locator('#rpCard').waitFor();}
+    async function tool(id){if(await p.locator(`[data-tool="${id}"]`).isHidden())await p.locator('#rpMore').click();await p.locator(`[data-tool="${id}"]`).click();}
+    async function sync(a){const r=P.edit(puzzle,model,a);assert.equal(r.why,undefined,JSON.stringify(a));await p.waitForFunction(credits=>window.RoutePlanningUI.sim.credits===credits,model.credits);assert.deepEqual(await p.evaluate(()=>window.RoutePlanningUI.sim.net),JSON.parse(JSON.stringify(model.net)),'UI applies exact model topology');}
+    async function draw(tier,tiles){await tool(tier);const q=await point(tiles[0]);await p.mouse.move(q.x,q.y);await p.mouse.down();for(const t of tiles.slice(1)){const c=await point(t);await p.mouse.move(c.x,c.y,{steps:2});}await p.mouse.up();await sync({type:'road',tier,tiles,preserve:tiles.length>1});}
+    const row=(t,n)=>Array.from({length:n*2+1},(_,k)=>t+k-n),col=(t,n)=>Array.from({length:n*2+1},(_,k)=>t+(k-n)*puzzle.W);
+    await reset();
+    assert.equal(await p.locator('.rp-coord').nth(puzzle.W-1).textContent(),'AB','dense grids use readable column names beyond Z');
+    for(const s of puzzle.stations){
+      const plot=p.locator(`[data-${s.day===1?'station':'planned'}="${s.id}"] .rp-plot-recipe`),text=await plot.textContent();
+      assert.match(text,/TAKES[\s\S]*RETURNS/,'active and future plots have explicit input/output labels');
+      if(s.recipe)for(const [type,qty] of Object.entries(s.recipe.input))assert.ok(text.includes(`${qty} ${P.TYPES[type].name}`),'every ingredient is named with its batch quantity');
+      if(s.kind==='producer')assert.ok(text.includes(`1 ${P.TYPES[s.type].name}`),'output is named with its quantity');
+      else assert.match(text,/Gear kit[\s\S]*RETURNSNothing/,'dispatch is an explicit sink');
+    }
+    assert.deepEqual(await p.locator('.rp-plot').evaluateAll(plots=>plots.flatMap(plot=>{const r=plot.querySelector('rect').getBBox();return [...plot.querySelectorAll('text:not(.rp-port-label)')].filter(t=>{const b=t.getBBox();return b.x<r.x||b.x+b.width>r.x+r.width||b.y<r.y||b.y+b.height>r.y+r.height;}).map(t=>t.textContent);})),[],'all plot text fits its footprint');
+    for(const s of puzzle.stations.filter(s=>s.day===1)){
+      await inspect(s.footprint[0]);
+      assert.deepEqual(await p.locator('.rp-recipe dt').allTextContents(),['Takes','Returns']);
+      const text=await p.locator('.rp-recipe').innerText();
+      if(s.recipe)for(const [type,qty] of Object.entries(s.recipe.input))assert.ok(text.includes(`${qty} ${P.TYPES[type].name}`),'card matches Supply Run recipe');
+      const expected=puzzle.stations.filter(other=>other.day===1&&((other.kind==='producer'&&s.needs.includes(other.type))||(s.kind==='producer'&&other.needs.includes(s.type))));
+      assert.equal(await p.locator('.rp-chain-path').count(),expected.length,'selection highlights direct suppliers and destinations automatically');
+      assert.equal(await p.locator('.rp-plot.selected').count(),1);
+      for(const other of expected){
+        assert.equal(await p.locator(`[data-site="${other.id}"]`).count(),1,'named partner can be located');
+        const incoming=other.kind==='producer'&&s.needs.includes(other.type),src=incoming?other:s,dst=incoming?s:other;
+        const arrow=p.locator(`.rp-chain-path[data-from="${src.id}"][data-to="${dst.id}"]`);
+        assert.equal(await arrow.count(),1,'arrow runs from output to matching input');
+        assert.equal(await arrow.getAttribute('marker-end'),`url(#rpFlow${src.type})`,'direction is visible, not only encoded by color');
+      }
+      await p.locator('.rp-card-x').click();assert.equal(await p.locator('.rp-chain-path').count(),0,'closing selection clears supply guides');
+    }
+    const workshop=puzzle.stations.find(s=>s.type===4),refinery=puzzle.stations.find(s=>s.type===2),mine=puzzle.stations.find(s=>s.type===0);
+    await inspect(workshop.footprint[0]);
+    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-recipes-card-${width}.png`});
+    const fittedView=await p.locator('#rpMap').getAttribute('viewBox');await p.locator(`[data-site="${refinery.id}"]`).click();
+    assert.equal(await p.locator('#rpMap').getAttribute('viewBox'),fittedView,'locating a partner in Fit keeps the entire network visible');
+    assert.match(await p.locator('#rpCard').innerText(),/Refinery[\s\S]*2 Ore[\s\S]*1 Plate/,'follow a named input to its supplier');
+    await p.locator(`[data-site="${mine.id}"]`).click();assert.match(await p.locator('.rp-recipe').innerText(),/Nothing · raw extraction[\s\S]*1 Ore/);
+    const future=puzzle.stations.find(s=>s.day>1&&s.type===2);await p.locator(`[data-site="${future.id}"]`).click();assert.match(await p.locator('#rpCard').innerText(),/Planned · night 3[\s\S]*2 Ore[\s\S]*1 Plate/i,'future partner is marked planned, not active');
+    await p.locator('#rpFit').click();await p.locator('.rp-card-x').click();
+    const consumer=puzzle.stations.find(s=>s.kind==='consumer'),factory=puzzle.stations.find(s=>s.recipe);
+    await inspect(consumer.footprint[0]);assert.match(await p.locator('#rpCard').innerText(),/Routine order[\s\S]*Dispatch peak[\s\S]*due/);
+    await p.locator('[data-chain]').click();assert.ok(await p.locator('.rp-chain-path').count()>=5,'entire upstream chain is highlighted');await p.locator('.rp-card-x').click();
+    await inspect(factory.footprint[0]);assert.match(await p.locator('#rpCard').innerText(),/Inputs:[\s\S]*stored[\s\S]*in transit/);await p.locator('.rp-card-x').click();
+    await p.locator('#rpStart').click();await p.locator('#rpPause').click();await inspect(consumer.footprint[0]);
+    for(const speed of [1,2,4]){
+      await p.locator(`[data-speed="${speed}"]`).click();await p.locator('#rpPause').click();
+      await p.locator(`[data-site="${workshop.id}"]`).focus();
+      const before=await p.locator('#rpCard').evaluate(el=>{el.scrollTop=Math.min(150,el.scrollHeight-el.clientHeight-30);return {top:el.scrollTop,tick:window.RoutePlanningUI.sim.tick};});
+      assert.ok(before.top>0,'dispatch inspector has scrollable content');
+      await p.waitForFunction(tick=>window.RoutePlanningUI.sim.tick>=tick+3,before.tick);
+      const after=await p.locator('#rpCard').evaluate(el=>el.scrollTop);
+      assert.ok(Math.abs(after-before.top)<=1,`scroll is stable at ${speed}×: ${before.top} → ${after}`);
+      assert.equal(await p.evaluate(()=>document.activeElement.dataset.site),String(workshop.id),'daytime updates preserve the focused partner');
+      await p.locator('#rpPause').click();
+    }
+    await reset();await inspect(refinery.footprint[0]);await p.locator(`[data-site="${mine.id}"]`).focus();await p.keyboard.press('Enter');
+    assert.equal(await p.evaluate(()=>document.getElementById('rpCard').contains(document.activeElement)),true,'keyboard partner navigation keeps focus inside the new inspector');
+    assert.equal(await p.locator('#rpCard').evaluate(el=>el.scrollTop),0,'new partner inspector starts with its recipe visible');
+    await p.keyboard.press('Tab');assert.equal(await p.evaluate(()=>document.activeElement.dataset.site),String(refinery.id),'keyboard browsing continues with the new partner list');
+    await reset();
+    let center=-1,side=2;
+    for(let y=2;y<puzzle.H-4&&center<0;y++)for(let x=4;x<puzzle.W-4;x++){
+      const t=y*puzzle.W+x,copy=P.clone(model);if(P.edit(puzzle,copy,{type:'road',tier:'highway',tiles:row(t,4)}).why)continue;
+      if(!P.costOf(puzzle,copy,{type:'interchange',tile:t,side}).why&&!P.costOf(puzzle,copy,{type:'overpass',tile:t}).why){center=t;break;}
+    }
+    assert.ok(center>=0,'seed has room for template and bridge');await draw('highway',row(center,4));await inspect(center);
+    await p.locator('[data-interchange]').click();await p.locator('#rpRampSide').selectOption(String(side));assert.equal(await p.locator('.rp-ghost-tile').count(),12,'preview shows complete freeway, street and both ramps');assert.equal(await p.locator('.rp-stamp-arrow').count(),4,'both ramp directions are visible');
+    await p.locator('#rpRampSide').selectOption('1');assert.equal(await p.locator('[data-ramp-confirm]').isDisabled(),true,'incompatible orientation cannot be built');assert.equal(await p.evaluate(()=>RoutePlanningUI.sim.credits),model.credits);await p.locator('#rpRampSide').selectOption(String(side));
+    const preview=await p.locator('#rpCard').evaluate(el=>({top:el.scrollTop,title:el.querySelector('h3').getBoundingClientRect().top,card:el.getBoundingClientRect().top}));assert.equal(preview.top,0,'preview opens at its title, not the previous inspector scroll');assert.ok(preview.title>=preview.card,'interchange title is not clipped');
+    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-interchange-${width}.png`});
+    await p.keyboard.press('Escape');assert.equal(await p.locator('.rp-ghost-tile').count(),0,'cancel clears preview without spending');assert.equal(await p.evaluate(()=>window.RoutePlanningUI.sim.credits),model.credits);
+    await tool('interchange');await tap(center);await p.locator('#rpRampSide').selectOption(String(side));await p.locator('[data-ramp-confirm]').click();await sync({type:'interchange',tile:center,side});assert.equal(await p.locator('.rp-tier-ramp').count(),2);
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));await inspect(center);
+    await p.locator('[data-overpass]').click();await sync({type:'overpass',tile:center});assert.ok(await p.locator('.rp-over-top').count()>0);
+    assert.equal(P.freeRoutes(puzzle,model,center-2*puzzle.W).dist[center+4],Infinity,'UI-built crossing cannot turn');
+    await p.locator('.rp-card-x').click();
+    await reset();center=-1;
+    for(let t=0;t<puzzle.W*puzzle.H;t++)if(!P.costOf(puzzle,model,{type:'interchange',tile:t,side:2}).why&&!P.costOf(puzzle,model,{type:'interchange',tile:t,side:1}).why){center=t;break;}
+    assert.ok(center>=0,'seed has a rotatable empty interchange site');await tool('interchange');await tap(center);
+    const empty=P.clone(model);await p.locator('#rpRampSide').selectOption('1');assert.equal(await p.locator('.rp-stamp-freeway').count(),5);assert.deepEqual(await p.evaluate(()=>RoutePlanningUI.sim.net),empty.net,'rotating is a pure preview');
+    await p.locator('[data-ramp-cancel]').click();assert.equal(await p.locator('.rp-ghost-tile').count(),0);
+    await tap(center);await p.locator('#rpRampSide').selectOption('1');await p.locator('[data-ramp-confirm]').click();await sync({type:'interchange',tile:center,side:1});assert.equal(await p.locator('.rp-tier-highway').count(),5,'stamp builds its own mainline');
+    await reset();
+    let bridge;
+    for(let t=0;t<puzzle.W*puzzle.H;t++)if(puzzle.terrain[t]===1&&t%puzzle.W>1&&t%puzzle.W<puzzle.W-2&&!P.costOf(puzzle,model,{type:'road',tier:'highway',tiles:row(t,2)}).why){bridge=t;break;}
+    assert.notEqual(bridge,undefined,'seed has a river bridge site');await draw('highway',row(bridge,2));assert.equal(model.net.paid[bridge],20);assert.ok(P.freeRoutes(puzzle,model,bridge-2).dist[bridge+2]<Infinity);
+    await reset();center=-1;
+    for(let y=3;y<puzzle.H-3&&center<0;y++)for(let x=3;x<puzzle.W-3;x++){
+      const t=y*puzzle.W+x,copy=P.clone(model);if(P.edit(puzzle,copy,{type:'road',tier:'road',tiles:row(t,3)}).why||P.edit(puzzle,copy,{type:'road',tier:'road',tiles:col(t,3)}).why)continue;
+      if(!P.costOf(puzzle,copy,{type:'control',tile:t,control:'roundabout'}).why&&puzzle.bAt[t-2]<0){center=t;break;}
+    }
+    assert.ok(center>=0);await draw('road',row(center,3));await draw('road',col(center,3));await inspect(center);
+    for(const control of ['signal','roundabout','stop']){await p.locator('#rpControl').selectOption(control);await sync({type:'control',tile:center,control});if(control==='roundabout')assert.equal(model.net.reserved.filter(t=>t===center).length,4);}
+    await p.locator('.rp-card-x').click();const parallel=row(center-puzzle.W,3);await draw('local',parallel);
+    assert.equal(model.net.tier[center-puzzle.W],2,'local drag across an existing collector preserves its tier');assert.equal(model.net.paid[center-puzzle.W],P.buildCost(puzzle,center-puzzle.W,2),'collector ledger is preserved');
+    await inspect(center-puzzle.W);await p.locator('#rpRoadType').selectOption('dirt');await sync({type:'road',tier:'dirt',tiles:[center-puzzle.W]});await p.locator('#rpRoadType').selectOption('road');await sync({type:'road',tier:'road',tiles:[center-puzzle.W]});await p.locator('.rp-card-x').click();
+    await inspect(center-puzzle.W);const unchanged=await p.evaluate(()=>JSON.stringify(RoutePlanningUI.sim.net));await p.locator('#rpRoadType').selectOption('highway');assert.equal(await p.locator('#rpRoadType').inputValue(),'road','rejected resurfacing restores the real road type');assert.equal(await p.evaluate(()=>JSON.stringify(RoutePlanningUI.sim.net)),unchanged);await p.locator('.rp-card-x').click();
+    const street=center-2;assert.equal(model.net.e[street]&1,0,'parallel street remains disconnected');
+    await draw('local',[street-puzzle.W,street]);assert.equal(model.net.tier[street],2,'local endpoint connects without downgrading collector');assert.ok(model.net.e[street]&1);assert.equal(model.net.e[street-1]&1,0,'a connector only joins its intended endpoint');
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));await inspect(street);await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});assert.equal(model.net.e[street-1]&1,0,'only selected link is added');await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});await p.locator('.rp-card-x').click();
+    const warehouse=model.net.tier.flatMap((tier,i)=>tier?P.DIRS.map((_,d)=>P.neighbour(puzzle,i,d)):[]).find(tile=>tile>=0&&!P.costOf(puzzle,model,{type:'warehouse',tile}).why);assert.notEqual(warehouse,undefined);
+    await tool('warehouse');await tap(warehouse);await sync({type:'warehouse',tile:warehouse});await inspect(warehouse);
+    assert.match(await p.locator('.rp-recipe').innerText(),/Nothing until assigned[\s\S]*Same goods · no processing/,'warehouse stages goods rather than transforming them');
+    await p.locator('#rpStockTarget').selectOption(`${consumer.id}:4`);await p.locator('#rpStockQty').fill('3');await p.locator('#rpStockForm [type="submit"]').click();await sync({type:'prepare',tile:warehouse,target:consumer.id,item:4,qty:3});assert.match(await p.locator('#rpCard').innerText(),/Reserved for/);
+    assert.match(await p.locator('.rp-recipe').innerText(),/Gear kit[\s\S]*Same goods/,'warehouse names the assigned stock');
+    await p.locator('[data-unprepare]').click();await sync({type:'unprepare',tile:warehouse});assert.equal(await p.locator('[data-unprepare]').count(),0);
+    await p.locator('.rp-card-x').click();await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.deepEqual(await p.evaluate(()=>window.RoutePlanningUI.sim.wh[0].plan),model.wh[0].plan,'reservation edits support undo');
+    for(let k=0;k<10;k++)await p.locator('#rpZoomIn').click();assert.equal(await p.locator('#rpZoomIn').isDisabled(),true);assert.equal(await p.locator('#rpFit').innerText(),'600%');await p.locator('#rpFit').click();
+    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.documentElement.scrollHeight<=innerHeight+1),'no page scroll with contextual controls');
+    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-logistics-${width}.png`});
+    await reset();await p.locator('#rpSettings').click();assert.equal(await p.locator('#rpUnlimited').getAttribute('aria-pressed'),'false');
+    await p.locator('#rpUnlimited').click();await sync({type:'budget',unlimited:true});assert.equal(await p.locator('#rpUnlimited').getAttribute('aria-pressed'),'true');assert.match(await p.locator('#mgMeters').innerText(),/∞/);
+    await p.locator('#rpRelaxed').click();assert.equal(await p.evaluate(()=>RoutePlanningUI.sim.unlimited),true,'relaxed mode preserves unlimited budget');await p.locator('#rpRelaxed').click();
+    await p.locator('#rpDrawerClose').click();
+    let spent=0;for(let i=0;i<puzzle.W*puzzle.H&&model.credits>=0;i++)if(!P.costOf(puzzle,model,{type:'road',tier:'highway',tiles:[i]}).why){await draw('highway',[i]);spent++;}
+    assert.ok(spent>0&&model.credits<0,'unlimited mode builds beyond the original budget');assert.match(await p.locator('#mgMeters').innerText(),/∞/);
+    await p.locator('#rpSettings').click();await p.locator('#rpUnlimited').click();assert.equal(await p.locator('#rpUnlimited').getAttribute('aria-pressed'),'true','cannot silently switch an overspent network back to finite');assert.match(await p.locator('#mgStatus').innerText(),/Refund roads/);await p.locator('#rpDrawerClose').click();
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.ok(model.credits>=0);assert.match(await p.locator('#mgMeters').innerText(),/∞/);
+    await p.locator('#rpSettings').click();await p.locator('#rpUnlimited').click();await sync({type:'budget',unlimited:false});assert.doesNotMatch(await p.locator('#mgMeters').innerText(),/∞/);await p.locator('#rpDrawerClose').click();
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));assert.match(await p.locator('#mgMeters').innerText(),/∞/,'undo restores budget mode');
+    await p.locator('#rpStart').click();await p.locator('#rpPause').click();await p.locator('#rpSettings').click();assert.equal(await p.locator('#rpUnlimited').isDisabled(),true,'budget changes only at night');await p.locator('#rpDrawerClose').click();await p.locator('#rpDusk').click();assert.equal(await p.evaluate(()=>RoutePlanningUI.sim.unlimited),true,'mode survives dusk');
+    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.documentElement.scrollHeight<=innerHeight+1));assert.deepEqual(errors,[]);await p.close();
+  }}finally{await browser.close();}
+  console.log('PASS contextual logistics at desktop and touch phone sizes: plot/peak/recipe cards and chains, complete ramp preview/cancel/build, grade separation, signals/roundabout/stops, explicit parallel links, warehouse reservation/release/undo, 600% precision zoom; no page scroll or browser errors');
+})().catch(e=>{console.error(e);process.exitCode=1;});

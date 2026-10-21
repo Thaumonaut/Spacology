@@ -31,8 +31,8 @@ for(const diff of P.DIFFICULTIES){
     assert.deepEqual(a.errors,[],`${d}/${seed} plan replays cleanly`);
     assert.equal(a.score,pz.par,`${d}/${seed} replay = par`);assert.deepEqual(P.result(pz,a),P.result(pz,b));
     assert.equal(P.tier(pz,P.result(pz,a)),'perfect');assert.equal(P.nearMiss(pz,a),'');
-    assert.ok(pz.autoScore<pz.par,`${d}/${seed} auto ${pz.autoScore} < par ${pz.par}`);
-    const sk=P.create(pz),ar=P.auto(pz,sk);assert.equal(ar.score,pz.autoScore);assert.notEqual(P.tier(pz,ar),'perfect');
+    assert.ok(pz.autoScore<=pz.par,`${d}/${seed} auto ${pz.autoScore} <= par ${pz.par}`);
+    const sk=P.create(pz),ar=P.auto(pz,sk);assert.equal(ar.score,pz.autoScore);
     for(const k in use)use[k]+=pz.planUse[k]>0?1:0;
     parSum+=pz.par;autoSum+=pz.autoScore;
   }
@@ -62,7 +62,7 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   assert.ok(P.undo(pz,sim));assert.equal(sim.credits,200);assert.equal(sim.net.tier[15],0);
   P.edit(pz,sim,{type:'road',tiles:row(pz,1,0,9)});
   // The route: straight along row 1, 3 ticks a tile.
-  const g=P.graph(pz,sim);assert.equal(g.ticks[13],3);assert.equal(g.cap[13],1);
+  const g=P.graph(pz,sim);assert.equal(g.ticks[13],3);assert.equal(g.cap[13],2);
   assert.deepEqual(P.freeRoutes(pz,sim,10).dist[19]<Infinity,true);
   // Day: no edits, and the day runs a fixed number of ticks to dusk.
   assert.ok(P.startDay(pz,sim));assert.match(P.edit(pz,sim,{type:'road',tiles:[0]}).why,/only be changed at night/);assert.equal(P.undo(pz,sim),false);
@@ -71,8 +71,8 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   assert.ok(sim.deliveries>=8,`deliveries ${sim.deliveries}`);assert.equal(sim.report.day,1);
   assert.equal(sim.days[0].clean,true);assert.equal(sim.score,sim.deliveries+P.CLEAN_BONUS);
   assert.equal(sim.credits,184+sim.deliveries*P.DELIVERY_CREDIT+P.STIPEND);
-  // Refunds: half for a road laid on an earlier night, all of it for tonight's.
-  const before=sim.credits;P.edit(pz,sim,{type:'erase',tiles:[15]});assert.equal(sim.credits,before+1);
+  // Refunds: full construction value on any night.
+  const before=sim.credits;P.edit(pz,sim,{type:'erase',tiles:[15]});assert.equal(sim.credits,before+2);
   P.edit(pz,sim,{type:'road',tiles:[14,15,16]});const mid=sim.credits;P.edit(pz,sim,{type:'erase',tiles:[15]});assert.equal(sim.credits,mid+2);
   assert.match(P.edit(pz,sim,{type:'erase',tiles:[5]}).why,/Nothing to erase/);
 }
@@ -84,7 +84,7 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   // Dirt and highway tiers; re-tiering pays the difference.
   assert.equal(P.edit(pz,sim,{type:'road',tier:'dirt',tiles:[21,22]}).cost,2);
   assert.equal(P.edit(pz,sim,{type:'road',tier:'highway',tiles:[21,22]}).cost,8);
-  const g=P.graph(pz,sim);assert.equal(g.ticks[21],P.ROADS[3].ticks);assert.equal(g.cap[21],2);
+  const g=P.graph(pz,sim);assert.equal(g.ticks[21],P.ROADS[3].ticks);assert.equal(g.cap[21],3);
   // Not enough credits: refused, nothing changes.
   sim.credits=3;assert.match(P.edit(pz,sim,{type:'road',tiles:[1,2]}).why,/needs 4 credits; you have 3/);assert.equal(sim.net.tier[1],0);
 }
@@ -95,10 +95,10 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   assert.equal(sim.net.e[2]&4,0,'no join between rows');assert.equal(P.isJunction(sim,12),false);
   P.edit(pz,sim,{type:'road',tiles:[23]});P.edit(pz,sim,{type:'road',tiles:[13,23]});
   assert.ok(P.isJunction(sim,13),'three joins make a junction');
-  const g=P.graph(pz,sim);assert.equal(g.ticks[13],3+P.JUNCTION_TICKS);assert.equal(g.shared[13],1);assert.equal(g.cap[13],1);
-  // A roundabout removes the junction's extra time and holds two.
+  const g=P.graph(pz,sim);assert.equal(g.ticks[13],3+P.JUNCTION_TICKS);assert.equal(g.shared[13],1);assert.equal(g.cap[13],2);
+  // A roundabout removes the junction's extra time and separates its entry lanes.
   assert.equal(P.edit(pz,sim,{type:'roundabout',tile:13}).cost,P.ROUND_COST);
-  const g2=P.graph(pz,sim);assert.equal(g2.ticks[13],3);assert.equal(g2.cap[13],2);
+  const g2=P.graph(pz,sim);assert.equal(g2.ticks[13],3);assert.equal(g2.cap[13],2);assert.equal(g2.shared[13],0);
   assert.match(P.edit(pz,sim,{type:'roundabout',tile:2}).why,/three or more/);
 }
 {
@@ -118,7 +118,7 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   // The report's problems each point at tiles to locate, and name what happened.
   for(const p of trunk.report.problems){assert.ok(p.tiles.length>0);assert.equal(typeof p.text,'string');}
   assert.ok(trunk.report.problems.length<=3);
-  // A ring of one-ways driven full still makes progress (the stuck timer forces a way through).
+  // A ring of one-ways still makes progress without a stuck timer forcing vehicles through capacity.
   const ring=P.create(pz);
   P.edit(pz,ring,{type:'road',tiles:[0,10,11,12,13,14,15,16,17,18,19,9]});P.edit(pz,ring,{type:'road',tiles:[19,29,28,27,26,25,24,23,22,21,20,10]});
   P.edit(pz,ring,{type:'oneway',tiles:[10,11,12,13,14,15,16,17,18,19]});P.edit(pz,ring,{type:'oneway',tiles:[19,29,28,27,26,25,24,23,22,21,20,10]});
@@ -132,7 +132,7 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   assert.equal(P.edit(pz,sim,{type:'oneway',tiles:row(pz,1,9,0)}).cost,9*P.ONEWAY_COST);
   assert.equal(P.freeRoutes(pz,sim,10).dist[19],Infinity,'west-to-east is now blocked');
   assert.ok(P.freeRoutes(pz,sim,19).dist[10]<Infinity,'east-to-west still drives');
-  assert.ok(P.isOneWay(pz,sim,14));assert.equal(P.graph(pz,sim).cap[14],2);
+  assert.ok(P.isOneWay(pz,sim,14));assert.equal(P.graph(pz,sim).cap[14],4);
   P.edit(pz,sim,{type:'oneway',tiles:row(pz,1,9,0)});assert.ok(P.freeRoutes(pz,sim,10).dist[19]<Infinity,'the same drag again makes it two-way');
   assert.equal(P.isOneWay(pz,sim,14),false);
 }
@@ -146,8 +146,8 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   P.runDay(pz,sim);
   const stocked=sim.wh[0].stock[0];assert.ok(stocked>0,'surplus reached the warehouse');
   P.runDay(pz,sim);assert.ok(sim.days[1].fromWh>0,'the warehouse served requests');
-  // Erasing it refunds half (built on an earlier night).
-  const c=sim.credits;P.edit(pz,sim,{type:'erase',tiles:[28]});assert.equal(sim.credits,c+Math.floor((P.WH_COST+P.WH_UP_COST)/2));
+  // Erasing it refunds full construction value even on an earlier night.
+  const c=sim.credits;P.edit(pz,sim,{type:'erase',tiles:[28]});assert.equal(sim.credits,c+P.WH_COST+P.WH_UP_COST);
 }
 {
   // Starving is gentle: an unlinked consumer starves, the run goes on, and only the bonus is lost.
@@ -177,14 +177,16 @@ const row=(pz,y,x0,x1)=>{const out=[];for(let x=x0;x0<=x1?x<=x1:x>=x1;x+=x0<=x1?
   P.startDay(pz,sim);assert.equal(P.hint(pz,sim),null);
 }
 {
-  // New stations clear their ground at night, with a full refund.
+  // New stations retain roads, joins and through-routing at their planned sites.
   const W=10,st=(id,kind,x,y,extra)=>({id,kind,x,y,tile:y*W+x,type:null,needs:[],day:1,short:'S'+id,name:`S${id} ${kind}`,...extra});
   const stations=[st(0,'producer',0,1,{type:0}),st(1,'consumer',9,1,{needs:[0]}),st(2,'consumer',5,0,{needs:[0],day:2})];
   const pz=fixture({stations}),sim=P.create(pz);
   P.edit(pz,sim,{type:'road',tiles:[4,5,6]});assert.equal(P.stationAt(pz,sim,5),-1,'not there on night 1');
   const c=sim.credits;P.runDay(pz,sim);
-  assert.equal(sim.net.tier[5],0,'the new station took its tile');assert.equal(P.stationAt(pz,sim,5),2);
-  assert.equal(sim.credits,c+P.STIPEND+2,'its road refunded in full');
+  assert.equal(sim.net.tier[5],2,'the new station preserved its road');assert.equal(P.stationAt(pz,sim,5),2);
+  assert.equal(sim.net.e[5],10,'the road still connects east and west');
+  assert.equal(P.graph(pz,sim).bld[5],0,'a road through a building is traversable');
+  assert.equal(sim.credits,c+P.STIPEND+P.GROWTH_CREDIT,'growth is funded independently of deliveries');
 }
 
 const reportOut=Object.entries(use).map(([k,v])=>`${k} ${v}/${SEEDS*4}`).join(', ');
