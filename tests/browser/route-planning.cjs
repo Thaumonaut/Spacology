@@ -44,7 +44,8 @@ try{
     async function tapTile(t){await p.locator('#rpMap').scrollIntoViewIfNeeded();const c=await center(t);if(tag===390)await p.touchscreen.tap(c.x,c.y);else await p.mouse.click(c.x,c.y);}
     // Replays one model edit through the UI, and on the model alongside.
     async function play(a){
-      if(a.type==='road'){await tool(TOOL[a.tier||'road']);await dragTiles(a.tiles);}
+      if(a.type==='road')a={...a,preserve:a.preserve??a.tiles.length>1};
+      if(a.type==='road'){await tool(TOOL[a.tier||'road']);if(a.preserve===false&&a.tiles.length>1){await p.locator('#rpMore').click();await p.locator('#rpResurface').click();}await dragTiles(a.tiles);}
       else if(a.type==='oneway'){await tool('oneway');await dragTiles(a.tiles);}
       else if(a.type==='erase'){await tool('erase');await dragTiles(a.tiles);}
       else{await tool(a.type);await tapTile(a.tile);}
@@ -152,10 +153,10 @@ try{
     {
       const start=pz.terrain.findIndex((_,i)=>i%pz.W<pz.W-4&&[i,i+1,i+2,i+3].every(t=>pz.terrain[t]===0&&pz.bAt[t]<0));
       assert.ok(start>=0);const tiles=[start,start+1,start+2,start+3];
-      for(const tier of ['road','highway','dirt']){
-        await play({type:'road',tier,tiles});assert.equal(await credits(),model.credits,'re-tier credits agree with model');
-      }
+      for(const tier of ['road','highway','dirt'])await play({type:'road',tier,tiles,preserve:false});
+      assert.equal(await p.locator('#rpResurface').getAttribute('aria-pressed'),'true','replacement requires explicit resurface mode');
       await play({type:'erase',tiles});assert.equal(await credits(),pz.credits0,'complete rebuild round trip costs nothing');
+      assert.equal(await p.locator('#rpResurface').getAttribute('aria-pressed'),'false','selecting a tool restores safe drawing');
       for(let i=0;i<4;i++){await p.locator('#mgUndo').click();assert.ok(P.undo(pz,model));}
       assert.equal(await credits(),pz.credits0);
     }

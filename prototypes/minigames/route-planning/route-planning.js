@@ -8,12 +8,13 @@
   const K=window.MiniGameKit,P=window.RoutePlanning,esc=K.esc;
   const U=100,SVGNS='http://www.w3.org/2000/svg';
   const TOOLS=[
-    {id:'local',label:'Local',cost:`${P.ROADS[4].cost}/tile · access`,tip:'Paved access for every building. Good at tight turns. Drawn edges alone create connections; adjacent roads stay separate.'},
+    {id:'local',label:'Local',cost:`${P.ROADS[4].cost}/tile · access`,tip:'Paved building access. Drags preserve existing road types; tap a road tile to deliberately change its type. Adjacent roads stay separate.'},
     {id:'road',label:'Collector',cost:`${P.ROADS[2].cost}/tile · 2/lane`,tip:'Faster district distributors. Large factories and warehouses can connect; small buildings need local streets.'},
-    {id:'highway',label:'Freeway',cost:`${P.ROADS[3].cost}/tile · 3/lane`,tip:'Normal ground only; no building access or at-grade intersections. Needs straight distance to accelerate. Use ramps to connect.'},
+    {id:'highway',label:'Freeway',cost:`${P.ROADS[3].cost}/tile · 3/lane`,tip:'Open ground and river bridges (×4 cost); no building access or at-grade intersections. Use an Interchange for built-in on/off ramps.'},
     {id:'erase',label:'Erase',cost:'full refund',tip:'Drag to remove road or a warehouse. Recover its full current construction value, on any night.'},
     {id:'dirt',label:'Dirt track',cost:`${P.ROADS[1].cost}/tile`,tip:'Slow, low-capacity remote roads. Can cross mountains; connect to a paved street before a building entrance.'},
-    {id:'ramp',label:'Ramp',cost:'3/tile · one-way',tip:'Drag from street to freeway for an on-ramp, or freeway to street for an off-ramp. Leave two empty approach tiles. Inspect a freeway for a complete ramp-pair template.'},
+    {id:'interchange',label:'Interchange',cost:'on + off ramps',tip:'Tap clear ground or a freeway. Preview and rotate a compact 5×3 stamp with freeway, collector and both ramp directions, then Build.'},
+    {id:'ramp',label:'Ramp',cost:'3/tile · one-way',tip:'Custom ramp: drag street → freeway to enter, or freeway → street to exit. One clear approach tile is enough; rough ground and river bridges are allowed. Use Interchange for both ramps together.'},
     {id:'overpass',label:'Overpass',cost:`${P.OVERPASS_COST} + approaches`,tip:'Tap a straight road with two approach tiles on each side. Builds a collector underneath; crossing traffic cannot turn. Tap again to remove the structure.'},
     {id:'oneway',label:'One-way',cost:`${P.ONEWAY_COST}/join`,tip:'Drag along a road to make it one-way in that direction: it carries twice as much. The same drag again makes it two-way.'},
     {id:'roundabout',label:'Roundabout',cost:String(P.ROUND_COST),tip:'A slow yielding junction with a 3×3 footprint. Circulating traffic has priority. Inspect junctions to choose Stop or Signals instead.'},
@@ -22,14 +23,14 @@
   ];
   const toolCost=t=>{const [price,capacity]=t.cost.split(' · ');return esc(price)+(capacity?`<span class="rp-tool-cap"> · ${esc(capacity)}</span>`:'');};
   let pz=null,sim=null,tool='local',drag=null,hint=null,running=false,paused=false,speed=1,relaxed=false,launched=false,acc=0,last=0,raf=0,
-    ended=false,locate=null,locateTimer=0,card=null,count={edits:0,undos:0,hints:0,rejected:0,locates:0};
+    ended=false,locate=null,locateTimer=0,card=null,interchangeDraft=null,resurface=false,count={edits:0,undos:0,hints:0,rejected:0,locates:0};
   const shell=K.shell({id:'route-planning',defaultDifficulty:'normal',
     difficulties:P.DIFFICULTIES.map(d=>({id:d.id,label:d.label,target:d.target})),
     rules:['<b>Night</b>: the clock stops. Each plot names what it <b>Takes</b> and <b>Returns</b>. Connect matching outputs to inputs by dragging roads between marked entrances. Vehicles carry goods automatically. Roads join along the way you drag, so parallel roads stay separate.',
       'Supply chain: <b>2 ore → plate</b>, <b>2 crystal → cell</b>, then <b>plate + cell → gear kit</b>. Factories need delivered inputs and processing time. Only <b>on-time final dispatch deliveries</b> score; late goods still clear their order and earn construction credit.',
       'Press <b>Start day</b> to watch the traffic. You cannot build by day; use 1×, 2×, 4× or <b>Skip to dusk</b>.',
-      '<b>Locals</b> serve every entrance; <b>collectors</b> only large buildings. <b>Freeways</b> need normal ground, directional ramps and uninterrupted distance to accelerate. Corners and queues erase speed. <b>Dirt tracks</b> can cross mountains.',
-      'River crossings are <b>bridges</b> (×4 cost); rough ground costs ×2. Parallel roads never auto-connect, even when tapped or upgraded. Inspect a road to toggle individual connections. Freeway ramp-pair templates and junction controls are in the inspector.',
+      '<b>Locals</b> serve every entrance; <b>collectors</b> only large buildings. <b>Freeways</b> use open ground or river bridges, directional ramps and uninterrupted distance to accelerate. Corners and queues erase speed. <b>Dirt tracks</b> can cross mountains.',
+      'River crossings are <b>bridges</b> (×4 cost); rough ground costs ×2. Drags preserve existing road types and connect only drawn edges. Tap an existing tile with a road tool to resurface it for the price difference, or choose <b>More → Resurface</b> for a whole stretch. Selecting another tool returns to safe drawing. Inspect roads to toggle connections or change type. <b>Interchange</b> previews a complete 5×3 freeway, collector and on/off ramp pair before building.',
       '<b>Stops</b> halt vehicles and share one crossing slot. <b>Signals</b> release alternating north/south and east/west batches, with clearance intervals. <b>Roundabouts</b> slow and yield to circulating traffic; they require room. <b>Overpasses</b> carry independent straight flows, without turns.',
       '<b>Schedules</b>: raw output peaks in the first 10 seconds. Inspect a dispatch site for its exact order quantities and times. Inspect a <b>warehouse</b> to intentionally stock a selected good for that destination. Reserved goods cannot be taken by other customers. Inventory persists overnight.',
       `Rebuild freely: <b>full refunds</b> on every night; re-tiering pays or returns only the difference. Each dusk pays <b>${P.STIPEND} construction credits</b> plus <b>${P.GROWTH_CREDIT} per new building</b>, even if deliveries failed.`,
@@ -57,7 +58,7 @@
       <div class="rp-nightbar" id="rpNightBar"><div class="rp-tools" id="rpTools" role="toolbar" aria-label="Night construction tools">
         ${TOOLS.slice(0,4).map(t=>`<button data-tool="${t.id}" aria-pressed="${t.id==='road'}" title="${esc(t.tip)}"><b>${esc(t.label)}</b><small>${toolCost(t)}</small></button>`).join('')}
         <div class="rp-more-wrap"><button id="rpMore" aria-controls="rpExtras" aria-expanded="false"><b>More</b><small id="rpMoreLabel">${TOOLS.length-4} tools</small></button>
-          <div id="rpExtras" role="group" aria-label="Specialist tools" hidden>${TOOLS.slice(4).map(t=>`<button data-tool="${t.id}" aria-pressed="false" title="${esc(t.tip)}"><b>${esc(t.label)}</b><small>${toolCost(t)}</small></button>`).join('')}</div></div>
+          <div id="rpExtras" role="group" aria-label="Specialist tools" hidden>${TOOLS.slice(4).map(t=>`<button data-tool="${t.id}" aria-pressed="false" title="${esc(t.tip)}"><b>${esc(t.label)}</b><small>${toolCost(t)}</small></button>`).join('')}<button id="rpResurface" aria-pressed="false" title="Replace existing road types with the selected road tool; charge/refund only the difference"><b>Resurface</b><small>replace road types</small></button></div></div>
       </div><div class="rp-actions" id="rpNightActions"><button id="rpStart" class="primary rp-start">☀ Start day</button></div></div>
       <div class="rp-daybar" id="rpDayBar" hidden><div class="rp-clock"><span id="rpClock"></span><i><b id="rpClockBar"></b></i></div><button id="rpPause" aria-pressed="false">Pause</button><div class="rp-speed" role="group" aria-label="Playback speed">${[1,2,4].map(s=>`<button data-speed="${s}" aria-pressed="${s===1}">${s}×</button>`).join('')}</div><button id="rpDusk" title="Run the rest of the day at once">⏭ Skip to dusk</button></div>
     </footer>
@@ -88,6 +89,12 @@
   $('rpDrawerClose').onclick=()=>{const trigger=$(drawer);closeDrawer();trigger?.focus();};
   function showMore(open){$('rpExtras').hidden=!open;$('rpMore').setAttribute('aria-expanded',String(open));}
   $('rpMore').onclick=()=>showMore($('rpExtras').hidden);
+  $('rpResurface').onclick=()=>{
+    if(!['local','road','dirt','highway'].includes(tool)){shell.status('Select a road type first, then choose Resurface.','warn');return;}
+    resurface=!resurface;$('rpResurface').setAttribute('aria-pressed',String(resurface));$('rpMoreLabel').textContent=resurface?'Resurface':`${TOOLS.length-4} tools`;
+    $('rpMore').classList.toggle('selected',resurface);showMore(false);
+    shell.status(resurface?`Resurface mode: drag to replace existing roads with ${TOOLS.find(t=>t.id===tool).label}. Only the price difference is charged/refunded. Select any tool to return to safe drawing.`:'Safe drawing: existing road types are preserved.');
+  };
   function closeReport(){$('rpReport').hidden=true;$('rpReportOpen').setAttribute('aria-expanded','false');}
   $('rpReportOpen').onclick=()=>{
     const report=$('rpReport');
@@ -132,9 +139,10 @@
   // ---- lifecycle ------------------------------------------------------------------------------------------------------
   function onNew({seed,difficulty}){
     stop();pz=P.generate(seed,difficulty);relaxed=false;sim=P.create(pz,{relaxed});
-    hint=null;launched=false;ended=false;paused=false;acc=0;drag=null;card=null;locate=null;count={edits:0,undos:0,hints:0,rejected:0,locates:0};
+    hint=null;launched=false;ended=false;paused=false;acc=0;drag=null;card=null;interchangeDraft=null;resurface=false;locate=null;count={edits:0,undos:0,hints:0,rejected:0,locates:0};
     tool='local';stage.querySelectorAll('[data-tool]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.tool===tool)));
     $('rpMoreLabel').textContent=`${TOOLS.length-4} tools`;$('rpMore').classList.remove('selected');
+    $('rpResurface').setAttribute('aria-pressed','false');
     $('rpRelaxed').disabled=false;$('rpRelaxed').setAttribute('aria-pressed','false');$('rpRelaxed').textContent='Relaxed: off';
     closeDrawer();showMore(false);
     $('rpReport').hidden=true;$('rpReportOpen').hidden=true;$('rpReportOpen').setAttribute('aria-expanded','false');
@@ -262,6 +270,7 @@
     }
     closeCard();
     if(sim.phase!=='night')return;
+    if(tool==='interchange'){previewInterchange(t);return;}
     const a=action(tiles);if(a)doEdit(a);
   };
   svg.addEventListener('pointerup',endDrag);svg.addEventListener('pointercancel',()=>{panDrag=null;drag=null;$('rpGhost').innerHTML='';$('rpPreview').textContent='';});
@@ -287,7 +296,7 @@
     else{drag={tiles:[keyboardTile],id:'keyboard'};endDrag({pointerId:'keyboard'});}
   });
   function action(tiles){
-    if(['local','road','dirt','highway'].includes(tool))return {type:'road',tier:tool,tiles:tiles.slice()};
+    if(['local','road','dirt','highway'].includes(tool))return {type:'road',tier:tool,tiles:tiles.slice(),preserve:tiles.length>1&&!resurface};
     if(tool==='ramp')return {type:'ramp',tiles:tiles.slice()};
     if(tool==='erase')return {type:'erase',tiles:tiles.slice()};
     if(tool==='oneway'){if(tiles.length<2){shell.status('Drag along a road (at least two tiles) to make it one-way in that direction.','warn');return null;}return {type:'oneway',tiles:tiles.slice()};}
@@ -306,9 +315,10 @@
     let why=null,cost=0;
     if(a&&!(tool==='oneway'&&p.length<2)){const r=P.costOf(pz,sim,a);why=r.why||null;cost=r.cost||0;}
     g.innerHTML=`<path class="rp-ghost ${tool} ${why?'bad':''}" d="${d}"/>`+p.map(t=>`<rect class="rp-ghost-tile ${why?'bad':''}" x="${cx(t)-U/2+6}" y="${cy(t)-U/2+6}" width="${U-12}" height="${U-12}" rx="14"/>`).join('');
-    $('rpPreview').textContent=p.length<2&&tool==='oneway'?'Drag along the road.':why?'✕ '+why:cost>0?`${p.length} tile${p.length===1?'':'s'}: costs ${cost} credits (you have ${sim.credits}).`:cost<0?`Refunds ${-cost} credits.`:'Free.';
+    $('rpPreview').textContent=(resurface?'Resurface · ':'')+(p.length<2&&tool==='oneway'?'Drag along the road.':why?'✕ '+why:cost>0?`${p.length} tile${p.length===1?'':'s'}: costs ${cost} credits (you have ${sim.credits}).`:cost<0?`Refunds ${-cost} credits.`:'Free.');
   }
   stage.querySelector('#rpTools').addEventListener('click',e=>{const b=e.target.closest('[data-tool]');if(!b)return;tool=b.dataset.tool;
+    closeCard();resurface=false;$('rpResurface').setAttribute('aria-pressed','false');
     pan=false;camera();
     stage.querySelectorAll('[data-tool]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
     $('rpMoreLabel').textContent=$('rpExtras').contains(b)?TOOLS.find(t=>t.id===tool).label:`${TOOLS.length-4} tools`;
@@ -324,8 +334,23 @@
     shell.status(relaxed?`Relaxed: consumers wait ${P.RELAXED}× as long before they starve. Par is recomputed for it.`:'Standard patience.');};
 
   // ---- building card ----------------------------------------------------------------------------------------------------
-  function openCard(t){closeReport();hideHint();clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;$('rpCard').scrollTop=0;renderCard();if(pz.logistics){renderBuildings();if(pz.bAt[t]>=0)showChain(pz.bAt[t],false);}}
-  function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);card=null;el.hidden=true;$('rpGhost').innerHTML='';clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz?.logistics)renderBuildings();if(focused)svg.focus({preventScroll:true});}
+  function openCard(t){interchangeDraft=null;closeReport();hideHint();clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz.bAt[t]>=0)t=pz.stations[pz.bAt[t]].tile;else if(sim.net.reserved[t]>=0)t=sim.net.reserved[t];card=t;$('rpCard').scrollTop=0;renderCard();if(pz.logistics){renderBuildings();if(pz.bAt[t]>=0)showChain(pz.bAt[t],false);}}
+  function closeCard(){const el=$('rpCard'),focused=el.contains(document.activeElement);interchangeDraft=null;card=null;el.hidden=true;$('rpGhost').innerHTML='';$('rpPreview').textContent='';clearTimeout(locateTimer);$('rpLocate').innerHTML='';if(pz?.logistics)renderBuildings();if(focused)svg.focus({preventScroll:true});}
+  function previewInterchange(tile,side){
+    closeCard();hideHint();closeReport();
+    if(side===undefined){const sides=[2,3,0,1];side=sides.find(d=>!P.costOf(pz,sim,{type:'interchange',tile,side:d}).why)??2;}
+    interchangeDraft={type:'interchange',tile,side};card=tile;renderCard();$('rpCard').scrollTop=0;
+  }
+  function renderInterchange(){
+    const a=interchangeDraft,layout=P.interchangeLayout(pz,sim,a),quote=P.costOf(pz,sim,a),bad=quote.why;
+    const el=$('rpCard');el.hidden=false;el.classList.add('rp-interchange');
+    el.innerHTML=`<button class="rp-card-x" aria-label="Cancel interchange">✕</button><h3 id="rpCardTitle" tabindex="-1">Interchange · ${coord(a.tile)}</h3><span class="rp-card-kind">5×3 · freeway + collector + on/off ramps</span><div class="rp-stamp-controls"><label>Street side<select id="rpRampSide">${P.DIR_NAMES.map((name,d)=>`<option value="${d}" ${d===a.side?'selected':''}>${name}</option>`).join('')}</select></label><div class="rp-stamp-actions"><button data-ramp-confirm class="primary" ${bad?'disabled':''}>Build${bad?'':` · ${quote.cost} credits`}</button><button data-ramp-cancel>Cancel</button></div></div><p>${bad?esc(bad):'Arrows show ramp direction. Fully refundable.'}</p>`;
+    el.querySelector('.rp-card-x').onclick=closeCard;
+    $('rpRampSide').onchange=()=>{interchangeDraft={...a,side:Number($('rpRampSide').value)};renderInterchange();$('rpRampSide').focus({preventScroll:true});};
+    const rect=(i,tier)=>`<rect class="rp-ghost-tile rp-stamp-${tier}${bad?' bad':''}" x="${cx(i)-43}" y="${cy(i)-43}" width="86" height="86" rx="10"/>`;
+    $('rpGhost').innerHTML=layout.why?'':layout.freeway.map(i=>rect(i,'freeway')).join('')+layout.street.map(i=>rect(i,'street')).join('')+[layout.on,layout.off].map(path=>`${path.slice(1,-1).map(i=>rect(i,'ramp')).join('')}<path class="rp-stamp-arrow${bad?' bad':''}" d="${path.map((t,k)=>`${k?'L':'M'}${cx(t)} ${cy(t)}`).join(' ')}"/><path class="rp-stamp-arrow${bad?' bad':''}" d="M-14 -14 L0 0 L-14 14" transform="translate(${cx(path.at(-1))} ${cy(path.at(-1))}) rotate(${P.dirTo(pz,path.at(-2),path.at(-1))*90-90})"/>`).join('');
+    el.scrollTop=0;
+  }
   function partners(s){
     const incoming=pz.stations.filter(src=>src.kind==='producer'&&s.needs.includes(src.type));
     const outgoing=s.kind==='producer'?pz.stations.filter(dst=>dst.needs.includes(s.type)):[];
@@ -334,6 +359,8 @@
   }
   function renderCard(){
     const el=$('rpCard');if(card===null){el.hidden=true;return;}
+    if(interchangeDraft){renderInterchange();return;}
+    el.classList.remove('rp-interchange');
     const active=el.contains(document.activeElement)?document.activeElement:null,scrollTop=el.scrollTop;
     const focused=active?.hasAttribute('data-site')?`[data-site="${Number(active.dataset.site)}"]`:active?.id==='rpCardTitle'?'#rpCardTitle':['rp-card-x','rp-card-focus'].includes(active?.className)?'.'+active.className:null;
     const id=P.stationAt(pz,sim,card),k=P.whAt(sim,card);let html='';
@@ -356,10 +383,11 @@
     else if(sim.net.tier[card]){const road=P.ROADS[sim.net.tier[card]],g=P.graph(pz,sim);
       html=`<b>Road ${coord(card)}</b><span class="rp-card-kind">${esc(road.label)}</span><p>${esc(road.role)} · capacity ${g.cap[card]}${g.shared[card]?' shared at junction':' per direction'} · cruising ${g.ticks[card]*P.TICK} s/tile (turns, acceleration and controls add time).</p><p>Refund value: ${sim.net.paid[card]+sim.net.rbPaid[card]} credits, fully refundable.${sim.net.over[card]?' Grade-separated: no turns.':P.isJunction(sim,card)?` Control: ${sim.net.control[card]}.`:''}</p>${sim.phase==='day'?`<p>${sim.q[card]||0} vehicles queued here.</p>`:''}`;
       if(sim.phase==='night'){
+        if(!sim.net.over[card]&&sim.net.tier[card]!==5)html+=`<label>Resurface this tile<select id="rpRoadType">${P.ROADS.slice(1,5).map((r,k)=>`<option value="${r.id}" ${sim.net.tier[card]===k+1?'selected':''}>${esc(r.label)}</option>`).join('')}</select></label>`;
         html+=`<fieldset class="rp-connections"><legend>Connections · tap to toggle</legend>${P.DIR_NAMES.map((name,d)=>`<button data-connection="${d}" aria-pressed="${!!(sim.net.e[card]&(1<<d))}">${name} ${sim.net.e[card]&(1<<d)?'●':'○'}</button>`).join('')}</fieldset>`;
         if((P.isJunction(sim,card)||sim.net.rbPaid[card])&&![3,5].includes(sim.net.tier[card])&&!sim.net.over[card])html+=`<label>Junction control<select id="rpControl">${['stop','signal','roundabout'].map(c=>`<option ${sim.net.control[card]===c?'selected':''} value="${c}">${c==='stop'?'Stop · free':c==='signal'?`Signals · ${P.SIGNAL_COST}`:`Roundabout · ${P.ROUND_COST} · 3×3`}</option>`).join('')}</select></label>`;
         if([5,10,15].includes(sim.net.e[card])&&sim.net.tier[card]!==5)html+='<button data-overpass>'+ (sim.net.over[card]?'Remove overpass':'Build overpass')+'</button>';
-        if(sim.net.tier[card]===3&&[5,10].includes(sim.net.e[card]))html+=`<label>Ramp-pair template side<select id="rpRampSide">${(sim.net.e[card]===10?[2,0]:[1,3]).map(d=>`<option value="${d}">${P.DIR_NAMES[d]}</option>`).join('')}</select></label><button data-interchange>Preview ramp pair</button>`;
+        if(sim.net.tier[card]===3&&[5,10].includes(sim.net.e[card]))html+='<button data-interchange>Preview interchange · on + off</button>';
       }
     }else{closeCard();return;}
     if(id>=0){const s=pz.stations[id];html+=`<p>Entrance: ${s.large?'local or collector':'paved local only'}. ${sim.net.tier[card]?'Compatible through street preserved.':'End a street at the entrance, or run a compatible street through its access tile.'}</p><button data-chain>Show supply chain</button>`;}
@@ -369,6 +397,7 @@
     el.querySelector('.rp-card-focus').onclick=()=>{keyboardTile=card;viewX=cx(card);viewY=cy(card);zoom=Math.max(zoom,Math.min(6,Math.ceil(48/(svg.getScreenCTM().a*U)*zoom)));pan=false;closeCard();camera();svg.focus({preventScroll:true});};
     if(el.querySelector('#rpStockForm'))el.querySelector('#rpStockForm').onsubmit=e=>{e.preventDefault();const [target,item]=$('rpStockTarget').value.split(':').map(Number);doEdit({type:'prepare',tile:card,target,item,qty:Number($('rpStockQty').value)});};
     if(el.querySelector('#rpControl'))$('rpControl').onchange=()=>doEdit({type:'control',tile:card,control:$('rpControl').value});
+    if(el.querySelector('#rpRoadType'))$('rpRoadType').onchange=()=>doEdit({type:'road',tier:$('rpRoadType').value,tiles:[card]});
     if(focused)el.querySelector(focused)?.focus({preventScroll:true});
     el.scrollTop=scrollTop;
   }
@@ -378,12 +407,9 @@
     if(b.hasAttribute('data-connection'))doEdit({type:'connection',tile:card,dir:Number(b.dataset.connection)});
     if(b.hasAttribute('data-unprepare'))doEdit({type:'unprepare',tile:card});
     if(b.hasAttribute('data-overpass'))doEdit({type:'overpass',tile:card});
-    if(b.hasAttribute('data-interchange')){
-      const a={type:'interchange',tile:card,side:Number($('rpRampSide').value)},r=P.costOf(pz,sim,a);
-      if(r.why){shell.status(r.why,'warn');return;}
-      b.textContent=`Build ramp pair · ${r.cost} credits`;b.removeAttribute('data-interchange');b.setAttribute('data-ramp-confirm',JSON.stringify(a));
-      const copy=P.clone(sim);P.edit(pz,copy,a);$('rpGhost').innerHTML=copy.net.tier.map((tier,i)=>tier&&!sim.net.tier[i]?`<rect class="rp-ghost-tile" x="${cx(i)-44}" y="${cy(i)-44}" width="88" height="88" rx="10"/>`:'').join('');
-    }else if(b.hasAttribute('data-ramp-confirm'))doEdit(JSON.parse(b.getAttribute('data-ramp-confirm')));
+    if(b.hasAttribute('data-interchange'))previewInterchange(card);
+    else if(b.hasAttribute('data-ramp-confirm')&&interchangeDraft){const a=interchangeDraft;closeCard();doEdit(a);}
+    else if(b.hasAttribute('data-ramp-cancel'))closeCard();
     if(b.hasAttribute('data-chain'))showChain(pz.bAt[card]);
   });
   function showChain(id,whole=true){

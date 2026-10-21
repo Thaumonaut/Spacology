@@ -12,7 +12,7 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     async function inspect(i){if(await p.locator('#rpPan').getAttribute('aria-pressed')!=='true')await p.locator('#rpPan').click();await tap(i);await p.locator('#rpCard').waitFor();}
     async function tool(id){if(await p.locator(`[data-tool="${id}"]`).isHidden())await p.locator('#rpMore').click();await p.locator(`[data-tool="${id}"]`).click();}
     async function sync(a){const r=P.edit(puzzle,model,a);assert.equal(r.why,undefined,JSON.stringify(a));await p.waitForFunction(credits=>window.RoutePlanningUI.sim.credits===credits,model.credits);assert.deepEqual(await p.evaluate(()=>window.RoutePlanningUI.sim.net),JSON.parse(JSON.stringify(model.net)),'UI applies exact model topology');}
-    async function draw(tier,tiles){await tool(tier);const q=await point(tiles[0]);await p.mouse.move(q.x,q.y);await p.mouse.down();for(const t of tiles.slice(1)){const c=await point(t);await p.mouse.move(c.x,c.y,{steps:2});}await p.mouse.up();await sync({type:'road',tier,tiles});}
+    async function draw(tier,tiles){await tool(tier);const q=await point(tiles[0]);await p.mouse.move(q.x,q.y);await p.mouse.down();for(const t of tiles.slice(1)){const c=await point(t);await p.mouse.move(c.x,c.y,{steps:2});}await p.mouse.up();await sync({type:'road',tier,tiles,preserve:tiles.length>1});}
     const row=(t,n)=>Array.from({length:n*2+1},(_,k)=>t+k-n),col=(t,n)=>Array.from({length:n*2+1},(_,k)=>t+(k-n)*puzzle.W);
     await reset();
     assert.equal(await p.locator('.rp-coord').nth(puzzle.W-1).textContent(),'AB','dense grids use readable column names beyond Z');
@@ -77,12 +77,26 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
       if(!P.costOf(puzzle,copy,{type:'interchange',tile:t,side}).why&&!P.costOf(puzzle,copy,{type:'overpass',tile:t}).why){center=t;break;}
     }
     assert.ok(center>=0,'seed has room for template and bridge');await draw('highway',row(center,4));await inspect(center);
-    await p.locator('#rpRampSide').selectOption(String(side));await p.locator('[data-interchange]').click();assert.ok(await p.locator('.rp-ghost-tile').count()>0,'preview shows full ramp footprint');
+    await p.locator('[data-interchange]').click();await p.locator('#rpRampSide').selectOption(String(side));assert.equal(await p.locator('.rp-ghost-tile').count(),12,'preview shows complete freeway, street and both ramps');assert.equal(await p.locator('.rp-stamp-arrow').count(),4,'both ramp directions are visible');
+    await p.locator('#rpRampSide').selectOption('1');assert.equal(await p.locator('[data-ramp-confirm]').isDisabled(),true,'incompatible orientation cannot be built');assert.equal(await p.evaluate(()=>RoutePlanningUI.sim.credits),model.credits);await p.locator('#rpRampSide').selectOption(String(side));
+    const preview=await p.locator('#rpCard').evaluate(el=>({top:el.scrollTop,title:el.querySelector('h3').getBoundingClientRect().top,card:el.getBoundingClientRect().top}));assert.equal(preview.top,0,'preview opens at its title, not the previous inspector scroll');assert.ok(preview.title>=preview.card,'interchange title is not clipped');
+    if(process.env.SHOTS)await p.screenshot({path:`${process.env.SHOTS}/route-interchange-${width}.png`});
     await p.keyboard.press('Escape');assert.equal(await p.locator('.rp-ghost-tile').count(),0,'cancel clears preview without spending');assert.equal(await p.evaluate(()=>window.RoutePlanningUI.sim.credits),model.credits);
-    await inspect(center);await p.locator('#rpRampSide').selectOption(String(side));await p.locator('[data-interchange]').click();await p.locator('[data-ramp-confirm]').click();await sync({type:'interchange',tile:center,side});assert.equal(await p.locator('.rp-tier-ramp').count(),4);
+    await tool('interchange');await tap(center);await p.locator('#rpRampSide').selectOption(String(side));await p.locator('[data-ramp-confirm]').click();await sync({type:'interchange',tile:center,side});assert.equal(await p.locator('.rp-tier-ramp').count(),2);
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));await inspect(center);
     await p.locator('[data-overpass]').click();await sync({type:'overpass',tile:center});assert.ok(await p.locator('.rp-over-top').count()>0);
     assert.equal(P.freeRoutes(puzzle,model,center-2*puzzle.W).dist[center+4],Infinity,'UI-built crossing cannot turn');
     await p.locator('.rp-card-x').click();
+    await reset();center=-1;
+    for(let t=0;t<puzzle.W*puzzle.H;t++)if(!P.costOf(puzzle,model,{type:'interchange',tile:t,side:2}).why&&!P.costOf(puzzle,model,{type:'interchange',tile:t,side:1}).why){center=t;break;}
+    assert.ok(center>=0,'seed has a rotatable empty interchange site');await tool('interchange');await tap(center);
+    const empty=P.clone(model);await p.locator('#rpRampSide').selectOption('1');assert.equal(await p.locator('.rp-stamp-freeway').count(),5);assert.deepEqual(await p.evaluate(()=>RoutePlanningUI.sim.net),empty.net,'rotating is a pure preview');
+    await p.locator('[data-ramp-cancel]').click();assert.equal(await p.locator('.rp-ghost-tile').count(),0);
+    await tap(center);await p.locator('#rpRampSide').selectOption('1');await p.locator('[data-ramp-confirm]').click();await sync({type:'interchange',tile:center,side:1});assert.equal(await p.locator('.rp-tier-highway').count(),5,'stamp builds its own mainline');
+    await reset();
+    let bridge;
+    for(let t=0;t<puzzle.W*puzzle.H;t++)if(puzzle.terrain[t]===1&&t%puzzle.W>1&&t%puzzle.W<puzzle.W-2&&!P.costOf(puzzle,model,{type:'road',tier:'highway',tiles:row(t,2)}).why){bridge=t;break;}
+    assert.notEqual(bridge,undefined,'seed has a river bridge site');await draw('highway',row(bridge,2));assert.equal(model.net.paid[bridge],20);assert.ok(P.freeRoutes(puzzle,model,bridge-2).dist[bridge+2]<Infinity);
     await reset();center=-1;
     for(let y=3;y<puzzle.H-3&&center<0;y++)for(let x=3;x<puzzle.W-3;x++){
       const t=y*puzzle.W+x,copy=P.clone(model);if(P.edit(puzzle,copy,{type:'road',tier:'road',tiles:row(t,3)}).why||P.edit(puzzle,copy,{type:'road',tier:'road',tiles:col(t,3)}).why)continue;
@@ -91,7 +105,11 @@ const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173';
     assert.ok(center>=0);await draw('road',row(center,3));await draw('road',col(center,3));await inspect(center);
     for(const control of ['signal','roundabout','stop']){await p.locator('#rpControl').selectOption(control);await sync({type:'control',tile:center,control});if(control==='roundabout')assert.equal(model.net.reserved.filter(t=>t===center).length,4);}
     await p.locator('.rp-card-x').click();const parallel=row(center-puzzle.W,3);await draw('local',parallel);
-    const street=center-2;assert.equal(model.net.e[street]&1,0,'parallel street remains disconnected');await inspect(street);await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});assert.equal(model.net.e[street-1]&1,0,'only selected link is added');await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});await p.locator('.rp-card-x').click();
+    assert.equal(model.net.tier[center-puzzle.W],2,'local drag across an existing collector preserves its tier');assert.equal(model.net.paid[center-puzzle.W],P.buildCost(puzzle,center-puzzle.W,2),'collector ledger is preserved');
+    await inspect(center-puzzle.W);await p.locator('#rpRoadType').selectOption('dirt');await sync({type:'road',tier:'dirt',tiles:[center-puzzle.W]});await p.locator('#rpRoadType').selectOption('road');await sync({type:'road',tier:'road',tiles:[center-puzzle.W]});await p.locator('.rp-card-x').click();
+    const street=center-2;assert.equal(model.net.e[street]&1,0,'parallel street remains disconnected');
+    await draw('local',[street-puzzle.W,street]);assert.equal(model.net.tier[street],2,'local endpoint connects without downgrading collector');assert.ok(model.net.e[street]&1);assert.equal(model.net.e[street-1]&1,0,'a connector only joins its intended endpoint');
+    await p.locator('#mgUndo').click();assert.ok(P.undo(puzzle,model));await inspect(street);await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});assert.equal(model.net.e[street-1]&1,0,'only selected link is added');await p.locator('[data-connection="0"]').click();await sync({type:'connection',tile:street,dir:0});await p.locator('.rp-card-x').click();
     const warehouse=model.net.tier.flatMap((tier,i)=>tier?P.DIRS.map((_,d)=>P.neighbour(puzzle,i,d)):[]).find(tile=>tile>=0&&!P.costOf(puzzle,model,{type:'warehouse',tile}).why);assert.notEqual(warehouse,undefined);
     await tool('warehouse');await tap(warehouse);await sync({type:'warehouse',tile:warehouse});await inspect(warehouse);
     assert.match(await p.locator('.rp-recipe').innerText(),/Nothing until assigned[\s\S]*Same goods · no processing/,'warehouse stages goods rather than transforming them');

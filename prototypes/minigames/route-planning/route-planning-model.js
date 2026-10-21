@@ -244,7 +244,7 @@
   }
   const buildCost=(pz,idx,tier)=>ROADS[tier].cost*TERRAIN[pz.terrain[idx]].mult;
 
-  function roadAllowed(pz,i,tier){return !(pz.terrain[i]===T_MOUNT&&tier!==1||tier===3&&pz.terrain[i]!==T_GRASS||tier===5&&pz.terrain[i]!==T_GRASS);}
+  function roadAllowed(pz,i,tier){return !(pz.terrain[i]===T_MOUNT&&tier!==1||tier===3&&pz.terrain[i]===T_ROUGH);}
   function roadTier(sim,i,d){const o=sim.net.over[i];return o&&d%2!==o.axis?o.tier:sim.net.tier[i];}
   function connectionWhy(pz,sim,a,b){
     const d=dirTo(pz,a,b),ta=roadTier(sim,a,d),tb=roadTier(sim,b,OPP(d));
@@ -261,7 +261,7 @@
   }
 
   // ---- night edits ----------------------------------------------------------------------------------------------------
-  // road {tiles, tier}: lay (or re-tier) a dragged path and join consecutive tiles; single taps preserve topology.
+  // road {tiles, tier, preserve}: join consecutive tiles; preserve keeps existing types, otherwise re-tier. Single taps preserve topology.
   //   erase {tiles}: remove roads and warehouses. oneway {tiles}: make each step along the
   //   path one-way in that direction (the same drag again makes it two-way). roundabout {tile}: toggle. warehouse {tile}:
   //   place one on empty ground, joined to the roads around it. whcap {tile}: +4 capacity.
@@ -294,24 +294,25 @@
       const tier=!pz.logistics&&a.tier==='local'?1:TIER_ID[a.tier||'road'];if(!tier||tier===5)return 'Use the directional ramp tool for ramps.';
       const tiles=[...new Set(a.tiles)],interior=new Set(a.tiles.slice(1,-1));
       const accessOnly=t=>isBuilding(pz,sim,t)&&!interior.has(t)&&!n.tier[t];
+      const roadType=t=>a.preserve&&n.tier[t]?n.tier[t]:tier;
       let cost=0,changed=false;
       for(const t of tiles){
         if(pz.logistics&&pz.bAt[t]>=0&&pz.stations[pz.bAt[t]].tile!==t)return 'Roads cannot occupy a reserved building footprint.';
         if(accessOnly(t))continue;
         if(!pz.logistics&&pz.terrain[t]===T_MOUNT)return 'Mountains cannot be built on.';
         if(pz.logistics){
-          if(!roadAllowed(pz,t,tier))return pz.terrain[t]===T_MOUNT?'Mountains support dirt tracks only.':'Freeways require normal ground.';
+          if(!roadAllowed(pz,t,roadType(t)))return pz.terrain[t]===T_MOUNT?'Mountains support dirt tracks only.':'Freeways require open ground or river bridges.';
           if(n.reserved[t]>=0)return 'That space belongs to a roundabout.';
-          const st=pz.stations[pz.bAt[t]];if(st&&(st.tile!==t||tier!==4&&!(st.large&&tier===2)))return 'Keep the planned footprint clear and use its marked local/collector entrance.';
-          if(n.over[t]&&tier!==n.tier[t])return 'Remove the overpass before changing its road type.';
+          const st=pz.stations[pz.bAt[t]];if(st&&(st.tile!==t||roadType(t)!==4&&!(st.large&&roadType(t)===2)))return 'Keep the planned footprint clear and use its marked local/collector entrance.';
+          if(n.over[t]&&roadType(t)!==n.tier[t])return 'Remove the overpass before changing its road type.';
         }
-        if(n.tier[t]===tier)continue;
+        if(n.tier[t]===roadType(t))continue;
         cost+=buildCost(pz,t,tier)-n.paid[t];
       }
       if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
       sim.credits-=cost;
       for(const t of tiles){
-        if(accessOnly(t)||n.tier[t]===tier)continue;
+        if(accessOnly(t)||n.tier[t]===roadType(t))continue;
         n.paid[t]=buildCost(pz,t,tier);n.built[t]=sim.day;
         n.tier[t]=tier;changed=true;
       }
@@ -382,26 +383,25 @@
     if(a.type==='control')return setControl(pz,sim,a);
     if(a.type==='overpass')return buildOverpass(pz,sim,a);
     if(a.type==='interchange'){
-      const t=a.tile;if(!Number.isInteger(t)||n.tier[t]!==3||![5,10].includes(n.e[t]))return 'Choose a straight freeway with space for a ramp pair.';
-      const along=n.e[t]===10?1:2,side=Number.isInteger(a.side)?a.side:along===1?2:1;
-      if(side%2===along%2||side<0||side>3)return 'Ramps need to sit beside the freeway.';
-      const at=(x,y)=>{let i=t;for(let k=0;k<Math.abs(x)&&i>=0;k++)i=neighbour(pz,i,x<0?OPP(along):along);for(let k=0;k<y&&i>=0;k++)i=neighbour(pz,i,side);return i;};
-      const street=Array.from({length:7},(_,k)=>at(k-3,3)),on=[3,2,1,0].map(y=>at(-2,y)),off=[0,1,2,3].map(y=>at(2,y));
-      if([...street,...on,...off].some(i=>i<0))return 'The ramp pair does not fit here.';
-      for(const act of [{type:'road',tier:'road',tiles:street},{type:'ramp',tiles:on},{type:'ramp',tiles:off}]){const why=apply(pz,sim,act);if(why&&!(act.type==='road'&&why==='That road is already there.'))return why;}
+      const layout=interchangeLayout(pz,sim,a);if(layout.why)return layout.why;
+      const {freeway,street,on,off}=layout;
+      if(freeway.some(i=>n.tier[i]&&n.tier[i]!==3||n.over[i]))return 'Place the freeway span on clear ground or an existing straight freeway.';
+      if(street.some(i=>n.tier[i]&&![2,4].includes(n.tier[i])))return 'The access street needs clear ground or an existing local/collector.';
+      for(const act of [{type:'road',tier:'highway',tiles:freeway,preserve:true},{type:'road',tier:'road',tiles:street,preserve:true},{type:'ramp',tiles:on},{type:'ramp',tiles:off}]){const why=apply(pz,sim,act);if(why&&!(act.type==='road'&&why==='That road is already there.'))return why;}
       return null;
     }
     if(a.type==='ramp'){
       const why=tilesOk(pz,a.tiles);if(why)return why;
-      if(a.tiles.length<4)return 'A ramp needs a street, at least two approach tiles, and a freeway.';
+      if(a.tiles.length<3)return 'A ramp needs a street, one approach tile, and a freeway.';
       const start=a.tiles[0],end=a.tiles.at(-1),on=n.tier[end]===3,off=n.tier[start]===3;
       if(on===off||![2,4].includes(n.tier[on?start:end]))return 'Draw from a local/collector to a freeway (on), or from freeway to street (off).';
       const middle=a.tiles.slice(1,-1);if(new Set(a.tiles).size!==a.tiles.length)return 'A ramp cannot loop back on itself.';
-      if(middle.some(i=>!roadAllowed(pz,i,5)||n.tier[i]||pz.bAt[i]>=0||n.reserved[i]>=0||isBuilding(pz,sim,i)))return 'Ramp approaches need empty normal ground.';
+      if(middle.some(i=>!roadAllowed(pz,i,5)||n.tier[i]||pz.bAt[i]>=0||n.reserved[i]>=0||isBuilding(pz,sim,i)))return 'Ramp approaches need clear, non-mountain tiles.';
       const f=on?end:start,adj=on?a.tiles.at(-2):a.tiles[1],d=dirTo(pz,f,adj);
-      if(n.over[f]||popcount(n.e[f])!==2||![5,10].includes(n.e[f])||(n.e[f]&(1<<d)))return 'Join the side of a straight freeway, away from another ramp.';
-      const cost=middle.length*ROADS[5].cost;if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
-      sim.credits-=cost;for(const i of middle){n.tier[i]=5;n.paid[i]=ROADS[5].cost;n.built[i]=sim.day;}
+      const main=n.e[f]&DIRS.reduce((mask,_,k)=>mask|(n.tier[neighbour(pz,f,k)]===3?1<<k:0),0);
+      if(n.over[f]||!main||(main&((1<<d)|(1<<OPP(d))))||(n.e[f]&(1<<d)))return 'Join the side of a straight freeway or its end, perpendicular to the mainline.';
+      const cost=middle.reduce((sum,i)=>sum+buildCost(pz,i,5),0);if(cost>sim.credits)return `That needs ${cost} credits; you have ${sim.credits}.`;
+      sim.credits-=cost;for(const i of middle){n.tier[i]=5;n.paid[i]=buildCost(pz,i,5);n.built[i]=sim.day;}
       for(let k=1;k<a.tiles.length;k++){const x=a.tiles[k-1],y=a.tiles[k],d=dirTo(pz,x,y),why=connectionWhy(pz,sim,x,y);if(why)return why;join(pz,sim,x,y);n.blk[y]|=1<<OPP(d);}
       return null;
     }
@@ -413,6 +413,18 @@
     }
     if(a.type==='unprepare'){const k=whAt(sim,a.tile);if(k<0)return 'No warehouse there.';sim.wh[k].plan=null;return null;}
     return 'Unknown edit.';
+  }
+
+  function interchangeLayout(pz,sim,a){
+    const t=a.tile;
+    if(!Number.isInteger(t)||t<0||t>=pz.W*pz.H)return {why:'Choose a tile on the map.'};
+    const side=a.side??(sim.net.e[t]===5?1:2);
+    if(!Number.isInteger(side)||side<0||side>3)return {why:'Choose a compass direction for the access street.'};
+    const along=side%2===0?1:2;
+    const at=(x,y)=>{let i=t;for(let k=0;k<Math.abs(x)&&i>=0;k++)i=neighbour(pz,i,x<0?OPP(along):along);for(let k=0;k<y&&i>=0;k++)i=neighbour(pz,i,side);return i;};
+    const freeway=Array.from({length:5},(_,k)=>at(k-2,0)),street=Array.from({length:5},(_,k)=>at(k-2,2));
+    const on=[2,1,0].map(y=>at(-1,y)),off=[0,1,2].map(y=>at(1,y)),tiles=[...new Set([...freeway,...street,...on,...off])];
+    return tiles.some(i=>i<0)?{why:'The 5×3 interchange does not fit here.'}:{freeway,street,on,off,tiles,side};
   }
 
   function setControl(pz,sim,a){
@@ -917,7 +929,7 @@
       if(!cands.length)break;
       cands.sort((x,y)=>x.cost-y.cost||x.path.length-y.path.length||x.c.id-y.c.id||x.p.id-y.p.id);
       for(const k of cands){
-        const a={type:'road',tier:pz.logistics?'local':'road',tiles:k.path},r=edit(pz,sim,a);
+        const a={type:'road',tier:pz.logistics?'local':'road',tiles:k.path,preserve:!!pz.logistics},r=edit(pz,sim,a);
         if(r.why)continue;
         acts.push({act:a,kind:'link',gain:100,text:`${k.c.name} needs ${TYPES[k.t].sym} and no road brings it. Link it to ${k.p.name}${r.cost?` (${r.cost} credits)`:''}.`});
         more=true;break;
@@ -1052,7 +1064,7 @@
   }
 
   const api={TICK,DAY_SECONDS,DAY_TICKS,DIRS,DIR_NAMES,TERRAIN,ROADS,TIER_ID,TYPES,DIFFICULTIES,JUNCTION_TICKS,BUILDING_TICKS,
-    ITEM_KEYS,RECIPES,OUTPUT_CAP,SIGNAL_COST,OVERPASS_COST,schedule,roadAllowed,roadTier,travelStep,pathTo,movementMask,admission,
+    ITEM_KEYS,RECIPES,OUTPUT_CAP,SIGNAL_COST,OVERPASS_COST,schedule,roadAllowed,roadTier,interchangeLayout,travelStep,pathTo,movementMask,admission,
     ROUND_COST,ONEWAY_COST,WH_COST,WH_CAP,WH_UP_COST,WH_UP,PROD_CAP,MAX_OPEN,DELIVERY_CREDIT,STIPEND,GROWTH_CREDIT,CLEAN_BONUS,RELAXED,
     generate,create,clone,edit,undo,costOf,startDay,step,runDay,skipToDusk,replay,simulate,result,tier,parFor,nearMiss,
     planNight,planRun,auto,hint,buildPath,graph,routes,freeRoutes,isJunction,isOneWay,stationAt,whAt,isBuilding,neighbour,dirTo,

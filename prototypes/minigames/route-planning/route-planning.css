@@ -214,4 +214,19 @@
   .rp-hintbar{max-height:50%}
 }
 @media (max-width:360px){.rp-back span{display:none}.rp-identity>div{gap:5px}.rp-title{font-size:13px}.mg #rpReportOpen{font-size:10px;padding:4px}}
+.rp-stamp-freeway{fill:#36bada55;stroke:#56d3ef;stroke-width:6}
+.rp-stamp-actions{display:flex;gap:6px;margin:8px 0}
+.rp-card.rp-interchange{max-height:58%}
+.rp-stamp-street{fill:#e6b25955;stroke:#e6b259;stroke-width:6}
+.rp-stamp-ramp{fill:#db97eb55;stroke:#db97eb;stroke-width:6}
+.rp-stamp-arrow{fill:none;stroke:#f3ddff;stroke-width:9;stroke-linecap:round;stroke-linejoin:round}
+.rp-ghost-tile.bad,.rp-stamp-arrow.bad{stroke:#ff7474}
+@media (max-width:600px){
+  .rp-card.rp-interchange{width:calc(100% - 24px);padding:12px;max-height:42%}
+  .rp-interchange h3{margin:0 36px 4px 0;font-size:15px}
+  .rp-interchange .rp-card-kind{display:block;margin:0;font-size:9px;letter-spacing:.06em}
+  .rp-stamp-controls{display:grid;grid-template-columns:minmax(90px,1fr) auto;gap:8px;align-items:end}
+  .rp-stamp-controls .rp-stamp-actions{margin:0}
+  .mg .rp-stamp-actions button{padding:6px;font-size:12px;white-space:nowrap}
+}
 @media (prefers-reduced-motion: reduce){.rp-arrow,.rp-ghost,.rp-locate,.rp-heat.live{animation:none}}

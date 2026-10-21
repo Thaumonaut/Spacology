@@ -35,9 +35,30 @@ function cargo(p,s,type){return p.stations.reduce((n,b)=>n+(b.kind==='producer'&
 {
   const p=fixture(),s=P.create(p);p.terrain[0]=3;p.terrain[1]=2;p.terrain[2]=1;
   reject(p,s,{type:'road',tier:'highway',tiles:[0]},/Mountains/);edit(p,s,{type:'road',tier:'dirt',tiles:[0]});
-  reject(p,s,{type:'road',tier:'local',tiles:[0]},/Mountains/);reject(p,s,{type:'road',tier:'highway',tiles:[1]},/normal ground/);
+  reject(p,s,{type:'road',tier:'local',tiles:[0]},/Mountains/);reject(p,s,{type:'road',tier:'highway',tiles:[1]},/open ground|bridges/);
   edit(p,s,{type:'road',tier:'road',tiles:[1]});edit(p,s,{type:'road',tier:'local',tiles:[2]});assert.equal(s.net.paid[2],P.ROADS[4].cost*4);
   const remaining=s.credits;edit(p,s,{type:'erase',tiles:[0,1,2]});assert.equal(s.credits,p.credits0);assert.ok(s.credits>remaining);
+}
+{
+  const p=fixture(),s=P.create(p),path=row(p,3,2,12),bridge=3*p.W+7;p.terrain[bridge]=1;
+  assert.equal(edit(p,s,{type:'road',tier:'highway',tiles:path}).cost,(path.length+3)*5);
+  assert.equal(s.net.paid[bridge],20);assert.ok(P.freeRoutes(p,s,path[0]).dist[path.at(-1)]<Infinity,'freeways cross river bridges');
+  edit(p,s,{type:'erase',tiles:path});assert.equal(s.credits,p.credits0,'the whole bridge is refundable');
+}
+{
+  const p=fixture(),s=P.create(p),collector=row(p,4,2,12),t=4*p.W+7;
+  edit(p,s,{type:'road',tier:'road',tiles:collector});
+  const before=P.clone(s),a={type:'road',tier:'local',tiles:col(p,7,2,6),preserve:true};
+  assert.equal(P.costOf(p,s,a).cost,8);assert.deepEqual(s,before,'connection preview preserves ledger and topology');
+  edit(p,s,a);assert.equal(s.net.tier[t],2);assert.equal(s.net.paid[t],before.net.paid[t]);assert.equal(s.net.built[t],before.net.built[t]);
+  assert.equal(s.net.e[t],15,'local crossing joins the collector without resurfacing it');
+  assert.ok(s.net.e[t-1]&2);assert.ok(s.net.e[t+1]&8);assert.equal(s.net.e[t-1]&1,0,'no unintended parallel connection');
+  assert.ok(P.undo(p,s));assert.deepEqual(s.net,before.net);assert.equal(s.credits,before.credits);
+  p.terrain[t]=1;edit(p,s,{type:'erase',tiles:[t]});edit(p,s,{type:'road',tier:'highway',tiles:[t]});
+  reject(p,s,{type:'road',tier:'local',tiles:[t-p.W,t],preserve:true},/ramps/);
+  assert.equal(s.net.tier[t],3,'connecting cannot turn a freeway into a local street');
+  edit(p,s,{type:'erase',tiles:[t]});edit(p,s,{type:'road',tier:'road',tiles:[t]});
+  assert.equal(edit(p,s,{type:'road',tier:'dirt',tiles:[t]}).cost,-4,'explicit resurfacing still refunds the terrain-adjusted difference');
 }
 {
   const p=fixture([station(0,'producer',19),station(1,'consumer',25,{large:true})]),s=P.create(p);
@@ -61,12 +82,12 @@ function cargo(p,s,type){return p.stations.reduce((n,b)=>n+(b.kind==='producer'&
   reject(p,s,{type:'road',tier:'road',tiles:[t+p.W,t]},/ramps/);
   edit(p,s,{type:'road',tier:'highway',tiles:[t+p.W]});reject(p,s,{type:'connection',tile:t,dir:2},/branches/);edit(p,s,{type:'erase',tiles:[t+p.W]});
   const before=P.clone(s),a={type:'interchange',tile:t,side:2},quote=P.costOf(p,s,a);assert.equal(quote.why,undefined);assert.deepEqual(s,before,'preview is pure');
-  edit(p,s,a);assert.equal(s.credits,before.credits-quote.cost);assert.equal(s.net.tier.filter(v=>v===5).length,4);
-  const street=(3+3)*p.W+6,main=3*p.W+6,offMain=3*p.W+10,offStreet=6*p.W+10;
+  edit(p,s,a);assert.equal(s.credits,before.credits-quote.cost);assert.equal(s.net.tier.filter(v=>v===5).length,2);
+  const street=5*p.W+7,main=3*p.W+7,offMain=3*p.W+9,offStreet=5*p.W+9;
   assert.ok(P.freeRoutes(p,s,street).dist[main]<Infinity);assert.ok(P.freeRoutes(p,s,offMain).dist[offStreet]<Infinity);
   assert.ok(!P.graph(p,s).out[offStreet].includes(offStreet-p.W),'off ramp cannot be entered backwards');
   assert.ok(P.pathTo(P.freeRoutes(p,s,offStreet),offMain).length>4,'reaching that mainline requires a detour via the on-ramp');
-  const on=[street,street-p.W,street-2*p.W,main],off=[offMain,offMain+p.W,offMain+2*p.W,offStreet];
+  const on=[street,street-p.W,main],off=[offMain,offMain+p.W,offStreet];
   for(const ramp of [on,off])for(const path of [ramp,[...ramp].reverse(),ramp.slice(0,2),ramp.slice(-2)]){
     reject(p,s,{type:'oneway',tiles:path},/Ramp direction is fixed/);
     for(let k=1;k<ramp.length;k++){assert.ok(P.graph(p,s).out[ramp[k-1]].includes(ramp[k]));assert.ok(!P.graph(p,s).out[ramp[k]].includes(ramp[k-1]),'rejected edits preserve all reverse restrictions');}
@@ -74,6 +95,36 @@ function cargo(p,s,type){return p.stations.reduce((n,b)=>n+(b.kind==='producer'&
   reject(p,s,{type:'road',tier:'highway',tiles:freeway},/already there/);
   assert.ok(P.undo(p,s));assert.deepEqual(s.net,before.net);assert.equal(s.credits,before.credits);
   const edge=3*p.W+1;reject(p,s,{type:'interchange',tile:edge,side:2},/fit|ramp|freeway/);
+}
+for(let side=0;side<4;side++){
+  const p=fixture(),s=P.create(p),a={type:'interchange',tile:5*p.W+8,side},layout=P.interchangeLayout(p,s,a),before=P.clone(s);
+  assert.equal(layout.tiles.length,12,'compact stamp uses five freeway, five street and two ramp tiles');
+  assert.equal(P.costOf(p,s,a).cost,41);assert.deepEqual(s,before);
+  edit(p,s,a);assert.equal(s.net.tier.filter(t=>t===5).length,2);
+  for(const path of [layout.on,layout.off])for(let k=1;k<path.length;k++){
+    assert.ok(P.graph(p,s).out[path[k-1]].includes(path[k]));assert.ok(!P.graph(p,s).out[path[k]].includes(path[k-1]));
+  }
+  assert.ok(P.freeRoutes(p,s,layout.street[0]).dist[layout.freeway.at(-1)]<Infinity);
+  assert.ok(P.freeRoutes(p,s,layout.freeway[0]).dist[layout.street.at(-1)]<Infinity);
+  edit(p,s,{type:'erase',tiles:layout.tiles});assert.equal(s.credits,p.credits0,'stamp can be fully refunded');
+  assert.ok(P.undo(p,s));assert.ok(P.undo(p,s));assert.deepEqual(s.net,before.net);
+  p.terrain[layout.off[1]]=3;reject(p,s,a,/non-mountain/);assert.deepEqual(s.net,before.net,'a blocked off-ramp rolls back the freeway, street and on-ramp');
+  p.terrain[layout.off[1]]=2;p.terrain[layout.on[1]]=1;p.terrain[layout.freeway[0]]=1;
+  assert.equal(P.costOf(p,s,a).cost,68,'ramps and freeway pay their terrain bridge multipliers');edit(p,s,a);
+  assert.ok(P.undo(p,s));s.credits=40;reject(p,s,a,/credits/);
+}
+{
+  const p=fixture(),s=P.create(p),a={type:'interchange',tile:5*p.W+8,side:2},layout=P.interchangeLayout(p,s,a);
+  edit(p,s,{type:'road',tier:'local',tiles:layout.street});const paid=layout.street.map(i=>s.net.paid[i]);
+  assert.equal(P.costOf(p,s,a).cost,31);edit(p,s,a);
+  assert.ok(layout.street.every(i=>s.net.tier[i]===4));assert.deepEqual(layout.street.map(i=>s.net.paid[i]),paid,'interchange preserves existing access streets');
+}
+{
+  const p=fixture(),s=P.create(p),f=3*p.W+8,street=f+2*p.W;
+  edit(p,s,{type:'road',tier:'highway',tiles:[f,f+1]});edit(p,s,{type:'road',tier:'local',tiles:[street,street+1]});
+  reject(p,s,{type:'ramp',tiles:[street,f]},/neighbour|adjacent|continuous/);
+  edit(p,s,{type:'ramp',tiles:[street,street-p.W,f]});
+  assert.ok(P.freeRoutes(p,s,street).dist[f+1]<Infinity,'one approach tile and a freeway endpoint are enough');
 }
 {
   const tile=6*18+6,p=fixture([station(0,'producer',tile,{large:true})]),s=P.create(p);
