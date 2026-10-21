@@ -4,6 +4,16 @@ Stable public HTML entry points backed by grouped implementations. Open **[the p
 
 Implementation map: `demo/` is the preserved voyage; `minigames/<id>/` holds each game's model/controller/styles; `labs/<name>/` holds independent experiments; `shared/` holds combat, voyage, minigame shell, and menus. Public page URLs stay here for compatibility. See [architecture and reuse](../docs/architecture.md).
 
+## element-pairs.html
+
+An isolated Research candidate in the playtest library's Reserve section. Its model, controller and styles live in `minigames/element-pairs/`; the public entry point reuses the shared mini-game shell and Aether element names/glyphs. Clear identical or opposing elements (Order/Chaos, Growth/Decay, Energy/Void) along rows, columns or 45° diagonals. Horizontal matching also wraps in reading order between rows in either direction. Every intervening element blocks; gaps stay in place unless an entire row clears and rows below move up.
+
+The 8-column, 24-row board shows eight rows at a time. Start with 36 elements and four reserve batches of 36; each batch appends after the last occupied cell rather than filling internal gaps. Clear the board to finish, even with reserves unused. There is no timer, gravity, recipes or voyage rewards.
+
+Tap to select and pair; use Undo, Hint, optional partner highlighting and Retry seed. Arrow keys move focus, Enter/Space selects, and Escape deselects. An exhausted attempt can be undone before explicitly finishing. Hints identify legal pairs, not a guaranteed winning route. Reload restarts the seed; in-progress boards are not autosaved. Results, ratings and export reuse MiniGameKit.
+
+Run `npm test -- element-pairs minigames-hub` for model and headless browser checks. The focused [OpenSpec change](../openspec/changes/add-element-pairs/proposal.md) records scope and prototype defaults.
+
 ## relay-runner.html
 
 An endless combat runner sketch. Drag or use A/D or the arrow keys to steer while the ship fires automatically. Shoot through one of three upgrade walls, enter the open lane to collect its power, and survive increasingly large enemy waves. Hull damage ends the run; distance and a local personal best give each attempt a score. The pause button and P/Escape pause the simulation. This experiment is separate from the current voyage build.
