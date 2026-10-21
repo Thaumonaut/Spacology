@@ -2,6 +2,10 @@
 
 Open `prototypes/microvoxel-world.html` through `npm run serve`, or the **Microvoxel World** Exploration entry in the playtest library. No build or external runtime dependencies. WebGL2 and workers are required. This is an engineering/visual proof for [Epic #8](https://github.com/Thaumonaut/Spacology/issues/8), with bounded worlds and an opt-in streaming experiment, not a replacement for the world editor, voyage, Supply Run or route-planning prototype.
 
+Do not double-click the repository's source HTML: browsers block its separate worker under `file://`. From the repository root, run `npm run serve` and open `http://localhost:4173/prototypes/microvoxel-world.html`. For a desktop file that needs no server, run `node tools/package-microvoxel.cjs /existing/directory/world.html` and open that output instead; it embeds its worker. Do not disable browser security. iOS Files/Quick Look is still not a supported launch path.
+
+Dialog dismissal, Generate and Travel use direct button handlers rather than native form submission, so a script-enabled embedded preview does not need `allow-forms`. Numeric inputs still use native validation and Enter works. The retained launch regression uses an opaque `sandbox="allow-scripts"` iframe, without broadening its permissions.
+
 ## World truth
 
 - 128 × 128 metres by default; the optional **256 × 256 m region** extends the same seeded geography to four times the area. Y up. The default uses 0.25 m material cells (32 × 32 columns, 96 vertical cells per chunk). The **12.5 cm** comparison uses 0.125 m cells (64 × 64 columns, 192 vertical cells). Both cover the same 8 × 8 × 24 m chunk volume; trees, ore thickness, water and characters retain their metre scale.

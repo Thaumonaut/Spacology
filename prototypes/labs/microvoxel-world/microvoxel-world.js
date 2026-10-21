@@ -17,7 +17,7 @@
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
   function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();busy=false;}
   try{renderer=new MicroRenderer(canvas);worker=new Worker('labs/microvoxel-world/voxel-worker.js');}
-  catch(error){fail(error.message);}
+  catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;
   const percentile=(list,p)=>{if(!list.length)return 0;const sorted=[...list].sort((a,b)=>a-b);return sorted[Math.floor((sorted.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>240)list.shift();};
@@ -134,16 +134,23 @@
   });
   canvas.addEventListener('keyup',e=>{if(world.infinite&&e.key.startsWith('Arrow'))persist();});
   $('info').onclick=()=>$('notes').showModal();$('metrics').onclick=()=>$('performance').showModal();
-  $('seedForm').onsubmit=e=>{
-    e.preventDefault();if(failed)return;const seed=Number($('seed').value);if(!Number.isInteger(seed)||seed<0||seed>4294967295)return;
+  $('closeNotes').onclick=()=>$('notes').close();$('closePerformance').onclick=()=>$('performance').close();
+  function actionForm(id,action){
+    const form=$(id),run=()=>{if(!failed&&form.reportValidity())action();};
+    form.querySelector('button').onclick=run;
+    form.onsubmit=e=>{e.preventDefault();run();};
+    form.onkeydown=e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();run();}};
+  }
+  actionForm('seedForm',()=>{
+    const seed=Number($('seed').value);if(!Number.isInteger(seed)||seed<0||seed>4294967295)return;
     regenerate(seed,world.cell,$('worldSize').value==='infinite'?'infinite':Number($('worldSize').value));$('notes').close();
-  };
-  $('travelForm').onsubmit=e=>{
-    e.preventDefault();if(failed||!world.infinite)return;
+  });
+  actionForm('travelForm',()=>{
+    if(!world.infinite)return;
     const cx=Number($('chunkX').value),cz=Number($('chunkZ').value);
     if(![cx,cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=M.MAX_CHUNK))return;
     position=M.movePosition({cx,cz,x:4,z:4});updateActors();$('closeInspection').click();persist();updateView();$('notes').close();
-  };
+  });
   function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a})),meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   rootAPI();
   function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);}});}

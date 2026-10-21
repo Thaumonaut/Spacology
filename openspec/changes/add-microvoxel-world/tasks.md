@@ -20,3 +20,4 @@
 - [x] Add opt-in seeded signed-chunk terrain and normalized chunk/local coordinates; cap vegetation memoization.
 - [x] Anchor an explorer at render origin, stream local terrain, retain logical selection/root identity, and expose travel/URL state.
 - [x] Regress negative boundaries, distant precision, order-independent regeneration, finite-mode continuity and cache residency; package the same implementation.
+- [x] Explain blocked source-file worker startup; regress safe launch guidance and form-free modal/generation/travel actions in a restricted packaged preview.
