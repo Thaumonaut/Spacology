@@ -21,6 +21,8 @@ The runner starts and stops its own server and runs files one at a time, so the 
 
 ## Release gate
 
+The microvoxel world is also in the focused release gate: source and standalone/offline rendering, seed/LOD identity, crew ground contact and pause, bounded caches, responsive/touch controls, and WebGL2 fallback/context loss. The Pages smoke test additionally opens its page and worker offline under `/Spacology/`. Use `npm test -- microvoxel-world` for the focused model/browser checks and `node tools/benchmark-microvoxel.cjs` for the CPU benchmark; hardware-specific tablet/phone performance still needs real devices.
+
 `npm run test:browser:release` runs all 13 station-game regressions plus the playtest library, offline Ops-to-battle launch and battle safe-area checks. The Pages workflow runs this focused gate, the full root unit suite, app checks and the built-site smoke test for pull requests into `main` or `station-games-checkpoint`, as well as before publication. Pull requests only validate; deployment still requires a push to `main` or manual dispatch and a successful validation job.
 
 This is not a claim that the entire historical browser suite is green. `touch-interactions.cjs` and `voyage-return.cjs` still assume that Continue is visible before a voyage starts; both failed on the unchanged station-games source before the cleanup. The latter also assumes the older six-encounter route. They remain in `npm run test:browser` unchanged, outside the focused release gate, pending fixture modernization. The maintained offline-launch regression starts the current 21-node voyage through its departure UI.
