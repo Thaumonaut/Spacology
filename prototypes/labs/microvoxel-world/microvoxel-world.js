@@ -137,7 +137,9 @@
   }
   const metres=m=>m<1?`${+(m*100).toFixed(1)} cm`:`${m} m`;
   // Automatic level: about two device pixels per column (four in Economy).
-  function autoLevel(){const ppm=canvas.width/camera.span;return Math.max(0,Math.round(Math.log2((economy?4:2)/ppm/world.cell)));}
+  // Aim for about five screen pixels per voxel (ten in Economy): with hillshade, leaf cards and outlines carrying the
+  // detail, finer levels cost far more geometry than they show.
+  function autoLevel(){const ppm=canvas.width/camera.span;return Math.max(0,Math.round(Math.log2((economy?10:5)/ppm/world.cell)));}
   function updateStream(){
     visible=[];viewY=camera.y;
     const pin=pinnedVoxel(),want=pin?Math.round(Math.log2(pin)):autoLevel();let r;

@@ -28,5 +28,6 @@ Headless captures of `prototypes/microvoxel-world.html?extent=infinite&seed=2718
 | `21a-snowy-trees.png` | After rebasing onto the merged terrain (`cx=41&cz=-108`). Trees standing on snow or ice carry snow on their upward-facing lobes and tier tops, from a per-column snow cover in the biome map. |
 | `21b-calmer-broadleaf.png` | `cx=55&cz=46`, two zoom-outs. Broadleaf crowns no longer read as broccoli: lobes about three times larger, weaker lobe contrast, softer band edges. |
 | `21c-rebased-new-world.png` | The rendering pass on the merged terrain: notched conifer tiers, bushes, ruins and the new grasses, all with leaf cards, blades, shadows and outlines. |
+| `22-no-zigzag-1m.png` | `cx=42&cz=-120&lod=v4` (pinned 1 m voxels). Conifer tier shading fades once blocks are too coarse for the tiers, so crowns no longer wrap in contour stripes. Same commit: auto LOD aims for about five pixels per voxel (ten in Economy), so the 111 m view draws 106 tiles instead of 353; sun shadows skip beyond 600 m spans and the outline pass beyond 1800 m. |
 
 The flat dark ring around the giant tree in 2–4 is a different ground material from the terrain generator, so no grass grows there.

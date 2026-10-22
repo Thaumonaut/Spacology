@@ -200,7 +200,9 @@
         for(int i=0;i<6;i++){float a=float(i)*1.0472;top=max(top,texture(canopyMap,(block.xz+vec2(cos(a),sin(a))*r)/normalSize).b*255.);}
         float ground=texture(normalMap,block.xz/normalSize).a*255.+groundBase,crownH=max(top*blockSize,1.),fromTop=(ground+top-block.y)*blockSize;
         float period=max(.9,crownH/5.5),f=fract(fromTop/period+puff*.08);
-        tone+=.14*(1.-smoothstep(0.,.35,f))-.42*smoothstep(.62,.9,f);
+        // Tiers need several blocks each to read; on coarse blocks they would wrap faces in contour stripes, so they fade.
+        float tiers=1.-smoothstep(.2,.4,blockSize/period);
+        tone+=(.14*(1.-smoothstep(0.,.35,f))-.42*smoothstep(.62,.9,f))*tiers;
       }
       vec3 shadow,mid,high;crownBands(trunkInCrown?(pine?${M.MAT.needle}:${M.MAT.leaf}):mat,palette[mat],shadow,mid,high);
       // Broadleaf crowns get softer band edges so a crown reads as a few big lobes, not a cluster of florets.
@@ -602,7 +604,8 @@
       // wrapped only beyond ±195 km to stay exact in single precision; the wrap is centred on zero, because wrapping at
       // zero itself swapped in a different sky whenever the view crossed the world origin near home.
       const CLOUD_PERIOD=95*4096,o=this.worldOrigin||{x:0,z:0},off=[o.x,o.z].map(v=>v-CLOUD_PERIOD*Math.round(v/CLOUD_PERIOD));
-      const gl=this.gl,shadows=!this.economy,c=this.camera;let top=(c.y??8)+c.span*.5;
+      // Sun shadows fade to sub-pixel by about 600 m spans; beyond that the pass is skipped (cloud shadows carry the mood).
+      const gl=this.gl,c=this.camera,shadows=!this.economy&&c.span<600;let top=(c.y??8)+c.span*.5;
       if(shadows)for(const d of this.queue)top=Math.max(top,d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1]);
       const box=shadows?this.lightBox(c,this.shadowTarget().size,top):null;
       if(shadows){
@@ -613,7 +616,7 @@
         gl.cullFace(gl.BACK);
       }
       // Economy draws straight to the canvas without outlines or antialiasing.
-      const ink=this.outlines&&!this.economy,scene=ink?this.sceneTarget():null;
+      const ink=this.outlines&&!this.economy&&c.span<1800,scene=ink?this.sceneTarget():null;
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
