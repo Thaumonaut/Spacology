@@ -137,15 +137,21 @@
     }
     function riverAt(x,z){
       const wx=x+(noise(x*.02,z*.02,seed+345)-.5)*14,wz=z+(noise(x*.02,z*.02,seed+347)-.5)*14,ii=Math.floor(wx/RG),jj=Math.floor(wz/RG);
-      let d=999,level=0,lake=0;
+      let d=999,level=0,lake=0;const riverWidth={d:999,w:0};
       for(let gj=jj-2;gj<=jj+2;gj++)for(let gi=ii-2;gi<=ii+2;gi++){
         const T=riverTile(Math.floor(gi/RT),Math.floor(gj/RT)),a=(gj-T.j0)*RW+(gi-T.i0),ax=T.px[a],az=T.pz[a];
         if(T.fill[a]-T.h[a]>.6&&Math.hypot(wx-ax,wz-az)<RG*.9)lake=Math.max(lake,T.fill[a]);
         const b=T.down[a];if(b<0||T.acc[a]<RIVER||T.h[a]<SEA)continue;
-        const ex=T.px[b]-ax,ez=T.pz[b]-az,t=clamp(((wx-ax)*ex+(wz-az)*ez)/(ex*ex+ez*ez),0,1),hw=Math.min(9,1.2+.35*Math.sqrt(T.acc[a]));
-        const e=Math.hypot(wx-ax-ex*t,wz-az-ez*t)-hw+2.3;if(e<d){d=e;level=T.fill[a]+(T.fill[b]-T.fill[a])*t;}
+        // Rounded course: quadratic curve from the A–B midpoint through B to the B–C midpoint, plus the head piece near sources.
+        const c=T.down[b],bx=T.px[b],bz=T.pz[b],cx=c<0?bx:(bx+T.px[c])/2,cz=c<0?bz:(bz+T.pz[c])/2,fc=c<0?T.fill[b]:(T.fill[b]+T.fill[c])/2;
+        const mx=(ax+bx)/2,mz=(az+bz)/2,fm=(T.fill[a]+T.fill[b])/2,hw=Math.min(9,1.2+.35*Math.sqrt(T.acc[a]));
+        const piece=(x0,z0,f0,x1,z1,f1)=>{const ex=x1-x0,ez=z1-z0,t=clamp(((wx-x0)*ex+(wz-z0)*ez)/(ex*ex+ez*ez||1),0,1),e=Math.hypot(wx-x0-ex*t,wz-z0-ez*t)-hw+2.3;if(e<d){d=e;level=f0+(f1-f0)*t;}};
+        if(T.acc[a]<RIVER*2)piece(ax,az,T.fill[a],mx,mz,fm);
+        let px0=mx,pz0=mz,pf0=fm;
+        for(let k=1;k<=4;k++){const t=k/4,u=1-t,qx=u*u*mx+2*u*t*bx+t*t*cx,qz=u*u*mz+2*u*t*bz+t*t*cz,qf=u*u*fm+2*u*t*T.fill[b]+t*t*fc;piece(px0,pz0,pf0,qx,qz,qf);px0=qx;pz0=qz;pf0=qf;}
+        if(d<riverWidth.d)riverWidth.d=d,riverWidth.w=hw;
       }
-      return {d,level,lake};
+      return {d,level,lake,w:riverWidth.w};
     }
     function geography(x,z){
       if(infinite){
@@ -153,7 +159,7 @@
         const RV=riverAt(x,z),riverDistance=RV.d;
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
-        const bank=clamp((riverDistance-2.3)/8,0,1),floor=Math.max(SEA-.6,RV.level-1.2);
+        const bt=clamp((riverDistance-2.3)/(6+RV.w),0,1),bank=bt*bt*(3-2*bt),floor=Math.max(SEA-.6,RV.level-1.2);
         let h=t.h+(noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3)*(t.h<SEA?.4:1);
         const L=liftAt(x,z),pass=L.pass,lift=bank<1?0:L.lift;
         const gw=(noise(x*.008,z*.008,seed+227)-.5)*60,half=2+noise(x*.05,z*.05,seed+233);

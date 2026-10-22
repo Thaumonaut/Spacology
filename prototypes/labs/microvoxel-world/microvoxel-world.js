@@ -110,11 +110,24 @@
     $('worldTitle').textContent=world.infinite?'The streamed wilds':'The ferrite catchment';$('regionLabel').textContent=world.infinite?'STREAMED WORLD':'SURVEYED REGION';$('regionDetail').textContent=world.infinite?'Seeded ridges / wet corridors':'Basalt ridge / river basin';
     for(const [id,cell] of [['densityBase',.25],['densityFine',.125]])$(id).setAttribute('aria-pressed',String(world.cell===cell));
   }
-  function farTiles(){
-    farStep=2**Math.max(0,Math.min(4,Math.ceil(Math.log2(camera.span/128))));
-    const t=32*farStep,b=renderer.bounds(camera,world.heightMetres),q=logical(),out=[];
-    for(let tz=Math.floor((b.minZ+q.z)/t);tz<=Math.floor((b.maxZ+q.z)/t);tz++)for(let tx=Math.floor((b.minX+q.x)/t);tx<=Math.floor((b.maxX+q.x)/t);tx++)out.push({tx,tz,key:farKey(farStep,tx,tz),distance:Math.hypot((tx+.5)*t-q.x-camera.x,(tz+.5)*t-q.z-camera.z)});
+  const farLevel=span=>2**Math.max(0,Math.min(4,Math.ceil(Math.log2(span/128))));
+  function farTilesAt(S,span){
+    const t=32*S,b=renderer.bounds({...camera,span},world.heightMetres),q=logical(),out=[];
+    for(let tz=Math.floor((b.minZ+q.z)/t);tz<=Math.floor((b.maxZ+q.z)/t);tz++)for(let tx=Math.floor((b.minX+q.x)/t);tx<=Math.floor((b.maxX+q.x)/t);tx++)out.push({S,tx,tz,key:farKey(S,tx,tz),distance:Math.hypot((tx+.5)*t-q.x-camera.x,(tz+.5)*t-q.z-camera.z)});
     return out.sort((a,b)=>a.distance-b.distance);
+  }
+  function farTiles(){farStep=farLevel(camera.span);return farTilesAt(farStep,camera.span);}
+  // Tiles fetched ahead of need: the coarser level for a further zoom-out, or the first level while still in voxel view.
+  function farAhead(){
+    if(!world.infinite)return null;
+    const span=far()?Math.min(FAR_SPAN,camera.span*1.7):camera.span>maximumSpan()*.6?maximumSpan()*1.3:0;
+    return span?farTilesAt(farLevel(span),span).find(t=>!farCache.items.has(t.key))||null:null;
+  }
+  function farRequest(t){busy=true;workerStarted=performance.now();worker.postMessage({dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,far:t.S,tx:t.tx,tz:t.tz,token:epoch});}
+  // Draw the current level once complete; until then the finest level whose tiles already cover the view.
+  function farDrawLevel(){
+    for(const S of [farStep,farStep*2,farStep*4,farStep/2,farStep/4])if(S>=1&&S<=16&&farTilesAt(S,camera.span).every(t=>farCache.items.has(t.key)))return S;
+    return farShown??farStep;
   }
   function updateView(){
     if(failed)return;
@@ -150,10 +163,10 @@
   }
   function pump(){
     if(busy||failed||viewDirty)return;
-    if(far()){const t=farVisible.find(t=>!farCache.items.has(t.key));if(t){busy=true;workerStarted=performance.now();worker.postMessage({dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,far:farStep,tx:t.tx,tz:t.tz,token:epoch});}return;}
+    if(far()){const t=farVisible.find(t=>!farCache.items.has(t.key))||farAhead();if(t)farRequest(t);return;}
     const coarse=placeholderStep();let next=coarse&&visible.find(v=>!fallback(v)),requestStep=coarse;
     if(!next){next=visible.find(v=>!cache.items.has(v.key));requestStep=step;}
-    if(!next)return;
+    if(!next){const t=farAhead();if(t)farRequest(t);return;}
     busy=true;workerStarted=performance.now();worker.postMessage({dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,cx:next.cx,cz:next.cz,step:requestStep,token:epoch});
   }
   if(worker){
@@ -161,7 +174,7 @@
     worker.onmessage=({data})=>{
       busy=false;if(data.error){if(data.dataId===world.dataId)fail(`World generation failed: ${data.error}`);else pump();return;}
       if(data.far){
-        if(data.dataId===world.dataId&&!failed&&data.far===farStep&&farVisible.some(t=>t.tx===data.tx&&t.tz===data.tz)){push(generationSamples,data.generateMs);const mesh=renderer.upload(data);Object.assign(mesh,{S:data.far,tx:data.tx,tz:data.tz,dataId:data.dataId});farCache.set(farKey(data.far,data.tx,data.tz),mesh,farVisible.map(t=>t.key));}
+        if(data.dataId===world.dataId&&!failed){push(generationSamples,data.generateMs);const mesh=renderer.upload(data);Object.assign(mesh,{S:data.far,tx:data.tx,tz:data.tz,dataId:data.dataId});farCache.set(farKey(data.far,data.tx,data.tz),mesh,farVisible.map(t=>t.key));}
         pump();return;
       }
       const wanted=visible.some(v=>v.cx===data.cx&&v.cz===data.cz&&(data.step===step||data.step===renderStep||data.step===placeholderStep()));
@@ -271,8 +284,8 @@
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       if(far()){
-        const q=logical();if(farVisible.length&&farVisible.every(t=>farCache.items.has(t.key)))farShown=farStep;
-        for(const m of farCache.items.values())if(m.dataId===world.dataId&&m.S===(farShown??farStep)){const t=32*m.S;renderer.draw(m,[m.tx*t-q.x,0,m.tz*t-q.z],[m.S,world.cell,m.S],0,0,0,[0,0,0],[0,0,0]);}
+        const q=logical(),S=farDrawLevel();farShown=S;
+        for(const m of farCache.items.values())if(m.dataId===world.dataId&&m.S===S){const t=32*m.S;renderer.draw(m,[m.tx*t-q.x,0,m.tz*t-q.z],[m.S,world.cell,m.S],0,0,0,[0,0,0],[0,0,0]);}
       }
       for(const v of visible){
         const requested=cache.get(v.key),coarse=placeholderStep(),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested||coarse&&cache.items.get(key(v.cx,v.cz,coarse));
