@@ -7,9 +7,12 @@ older flat look. Work through these in order, with a capture in `artifacts/voxel
    warm-grey tops, cool lavender-blue shadow faces, soft highlights on ridges (from the hillshade cavity).
 2. ✅ **Drifting cloud shadows.** Large, soft, slowly moving shadows over land and water: one noise lookup in the sun term.
    Frozen when paused or with reduced motion.
-3. **Stylized water.** Shallow turquoise to deep blue by depth, white foam lines at shores and around rocks (use the
-   generator's foam material), gentle moving glints.
-4. **Ink outlines.** Thin dark lines around trees, rocks and cliff edges, from a depth/normal edge pass.
+   ✅ Also: Ghibli golden-hour cloud layer in wide views (banks + wisps, opacity slider).
+3. **Ink outlines.** Thin dark lines around trees, rocks and cliff edges, from a depth/normal edge pass. (Moved ahead of
+   water: the river rework is still in progress on the terrain side.)
+4. **Stylized water.** Shallow turquoise to deep blue by depth, white foam lines at shores and around rocks (use the
+   generator's foam material), gentle moving glints. Wait for the river merge. Stable: water id 7, foam id 24, and
+   geography() keeps water, riverDistance, riverLevel, riverWidth, foam, spring.
 5. **Close-zoom leaf cards.** Fade cards out over the nearest zoom step so they stop reading as cutouts; the leafy voxel
    texture carries the closest view.
 

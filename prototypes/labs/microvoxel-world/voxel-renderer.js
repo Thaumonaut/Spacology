@@ -390,6 +390,24 @@
     c=mix(c,vec3(.97,.95,1.),wisp*(1.-body));
     color=vec4(c,alpha);
   }`;
+  // Ink outlines: a full-screen pass over the resolved scene. Wherever the depth behind a pixel jumps away by more than
+  // a zoom-scaled threshold, the nearer side gets a thin line in a deep, cool tint of its own colour (anime line art
+  // rather than black). Grass, leaf clumps and single-block steps fall under the threshold, so only silhouettes ink.
+  const postVertex=`#version 300 es
+  void main(){vec2 p=vec2(gl_VertexID==1?3.:-1.,gl_VertexID==2?3.:-1.);gl_Position=vec4(p,0,1);}`;
+  const postFragment=`#version 300 es
+  precision highp float;
+  uniform sampler2D sceneColor;
+  uniform highp sampler2D sceneDepth;
+  uniform vec2 texel;
+  uniform float depthRange, threshold, ink;
+  out vec4 color;
+  float metres(vec2 uv){return texture(sceneDepth,uv).r*2.*depthRange;}
+  void main(){
+    vec2 uv=gl_FragCoord.xy*texel;vec3 c=texture(sceneColor,uv).rgb;float d=metres(uv),edge=0.;
+    for(int i=0;i<4;i++){vec2 o=(i==0?vec2(1,0):i==1?vec2(-1,0):i==2?vec2(0,1):vec2(0,-1))*texel;edge=max(edge,smoothstep(threshold,threshold*1.8,metres(uv+o)-d));}
+    color=vec4(mix(c,c*vec3(.34,.36,.48),edge*ink),1.);
+  }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -414,7 +432,7 @@
   }
   class Renderer{
     constructor(canvas){
-      this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:true,powerPreference:'low-power'});
+      this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:false,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
       ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
@@ -425,6 +443,10 @@
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
       ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade']));
       this.cloudVao=gl.createVertexArray();
+      ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','texel','depthRange','threshold','ink']));
+      gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);this.postVao=gl.createVertexArray();
+      // Outlines on by default; ?outlines=0 turns them off for comparison.
+      this.outlines=new URLSearchParams(root.location?.search||'').get('outlines')!=='0';
       this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
       gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255));
@@ -499,6 +521,22 @@
       const at=[0,1,2].map(i=>c[0]*A[i]+c[1]*A[3+i]+cz*A[6+i]);
       return {at,half:[half,half,(hi[2]-lo[2])/2+camera.span+256],texel};
     }
+    // Offscreen scene: a multisampled colour + depth target (the canvas itself is not antialiased), resolved each frame
+    // into textures the outline pass reads. Rebuilt when the canvas size changes.
+    sceneTarget(){
+      const gl=this.gl,w=this.canvas.width,h=this.canvas.height;let t=this.scene;
+      if(t&&t.w===w&&t.h===h)return t;
+      if(t){for(const f of [t.msaa,t.resolve])gl.deleteFramebuffer(f);for(const r of [t.colorRb,t.depthRb])gl.deleteRenderbuffer(r);for(const x of [t.color,t.depth])gl.deleteTexture(x);}
+      const samples=Math.min(4,gl.getParameter(gl.MAX_SAMPLES)),rb=(format)=>{const r=gl.createRenderbuffer();gl.bindRenderbuffer(gl.RENDERBUFFER,r);gl.renderbufferStorageMultisample(gl.RENDERBUFFER,samples,format,w,h);return r;};
+      const tex=(format)=>{const x=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,x);gl.texStorage2D(gl.TEXTURE_2D,1,format,w,h);for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);return x;};
+      gl.activeTexture(gl.TEXTURE4);
+      t={w,h,colorRb:rb(gl.RGBA8),depthRb:rb(gl.DEPTH_COMPONENT24),color:tex(gl.RGBA8),depth:tex(gl.DEPTH_COMPONENT24),msaa:gl.createFramebuffer(),resolve:gl.createFramebuffer()};
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,t.msaa);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER,t.colorRb);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,t.depthRb);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,t.resolve);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t.color,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,t.depth,0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+      return this.scene=t;
+    }
     end(){
       // One world frame for everything cloud-related: the stream's rebasing origin (world metres at local zero). It is
       // wrapped only beyond ±195 km to stay exact in single precision; the wrap is centred on zero, because wrapping at
@@ -512,8 +550,11 @@
         // Back faces only: the sun-facing side of a caster never compares against its own depth, so it cannot self-shadow.
         gl.useProgram(this.casterProgram);gl.uniform3fv(this.cu.lightAt,box.at);gl.uniform3fv(this.cu.lightHalf,box.half);gl.uniformMatrix3fv(this.cu.lightAxes,false,LIGHT_AXES);gl.cullFace(gl.FRONT);
         for(const d of this.queue){gl.uniform1f(this.cu.caster,d.caster?1:0);this.replay(this.cu,d);}
-        gl.cullFace(gl.BACK);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+        gl.cullFace(gl.BACK);
       }
+      // Economy draws straight to the canvas without outlines or antialiasing.
+      const ink=this.outlines&&!this.economy,scene=ink?this.sceneTarget():null;
+      gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
       const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);gl.uniform1f(this.u.grassGrow,this.queue.some(d=>d.mesh.grass)?grow:0);gl.uniform1f(this.u.cloudTime,this.time);gl.uniform2f(this.u.worldOffset,...off);
@@ -533,7 +574,20 @@
         for(const d of this.queue){const t=d.mesh.leaves;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
       }
-      // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything.
+      if(scene){
+        const W=scene.w,H=scene.h,p=this.pu;
+        gl.bindFramebuffer(gl.READ_FRAMEBUFFER,scene.msaa);gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,scene.resolve);
+        gl.blitFramebuffer(0,0,W,H,0,0,W,H,gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT,gl.NEAREST);
+        gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);
+        gl.useProgram(this.postProgram);gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,scene.color);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,scene.depth);gl.activeTexture(gl.TEXTURE0);
+        gl.uniform2f(p.texel,1/W,1/H);gl.uniform1f(p.depthRange,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
+        // Lines only where the depth jumps by about a metre up close, more as the view widens (tens of metres at continent
+        // view, where only cliffs and isles ink); they fade out over the widest zooms.
+        gl.uniform1f(p.threshold,Math.max(.9,c.span*.012));gl.uniform1f(p.ink,.85*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
+        gl.disable(gl.DEPTH_TEST);gl.bindVertexArray(this.postVao);gl.drawArrays(gl.TRIANGLES,0,3);gl.enable(gl.DEPTH_TEST);gl.bindVertexArray(null);
+      }
+      // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything (after the outlines, so no lines
+      // show through them).
       const fade=Math.min(1,Math.max(0,(c.span-150)/250));
       if(fade>0&&(this.cloudOpacity??.85)>0){
         const k=this.ku,b=this.bounds(c,CLOUD_HEIGHT);
