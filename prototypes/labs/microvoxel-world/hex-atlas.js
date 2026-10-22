@@ -14,18 +14,22 @@
       return {q,r};
     }
     const rootHex=hexAt(world.deposit.x,world.deposit.z),camp={x:world.deposit.x+1.5,z:world.deposit.z+1.5};
+    const BIOMES={sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge'};
+    const SETTINGS={craton:'Stable craton',collision:'Collision range',subduction:'Coastal arc range',trench:'Trench margin',arc:'Volcanic island arc',rift:'Rift valley',transform:'Transform fault',shelf:'Continental shelf',ocean:'Ocean basin'};
+    const dominant=a=>{const n={};let best=a[0];for(const v of a){n[v]=(n[v]||0)+1;if(n[v]>n[best])best=v;}return best;};
     function summary(q,r){
       const k=key(q,r);if(summaries.has(k))return summaries.get(k);
       const c=center(q,r),points=[c,...corners(q,r).map(p=>({x:c.x+(p.x-c.x)*.6,z:c.z+(p.z-c.z)*.6}))];
       const heights=points.map(p=>world.ground(p.x,p.z)),inside=heights.every(h=>h!==null)&&(world.infinite||c.x>4&&c.z>4&&c.x<world.extent-4&&c.z<world.extent-4);
-      const g=points.map(p=>world.geography(p.x,p.z)),count=f=>g.filter(f).length;
+      const g=points.map(p=>world.geography(p.x,p.z)),count=f=>g.filter(f).length,sea=world.infinite&&count(s=>s.sea)>=4;
       const water=count(s=>s.riverDistance<4),basalt=count(s=>s.exposed),clearing=count(s=>s.clearing>.5),wet=count(s=>s.wet);
       const valid=heights.filter(h=>h!==null),relief=valid.length?Math.max(...valid)-Math.min(...valid):0;
       const t=world.infinite?terrain(c,q,r):{kind:null},barrier=t.kind==='cliff'||t.kind==='gorge';
       const isRoot=q===rootHex.q&&r===rootHex.r,signs=isRoot||!barrier&&g.some(s=>s.exposed&&s.riverDistance>12),uplift=t.kind==='highland'||t.kind==='pass'||t.rim;
-      const value=Object.freeze({q,r,key:k,x:c.x,z:c.z,inside,height:valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0,relief,
+      const value=Object.freeze({q,r,key:k,x:c.x,z:c.z,inside:inside&&!sea,height:valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0,relief,
         terrain:t.kind,barrier,rock:barrier?t.rock:null,span:t.span??null,rim:!!t.rim,
-        biome:t.kind==='gorge'?'Gorge':t.kind==='cliff'?'Cliff edge':t.kind==='pass'?'Mountain pass':t.kind==='highland'?'Highland plateau':water>=3?'River channel':basalt>=3?'Basalt ridge':clearing>=3?'Clearing':wet>=3?'Wetland margin':'Grass and woodland',
+        biome:sea?'Open sea':t.kind==='gorge'?'Gorge':t.kind==='cliff'?'Cliff edge':t.kind==='pass'?'Mountain pass':t.kind==='highland'?'Highland plateau':water>=3?'River channel':basalt>=3?'Basalt ridge':world.infinite?BIOMES[dominant(g.map(s=>s.biome))]:clearing>=3?'Clearing':wet>=3?'Wetland margin':'Grass and woodland',
+        setting:world.infinite?SETTINGS[g[0].setting]:null,sea,
         resource:isRoot?'Ferrite root':signs?uplift?'Uplift signs':'Ferrite signs':null,root:isRoot,
         cost:barrier?null:Math.round((1+relief/2+(water>=3?3:0)+(t.kind==='pass'?2:0))*10)/10});
       summaries.set(k,value);if(summaries.size>SUMMARY_LIMIT)summaries.delete(summaries.keys().next().value);

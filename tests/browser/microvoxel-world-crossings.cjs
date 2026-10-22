@@ -1,4 +1,6 @@
 'use strict';
+const M=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');
+const {createAtlas}=require('../../prototypes/labs/microvoxel-world/hex-atlas.js');
 const {chromium}=require('playwright'),assert=require('node:assert/strict');
 const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',URL=BASE+'/prototypes/microvoxel-world.html?seed=2718&coopNet=local';
 const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.visible>0&&s.ready===s.visible&&!s.pending;},null,{timeout:90000});
@@ -11,10 +13,12 @@ async function phase(p,want){for(let i=0;i<3&&(await coop(p)).phase!==want;i++){
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
   const p=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(URL);await ready(p);
-  assert.equal((await p.evaluate(()=>MicroWorldLab.snapshot())).revision,'micro-wilds-2');
+  assert.equal((await p.evaluate(()=>MicroWorldLab.snapshot())).revision,'micro-wilds-3');
   await p.locator('[data-role="explore"]').click();await p.locator('#coopSolo').click();await until(p,()=>MicroWorldLab.coop.snapshot().role==='explore');
+  const W=M.createWorld(2718,.25,'infinite'),A=createAtlas(W),hd=(a,b)=>(Math.abs(a.q-b.q)+Math.abs(a.r-b.r)+Math.abs(a.q+a.r-b.q-b.r))/2;let wall=null;
+  for(let n=1;n<=6&&!wall;n++)for(let dq=-n;dq<=n&&!wall;dq++)for(let dr=Math.max(-n,-dq-n);dr<=Math.min(n,-dq+n);dr++){const h=A.summary(A.rootHex.q+dq,A.rootHex.r+dr);if(h.barrier&&hd(h,A.rootHex)===n){wall=h;break;}}
   const edges=async()=>(await coop(p)).view.hexes.filter(h=>h.state==='barrier').sort((a,b)=>a.key.localeCompare(b.key));
-  for(let d=0;!(await edges()).length&&d<8;d++){for(const h of (await coop(p)).view.hexes.filter(h=>h.state==='frontier'||h.state==='hinted').sort((x,y)=>x.cost-y.cost||x.key.localeCompare(y.key)).slice(0,3))await p.evaluate(k=>MicroWorldLab.coop.act({kind:'toggle',key:k}),h.key);await phase(p,'dusk');await phase(p,'night');}
+  for(let d=0;!(await edges()).length&&d<8;d++){for(const h of (await coop(p)).view.hexes.filter(h=>h.state==='frontier'||h.state==='hinted').sort((x,y)=>hd(x,wall)-hd(y,wall)||x.key.localeCompare(y.key)).slice(0,3))await p.evaluate(k=>MicroWorldLab.coop.act({kind:'toggle',key:k}),h.key);await phase(p,'dusk');await phase(p,'night');}
   let v;const edge=(await edges())[0];assert.ok(edge,'surveying reaches a barrier edge');
   await p.locator('#coopFold').click();await p.locator('text=Surroundings').click();await ready(p);await p.locator('#coopFold').click();
   assert.match(await select(p,edge),/impassable (cliff|gorge).*rock unknown/);assert.equal(await p.locator('#hexTask').innerText(),'Scout edge (cost 1)');assert.ok(await p.locator('#hexTask2').isHidden());

@@ -23,7 +23,7 @@
     function fit(plan,budget){const out=[];let used=0;for(const k of plan){const c=tripCost(k);if(used+c>budget)break;used+=c;out.push(k);}return out;}
     function profile(k){
       const s=S(k);if(s.resource==='Uplift signs')return {key:k,name:'Uplift seam',yield:9+hash(world.seed+':'+k)%3};
-      const name=s.biome==='Basalt ridge'?'Ferrite seam':/River|Wetland/.test(s.biome)?'Placer iron':'Ferrite nodules';
+      const name=s.setting==='Volcanic island arc'||s.setting==='Coastal arc range'?'Volcanic sulphur':s.setting==='Rift valley'||s.biome==='Desert'?'Rift salts':s.setting==='Collision range'?'Ferrite seam':s.biome==='Basalt ridge'?'Ferrite seam':/River|Wetland/.test(s.biome)?'Placer iron':'Ferrite nodules';
       return {key:k,name,yield:5+hash(world.seed+':'+k)%4};
     }
     function route(from,known){
@@ -67,6 +67,7 @@
         for(const k of samples)research.samples.add(k);
         for(const k of scouted){research.rocks.add(k);logistics.barriers.set(k,{kind:S(k).terrain,span:S(k).span});}
         for(const k of rated)logistics.rock.set(k,research.rated.get(k));
+        if(crossing&&!crossing.done&&rated.includes(crossing.key)){c.price=crossing.price=price(c.type,logistics.rock.get(c.key));}
         research.surveyed=new Set(explore.surveyed);logistics.surveyed=new Set(explore.surveyed);
         for(const k of studied)logistics.profiles.set(k,research.identified.get(k));
         const delivered=ROOT_YIELD+logistics.lines.reduce((a,l)=>a+l.yield,0),t=target(day);

@@ -30,7 +30,7 @@
   in vec3 worldPosition;
   in vec3 normal;
   flat in int mat;
-  uniform vec3 palette[16];
+  uniform vec3 palette[24];
   uniform float time, detail;
   out vec4 color;
   float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
@@ -64,7 +64,7 @@
       gl.attachShader(this.program,vs);gl.attachShader(this.program,fs);gl.linkProgram(this.program);gl.deleteShader(vs);gl.deleteShader(fs);
       if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(this.program));
       gl.useProgram(this.program);this.u={};for(const n of ['origin','scale','localOffset','center','patternOrigin','halfView','yaw','pitch','overrideMaterial','palette','time','detail'])this.u[n]=gl.getUniformLocation(this.program,n);
-      const colors=[...M.COLORS,'#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41'];
+      const colors=[...M.COLORS];
       gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;
       canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.lost=true;});
