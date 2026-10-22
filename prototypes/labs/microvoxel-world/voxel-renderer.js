@@ -173,6 +173,18 @@
         lit=mix(lit,inner*heightShade,cards*.5);
       }
     }
+    // Anime rock: basalt, standing stone, sandstone and gravel in three flat bands like the crowns: warm sunlit tops, a
+    // mid tone, and cool lavender-blue shadow faces. Ridges catch extra light, hollows sink, and soft facet patches stop
+    // big faces reading flat. Sandstone keeps its warmth in every band.
+    if(mat==1||mat==22||mat==25||mat==30){
+      vec3 w=worldPosition;float facet=meadowNoise(w.xz*.45+w.y*.35)*.6+meadowNoise(w.xz*1.3-w.y*.8+5.1)*.4-.5;
+      float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sunlight())+cavity*.4+facet*.2;
+      bool warm=mat==25;
+      vec3 shadow=warm?vec3(.5,.36,.38):vec3(.33,.35,.5),mid=warm?vec3(.76,.56,.42):vec3(.5,.53,.6),high=warm?vec3(.9,.76,.58):vec3(.72,.71,.68);
+      if(mat==30){shadow=mix(shadow,vec3(.45,.43,.42),.5);mid=mix(mid,vec3(.66,.63,.58),.5);high=mix(high,vec3(.82,.78,.7),.5);}
+      lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),mix(mid,high,.7),smoothstep(.86,.92,tone))*heightShade*(.97+.06*grain/.07);
+      if(shaded>0&&shadowOn<.5)lit*=.6;
+    }
     color=vec4(lit,1.);
   }`;
   // Stylized grass: an instanced clump of seven long, curved blades per tuft (x, top, z in blocks; seed). Roots take the
