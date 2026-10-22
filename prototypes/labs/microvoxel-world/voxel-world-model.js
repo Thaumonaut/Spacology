@@ -33,7 +33,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-12':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-13':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
@@ -79,7 +79,10 @@
         // Distance from the boundary measured into the continental side (negative offshore) for ocean–continent margins.
         const land=a.continental?edge:-edge;let v=0,setting=null;
         if(conv>.2){
-          if(a.continental&&b.continental){v=c*(150*f**1.6*(.3+.7*belt)*peaks+14*clamp(1-edge/(W*2.2),0,1));setting='collision';}
+          // The collision crest wanders off the straight plate boundary (signed distance o*edge, shifted by along-belt
+          // noise), so a range winds between bays and spurs instead of following a ruled line.
+          if(a.continental&&b.continental){const sd=o*edge-(noise(u*.005,len*.01+3,seed+334)-.5)*150-(noise(u*.018,len*.01+7,seed+336)-.5)*40,fc=clamp(1-(Math.hypot(sd,24)-24)/W,0,1);
+            v=c*(150*fc**1.6*(.3+.7*belt)*peaks+14*clamp(1-edge/(W*2.2),0,1));setting='collision';}
           else if(a.continental!==b.continental){v=land>0?c*105*Math.exp(-(((land-95)/60)**2))*clamp(land/30,0,1)*(.35+.65*belt)*peaks:-9*c*Math.exp(-(((land+40)/30)**2))*clamp(-land/20,0,1);setting=land>0?'subduction':'trench';}
           else{v=c*f*clamp((noise(x*.009,z*.009,seed+327)-.55)/.12,0,1)*40*(.5+.5*r);setting='arc';}
         }else if(conv<-.45){v=a.continental&&b.continental?-8*f**1.5*clamp(-conv/1.1,0,1):3*f;setting='rift';}
@@ -106,14 +109,16 @@
       volcanoes.set(k,v);if(volcanoes.size>4096)volcanoes.delete(volcanoes.keys().next().value);return v;
     }
     function tectonics(x,z){
-      const t=plateRelief(x,z),i=Math.floor(x/VG),j=Math.floor(z/VG);let cone=0,vx=0,vz=0;
+      const t=plateRelief(x,z),i=Math.floor(x/VG),j=Math.floor(z/VG);let cone=0,vx=0,vz=0,vr=0;
       for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
         const V=volcanoCell(i+di,j+dj);if(!V)continue;const d=Math.hypot(x-V.x,z-V.z);if(d>=V.R)continue;
-        let c=V.H*(1-d/V.R)**1.8;const crater=V.R*.05;if(d<crater)c-=V.H*.06*(1-d/crater);if(c>cone){cone=c;vx=V.x;vz=V.z;}
+        // Concave flanks steepening to a summit crater: a bowl inside a sharp rim with a slight raised lip.
+        const crater=V.R*.075,q=d/crater;let c=q<1?V.H*((1-crater/V.R)**1.8-.08*(1-q*q)):V.H*(1-d/V.R)**1.8;c+=V.H*.02*Math.exp(-(((q-1)/.35)**2));
+        if(c>cone){cone=c;vx=V.x;vz=V.z;vr=V.R;}
       }
       if(!cone)return t;
       let h=t.h+cone;if(h>215)h=215+(h-215)*.3;
-      return {...t,h,cone:h-t.h,vx,vz};
+      return {...t,h,cone:h-t.h,vx,vz,vr};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
     // Latitude changes one degree per 170 m and folds at the poles, so a few kilometres span cool-temperate to warm and an endless
@@ -139,14 +144,19 @@
       const gx=x/CG,gz=z/CG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j,a=climateCell(i,j),b=climateCell(i+1,j),c=climateCell(i,j+1),d=climateCell(i+1,j+1),mix=k=>(a[k]+(b[k]-a[k])*u)*(1-w)+(c[k]+(d[k]-c[k])*u)*w;
       return {T:mix('T'),M:mix('M'),V:mix('V'),U:mix('U'),A:mix('A')};
     }
-    // Mountains zone by temperature: montane conifer forest, subalpine parkland, alpine meadow, then snow on all but cliffs.
+    // Mountains zone by temperature: montane conifer forest, subalpine parkland, green alpine meadow, then rock and snow.
+    // Snow holds only on ground gentler than a limit that rises as it gets colder (steeper cold ground is bare rock), and
+    // it lies lower in gullies than on spurs, so the snowline runs down creases in tongues instead of following a contour.
+    // zone.slope / zone.crease: the mountain slope and erosion crease of the current column, set by geography().
     // R: lowland region values for the column (see region()): V/U pick among same-climate biomes, A is aridity (desert and
     // badlands only inside the few large arid basins), j* are small per-column jitters so lowland borders are ragged, not contours.
+    const zone={slope:0,crease:0};
     function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,R=null){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
-        if(T<-3&&!sheer)return 'snow';
-        if(cliff&&T<2)return 'alpine';
+        const snowT=T-2.2*zone.crease;
+        if(snowT<-3&&zone.slope<.7+.12*clamp(-3-snowT,0,5))return 'snow';
+        if(snowT<-3||cliff&&T<2)return 'alpine';
         if(T<-1)return 'meadow';
         if(T<1.5)return 'subalpine';
         if(T<16&&M>.15&&!(wet&&M>.5))return 'montane';
@@ -250,7 +260,8 @@
     // via geography()/world.erosionAt(x,z). Call world.setDrainageCrease((x,z)=>world.erosionAt(x,z).crease) (or assign
     // creaseAt here) to use it instead of the stand-in below, so creeks and small streams follow the eroded crease lines.
     // At 64 m node spacing this biases routing between nodes; it doesn't align channels to features finer than that.
-    let creaseAt=null;const CREASE_DEPTH=3.5;
+    // Wired: mountain creases from the eroded-terrain filter, with the stand-in field keeping lowland valleys winding.
+    let creaseAt=(x,z)=>Math.max(ownCrease(x,z),erosionAt(x,z).crease);const CREASE_DEPTH=3.5;
     function ownCrease(x,z){
       const wx=x+(noise(x*.0021,z*.0021,seed+371)-.5)*260,wz=z+(noise(x*.0021,z*.0021,seed+373)-.5)*260;
       return (1-Math.abs(noise(wx*.0034,wz*.0034,seed+375)*2-1))**3;
@@ -389,32 +400,122 @@
       const r={e:999,lake:0};courseAt(0,wx,wz,r);
       return {d:r.e,level:r.level||0,lake:r.lake||0,w:r.e<999?r.hw:0,foam:!!r.foam,spring:!!r.spring,size:r.s||0};
     }
-    // Mountain detail on top of plate relief: squared ridged noise gives sharp arêtes and summits, scaled by how much the plates lift here.
-    // Domain-warped so ridgelines wander, and modulated by a broad field so peaks cluster into massifs between lower cols.
-    // Eroded mountain detail: value-noise octaves whose strength fades where the octaves above are already steep
-    // (gradient-damped fBm), so detail collects into branching ridges and V-valleys instead of uniform bumps. The result is
-    // raised to a power so summits sharpen into horns. Volcano flanks get the same detail, weaker, scaled by the cone.
-    let cragLow=0;
+    // Mountains are built in two layers on top of plate relief (and volcano cones):
+    // 1. cragAt: the massif landform. Gradient-damped fBm (Inigo Quilez's trick): value-noise octaves fade where the
+    //    octaves above are already steep, so detail collects on summits and spurs rather than in valleys. Domain-warped so
+    //    ridgelines wander, modulated by a broad field so peaks cluster into massifs between lower cols, and raised to a
+    //    power so summits sharpen. Side outputs: cragLow (the first two octaves: the broad, smooth landform without gullies,
+    //    read by the drainage and the glacier surface) and cragGx/cragGz (its analytic gradient, m/m).
+    // 2. erodeAt: the eroded-terrain filter (Clay John / Fuse, with Rune Vision's refinements) carves branching gullies
+    //    and sharp arêtes into the surface, aligned with its downhill direction.
+    let cragLow=0,cragGx=0,cragGz=0,lowGx=0,lowGz=0;
     function noiseD(x,z,k,out){
       const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz),dsx=6*fx*(1-fx),dsz=6*fz*(1-fz);
       const a=hash(ix,iz,k),b=hash(ix+1,iz,k),c=hash(ix,iz+1,k),d=hash(ix+1,iz+1,k),e=a-b-c+d;
       out[0]=a+(b-a)*sx+(c-a)*sz+e*sx*sz;out[1]=dsx*((b-a)+e*sz);out[2]=dsz*((c-a)+e*sx);
     }
-    const nd=[0,0,0];
+    const nd=[0,0,0],wa=[0,0,0],wb=[0,0,0];
     function cragAt(x,z,relief,cone=0){
-      const m=Math.max(clamp((relief-6)/50,0,1),clamp(cone/70,0,1)*.6);if(!m){cragLow=0;return 0;}
-      const wx=x+(noise(x*.008,z*.008,seed+355)-.5)*50,wz=z+(noise(x*.008,z*.008,seed+357)-.5)*50,massif=.6+.4*noise(x*.004,z*.004,seed+359);
-      let px=wx*.011,pz=wz*.011,sum=0,gx=0,gz=0,amp=1,norm=0;
+      const m=Math.max(clamp((relief-6)/50,0,1),clamp(cone/70,0,1)*.6);if(!m){cragLow=cragGx=cragGz=lowGx=lowGz=0;return 0;}
+      noiseD(x*.008,z*.008,seed+355,wa);noiseD(x*.008,z*.008,seed+357,wb);
+      const wx=x+(wa[0]-.5)*50,wz=z+(wb[0]-.5)*50,massif=.6+.4*noise(x*.004,z*.004,seed+359);
+      // j: Jacobian of the octave coordinates with respect to the warped point, so gradients come out in metres.
+      let px=wx*.011,pz=wz*.011,sum=0,gx=0,gz=0,amp=1,norm=0,dx=0,dz=0,low=0,ldx=0,ldz=0,j00=.011,j01=0,j10=0,j11=.011;
       for(let o=0;o<6;o++){
         noiseD(px,pz,seed+351+o,nd);gx+=nd[1]*amp;gz+=nd[2]*amp;
-        sum+=amp*nd[0]/(1+gx*gx+gz*gz);norm+=amp;
-        if(o===1)cragLow=sum/norm;
+        const k=amp/(1+gx*gx+gz*gz);sum+=k*nd[0];norm+=amp;
+        dx+=k*(nd[1]*j00+nd[2]*j10);dz+=k*(nd[1]*j01+nd[2]*j11);
+        if(o===1){low=sum/norm;ldx=dx/norm;ldz=dz/norm;}
         amp*=.5;const qx=1.6*px-1.2*pz,qz=1.2*px+1.6*pz;px=qx;pz=qz;
+        const a0=1.6*j00-1.2*j10,a1=1.6*j01-1.2*j11;j10=1.2*j00+1.6*j10;j11=1.2*j01+1.6*j11;j00=a0;j01=a1;
       }
-      const f=clamp(sum/norm*1.5-.15,0,1.2),A=Math.max(relief,cone*.55)*.6*m*massif;
-      cragLow=A*clamp(cragLow*1.5-.15,0,1.2)**1.7;
+      // Volcano cones get only a light share of this landform: their shape comes from the cone and its erosion.
+      const A=Math.max(relief,cone*.3)*.6*m*massif,v=sum/norm*1.5-.15,f=clamp(v,0,1.2),lv=low*1.5-.15,lf=clamp(lv,0,1.2);
+      const s=v>0&&v<1.2?A*1.7*f**.7*1.5/norm:0,ls=lv>0&&lv<1.2?A*1.7*lf**.7*1.5:0;
+      // Chain rule through the domain warp: d(warped)/d(world) = I + 50 * d(warp noise).
+      const Wxx=1+50*.008*wa[1],Wxz=50*.008*wa[2],Wzx=50*.008*wb[1],Wzz=1+50*.008*wb[2];
+      cragGx=s*(dx*Wxx+dz*Wzx);cragGz=s*(dx*Wxz+dz*Wzz);
+      cragLow=A*lf**1.7;lowGx=ls*(ldx*Wxx+ldz*Wzx);lowGz=ls*(ldx*Wxz+ldz*Wzz);
       return A*f**1.7;
     }
+    // Eroded-terrain filter. Each octave sums 3x3 jittered cells; every cell lays a wave whose phase is the distance across
+    // the local downhill direction, so its crests and troughs run downhill. Blending the cells by a smooth falloff makes
+    // the stripes fork and merge into a dendritic pattern. Rune Vision's refinements:
+    // - normalized gullies: the summed (cos, sin) pair is read as an angle on the unit circle, so every place gets a full
+    //   ridge-to-gully swing whatever the blend;
+    // - straight gullies: that angle drives a (slightly softened) triangle wave: straight V gullies and sharp arêtes;
+    // - stacked fading: each octave's strength fades with the slope of the surface carved so far (gentle ground, such as
+    //   summit plateaus, cirque floors and valley bottoms, stays smooth), and its gradient joins the running gradient,
+    //   so the next, finer octave runs down the walls of the gullies above it.
+    // Input: point, running gradient (m/m) and first-octave amplitude (m). Writes height offset, gradient and crease to
+    // `ero`: crease is 0-1, high on gully floors where the coarse octaves converge (where water would gather).
+    const ero={offset:0,gx:0,gz:0,crease:0},EG=56,TAU=Math.PI*2,ASK=Math.asin(.95);
+    function erodeAt(x,z,gx,gz,E){
+      let off=0,ox=0,oz=0,crease=0,cell=EG,amp=E;
+      for(let o=0;o<3;o++,cell*=.5,amp*=.42){
+        // Finer octaves need steeper ground: where the running gradient is weak its direction swings quickly, and so would
+        // the waves laid along it.
+        const G=Math.hypot(gx,gz),fade=clamp((G-.06-.14*o)/.4,0,1);if(!fade)continue;
+        const ux=-gz/G,uz=gx/G,px=x/cell,pz=z/cell,ix=Math.floor(px),iz=Math.floor(pz),k=seed+701+o*7;
+        let C=0,S=0,Cx=0,Cz=0,Sx=0,Sz=0,wt=0;
+        for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
+          const ci=ix+i,cj=iz+j,qx=px-(ci+.5+(hash(ci,cj,k)-.5)*.6),qz=pz-(cj+.5+(hash(ci,cj,k+1)-.5)*.6),w=Math.exp(-4*(qx*qx+qz*qz));
+          // Per-cell jitter of the wave direction (about ±17°) breaks up parallel combing.
+          const t=(hash(ci,cj,k+2)-.5)*.6,ct=Math.cos(t),st=Math.sin(t),vx=ux*ct-uz*st,vz=ux*st+uz*ct;
+          const ph=(qx*vx+qz*vz)*TAU,c=Math.cos(ph)*w,s=Math.sin(ph)*w,d=TAU/cell;
+          C+=c;S+=s;Cx-=s*vx*d;Cz-=s*vz*d;Sx+=c*vx*d;Sz+=c*vz*d;wt+=w;
+        }
+        const L2=C*C+S*S;if(L2<1e-12)continue;
+        // Soft triangle wave of the summed angle: asin(k cos a), nearly straight-sided but with crests and floors rounded
+        // over a few metres, so no crest is a one-voxel fin.
+        const len=Math.sqrt(L2),cn=C/len,tri=Math.asin(.95*cn)/ASK,conf=clamp(len/wt*2.5,0,1),q=.95/(ASK*Math.sqrt(1-.9025*cn*cn))*S/(L2*len)*conf;
+        // Where the blend is incoherent the wave fades out rather than snapping between ridge and gully.
+        const h=amp*fade,dx=h*q*(S*Cx-C*Sx),dz=h*q*(S*Cz-C*Sz);
+        // The next octave follows the gradient of the plain cosine wave (cn): the soft triangle's crests turn the gradient
+        // too abruptly to steer by.
+        const r=h*conf*S/(L2*len);off+=h*tri*conf;ox+=dx;oz+=dz;gx+=r*(S*Cx-C*Sx);gz+=r*(S*Cz-C*Sz);
+        if(o<2)crease=Math.max(crease,fade*conf*clamp((-tri-.3)/.55,0,1)*(o?.7:1));
+      }
+      ero.offset=off;ero.gx=ox;ero.gz=oz;ero.crease=crease;return ero;
+    }
+    // Gradient of plate relief and cones (m/m), as central differences on a cached 16 m lattice, bilinearly interpolated.
+    // The lattice smooths kinks in plate relief: the erosion waves take their direction from this gradient and would
+    // tear where it turned abruptly.
+    const MG=16,mgCells=new Map(),mgrad=[0,0];
+    function macroCell(i,j){
+      const k=i*16777216+j;let v=mgCells.get(k);if(v)return v;const x=i*MG,z=j*MG,e=MG/2;
+      v=[(tectonics(x+e,z).h-tectonics(x-e,z).h)/MG,(tectonics(x,z+e).h-tectonics(x,z-e).h)/MG];
+      mgCells.set(k,v);if(mgCells.size>16384)mgCells.delete(mgCells.keys().next().value);return v;
+    }
+    function macroGradient(x,z){
+      const gx=x/MG,gz=z/MG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j,a=macroCell(i,j),b=macroCell(i+1,j),c=macroCell(i,j+1),d=macroCell(i+1,j+1);
+      for(let k=0;k<2;k++)mgrad[k]=(a[k]+(b[k]-a[k])*u)*(1-w)+(c[k]+(d[k]-c[k])*u)*w;return mgrad;
+    }
+    // Mountain surface (only where plates or a cone lift the land; lowlands are gentle by construction). Call right after
+    // cragAt(x,z,...) for the same point. The lattice gradient of plates and cones plus the crag's broad-landform gradient
+    // seeds the erosion filter (gullies follow the broad landform, not every crag bump); the full crag gradient plus the
+    // erosion's own gives the slope, exactly and without re-evaluating anything. spur: erosion / strength, about -1.4
+    // (gully floor) to 1.4 (spur crest). gx, gz: gradient of the eroded surface (m/m).
+    const surf={slope:0,erosion:0,crease:0,spur:0,gx:0,gz:0};
+    function mountainSurface(x,z,t){
+      surf.slope=surf.erosion=surf.crease=surf.spur=surf.gx=surf.gz=0;if(!(t.relief>12||t.cone>5))return surf;
+      macroGradient(x,z);const mx=mgrad[0],mz=mgrad[1],E=erosionStrength(t,x,z);let gx=mx+cragGx,gz=mz+cragGz;
+      if(E>0){erodeAt(x,z,mx+lowGx,mz+lowGz,E);surf.erosion=ero.offset;surf.crease=ero.crease;surf.spur=ero.offset/E;gx+=ero.gx;gz+=ero.gz;}
+      surf.gx=gx;surf.gz=gz;surf.slope=Math.hypot(gx,gz);return surf;
+    }
+    // Public erosion sample for other systems (drainage): {offset (m, added to the ground), crease (0-1, high on gully
+    // floors where coarse erosion octaves converge, 0 off mountains), gradient [gx, gz] of the eroded mountain surface
+    // (m/m)}. Pure function of (seed, x, z); costs one plate/crag evaluation plus three erosion octaves.
+    function erosionAt(x,z){
+      const t=tectonics(x,z);cragAt(x,z,t.relief,t.cone);const s=mountainSurface(x,z,t);
+      return {offset:s.erosion,crease:s.crease,gradient:[s.gx,s.gz]};
+    }
+    // Soft ceiling for the tallest summits (a cone on top of a range): above 205 m, height eases toward 240 m, well inside
+    // the 256 m column.
+    const summit=h=>h>205?205+35*Math.tanh((h-205)/35):h;
+    // Strength of erosion here (first-octave amplitude, m): proportional to the relief the plates or a cone raise. A
+    // volcano's crater and the smooth summit cone just around it are left uneroded.
+    const erosionStrength=(t,x,z)=>clamp((t.relief-8)/40,0,1)*t.relief*.1+(t.cone?clamp(t.cone/40,0,1)*t.cone*.12*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0);
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
     function outcropAt(x,z){
@@ -648,14 +749,18 @@
         const RV=riverAt(x,z),riverDistance=RV.d;
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
-        const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;let h=t.h+bump*(t.h<SEA?.4:1)+crag;
-        // Slope of the mountain surface (only where plates lift the land; lowlands are gentle by construction).
-        let slope=0;if(t.relief>12||t.cone>5){const e=1.5,hx=tectonics(x+e,z),hz=tectonics(x,z+e);slope=Math.hypot(hx.h+cragAt(x+e,z,hx.relief,hx.cone)-t.h-crag,hz.h+cragAt(x,z+e,hz.relief,hz.cone)-t.h-crag)/e;}
+        const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
+        const {slope,erosion,crease,spur}=mountainSurface(x,z,t);
+        let h=summit(t.h+bump*(t.h<SEA?.4:1)+crag+erosion);
         // Glaciers: in cold ground, ice fills hollows up to a smooth surface (plate relief plus a share of the crag), so
         // ridges and summits stand out of the ice fields as rock; ice thins out toward the warm margin.
         // Glacier surface follows the broad landform (the first erosion octaves): ice fills cirques and valleys carved below it.
-        const C=climate(x,z),iceTop=t.h+bump+low*.95-1,Tice=C.T-.17*Math.max(0,iceTop-t.h);
-        let ice=0;if((t.relief>15||t.cone>20)&&Tice<-2&&iceTop>h)ice=(iceTop-h)*clamp((-2-Tice)/3,0,1);
+        const C=climate(x,z),iceTop=summit(t.h+bump+low*.95-1),Tice=C.T-.17*Math.max(0,iceTop-t.h);
+        // A volcano's crater is bare dark rock to just over the rim, free of ice.
+        const crater=t.cone>20&&Math.hypot(x-t.vx,z-t.vz)<t.vr*.075+1.5+noise(x*.3,z*.3,seed+707)*2;
+        // Ice is capped in thickness (thicker along erosion creases, where glaciers flow), so a glacier keeps the shape of
+        // its gully or cirque instead of levelling it into a flat sheet.
+        let ice=0;if((t.relief>15||t.cone>20)&&!crater&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
         // smooth landform (not small bumps), so the valley edge, where massif tiers end, stays a clean line. Big rivers open
@@ -685,14 +790,19 @@
         iceBase=Math.min(iceBase,h);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
+        zone.slope=slope;zone.crease=crease;
         const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,region(C,x,z));
         const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
         const rim=lift>0&&!pass&&[[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]].some(([u,v])=>upliftAt(x+u,z+v).up<L.up-1.5);
-        const exposed=gorgeDistance<half+1.5||rim||lift>0&&fault<.9&&ridge>.55||knoll>0||slope>(T>2?1.8:1.4)&&!sea&&biome!=='snow'&&!glacier||slope>1.8&&!sea&&!glacier||biome==='alpine';
+        // Rock knolls and spur crests break through alpine meadow and subalpine parkland along the eroded ridges.
+        const tor=(biome==='meadow'||biome==='subalpine')&&slope>.4&&spur>.75+(noise(x*.09,z*.09,seed+705)-.5)*.5;
+        const exposed=gorgeDistance<half+1.5||rim||lift>0&&fault<.9&&ridge>.55||knoll>0||slope>(T>2?1.8:1.4)&&!sea&&biome!=='snow'&&!glacier||slope>1.8&&!sea&&!glacier||biome==='alpine'||tor||crater;
+        // crease: 0-1 erosion crease (gully floors where the coarse erosion octaves converge; 0 off mountains). erosion:
+        // the eroded-terrain offset (m) included in height.
         return {height,riverDistance,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
-          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,glacier,iceCells:glacier?iceCells:0,cone:t.cone,setting:t.setting,temperature:T,moisture:C.M,relief:t.relief};
+          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,glacier,iceCells:glacier?iceCells:0,crease,erosion,cone:t.cone,setting:t.setting,temperature:T,moisture:C.M,relief:t.relief};
       }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
@@ -1122,6 +1232,9 @@
           else if((b==='grassland'||b==='steppe'||b==='savanna')&&noise(x*.06,z*.06,seed+615)>.93-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
         }
         if(g.iceCells)values.fill(MAT.ice,h-g.iceCells,h);
+        // Snow is a layer, not a skin: steps in snowfields and on cold glaciers (their snowy upper reaches; warmer tongues
+        // show blue ice) are white down the riser too.
+        if(b==='snow'&&!g.exposed||b==='glacier'&&g.temperature<-6)values.fill(MAT.snow,Math.max(0,h-(b==='snow'?4*density:Math.min(4*density,g.iceCells))),h);
       }else values[h-1]=g.exposed?MAT.basalt:g.riverDistance<9?MAT.sand:MAT.grass;
       if(Math.hypot(x-deposit.x,z-deposit.z)<1.15&&g.exposed)values.fill(MAT.ore,h-3*density,h);
       if(infinite){if(g.water>h){values.fill(MAT.water,h,g.water);if(g.foam)values[g.water-1]=MAT.foam;written=Math.max(written,g.water);}}
@@ -1291,7 +1404,7 @@
       if(!infinite)return heightCells*cellMetres;
       const k=L+':'+nx+':'+nz;let v=bounds.get(k);if(v!==undefined)return v;
       const m=nodeMetres(L),n=m>64?4:2,x0=nx*m,z0=nz*m;v=SEA+12;
-      for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n);v=Math.max(v,Math.max(t.h,SEA)+t.relief*.36+24);}
+      for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n);v=Math.max(v,Math.max(t.h,SEA)+t.relief*.46+24);}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       for(let j=Math.floor((z0-16)/AG);j<=Math.floor((z0+m+16)/AG);j++)for(let i=Math.floor((x0-16)/AG);i<=Math.floor((x0+m+16)/AG);i++){const A=ancientCell(i,j);if(A)v=Math.max(v,A.top+2);}
       v=Math.min(v,heightCells*cellMetres);bounds.set(k,v);if(bounds.size>16384)bounds.delete(bounds.keys().next().value);return v;
@@ -1347,7 +1460,7 @@
       }
       return out;
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
