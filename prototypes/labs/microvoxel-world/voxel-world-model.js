@@ -38,6 +38,9 @@
   const LEAVES=Object.freeze(new Set([MAT.leaf,MAT.birchLeaf,MAT.bushLeaf,MAT.bambooLeaf,MAT.blossom,MAT.blossomWhite,MAT.coral,MAT.acacia,MAT.autumnleaf,MAT.rustleaf,MAT.blossomleaf]));
   const NEEDLES=Object.freeze(new Set([MAT.needle,MAT.larch,MAT.larchGold]));
   const BARKS=Object.freeze(new Set([MAT.bark,MAT.redwood,MAT.birchBark,MAT.birchMark,MAT.bamboo,MAT.bambooNode]));
+  // Rock surfaces cel-shaded as anime rock; WARM_ROCKS keep warm sandstone-like bands.
+  const WARM_ROCKS=Object.freeze(new Set([MAT.sandstone,MAT.ochre,MAT.clay]));
+  const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,...WARM_ROCKS]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
   const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
@@ -1891,14 +1894,16 @@
       }
       return Float32Array.from(out);
     }
-    // Biome tint per inside column (RGBA8: conifer-ness, snow cover in the 5×5 around it, the local blade-grass material): how much the local forest is conifer rather
+    // Biome tint per inside column (RGBA8: the biome's grass tone (deep forest green vs bright meadow), snow cover in the 5×5 around it, the local blade-grass material): how much the local forest is conifer rather
     // than broadleaf, from the same biome and temperature rule as the trees. Sampled on a fixed 16 m world grid and
     // interpolated, so neighbouring nodes agree and forests blend over tens of metres. Grass and ground take their tone
     // from it: deep blue-green among conifers, bright warm green among broadleaf trees.
     const TINT=16,tints=new Map();
+    // Grass tone per biome, 0 = bright open meadow to 1 = deep, cool forest floor green.
+    const GRASS_TONE={redwood:1,boreal:.9,montane:.85,rainforest:.75,bamboo:.6,subalpine:.6,fen:.6,tundra:.55,wetland:.5,forest:.5,heath:.45,autumn:.35,blossom:.2,meadow:.15,steppe:.1,flowers:.05,grassland:0,savanna:0,golden:0,pinkgrass:0,desert:0,badlands:0,beach:0};
     function coniferAt(i,j){
       const k=i*65536+j;let v=tints.get(k);if(v!==undefined)return v;const g=geography(i*TINT,j*TINT);
-      v=g.biome==='boreal'||g.biome==='tundra'||g.biome==='montane'||g.biome==='subalpine'?1:g.biome==='forest'?clamp((13-g.temperature)/4,0,1):0;
+      v=GRASS_TONE[g.biome]??.3;
       tints.set(k,v);if(tints.size>65536)tints.delete(tints.keys().next().value);return v;
     }
     // The grass growing around a column: its own blade grass, else the commonest one in the 5×5 around it, else plain grass.
@@ -2027,6 +2032,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

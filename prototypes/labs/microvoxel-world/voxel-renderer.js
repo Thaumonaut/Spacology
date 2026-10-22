@@ -51,6 +51,8 @@
   bool isNeedle(int m){return ${family(M.NEEDLES)};}
   bool isBark(int m){return ${family(M.BARKS)};}
   bool isBladeGrass(int m){return ${family(M.BLADE_GRASS)};}
+  bool isRock(int m){return ${family(M.ROCKS)};}
+  bool isWarmRock(int m){return ${family(M.WARM_ROCKS)};}
   void crownBands(int m,vec3 tint,out vec3 shadow,out vec3 mid,out vec3 high){
     if(m==${M.MAT.needle}){shadow=vec3(.13,.3,.33);mid=vec3(.22,.48,.36);high=vec3(.5,.72,.4);}
     else if(m==${M.MAT.leaf}){shadow=vec3(.18,.38,.34);mid=vec3(.35,.62,.3);high=vec3(.7,.84,.38);}
@@ -74,8 +76,8 @@
     float a=fract(sin(dot(i,vec2(127.1,311.7)))*43758.5453),b=fract(sin(dot(i+vec2(1,0),vec2(127.1,311.7)))*43758.5453),
     c=fract(sin(dot(i+vec2(0,1),vec2(127.1,311.7)))*43758.5453),d=fract(sin(dot(i+vec2(1,1),vec2(127.1,311.7)))*43758.5453);
     return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
-  // Grass takes the forest's tone: bright warm green among broadleaf trees, deep blue-green among conifers.
-  vec3 forestGrass(vec3 grass,float conifer){return mix(grass*vec3(1.06,1.1,.82),vec3(.25,.45,.41),conifer);}
+  // Grass takes its biome's tone: bright warm green in open meadows, deep cool green on redwood and boreal forest floors.
+  vec3 forestGrass(vec3 grass,float tone){return mix(grass*vec3(1.06,1.1,.82),vec3(.2,.38,.33),tone);}
   vec3 meadow(vec2 p,vec3 grass){
     float broad=meadowNoise(p*.04);
     return mix(grass*vec3(.86,.96,.86),grass*vec3(1.08,1.13,.88),smoothstep(.3,.7,broad));
@@ -224,10 +226,10 @@
     // Anime rock: basalt, standing stone, sandstone and gravel in three flat bands like the crowns: warm sunlit tops, a
     // mid tone, and cool lavender-blue shadow faces. Ridges catch extra light, hollows sink, and soft facet patches stop
     // big faces reading flat. Sandstone keeps its warmth in every band.
-    if(mat==1||mat==22||mat==25||mat==30){
+    if(isRock(mat)){
       vec3 w=worldPosition;float facet=meadowNoise(w.xz*.45+w.y*.35)*.6+meadowNoise(w.xz*1.3-w.y*.8+5.1)*.4-.5;
       float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sunVis)+cavity*.4+facet*.2;
-      bool warm=mat==25;
+      bool warm=isWarmRock(mat);
       vec3 shadow=warm?vec3(.5,.36,.38):vec3(.33,.35,.5),mid=warm?vec3(.76,.56,.42):vec3(.5,.53,.6),high=warm?vec3(.9,.76,.58):vec3(.72,.71,.68);
       if(mat==30){shadow=mix(shadow,vec3(.45,.43,.42),.5);mid=mix(mid,vec3(.66,.63,.58),.5);high=mix(high,vec3(.82,.78,.7),.5);}
       lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),mix(mid,high,.7),smoothstep(.86,.92,tone))*heightShade*(.97+.06*grain/.07);
