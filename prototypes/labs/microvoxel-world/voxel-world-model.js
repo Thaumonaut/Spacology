@@ -652,7 +652,7 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),grass:grassTufts(L,nx,nz,tops,P,grassy,G),leaves:leafCards(L,nx,nz,dense,P,plane,base,span),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz);return {biome,grass:grassTufts(L,nx,nz,tops,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -687,17 +687,36 @@
       }
       return Float32Array.from(out);
     }
+    // Biome tint per inside column (RGBA8: conifer-ness, then spare channels): how much the local forest is conifer rather
+    // than broadleaf, from the same biome and temperature rule as the trees. Sampled on a fixed 16 m world grid and
+    // interpolated, so neighbouring nodes agree and forests blend over tens of metres. Grass and ground take their tone
+    // from it: deep blue-green among conifers, bright warm green among broadleaf trees.
+    const TINT=16,tints=new Map();
+    function coniferAt(i,j){
+      const k=i*65536+j;let v=tints.get(k);if(v!==undefined)return v;const g=geography(i*TINT,j*TINT);
+      v=g.biome==='boreal'||g.biome==='tundra'||g.biome==='montane'||g.biome==='subalpine'?1:g.biome==='forest'?clamp((13-g.temperature)/4,0,1):0;
+      tints.set(k,v);if(tints.size>65536)tints.delete(tints.keys().next().value);return v;
+    }
+    function biomeTint(L,nx,nz){
+      const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
+      for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
+        const x=(x0+(i+.5)*column)/TINT,z=(z0+(j+.5)*column)/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;
+        const c=(coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v,o=(j*NODE+i)*4;
+        out[o]=Math.round(c*255);out[o+3]=255;
+      }
+      return out;
+    }
     // Grass tufts for close views, about 24 per square metre on columns whose surface is grass: x, top, z (blocks, node
     // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
-    function grassTufts(L,nx,nz,tops,P,grassy,G){
+    function grassTufts(L,nx,nz,tops,P,grassy,G,tint){
       const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
       const per=24*column*column;
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
         // Fewer, shorter tufts toward the edge of a meadow; a few stray ones spill onto the ground beside it. The fourth
-        // value packs the local cover (0–15) with the 0–1 variation seed.
+        // value packs conifer-ness (0–7, ×16) and the local cover (0–15) with the 0–1 variation seed.
         const t=tops[j*P+i],own=grassy[(j+1)*G+i+1],c=cover(grassy,G,i+1,j+1);if(!t||!own&&c<.3)continue;
         const gx=nx*NODE+i-1,gz=nz*NODE+j-1,n=Math.floor(per*(own?.35+.65*c:c*.35)+hash(gx,gz,seed+L*977+61));
-        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),Math.floor(c*15)+hash(gx,gz,seed+64+q*7)*.999);
+        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),Math.round(tint[((j-1)*NODE+i-1)*4]/255*7)*16+Math.floor(c*15)+hash(gx,gz,seed+64+q*7)*.999);
       }
       return Float32Array.from(out);
     }
