@@ -144,7 +144,15 @@
     if(shaded>0&&shadowOn<.5)lit*=.6;
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
     // yellow-green, leaf green, cool teal shadow), broken into leafy puffs and darker beneath the crown.
-    if(mat==6||mat==17){
+    // Trunks run up through their crowns to the tip; where bark peeks through the leaves (high in the tree, mostly trunk
+    // tips) it is painted as deep crown interior, so forests do not freckle with bark. Below 45% of the tree's height
+    // trunks keep their bark, including a giant's long visible trunk.
+    bool trunkInCrown=false;
+    if((mat==5||mat==23)&&normalSize>0.){
+      float ground=texture(normalMap,block.xz/normalSize).a*255.+groundBase,crown=max(texture(canopyMap,block.xz/normalSize).b*255.,1.),h=(block.y-ground)/crown;
+      trunkInCrown=h>.45;
+    }
+    if(mat==6||mat==17||trunkInCrown){
       vec3 cn=normalize(normal);float below=0.;
       if(normalSize>0.){
         vec4 c=texture(canopyMap,block.xz/normalSize);vec2 g=c.rg*2.-1.;
@@ -152,8 +160,8 @@
         vec4 t=texture(normalMap,block.xz/normalSize);below=(t.a*255.+groundBase+c.b*255.-block.y)*blockSize;
       }
       vec3 w=worldPosition;float puff=meadowNoise(w.xz*.85+w.y*.6)*.6+meadowNoise(w.xz*2.1-w.y*1.3+3.7)*.4-.5;
-      float tone=(dot(cn,SUN)*.5+.5)*mix(.55,1.,sunlight())+puff*.42-smoothstep(.6,3.5,below)*.3;
-      bool pine=mat==17;
+      float tone=(dot(cn,SUN)*.5+.5)*mix(.55,1.,sunlight())+puff*.42-smoothstep(.6,3.5,below)*.3-(trunkInCrown?.25:0.);
+      bool pine=mat==17||trunkInCrown&&conifer>.5;
       vec3 shadow=pine?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine?vec3(.5,.72,.4):vec3(.7,.84,.38);
       lit=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone))*heightShade;
       // Close up, leaf cards cover the crown. The blocks beneath carry the same small-leaf pattern in deeper tones, so any
