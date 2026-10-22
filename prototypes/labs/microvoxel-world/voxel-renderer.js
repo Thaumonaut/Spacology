@@ -233,27 +233,35 @@
       // edge and a dark one on its lower edge, all in stepped palette tones.
       vec3 w=worldPosition,fn=normalize(normal);bool warm=isWarmRock(mat);
       float standing=normalSize>0.?texture(canopyMap,block.xz/normalSize).b:0.;
-      bool path=fn.y>.5&&standing<=.002;
+      // Flagstones only on genuinely flat rock (paths, slabs), not on every tread of a stepped slope.
+      bool path=fn.y>.5&&standing<=.002&&n.y>.93;
       vec3 shadow=warm?vec3(.5,.36,.38):vec3(.33,.35,.5),mid=warm?vec3(.76,.56,.42):vec3(.5,.53,.6),high=warm?vec3(.9,.76,.58):vec3(.72,.71,.68);
       if(mat==30){shadow=mix(shadow,vec3(.45,.43,.42),.5);mid=mix(mid,vec3(.66,.63,.58),.5);high=mix(high,vec3(.82,.78,.7),.5);}
       if(path){
-        vec3 q=block*1.6+vec3(7.1,3.3,5.9);vec3 cell=floor(q);float d1=9.,d2=9.;vec3 tilt=vec3(0);
+        vec3 q=w*1.4+vec3(7.1,3.3,5.9);vec3 cell=floor(q);float d1=9.,d2=9.;vec3 tilt=vec3(0);
         for(int z=-1;z<=1;z++)for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec3 c=cell+vec3(x,y,z),h=fract(sin(vec3(dot(c,vec3(127.1,311.7,74.7)),dot(c,vec3(269.5,183.3,246.1)),dot(c,vec3(113.5,271.9,124.6))))*43758.5);float e=length(q-c-h);if(e<d1){d2=d1;d1=e;tilt=h-.5;}else if(e<d2)d2=e;}
-        vec3 rn=normalize(n+tilt*.55*visible(blockSize*.6));float crack=(1.-smoothstep(.03,.09,d2-d1))*visible(blockSize*.35);
-        float tone=(dot(rn,SUN)*.5+.5)*mix(.55,1.,sunVis)+cavity*.4-crack*.25;
+        vec3 rn=normalize(n+tilt*.35*visible(.7));float crack=(1.-smoothstep(.03,.08,d2-d1))*visible(.4);
+        float tone=(dot(rn,SUN)*.5+.5)*mix(.55,1.,sunVis)+cavity*.4-crack*.15;
         lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),mix(mid,high,.7),smoothstep(.86,.92,tone))*heightShade;
       }else{
+        // Voxel stone after the references: faces lit directly while blocks are large on screen (so every step, ledge and
+        // chip reads), blending to the smooth slope as blocks shrink (so distant slopes never stripe). Texture is an 8×8
+        // pixel grid per voxel face, filled from clustered low-frequency blotches in three close tones (Minecraft-style
+        // stone), with a faint light pixel row along each voxel's top edge.
         vec3 voxel=floor(block-fn*.01),local=fract(block-fn*.01);
-        // Face-plane coordinates: u runs across the face, v runs up it (or along z on top and bottom faces).
         vec2 uv=abs(fn.x)>.5?local.zy:abs(fn.z)>.5?local.xy:local.xz;
-        float stone=fract(sin(dot(voxel,vec3(12.9898,78.233,37.719)))*43758.5453);
-        vec2 px=floor(uv*4.);float grain=fract(sin(dot(px+voxel.xy*5.+voxel.z*3.,vec2(41.3,289.1)))*43758.5453);
-        float detail=visible(blockSize*.5);
-        float tone=(dot(fn,SUN)*.5+.5)*mix(.55,1.,sunVis)+cavity*.3+(stone-.5)*.24+(grain-.5)*.12*detail;
-        if(abs(fn.y)<.5)tone+=(px.y>2.5?.1:px.y<.5?-.12:0.)*detail;else tone+=(px.y>2.5||px.x<.5?.06:px.y<.5||px.x>2.5?-.06:0.)*detail;
-        // Four stepped tones, no gradients: deep shadow, shadow, base, light.
-        float step4=floor(clamp(tone,0.,.999)*4.);
-        lit=(step4<.5?shadow*.86:step4<1.5?shadow:step4<2.5?mid:mix(mid,high,.7))*heightShade;
+        float px=blockSize/pixelWorld,close=smoothstep(4.,14.,px),detail=smoothstep(10.,24.,px);
+        vec3 ln=fn;
+        if(normalSize>0.&&standing<=.002){vec2 g=texture(normalMap,block.xz/normalSize).rg*2.-1.;ln=normalize(mix(vec3(g.x,sqrt(max(0.,1.-dot(g,g))),g.y),fn,close));}
+        // Pixel centres in block space, so blotches run continuously across neighbouring voxels.
+        vec2 cellUV=(floor(uv*8.)+.5)/8.;vec3 p=voxel+(abs(fn.x)>.5?vec3(.5,cellUV.y,cellUV.x):abs(fn.z)>.5?vec3(cellUV.x,cellUV.y,.5):vec3(cellUV.x,.5,cellUV.y));
+        float blot=meadowNoise(p.xz*1.7+p.y*1.3)*.6+meadowNoise(p.xy*2.9-p.z*2.1+4.)*.4;
+        float tex=(blot<.4?-1.:blot>.62?1.:0.)*.05*detail;
+        float rim=(abs(fn.y)<.5&&uv.y>.875?.05:0.)*detail;
+        float tone=(dot(ln,SUN)*.5+.5)*mix(.55,1.,sunVis)+cavity*.3;
+        lit=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.7),smoothstep(.82,.88,tone))*heightShade;
+        // Light varies gently within a band (faces turned more to the sun are a touch brighter), then the pixel texture.
+        lit*=(.88+.24*clamp(tone,0.,1.))*(1.+tex+rim);
       }
       if(shaded>0&&shadowOn<.5)lit*=.6;
     }
