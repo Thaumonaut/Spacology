@@ -66,8 +66,20 @@ Choose **Field notes → World footprint → Infinite streaming experiment → G
 
 ## Verification and portable copy
 
+## Co-op supply line
+
+The first playable slice on the hex atlas (OpenSpec: `openspec/changes/add-coop-supply-line`). Up to three players split **Exploration**, **Research** and **Logistics** through a night → day → dusk clock; information moves between roles only at phase turns, and unclaimed seats run on autopilot. The camp's Ferrite root meets the day-1 target (`6 + 3×(day−1)`) but not day 3, so the group must survey, identify and connect a second line. Numbers in `coop-session.js` are illustrative defaults.
+
+- `coop-session.js` — host-authoritative, deterministic rules and role-private views (no DOM).
+- `coop-net.js` — room transports: `peerjs` (default; host peer id `spacology-supply-<CODE>` on PeerJS's free public signaling service) and `local` (BroadcastChannel, same-browser tabs; `?coopNet=local`).
+- `coop-play.js` — panel UI, hex actions and phase-driven crew.
+- `vendor/peerjs-1.5.5.min.js` — PeerJS 1.5.5, MIT (`vendor/peerjs-LICENSE`), vendored so the page needs no CDN.
+
+Terrain is never sent: every peer regenerates it from the shared seed. There is no game server, TURN relay, reconnect or save: if the host leaves the room ends, and strict NATs/carrier networks may fail to connect directly. A manual check opened a PeerJS room between two isolated headless browser contexts (join, night → day, leave → autopilot, unknown code); that is not run in CI and is not a mobile-network result.
+
 ```sh
 npm test -- microvoxel-world
+node tests/unit/coop-session.cjs
 node tools/benchmark-microvoxel.cjs 2718
 node tools/benchmark-microvoxel.cjs 2718 0.125
 node tools/survey-microvoxel.cjs 256 0.25
