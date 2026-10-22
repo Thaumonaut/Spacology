@@ -20,3 +20,4 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .viewport:has(.coop.folded) .map-caption{top:64px}.viewport:has(#coopGame:not([hidden])) .inspection{left:auto;right:22px;bottom:44px}
 @media(max-width:660px){.viewport:has(#coopGame:not([hidden])) .inspection{right:12px;bottom:36px}.coop.folded{max-width:calc(100% - 16px)}.viewport:has(.coop.folded) .map-caption{top:56px}}
 @media(max-height:620px){.inspection{max-width:260px}.inspection h2{font-size:16px;margin:2px 0}.inspection p{margin:3px 0}}
+.lod-control{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}.lod-control select{min-height:44px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:5px;padding:0 8px}.lod-control option{color:#111;background:#fff}

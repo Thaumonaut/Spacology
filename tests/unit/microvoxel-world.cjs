@@ -155,4 +155,14 @@ for(const seed of [0,1,2,3,7,15,39,2718,4294967295]){
   const current=M.createWorld(seed,.25,'infinite');wildFingerprints.push([-200,0,200].flatMap(z=>[-200,0,200].map(x=>current.geography(x,z).riverDistance.toFixed(3))).join(','));
 }
 assert.equal(new Set(wildFingerprints).size,wildFingerprints.length,'streamed wet corridors vary across seeds');
-console.log('PASS microvoxel world: finite fixtures, signed/distant coordinates, regenerated runs and mesh coverage, streamed seed/root identity, bounded vegetation and disposal');
+// Unified LOD nodes: deterministic per (seed, level, node), sampled at their own spacing, bounded by nodeBound.
+{const a=M.createWorld(2718,.25,'infinite'),b=M.createWorld(2718,.25,'infinite');
+  for(let L=0;L<=a.maxLevel;L++){const n=a.node(L,-1,2),m=b.node(L,-1,2);
+    assert.deepEqual(new Uint8Array(n.buffer),new Uint8Array(m.buffer),`level ${L} node meshes are deterministic`);
+    assert.equal(n.column,.25*2**L);assert.ok(n.quads>0&&n.count===n.quads*6);
+    assert.ok(n.top*n.column<=a.nodeBound(L,-1,2)+n.column,'node content stays under its view bound');}
+  // Level 0 samples every cell: its top surface matches exact ground at each column centre.
+  const n=a.node(0,1,1),cols=a.nodeSize;assert.equal(a.nodeMetres(0),8);
+  for(const [i,j] of [[0,0],[5,17],[31,31]]){const x=8+(i+.5)*.25,z=8+(j+.5)*.25;assert.ok(a.ground(x,z)<=n.top*.25);}
+  assert.throws(()=>a.node(a.maxLevel+1,0,0));assert.throws(()=>M.createWorld(2718,.25,128).node(0,0,0));}
+console.log('PASS microvoxel world: unified LOD nodes, finite fixtures, signed/distant coordinates, regenerated runs and mesh coverage, streamed seed/root identity, bounded vegetation and disposal');

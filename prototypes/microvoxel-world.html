@@ -48,6 +48,7 @@
       <div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div>
       <div class="atlas-controls" role="group" aria-label="Hex atlas view"><button data-atlas="off" aria-pressed="false">Terrain</button><button data-atlas="explore" aria-pressed="true">Explore</button><button data-atlas="logistics" aria-pressed="false">Logistics</button><button data-atlas="research" aria-pressed="false">Research</button></div>
       <button id="pause" aria-pressed="false">Pause crew</button>
+      <label class="lod-control" title="Pin the render level of detail instead of choosing it from the zoom">LOD <select id="lod"></select></label>
       <button id="economy" aria-pressed="false">Economy</button>
       <button id="metrics" aria-haspopup="dialog">Performance</button>
     </nav>
@@ -79,6 +80,7 @@
   </dialog>
   <script src="labs/microvoxel-world/voxel-world-model.js"></script>
   <script src="labs/microvoxel-world/voxel-renderer.js"></script>
+  <script src="labs/microvoxel-world/lod-stream.js"></script>
   <script src="labs/microvoxel-world/hex-atlas.js"></script>
   <script src="labs/microvoxel-world/vendor/peerjs-1.5.5.min.js"></script>
   <script src="labs/microvoxel-world/coop-session.js"></script>
