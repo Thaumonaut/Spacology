@@ -4,6 +4,9 @@
   const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25});
   const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c']);
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  // Things that stand on the ground rather than shape it: trees, crystal spires (sunk 0.5 m into the ground), standing
+  // stones, ruins and sandstone arches. They neither tilt the hillshade nor take it, and they cast sun shadows.
+  const ABOVE_GROUND=Object.freeze(new Set([MAT.bark,MAT.leaf,MAT.needle,MAT.flower,MAT.crystal,MAT.stone,MAT.redwood,MAT.sandstone]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
@@ -621,7 +624,7 @@
     function node(L,nx,nz){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P);let ny=1,reduce=0;
+      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G);let ny=1,reduce=0;
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
@@ -631,10 +634,12 @@
         const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,t0=prof.on&&now(),b=new Uint8Array(blocks);let top=0;
         let hi=lim-1;while(hi>=0&&!c[hi])hi--;
         for(let y=0;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
-        c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
+        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
         cols[j*P+i]=b;tops[j*P+i]=top;floor[j*P+i]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
+      // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);c.fill(0,0,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -647,26 +652,31 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      return {...mesh,normals:hillshade(tops,P),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,...hillshade(grounds,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
-    // Smooth surface normals per inside column (RGBA8: x, z, cavity, unused) from the haloed column tops, so distant
-    // terraces light as the slope they form instead of alternating tread/riser bands. Blocks are cubic, so the gradient
-    // is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
-    function hillshade(tops,P){
-      const N=P-2,T=(i,j)=>tops[j*P+i],gx=new Float32Array(N*N),gz=new Float32Array(N*N),cavity=new Float32Array(N*N),out=new Uint8Array(N*N*4);
-      for(let j=0;j<N;j++)for(let i=0;i<N;i++){
-        const I=i+1,J=j+1;let sum=0;for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)sum+=T(I+a,J+b);
-        gx[j*N+i]=(T(I+1,J-1)+2*T(I+1,J)+T(I+1,J+1)-T(I-1,J-1)-2*T(I-1,J)-T(I-1,J+1))/8;
-        gz[j*N+i]=(T(I-1,J+1)+2*T(I,J+1)+T(I+1,J+1)-T(I-1,J-1)-2*T(I,J-1)-T(I+1,J-1))/8;
-        cavity[j*N+i]=T(I,J)-sum/9;
+    // Ground surface of a column in blocks: solid from the bottom up to the first air gap, ignoring trees and spires, so
+    // isles, canopies and spires do not tilt the hillshade. Water counts: it is the visible surface.
+    function groundBlocks(c,lim,s){let y=0;while(y<lim&&c[y]&&!ABOVE_GROUND.has(c[y]&127))y++;return Math.floor((y-1)/s)+1;}
+    // Smooth surface normals per inside column (RGBA8: x, z, cavity, local ground top) from ground heights with a two-column
+    // ring (G=N+4), so distant terraces light as the slope they form instead of alternating tread/riser bands. Blocks are
+    // cubic, so the gradient is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
+    // Alpha is the highest ground in the 3×3 around the column, in blocks above groundBase (255: out of range); the shader
+    // keeps block-face lighting for anything above it (isles, canopies).
+    function hillshade(grounds,G){
+      const N=G-4,M=N+2,T=(i,j)=>grounds[j*G+i],gx=new Float32Array(M*M),gz=new Float32Array(M*M),out=new Uint8Array(N*N*4);
+      for(let j=0;j<M;j++)for(let i=0;i<M;i++){
+        const I=i+1,J=j+1;
+        gx[j*M+i]=(T(I+1,J-1)+2*T(I+1,J)+T(I+1,J+1)-T(I-1,J-1)-2*T(I-1,J)-T(I-1,J+1))/8;
+        gz[j*M+i]=(T(I-1,J+1)+2*T(I,J+1)+T(I+1,J+1)-T(I-1,J-1)-2*T(I,J-1)-T(I+1,J-1))/8;
       }
+      let groundBase=Infinity;for(let j=2;j<N+2;j++)for(let i=2;i<N+2;i++)groundBase=Math.min(groundBase,T(i,j));
       for(let j=0;j<N;j++)for(let i=0;i<N;i++){
-        let x=0,z=0,n=0;
-        for(let b=Math.max(0,j-1);b<=Math.min(N-1,j+1);b++)for(let a=Math.max(0,i-1);a<=Math.min(N-1,i+1);a++){x+=gx[b*N+a];z+=gz[b*N+a];n++;}
-        x/=n;z/=n;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
-        out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(Math.round(128+cavity[j*N+i]*40),0,255);out[o+3]=255;
+        let x=0,z=0,sum=0,high=0;
+        for(let b=0;b<3;b++)for(let a=0;a<3;a++){x+=gx[(j+b)*M+i+a];z+=gz[(j+b)*M+i+a];const h=T(i+1+a,j+1+b);sum+=h;high=Math.max(high,h);}
+        x/=9;z/=9;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
+        out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(Math.round(128+(T(i+2,j+2)-sum/9)*40),0,255);out[o+3]=Math.min(255,high-groundBase);
       }
-      return out;
+      return {normals:out,groundBase};
     }
     return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size});
   }
@@ -736,6 +746,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={ABOVE_GROUND,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

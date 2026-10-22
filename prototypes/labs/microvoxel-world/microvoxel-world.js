@@ -324,6 +324,7 @@
         if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,0,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,0,(v.cz%512)*8]:[p.x,0,p.z]);}
       }
       for(const a of actors){const p=localPoint(a);if(Math.abs(p.x-camera.x)>camera.span*2||Math.abs(p.z-camera.z)>camera.span*2)continue;renderer.actor({...a,x:p.x,z:p.z},simTime,motion.matches||!a.walking);}
+      renderer.end();
       drawAtlas();
       if(firstReadyMs===null&&(world.infinite?stream.complete():visible.length&&visible.every(v=>cache.items.has(v.key))))firstReadyMs=performance.now()-born;
       const d=localPoint(world.deposit),p=renderer.project(camera,d.x,d.y+.7,d.z);$('rootMarker').style.left=`${p.x}px`;$('rootMarker').style.top=`${p.y}px`;$('rootMarker').hidden=p.x<0||p.y<0||p.x>canvas.clientWidth||p.y>canvas.clientHeight;
