@@ -18,7 +18,7 @@ try{
     proto.uniform3f=function(location,x,y,z){if(names.get(location)==='center')window.__maxPositionUniform=Math.max(window.__maxPositionUniform,Math.abs(x),Math.abs(z));return center.call(this,location,x,y,z);};
   });
   await p.goto(BASE+'/prototypes/microvoxel-world.html?extent=infinite&seed=2718');await ready(p);await p.locator('#pause').click();
-  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-3');
+  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-4');
   const fixture=M.createWorld(original.seed,original.cellMetres,'infinite');for(const a of original.actors)assert.equal(a.y,fixture.ground(a.x,a.z),'crew stand on exact voxel ground at their task sites');
   const home=await terrainImage(p),samples=[];assert.ok(home.length>10000,'capture contains rendered terrain, not an empty framebuffer');
   for(const [cx,cz] of [[125,0],[-125,-125],[250,250],[200000,-200000],[-200000,200000],[500000,-500000],[-500000,500000],[1000000,-1000000],[-1000000,1000000],[M.MAX_CHUNK-32,-M.MAX_CHUNK+32]]){

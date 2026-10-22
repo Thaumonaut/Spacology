@@ -6,7 +6,7 @@ const {createSession}=require('../../prototypes/labs/microvoxel-world/coop-sessi
 const ring=(atlas,c,n)=>{const out=[];for(let dq=-n;dq<=n;dq++)for(let dr=Math.max(-n,-dq-n);dr<=Math.min(n,-dq+n);dr++)out.push(atlas.summary(c.q+dq,c.r+dr));return out;};
 // Generator: deterministic barriers on the streamed world only, with an open start.
 for(const seed of [0,1,2,3,39,2718,4294967295]){
-  const w=M.createWorld(seed,.25,'infinite'),a=createAtlas(w),b=createAtlas(M.createWorld(seed,.25,'infinite'));assert.equal(w.revision,'micro-wilds-3');
+  const w=M.createWorld(seed,.25,'infinite'),a=createAtlas(w),b=createAtlas(M.createWorld(seed,.25,'infinite'));assert.equal(w.revision,'micro-wilds-4');
   const near=ring(a,a.rootHex,5),d=h=>a.distance(h,a.rootHex);
   assert.deepEqual(near,ring(b,b.rootHex,5),'barrier classification is deterministic');
   assert.ok(near.filter(h=>d(h)===1&&!h.barrier).length>=3,`seed ${seed}: at least three passable first-ring hexes`);

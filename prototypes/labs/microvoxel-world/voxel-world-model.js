@@ -22,7 +22,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-3':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-4':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
@@ -50,14 +50,15 @@
       let base=0,sum=0;for(const {p,D} of near){const k=Math.exp(-(D-D0)/45);base+=level(p)*k;sum+=k;}base/=sum;
       let up=0,down=0,best=null,shearF=0;
       for(let i=0;i<near.length;i++)for(let j=i+1;j<near.length;j++){
-        const P=near[i],Q=near[j],third=near.reduce((m,o,k)=>k===i||k===j?m:Math.min(m,o.D),Infinity),w=clamp((third-Q.D)/120,0,1);if(!w)continue;
+        const P=near[i],Q=near[j],third=near.reduce((m,o,k)=>k===i||k===j?m:Math.min(m,o.D),Infinity),w=clamp((third-Q.D)/180,0,1);if(!w)continue;
         const a=P.p,b=Q.p,ex=b.x-a.x,ez=b.z-a.z,len=Math.hypot(ex,ez),nx=ex/len,nz=ez/len,rx=a.vx-b.vx,rz=a.vz-b.vz;
+        const u=z*nx-x*nz,s=x*nx+z*nz,belt=(ridged(u*.003,s*.018,seed+329)*.6+ridged(u*.008,s*.04,seed+330)*.4)*.7+r*.3,peaks=.5+.8*noise(u*.004,len*.01,seed+332);
         const conv=rx*nx+rz*nz,shear=Math.abs(rz*nx-rx*nz),edge=(Q.D**2-P.D**2)/(2*len),f=clamp(1-edge/W,0,1),c=clamp(conv/1.1,0,1);
         // Distance from the boundary measured into the continental side (negative offshore) for ocean–continent margins.
         const land=a.continental?edge:-edge;let v=0,setting=null;
         if(conv>.2){
-          if(a.continental&&b.continental){v=c*(62*f**1.6*(.3+.7*r)+9*clamp(1-edge/(W*2.2),0,1));setting='collision';}
-          else if(a.continental!==b.continental){v=land>0?c*44*Math.exp(-(((land-95)/60)**2))*clamp(land/30,0,1)*(.35+.65*r):-9*c*Math.exp(-(((land+40)/30)**2))*clamp(-land/20,0,1);setting=land>0?'subduction':'trench';}
+          if(a.continental&&b.continental){v=c*(62*f**1.6*(.3+.7*belt)*peaks+9*clamp(1-edge/(W*2.2),0,1));setting='collision';}
+          else if(a.continental!==b.continental){v=land>0?c*44*Math.exp(-(((land-95)/60)**2))*clamp(land/30,0,1)*(.35+.65*belt)*peaks:-9*c*Math.exp(-(((land+40)/30)**2))*clamp(-land/20,0,1);setting=land>0?'subduction':'trench';}
           else{v=c*f*clamp((noise(x*.009,z*.009,seed+327)-.55)/.12,0,1)*20*(.5+.5*r);setting='arc';}
         }else if(conv<-.45){v=a.continental&&b.continental?-8*f**1.5*clamp(-conv/1.1,0,1):3*f;setting='rift';}
         else if(shear>.6)shearF=Math.max(shearF,f*w);
@@ -100,7 +101,8 @@
     const TREES={rainforest:.92,forest:.82,boreal:.78,wetland:.3,savanna:.12,grassland:.06,tundra:.03};
     // Home massif: stepped plateau walled by vertical 4.5 m tiers; inside notch zones the same uplift is a climbable ramp (a pass).
     function upliftAt(x,z){
-      const dm=Math.hypot(x-massifX,z-massifZ);if(dm>46)return {lift:0,pass:false,up:0};
+      const dx=x-massifX,dz=z-massifZ,along=-dx*Math.sin(massifAngle)+dz*Math.cos(massifAngle),across=dx*Math.cos(massifAngle)+dz*Math.sin(massifAngle);
+      const dm=Math.hypot(along/1.9,across*1.15)+(noise(x*.03,z*.03,seed+245)-.5)*10;if(dm>46)return {lift:0,pass:false,up:0};
       const lift=clamp(1.6-dm/28,0,1),pass=lift>0&&noise(x*.025,z*.025,seed+223)<.24+clamp(.15-lift,0,.15);
       return {lift,pass,up:lift>0?pass?lift*9:4.5*Math.min(2,Math.floor(lift*2)+1):0};
     }
@@ -118,26 +120,53 @@
       }
       return best||c;
     }
+    // Drainage on a jittered 64 m node grid, computed per 2 km tile with a 1 km margin: priority-flood fills pits (lakes),
+    // every node drains to one neighbour, and upstream node counts give river size. Rivers are cut into the final terrain.
+    const RG=64,RT=32,RM=16,RW=RT+2*RM,RIVER=20,riverTiles=new Map(),N8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    function riverTile(ti,tj){
+      const key=ti*65536+tj;let T=riverTiles.get(key);if(T)return T;
+      const i0=ti*RT-RM,j0=tj*RT-RM,n=RW*RW,px=new Float32Array(n),pz=new Float32Array(n),h=new Float32Array(n),fill=new Float32Array(n),down=new Int32Array(n).fill(-1),acc=new Float32Array(n),done=new Uint8Array(n),order=new Int32Array(n);
+      for(let j=0;j<RW;j++)for(let i=0;i<RW;i++){const k=j*RW+i,gi=i0+i,gj=j0+j;px[k]=(gi+.2+.6*hash(gi,gj,seed+341))*RG;pz[k]=(gj+.2+.6*hash(gi,gj,seed+343))*RG;h[k]=tectonics(px[k],pz[k]).h;}
+      const hk=new Float64Array(n),hv=new Int32Array(n);let hn=0,on=0;
+      const push=(e,k)=>{let c=hn++;while(c>0){const q=(c-1)>>1;if(hk[q]<=e)break;hk[c]=hk[q];hv[c]=hv[q];c=q;}hk[c]=e;hv[c]=k;};
+      const pop=()=>{const k=hv[0],e=hk[--hn],v=hv[hn];let c=0;for(;;){let l=2*c+1;if(l>=hn)break;if(l+1<hn&&hk[l+1]<hk[l])l++;if(hk[l]>=e)break;hk[c]=hk[l];hv[c]=hv[l];c=l;}hk[c]=e;hv[c]=v;return k;};
+      for(let k=0;k<n;k++){const i=k%RW,j=(k/RW)|0;if(i===0||j===0||i===RW-1||j===RW-1||h[k]<SEA){done[k]=1;fill[k]=h[k];push(h[k],k);}}
+      while(hn){const c=pop(),ci=c%RW,cj=(c/RW)|0;order[on++]=c;for(const [di,dj] of N8){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=RW||j>=RW)continue;const k=j*RW+i;if(done[k])continue;done[k]=1;fill[k]=Math.max(h[k],fill[c]+.01);down[k]=c;push(fill[k],k);}}
+      for(let o=on-1;o>=0;o--){const c=order[o];acc[c]+=1;if(down[c]>=0)acc[down[c]]+=acc[c];}
+      T={i0,j0,px,pz,h,fill,down,acc};riverTiles.set(key,T);if(riverTiles.size>24)riverTiles.delete(riverTiles.keys().next().value);return T;
+    }
+    function riverAt(x,z){
+      const wx=x+(noise(x*.02,z*.02,seed+345)-.5)*14,wz=z+(noise(x*.02,z*.02,seed+347)-.5)*14,ii=Math.floor(wx/RG),jj=Math.floor(wz/RG);
+      let d=999,level=0,lake=0;
+      for(let gj=jj-2;gj<=jj+2;gj++)for(let gi=ii-2;gi<=ii+2;gi++){
+        const T=riverTile(Math.floor(gi/RT),Math.floor(gj/RT)),a=(gj-T.j0)*RW+(gi-T.i0),ax=T.px[a],az=T.pz[a];
+        if(T.fill[a]-T.h[a]>.6&&Math.hypot(wx-ax,wz-az)<RG*.9)lake=Math.max(lake,T.fill[a]);
+        const b=T.down[a];if(b<0||T.acc[a]<RIVER||T.h[a]<SEA)continue;
+        const ex=T.px[b]-ax,ez=T.pz[b]-az,t=clamp(((wx-ax)*ex+(wz-az)*ez)/(ex*ex+ez*ez),0,1),hw=Math.min(9,1.2+.35*Math.sqrt(T.acc[a]));
+        const e=Math.hypot(wx-ax-ex*t,wz-az-ez*t)-hw+2.3;if(e<d){d=e;level=T.fill[a]+(T.fill[b]-T.fill[a])*t;}
+      }
+      return {d,level,lake};
+    }
     function geography(x,z){
       if(infinite){
-        const t=tectonics(x,z),warp=(noise(x*.006,z*.006,seed+101)-.5)*50;
-        const riverDistance=Math.abs(noise((x+warp)*.012,z*.012,seed+103)-.5)*180+Math.max(0,t.relief-10)*1.5+(t.h<SEA+1?40:0);
+        const t=tectonics(x,z);
+        const RV=riverAt(x,z),riverDistance=RV.d;
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
-        const bank=clamp((riverDistance-2.3)/8,0,1),floor=Math.max(SEA+.4,Math.min(t.h,t.base)-1.5);
+        const bank=clamp((riverDistance-2.3)/8,0,1),floor=Math.max(SEA-.6,RV.level-1.2);
         let h=t.h+(noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3)*(t.h<SEA?.4:1);
-        h=floor+(h-floor)*bank;
-        const L=liftAt(x,z),{lift,pass}=L;
+        const L=liftAt(x,z),pass=L.pass,lift=bank<1?0:L.lift;
         const gw=(noise(x*.008,z*.008,seed+227)-.5)*60,half=2+noise(x*.05,z*.05,seed+233);
         const sx=x-gorgeX,sz=z-gorgeZ,along=clamp(sx*gorgeDX+sz*gorgeDZ,-32,32),homeGorge=Math.hypot(sx-along*gorgeDX,sz-along*gorgeDZ)+Math.sin(along*.15)*1.5;
         const faulted=(t.setting==='rift'||t.setting==='transform')&&t.f>.3;
         const gorgeDistance=lift>0||riverDistance<16||t.base<SEA+6?Infinity:Math.min(homeGorge,faulted?Math.abs(noise((x+gw)*.006,(z-gw)*.006,seed+231)-.5)*170:Infinity);
         const gorge=gorgeDistance<half,rock=noise(x*.02,z*.02,seed+239)>.45?'sound':'fractured';
         if(lift>0)h=Math.max(h,Math.min(h,SEA+8)+L.up);
+        if(bank<1)h=Math.min(h,floor+(h-floor)*bank);
         if(gorge)h=Math.max(SEA+1,t.base-7);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=t.relief>24&&ridge>.45;
-        const C=climate(x,z),wet=riverDistance<12,biome=gorge?'gorge':biomeOf(C.T-.32*Math.max(0,metres-t.h),C.M,metres,wet,steep);
-        const water=sea?Math.round(SEA/cellMetres):riverDistance<7&&!gorge?Math.floor((floor+1)/cellMetres):0;
+        const lakeWater=RV.lake>metres+.2&&!gorge,C=climate(x,z),wet=riverDistance<12||lakeWater,biome=gorge?'gorge':biomeOf(C.T-.32*Math.max(0,metres-t.h),C.M,metres,wet,steep);
+        const water=sea?Math.round(SEA/cellMetres):riverDistance<7&&!gorge?Math.floor((floor+1)/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):0;
         return {height,riverDistance,ridge,fault,clearing:0,exposed:gorgeDistance<half+2||(lift>0?ridge>.7||fault<2.5:ridge>.82||fault<1.4||steep&&ridge>.7)||biome==='alpine',wet,
           lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,setting:t.setting,temperature:C.T,moisture:C.M,relief:t.relief};
       }
