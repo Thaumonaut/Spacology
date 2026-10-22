@@ -63,7 +63,8 @@
   function inspect(point,root=false){
     selection={...point,root};$('inspection').hidden=false;
     $('inspectKicker').textContent=root?'SURVEYED ROOT / 01':'VOXEL GROUND QUERY';
-    $('inspectTitle').textContent=root?'Ferrite outcrop':world.geography(point.x,point.z).riverDistance<9?'River basin':world.geography(point.x,point.z).exposed?'Exposed basalt':'Grassland';
+    const g=world.geography(point.x,point.z);
+    $('inspectTitle').textContent=root?'Ferrite outcrop':g.riverDistance<9?'River basin':g.exposed?'Exposed basalt':world.infinite?M.BIOME_NAMES[g.biome]||'Wilds':'Grassland';
     $('inspectBody').textContent=root?world.deposit.rule+'. This is the starting resource, not a placed factory.':`Surface ${point.y.toFixed(2)} m. ${world.geography(point.x,point.z).clearing>.5?'Buildable clearing candidate.':'Natural terrain; no editing.'} Exact ground stays fixed at every render LOD.`;
     $('inspectPosition').textContent=`X ${point.x.toFixed(2)} · Z ${point.z.toFixed(2)}${root?' · '+world.deposit.id:''}`;
     $('hexStatus').textContent='';selectHex(atlas.hexAt(point.x,point.z));
