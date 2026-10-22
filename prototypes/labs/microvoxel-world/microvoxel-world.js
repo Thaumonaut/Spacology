@@ -1,11 +1,12 @@
 (function(){
   'use strict';
-  const M=MicroWorld,$=id=>document.getElementById(id),canvas=$('world');
-  const params=new URLSearchParams(location.search),initial=Number(params.get('seed')??2718),initialCell=Number(params.get('cell')??M.CELL),initialExtent=params.get('extent')==='infinite'?'infinite':Number(params.get('extent')??M.EXTENT);
-  let world=M.createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL,[128,256,'infinite'].includes(initialExtent)?initialExtent:M.EXTENT);
+  const M=MicroWorld,H=HexAtlas,$=id=>document.getElementById(id),canvas=$('world');
+  const params=new URLSearchParams(location.search),initial=Number(params.get('seed')??2718),initialCell=Number(params.get('cell')??M.CELL),initialExtent=(params.get('extent')??'infinite')==='infinite'?'infinite':Number(params.get('extent'));
+  let world=M.createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL,[128,256,'infinite'].includes(initialExtent)?initialExtent:'infinite');
   let renderer,worker,epoch=0,busy=false,failed=false,paused=false,economy=false,simTime=0,selection=null,visible=[],step=2,renderStep=null;
   const camera={x:60,z:62,span:88},frameSamples=[],generationSamples=[],meshSamples=[],actors=[];
-  let position=M.positionAt(world.deposit.x+4,world.deposit.z+4),travelled=0,vegetationEntries=0,lastTravel=-Infinity;
+  let position=M.positionAt(world.deposit.x+4,world.deposit.z+4),travelled=0,vegetationEntries=0;
+  let atlas=H.createAtlas(world),atlasView='explore',selectedHex=null;
   if(world.infinite){
     Object.assign(camera,{x:0,z:0,span:32});
     const saved={cx:Number(params.get('cx')),cz:Number(params.get('cz')),x:Number(params.get('lx')),z:Number(params.get('lz'))};
@@ -33,10 +34,9 @@
     for(const [key,value] of Object.entries({cx:position.cx,cz:position.cz,lx:position.x,lz:position.z}))world.infinite?url.searchParams.set(key,value):url.searchParams.delete(key);
     history.replaceState(null,'',url);
   }
-  function resetActors(){actors.length=0;actors.push({worker:false,x:0,z:0,y:0,yaw:0,phase:0});if(!world.infinite)actors.push({worker:true,x:0,z:0,y:0,yaw:0,phase:2});updateActors();}
+  function resetActors(){atlas=H.createAtlas(world);selectedHex=null;actors.length=0;actors.push(...atlas.crew);updateActors();}
   function updateActors(){
-    if(world.infinite){const p=logical();actors[0].x=actors[0].z=0;actors[0].y=world.ground(p.x,p.z);return;}
-    actors.forEach((a,i)=>{const t=simTime*(i?.19:.14)+i*Math.PI;a.x=49+Math.cos(t)*(i?5:7);a.z=58+Math.sin(t)*(i?3.5:6);a.y=world.ground(a.x,a.z);a.yaw=Math.atan2(-Math.sin(t)*(i?5:7),Math.cos(t)*(i?3.5:6));});
+    for(const a of actors)a.y=world.ground(a.x,a.z)??0;
   }
   function inspect(point,root=false){
     selection={...point,root};$('inspection').hidden=false;
@@ -44,12 +44,46 @@
     $('inspectTitle').textContent=root?'Ferrite outcrop':world.geography(point.x,point.z).riverDistance<9?'River basin':world.geography(point.x,point.z).exposed?'Exposed basalt':'Grassland';
     $('inspectBody').textContent=root?world.deposit.rule+'. This is the starting resource, not a placed factory.':`Surface ${point.y.toFixed(2)} m. ${world.geography(point.x,point.z).clearing>.5?'Buildable clearing candidate.':'Natural terrain; no editing.'} Exact ground stays fixed at every render LOD.`;
     $('inspectPosition').textContent=`X ${point.x.toFixed(2)} · Z ${point.z.toFixed(2)}${root?' · '+world.deposit.id:''}`;
+    $('hexStatus').textContent='';selectHex(atlas.hexAt(point.x,point.z));
+  }
+  function selectHex(h){
+    selectedHex=h;const s=atlas.summary(h.q,h.r),k=atlas.known(h.q,h.r);
+    $('hexSummary').textContent=`HEX ${h.q}, ${h.r} · `+(k?.surveyed?`${s.biome} · relief ${s.relief.toFixed(1)} m · travel cost ${s.cost}${s.resource?` · ${s.resource} (${k.identified?'identified':k.sampled?'studying':'unsampled'})`:''}`:'Unsurveyed: send the explorer to learn what is here');
+    $('hexTask').hidden=!s.inside||!!k?.identified||!!k?.surveyed&&!s.resource;$('hexTask').disabled=!!k?.sampled;
+    $('hexTask').textContent=!k?.surveyed?'Send explorer':k.sampled?'Studying at camp':'Send researcher';
+  }
+  $('hexTask').onclick=()=>{if(selectedHex){$('hexStatus').textContent=atlas.assign(selectedHex.q,selectedHex.r);selectHex(selectedHex);}};
+  for(const b of document.querySelectorAll('[data-atlas]'))b.onclick=()=>{atlasView=b.dataset.atlas;for(const o of document.querySelectorAll('[data-atlas]'))o.setAttribute('aria-pressed',String(o===b));};
+  const layer=$('atlasLayer'),ctx=layer.getContext('2d');
+  const ATLAS_STYLE={surveyed:['#f3ead140','#f3ead1cc'],frontier:[null,'#e8bc72'],usable:['#58c27a66','#6fe08f'],unconfirmed:[null,'#dfe4d6'],ground:[null,'#dfe4d688'],identified:['#a98ee840','#c7b6f5'],studying:['#a98ee899','#efe9ff'],'needs-sample':[null,'#c7b6f5'],selected:[null,'#ffffff']};
+  const ATLAS_LABEL=h=>({usable:`${h.root?'ROOT':'FERRITE'} · ${h.steps} HEX`,frontier:`COST ${h.cost}`,'needs-sample':'SAMPLE',studying:'STUDYING'})[h.state];
+  // Hex edges are draped on the voxel ground; shared edges sample identical points, so neighbours tile on any slope.
+  const outlines=new Map(),EDGE_SAMPLES=6;
+  function outline(hx){
+    const k=world.seed+':'+world.cell+':'+world.extent+':'+hx.key;let pts=outlines.get(k);if(pts)return pts;
+    const c=atlas.corners(hx.q,hx.r);pts=[];
+    for(let i=0;i<6;i++){const a=c[i],b=c[(i+1)%6];for(let j=0;j<EDGE_SAMPLES;j++){const t=j/EDGE_SAMPLES,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;pts.push({x,y:(world.ground(x,z)??hx.height)+.12,z});}}
+    outlines.set(k,pts);if(outlines.size>2048)outlines.delete(outlines.keys().next().value);return pts;
+  }
+  function drawAtlas(){
+    const w=canvas.clientWidth,h=canvas.clientHeight,r=Math.min(devicePixelRatio||1,2);
+    if(layer.width!==Math.round(w*r)||layer.height!==Math.round(h*r)){layer.width=Math.round(w*r);layer.height=Math.round(h*r);}
+    ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,w,h);ctx.font='650 10px system-ui,sans-serif';ctx.textAlign='center';
+    const list=atlasView==='off'?[]:atlas.view(atlasView);if(selectedHex)list.push({...atlas.summary(selectedHex.q,selectedHex.r),state:'selected'});
+    for(const hx of list){
+      const pts=outline(hx).map(c=>{const p=localPoint(c);return renderer.project(camera,p.x,p.y,p.z);});
+      if(pts.every(p=>p.x<0)||pts.every(p=>p.x>w)||pts.every(p=>p.y<0)||pts.every(p=>p.y>h))continue;
+      const [fill,stroke]=ATLAS_STYLE[hx.state];ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();
+      ctx.setLineDash(['frontier','needs-sample','unconfirmed'].includes(hx.state)?[5,4]:[]);ctx.lineWidth=hx.state==='selected'?3:1.5;
+      if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.stroke();
+      const label=camera.span<=80&&ATLAS_LABEL(hx);if(label){const x=pts.reduce((a,p)=>a+p.x,0)/pts.length,y=pts.reduce((a,p)=>a+p.y,0)/pts.length,m=ctx.measureText(label).width;ctx.fillStyle='#172a28d0';ctx.fillRect(x-m/2-4,y-8,m+8,15);ctx.fillStyle=stroke;ctx.fillText(label,x,y+3);}
+    }
   }
   $('rootMarker').onclick=()=>inspect(world.deposit,true);
-  $('closeInspection').onclick=()=>{selection=null;$('inspection').hidden=true;$('groundMarker').hidden=true;};
+  $('closeInspection').onclick=()=>{selection=null;selectedHex=null;$('inspection').hidden=true;$('groundMarker').hidden=true;};
   function identity(){
     const d=world.deposit;$('seedLabel').textContent=`SEED ${world.seed} / ${world.infinite?'STREAMED WILDS':`${world.extent} m × ${world.extent} m`} / ${world.cell*100} cm voxels`;$('seed').value=world.seed;$('worldSize').value=world.extent;$('wide').textContent=world.infinite?'Surroundings':world.extent===128?'Catchment':'Region';$('travelForm').hidden=!world.infinite;$('worldId').textContent=`${world.dataId} · Root ${d.id}`;
-    $('worldTitle').textContent=world.infinite?'The streamed wilds':'The ferrite catchment';$('regionLabel').textContent=world.infinite?'STREAMING EXPERIMENT':'SURVEYED REGION';$('regionDetail').textContent=world.infinite?'Seeded ridges / wet corridors':'Basalt ridge / river basin';
+    $('worldTitle').textContent=world.infinite?'The streamed wilds':'The ferrite catchment';$('regionLabel').textContent=world.infinite?'STREAMED WORLD':'SURVEYED REGION';$('regionDetail').textContent=world.infinite?'Seeded ridges / wet corridors':'Basalt ridge / river basin';
     for(const [id,cell] of [['densityBase',.25],['densityFine',.125]])$(id).setAttribute('aria-pressed',String(world.cell===cell));
   }
   function updateView(){
@@ -105,8 +139,7 @@
     if(world.infinite){
       const previous=position;position=M.movePosition(position,camera.x,camera.z);
       travelled+=Math.hypot((position.cx-previous.cx)*8+position.x-previous.x,(position.cz-previous.cz)*8+position.z-previous.z);
-      if(camera.x||camera.z){actors[0].yaw=Math.atan2(camera.x,camera.z);lastTravel=performance.now();}
-      camera.x=camera.z=0;updateActors();
+      camera.x=camera.z=0;
     }else{camera.x=Math.max(8,Math.min(world.extent-8,camera.x));camera.z=Math.max(8,Math.min(world.extent-8,camera.z));}
   }
   function maximumSpan(){return world.extent===128?148:Math.min(116,Math.max(81,renderer.aspect*70));}
@@ -166,7 +199,7 @@
     if(![cx,cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=M.MAX_CHUNK))return;
     position=M.movePosition({cx,cz,x:4,z:4});updateActors();$('closeInspection').click();persist();updateView();$('notes').close();
   });
-  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a})),meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
+  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a,task:a.task&&{...a.task}})),atlas:{view:atlasView,selected:selectedHex&&{...selectedHex},...atlas.snapshot()},meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   rootAPI();
   function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);}});}
   $('export').onclick=()=>{const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`microvoxel-${world.seed}-metrics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -190,14 +223,15 @@
       if(!dx&&!dz&&Math.hypot(velocity.x,velocity.z)<.01){velocity.x=velocity.z=0;if(persistOnStop&&!heldKeys.size){persistOnStop=false;persist();}}
       if(velocity.x||velocity.z)moveCamera(velocity.x*dt,velocity.z*dt);
       if(viewDirty)updateView();
-      push(frameSamples,delta);if(!paused)simTime+=Math.min(delta/1000,.05);updateActors();
+      push(frameSamples,delta);if(!paused){simTime+=dt;atlas.update(dt);}
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       for(const v of visible){
         const requested=cache.get(v.key),coarse=placeholderStep(),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested||coarse&&cache.items.get(key(v.cx,v.cz,coarse));
         if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,0,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,0,(v.cz%512)*8]:[p.x,0,p.z]);}
       }
-      for(const a of actors)renderer.actor(a,simTime,motion.matches||world.infinite&&now-lastTravel>180);
+      for(const a of actors){const p=localPoint(a);if(Math.abs(p.x-camera.x)>camera.span*2||Math.abs(p.z-camera.z)>camera.span*2)continue;renderer.actor({...a,x:p.x,z:p.z},simTime,motion.matches||!a.walking);}
+      drawAtlas();
       if(firstReadyMs===null&&visible.length&&visible.every(v=>cache.items.has(v.key)))firstReadyMs=performance.now()-born;
       const d=localPoint(world.deposit),p=renderer.project(camera,d.x,d.y+.7,d.z);$('rootMarker').style.left=`${p.x}px`;$('rootMarker').style.top=`${p.y}px`;$('rootMarker').hidden=p.x<0||p.y<0||p.x>canvas.clientWidth||p.y>canvas.clientHeight;
       if(selection){const s=localPoint(selection),p=renderer.project(camera,s.x,s.y+.04,s.z);$('groundMarker').hidden=p.x<0||p.y<0||p.x>canvas.clientWidth||p.y>canvas.clientHeight;$('groundMarker').style.left=`${p.x}px`;$('groundMarker').style.top=`${p.y}px`;}

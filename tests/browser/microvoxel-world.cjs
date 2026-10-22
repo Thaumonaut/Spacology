@@ -1,6 +1,6 @@
 'use strict';
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),{execFileSync}=require('node:child_process'),{pathToFileURL}=require('node:url');
-const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',URL=BASE+'/prototypes/microvoxel-world.html?seed=2718';
+const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',URL=BASE+'/prototypes/microvoxel-world.html?seed=2718&extent=128';
 const M=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');
 const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.ready>0&&s.ready===s.visible&&!s.pending&&!s.moving;},null,{timeout:60000});
 const state=p=>p.evaluate(()=>MicroWorldLab.snapshot());
@@ -30,6 +30,17 @@ try{
   assert.ok(pixel[0]>20&&pixel[1]>pixel[0]&&pixel[1]>pixel[2]&&pixel[3]===255,'clearing has rendered green pixels, not an empty canvas');
   const first=(await state(p)).actors;await p.waitForFunction(x=>MicroWorldLab.snapshot().actors[0].x!==x,first[0].x);const moving=await state(p);
   for(const a of moving.actors)assert.equal(a.y,M.createWorld(2718).ground(a.x,a.z),'actor contacts exact voxel ground');
+  // Hex atlas: crew work tasks independently of the camera, and each role sees the same hexes.
+  assert.equal(moving.atlas.view,'explore');assert.deepEqual(moving.actors.map(a=>a.role),['explorer','researcher']);
+  await p.waitForFunction(()=>MicroWorldLab.snapshot().atlas.surveyed>1,null,{timeout:20000});
+  const atlasPixels=()=>p.evaluate(()=>{const c=document.getElementById('atlasLayer'),d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=3;i<d.length;i+=4)n+=d[i]>0;return n;});
+  assert.ok(await atlasPixels()>500,'explore view draws surveyed and frontier hexes');
+  await p.locator('[data-atlas=logistics]').click();assert.equal((await state(p)).atlas.view,'logistics');assert.equal(await p.locator('[data-atlas=logistics]').getAttribute('aria-pressed'),'true');
+  await p.locator('[data-atlas=off]').click();await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));assert.equal(await atlasPixels(),0,'terrain view hides the atlas');await p.locator('[data-atlas=explore]').click();
+  await p.locator('#rootMarker').click();assert.match(await p.locator('#hexSummary').innerText(),/Ferrite root \(identified\)/);assert.ok(await p.locator('#hexTask').isHidden());await p.locator('#closeInspection').click();
+  await p.locator('#pause').click();const crew=(await state(p)).actors.map(a=>[a.x,a.z]),box=await p.locator('#world').boundingBox();
+  await p.mouse.move(box.x+box.width/2,box.y+box.height/2);await p.mouse.down();await p.mouse.move(box.x+box.width/2-120,box.y+box.height/2-80,{steps:6});await p.mouse.up();
+  const dragged=await state(p);assert.deepEqual(dragged.actors.map(a=>[a.x,a.z]),crew,'camera drag does not move task-linked crew');await p.locator('#pause').click();await p.locator('#close').click();await ready(p);
   await p.locator('#pause').click();const stopped=(await state(p)).simTime;await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));assert.equal((await state(p)).simTime,stopped);assert.equal(await p.locator('#pause').getAttribute('aria-pressed'),'true');
   // Ground inspection agrees with projection at a flat, uncovered point in the clearing.
   const point=await p.evaluate(()=>MicroWorldLab.project(49,8,58)),rect=await p.locator('#world').boundingBox();
@@ -114,7 +125,7 @@ try{
     const file=path.join(temporary,'world.html');execFileSync(process.execPath,[path.resolve(__dirname,'../../tools/package-microvoxel.cjs'),file]);
     const offline=await browser.newContext({offline:true,serviceWorkers:'block'}),copy=await offline.newPage(),copyErrors=[],copyRequests=[];
     copy.on('pageerror',e=>copyErrors.push(e.message));copy.on('request',r=>copyRequests.push(r.url()));
-    await copy.goto(pathToFileURL(file).href);await ready(copy);assert.deepEqual((await state(copy)).deposit,original);
+    await copy.goto(pathToFileURL(file).href+'?extent=128');await ready(copy);assert.deepEqual((await state(copy)).deposit,original);
     await copy.locator('#close').click();await ready(copy);await copy.locator('#rootMarker').click();assert.match(await copy.locator('#inspectBody').innerText(),/western fault/);
     await copy.locator('#info').click();await copy.locator('#seed').fill('39');await copy.locator('#seedForm button').click();await ready(copy);assert.equal((await state(copy)).seed,39);
     await copy.locator('#densityFine').click();await copy.locator('#close').click();await ready(copy);assert.equal((await state(copy)).cellMetres,.125,'fine offline package uses the real worker');

@@ -5,7 +5,7 @@ const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();r
 const state=p=>p.evaluate(()=>MicroWorldLab.snapshot());
 const terrainImage=p=>p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.getElementById('world').toDataURL('image/png')))));
 async function jump(p,cx,cz){await p.locator('#info').click();await p.locator('#chunkX').fill(String(cx));await p.locator('#chunkZ').fill(String(cz));await p.locator('#travelForm button').click();await ready(p);}
-function bounded(s){assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);assert.equal(s.actors.length,1);assert.equal(s.actors[0].x,0);assert.equal(s.actors[0].z,0);assert.ok(s.position.x>=0&&s.position.x<8&&s.position.z>=0&&s.position.z<8);assert.ok(s.visible<=320&&s.meshCacheEntries<=320&&s.meshCacheBytes<=32*1024*1024);assert.ok(s.voxelCacheEntries<=128&&s.voxelCacheBytes<=4*1024*1024);assert.ok(s.vegetationEntries<=2048&&s.mainVegetationEntries<=2048);assert.ok(s.maxRenderOrigin<256);}
+function bounded(s){assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);assert.equal(s.actors.length,2);assert.ok(s.position.x>=0&&s.position.x<8&&s.position.z>=0&&s.position.z<8);assert.ok(s.visible<=320&&s.meshCacheEntries<=320&&s.meshCacheBytes<=32*1024*1024);assert.ok(s.voxelCacheEntries<=128&&s.voxelCacheBytes<=4*1024*1024);assert.ok(s.vegetationEntries<=2048&&s.mainVegetationEntries<=2048);assert.ok(s.maxRenderOrigin<256);}
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
   const context=await browser.newContext({viewport:{width:1280,height:850},serviceWorkers:'block'}),p=await context.newPage(),errors=[];
@@ -19,10 +19,10 @@ try{
   });
   await p.goto(BASE+'/prototypes/microvoxel-world.html?extent=infinite&seed=2718');await ready(p);await p.locator('#pause').click();
   const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-1');
-  const fixture=M.createWorld(original.seed,original.cellMetres,'infinite');assert.equal(original.actors[0].y,fixture.ground(original.position.cx*8+original.position.x,original.position.cz*8+original.position.z));
+  const fixture=M.createWorld(original.seed,original.cellMetres,'infinite');for(const a of original.actors)assert.equal(a.y,fixture.ground(a.x,a.z),'crew stand on exact voxel ground at their task sites');
   const home=await terrainImage(p),samples=[];assert.ok(home.length>10000,'capture contains rendered terrain, not an empty framebuffer');
   for(const [cx,cz] of [[125,0],[-125,-125],[250,250],[200000,-200000],[-200000,200000],[500000,-500000],[-500000,500000],[1000000,-1000000],[-1000000,1000000],[M.MAX_CHUNK-32,-M.MAX_CHUNK+32]]){
-    await jump(p,cx,cz);const s=await state(p);bounded(s);assert.equal(s.position.cx,cx);assert.equal(s.position.cz,cz);assert.equal(s.position.x,4);assert.equal(s.actors[0].y,fixture.ground(cx*8+4,cz*8+4));assert.ok(await p.locator('#rootMarker').isHidden());samples.push(s);
+    await jump(p,cx,cz);const s=await state(p);bounded(s);assert.equal(s.position.cx,cx);assert.equal(s.position.cz,cz);assert.equal(s.position.x,4);assert.deepEqual(s.actors.map(a=>[a.x,a.z]),original.actors.map(a=>[a.x,a.z]),'paused crew stay at their task sites while the camera travels');assert.ok(await p.locator('#rootMarker').isHidden());samples.push(s);
   }
   assert.ok(await p.evaluate(()=>window.__maxPositionUniform<256),'actual GPU position uniforms stay small after distant travel');
   const distant=samples.at(-1).position,distantX=distant.cx*8+distant.x+2,distantZ=distant.cz*8+distant.z+2;
@@ -40,7 +40,7 @@ try{
   let s=await state(p);bounded(s);assert.ok(s.position.cx<0||s.position.cz<0);const saved=s.position;
   await p.reload();await ready(p);assert.deepEqual((await state(p)).position,saved,'URL retains compact signed position');
   await p.locator('#world').focus();await p.keyboard.press('ArrowRight');await ready(p);s=await state(p);bounded(s);assert.notDeepEqual(s.position,saved);
-  const q=s.position,ground=fixture.ground(q.cx*8+q.x,q.cz*8+q.z);assert.equal(s.actors[0].y,ground);
+  const q=s.position,ground=fixture.ground(q.cx*8+q.x,q.cz*8+q.z);assert.equal(s.actors[0].y,fixture.ground(s.actors[0].x,s.actors[0].z));
   const pick=await p.evaluate(({x,y,z})=>MicroWorldLab.project(x,y,z),{x:q.cx*8+q.x+2,y:ground,z:q.cz*8+q.z+2});
   await p.mouse.click(rect.x+pick.x,rect.y+pick.y);assert.ok(await p.locator('#inspection').isVisible());
   assert.ok((await p.locator('#inspectPosition').innerText()).includes('X '));await p.locator('#closeInspection').click();

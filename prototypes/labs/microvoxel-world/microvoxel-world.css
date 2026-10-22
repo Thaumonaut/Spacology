@@ -10,3 +10,6 @@ select{font:inherit;-webkit-tap-highlight-color:transparent}
 select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 #worldSize{display:block;width:100%;min-height:44px;margin:8px 0 16px;background:#172b25;border:1px solid #6b806c;border-radius:4px;padding:8px 10px;color:inherit}
 .travel-coordinates{display:flex;gap:12px;margin-bottom:12px}.travel-coordinates label{flex:1;min-width:0}.travel-coordinates input{display:block;width:100%;min-height:44px;margin-top:6px;background:#172b25;border:1px solid #6b806c;border-radius:4px;padding:8px;color:inherit}#travelForm[hidden],#positionLabel[hidden]{display:none}#positionLabel{max-width:80vw;width:fit-content;font:10px/1.5 ui-monospace,monospace;font-variant-numeric:tabular-nums;background:#dfe4d6cf;padding:3px 5px;border-radius:3px;text-shadow:none}
+.atlas-layer{position:absolute;inset:0;pointer-events:none}.atlas-controls{display:flex;gap:4px}.atlas-controls button{padding:0 10px;white-space:nowrap}.hex-summary{font:11px/1.5 ui-monospace,monospace}.hex-status{font-size:11px;color:var(--accent);margin:4px 0}#hexTask{min-height:36px;margin:4px 0}
+@media(max-width:660px){.atlas-controls{width:100%}.atlas-controls button{flex:1;font-size:11px;padding:0 4px}}
+@media(max-width:1040px) and (min-width:661px){.toolbar{flex-wrap:wrap;row-gap:6px}.toolbar>button{padding:0 10px}}

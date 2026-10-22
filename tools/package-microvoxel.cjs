@@ -12,7 +12,7 @@ if(!controller.includes(target))throw new Error('Worker bootstrap changed; revie
 controller=controller.replace(target,`new Worker(${workerURL})`);
 let html=fs.readFileSync(path.join(root,'prototypes/microvoxel-world.html'),'utf8');
 html=html.replace('<link rel="stylesheet" href="labs/microvoxel-world/microvoxel-world.css">',`<style>${read('microvoxel-world.css')}</style>`);
-const scripts={'voxel-world-model.js':read('voxel-world-model.js'),'voxel-renderer.js':read('voxel-renderer.js'),'microvoxel-world.js':controller};
+const scripts={'voxel-world-model.js':read('voxel-world-model.js'),'voxel-renderer.js':read('voxel-renderer.js'),'hex-atlas.js':read('hex-atlas.js'),'microvoxel-world.js':controller};
 for(const [name,source] of Object.entries(scripts))html=html.replace(`<script src="labs/microvoxel-world/${name}"></script>`,`<script>${source.replace(/<\/script/gi,'<\\/script')}</script>`);
 html=html.replace('href="minigames.html"','href="https://thaumonaut.github.io/Spacology/prototypes/minigames.html"');
 fs.writeFileSync(path.resolve(output),html);console.log(`Standalone world lab: ${path.resolve(output)} (${Buffer.byteLength(html)} bytes, inline worker and no runtime downloads)`);

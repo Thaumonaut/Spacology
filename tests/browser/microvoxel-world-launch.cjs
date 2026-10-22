@@ -13,7 +13,7 @@ try{
   host.on('pageerror',e=>errors.push(e.message));host.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await host.route('**/__world-embed',route=>route.fulfill({contentType:'text/html',body:'<!doctype html><body style="margin:0"><iframe id="lab" sandbox="allow-scripts" style="border:0;width:100vw;height:100vh"></iframe>'}));
   await host.goto(BASE+'/__world-embed');await host.locator('#lab').evaluate((iframe,html)=>{iframe.src=URL.createObjectURL(new Blob([html],{type:'text/html'}));},fs.readFileSync(file,'utf8'));
-  const frame=host.frames().find(f=>f.parentFrame());await ready(frame);assert.equal(await frame.evaluate(()=>self.origin),'null','embedded world has an opaque sandbox origin');
+  const frame=host.frames().find(f=>f.parentFrame());await ready(frame);assert.equal(await frame.evaluate(()=>self.origin),'null','embedded world has an opaque sandbox origin');assert.equal(await frame.evaluate(()=>MicroWorldLab.snapshot().extent),'infinite','streamed world is the default');
   for(let i=0;i<2;i++)for(const [opener,dialog,close] of [['info','notes','Close field notes'],['metrics','performance','Close performance']]){
     await frame.locator('#'+opener).click();assert.ok(await frame.locator('#'+dialog).isVisible());await frame.getByRole('button',{name:close,exact:true}).click();await frame.locator('#'+dialog).waitFor({state:'hidden',timeout:2000});
   }
