@@ -5,6 +5,8 @@
   // its whole group (or finer nodes still cached), so old detail never disappears before new detail covers it. New nodes
   // dissolve in over the ones they replace; node borders carry skirts (in the mesher) to hide level seams.
   const M=root.MicroWorld,FADE=250,SAMPLES=240;
+  // Smooth-terrain comparison: ?mesh=smooth meshes the ground with Surface Nets (standing objects stay blocky).
+  const SMOOTH=new URLSearchParams(root.location?.search||'').get('mesh')==='smooth';
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const percentile=(list,p)=>{if(!list.length)return 0;const s=[...list].sort((a,b)=>a-b);return s[Math.floor((s.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>SAMPLES)list.shift();};
@@ -141,7 +143,7 @@
       for(const s of workers){
         if(s.job)continue;const job=nextJob();if(!job)return;
         s.job={...job,epoch};s.started=performance.now();inflight.set(job.key,s);
-        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent});
+        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent});
       }
     }
     function receive(slot,data){

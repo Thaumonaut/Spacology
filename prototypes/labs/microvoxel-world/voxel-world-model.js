@@ -1828,7 +1828,7 @@
       v=Math.min(v,heightCells*cellMetres);bounds.set(k,v);if(bounds.size>16384)bounds.delete(bounds.keys().next().value);return v;
     }
     const heightBound=(cx,cz)=>nodeBound(Math.log2(CHUNK*density/NODE),cx,cz);
-    function node(L,nx,nz){
+    function node(L,nx,nz,options={}){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
       const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
@@ -1858,7 +1858,8 @@
         const k=j*P+i,b=cols[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
-      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
+      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
+      if(options.smooth)mesh.smooth=surfaceNets(cols,P,base,ny);
       return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
@@ -1943,6 +1944,59 @@
       const order=[...Array(out.length/4).keys()].sort((a,b)=>hash(a,nx*7+nz,seed+91)-hash(b,nx*7+nz,seed+91)),shuffled=new Float32Array(out.length);
       order.forEach((k,i)=>shuffled.set(out.slice(k*4,k*4+4),i*4));
       return shuffled;
+    }
+    // Smooth-terrain comparison (?mesh=smooth): Surface Nets over the ground materials, standing objects still blocky.
+    // The voxel data is unchanged; only the mesh differs. Samples are block centres (dense index i, block coordinate i-0.5);
+    // each cell between eight samples with a solid/air change gets one vertex at the mean of its crossing edges, lightly
+    // relaxed toward its neighbours. A node owns the edges whose lower sample is inside it, so neighbours never double up.
+    const isTerrain=m=>m&&!ABOVE_GROUND.has(m&127);
+    function objectsOnly(dense){const out=new Uint8Array(dense.length);for(let k=0;k<dense.length;k++){const m=dense[k];out[k]=isTerrain(m)?0:m;}return out;}
+    function surfaceNets(cols,P,base,ny){
+      // Each column's surface material and height, so a slope shows its grass, snow or rock rather than the soil beneath.
+      const surf=new Uint8Array(P*P),surfY=new Int32Array(P*P);for(let k=0;k<P*P;k++){const c=cols[k];for(let b=ny-1;b>=0;b--)if(isTerrain(c[b])){surf[k]=c[b]&127;surfY[k]=b;break;}}
+      const Y=ny-base+2,at=(i,y,j)=>{if(i<0||j<0||i>=P||j>=P)return 0;const b=y+base-1;if(b<0)return 1;if(b>=ny)return 0;const m=cols[j*P+i][b];return isTerrain(m)?m:0;};
+      const solid=new Uint8Array(P*P*Y);for(let j=0;j<P;j++)for(let y=0;y<Y;y++)for(let i=0;i<P;i++)solid[(j*Y+y)*P+i]=at(i,y,j);
+      const S=(i,y,j)=>i<0||j<0||y<0||i>=P||j>=P||y>=Y?(y<0?1:0):solid[(j*Y+y)*P+i];
+      // One vertex per cell (cell c spans samples c..c+1 on each axis).
+      const C=P-1,CY=Y-1,vid=new Int32Array(C*C*CY).fill(-1),vx=[],vy=[],vz=[];
+      for(let j=0;j<C;j++)for(let y=0;y<CY;y++)for(let i=0;i<C;i++){
+        let mask=0;for(let k=0;k<8;k++)if(S(i+(k&1),y+(k>>1&1),j+(k>>2)))mask|=1<<k;
+        if(mask===0||mask===255)continue;
+        let sx=0,sy=0,sz=0,n=0;
+        for(const [a,b] of [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]]){
+          if(((mask>>a)&1)===((mask>>b)&1))continue;
+          sx+=((a&1)+(b&1))/2;sy+=((a>>1&1)+(b>>1&1))/2;sz+=((a>>2)+(b>>2))/2;n++;
+        }
+        vid[(j*CY+y)*C+i]=vx.length;vx.push(i+sx/n);vy.push(y+sy/n);vz.push(j+sz/n);
+      }
+      // Relax each vertex halfway toward the mean of its face neighbours: rounds the chamfered staircase into slopes.
+      const V=vx.length,rx=new Float32Array(V),ry=new Float32Array(V),rz=new Float32Array(V);
+      for(let j=0;j<C;j++)for(let y=0;y<CY;y++)for(let i=0;i<C;i++){
+        const v=vid[(j*CY+y)*C+i];if(v<0)continue;
+        // Border cells are shared with the neighbouring node, which sees different neighbours: leave them unrelaxed so both
+        // nodes place them identically and the seam stays closed.
+        if(i===0||j===0||i===C-1||j===C-1){rx[v]=vx[v];ry[v]=vy[v];rz[v]=vz[v];continue;}
+        let sx=0,sy=0,sz=0,n=0;
+        for(const [a,b,c] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const I=i+a,Yy=y+b,J=j+c;if(I<0||J<0||Yy<0||I>=C||J>=C||Yy>=CY)continue;const u=vid[(J*CY+Yy)*C+I];if(u<0)continue;sx+=vx[u];sy+=vy[u];sz+=vz[u];n++;}
+        rx[v]=n?vx[v]*.5+sx/n*.5:vx[v];ry[v]=n?vy[v]*.5+sy/n*.5:vy[v];rz[v]=n?vz[v]*.5+sz/n*.5:vz[v];
+      }
+      // Normals from the occupancy gradient over a 4×4×4 block around each cell: smooth and pointing into the air.
+      const normal=(i,y,j)=>{let x=0,yy=0,z=0;for(let c=-1;c<=2;c++)for(let b=-1;b<=2;b++)for(let a=-1;a<=2;a++){if(!S(i+a,y+b,j+c))continue;const w=(a<=0?-1:1)*(Math.abs(a-.5)<1?1:.5),wy=(b<=0?-1:1)*(Math.abs(b-.5)<1?1:.5),wz=(c<=0?-1:1)*(Math.abs(c-.5)<1?1:.5);x-=w;yy-=wy;z-=wz;}const l=Math.hypot(x,yy,z)||1;return [x/l,yy/l,z/l];};
+      const out=[];
+      const push=(v,i,y,j,m)=>{const [a,b,c]=normal(i,y,j);out.push(rx[v]-.5,ry[v]-1+base+.5,rz[v]-.5,a,b,c,m);};
+      // Quads across each owned edge with a solid/air change; wound so the front faces the air.
+      for(let d=0;d<3;d++)for(let j=1;j<=NODE;j++)for(let y=0;y<CY;y++)for(let i=1;i<=NODE;i++){
+        const A=S(i,y,j),B=d===0?S(i+1,y,j):d===1?S(i,y+1,j):S(i,y,j+1);if(!A===!B)continue;
+        // The four cells sharing this edge.
+        const cells=d===0?[[i,y-1,j-1],[i,y,j-1],[i,y,j],[i,y-1,j]]:d===1?[[i-1,y,j-1],[i-1,y,j],[i,y,j],[i,y,j-1]]:[[i-1,y-1,j],[i,y-1,j],[i,y,j],[i-1,y,j]];
+        const ids=cells.map(([a,b,c])=>a<0||b<0||c<0||a>=C||b>=CY||c>=C?-1:vid[(c*CY+b)*C+a]);if(ids.some(v=>v<0))continue;
+        // Material: the solid sample's column surface when it lies within three blocks of that surface, else its own.
+        const si=d===0&&!A?i+1:i,sj=d===2&&!A?j+1:j,sy2=d===1&&!A?y+1:y,sk=sj*P+si,m=surfY[sk]-(sy2+base-1)<=3?surf[sk]:(A||B),order=A?[0,1,2,0,2,3]:[0,2,1,0,3,2];
+        for(const k of order){const [a,b,c]=cells[k];push(ids[k],a,b,c,m&127);}
+      }
+      const buf=new ArrayBuffer(out.length/7*16),f=new Float32Array(buf),bytes=new Int8Array(buf),u8=new Uint8Array(buf);let top=0;
+      for(let k=0,o=0;k<out.length;k+=7,o+=16){f[o/4]=out[k];f[o/4+1]=out[k+1];f[o/4+2]=out[k+2];top=Math.max(top,out[k+1]);bytes[o+12]=Math.round(out[k+3]*127);bytes[o+13]=Math.round(out[k+4]*127);bytes[o+14]=Math.round(out[k+5]*127);u8[o+15]=out[k+6];}
+      return {buffer:buf,count:out.length/7,top};
     }
     // Ground surface of a column in blocks: solid from the bottom up to the first air gap, ignoring trees and spires, so
     // isles, canopies and spires do not tilt the hillshade. Water counts: it is the visible surface.
