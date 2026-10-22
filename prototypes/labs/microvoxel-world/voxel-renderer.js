@@ -352,14 +352,34 @@
   uniform float cloudTime, cloudFade;
   out vec4 color;
   ${MEADOW}
-  float cover(vec2 p){vec2 q=(p+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.)/95.+cloudTime*vec2(.03,.012);return meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35;}
+  vec2 drift(vec2 p){return (p+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.)/95.+cloudTime*vec2(.03,.012);}
+  float cover(vec2 p){vec2 q=drift(p);return meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35;}
+  // Billows: the nearest of jittered cell points, as round puffs (1 at a puff's heart, 0 between puffs), plus which side
+  // of its puff this point is on, so every lobe can be lit on its own.
+  vec3 billow(vec2 q){
+    vec2 cell=floor(q);float d=9.;vec2 off=vec2(0);
+    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6))*.8+.1,v=q-c-o;float e=length(v);if(e<d){d=e;off=v;}}
+    return vec3(1.-smoothstep(.1,.75,d),off/max(d,1e-3));
+  }
+  // Ghibli cumulus seen from above: masses from broad noise, scalloped into cauliflower lobes at two scales.
+  float shapeAt(vec2 p){vec2 q=drift(p);return cover(p)+(billow(q*2.6).x-.5)*.1+(billow(q*6.+3.1).x-.5)*.04;}
   void main(){
-    vec2 p=at;float n=cover(p);
-    float alpha=smoothstep(.56,.68,n)*cloudFade;if(alpha<.01)discard;
-    // Thicker toward the sun means lit; thinning away from it falls into the shadow band.
-    float lit=n-cover(p+vec2(-14.,11.));
-    vec3 c=mix(vec3(.74,.79,.9),vec3(1.,.99,.96),smoothstep(-.02,.03,lit))*mix(.94,1.,smoothstep(.6,.8,n));
-    color=vec4(c,alpha*.92);
+    vec2 q=drift(at);float n=cover(at),shape=shapeAt(at);
+    float body=smoothstep(.58,.6,shape);
+    // Thin wisps between the masses: noise stretched along the wind.
+    float wisp=smoothstep(.72,.78,meadowNoise(q*vec2(14.,2.)+vec2(cloudTime*.05,0)))*smoothstep(.44,.54,n)*(1.-body)*.2;
+    float alpha=max(body,wisp)*cloudFade;if(alpha<.01)discard;
+    // Always golden hour: each lobe lit from the low sun's side in warm cream and peach, a lavender-blue far side, the
+    // whole mass darker where it thins away from the sun, and a golden rim on sunward edges.
+    vec2 sunDir=normalize(vec2(-.6,.45));
+    // Lit where the billowed shape falls away toward the sun (a sunward slope): each lobe gets a bright sunward cheek
+    // and a shaded lee side.
+    float tone=.55+(shape-shapeAt(at+sunDir*9.))*7.+(n-cover(at+sunDir*30.))*3.;
+    vec3 shade=vec3(.72,.74,.9),mid=vec3(.97,.95,.97),lit=vec3(1.,.95,.88),gold=vec3(1.,.84,.66);
+    vec3 c=mix(mix(shade,mid,smoothstep(.2,.45,tone)),lit,smoothstep(.62,.85,tone));
+    float rim=1.-smoothstep(.6,.66,shape);c=mix(c,gold,rim*smoothstep(.5,.8,tone)*.55);
+    c=mix(c,vec3(.97,.95,1.),wisp*(1.-body));
+    color=vec4(c,alpha);
   }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
@@ -505,13 +525,13 @@
       }
       // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything.
       const fade=Math.min(1,Math.max(0,(c.span-150)/250));
-      if(fade>0){
+      if(fade>0&&(this.cloudOpacity??.85)>0){
         const k=this.ku,b=this.bounds(c,CLOUD_HEIGHT);
         gl.useProgram(this.cloudProgram);gl.bindVertexArray(this.cloudVao);gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
         gl.uniform3f(k.center,c.x,c.y??8,c.z);gl.uniform2f(k.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(k.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
         gl.uniform2f(k.middle,(b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2);gl.uniform2f(k.extent,(b.maxX-b.minX)/2+20,(b.maxZ-b.minZ)/2+20);
         gl.uniform2f(k.worldOffset,...off);
-        gl.uniform1f(k.cloudTime,this.time);gl.uniform1f(k.cloudFade,fade*fade*(3-2*fade));
+        gl.uniform1f(k.cloudTime,this.time);gl.uniform1f(k.cloudFade,fade*fade*(3-2*fade)*(this.cloudOpacity??.85));
         gl.disable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
         gl.drawArrays(gl.TRIANGLES,0,6);
         gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.bindVertexArray(null);
