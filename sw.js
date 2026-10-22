@@ -4,11 +4,11 @@ const ENEMY_ASSETS=[
   ...Object.values(self.SpacologyEnemyCatalogue.ARCHETYPE_PORTRAITS).flatMap(types=>Object.values(types)),
   ...Object.values(self.SpacologyEnemyCatalogue.HEROES).map(hero=>hero.portrait)
 ].map(path=>path.replace(/^\.\.\//,'./'));
-const CACHE='spacology-playtest-library-v10-microvoxel-hex-atlas';
+const CACHE='spacology-playtest-library-v11-microvoxel-coop-supply';
 const CORE=[
   './prototypes/minigames.html','./prototypes/library/catalogue.js','./prototypes/library/library.js','./prototypes/library/library.css',
   './prototypes/microvoxel-world.html',
-  ...['voxel-world-model.js','hex-atlas.js','voxel-worker.js','voxel-renderer.js','microvoxel-world.js','microvoxel-world.css'].map(file=>'./prototypes/labs/microvoxel-world/'+file),
+  ...['voxel-world-model.js','hex-atlas.js','coop-session.js','coop-net.js','coop-play.js','vendor/peerjs-1.5.5.min.js','voxel-worker.js','voxel-renderer.js','microvoxel-world.js','microvoxel-world.css'].map(file=>'./prototypes/labs/microvoxel-world/'+file),
   './prototypes/shared/combat/battle-stage.css','./prototypes/shared/combat/battle-presentation.js',
   './prototypes/shared/minigames/minigame-kit.js','./prototypes/shared/minigames/minigame-kit.css',
   ...self.MiniGameKit.GAMES.flatMap(g=>[

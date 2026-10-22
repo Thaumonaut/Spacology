@@ -47,16 +47,22 @@
     $('hexStatus').textContent='';selectHex(atlas.hexAt(point.x,point.z));
   }
   function selectHex(h){
-    selectedHex=h;const s=atlas.summary(h.q,h.r),k=atlas.known(h.q,h.r);
+    selectedHex=h;
+    if(coop?.active){const key=atlas.key(h.q,h.r),a=coop.action(key);$('hexSummary').textContent=coop.describe(key);$('hexTask').hidden=!a;$('hexTask').disabled=false;if(a)$('hexTask').textContent=a.label;return;}
+    const s=atlas.summary(h.q,h.r),k=atlas.known(h.q,h.r);
     $('hexSummary').textContent=`HEX ${h.q}, ${h.r} · `+(k?.surveyed?`${s.biome} · relief ${s.relief.toFixed(1)} m · travel cost ${s.cost}${s.resource?` · ${s.resource} (${k.identified?'identified':k.sampled?'studying':'unsampled'})`:''}`:'Unsurveyed: send the explorer to learn what is here');
     $('hexTask').hidden=!s.inside||!!k?.identified||!!k?.surveyed&&!s.resource;$('hexTask').disabled=!!k?.sampled;
     $('hexTask').textContent=!k?.surveyed?'Send explorer':k.sampled?'Studying at camp':'Send researcher';
   }
-  $('hexTask').onclick=()=>{if(selectedHex){$('hexStatus').textContent=atlas.assign(selectedHex.q,selectedHex.r);selectHex(selectedHex);}};
-  for(const b of document.querySelectorAll('[data-atlas]'))b.onclick=()=>{atlasView=b.dataset.atlas;for(const o of document.querySelectorAll('[data-atlas]'))o.setAttribute('aria-pressed',String(o===b));};
+  $('hexTask').onclick=()=>{if(!selectedHex)return;if(coop.active){const a=coop.action(atlas.key(selectedHex.q,selectedHex.r));if(a)coop.act(a.intent);}else $('hexStatus').textContent=atlas.assign(selectedHex.q,selectedHex.r);selectHex(selectedHex);};
+  function setAtlasView(v){atlasView=v;for(const o of document.querySelectorAll('[data-atlas]'))o.setAttribute('aria-pressed',String(o.dataset.atlas===v));}
+  for(const b of document.querySelectorAll('[data-atlas]'))b.onclick=()=>setAtlasView(b.dataset.atlas);
+  let coopRegen=false;
+  const coop=CoopPlay.create({world:()=>world,regenerate:(s,c,e)=>{coopRegen=true;try{regenerate(s,c,e);}finally{coopRegen=false;}},changed:()=>{if(selectedHex)selectHex(selectedHex);},focus:setAtlasView});
   const layer=$('atlasLayer'),ctx=layer.getContext('2d');
-  const ATLAS_STYLE={surveyed:['#f3ead140','#f3ead1cc'],frontier:[null,'#e8bc72'],usable:['#58c27a66','#6fe08f'],unconfirmed:[null,'#dfe4d6'],ground:[null,'#dfe4d688'],identified:['#a98ee840','#c7b6f5'],studying:['#a98ee899','#efe9ff'],'needs-sample':[null,'#c7b6f5'],selected:[null,'#ffffff']};
-  const ATLAS_LABEL=h=>({usable:`${h.root?'ROOT':'FERRITE'} · ${h.steps} HEX`,frontier:`COST ${h.cost}`,'needs-sample':'SAMPLE',studying:'STUDYING'})[h.state];
+  const ATLAS_STYLE={surveyed:['#f3ead140','#f3ead1cc'],frontier:[null,'#e8bc72'],usable:['#58c27a66','#6fe08f'],unconfirmed:[null,'#dfe4d6'],ground:[null,'#dfe4d688'],identified:['#a98ee840','#c7b6f5'],studying:['#a98ee899','#efe9ff'],'needs-sample':[null,'#c7b6f5'],selected:[null,'#ffffff'],
+    planned:['#e8bc7266','#ffd38a'],hinted:['#a98ee833','#d9cbff'],signs:[null,'#a98ee8'],line:['#58c27a99','#9ff0b4'],route:['#58c27a33','#6fe08f99']};
+  const ATLAS_LABEL=h=>({usable:`${h.root?'ROOT':h.profile?h.profile.name.toUpperCase():'FERRITE'} · ${h.steps} HEX`,frontier:`COST ${h.cost}`,'needs-sample':'SAMPLE',studying:'STUDYING',planned:h.order?`SURVEY ${h.order}`:'EXTRACTOR',hinted:'HINT',signs:'SIGNS',line:h.root?'ROOT LINE':'LINE'})[h.state];
   // Hex edges are draped on the voxel ground; shared edges sample identical points, so neighbours tile on any slope.
   const outlines=new Map(),EDGE_SAMPLES=6;
   function outline(hx){
@@ -69,12 +75,12 @@
     const w=canvas.clientWidth,h=canvas.clientHeight,r=Math.min(devicePixelRatio||1,2);
     if(layer.width!==Math.round(w*r)||layer.height!==Math.round(h*r)){layer.width=Math.round(w*r);layer.height=Math.round(h*r);}
     ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,w,h);ctx.font='650 10px system-ui,sans-serif';ctx.textAlign='center';
-    const list=atlasView==='off'?[]:atlas.view(atlasView);if(selectedHex)list.push({...atlas.summary(selectedHex.q,selectedHex.r),state:'selected'});
+    const list=atlasView==='off'?[]:coop.active?[...coop.hexes()]:atlas.view(atlasView);if(selectedHex)list.push({...atlas.summary(selectedHex.q,selectedHex.r),state:'selected'});
     for(const hx of list){
       const pts=outline(hx).map(c=>{const p=localPoint(c);return renderer.project(camera,p.x,p.y,p.z);});
       if(pts.every(p=>p.x<0)||pts.every(p=>p.x>w)||pts.every(p=>p.y<0)||pts.every(p=>p.y>h))continue;
       const [fill,stroke]=ATLAS_STYLE[hx.state];ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();
-      ctx.setLineDash(['frontier','needs-sample','unconfirmed'].includes(hx.state)?[5,4]:[]);ctx.lineWidth=hx.state==='selected'?3:1.5;
+      ctx.setLineDash(['frontier','needs-sample','unconfirmed','signs'].includes(hx.state)?[5,4]:[]);ctx.lineWidth=hx.state==='selected'?3:1.5;
       if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.stroke();
       const label=camera.span<=80&&ATLAS_LABEL(hx);if(label){const x=pts.reduce((a,p)=>a+p.x,0)/pts.length,y=pts.reduce((a,p)=>a+p.y,0)/pts.length,m=ctx.measureText(label).width;ctx.fillStyle='#172a28d0';ctx.fillRect(x-m/2-4,y-8,m+8,15);ctx.fillStyle=stroke;ctx.fillText(label,x,y+3);}
     }
@@ -153,6 +159,7 @@
   $('pause').onclick=togglePause;
   $('economy').onclick=()=>{economy=!economy;$('economy').setAttribute('aria-pressed',String(economy));updateView();};
   function regenerate(seed,cell,extent=world.extent){
+    if(coop.active&&!coopRegen)coop.stop();
     const resized=extent!==world.extent;
     const reseeded=seed!==world.seed;
     stopKeys();world=M.createWorld(seed,cell,extent);cache.clear();renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=placeholders=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
@@ -201,7 +208,7 @@
   });
   function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a,task:a.task&&{...a.task}})),atlas:{view:atlasView,selected:selectedHex&&{...selectedHex},...atlas.snapshot()},meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   rootAPI();
-  function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);}});}
+  function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);},coop:Object.freeze({snapshot:coop.snapshot,start:coop.start,claim:coop.claim,act:coop.act,ready:coop.ready,stop:coop.stop,center:(q,r)=>atlas.center(q,r)})});}
   $('export').onclick=()=>{const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`microvoxel-${world.seed}-metrics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   function hud(){
     const s=snapshot();if(!failed){const missing=s.visible-s.ready;message(missing?`Streaming ${missing} / ${s.visible} chunks…`:'');$('summary').textContent=`${s.ready}/${s.visible} chunks · ${bytes(s.meshCacheBytes)} GPU · p95 ${s.frameP95.toFixed(1)} ms`;}
@@ -223,7 +230,7 @@
       if(!dx&&!dz&&Math.hypot(velocity.x,velocity.z)<.01){velocity.x=velocity.z=0;if(persistOnStop&&!heldKeys.size){persistOnStop=false;persist();}}
       if(velocity.x||velocity.z)moveCamera(velocity.x*dt,velocity.z*dt);
       if(viewDirty)updateView();
-      push(frameSamples,delta);if(!paused){simTime+=dt;atlas.update(dt);}
+      push(frameSamples,delta);if(!paused){simTime+=dt;if(!coop.update(dt,atlas.crew,atlas))atlas.update(dt);}
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       for(const v of visible){
