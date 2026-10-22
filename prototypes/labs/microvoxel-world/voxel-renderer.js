@@ -574,9 +574,11 @@
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
-      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);gl.uniform1f(this.u.grassGrow,this.queue.some(d=>d.mesh.grass)?grow:0);gl.uniform1f(this.u.cloudTime,this.time);gl.uniform2f(this.u.worldOffset,...off);
+      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);gl.uniform2f(this.u.worldOffset,...off);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
-      for(const d of this.queue){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
+      // Close-zoom tones apply per tile, only where that tile really carries leaf cards or grass blades: a coarse
+      // placeholder shown while finer tiles load keeps the far-zoom colours instead of dark, bladeless grass and boxy crowns.
+      for(const d of this.queue){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);gl.uniform1f(this.u.cards,d.mesh.leaves?grow:0);gl.uniform1f(this.u.grassGrow,d.mesh.grass?grow:0);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
       if(grow>0&&this.queue.some(d=>d.mesh.grass)){
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
