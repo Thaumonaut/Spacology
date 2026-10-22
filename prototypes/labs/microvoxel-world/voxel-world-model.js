@@ -166,10 +166,27 @@
       }
       return best||c;
     }
-    // Drainage network on a jittered 64 m node grid that follows the terrain, computed per 2 km tile with a 2 km margin on
-    // every side: priority-flood from the sea routes every node downhill (pits fill into lakes), so channels run downhill
-    // to the ocean or an inland lake. Upstream area grades channels into main rivers, streams and creeks; creek heads are
-    // springs. Sky-isle waterfalls land on the ground as extra sources whose water is routed downstream like any other.
+    // Drainage network: a regional hydrology bake on a jittered 64 m node grid, per 2 km tile with a 2 km margin on every
+    // side. Nodes sample the landform at that scale (plate relief, massif tiers and the broad crag octaves), so rivers find
+    // valleys and pass around peaks rather than through them. A priority-flood from the sea routes every node downhill;
+    // each drowned basin is then judged: a deep, sizeable one with a channel leaving it becomes a lake, the rest are
+    // breached (the outlet is cut down so the channel keeps falling and no puddle-lakes appear). Upstream area grades
+    // channels into main rivers, streams and creeks, and only systems whose mouth drains a real catchment are drawn, so
+    // coastal slopes don't sprout rows of short parallel creeks. Creek heads are springs. Sky-isle waterfalls land on the
+    // ground as extra sources whose water is routed downstream like any other.
+    // Creases (an inverted ridge map): node heights sink along a 0-1 crease field so flow on even slopes gathers into
+    // winding valley lines (and the carve below opens them) instead of running down in parallel straight lines. Creases
+    // only lower the ground the drainage sees, never raise it, so channel levels stay at or below the land; they fade out
+    // toward sea level so coastal plains keep their land and their rivers meander instead.
+    // CREASE HOOK (wired by the coordinator at merge): the eroded-terrain filter exposes a 0-1 `crease` (valley-line) field
+    // via geography()/world.erosionAt(x,z). Call world.setDrainageCrease((x,z)=>world.erosionAt(x,z).crease) (or assign
+    // creaseAt here) to use it instead of the stand-in below, so creeks and small streams follow the eroded crease lines.
+    // At 64 m node spacing this biases routing between nodes; it doesn't align channels to features finer than that.
+    let creaseAt=null;const CREASE_DEPTH=3.5;
+    function ownCrease(x,z){
+      const wx=x+(noise(x*.0021,z*.0021,seed+371)-.5)*260,wz=z+(noise(x*.0021,z*.0021,seed+373)-.5)*260;
+      return (1-Math.abs(noise(wx*.0034,wz*.0034,seed+375)*2-1))**3;
+    }
     const N8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
     const DRAIN=[{G:64,T:32,M:32,salt:341,tiles:new Map(),cap:16}];
     function drainTile(lv,ti,tj){
@@ -177,12 +194,24 @@
       const {G,T:TS,M:MG}=D,W=TS+2*MG,i0=ti*TS-MG,j0=tj*TS-MG,n=W*W;
       const px=new Float32Array(n),pz=new Float32Array(n),h=new Float32Array(n),rel=new Float32Array(n),fill=new Float32Array(n),down=new Int32Array(n).fill(-1),acc=new Float32Array(n),done=new Uint8Array(n),order=new Int32Array(n);
       const fed=new Uint8Array(n),src=new Map();
-      for(let j=0;j<W;j++)for(let i=0;i<W;i++){const k=j*W+i,gi=i0+i,gj=j0+j;px[k]=(gi+.2+.6*hash(gi,gj,seed+D.salt))*G;pz[k]=(gj+.2+.6*hash(gi,gj,seed+D.salt+2))*G;const t=tectonics(px[k],pz[k]);h[k]=t.h+upliftAt(px[k],pz[k]).up;rel[k]=Math.max(t.relief,t.cone);}
+      for(let j=0;j<W;j++)for(let i=0;i<W;i++){
+        const k=j*W+i,gi=i0+i,gj=j0+j;px[k]=(gi+.2+.6*hash(gi,gj,seed+D.salt))*G;pz[k]=(gj+.2+.6*hash(gi,gj,seed+D.salt+2))*G;
+        const t=tectonics(px[k],pz[k]);cragAt(px[k],pz[k],t.relief,t.cone);
+        const g=t.h+upliftAt(px[k],pz[k]).up+cragLow;h[k]=g<SEA?g:g-(creaseAt||ownCrease)(px[k],pz[k])*CREASE_DEPTH*clamp((g-SEA-.5)/12,0,1);rel[k]=Math.max(t.relief,t.cone);
+      }
       const hk=new Float64Array(n),hv=new Int32Array(n);let hn=0,on=0;
       const push=(e,k)=>{let c=hn++;while(c>0){const q=(c-1)>>1;if(hk[q]<=e)break;hk[c]=hk[q];hv[c]=hv[q];c=q;}hk[c]=e;hv[c]=k;};
       const pop=()=>{const k=hv[0],e=hk[--hn],v=hv[hn];let c=0;for(;;){let l=2*c+1;if(l>=hn)break;if(l+1<hn&&hk[l+1]<hk[l])l++;if(hk[l]>=e)break;hk[c]=hk[l];hv[c]=hv[l];c=l;}hk[c]=e;hv[c]=v;return k;};
       for(let k=0;k<n;k++){const i=k%W,j=(k/W)|0;if(i===0||j===0||i===W-1||j===W-1||h[k]<SEA){done[k]=1;fill[k]=h[k];push(h[k],k);}}
       while(hn){const c=pop(),ci=c%W,cj=(c/W)|0;order[on++]=c;for(const [di,dj] of N8){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=W||j>=W)continue;const k=j*W+i;if(done[k])continue;done[k]=1;fill[k]=Math.max(h[k],fill[c]+.01);down[k]=c;push(fill[k],k);}}
+      // The flood only proves a way down exists; water takes the steepest one (over the filled surface, so it stays
+      // acyclic and lakes still drain through their spill). On jittered nodes this bends courses instead of leaving the
+      // long straight diagonal chains of flood order.
+      for(let k=0;k<n;k++){
+        if(down[k]<0)continue;const ki=k%W,kj=(k/W)|0;let best=down[k],bs=(fill[k]-fill[best])/Math.hypot(px[best]-px[k],pz[best]-pz[k]);
+        for(const [di,dj] of N8){const i=ki+di,j=kj+dj;if(i<0||j<0||i>=W||j>=W)continue;const m=j*W+i;if(fill[m]>=fill[k])continue;const s=(fill[k]-fill[m])/Math.hypot(px[m]-px[k],pz[m]-pz[k]);if(s>bs){bs=s;best=m;}}
+        down[k]=best;
+      }
       // Isle waterfalls: the node nearest each landing point becomes a source fed from the sky.
       for(let j=Math.floor(j0*G/IG);j<=Math.floor((j0+W)*G/IG);j++)for(let i=Math.floor(i0*G/IG);i<=Math.floor((i0+W)*G/IG);i++){
         const F=isleCell(i,j)?.fall;if(!F)continue;let best=-1,bd=1e9;const ci=Math.floor(F.x/G)-i0,cj=Math.floor(F.z/G)-j0;
@@ -190,48 +219,103 @@
         if(best>=0&&h[best]>=SEA){fed[best]=1;src.set(best,{x:F.x+(noise(F.x*.02,F.z*.02,seed+345)-.5)*12,z:F.z+(noise(F.x*.02,F.z*.02,seed+347)-.5)*12});}
       }
       for(let o=on-1;o>=0;o--){const c=order[o];acc[c]+=1;if(down[c]>=0){acc[down[c]]+=acc[c];if(fed[c])fed[down[c]]=1;}}
-      T={i0,j0,W,px,pz,h,fill,down,acc,rel,fed,src};D.tiles.set(key,T);if(D.tiles.size>D.cap)D.tiles.delete(D.tiles.keys().next().value);return T;
+      // Downstream-first pass: the catchment at each system's mouth, steps from the mouth, and drowned basins keyed by
+      // their spill node (the first node below them that isn't drowned): depth and node count.
+      const mouth=new Float32Array(n),steps=new Uint16Array(n),spill=new Int32Array(n).fill(-1),deep=new Float32Array(n),area=new Uint16Array(n);
+      for(let o=0;o<on;o++){
+        const c=order[o],d=down[c];
+        if(d<0||h[d]<SEA){mouth[c]=acc[c];steps[c]=0;}else{mouth[c]=mouth[d];steps[c]=steps[d]+1;}
+        if(d>=0&&fill[c]-h[c]>.5){const s=spill[d]>=0?spill[d]:d;spill[c]=s;deep[s]=Math.max(deep[s],fill[c]-h[c]);area[s]++;}
+      }
+      // Lakes: basins at least 4 m deep over 4+ nodes (or 8 m deep), with a channel leaving through the spill. Every other
+      // basin is breached: its nodes keep their own height and the levels downstream are lowered until they fall again.
+      const lake=new Uint8Array(n),lvl=new Float32Array(n),keep=new Map();
+      for(let k=0;k<n;k++){
+        const s=spill[k];if(s<0){lvl[k]=fill[k];continue;}
+        let ok=keep.get(s);if(ok===undefined){ok=(deep[s]>=4&&area[s]>=4||deep[s]>=8)&&!!channelClass(acc[s],rel[s],fed[s],mouth[s]);keep.set(s,ok);}
+        lake[k]=ok?1:0;lvl[k]=ok?fill[k]:h[k];
+      }
+      for(let o=on-1;o>=0;o--){const c=order[o],d=down[c];if(d>=0&&!lake[d]&&lvl[d]>lvl[c]-.01)lvl[d]=lvl[c]-.01;}
+      // Lake nodes that carry a channel flowing in from the shore (the inflow continues across the lake to its outlet).
+      const feed=new Uint8Array(n);
+      for(let o=on-1;o>=0;o--){const c=order[o],d=down[c];if(d>=0&&lake[d]&&(feed[c]||!lake[c]&&channelClass(acc[c],rel[c],fed[c],mouth[c])))feed[d]=1;}
+      // Meanders live in the control network: on flat lowland a channel node's curve control point is pushed sideways
+      // from its downhill direction, alternating every node (creeks) or every two nodes (rivers), so the smooth course
+      // swings in loops; hillside reaches only bend gently and mountain reaches stay straight. Confluences share the node,
+      // so tributaries still join.
+      const qx=new Float32Array(px),qz=new Float32Array(pz);
+      for(let k=0;k<n;k++){
+        const d=down[k];if(d<0||h[k]<SEA||lake[k])continue;const C=channelClass(acc[k],rel[k],fed[k],mouth[k]);if(!C)continue;
+        const ex=px[d]-px[k],ez=pz[d]-pz[k],L=Math.hypot(ex,ez)||1,grade=Math.max(0,lvl[k]-lvl[d])/L;
+        const flat=(.3+.7*clamp(1-grade/.06,0,1))*clamp(1-rel[k]/30,0,1),side=((C.s>=.6?steps[k]>>1:steps[k])&1?1:-1)*(.65+.35*hash(k%W+i0,((k/W)|0)+j0,seed+349));
+        const a=flat*(6+3.2*C.hw)*side;qx[k]=px[k]-ez/L*a;qz[k]=pz[k]+ex/L*a;
+      }
+      // Per-node channel class (half-width, reach, head area; head 0 = no channel; spring = a creek head), and falls: a
+      // reach dropping at least 7 m at over 18% onto a reach less than half as steep is a real step, so its water falls.
+      const hw=new Float32Array(n),cs=new Float32Array(n),head=new Float32Array(n),knick=new Uint8Array(n),spring=new Uint8Array(n);
+      for(let k=0;k<n;k++){const C=channelClass(acc[k],rel[k],fed[k],mouth[k]);if(C){hw[k]=C.hw;cs[k]=C.s;head[k]=C.head;spring[k]=C.head<Infinity&&acc[k]<C.head*2&&!lake[k]?1:0;}}
+      const grade=k=>{const d=down[k];return d<0?0:(lvl[k]-lvl[d])/(Math.hypot(px[d]-px[k],pz[d]-pz[k])||1);};
+      for(let k=0;k<n;k++){const d=down[k];if(!head[k]||d<0||h[k]<SEA||lake[k]||lvl[d]<SEA+1)continue;const g=grade(k);if(g>.18&&lvl[k]-lvl[d]>=7&&grade(d)<g*.5)knick[k]=1;}
+      T={i0,j0,W,px,pz,qx,qz,h,lvl,lake,feed,down,acc,rel,fed,mouth,hw,cs,head,spring,knick,src};D.tiles.set(key,T);if(D.tiles.size>D.cap)D.tiles.delete(D.tiles.keys().next().value);return T;
     }
     // Channel classes by upstream area. hw: half-width (m); s: how far its influence reaches (banks, sand, tree-free strip)
-    // relative to a main river; falls: whether steep reaches drop in waterfalls; head: area where the channel starts.
-    function channelClass(acc,rel,fed){
-      if(acc>=60)return {hw:Math.min(12,1+.42*Math.sqrt(acc)),s:1,falls:true,head:60};
-      if(acc>=20)return {hw:.9+.2*Math.sqrt(acc),s:.6,falls:true,head:20};
-      const need=rel>15?3:6;if(acc>=need)return {hw:.35+.06*Math.sqrt(acc),s:.3,falls:false,head:need};
-      return fed?{hw:.6,s:.3,falls:false,head:Infinity}:null;
+    // relative to a main river; head: area where the channel starts.
+    // Channels whose system reaches its mouth with under 20 nodes of catchment aren't drawn (unless fed by an isle fall).
+    function channelClass(acc,rel,fed,mouth){
+      if(mouth<20&&!fed)return null;
+      if(acc>=60)return {hw:Math.min(12,1+.42*Math.sqrt(acc)),s:1,head:60};
+      if(acc>=20)return {hw:.9+.2*Math.sqrt(acc),s:.6,head:20};
+      const need=rel>15?4:8;if(acc>=need)return {hw:.35+.06*Math.sqrt(acc),s:.3,head:need};
+      return fed?{hw:.6,s:.3,head:Infinity}:null;
     }
     // Nearest channel to the (lightly warped) point. `e` is the normalized distance: (metres beyond the half-width) / s,
-    // offset by 2.3 so 0..2.3 is the channel floor.
+    // offset by 2.3 so 0..2.3 is the channel floor. Each node's course is a quadratic B-spline through its control points
+    // (from the A-B midpoint, bent by B, to the B-C midpoint), so courses are smooth and tributaries meet tangentially.
+    // Width and reach grow smoothly from A's class to B's, and a river widens into an estuary as it reaches sea level.
     function courseAt(lv,wx,wz,best=null){
       const D=DRAIN[lv],G=D.G,ii=Math.floor(wx/G),jj=Math.floor(wz/G);let tk=NaN,T=null,r=best||{e:999};
       for(let gj=jj-2;gj<=jj+2;gj++)for(let gi=ii-2;gi<=ii+2;gi++){
         const ti=Math.floor(gi/D.T),tj=Math.floor(gj/D.T);if(ti*65536+tj!==tk){tk=ti*65536+tj;T=drainTile(lv,ti,tj);}
-        const a=(gj-T.j0)*T.W+(gi-T.i0),ax=T.px[a],az=T.pz[a];
-        if(T.fill[a]-T.h[a]>.6&&Math.hypot(wx-ax,wz-az)<G*1.6)r.lake=Math.max(r.lake||0,T.fill[a]);
-        const C=channelClass(T.acc[a],T.rel[a],T.fed[a]);if(!C||T.h[a]<SEA)continue;
-        const b=T.down[a];if(b<0)continue;
-        const bx=T.px[b],bz=T.pz[b],c=T.down[b],cx=c<0?bx:(bx+T.px[c])/2,cz=c<0?bz:(bz+T.pz[c])/2,F=T.src.get(a);
+        const a=(gj-T.j0)*T.W+(gi-T.i0),b=T.down[a];
+        // A lake is open water over its drowned nodes at the spill level. An inflow's channel runs on through it (at that
+        // level) so it reaches the water wherever the shore lies; geography() doesn't carve it where the ground is under the
+        // lake. Other lake nodes draw no channel and no springs.
+        if(T.lake[a]){if(Math.hypot(wx-T.px[a],wz-T.pz[a])<G*1.6)r.lake=Math.max(r.lake||0,T.lvl[a]);if(!T.feed[a])continue;}
+        if(!T.head[a]||T.h[a]<SEA||b<0)continue;
+        const Ah=T.hw[a],As=T.cs[a],Bh=T.head[b]?T.hw[b]:Ah,Bs=T.head[b]?T.cs[b]:As,ax=T.qx[a],az=T.qz[a];
+        const bx=T.qx[b],bz=T.qz[b],c=T.down[b],cx=c<0?bx:(bx+T.qx[c])/2,cz=c<0?bz:(bz+T.qz[c])/2,F=T.src.get(a);
+        const wide=Math.max(Ah,Bh)*(Bs>=.6?1.8:1),sMax=Math.max(As,Bs),sMin=Math.min(As,Bs);
         // Box prune: every piece lies within the box of A, B, the B-C midpoint (and an isle-fall landing that feeds A).
-        {const xs=F?[ax,bx,cx,F.x]:[ax,bx,cx],zs=F?[az,bz,cz,F.z]:[az,bz,cz],x0=Math.min(...xs),x1=Math.max(...xs),z0=Math.min(...zs),z1=Math.max(...zs),dx=wx<x0?x0-wx:wx>x1?wx-x1:0,dz=wz<z0?z0-wz:wz>z1?wz-z1:0;if((Math.hypot(dx,dz)-C.hw)/C.s+2.3>=r.e)continue;}
-        const fa=T.fill[a],fb=T.fill[b],fc=c<0?fb:(fb+T.fill[c])/2;
-        // A main river or stream steeper than 8% runs in flat reaches of about 4 m drop, each holding the LOWER level, so a
-        // fall is a notch cut into the land, with foam in the plunge pool just below it. Creeks stay as continuous rapids.
-        const piece=(x0,z0,f0,x1,z1,f1,spring=false)=>{const ex=x1-x0,ez=z1-z0,t=clamp(((wx-x0)*ex+(wz-z0)*ez)/(ex*ex+ez*ez||1),0,1),qx=x0+ex*t,qz=z0+ez*t,dist=Math.hypot(wx-qx,wz-qz),e=(dist-C.hw)/C.s+2.3;if(e<r.e){
-          const len=Math.hypot(ex,ez)||1,drop=f0-f1;let u=t,foam=false;
-          if(C.falls&&drop/len>.08&&f1>SEA+1){const k=Math.max(1,Math.round(drop/4)),q=t*k,step=Math.ceil(q);u=Math.min(1,step/k);foam=q>.001&&step<k&&(q-Math.floor(q))*len/k<3;}
-          Object.assign(r,{e,dist,hw:C.hw,s:C.s,level:f0+(f1-f0)*u,foam,x:qx,z:qz,spring});}};
-        if(F)piece(F.x,F.z,fa,ax,az,fa);
-        else if(T.acc[a]<C.head*2){
+        {let x0=Math.min(ax,bx,cx),x1=Math.max(ax,bx,cx),z0=Math.min(az,bz,cz),z1=Math.max(az,bz,cz);if(F){x0=Math.min(x0,F.x);x1=Math.max(x1,F.x);z0=Math.min(z0,F.z);z1=Math.max(z1,F.z);}
+          const dx=wx<x0?x0-wx:wx>x1?wx-x1:0,dz=wz<z0?z0-wz:wz>z1?wz-z1:0,m=Math.hypot(dx,dz)-wide;if(m/(m>=0?sMax:sMin)+2.3>=r.e)continue;}
+        const fa=T.lvl[a],fb=T.lvl[b],fc=c<0?fb:(fb+T.lvl[c])/2;
+        // pieces: straight sub-segments of the course, with parameter U0..U1 along the whole curve, levels f0..f1;
+        // width and reach blend from A's class to B's along the curve.
+        let fall=null;
+        const piece=(x0,z0,f0,x1,z1,f1,U0,U1,spring=false)=>{
+          const ex=x1-x0,ez=z1-z0,t=clamp(((wx-x0)*ex+(wz-z0)*ez)/(ex*ex+ez*ez||1),0,1),qx=x0+ex*t,qz=z0+ez*t,dist=Math.hypot(wx-qx,wz-qz),U=U0+(U1-U0)*t;
+          let level=f0+(f1-f0)*t,foam=false;
+          if(fall){const q=U*fall.k,step=Math.ceil(q-1e-6);level=fall.f0+(fall.f1-fall.f0)*Math.min(1,step/fall.k);foam=q>.001&&step<fall.k&&(q-Math.floor(q))*fall.len/fall.k<3;}
+          const hw=(Ah+(Bh-Ah)*U)*(Bs>=.6?1+.8*clamp((SEA+1.2-level)/1.2,0,1):1),s=As+(Bs-As)*U,e=(dist-hw)/s+2.3;
+          if(e<r.e)Object.assign(r,{e,dist,hw,s,level,foam,x:qx,z:qz,spring});
+        };
+        if(F)piece(F.x,F.z,fa,ax,az,fa,0,0);
+        else if(T.spring[a]){
           // A creek head is a spring: a small pool where groundwater rises.
-          if(C.s<.5){const sd=Math.hypot(wx-ax,wz-az),e=(sd-1.6)/C.s+2.3;if(e<r.e)Object.assign(r,{e,dist:sd,hw:1.6,s:C.s,level:fa,foam:false,x:ax,z:az,spring:true});}
-          piece(ax,az,fa,(ax+bx)/2,(az+bz)/2,(fa+fb)/2);
+          if(As<.5){const sd=Math.hypot(wx-ax,wz-az),e=(sd-1.6)/As+2.3;if(e<r.e)Object.assign(r,{e,dist:sd,hw:1.6,s:As,level:fa,foam:false,x:ax,z:az,spring:true});}
+          piece(ax,az,fa,(ax+bx)/2,(az+bz)/2,(fa+fb)/2,0,0);
         }
-        const mx=(ax+bx)/2,mz=(az+bz)/2,fm=(fa+fb)/2;let p0x=mx,p0z=mz,p0f=fm;
-        for(let k=1;k<=4;k++){const t=k/4,u=1-t,qx=u*u*mx+2*u*t*bx+t*t*cx,qz=u*u*mz+2*u*t*bz+t*t*cz,qf=u*u*fm+2*u*t*fb+t*t*fc;piece(p0x,p0z,p0f,qx,qz,qf);p0x=qx;p0z=qz;p0f=qf;}
+        const mx=(ax+bx)/2,mz=(az+bz)/2,fm=(fa+fb)/2,len=Math.hypot(bx-mx,bz-mz)+Math.hypot(cx-bx,cz-bz),drop=fm-fc,N=As>=.6?8:4;
+        // At a real step (see knick in drainTile) the water drops in falls of about 5 m, each reach holding the LOWER
+        // level, so a fall is a notch cut into the land with foam in the plunge pool just below it. Everywhere else the
+        // water runs down as a continuous slope.
+        if(T.knick[a]&&drop>=3)fall={k:Math.max(1,Math.round(drop/5)),f0:fm,f1:fc,len};
+        let p0x=mx,p0z=mz,p0f=fm;
+        for(let k=1;k<=N;k++){const t=k/N,u=1-t,qx=u*u*mx+2*u*t*bx+t*t*cx,qz=u*u*mz+2*u*t*bz+t*t*cz,qf=u*u*fm+2*u*t*fb+t*t*fc;piece(p0x,p0z,p0f,qx,qz,qf,(k-1)/N,t);p0x=qx;p0z=qz;p0f=qf;}
       }
       return r.e<999?r:null;
     }
-    // A light meander warp only (channels follow the 64 m terrain-following network).
+    // A light meander warp only (meander loops come from the control network above).
     function riverAt(x,z){
       const wx=x+(noise(x*.02,z*.02,seed+345)-.5)*12,wz=z+(noise(x*.02,z*.02,seed+347)-.5)*12;
       const r={e:999,lake:0};courseAt(0,wx,wz,r);
@@ -471,9 +555,12 @@
         let ice=0;if((t.relief>15||t.cone>20)&&Tice<-2&&iceTop>h)ice=(iceTop-h)*clamp((-2-Tice)/3,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
-        // smooth landform (not small bumps), so the valley edge, where massif tiers end, stays a clean line.
-        // The drainage level is interpolated between coarse nodes; cap it by the smooth landform so water cuts into the ground.
-        const floor=Math.max(SEA-.6,Math.min(RV.level,t.h+.1)-1.2),valley=6+RV.w+Math.min(70,Math.max(0,t.h+crag-floor)*1.3);
+        // smooth landform (not small bumps), so the valley edge, where massif tiers end, stays a clean line. Big rivers open
+        // wide V valleys; creeks only notch the slope.
+        // The drainage level is interpolated between coarse nodes; cap it by the broad landform (plate relief plus the lower
+        // of the crag and its broad octaves, never above the ground) so water sits on the valley floor and cuts into the ground.
+        // A channel at a lake's level (running through it, or across a low island in it) holds exactly that level.
+        const held=RV.lake&&RV.level>=RV.lake-.5,floor=Math.max(SEA-.6,(held?RV.lake:Math.min(RV.level,t.h+Math.min(crag,low)+.1))-1.2),valley=held?4+RV.w:6+RV.w+Math.min(70,Math.max(0,t.h+crag-floor)*1.3)*(.3+.7*clamp((RV.size-.3)/.7,0,1));
         const bt=clamp((riverDistance-2.3)/valley,0,1),bank=bt*bt*(3-2*bt);
         // Rivers and streams clear the massif from their valleys; creeks just notch through it (bank carving below).
         const L=liftAt(x,z),pass=L.pass,lift=bank<1&&RV.size>=.5?0:L.lift;
@@ -487,14 +574,16 @@
         const knoll=lift>0||riverDistance<14||t.h<SEA+1.5||gorgeDistance<half+6||slope>.5?0:outcropAt(x,z);
         h+=knoll*1.6;iceBase+=knoll*1.6;
         // Carve the valley, but keep a bank: outside the wet channel the ground stays 0.3 m above the water surface
-        // (never above the original land), so water is always contained.
-        if(bank<1){const before=h;h=Math.min(h,floor+(h-floor)*bank);if(riverDistance>=3.4)h=Math.max(h,Math.min(before,floor+1.3));}
+        // (never above the original land), so water is always contained. Ground already under a lake keeps its natural
+        // bed (no channel grooves through the lake), and only that ground holds lake water (not an outlet cut below it).
+        const underLake=RV.lake>h+.2;
+        if(bank<1&&!underLake){const before=h;h=Math.min(h,floor+(h-floor)*bank);if(riverDistance>=3.4)h=Math.max(h,Math.min(before,floor+1.3));}
         if(gorge)h=Math.max(SEA+1,t.base-7);
         iceBase=Math.min(iceBase,h);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
-        const lakeWater=RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
+        const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
         const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,noise(x*.0007,z*.0007,seed+611)>.62);
-        const water=sea?Math.round(SEA/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((floor+1)/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):0;
+        const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
         const rim=lift>0&&!pass&&[[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]].some(([u,v])=>upliftAt(x+u,z+v).up<L.up-1.5);
@@ -787,7 +876,7 @@
       }
       return out;
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
