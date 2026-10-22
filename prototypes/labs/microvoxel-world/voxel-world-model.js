@@ -785,7 +785,11 @@
     // bush clump, a bamboo clump, a cactus, a mushroom cluster, a log or a stump (or nothing).
     function makeTree(gx,gz){
       const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),b=g.biome,S=treeStyle(b);
-      if(g.exposed||g.highland||g.sea||g.water>g.height||g.gorgeDistance<g.gorgeHalf+4||g.slope>(b==='montane'?1.6:1.2)||spireNear(x,z,4)||landmarkNear(x,z))return null;
+      // Trees never stand on bare rock, cliff-steep ground or water, at the trunk or within 1.5 m of it (so a crown never
+      // sits on a rock face). Snow and ice are allowed: the renderer gives those trees snowy crowns.
+      const bare=G=>G.exposed||G.sea||G.water>G.height||G.biome==='alpine'||G.biome==='gorge'||G.slope>1.3;
+      if(bare(g)||g.highland||g.gorgeDistance<g.gorgeHalf+4||spireNear(x,z,4)||landmarkNear(x,z))return null;
+      for(const [u,w] of [[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]])if(bare(geography(x+u,z+w)))return null;
       const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),edge=1-patch,roll=hash(gx,gz,seed+23),roll2=hash(gx,gz,seed+29),barren=TREELESS.has(b)||b==='desert'||b==='badlands';
       let base=S.density??TREES[b]??(TREELESS.has(b)?0:.25);
       // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
@@ -1095,7 +1099,7 @@
         const bank=g.water>h&&!g.sea?0:rd<4.6?MAT.mud:g.riverSize>=.6&&rd<9?MAT.sand:0;
         values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='beach'?MAT.sand:bank?bank:b==='alpine'?MAT.basalt:turf(b,x,z,h,g);
         if(TURF.has(values[h-1])){
-          if(g.relief>15&&g.slope>.75+(noise(x*.3,z*.3,seed+613)-.5)*.35)values[h-1]=MAT.gravel;
+          if(g.relief>15&&g.slope>.95+(noise(x*.3,z*.3,seed+613)-.5)*.35)values[h-1]=MAT.gravel;
           else if((b==='grassland'||b==='steppe'||b==='savanna')&&noise(x*.06,z*.06,seed+615)>.93-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
         }
         if(g.iceCells)values.fill(MAT.ice,h-g.iceCells,h);
@@ -1118,7 +1122,7 @@
       // Under-canopy floor: podzol under conifers; under broadleaf, leaf litter in temperate woods, gold litter in autumn woods,
       // petals in blossom groves, dark jungle floor under rainforest and bamboo, and a shaded moss disc under lone trees in open
       // country. The fringe ring is worn dirt only around conifers (2); around other trees (3) the ground runs up to the trunk.
-      if(infinite&&floorMat<9&&TURF.has(values[h-1])){const b=g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.petal:floorMat===2?MAT.dirt:floorMat===3?0
+      if(infinite&&floorMat<9&&(TURF.has(values[h-1])||values[h-1]===MAT.gravel)){const b=g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.petal:floorMat===2?MAT.dirt:floorMat===3?0
         :b==='forest'||b==='redwood'||b==='wetland'?MAT.litter:b==='rainforest'||b==='bamboo'?MAT.junglefloor:b==='fen'?MAT.sphagnum:MAT.mossy;if(m)values[h-1]=m;}
       if(infinite){
         const I=isleAt(x,z),F=isleCell(Math.floor(x/IG),Math.floor(z/IG))?.fall;
