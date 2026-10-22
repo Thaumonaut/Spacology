@@ -48,21 +48,35 @@
   }
   function selectHex(h){
     selectedHex=h;
-    if(coop?.active){const key=atlas.key(h.q,h.r),a=coop.action(key);$('hexSummary').textContent=coop.describe(key);$('hexTask').hidden=!a;$('hexTask').disabled=false;if(a)$('hexTask').textContent=a.label;return;}
+    $('hexTask2').hidden=true;
+    if(coop?.active){const key=atlas.key(h.q,h.r);hexActions=coop.actions(key);$('hexSummary').textContent=coop.describe(key);
+      ['hexTask','hexTask2'].forEach((id,i)=>{const a=hexActions[i];$(id).hidden=!a;if(a){$(id).textContent=a.label;$(id).disabled=!!a.disabled;}});return;}
     const s=atlas.summary(h.q,h.r),k=atlas.known(h.q,h.r);
-    $('hexSummary').textContent=`HEX ${h.q}, ${h.r} · `+(k?.surveyed?`${s.biome} · relief ${s.relief.toFixed(1)} m · travel cost ${s.cost}${s.resource?` · ${s.resource} (${k.identified?'identified':k.sampled?'studying':'unsampled'})`:''}`:'Unsurveyed: send the explorer to learn what is here');
-    $('hexTask').hidden=!s.inside||!!k?.identified||!!k?.surveyed&&!s.resource;$('hexTask').disabled=!!k?.sampled;
+    $('hexSummary').textContent=`HEX ${h.q}, ${h.r} · `+(s.barrier?`${s.biome} · impassable ${s.terrain}; Logistics must engineer a crossing`:k?.surveyed?`${s.biome} · relief ${s.relief.toFixed(1)} m · travel cost ${s.cost}${s.resource?` · ${s.resource} (${k.identified?'identified':k.sampled?'studying':'unsampled'})`:''}`:'Unsurveyed: send the explorer to learn what is here');
+    $('hexTask').hidden=!s.inside||s.barrier||!!k?.identified||!!k?.surveyed&&!s.resource;$('hexTask').disabled=!!k?.sampled;
     $('hexTask').textContent=!k?.surveyed?'Send explorer':k.sampled?'Studying at camp':'Send researcher';
   }
-  $('hexTask').onclick=()=>{if(!selectedHex)return;if(coop.active){const a=coop.action(atlas.key(selectedHex.q,selectedHex.r));if(a)coop.act(a.intent);}else $('hexStatus').textContent=atlas.assign(selectedHex.q,selectedHex.r);selectHex(selectedHex);};
+  let hexActions=[];
+  $('hexTask2').onclick=()=>{if(selectedHex&&coop.active&&hexActions[1]){coop.act(hexActions[1].intent);selectHex(selectedHex);}};
+  $('hexTask').onclick=()=>{if(!selectedHex)return;if(coop.active){if(hexActions[0])coop.act(hexActions[0].intent);}else $('hexStatus').textContent=atlas.assign(selectedHex.q,selectedHex.r);selectHex(selectedHex);};
   function setAtlasView(v){atlasView=v;for(const o of document.querySelectorAll('[data-atlas]'))o.setAttribute('aria-pressed',String(o.dataset.atlas===v));}
   for(const b of document.querySelectorAll('[data-atlas]'))b.onclick=()=>setAtlasView(b.dataset.atlas);
   let coopRegen=false;
   const coop=CoopPlay.create({world:()=>world,regenerate:(s,c,e)=>{coopRegen=true;try{regenerate(s,c,e);}finally{coopRegen=false;}},changed:()=>{if(selectedHex)selectHex(selectedHex);},focus:setAtlasView});
   const layer=$('atlasLayer'),ctx=layer.getContext('2d');
   const ATLAS_STYLE={surveyed:['#f3ead140','#f3ead1cc'],frontier:[null,'#e8bc72'],usable:['#58c27a66','#6fe08f'],unconfirmed:[null,'#dfe4d6'],ground:[null,'#dfe4d688'],identified:['#a98ee840','#c7b6f5'],studying:['#a98ee899','#efe9ff'],'needs-sample':[null,'#c7b6f5'],selected:[null,'#ffffff'],
-    planned:['#e8bc7266','#ffd38a'],hinted:['#a98ee833','#d9cbff'],signs:[null,'#a98ee8'],line:['#58c27a99','#9ff0b4'],route:['#58c27a33','#6fe08f99']};
-  const ATLAS_LABEL=h=>({usable:`${h.root?'ROOT':h.profile?h.profile.name.toUpperCase():'FERRITE'} · ${h.steps} HEX`,frontier:`COST ${h.cost}`,'needs-sample':'SAMPLE',studying:'STUDYING',planned:h.order?`SURVEY ${h.order}`:'EXTRACTOR',hinted:'HINT',signs:'SIGNS',line:h.root?'ROOT LINE':'LINE'})[h.state];
+    planned:['#e8bc7266','#ffd38a'],hinted:['#a98ee833','#d9cbff'],signs:[null,'#a98ee8'],line:['#58c27a99','#9ff0b4'],route:['#58c27a33','#6fe08f99'],
+    barrier:['hatch','#d7a184'],scouted:['hatch','#f0c9a8'],'barrier-known':['hatch','#f0c9a8'],crossing:['hatch','#ffd38a'],crossed:['#e8bc7233','#ffd38a'],'rock-sample':['hatch','#c7b6f5'],'rock-rated':['hatch','#efe9ff']};
+  const ATLAS_LABEL=h=>({usable:`${h.root?'ROOT':h.profile?h.profile.name.toUpperCase():'FERRITE'} · ${h.steps} HEX`,frontier:`COST ${h.cost}`,'needs-sample':'SAMPLE',studying:'STUDYING',planned:h.order?`SURVEY ${h.order}`:'EXTRACTOR',hinted:'HINT',signs:'SIGNS',line:h.root?'ROOT LINE':'LINE',
+    barrier:h.terrain?.toUpperCase(),scouted:'SCOUTED','barrier-known':`${h.terrain?.toUpperCase()} · ${(h.rating||'unrated').toUpperCase()}`,crossing:h.crossing&&`${h.crossing.type.toUpperCase()} ${h.crossing.progress}/${h.crossing.price}`,crossed:h.crossed?.toUpperCase(),'rock-sample':'ROCK','rock-rated':`ROCK · ${(h.rating||'').toUpperCase()}`})[h.state];
+  let hatch=null;
+  function hatchFill(){if(hatch)return hatch;const c=document.createElement('canvas');c.width=c.height=8;const g=c.getContext('2d');g.strokeStyle='#e0b49a66';g.lineWidth=1.5;g.beginPath();g.moveTo(0,8);g.lineTo(8,0);g.moveTo(-2,2);g.lineTo(2,-2);g.moveTo(6,10);g.lineTo(10,6);g.stroke();return hatch=ctx.createPattern(c,'repeat');}
+  // Crossings are drawn as structures over unchanged terrain: zigzag ramp, notch cutting, twin-rail bridge.
+  function glyph(type,x,y,progress){
+    ctx.save();ctx.translate(x,y-16);ctx.strokeStyle='#ffd38a';ctx.lineWidth=2.5;ctx.setLineDash(progress<1?[3,3]:[]);ctx.beginPath();
+    if(type==='ramp'){ctx.moveTo(-9,6);ctx.lineTo(9,2);ctx.lineTo(-9,-2);ctx.lineTo(9,-6);}else if(type==='cutting'){ctx.moveTo(-9,-6);ctx.lineTo(-3,6);ctx.lineTo(3,6);ctx.lineTo(9,-6);}else{ctx.moveTo(-10,-3);ctx.lineTo(10,-3);ctx.moveTo(-10,3);ctx.lineTo(10,3);for(const i of [-6,0,6]){ctx.moveTo(i,-3);ctx.lineTo(i,3);}}
+    ctx.stroke();ctx.restore();
+  }
   // Hex edges are draped on the voxel ground; shared edges sample identical points, so neighbours tile on any slope.
   const outlines=new Map(),EDGE_SAMPLES=6;
   function outline(hx){
@@ -80,8 +94,9 @@
       const pts=outline(hx).map(c=>{const p=localPoint(c);return renderer.project(camera,p.x,p.y,p.z);});
       if(pts.every(p=>p.x<0)||pts.every(p=>p.x>w)||pts.every(p=>p.y<0)||pts.every(p=>p.y>h))continue;
       const [fill,stroke]=ATLAS_STYLE[hx.state];ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();
-      ctx.setLineDash(['frontier','needs-sample','unconfirmed','signs'].includes(hx.state)?[5,4]:[]);ctx.lineWidth=hx.state==='selected'?3:1.5;
-      if(fill){ctx.fillStyle=fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.stroke();
+      ctx.setLineDash(['frontier','needs-sample','unconfirmed','signs','barrier','rock-sample'].includes(hx.state)?[5,4]:[]);ctx.lineWidth=hx.state==='selected'?3:1.5;
+      if(fill){ctx.fillStyle=fill==='hatch'?hatchFill():fill;ctx.fill();}ctx.strokeStyle=stroke;ctx.stroke();
+      const type=hx.crossed||hx.crossing?.type;if(type){const cx=pts.reduce((a,p)=>a+p.x,0)/pts.length,cy=pts.reduce((a,p)=>a+p.y,0)/pts.length;glyph(type,cx,cy,hx.crossed?1:hx.crossing.progress/hx.crossing.price);}
       const label=camera.span<=80&&ATLAS_LABEL(hx);if(label){const x=pts.reduce((a,p)=>a+p.x,0)/pts.length,y=pts.reduce((a,p)=>a+p.y,0)/pts.length,m=ctx.measureText(label).width;ctx.fillStyle='#172a28d0';ctx.fillRect(x-m/2-4,y-8,m+8,15);ctx.fillStyle=stroke;ctx.fillText(label,x,y+3);}
     }
   }

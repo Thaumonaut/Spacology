@@ -4,7 +4,7 @@ const ENEMY_ASSETS=[
   ...Object.values(self.SpacologyEnemyCatalogue.ARCHETYPE_PORTRAITS).flatMap(types=>Object.values(types)),
   ...Object.values(self.SpacologyEnemyCatalogue.HEROES).map(hero=>hero.portrait)
 ].map(path=>path.replace(/^\.\.\//,'./'));
-const CACHE='spacology-playtest-library-v12-microvoxel-coop-compact';
+const CACHE='spacology-playtest-library-v13-microvoxel-terrain-crossings';
 const CORE=[
   './prototypes/minigames.html','./prototypes/library/catalogue.js','./prototypes/library/library.js','./prototypes/library/library.css',
   './prototypes/microvoxel-world.html',

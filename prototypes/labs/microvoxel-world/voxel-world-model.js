@@ -22,9 +22,11 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-1':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-2':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=HEIGHT*density;
     seed=Number(seed)>>>0;
+    const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
+    const gorgeX=-Math.cos(massifAngle)*58,gorgeZ=-Math.sin(massifAngle)*58,gorgeDX=-Math.sin(massifAngle),gorgeDZ=Math.cos(massifAngle);
     const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}`,trees=new Map();
     function geography(x,z){
       if(infinite){
@@ -33,8 +35,19 @@
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
         const bank=clamp((riverDistance-2.3)/8,0,1);
-        const h=5+(2+noise(x*.032,z*.032,seed)*3+noise(x*.13,z*.13,seed+1)*.8+ridge**4*6)*bank;
-        return {height:clamp(Math.floor(h/cellMetres),1,heightCells-28*density),riverDistance,ridge,fault,clearing:0,exposed:ridge>.82||fault<1.4,wet:riverDistance<12};
+        let h=5+(2+noise(x*.032,z*.032,seed)*3+noise(x*.13,z*.13,seed+1)*.8+ridge**4*6)*bank;
+        // Massifs rise in vertical 4.5 m tiers; inside notch zones the same uplift is a continuous climbable ramp (a pass).
+        // A seeded home massif guarantees an early barrier; the start itself stays lowland.
+        const home=clamp(1.6-Math.hypot(x-massifX,z-massifZ)/28,0,1),open=clamp(1-Math.hypot(x,z)/45,0,1)*.4;
+        const lift=riverDistance<10?0:Math.max(home,clamp((noise(x*.008,z*.008,seed+211)*.7+noise(x*.021,z*.021,seed+213)*.3-open-.62)/.14,0,1)),pass=lift>0&&noise(x*.025,z*.025,seed+223)<.24;
+        const gw=(noise(x*.008,z*.008,seed+227)-.5)*60,half=2+noise(x*.05,z*.05,seed+233);
+        const sx=x-gorgeX,sz=z-gorgeZ,along=clamp(sx*gorgeDX+sz*gorgeDZ,-32,32),homeGorge=Math.hypot(sx-along*gorgeDX,sz-along*gorgeDZ)+Math.sin(along*.15)*1.5;
+        const gorgeDistance=lift>0||riverDistance<16?Infinity:Math.min(homeGorge,noise(x*.005,z*.005,seed+229)<.5?Infinity:Math.abs(noise((x+gw)*.006,(z-gw)*.006,seed+231)-.5)*170);
+        const gorge=gorgeDistance<half,rock=noise(x*.02,z*.02,seed+239)>.45?'sound':'fractured';
+        if(lift>0)h=Math.min(h,12)+(pass?lift*9:4.5*Math.min(2,Math.floor(lift*2)+1));
+        if(gorge)h=1.25;
+        return {height:clamp(Math.floor(h/cellMetres),1,heightCells-(lift>0?2:28)*density),riverDistance,ridge,fault,clearing:0,exposed:gorgeDistance<half+2||(lift>0?ridge>.7||fault<2.5:ridge>.82||fault<1.4),wet:riverDistance<12,
+          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock};
       }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
@@ -55,13 +68,13 @@
       const x=(gx+.2+.6*hash(gx,gz,seed+9))*5,z=(gz+.2+.6*hash(gx,gz,seed+11))*5;
       const g=geography(x,z);
       const edge=gx<Math.ceil(EXTENT/5)&&gz<Math.ceil(EXTENT/5)?EXTENT:extent;
-      const value=(!infinite&&(x<1||z<1||x>edge-1||z>edge-1||x>extent-1||z>extent-1))||g.clearing>.1||g.riverDistance<11||g.exposed||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
+      const value=(!infinite&&(x<1||z<1||x>edge-1||z>edge-1||x>extent-1||z>extent-1))||g.clearing>.1||g.riverDistance<11||g.exposed||g.highland||g.gorgeDistance<g.gorgeHalf+4||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
       if(value)Object.freeze(value);if(trees.size>=2048)trees.delete(trees.keys().next().value);trees.set(key,value);return value;
     }
     // Root geology and identity survive render/cache changes.
     let rootSite=null,score=Infinity;
     if(infinite){
-      for(let z=-128;z<=128;z+=2)for(let x=-128;x<=128;x+=2){const g=geography(x,z);if(g.exposed&&g.riverDistance>12&&[.0625,.125].every(offset=>geography(x+offset,z+offset).exposed)){const s=Math.hypot(x,z);if(s<score){score=s;rootSite={x,z};}}}
+      for(let z=-128;z<=128;z+=2)for(let x=-128;x<=128;x+=2){const g=geography(x,z);if(g.exposed&&g.riverDistance>12&&!g.highland&&g.gorgeDistance>12&&[.0625,.125].every(offset=>geography(x+offset,z+offset).exposed)){const s=Math.hypot(x,z);if(s<score){score=s;rootSite={x,z};}}}
       if(!rootSite)throw new Error('No dry basalt root in the starting survey');
     }else for(let z=40;z<77;z+=.5)for(let x=34;x<44;x+=.5){const g=geography(x,z);if(g.exposed&&g.fault<1){const s=Math.hypot(x-42,z-58);if(s<score){score=s;rootSite={x,z};}}}
     const deposit=Object.freeze({id:`${id}:ore:root`,kind:'Ferrite',x:rootSite.x,z:rootSite.z,y:ground(rootSite.x,rootSite.z),rule:infinite?'Dry exposed basalt in the seeded ridge and fracture fields':'Exposed basalt along the western fault above the river catchment',geology:infinite?'Ridge/fracture-exposed basalt':'Fault-exposed basalt',surveyed:true});

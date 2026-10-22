@@ -1,6 +1,6 @@
 (function(root){
   'use strict';
-  const SQ3=Math.sqrt(3),DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]],SPEED=1.6,SUMMARY_LIMIT=4096;
+  const SQ3=Math.sqrt(3),DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]],SPEED=1.6,SUMMARY_LIMIT=4096,CLIFF_SHARE=.85;
   const ROLES=Object.freeze(['explore','logistics','research']);
   function createAtlas(world,{radius=6}={}){
     const key=(q,r)=>`${q},${r}`,summaries=new Map(),knowledge=new Map();
@@ -21,20 +21,44 @@
       const g=points.map(p=>world.geography(p.x,p.z)),count=f=>g.filter(f).length;
       const water=count(s=>s.riverDistance<4),basalt=count(s=>s.exposed),clearing=count(s=>s.clearing>.5),wet=count(s=>s.wet);
       const valid=heights.filter(h=>h!==null),relief=valid.length?Math.max(...valid)-Math.min(...valid):0;
-      const isRoot=q===rootHex.q&&r===rootHex.r,signs=isRoot||g.some(s=>s.exposed&&s.riverDistance>12);
+      const t=world.infinite?terrain(c,q,r):{kind:null},barrier=t.kind==='cliff'||t.kind==='gorge';
+      const isRoot=q===rootHex.q&&r===rootHex.r,signs=isRoot||!barrier&&g.some(s=>s.exposed&&s.riverDistance>12),uplift=t.kind==='highland'||t.kind==='pass'||t.rim;
       const value=Object.freeze({q,r,key:k,x:c.x,z:c.z,inside,height:valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0,relief,
-        biome:water>=3?'River channel':basalt>=3?'Basalt ridge':clearing>=3?'Clearing':wet>=3?'Wetland margin':'Grass and woodland',
-        resource:isRoot?'Ferrite root':signs?'Ferrite signs':null,root:isRoot,
-        cost:Math.round((1+relief/2+(water>=3?3:0))*10)/10});
+        terrain:t.kind,barrier,rock:barrier?t.rock:null,span:t.span??null,rim:!!t.rim,
+        biome:t.kind==='gorge'?'Gorge':t.kind==='cliff'?'Cliff edge':t.kind==='pass'?'Mountain pass':t.kind==='highland'?'Highland plateau':water>=3?'River channel':basalt>=3?'Basalt ridge':clearing>=3?'Clearing':wet>=3?'Wetland margin':'Grass and woodland',
+        resource:isRoot?'Ferrite root':signs?uplift?'Uplift signs':'Ferrite signs':null,root:isRoot,
+        cost:barrier?null:Math.round((1+relief/2+(water>=3?3:0)+(t.kind==='pass'?2:0))*10)/10});
       summaries.set(k,value);if(summaries.size>SUMMARY_LIMIT)summaries.delete(summaries.keys().next().value);
       return value;
+    }
+    // Barriers: a 1 m grid over the hex. A gorge floor blocks crew travel, and so does a 2.5 m step unless
+    // most of the hex stays one walkable patch (a wall clipping a corner can be walked around).
+    function walkable(hs,own,w,cells){
+      const seen=new Uint8Array(w*w);let best=0;
+      for(let s=0;s<w*w;s++){if(!own[s]||seen[s])continue;let size=0;const stack=[s];seen[s]=1;
+        while(stack.length){const t=stack.pop(),i=t%w,j=(t-i)/w;size++;for(const [di,dj] of [[1,0],[0,1],[-1,0],[0,-1]]){const a=i+di,b=j+dj,u=b*w+a;if(a>=0&&b>=0&&a<w&&b<w&&own[u]&&!seen[u]&&Math.abs(hs[u]-hs[t])<2.5){seen[u]=1;stack.push(u);}}}
+        best=Math.max(best,size);}
+      return best/cells;
+    }
+    function terrain(c,q,r){
+      const n=Math.ceil(radius)+1,w=2*n+1,hs=new Float32Array(w*w),own=new Uint8Array(w*w);let steps=0,gorge=null,high=0,pass=0,rim=false,cells=0;
+      for(let j=0;j<w;j++)for(let i=0;i<w;i++){const x=c.x+i-n,z=c.z+j-n,h=hexAt(x,z);hs[j*w+i]=world.ground(x,z);own[j*w+i]=h.q===q&&h.r===r;}
+      for(let j=0;j<w;j++)for(let i=0;i<w;i++){
+        if(!own[j*w+i])continue;const x=c.x+i-n,z=c.z+j-n,g=world.geography(x,z),h=hs[j*w+i];cells++;
+        if(g.gorge&&!gorge)gorge=g;if(g.highland)high++;if(g.pass)pass++;if(!g.gorge&&g.gorgeDistance<g.gorgeHalf+4)rim=true;
+        for(const [di,dj] of [[1,0],[0,1],[-1,0],[0,-1]]){const a=i+di,b=j+dj;if(a>=0&&b>=0&&a<w&&b<w&&Math.abs(hs[b*w+a]-h)>=2.5)steps++;}
+      }
+      const rock=world.geography(c.x,c.z).rock;
+      if(gorge)return {kind:'gorge',rock,span:Math.round(gorge.gorgeHalf*4)/2};
+      if(steps&&walkable(hs,own,w,cells)<CLIFF_SHARE)return {kind:'cliff',rock};
+      return {kind:pass?'pass':high>cells/2?'highland':null,rim};
     }
     const known=(q,r)=>knowledge.get(key(q,r));
     function learn(q,r,fields){const k=key(q,r),entry=knowledge.get(k)||{q,r,key:k,surveyed:false,sampled:false,identified:false};Object.assign(entry,fields);knowledge.set(k,entry);return entry;}
     learn(rootHex.q,rootHex.r,{surveyed:true,sampled:true,identified:true});
     function frontier(){
       const seen=new Map();
-      for(const e of knowledge.values())if(e.surveyed)for(const [dq,dr] of DIRS){const q=e.q+dq,r=e.r+dr,k=key(q,r);if(!seen.has(k)&&!known(q,r)?.surveyed&&summary(q,r).inside)seen.set(k,{q,r,key:k});}
+      for(const e of knowledge.values())if(e.surveyed)for(const [dq,dr] of DIRS){const q=e.q+dq,r=e.r+dr,k=key(q,r);if(!seen.has(k)&&!known(q,r)?.surveyed&&summary(q,r).inside&&!summary(q,r).barrier)seen.set(k,{q,r,key:k});}
       return [...seen.values()];
     }
     const crew=[

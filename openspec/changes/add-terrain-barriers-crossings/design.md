@@ -12,7 +12,7 @@ The streamed generator (`voxel-world-model.js`, `geography(x,z)`) already produc
 Barren barrier ground carries no trees, so massif tops may use the tree headroom (up to `heightCells - 2`). Heights stay inside the existing column budget. The root search rejects sites within 2 hexes of a barrier so day 1 always has open frontier.
 
 ### Atlas classification
-Each hex samples 13 points (centre, 6 at half radius, 6 near the rim). A spoke or ring step of 2.5 m or more makes the hex a barrier: `gorge` if most samples sit on the gorge floor, otherwise `cliff`. A pass-field hit with steps under the threshold makes a `pass` (cost +3). Barrier hexes have `passable:false` and infinite travel cost until a crossing exists. `rock` and `span` are stored in the summary but only exposed through role knowledge.
+Each hex samples a 1 m ground grid. A gorge floor makes the hex a `gorge`. A step of 2.5 m or more makes it a `cliff` when less than 85% of the hex remains one walkable patch; a wall clipping a corner can be walked around. A pass-field hit without a blocking step makes a `pass` (cost +2); mostly highland hexes are `highland`. Barriers are judged per hex rather than per edge, so a wall lying exactly along a border can be stepped across between two passable hexes; the seed survey measures how often. Barrier hexes have `passable:false` and infinite travel cost until a crossing exists. `rock` and `span` are stored in the summary but only exposed through role knowledge.
 
 ### Role loop additions
 | Phase | Exploration | Research | Logistics |
@@ -43,4 +43,4 @@ Exploration scouts the cheapest barrier only when no passable frontier carries r
 - COULD: rockfall incident that halves a ramp line until 1 point repairs it; voxel crossing props; pass discovery hints from Research; crossing tolls on travel time.
 
 ## Risks
-Noise-threshold barriers may be absent or overwhelming on some seeds, so the seed survey reports coverage, passes and nearest barrier distance; thresholds are tuned until every surveyed seed has a barrier within 4 hexes of camp and at least 3 passable starting frontier hexes. Stepped plateaus raise meshing cost slightly; streaming budgets are re-measured. Existing streaming regressions pin `micro-wilds-1` and are updated deliberately.
+Noise-threshold barriers may be absent or overwhelming on some seeds, so the seed survey reports coverage, passes and nearest barrier distance; thresholds are tuned until every surveyed seed has a barrier within 5 hexes of camp and at least 3 passable starting frontier hexes. Stepped plateaus raise meshing cost slightly; streaming budgets are re-measured. Existing streaming regressions pin `micro-wilds-1` and are updated deliberately.

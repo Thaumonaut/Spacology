@@ -6,7 +6,7 @@ The streamed world SHALL generate massifs ringed by vertical cliffs, passes thro
 - **THEN** every hex has the same barrier classification, rock rating and gorge span
 #### Scenario: Open start
 - **WHEN** a session starts on any seed in the seed survey
-- **THEN** the camp has at least 3 passable frontier hexes and a barrier within 4 hexes
+- **THEN** the camp has at least 3 passable frontier hexes and a barrier within 5 hexes
 
 ### Requirement: Barriers block surveying and routes
 Barrier hexes SHALL be impassable to surveying, crew paths and supply routes until a crossing on them is complete.
