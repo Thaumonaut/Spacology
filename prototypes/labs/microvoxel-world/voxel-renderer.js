@@ -210,8 +210,9 @@
       lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),mix(mid,high,.7),smoothstep(.86,.92,tone))*heightShade*(.97+.06*grain/.07);
       if(shaded>0&&shadowOn<.5)lit*=.6;
     }
-    // Alpha marks what may carry an ink outline: flowers stay unlined (single blocks that coarsen into specks).
-    color=vec4(lit,mat==9?0.:1.);
+    // Alpha marks what may carry an ink outline: flowers stay unlined (single blocks that coarsen into specks), and so
+    // does a tile mid-dissolve between detail levels, whose dithered holes would otherwise ink into hatched ghosts.
+    color=vec4(lit,mat==9||dither.x!=0.?0.:1.);
   }`;
   // Stylized grass: an instanced clump of seven long, curved blades per tuft (x, top, z in blocks; seed). Roots take the
   // ground's meadow colour and fade to bright yellow-green tips. Wind leans the blades with a quick flutter and slow gusts
@@ -268,7 +269,7 @@
     // light cool tint.
     vec3 ground=meadow(field,forestGrass(grassColor,conifer))*.86,tip=ground*vec3(1.32,1.3,1.)+vec3(.06,.07,.03)*sheen;
     vec3 base=mix(ground,tip,smoothstep(.15,1.,along));
-    color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight()*clouds(vec3(cloudAt.x,0,cloudAt.y)))),1.);
+    color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight()*clouds(vec3(cloudAt.x,0,cloudAt.y)))),dither.x!=0.?0.:1.);
   }`;
   function makeTuft(){
     // One blade: two tapering quads and a tip, 15 vertices; seven blades per tuft, indexed by z.
