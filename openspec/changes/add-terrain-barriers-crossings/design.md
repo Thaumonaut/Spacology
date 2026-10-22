@@ -9,6 +9,8 @@ The streamed generator (`voxel-world-model.js`, `geography(x,z)`) already produc
 | Pass | A saddle field inside the massif rim caps the step at one terrace with a slope | Notch in the wall | Passable at high travel cost; found only by surveying next to it |
 | Gorge | A second warped fault field cuts a 3–5 m wide ravine down to 1.5 m, outside rivers and massifs | Narrow slot with vertical walls | **Gorge** barrier; span recorded |
 | Rock | Separate noise rates barrier rock **sound** or **fractured** | Not visible | Hidden until Research studies a rock sample |
+Massif lift fades smoothly over the 30 m beside rivers (no hard river cut-off), pass zones widen where lift is low so pass mouths meet the lowland, and a raised strip one or two voxels wide is lowered to its higher lower neighbour, so walls never leave free-standing slivers.
+
 Barren barrier ground carries no trees, so massif tops may use the tree headroom (up to `heightCells - 2`). Heights stay inside the existing column budget. The root search rejects sites within 2 hexes of a barrier so day 1 always has open frontier.
 
 ### Atlas classification

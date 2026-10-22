@@ -77,12 +77,12 @@
     if(type==='ramp'){ctx.moveTo(-9,6);ctx.lineTo(9,2);ctx.lineTo(-9,-2);ctx.lineTo(9,-6);}else if(type==='cutting'){ctx.moveTo(-9,-6);ctx.lineTo(-3,6);ctx.lineTo(3,6);ctx.lineTo(9,-6);}else{ctx.moveTo(-10,-3);ctx.lineTo(10,-3);ctx.moveTo(-10,3);ctx.lineTo(10,3);for(const i of [-6,0,6]){ctx.moveTo(i,-3);ctx.lineTo(i,3);}}
     ctx.stroke();ctx.restore();
   }
-  // Hex edges are draped on the voxel ground; shared edges sample identical points, so neighbours tile on any slope.
-  const outlines=new Map(),EDGE_SAMPLES=6;
+  // Hex edges are draped on the voxel ground once per cell and step straight up/down walls; shared edges sample identical points, so neighbours tile on any slope.
+  const outlines=new Map();
   function outline(hx){
     const k=world.seed+':'+world.cell+':'+world.extent+':'+hx.key;let pts=outlines.get(k);if(pts)return pts;
     const c=atlas.corners(hx.q,hx.r);pts=[];
-    for(let i=0;i<6;i++){const a=c[i],b=c[(i+1)%6];for(let j=0;j<EDGE_SAMPLES;j++){const t=j/EDGE_SAMPLES,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;pts.push({x,y:(world.ground(x,z)??hx.height)+.12,z});}}
+    for(let i=0;i<6;i++){const a=c[i],b=c[(i+1)%6],n=Math.ceil(Math.hypot(b.x-a.x,b.z-a.z)/world.cell);for(let j=0;j<n;j++){const t=j/n,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t,y=(world.ground(x,z)??hx.height)+.12,last=pts[pts.length-1];if(last&&Math.abs(last.y-y)>.3)pts.push({x,y:last.y,z});pts.push({x,y,z});}}
     outlines.set(k,pts);if(outlines.size>2048)outlines.delete(outlines.keys().next().value);return pts;
   }
   function drawAtlas(){

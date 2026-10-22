@@ -28,6 +28,29 @@
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
     const gorgeX=-Math.cos(massifAngle)*58,gorgeZ=-Math.sin(massifAngle)*58,gorgeDX=-Math.sin(massifAngle),gorgeDZ=Math.cos(massifAngle);
     const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}`,trees=new Map();
+    // Massifs rise in vertical 4.5 m tiers; inside notch zones the same uplift is a continuous climbable ramp (a pass).
+    // A seeded home massif guarantees an early barrier; the start stays lowland and massifs fade smoothly towards rivers.
+    function upliftAt(x,z,riverDistance){
+      if(riverDistance===undefined){const warp=(noise(x*.006,z*.006,seed+101)-.5)*50;riverDistance=Math.abs(noise((x+warp)*.012,z*.012,seed+103)-.5)*180;}
+      const open=clamp(1-Math.hypot(x,z)/45,0,1)*.4,shore=clamp((30-riverDistance)/20,0,1)*1.5;
+      const lift=riverDistance<10?0:clamp(Math.max(1.6-Math.hypot(x-massifX,z-massifZ)/28,(noise(x*.008,z*.008,seed+211)*.7+noise(x*.021,z*.021,seed+213)*.3-open-.62)/.14)-shore,0,1);
+      const pass=lift>0&&noise(x*.025,z*.025,seed+223)<.24+clamp(.15-lift,0,.15);
+      return {lift,pass,up:lift>0?pass?lift*9:4.5*Math.min(2,Math.floor(lift*2)+1):0};
+    }
+    // Where a tier boundary meets a pass or contour tip, a raised strip one or two voxels wide would stand alone; such strips take the higher of their lower neighbours.
+    function liftAt(x,z,riverDistance){
+      const c=upliftAt(x,z,riverDistance);if(!c.up)return c;
+      const d=cellMetres,at=k=>k.map(([u,v])=>upliftAt(x+u,z+v)),low=n=>n.up<c.up-1.5,top=(a,b)=>a.up>=b.up?a:b;
+      let best=null;
+      for(const [u,v] of [[d,0],[0,d]]){
+        const [m,p]=at([[-u,-v],[u,v]]);let n=null;
+        if(low(m)&&low(p))n=top(m,p);
+        else if(low(m)){const [p2]=at([[2*u,2*v]]);if(low(p2))n=top(m,p2);}
+        else if(low(p)){const [m2]=at([[-2*u,-2*v]]);if(low(m2))n=top(m2,p);}
+        if(n&&(!best||n.up>best.up))best=n;
+      }
+      return best||c;
+    }
     function geography(x,z){
       if(infinite){
         const warp=(noise(x*.006,z*.006,seed+101)-.5)*50;
@@ -36,15 +59,12 @@
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
         const bank=clamp((riverDistance-2.3)/8,0,1);
         let h=5+(2+noise(x*.032,z*.032,seed)*3+noise(x*.13,z*.13,seed+1)*.8+ridge**4*6)*bank;
-        // Massifs rise in vertical 4.5 m tiers; inside notch zones the same uplift is a continuous climbable ramp (a pass).
-        // A seeded home massif guarantees an early barrier; the start itself stays lowland.
-        const home=clamp(1.6-Math.hypot(x-massifX,z-massifZ)/28,0,1),open=clamp(1-Math.hypot(x,z)/45,0,1)*.4;
-        const lift=riverDistance<10?0:Math.max(home,clamp((noise(x*.008,z*.008,seed+211)*.7+noise(x*.021,z*.021,seed+213)*.3-open-.62)/.14,0,1)),pass=lift>0&&noise(x*.025,z*.025,seed+223)<.24;
+        const L=liftAt(x,z,riverDistance),{lift,pass}=L;
         const gw=(noise(x*.008,z*.008,seed+227)-.5)*60,half=2+noise(x*.05,z*.05,seed+233);
         const sx=x-gorgeX,sz=z-gorgeZ,along=clamp(sx*gorgeDX+sz*gorgeDZ,-32,32),homeGorge=Math.hypot(sx-along*gorgeDX,sz-along*gorgeDZ)+Math.sin(along*.15)*1.5;
         const gorgeDistance=lift>0||riverDistance<16?Infinity:Math.min(homeGorge,noise(x*.005,z*.005,seed+229)<.5?Infinity:Math.abs(noise((x+gw)*.006,(z-gw)*.006,seed+231)-.5)*170);
         const gorge=gorgeDistance<half,rock=noise(x*.02,z*.02,seed+239)>.45?'sound':'fractured';
-        if(lift>0)h=Math.min(h,12)+(pass?lift*9:4.5*Math.min(2,Math.floor(lift*2)+1));
+        if(lift>0)h=Math.min(h,12)+L.up;
         if(gorge)h=1.25;
         return {height:clamp(Math.floor(h/cellMetres),1,heightCells-(lift>0?2:28)*density),riverDistance,ridge,fault,clearing:0,exposed:gorgeDistance<half+2||(lift>0?ridge>.7||fault<2.5:ridge>.82||fault<1.4),wet:riverDistance<12,
           lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock};
