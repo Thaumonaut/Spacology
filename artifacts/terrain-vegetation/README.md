@@ -25,3 +25,17 @@ back along the view by a lift, at the listed zoom-out steps).
 
 World trees on seed 2718 after this change (12 within ±2 km, down from 23; minimum spacing 414 m, was 176 m):
 (-150,-114) coral, (290,326) blossom, (74,-550) blossom, (-1002,-70) blossom, (999,303) coral, (-588,548) blossom.
+
+## Conifer bough tiers (follow-up)
+
+Spruce, larch and redwood crowns are now stacked bough tiers instead of one smooth cone. `tiers-before-*` is the
+merge commit (vegetation + biomes) and `tiers-after-*` is this change. Same seed, same headless setup.
+
+| Spot | World x, z | What to look at |
+| --- | --- | --- |
+| redwood | -60, 4 | Redwood spires: 5-6 drooping skirts per crown, a small point on top, no trunk above the needles (`-close` is zoomed in) |
+| montane | -300, 233 | Spruce (dark) and larch (gold/pale): larch tiers are softer and open |
+| cool-forest | 0, -528 | Mixed cool forest: spruce and larch tiers among birch |
+
+Tier geometry, for anything that shades tiers: the crown runs from cell `low` up to `apex` (one past the highest needle
+cell), crown height `span = apex - low`. Tiers are counted down from `apex` with period `span / 5.5`.

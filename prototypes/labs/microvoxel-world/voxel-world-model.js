@@ -880,15 +880,27 @@
       if(dist>=(crown==='umbrella'?R*1.15+1:R+1))return w;
       const tTop=t.top||top+Math.ceil(R*.65)+2*density+1;
       if(crown==='spire'||crown==='cone'||crown==='larch'){
-        // Cones: the trunk stops where the needle cone narrows to its width, so the crown always ends in a needle point.
+        // Conifers: stacked bough tiers ("Bob Ross" trees) rather than one smooth cone. The crown runs from cell `low` up to
+        // `apex` (one past the highest needle cell); span = apex - low. Tiers are counted DOWN from apex with period
+        // span/5.5 (u = apex - y, tier k = floor(u/period), phase q = (u mod period)/period: 0 at a tier's top, 1 at its
+        // bottom), so the renderer can shade the same tiers. Each tier's radius follows the cone envelope at its bottom
+        // edge, flares outward toward that edge (a drooping skirt) and steps in by 30-45% to the tier above; a per-tier
+        // hash varies size and step. The top tier is a small point. Larches are softer (smaller steps) and open.
         const low=t.base+(crown==='spire'?Math.floor(t.height*.45):crown==='larch'?4*density:3*density),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
-        const trunkTop=low+Math.floor(span*(1-trunk/R)),tier=3*density;
-        if(dist<trunk)values.fill(bark,t.base,Math.min(heightCells,trunkTop));
+        const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
+        const tierR=y=>{
+          const u=apex-y,k=Math.floor(u/period),q=(u-k*period)/period,h1=hash(k,id,seed+131),h2=hash(k,id,seed+137);
+          const env=R*Math.min(1,(k+1)/5.5)*(.86+.14*h1);
+          if(k===0)return env*q**.8;
+          const step=soft?.2+.1*h2:.3+.15*h2;
+          return env*(1-step+step*q**1.6);
+        };
+        // The trunk stops below the first height where the tiers no longer wrap it in at least a cell of needles, so it never
+        // pokes out of the crown (the tier tops are the narrow points).
+        if(dist<trunk){let trunkTop=low;while(trunkTop<apex&&tierR(trunkTop)-.5>=trunk)trunkTop++;values.fill(bark,t.base,Math.min(heightCells,trunkTop));}
         for(let y=low;y<Math.min(heightCells,apex);y++){
-          if(values[y])continue;const f=(y-low)/span;let r=R*(1-f);
-          // Whorled tiers: each tier's skirt flares a little; larches are softer and more open.
-          if(crown!=='spire')r*=crown==='larch'?.72+.28*(1-(y-low)%tier/tier):.84+.16*(1-(y-low)%tier/tier);
-          if(dist<r+.5&&(crown!=='larch'||hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+123)>.3))values[y]=leaf;
+          if(values[y])continue;
+          if(dist<tierR(y)+.5&&(!soft||hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+123)>.3))values[y]=leaf;
         }
         return Math.max(w,tTop);
       }
