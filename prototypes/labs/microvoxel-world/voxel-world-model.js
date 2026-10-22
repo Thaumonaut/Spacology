@@ -1885,6 +1885,10 @@
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++)for(let y=base;y<base+span;y++){
         const m=at(i,y,j)&127;if(!LEAVES.has(m)&&!NEEDLES.has(m))continue;
         if(at(i-1,y,j)&&at(i+1,y,j)&&at(i,y-1,j)&&at(i,y+1,j)&&at(i,y,j-1)&&at(i,y,j+1))continue;
+        // Ivy hangs in a thin strip against ruin walls and cliffs: leaf within two blocks of rock gets no card, so walls
+        // stay readable under their own voxel ivy instead of vanishing under tree-sized clumps.
+        let wall=false;for(let r=1;r<=2&&!wall;r++)for(const [a,c] of [[r,0],[-r,0],[0,r],[0,-r]])if(ROCKS.has(at(clamp(i+a,0,P-1),y,clamp(j+c,0,P-1))&127)){wall=true;break;}
+        if(wall)continue;
         const gx=nx*NODE+i-1,gz=nz*NODE+j-1,h=hash(gx*131+y,gz,seed+L*577+81);if(h>=(NEEDLES.has(m)?Math.min(1,chance*2):chance))continue;
         let ox=0,oy=0,oz=0;
         for(let c=-1;c<=1;c++)for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)if(!at(i+a,y+b,j+c)){ox+=a;oy+=b;oz+=c;}
