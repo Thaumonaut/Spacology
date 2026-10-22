@@ -176,6 +176,17 @@
       vec3 w=worldPosition;float puff=meadowNoise(w.xz*.85+w.y*.6)*.6+meadowNoise(w.xz*2.1-w.y*1.3+3.7)*.4-.5;
       float tone=(dot(cn,SUN)*.5+.5)*mix(.55,1.,sunVis)+puff*.42-smoothstep(.6,3.5,below)*.3-(trunkInCrown?.25:0.);
       bool pine=mat==17||trunkInCrown&&conifer>.5;
+      // Bob Ross conifers: the crown reads as five or six stacked bough skirts, each with a sunlit top and a dark drooping
+      // underside, spaced by the crown's height (from the canopy map) so small and giant trees both get layers.
+      if(pine&&normalSize>0.){
+        // The tree's own top, not this column's: look around for the highest crown nearby, so a cone's sloping flanks
+        // share its tiers instead of rippling into many thin bands.
+        float top=texture(canopyMap,block.xz/normalSize).b*255.,r=max(2.,top*.45);
+        for(int i=0;i<6;i++){float a=float(i)*1.0472;top=max(top,texture(canopyMap,(block.xz+vec2(cos(a),sin(a))*r)/normalSize).b*255.);}
+        float ground=texture(normalMap,block.xz/normalSize).a*255.+groundBase,crownH=max(top*blockSize,1.),fromTop=(ground+top-block.y)*blockSize;
+        float period=max(.9,crownH/5.5),f=fract(fromTop/period+puff*.08);
+        tone+=.14*(1.-smoothstep(0.,.35,f))-.42*smoothstep(.62,.9,f);
+      }
       vec3 shadow=pine?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine?vec3(.5,.72,.4):vec3(.7,.84,.38);
       lit=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone))*heightShade;
       // Close up, leaf cards cover the crown. The blocks beneath carry the same small-leaf pattern in deeper tones, so any
@@ -199,7 +210,8 @@
       lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),mix(mid,high,.7),smoothstep(.86,.92,tone))*heightShade*(.97+.06*grain/.07);
       if(shaded>0&&shadowOn<.5)lit*=.6;
     }
-    color=vec4(lit,1.);
+    // Alpha marks what may carry an ink outline: flowers stay unlined (single blocks that coarsen into specks).
+    color=vec4(lit,mat==9?0.:1.);
   }`;
   // Stylized grass: an instanced clump of seven long, curved blades per tuft (x, top, z in blocks; seed). Roots take the
   // ground's meadow colour and fade to bright yellow-green tips. Wind leans the blades with a quick flutter and slow gusts
@@ -400,13 +412,18 @@
   uniform sampler2D sceneColor;
   uniform highp sampler2D sceneDepth;
   uniform vec2 texel;
-  uniform float depthRange, threshold, ink;
+  uniform float depthRange, threshold, ink, width;
   out vec4 color;
   float metres(vec2 uv){return texture(sceneDepth,uv).r*2.*depthRange;}
   void main(){
-    vec2 uv=gl_FragCoord.xy*texel;vec3 c=texture(sceneColor,uv).rgb;float d=metres(uv),edge=0.;
-    for(int i=0;i<4;i++){vec2 o=(i==0?vec2(1,0):i==1?vec2(-1,0):i==2?vec2(0,1):vec2(0,-1))*texel;edge=max(edge,smoothstep(threshold,threshold*1.8,metres(uv+o)-d));}
-    color=vec4(mix(c,c*vec3(.34,.36,.48),edge*ink),1.);
+    vec2 uv=gl_FragCoord.xy*texel;vec4 s=texture(sceneColor,uv);vec3 c=s.rgb;float d=metres(uv),edge=0.;
+    // Two rings of eight neighbours: the inner ring draws the line's core, the outer ring a softer fringe, so lines are
+    // about two pixels wide (scaled with the device pixel ratio) and feather off rather than stopping hard.
+    for(int r=1;r<=2;r++)for(int i=0;i<8;i++){
+      float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*float(r)*width*texel;
+      edge=max(edge,smoothstep(threshold,threshold*2.2,metres(uv+o)-d)*(r==1?1.:.45));
+    }
+    color=vec4(mix(c,c*vec3(.46,.48,.6),edge*ink*s.a),1.);
   }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
@@ -443,7 +460,7 @@
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
       ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade']));
       this.cloudVao=gl.createVertexArray();
-      ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','texel','depthRange','threshold','ink']));
+      ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','texel','depthRange','threshold','ink','width']));
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);this.postVao=gl.createVertexArray();
       // Outlines on by default; ?outlines=0 turns them off for comparison.
       this.outlines=new URLSearchParams(root.location?.search||'').get('outlines')!=='0';
@@ -583,7 +600,7 @@
         gl.uniform2f(p.texel,1/W,1/H);gl.uniform1f(p.depthRange,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
         // Lines only where the depth jumps by about a metre up close, more as the view widens (tens of metres at continent
         // view, where only cliffs and isles ink); they fade out over the widest zooms.
-        gl.uniform1f(p.threshold,Math.max(.9,c.span*.012));gl.uniform1f(p.ink,.85*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
+        gl.uniform1f(p.width,Math.max(1,this.pixelRatio));gl.uniform1f(p.threshold,Math.max(1.2,c.span*.012));gl.uniform1f(p.ink,.75*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
         gl.disable(gl.DEPTH_TEST);gl.bindVertexArray(this.postVao);gl.drawArrays(gl.TRIANGLES,0,3);gl.enable(gl.DEPTH_TEST);gl.bindVertexArray(null);
       }
       // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything (after the outlines, so no lines
