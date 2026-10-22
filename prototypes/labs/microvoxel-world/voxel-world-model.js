@@ -682,7 +682,7 @@
         let ox=0,oy=0,oz=0;
         for(let c=-1;c<=1;c++)for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)if(!at(i+a,y+b,j+c)){ox+=a;oy+=b;oz+=c;}
         const l=Math.hypot(ox,oy,oz);if(!l)continue;
-        const pine=m===MAT.needle,size=(pine?.75:1.15)+(pine?.3:.55)*hash(gx,gz*7+y,seed+83);
+        const pine=m===MAT.needle,size=(pine?.6:1.15)+(pine?.3:.55)*hash(gx,gz*7+y,seed+83);
         out.push(i-.5,y+.5,j-.5,hash(gx,gz+y*17,seed+82),ox/l,oy/l,oz/l,size+(pine?10:0));
       }
       return Float32Array.from(out);
