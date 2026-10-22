@@ -14,7 +14,8 @@
       return {q,r};
     }
     const rootHex=hexAt(world.deposit.x,world.deposit.z),camp={x:world.deposit.x+1.5,z:world.deposit.z+1.5};
-    const BIOMES={sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe'};
+    const BIOMES={sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
+      flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'};
     const SETTINGS={craton:'Stable craton',collision:'Collision range',subduction:'Coastal arc range',trench:'Trench margin',arc:'Volcanic island arc',rift:'Rift valley',transform:'Transform fault',shelf:'Continental shelf',ocean:'Ocean basin'};
     const dominant=a=>{const n={};let best=a[0];for(const v of a){n[v]=(n[v]||0)+1;if(n[v]>n[best])best=v;}return best;};
     function summary(q,r){

@@ -1,8 +1,25 @@
 (function(root){
   'use strict';
   const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=1024,EXTENT=128,REVISION='micro-catchment-1';
-  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32});
-  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356']);
+  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32,
+    // Biome ground (append only; ids are shared with the renderer palette): grass tones, meadow flowers, autumn, blossom,
+    // rosegrass, fen moss, heather, steppe/savanna/golden grasses, bamboo culm, badland clays, dunes, rainforest floor.
+    lushgrass:33,sungrass:34,buttercup:35,violet:36,autumngrass:37,autumnlitter:38,autumnleaf:39,rustleaf:40,petal:41,blossomleaf:42,
+    pinkgrass:43,sphagnum:44,heather:45,steppegrass:46,savgrass:47,goldgrass:48,bamboo:49,clay:50,ochre:51,dune:52,junglefloor:53});
+  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
+    '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd',
+    '#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#8dbb4c','#bf6a43','#dda067','#e2c27f','#4f7f3f']);
+  // Display names for streamed biome ids (atlas hexes, ground inspection). 'Desert' is matched by coop-session.js.
+  const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
+    flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
+  // Tree-style hook for the vegetation code: biome -> style name. makeTree copies it onto each tree as `style` (and a canopy
+  // material as `leaf` where the style has one), so tree shapes can switch on style without re-deriving it from the biome.
+  // Styles: broadleaf, conifer, conifer-small, redwood, jungle, willow, birch, autumn (gold/rust canopy), blossom (violet-pink
+  // canopy), acacia, umbrella (flat-topped savanna tree), bamboo (MAT.bamboo culms), shrub, cactus, palm. Today's shapes
+  // still come from the existing conifer/redwood/big/small rules ('forest' uses conifers below 11 C).
+  const TREE_STYLE=Object.freeze({steppe:'shrub',redwood:'redwood',rainforest:'jungle',forest:'broadleaf',montane:'conifer',boreal:'conifer',subalpine:'conifer-small',meadow:'conifer-small',wetland:'willow',savanna:'acacia',grassland:'broadleaf',tundra:'conifer-small',
+    flowers:'broadleaf',autumn:'autumn',blossom:'blossom',fen:'willow',heath:'birch',golden:'umbrella',bamboo:'bamboo',badlands:'shrub',pinkgrass:'broadleaf',desert:'cactus',beach:'palm'});
+  const STYLE_LEAF=Object.freeze({autumn:[MAT.autumnleaf,MAT.rustleaf,MAT.autumnleaf],blossom:[MAT.blossomleaf]});
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
@@ -105,24 +122,33 @@
       return {...t,h,cone:h-t.h,vx,vz};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
-    const latAngle=hash(seed,13,seed+331)*Math.PI*2,latCos=Math.cos(latAngle),latSin=Math.sin(latAngle),lat0=18+hash(seed,17,seed+333)*34,twist=(hash(seed,19,seed+335)-.5)*.8;
+    // Latitude changes one degree per 170 m and folds at the poles, so a few kilometres span cool-temperate to warm and an endless
+    // walk cycles through every climate instead of freezing over. Home sits at a temperate 24-40 degrees.
+    const latAngle=hash(seed,13,seed+331)*Math.PI*2,latCos=Math.cos(latAngle),latSin=Math.sin(latAngle),lat0=24+hash(seed,17,seed+333)*16,twist=(hash(seed,19,seed+335)-.5)*.8;
     const climateCells=new Map(),CG=32;
-    function latitude(x,z){return lat0+(x*latCos+z*latSin)/110;}
+    function latitude(x,z){const a=((lat0+(x*latCos+z*latSin)/170+90)%360+360)%360;return a<180?a-90:270-a;}
     function wind(lat){const L=Math.abs(lat),dir=L<30||L>60?-1:1,t=twist;return {x:dir*(-latSin*Math.cos(t)-latCos*Math.sin(t)),z:dir*(latCos*Math.cos(t)-latSin*Math.sin(t))};}
+    // Slow region fields ride along in the cached cell: V and U pick among biomes that share a climate (kilometre-scale, gently
+    // domain-warped, so regions are large blobs), A marks the few large arid basins (deserts, badlands) and dries their moisture.
     function climateCell(i,j){
       const k=i*16777216+j;let v=climateCells.get(k);if(v)return v;
-      const x=i*CG,z=j*CG,lat=latitude(x,z),w=wind(lat);let m=.55,prev=null,lift=0;
-      for(let s=10;s>=0;s--){const e=tectonics(x-w.x*48*s,z-w.z*48*s).h;if(e<SEA)m=1;else{if(prev!==null){const rise=Math.max(0,e-Math.max(prev,SEA));const rain=Math.min(m*.7,rise*.018);m-=rain;if(s<=1)lift+=rise;}m=m*.99+.003;}prev=e;}
-      const here=tectonics(x,z).h,T=30-.5*Math.abs(lat)+(noise(x*.003,z*.003,seed+337)-.5)*6-.17*Math.max(0,here-SEA);
-      v={T,M:clamp(m*.85+lift*.02+(noise(x*.005,z*.005,seed+339)-.5)*.2,0,1)};climateCells.set(k,v);if(climateCells.size>8192)climateCells.delete(climateCells.keys().next().value);return v;
+      const x=i*CG,z=j*CG,lat=latitude(x,z),w=wind(lat);let m=.6,prev=null,lift=0;
+      for(let s=10;s>=0;s--){const e=tectonics(x-w.x*48*s,z-w.z*48*s).h;if(e<SEA)m=1;else{if(prev!==null){const rise=Math.max(0,e-Math.max(prev,SEA));const rain=Math.min(m*.3,rise*.007);m-=rain;if(s<=1)lift+=rise;}m=m*.995+.004;}prev=e;}
+      const here=tectonics(x,z).h,T=29-.4*Math.abs(lat)+(noise(x*.0011,z*.0011,seed+343)-.5)*7+(noise(x*.003,z*.003,seed+337)-.5)*3-.17*Math.max(0,here-SEA);
+      const wx=x+(noise(x*.0015,z*.0015,seed+345)-.5)*700,wz=z+(noise(x*.0015,z*.0015,seed+347)-.5)*700;
+      const V=noise(wx*.0011,wz*.0011,seed+349)*.7+noise(wx*.004,wz*.004,seed+351)*.3,U=noise(wz*.0009,wx*.0009,seed+353)*.7+noise(wx*.0035,wz*.0035,seed+355)*.3;
+      const A=clamp((noise(wx*.00028,wz*.00028,seed+357)*.8+noise(wx*.0012,wz*.0012,seed+359)*.2-.6)/.12,0,1)*clamp((Math.hypot(x,z)-900)/1200,0,1);
+      const M=clamp((m*.8+lift*.008+(noise(wx*.0008,wz*.0008,seed+361)-.5)*.35+(noise(x*.005,z*.005,seed+339)-.5)*.08)*(1-.7*A),0,1);
+      v={T,M,V,U,A};climateCells.set(k,v);if(climateCells.size>8192)climateCells.delete(climateCells.keys().next().value);return v;
     }
     function climate(x,z){
       const gx=x/CG,gz=z/CG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j,a=climateCell(i,j),b=climateCell(i+1,j),c=climateCell(i,j+1),d=climateCell(i+1,j+1),mix=k=>(a[k]+(b[k]-a[k])*u)*(1-w)+(c[k]+(d[k]-c[k])*u)*w;
-      return {T:mix('T'),M:mix('M')};
+      return {T:mix('T'),M:mix('M'),V:mix('V'),U:mix('U'),A:mix('A')};
     }
     // Mountains zone by temperature: montane conifer forest, subalpine parkland, alpine meadow, then snow on all but cliffs.
-    // arid: inside one of the few large arid regions; only there does dry ground become desert (elsewhere steppe/savanna).
-    function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,arid=false){
+    // R: lowland region values for the column (see region()): V/U pick among same-climate biomes, A is aridity (desert and
+    // badlands only inside the few large arid basins), j* are small per-column jitters so lowland borders are ragged, not contours.
+    function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,R=null){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
         if(T<-3&&!sheer)return 'snow';
@@ -134,14 +160,62 @@
       if(T<-5&&!cliff)return 'snow';
       if(steep&&T<3)return 'alpine';
       if(h<SEA+1.2)return T<0?'tundra':'beach';
-      if(wet&&M>.5&&T>0&&!steep)return 'wetland';
+      const V=R?R.V:.5,U=R?R.U:.5,A=R?R.A:0;if(R){T+=R.jt;M+=R.jm;}
+      if(wet&&M>.5&&T>0&&!steep)return T<13&&V>.5?'fen':'wetland';
       if(T<1)return 'tundra';
-      if(T<7)return M>.38?'boreal':'tundra';
-      if(T>=8&&T<17&&M>.66&&!wet)return 'redwood';
-      if(T<19)return M>.5?'forest':M>.22?'grassland':arid&&M<.16?'desert':'steppe';
-      return M>.66?'rainforest':M>.3||!arid?'savanna':'desert';
+      // Cool: boreal forest where wet enough, otherwise heather moor; bare tundra only near freezing.
+      if(T<7)return M>.42?'boreal':T<3.5?'tundra':'heath';
+      if(T<19){
+        if(M>.82&&T<13&&!steep&&U>.58)return 'fen';
+        if(M>.68&&T>=9&&T<16&&V>.58&&!wet)return 'redwood';
+        if(M>.5)return T<12.5&&V<.4?'autumn':T>=11.5&&U>.6?'blossom':'forest';
+        if(M>.24)return T<10.5&&V<.3?'heath':U<.36?'flowers':T>=12&&V>.64?'pinkgrass':'grassland';
+        return A>.55&&M<.24&&T>=13?'desert':'steppe';
+      }
+      // Warm: rainforest, bamboo on its wetter hills and fringes, savanna (golden in its own regions), deserts and badlands in arid basins.
+      if(M>.72)return U>.62||h>SEA+14&&U>.45?'bamboo':'rainforest';
+      if(M>.56&&(h>SEA+10||U>.55))return 'bamboo';
+      if(A>.55&&M<.32)return V>.58||h>SEA+18?'badlands':'desert';
+      return V>.5?'golden':'savanna';
     }
-    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.12,grassland:.06,tundra:.03};
+    // Lowland region values for biomeOf: the cached region fields plus per-column jitter (about 20 m and 6 m wobble).
+    function region(C,x,z){
+      const f=(noise(x*.21,z*.21,seed+365)-.5)*.6,j=noise(x*.05,z*.05,seed+363)-.5+f,k=noise(x*.045,z*.045,seed+367)-.5-f;
+      return {V:C.V+j*.14,U:C.U+k*.14,A:C.A,jt:j*1.8,jm:k*.08};
+    }
+    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.1,grassland:.06,tundra:.03,
+      flowers:.03,autumn:.8,blossom:.5,fen:.1,heath:.04,golden:.06,bamboo:.9,badlands:.01,pinkgrass:.04,desert:0,beach:0};
+    // Vegetated ground: everything tree floors, scree, worn patches and landmarks may paint over. GRASSY: where voxel flowers grow.
+    const TURF=new Set([MAT.grass,MAT.tundra,MAT.dry,MAT.dirt,MAT.mossy,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.sphagnum,MAT.heather,MAT.steppegrass,MAT.savgrass,MAT.goldgrass,MAT.junglefloor]);
+    const GRASSY=new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.pinkgrass]);
+    // Biome ground palette. n and n2 are ~30-45 m tone blobs whose edges are roughened by 3 m noise, so patches of one
+    // material never meet another along a straight voxel line; flower and petal speckle is per 50 cm patch (finer
+    // speckle multiplies mesh quads), and plain grassland, forest and jungle floors carry no speckle at all.
+    // s: per-cell speckle that sprinkles a second tone through each patch, so fills read as grass texture rather than flat paint.
+    function turf(b,x,z,h,g){
+      const r=(noise(x*.3,z*.3,seed+703)-.5)*.16,n=noise(x*.03,z*.03,seed+701)+r,n2=noise(x*.022+40,z*.022,seed+705)-r,s=hash(Math.floor(x*2),Math.floor(z*2),seed+713);
+      switch(b){
+        case 'flowers':{const p=noise(x*.07,z*.07,seed+709)+(noise(x*.4,z*.4,seed+711)-.5)*.2;
+          if(p>.45&&s<Math.min(.4,(p-.45)*1.1))return n2<.45?MAT.buttercup:n2<.68?MAT.violet:s<.05?MAT.flower:MAT.buttercup;
+          return s>.9?MAT.sungrass:n<.45?MAT.lushgrass:n>.75?MAT.sungrass:MAT.grass;}
+        case 'pinkgrass':return n2>.32-(g.riverDistance<30?.22:0)?(s<.16?MAT.violet:s>.9?MAT.sungrass:MAT.pinkgrass):s>.93?MAT.pinkgrass:n<.5?MAT.sungrass:MAT.grass;
+        case 'autumn':return n2>.62?(s<.25?MAT.autumngrass:MAT.autumnlitter):s<.1?MAT.autumnlitter:n<.33?MAT.sungrass:MAT.autumngrass;
+        case 'blossom':return s<.06+.3*clamp((n2-.55)*4,0,1)?MAT.petal:n<.4?MAT.lushgrass:MAT.grass;
+        case 'fen':return n2>.86&&r>-.02?MAT.mud:n>.55?(s<.2?MAT.mossy:MAT.sphagnum):n<.3?MAT.lushgrass:s<.15?MAT.sphagnum:MAT.mossy;
+        case 'heath':return n2>.45?(s<.3?MAT.sungrass:s<.4?MAT.violet:MAT.heather):s<.12?MAT.heather:n>.55?MAT.sungrass:MAT.steppegrass;
+        case 'steppe':return n>.8?(s<.4?MAT.steppegrass:MAT.dry):s<.12?MAT.goldgrass:n<.32?MAT.sungrass:MAT.steppegrass;
+        case 'savanna':return n>.7?MAT.goldgrass:s<.15?MAT.goldgrass:n<.3?MAT.sungrass:MAT.savgrass;
+        case 'golden':return n<.25?(s<.2?MAT.goldgrass:MAT.savgrass):s<.18?MAT.savgrass:n2>.84&&s<.5?MAT.dry:MAT.goldgrass;
+        case 'bamboo':return n>.62?MAT.grass:MAT.lushgrass;
+        case 'rainforest':return n>.58?MAT.lushgrass:MAT.junglefloor;
+        case 'desert':return n2>.72?MAT.sand:MAT.dune;
+        // Badlands: clay, ochre and pale bands that follow height, so hillsides read as layered strata.
+        case 'badlands':{const k=Math.floor(h*cellMetres/1.25+(noise(x*.05,z*.05,seed+715)-.5)*1.4+r*3);return [MAT.clay,MAT.ochre,MAT.clay,MAT.dry][(k%4+4)%4];}
+        case 'tundra':return MAT.tundra;
+        case 'grassland':case 'forest':case 'wetland':case 'redwood':return n<.32?MAT.lushgrass:n>.7?MAT.sungrass:MAT.grass;
+        default:return b==='boreal'&&n>.74?MAT.tundra:MAT.grass;
+      }
+    }
     // Home massif: stepped plateau walled by vertical 4.5 m tiers; inside notch zones the same uplift is a climbable ramp (a pass).
     function massifDistance(x,z){
       const dx=x-massifX,dz=z-massifZ,along=-dx*Math.sin(massifAngle)+dz*Math.cos(massifAngle),across=dx*Math.cos(massifAngle)+dz*Math.sin(massifAngle);
@@ -493,7 +567,7 @@
         iceBase=Math.min(iceBase,h);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
         const lakeWater=RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
-        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,noise(x*.0007,z*.0007,seed+611)>.62);
+        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,region(C,x,z));
         const water=sea?Math.round(SEA/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((floor+1)/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
@@ -521,7 +595,7 @@
         const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),dense=(TREES[g.biome]||0)*(.35+.65*patch);
         const redwood=g.biome==='redwood',conifer=redwood||g.biome==='boreal'||g.biome==='tundra'||g.biome==='montane'||g.biome==='subalpine'||g.biome==='forest'&&g.temperature<11,big=g.biome==='rainforest',small=g.biome==='subalpine'||g.biome==='tundra';
         const value=g.riverDistance<9||g.water>g.height||g.exposed||g.highland||g.sea||g.slope>(g.biome==='montane'?1.6:1.2)||g.gorgeDistance<g.gorgeHalf+4||hash(gx,gz,seed+23)>=dense||spireNear(x,z,4)||landmarkNear(x,z)?null
-          :Object.freeze({x,z,base:g.height,conifer,redwood,height:((redwood?30:small?8:conifer?14:big?18:11)+Math.floor(hash(gx,gz,seed+4)*(redwood?16:small?5:big?12:8)))*density,radius:((redwood?4:small?3:conifer?4:big?7:5)+Math.floor(hash(gx,gz,seed+5)*(small?2:3)))*density});
+          :Object.freeze({x,z,base:g.height,conifer,redwood,style:TREE_STYLE[g.biome]||'broadleaf',leaf:STYLE_LEAF[TREE_STYLE[g.biome]]?.[Math.floor(hash(gx,gz,seed+29)*STYLE_LEAF[TREE_STYLE[g.biome]].length)]||0,biome:g.biome,height:((redwood?30:small?8:conifer?14:big?18:11)+Math.floor(hash(gx,gz,seed+4)*(redwood?16:small?5:big?12:8)))*density,radius:((redwood?4:small?3:conifer?4:big?7:5)+Math.floor(hash(gx,gz,seed+5)*(small?2:3)))*density});
         return value;
     }
     function tree(gx,gz){
@@ -575,16 +649,16 @@
       values.fill(MAT.basalt,0,Math.max(0,h-4*density));
       values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
       if(infinite){
-        const b=g.biome,sub=b==='desert'||b==='beach'||b==='sea'?MAT.sand:MAT.soil;
+        const b=g.biome,sub=b==='desert'||b==='beach'||b==='sea'?MAT.sand:b==='badlands'?MAT.clay:MAT.soil;
         if(!g.exposed)values.fill(sub,Math.max(0,h-4*density),h);
         // Ground variety, each with a noise-wobbled edge: wet mud then sand on river banks (creeks: mud only), gravel scree on
         // steep mountain soil, and worn coarse-dirt patches in open grass.
         const wob=(noise(x*.35,z*.35,seed+611)-.5)*1.6,rd=g.riverDistance+wob;
         const bank=g.water>h&&!g.sea?0:rd<4.6?MAT.mud:g.riverSize>=.6&&rd<9?MAT.sand:0;
-        values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='desert'||b==='beach'?MAT.sand:bank?bank:b==='savanna'||b==='steppe'?MAT.dry:b==='tundra'?MAT.tundra:b==='alpine'?MAT.basalt:MAT.grass;
-        if(values[h-1]===MAT.grass||values[h-1]===MAT.tundra||values[h-1]===MAT.dry){
+        values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='beach'?MAT.sand:bank?bank:b==='alpine'?MAT.basalt:turf(b,x,z,h,g);
+        if(TURF.has(values[h-1])){
           if(g.relief>15&&g.slope>.75+(noise(x*.3,z*.3,seed+613)-.5)*.35)values[h-1]=MAT.gravel;
-          else if(values[h-1]===MAT.grass&&noise(x*.06,z*.06,seed+615)>.85-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
+          else if((b==='grassland'||b==='steppe'||b==='savanna')&&noise(x*.06,z*.06,seed+615)>.93-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
         }
         if(g.iceCells)values.fill(MAT.ice,h-g.iceCells,h);
       }else values[h-1]=g.exposed?MAT.basalt:g.riverDistance<9?MAT.sand:MAT.grass;
@@ -605,11 +679,15 @@
         }else if(dist<t.radius){
           const rise=Math.sqrt(t.radius*t.radius-dist*dist);
           const low=Math.max(t.base+5*density,Math.floor(top-rise*.55)),high=Math.min(heightCells,Math.ceil(top+rise*.65));
-          for(let y=low;y<high;y++)if(!values[y])values[y]=MAT.leaf;
+          for(let y=low;y<high;y++)if(!values[y])values[y]=t.leaf||MAT.leaf;
         }
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
-      if(infinite&&floorMat<9){const m=values[h-1];if(m===MAT.grass||m===MAT.dirt||m===MAT.tundra||m===MAT.dry)values[h-1]=floorMat===0?MAT.podzol:floorMat===1?MAT.litter:MAT.dirt;}
+      // Under-canopy floor: podzol under conifers; under broadleaf, leaf litter in temperate woods, gold litter in autumn woods,
+      // petals in blossom groves, dark jungle floor under rainforest and bamboo, and a shaded moss disc under lone trees in open
+      // country. The fringe ring (2) is worn dirt only around conifer stands; elsewhere the ground runs up to the trunk.
+      if(infinite&&floorMat<9&&TURF.has(values[h-1])){const b=g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.petal:floorMat===2?(TREE_STYLE[b]?.startsWith('conifer')?MAT.dirt:0)
+        :b==='forest'||b==='redwood'||b==='wetland'?MAT.litter:b==='rainforest'||b==='bamboo'?MAT.junglefloor:b==='fen'?MAT.sphagnum:MAT.mossy;if(m)values[h-1]=m;}
       if(infinite){
         const I=isleAt(x,z),F=isleCell(Math.floor(x/IG),Math.floor(z/IG))?.fall;
         if(F){const q=Math.hypot(x-F.x,z-F.z);
@@ -634,7 +712,7 @@
       if(infinite){
         const A=ancientNear(x,z);
         if(A&&Math.abs(x-A.x)<A.reach&&Math.abs(z-A.z)<A.reach){
-          {const f=Math.hypot(x-A.x,z-A.z)/(A.reach*.8)+(noise(x*.3,z*.3,seed+621)-.5)*.35,m=values[h-1];if(f<1.2&&(m===MAT.grass||m===MAT.dirt||m===MAT.tundra||m===MAT.dry||m===MAT.podzol))values[h-1]=f<.35?MAT.podzol:f<1?MAT.litter:MAT.dirt;}
+          {const f=Math.hypot(x-A.x,z-A.z)/(A.reach*.8)+(noise(x*.3,z*.3,seed+621)-.5)*.35,m=values[h-1];if(f<1.2&&(TURF.has(m)||m===MAT.podzol))values[h-1]=f<.35?MAT.podzol:f<1?MAT.litter:MAT.dirt;}
           const d=Math.hypot(x-A.x,z-A.z),fill=(m,y0,y1)=>{const a=Math.max(0,Math.floor(y0/cellMetres)),b=Math.min(heightCells,Math.ceil(y1/cellMetres));for(let y=a;y<b;y++)if(!values[y]||m===MAT.bark)values[y]=m;};
           // Trunk: wide root flare over the lowest 5 m, gnarled girth, up to the crown.
           for(let y=Math.max(0,Math.floor(A.base/cellMetres));y<Math.min(heightCells,Math.ceil((A.fork+3)/cellMetres));y++){
@@ -704,7 +782,7 @@
         }
       }
       if(prof&&prof.on)prof.features+=now()-t0;
-      if(!g.exposed&&!g.wet&&g.clearing<.5&&(!infinite||values[h-1]===MAT.grass)&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);
+      if(!g.exposed&&!g.wet&&g.clearing<.5&&(!infinite||GRASSY.has(values[h-1]))&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);
       colTop=Math.min(heightCells,written);
       return values;
     }
@@ -855,6 +933,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,TREE_STYLE,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);
