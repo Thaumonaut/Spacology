@@ -819,9 +819,12 @@
         return Object.freeze({...common,kind:'cactus',ht,r:.2+.06*hash(gx,gz,seed+71),arms});
       }
       if(roll2<(c+=(S.mushroom||0)*(.5+patch))){
-        const n=1+Math.floor(hash(gx,gz,seed+73)*3),list=[];
-        for(let i=0;i<n;i++){const a=hash(i,gx+gz*3,seed+75)*Math.PI*2,o=i?.8+.6*hash(i,gx,seed+77):0,s=i?.55+.3*hash(i,gz,seed+79):1;
-          list.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,sr:.14*s+.06,sh:(.8+1*hash(i,gx*3+gz,seed+81))*s,cr:(.55+.45*hash(i,gx+gz,seed+83))*s,ct:.25+.2*s});}
+        // One to three distinct mushrooms of falling size, spaced so their caps never touch.
+        const n=1+Math.floor(hash(gx,gz,seed+73)*3),list=[],R0=1.3+.6*hash(gx,gz,seed+83);
+        for(let i=0;i<n;i++){
+          const s=i===0?1:i===1?.6+.1*hash(i,gz,seed+79):.42+.08*hash(i,gz,seed+79),cr=R0*s,a=hash(i,gx+gz*3,seed+75)*Math.PI*2+i*2.1,o=i?R0+cr+.25:0;
+          list.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,cr,sr:cr*.34,sh:cr*(1.1+.4*hash(i,gx*3+gz,seed+81)),ct:cr*.62,spin:hash(i,gx,seed+77)*6.28});
+        }
         return Object.freeze({...common,kind:'mushroom',list});
       }
       if(roll2<(c+=S.deadwood||0)){
@@ -917,12 +920,14 @@
       if(kind==='mushroom'){
         let top=0;
         for(const m of t.list){
-          const d=Math.hypot(x-m.x,z-m.z);if(d>=m.cr)continue;
-          const capLow=h+c(m.sh)-(d>m.cr*.7?1:0),e=Math.min(heightCells,capLow+Math.max(1,c(m.ct*Math.sqrt(1-(d/m.cr)**2)+.1)));
+          const dx=x-m.x,dz=z-m.z,d=Math.hypot(dx,dz);if(d>=m.cr)continue;
+          // Clean dome cap, wider than tall, its rim curling down a little; short thick stem under the centre.
+          const q=d/m.cr,capLow=h+c(m.sh-m.ct*.3*q*q),e=Math.min(heightCells,h+c(m.sh)+Math.max(1,c(m.ct*Math.sqrt(1-q*q))));
           if(d<m.sr)fillAir(MAT.stem,h,capLow);
           fillAir(MAT.mushroom,capLow,e);
-          // Pale spots on the cap.
-          if(values[e-1]===MAT.mushroom&&hash(Math.floor(x*5),Math.floor(z*5),seed+113)<.16)values[e-1]=MAT.stem;
+          // White spots on the top surface only: one at the crown and five evenly spaced around it.
+          let spot=d<m.cr*.16;for(let k=0;k<5&&!spot;k++){const A=m.spin+k*1.2566;spot=Math.hypot(dx-Math.cos(A)*m.cr*.55,dz-Math.sin(A)*m.cr*.55)<m.cr*.15;}
+          if(spot&&values[e-1]===MAT.mushroom)values[e-1]=MAT.stem;
           top=Math.max(top,e);
         }
         return top;
