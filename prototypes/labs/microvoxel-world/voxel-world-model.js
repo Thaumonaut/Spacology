@@ -1,8 +1,11 @@
 (function(root){
   'use strict';
   const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=1024,EXTENT=128,REVISION='micro-catchment-1';
-  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32});
-  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356']);
+  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32,
+    // Vegetation (appended; never renumber): leaves/needles, barks/culms, then small standing objects.
+    birchBark:33,birchLeaf:34,larch:35,bushLeaf:36,bamboo:37,bambooLeaf:38,blossom:39,blossomWhite:40,coral:41,fern:42,tuft:43,mushroom:44,stem:45,glowFlower:46,reed:47,flowerYellow:48,flowerViolet:49,cactus:50,acacia:51,larchGold:52,birchMark:53,bambooNode:54});
+  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
+    '#e9e4d8','#a3c86a','#a9b552','#5c9a52','#b6c46a','#78b24c','#b88ae6','#f6eefa','#f28b6e','#4e8d45','#98b862','#d9473b','#f1e6cc','#71dcff','#a3a45c','#f4d04e','#a483e6','#5e9a5a','#8aa24c','#e0a93c','#45403c','#7d8f3e']);
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
@@ -318,23 +321,57 @@
       spireCells.set(k,v);if(spireCells.size>4096)spireCells.delete(spireCells.keys().next().value);return v;
     }
     const spiresNear=(x,z)=>spireCell(Math.floor(x/SG),Math.floor(z/SG));
-    // Ancient trees: a rare giant oak, a "tree of life" (about one per km2 of forest): a buttressed trunk 5-7 m across,
-    // four to six great limbs reaching out and up, each ending in a broad crown lobe, plus a crown over the trunk.
-    const AG=220,ancients=new Map();
+    // World trees ("tree of life"): at most one candidate per 220 m cell (half the old chance), and a candidate yields to
+    // any neighbouring candidate with a lower roll, so two never stand within ~350 m of each other (never in one view).
+    // A raised grassy mound with great exposed roots arching over it; a massive twisted trunk that leans and tapers;
+    // limbs fanning out to a strongly coloured canopy: violet and white blossom domes with hanging strands, or (variant)
+    // flat coral umbrella pads. Some stand among a few broken ruins.
+    const AG=220,ancients=new Map(),ancientSites=new Map();
+    const ANCIENT_CHANCE={rainforest:.15,forest:.15,redwood:.08,montane:.06,grassland:.06,savanna:.06,wetland:.05};
+    function ancientSite(i,j){
+      const k=i*65536+j;if(ancientSites.has(k))return ancientSites.get(k);let v=null;const p=hash(i,j,seed+441);
+      if(p<.15){
+        const x=(i+.3+.4*hash(i,j,seed+443))*AG,z=(j+.3+.4*hash(i,j,seed+445))*AG,g=geography(x,z);
+        if(p<(ANCIENT_CHANCE[g.biome]||0)&&!g.exposed&&!g.highland&&g.slope<.5&&g.water<=g.height&&g.riverDistance>14&&Math.hypot(x,z)>40)v={x,z,g,p};
+      }
+      ancientSites.set(k,v);if(ancientSites.size>4096)ancientSites.delete(ancientSites.keys().next().value);return v;
+    }
     function ancientCell(i,j){
-      const k=i*65536+j;if(ancients.has(k))return ancients.get(k);let v=null;const p=hash(i,j,seed+441);
-      if(p<.3){
-        const x=(i+.3+.4*hash(i,j,seed+443))*AG,z=(j+.3+.4*hash(i,j,seed+445))*AG,g=geography(x,z),chance={rainforest:.3,forest:.3,redwood:.15,montane:.12,grassland:.12,savanna:.12,wetland:.1}[g.biome]||0;
-        if(p<chance&&!g.exposed&&!g.highland&&g.slope<.5&&g.water<=g.height&&Math.hypot(x,z)>40){
-          const base=g.height*cellMetres-1,H=26+8*hash(i,j,seed+447),R=2.6+.8*hash(i,j,seed+449),fork=base+H*.38,limbs=[],lumps=[];
-          const n=4+Math.floor(hash(i,j,seed+451)*3);
-          for(let m=0;m<n;m++){
-            const a=m/n*Math.PI*2+(hash(m,k,seed+453)-.5)*.7,reach=10+6*hash(m,k,seed+455),ey=base+H*(.72+.18*hash(m,k,seed+457));
-            const ex=x+Math.cos(a)*reach,ez=z+Math.sin(a)*reach;limbs.push({x0:x,z0:z,y0:fork,x1:ex,z1:ez,y1:ey,r0:R*.62,r1:.7});
-            lumps.push({x:ex,z:ez,y:ey+1.5,r:5+2.5*hash(m,k,seed+459)});
+      const k=i*65536+j;if(ancients.has(k))return ancients.get(k);let v=null;const s=ancientSite(i,j);
+      if(s){
+        let first=true;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const o=ancientSite(i+di,j+dj);if(o&&o.p<s.p)first=false;}
+        if(first){
+          const {x,z,g}=s,H_=n=>hash(n,k,seed+447),g0=g.height*cellMetres;
+          const Mr=12+5*H_(1),Mh=2.2+1.6*H_(2),base=g0+Mh-.6,H=20+7*H_(3),R=2.3+.7*H_(4),la=H_(5)*Math.PI*2,lean=3.5+3*H_(6);
+          const lx=Math.cos(la)*lean,lz=Math.sin(la)*lean,cx=x+lx,cz=z+lz,cy=base+H,twist=(H_(7)<.5?1:-1)*(.25+.15*H_(8)),variant=H_(9)<.62?'blossom':'coral';
+          const mound=d=>g0+Mh*(.5+.5*Math.cos(Math.PI*clamp(d/Mr,0,1)))**1.3;
+          // Roots: tapering tubes from the trunk foot, arching over the mound and diving into the ground beyond it.
+          const roots=[],nr=7+Math.floor(H_(10)*3);
+          for(let m=0;m<nr;m++){
+            const a=m/nr*Math.PI*2+(H_(20+m)-.5)*.5,len=Mr*(.75+.35*H_(40+m)),r0=R*(.4+.15*H_(60+m)),pts=[];let x0=Infinity,x1=-Infinity,z0=Infinity,z1=-Infinity;
+            for(let s2=0;s2<=16;s2++){
+              const t=s2/16,d=R*.6+t*len,b=a+.35*Math.sin(t*3+m),px=x+Math.cos(b)*d,pz=z+Math.sin(b)*d,r=r0*(1-t)**.8+.25;
+              const py=mound(d)+r*.15+1.5*Math.sin(Math.PI*Math.min(1,t*1.15))*(1-t*.5)-(t>.9?.6:0);
+              pts.push({x:px,z:pz,y:py,r});x0=Math.min(x0,px-r);x1=Math.max(x1,px+r);z0=Math.min(z0,pz-r);z1=Math.max(z1,pz+r);
+            }
+            roots.push({pts,x0,x1,z0,z1});
           }
-          lumps.push({x,z,y:base+H,r:6+2*hash(i,j,seed+599)});
-          v={x,z,base,H,R,fork,limbs,lumps,top:base+H+10,reach:Math.max(...lumps.map(l=>Math.hypot(l.x-x,l.z-z)+l.r))+1};
+          // Limbs fan out and up from the leaning crown point; the canopy sits on their ends.
+          const limbs=[],lumps=[],pads=[],nl=5+Math.floor(H_(11)*2);
+          for(let m=0;m<nl;m++){
+            const a=m/nl*Math.PI*2+(H_(80+m)-.5)*.7,reach=7+5*H_(100+m),ey=cy+2.5+4*H_(120+m),ex=cx+Math.cos(a)*reach,ez=cz+Math.sin(a)*reach;
+            limbs.push({x0:cx,z0:cz,y0:cy-2,x1:ex,z1:ez,y1:ey,r0:R*.45,r1:.45});
+            if(variant==='blossom')lumps.push({x:ex,z:ez,y:ey+1,r:4.5+2.5*H_(140+m)});
+            else{pads.push({x:ex,z:ez,y:ey+.4,r:4.2+2.4*H_(140+m),th:1.1+.5*H_(160+m)});
+              pads.push({x:cx+Math.cos(a)*reach*.55,z:cz+Math.sin(a)*reach*.55,y:cy+(ey-cy)*.45-1.2,r:2.6+1.4*H_(180+m),th:.9});}
+          }
+          if(variant==='blossom'){lumps.push({x:cx,z:cz,y:cy+5,r:6.5});for(let m=0;m<nl;m++){const A=lumps[m],B=lumps[(m+1)%nl];lumps.push({x:(A.x+B.x+cx)/3,z:(A.z+B.z+cz)/3,y:(A.y+B.y)/2+1.5,r:4});}}
+          else pads.push({x:cx,z:cz,y:cy+5.5,r:5.2,th:1.4});
+          // A few broken pillars and wall stubs among the roots.
+          const stones=[];if(H_(12)<.45)for(let m=0;m<3+Math.floor(H_(13)*3);m++){const a=H_(200+m)*Math.PI*2,d=Mr*(.6+.4*H_(220+m));stones.push({x:x+Math.cos(a)*d,z:z+Math.sin(a)*d,ux:Math.cos(a+1.6),uz:Math.sin(a+1.6),wall:H_(240+m)<.4,r:.55+.3*H_(260+m),hl:1.2+.8*H_(280+m),ht:1.2+3*H_(300+m)});}
+          const top=Math.max(...lumps.map(l=>l.y+l.r*.5),...pads.map(p=>p.y+p.th))+1;
+          const reach=Math.max(Mr,...roots.map(r=>Math.max(Math.abs(r.x0-x),Math.abs(r.x1-x),Math.abs(r.z0-z),Math.abs(r.z1-z))),...lumps.map(l=>Math.hypot(l.x-x,l.z-z)+l.r*1.15),...pads.map(p=>Math.hypot(p.x-x,p.z-z)+p.r*1.15))+1;
+          v={x,z,g0,Mr,Mh,base,H,R,lx,lz,cx,cz,cy,twist,variant,roots,limbs,lumps,pads,stones,top,reach,mound};
         }
       }
       ancients.set(k,v);if(ancients.size>4096)ancients.delete(ancients.keys().next().value);return v;
@@ -445,7 +482,8 @@
       boulders.set(k,v);if(boulders.size>16384)boulders.delete(boulders.keys().next().value);return v;
     }
     // Regular trees keep clear of giant crowns, ruins and rock landforms.
-    // Ruins mask trees tightly: only trunks within 1.5 m of a wall (or on the street) are removed, so forest grows into courtyards.
+    // Ruins mask trees tightly: only trunks within 0.6 m of a wall (or on the street) are removed, so forest grows into
+    // courtyards and right against the walls.
     function ruinBlocks(R,x,z,m){
       for(const q of R.parts){
         if(q.t==='box'||q.t==='path'){const dx=x-q.cx,dz=z-q.cz;if(Math.abs(dx*q.ux+dz*q.uz)<q.hl+m&&Math.abs(-dx*q.uz+dz*q.ux)<q.hw+(q.t==='path'?.3:m))return true;}
@@ -453,7 +491,7 @@
       }
       return false;
     }
-    const landmarkNear=(x,z)=>{const A=ancientNear(x,z),R=ruinNear(x,z),K=rockNear(x,z);return !!A&&Math.hypot(x-A.x,z-A.z)<A.reach+1||!!R&&Math.hypot(x-R.x,z-R.z)<R.reach&&ruinBlocks(R,x,z,1.5)||!!K&&Math.hypot(x-K.x,z-K.z)<K.reach+2;};
+    const landmarkNear=(x,z)=>{const A=ancientNear(x,z),R=ruinNear(x,z),K=rockNear(x,z);return !!A&&Math.hypot(x-A.x,z-A.z)<A.reach+1||!!R&&Math.hypot(x-R.x,z-R.z)<R.reach&&ruinBlocks(R,x,z,.6)||!!K&&Math.hypot(x-K.x,z-K.z)<K.reach+2;};
     const spireNear=(x,z,margin)=>{const S=spiresNear(x,z);return !!S&&S.list.some(p=>Math.hypot(x-p.x,z-p.z)<p.r+margin);};
     function geography(x,z){
       if(infinite){
@@ -515,14 +553,134 @@
     }
     function ground(x,z){if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
     const TG=infinite?3:5;
-    // A streamed tree is a pure function of its 3 m grid cell; tree() memoizes it, the continent view keeps its own memo.
+    // ---- Vegetation ----
+    // Species: sizes in metres as [base, random spread] for height (h) and crown radius (r); trunk = trunk radius.
+    // crown: round (broadleaf dome), oval (airy birch), cone (spruce), larch (open tiered cone), spire (redwood: a needle
+    // point over the trunk), umbrella (flat acacia pads), gnarled (twisted, leaning lakeside tree).
+    const SPECIES={
+      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[2.75,2],r:[1.25,.75],trunk:.18},
+      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[4.5,2.75],r:[1.75,.75],trunk:.22},
+      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[3.25,1.75],r:[.75,.4],trunk:.12},
+      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[3.5,1.75],r:[1,.5],trunk:.18,conifer:true},
+      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[3.75,2],r:[1,.5],trunk:.16,conifer:true},
+      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[7.5,4],r:[1,.5],trunk:.33,conifer:true},
+      umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[2.5,1.25],r:[1.75,.75],trunk:.15},
+      gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[2.5,1],r:[1.1,.4],trunk:.24},
+    };
+    const SPECIES_KEYS=Object.keys(SPECIES);
+    // Per-biome tree style. mix: species weights (each species also gathers into groves by its own noise); cold: a
+    // replacement mix below a temperature; size: height/radius multiplier; density: tree chance per 3 m cell (falls back
+    // to TREES); shrubLeaf: species of the bush-sized trees. Extras roll on cells without a tree, as chances per cell:
+    // bush (round clumps), shrub (x0.3 trees), deadwood (logs and stumps), mushroom (giant red caps), bamboo (grove
+    // strength in warm wet ground), cactus. Biomes not listed use `default`: a new biome slots in with one line here.
+    const TREE_STYLE={
+      default:{mix:{oak:.75,birch:.25},density:.25,bush:.05,shrub:.03,deadwood:.01},
+      forest:{mix:{oak:.62,birch:.2,spruce:.18},cold:{below:11,mix:{spruce:.55,larch:.2,birch:.25}},bush:.08,shrub:.04,deadwood:.04,mushroom:.012,bamboo:.5},
+      redwood:{mix:{redwood:.9,spruce:.1},bush:.1,deadwood:.05,mushroom:.02},
+      rainforest:{mix:{jungle:.85,umbrella:.15},bush:.12,deadwood:.03,mushroom:.015,bamboo:1},
+      montane:{mix:{spruce:.6,larch:.4},bush:.04,deadwood:.03,mushroom:.006},
+      boreal:{mix:{spruce:.55,birch:.25,larch:.2},bush:.05,deadwood:.04,mushroom:.008},
+      subalpine:{mix:{spruce:.6,larch:.4},size:.6,bush:.05},
+      tundra:{mix:{spruce:.65,birch:.35},size:.55,bush:.04},
+      wetland:{mix:{gnarled:.4,birch:.3,oak:.3},bush:.1,deadwood:.03},
+      savanna:{mix:{umbrella:.85,oak:.15},bush:.05,bamboo:.4},
+      steppe:{mix:{umbrella:.6,oak:.4},size:.8,bush:.04},
+      grassland:{mix:{oak:.7,birch:.3},bush:.06,shrub:.05,deadwood:.006},
+      meadow:{mix:{larch:.6,spruce:.4},size:.7,bush:.03,shrub:.03},
+      desert:{mix:{umbrella:1},density:0,cactus:.06},
+      beach:{mix:{oak:1},density:0,bush:.01},
+    };
+    const TREELESS=new Set(['sea','snow','glacier','alpine','gorge']);
+    const treeStyle=b=>TREE_STYLE[b]||TREE_STYLE.default;
+    // Quarter-metre units times density: identical metre sizes at either cell size, always integer cells.
+    const cells=m=>Math.max(1,Math.round(m*4))*density;
+    // Stamped heights stay well under nodeBound (ground + 24 m); radii fit the 3x3 tree-cell neighbourhood.
+    const MAX_TREE=16,MAX_RADIUS=3.25;
+    function pickSpecies(S,g,x,z,gx,gz,edge){
+      const mix=S.cold&&g.temperature<S.cold.below?S.cold.mix:S.mix,w={};let total=0;
+      // Groves: each species is weighted by its own low-frequency noise; birches favour forest edges.
+      for(const k in mix){w[k]=mix[k]*(.2+1.6*noise(x*.022,z*.022,seed+731+SPECIES_KEYS.indexOf(k)*7))*(k==='birch'?.5+1.5*edge:1);total+=w[k];}
+      let r=hash(gx,gz,seed+31)*total;for(const k in w){r-=w[k];if(r<0)return k;}
+      return Object.keys(mix)[0];
+    }
+    // Size class, clustered by low-frequency noise into young groves and old stands: on average ~25% young (x0.45-0.75),
+    // ~60% mature (x0.85-1.15), ~15% big (x1.3-1.7).
+    function sizeClass(x,z,gx,gz){
+      const n=noise(x*.018,z*.018,seed+703),r=hash(gx,gz,seed+705),r2=hash(gx,gz,seed+707),young=.22-(n-.5)*.7,big=.84-(n-.5)*.45;
+      return r<young?{cls:0,k:.45+.3*r2}:r<big?{cls:1,k:.85+.3*r2}:{cls:2,k:1.3+.4*r2};
+    }
+    // Round leaf clumps (bushes): 1-3 lumps within ~1 m, 0.6-1.5 m tall, stamped on each column's own ground.
+    function bushLumps(x,z,gx,gz,k,scale=1){
+      const n=1+Math.floor(hash(gx,gz,seed+k)*3),list=[],id=gx*31+gz;
+      for(let i=0;i<n;i++){const a=hash(i,id,seed+k+1)*Math.PI*2,o=i?.5+.6*hash(i,id,seed+k+2):0,r=(.35+.4*hash(i,id,seed+k+3))*scale;
+        list.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,r,ht:clamp(r*(1.3+.6*hash(i,id,seed+k+4)),.6,1.5)*scale});}
+      return list;
+    }
+    // A streamed tree cell is a pure function of its 3 m grid cell; tree() memoizes it. It holds one plant: a tree, a
+    // bush clump, a bamboo clump, a cactus, a mushroom cluster, a log or a stump (or nothing).
     function makeTree(gx,gz){
-        const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z);
-        const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),dense=(TREES[g.biome]||0)*(.35+.65*patch);
-        const redwood=g.biome==='redwood',conifer=redwood||g.biome==='boreal'||g.biome==='tundra'||g.biome==='montane'||g.biome==='subalpine'||g.biome==='forest'&&g.temperature<11,big=g.biome==='rainforest',small=g.biome==='subalpine'||g.biome==='tundra';
-        const value=g.riverDistance<9||g.water>g.height||g.exposed||g.highland||g.sea||g.slope>(g.biome==='montane'?1.6:1.2)||g.gorgeDistance<g.gorgeHalf+4||hash(gx,gz,seed+23)>=dense||spireNear(x,z,4)||landmarkNear(x,z)?null
-          :Object.freeze({x,z,base:g.height,conifer,redwood,height:((redwood?30:small?8:conifer?14:big?18:11)+Math.floor(hash(gx,gz,seed+4)*(redwood?16:small?5:big?12:8)))*density,radius:((redwood?4:small?3:conifer?4:big?7:5)+Math.floor(hash(gx,gz,seed+5)*(small?2:3)))*density});
-        return value;
+      const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),b=g.biome,S=treeStyle(b);
+      if(g.exposed||g.highland||g.sea||g.water>g.height||g.gorgeDistance<g.gorgeHalf+4||g.slope>(b==='montane'?1.6:1.2)||spireNear(x,z,4)||landmarkNear(x,z))return null;
+      const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),edge=1-patch,roll=hash(gx,gz,seed+23),roll2=hash(gx,gz,seed+29),barren=TREELESS.has(b)||b==='desert';
+      let base=S.density??TREES[b]??(TREELESS.has(b)?0:.25);
+      // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
+      const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
+      const dense=base*(.35+.65*patch),common={x,z,base:g.height};
+      const bush=(scale=1)=>Object.freeze({...common,kind:'bush',lumps:bushLumps(x,z,gx,gz,601,scale)});
+      // River and lake edges: twisted trees leaning out over the water, bushes on the bank.
+      if(g.riverDistance<12){
+        // Only cells that would take a lakeside plant sample their surroundings for water.
+        let wx=0,wz=0;if(roll<.55&&!barren)for(const [u,w] of [[4.5,0],[-4.5,0],[0,4.5],[0,-4.5]]){const G=geography(x+u,z+w);if(G.water>G.height&&!G.sea){wx+=u;wz+=w;}}
+        if(wx||wz){if(roll<.3)return growTree('gnarled',S,g,gx,gz,x,z,{lean:Math.atan2(wz,wx)});if(roll<.55)return bush();}
+        if(g.riverDistance<9)return roll2<.15&&g.riverDistance>4&&!barren?bush():null;
+      }
+      // Warm, wet hills and rainforest margins: dense bamboo clumps that join into groves.
+      if(S.bamboo&&g.temperature>15&&g.moisture>.5&&noise(x*.012,z*.012,seed+721)>.62-.08*S.bamboo&&roll2<.9){
+        const n=10+Math.floor(hash(gx,gz,seed+41)*8),culms=[],H=6+3*hash(gx,gz,seed+43),id=gx*7+gz;let top=0;
+        for(let i=0;i<n;i++){const a=hash(i,id,seed+45)*Math.PI*2,o=1.5*Math.sqrt(hash(i,id,seed+47)),lean=.012+.025*hash(i,id,seed+49),h=Math.min(12,H+3*hash(i,id,seed+51));
+          culms.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,lx:Math.cos(a)*lean,lz:Math.sin(a)*lean,h,tr:.45+.3*hash(i,id,seed+53)});top=Math.max(top,h);}
+        return Object.freeze({...common,kind:'bamboo',culms,top:g.height+Math.ceil((top+1)/cellMetres)+2});
+      }
+      if(roll<dense)return growTree(pickSpecies(S,g,x,z,gx,gz,edge),S,g,gx,gz,x,z);
+      // Cells without a tree: extras by biome. Bushes and shrubs gather at forest edges and in open ground.
+      const near=base>.4?.4+1.6*edge:1;let c=0;
+      if(roll2<(c+=S.cactus||0)){
+        const ht=1.4+2*hash(gx,gz,seed+61),arms=[];
+        for(let i=0;i<1+Math.floor(hash(gx,gz,seed+63)*2.4);i++){const a=hash(i,gx+gz*5,seed+65)*Math.PI*2;arms.push({ux:Math.cos(a),uz:Math.sin(a),at:ht*(.3+.25*hash(i,gx,seed+67)),up:.5+.7*hash(i,gz,seed+69)});}
+        return Object.freeze({...common,kind:'cactus',ht,r:.2+.06*hash(gx,gz,seed+71),arms});
+      }
+      if(roll2<(c+=(S.mushroom||0)*(.5+patch))){
+        const n=1+Math.floor(hash(gx,gz,seed+73)*3),list=[];
+        for(let i=0;i<n;i++){const a=hash(i,gx+gz*3,seed+75)*Math.PI*2,o=i?.8+.6*hash(i,gx,seed+77):0,s=i?.55+.3*hash(i,gz,seed+79):1;
+          list.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,sr:.14*s+.06,sh:(.8+1*hash(i,gx*3+gz,seed+81))*s,cr:(.55+.45*hash(i,gx+gz,seed+83))*s,ct:.25+.2*s});}
+        return Object.freeze({...common,kind:'mushroom',list});
+      }
+      if(roll2<(c+=S.deadwood||0)){
+        if(hash(gx,gz,seed+85)<.55){const a=hash(gx,gz,seed+87)*Math.PI;return Object.freeze({...common,kind:'log',ux:Math.cos(a),uz:Math.sin(a),len:2.4+2*hash(gx,gz,seed+89),r:.24+.14*hash(gx,gz,seed+91)});}
+        return Object.freeze({...common,kind:'stump',r:.28+.18*hash(gx,gz,seed+93),ht:.35+.45*hash(gx,gz,seed+95)});
+      }
+      if(roll2<(c+=(S.bush||0)*near))return bush();
+      if(roll2<(c+=(S.shrub||0)*near))return growTree(S.shrubLeaf||((S.mix.birch||0)>(S.mix.oak||0)?'birch':'oak'),S,g,gx,gz,x,z,{k:.3});
+      return null;
+    }
+    // A tree record. Heights and radii are integer cells (quarter-metre quantized, so both cell sizes agree).
+    function growTree(sp,S,g,gx,gz,x,z,o={}){
+      const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1);
+      const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
+      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*Math.sqrt(C.k)/cellMetres)};
+      // Larches turn autumn gold in patches.
+      if(sp==='larch'&&noise(x*.015,z*.015,seed+741)>.64)t.leaf=MAT.larchGold;
+      let top=g.height+height+Math.ceil(radius*.7)+4*density+1;
+      if(P.crown==='umbrella'){const a=hash(gx,gz,seed+97)*Math.PI*2,d=rm*.45;t.pads=[{x,z,y:g.height+height,r:radius},{x:x+Math.cos(a)*d,z:z+Math.sin(a)*d,y:g.height+Math.round(height*.72),r:Math.max(density,Math.round(radius*.6))}];}
+      if(P.crown==='gnarled'){
+        const a=o.lean??hash(gx,gz,seed+99)*Math.PI*2,L=(.9+.8*hash(gx,gz,seed+101))*hm*.5;t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;
+        const tx=x+t.lx,tz=z+t.lz;
+        t.lumps=[0,1,2].map(i=>{const b=a+(i-1)*1.5+hash(i,gx+gz,seed+103)*.4,d=i===1?0:rm*.6;return {x:tx+Math.cos(b)*d,z:tz+Math.sin(b)*d,y:g.height+height-(i===1?0:cells(.35)),r:i===1?radius:Math.max(density,Math.round(radius*.75))};});
+        top+=radius;
+      }
+      // Big trees shelter a bush or two at their feet.
+      if(C.cls===2&&S.bush){const a=hash(gx,gz,seed+105)*Math.PI*2,d=Math.max(.9,rm*.75);t.under=bushLumps(x+Math.cos(a)*d,z+Math.sin(a)*d,gx,gz,611,.9);}
+      t.top=top;return Object.freeze(t);
     }
     function tree(gx,gz){
       if(infinite){
@@ -565,6 +723,177 @@
     // colTop: one past the highest cell the last column() call can have written, so callers reusing a buffer scan and clear
     // only that far.
     let colTop=0;
+    // colStep: cells between sampled columns (set by node()). Plants and scatter smaller than a sampled column are skipped.
+    let colStep=1;
+    // Stamp one plant record into the column at (x,z) whose first air cell is h. Returns one past the highest cell the
+    // stamp may have written (0 if none). Plants only fill air, except trunks and culms.
+    function stampPlant(t,x,z,values,h){
+      const kind=t.kind||'tree',small=colStep*cellMetres>1.01;
+      if(kind==='tree')return stampTree(t,x,z,values,h,small);
+      if(kind==='bamboo')return stampBamboo(t,x,z,values,h,small);
+      if(small)return 0;
+      const c=m=>Math.round(m/cellMetres),fillAir=(m,a,b)=>{b=Math.min(heightCells,b);for(let y=a;y<b;y++)if(!values[y])values[y]=m;return b;};
+      if(kind==='bush')return stampLumps(t.lumps,x,z,values,h,MAT.bushLeaf);
+      if(kind==='log'){
+        const dx=x-t.x,dz=z-t.z,u=dx*t.ux+dz*t.uz,v=-dx*t.uz+dz*t.ux;if(Math.abs(u)>=t.len/2||Math.abs(v)>=t.r)return 0;
+        const e=fillAir(MAT.bark,h,h+Math.max(1,c(2*Math.sqrt(t.r*t.r-v*v))));
+        if(noise(u*1.3+t.x,v*3+t.z,seed+111)>.55&&values[e-1]===MAT.bark)values[e-1]=MAT.mossy;return e;
+      }
+      if(kind==='stump'){
+        const d=Math.hypot(x-t.x,z-t.z);if(d>=t.r)return 0;const e=fillAir(MAT.bark,h,h+Math.max(1,c(t.ht)));
+        if(d<t.r-.12&&values[e-1]===MAT.bark)values[e-1]=MAT.dry;return e;
+      }
+      if(kind==='mushroom'){
+        let top=0;
+        for(const m of t.list){
+          const d=Math.hypot(x-m.x,z-m.z);if(d>=m.cr)continue;
+          const capLow=h+c(m.sh)-(d>m.cr*.7?1:0),e=Math.min(heightCells,capLow+Math.max(1,c(m.ct*Math.sqrt(1-(d/m.cr)**2)+.1)));
+          if(d<m.sr)fillAir(MAT.stem,h,capLow);
+          fillAir(MAT.mushroom,capLow,e);
+          // Pale spots on the cap.
+          if(values[e-1]===MAT.mushroom&&hash(Math.floor(x*5),Math.floor(z*5),seed+113)<.16)values[e-1]=MAT.stem;
+          top=Math.max(top,e);
+        }
+        return top;
+      }
+      if(kind==='cactus'){
+        let top=0;const put=(a,b)=>{const lo=h+c(a);top=Math.max(top,fillAir(MAT.cactus,lo,Math.max(lo+1,h+c(b))));};
+        const d=Math.hypot(x-t.x,z-t.z);if(d<t.r)put(0,t.ht+(t.r-d)*.6);
+        for(const A of t.arms){
+          const ax=t.x+A.ux*.6,az=t.z+A.uz*.6;if(Math.hypot(x-ax,z-az)<t.r*.8)put(A.at,A.at+A.up+.1);
+          const u=(x-t.x)*A.ux+(z-t.z)*A.uz,v=Math.abs((z-t.z)*A.ux-(x-t.x)*A.uz);if(u>0&&u<.6&&v<t.r*.75)put(A.at-.05,A.at+t.r*1.3);
+        }
+        return top;
+      }
+      return 0;
+    }
+    // Round clumps: each lump a dome on the column's own ground.
+    function stampLumps(list,x,z,values,h,mat){
+      let top=0;
+      for(const l of list){
+        const q=Math.hypot(x-l.x,z-l.z);if(q>=l.r)continue;
+        const e=Math.min(heightCells,h+Math.max(1,Math.round(l.ht*Math.sqrt(1-(q/l.r)**2)/cellMetres)));
+        for(let y=h;y<e;y++)if(!values[y])values[y]=mat;top=Math.max(top,e);
+      }
+      return top;
+    }
+    // Bamboo: thin culms with a darker node every ~0.4 m and leaf tufts only along the top third. Culms are one column
+    // thin, so at coarse LOD only the leafy tops remain.
+    function stampBamboo(t,x,z,values,h,small){
+      const period=Math.max(2,Math.round(.4/cellMetres));let top=0;
+      for(const m of t.culms){
+        const reach=m.tr+Math.hypot(m.lx,m.lz)*m.h+.2;if(Math.abs(x-m.x)>reach||Math.abs(z-m.z)>reach)continue;
+        const y1=Math.min(heightCells,t.base+Math.round(m.h/cellMetres)),leafFrom=t.base+Math.round(m.h*.64/cellMetres),y2=Math.min(heightCells,y1+Math.round(.4/cellMetres));
+        const lean=Math.hypot(m.lx,m.lz)*m.h+.13,culmClose=Math.abs(x-m.x)<lean&&Math.abs(z-m.z)<lean;
+        for(let y=small||!culmClose?Math.max(h,leafFrom):h;y<y2;y++){
+          const u=(y-t.base)*cellMetres,dx=x-m.x-m.lx*u,dz=z-m.z-m.lz*u,v=values[y];
+          if(!small&&y<y1&&Math.abs(dx)<.13&&Math.abs(dz)<.13){if(!v||v===MAT.bambooLeaf){values[y]=(y-h)%period?MAT.bamboo:MAT.bambooNode;top=Math.max(top,y+1);}continue;}
+          if(y<leafFrom||v)continue;
+          const f=(u-m.h*.64)/(m.h*.36+.4);if(Math.hypot(dx,dz)<m.tr*Math.sin(Math.PI*clamp(f,0,1))+.05&&hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+121)>.3){values[y]=MAT.bambooLeaf;top=Math.max(top,y+1);}
+        }
+      }
+      return top;
+    }
+    function stampTree(t,x,z,values,h,small){
+      const crown=t.crown||'round',R=t.radius,top=t.base+t.height,bark=t.bark||MAT.bark,leaf=t.leaf||MAT.leaf,trunk=t.trunk||.72*density;
+      let w=t.under&&!small?stampLumps(t.under,x,z,values,h,MAT.bushLeaf):0;
+      if(crown==='gnarled')return Math.max(w,stampGnarled(t,x,z,values,leaf,bark,trunk));
+      const dist=Math.hypot((x-t.x)/cellMetres,(z-t.z)/cellMetres);
+      if(dist>=(crown==='umbrella'?R*1.15+1:R+1))return w;
+      const tTop=t.top||top+Math.ceil(R*.65)+2*density+1;
+      if(crown==='spire'||crown==='cone'||crown==='larch'){
+        // Cones: the trunk stops where the needle cone narrows to its width, so the crown always ends in a needle point.
+        const low=t.base+(crown==='spire'?Math.floor(t.height*.45):crown==='larch'?4*density:3*density),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
+        const trunkTop=low+Math.floor(span*(1-trunk/R)),tier=3*density;
+        if(dist<trunk)values.fill(bark,t.base,Math.min(heightCells,trunkTop));
+        for(let y=low;y<Math.min(heightCells,apex);y++){
+          if(values[y])continue;const f=(y-low)/span;let r=R*(1-f);
+          // Whorled tiers: each tier's skirt flares a little; larches are softer and more open.
+          if(crown!=='spire')r*=crown==='larch'?.72+.28*(1-(y-low)%tier/tier):.84+.16*(1-(y-low)%tier/tier);
+          if(dist<r+.5&&(crown!=='larch'||hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+123)>.3))values[y]=leaf;
+        }
+        return Math.max(w,tTop);
+      }
+      if(crown==='oval'){
+        // Birch: slender white trunk with dark marks, small airy oval crown.
+        if(dist<trunk)for(let y=t.base;y<Math.min(heightCells,top);y++)values[y]=hash(y,Math.floor(x*8)*3+Math.floor(z*8)*7,seed+115)<.16?MAT.birchMark:bark;
+        if(dist<R){
+          const ry=R*1.6,cy=top-R*.3,hh=ry*Math.sqrt(1-(dist/R)**2),lo=Math.max(t.base+Math.floor(t.height*.4),Math.floor(cy-hh)),hi=Math.min(heightCells,Math.ceil(cy+hh));
+          for(let y=lo;y<hi;y++)if(!values[y]&&hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+117)>.2)values[y]=leaf;
+        }
+        return Math.max(w,tTop);
+      }
+      if(crown==='umbrella'){
+        // Acacia: thin trunk, a branch to a lower side pad, flat leaf pads with gently domed tops.
+        if(dist<trunk)values.fill(bark,t.base,Math.min(heightCells,top));
+        const P2=t.pads[1],y0=t.base+Math.round(t.height*.45),sx=P2.x-t.x,sz=P2.z-t.z,L2=sx*sx+sz*sz,s=clamp(((x-t.x)*sx+(z-t.z)*sz)/L2,0,1);
+        if(Math.hypot(x-t.x-sx*s,z-t.z-sz*s)<trunk*cellMetres*.9){const y=Math.round(y0+(P2.y-y0)*s);values.fill(bark,y,Math.min(heightCells,y+density+1));}
+        const th=2*density;
+        for(const p of t.pads){
+          const q=Math.hypot((x-p.x)/cellMetres,(z-p.z)/cellMetres),rr=p.r*(.85+.3*noise(x*.6,z*.6,seed+119));if(q>=rr)continue;
+          const lo=p.y-th+(q>rr*.8?density:0),hi=Math.min(heightCells,p.y+Math.max(1,Math.round(th*(1-(q/rr)**2))));
+          for(let y=lo;y<hi;y++)if(!values[y])values[y]=leaf;
+        }
+        return Math.max(w,tTop);
+      }
+      // Round broadleaf crown.
+      const clear=t.cls===-1?density:5*density;
+      if(dist<trunk)values.fill(bark,t.base,top);
+      if(dist<R){
+        const rise=Math.sqrt(R*R-dist*dist),low=Math.max(t.base+clear,Math.floor(top-rise*.55)),high=Math.min(heightCells,Math.ceil(top+rise*.65));
+        for(let y=low;y<high;y++)if(!values[y])values[y]=leaf;
+      }
+      return Math.max(w,tTop);
+    }
+    // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
+    function stampGnarled(t,x,z,values,leaf,bark,trunk){
+      const L=Math.hypot(t.lx,t.lz),mx=t.x+t.lx/2,mz=t.z+t.lz/2;
+      if(Math.hypot(x-mx,z-mz)>L/2+t.radius*cellMetres*1.4+1)return 0;
+      const nx=-t.lz/(L||1),nz=t.lx/(L||1);
+      for(let y=t.base;y<Math.min(heightCells,t.base+t.height);y++){
+        const f=(y-t.base)/t.height,wob=Math.sin(f*7+t.x)*.35*f,cx=t.x+t.lx*f**1.5+nx*wob,cz=t.z+t.lz*f**1.5+nz*wob;
+        if(Math.hypot((x-cx)/cellMetres,(z-cz)/cellMetres)<trunk*(1.35-.55*f))values[y]=bark;
+      }
+      for(const l of t.lumps){
+        const q=Math.hypot((x-l.x)/cellMetres,(z-l.z)/cellMetres),r=l.r*(.85+.3*noise(x*.5,z*.5,seed+125));if(q>=r)continue;
+        const hh=Math.sqrt(r*r-q*q),lo=Math.floor(l.y-hh*.5)-(hash(Math.floor(x*4),Math.floor(z*4),seed+127)<.3?2*density:0),hi=Math.min(heightCells,Math.ceil(l.y+hh*.7));
+        for(let y=Math.max(0,lo);y<hi;y++)if(!values[y])values[y]=leaf;
+      }
+      return t.top;
+    }
+    // Per-column ground scatter by biome, from hashes only (no lookups): ferns and glowing blue flowers on forest floors,
+    // wildflower patches and grass tufts in open ground, reeds on wet mud and in still shallows. Smaller than a sampled
+    // column at coarse LOD, so column() only calls it for the finest levels. Returns one past the highest cell written.
+    const FOREST_FLOOR=new Set(['forest','redwood','rainforest','boreal','montane']);
+    function scatter(g,x,z,values,h){
+      const b=g.biome,cx=Math.floor(x*4),cz=Math.floor(z*4),r=hash(cx,cz,seed+52),r2=hash(cx,cz,seed+54),top=values[h-1]&127;
+      const put=(m,n)=>{const e=Math.min(heightCells,h+Math.max(1,n));values.fill(m,h,e);return e;};
+      if(g.water>h){
+        if(g.sea||g.foam||g.water-h>2*density||r>=.3*clamp(noise(x*.2,z*.2,seed+641)-.35,0,1))return 0;
+        const e=Math.min(heightCells,g.water+Math.round((.3+.5*r2)/cellMetres));values.fill(MAT.reed,h,e);return e;
+      }
+      if(values[h]!==0||g.exposed)return 0;
+      if(top===MAT.mud||b==='wetland'&&(top===MAT.grass||top===MAT.litter))
+        return r<.14*clamp((noise(x*.25,z*.25,seed+643)-.35)*2.5,0,1)*(top===MAT.mud?1:.5)?put(MAT.reed,Math.round((.45+.6*r2)/cellMetres)):0;
+      const floor=top===MAT.podzol||top===MAT.litter;
+      if(floor||FOREST_FLOOR.has(b)&&top===MAT.grass){
+        if(floor&&r>.993&&noise(x*.1,z*.1,seed+657)>.55)return put(MAT.glowFlower,density);
+        // Ferns: small domed clumps on a 0.75 m grid, gathered in damp patches.
+        const fx=Math.floor(x/.75),fz=Math.floor(z/.75);
+        if(hash(fx,fz,seed+651)<.16*clamp((noise(x*.12,z*.12,seed+645)-.4)*3,0,1)+.006){
+          const d=Math.hypot(x-(fx+.5+(hash(fx,fz,seed+653)-.5)*.2)*.75,z-(fz+.5+(hash(fx,fz,seed+655)-.5)*.2)*.75);
+          if(d<.34)return put(MAT.fern,Math.round((.35+.35*hash(fx,fz,seed+659))*(1-d/.5)/cellMetres));
+        }
+        return 0;
+      }
+      if(top===MAT.grass||top===MAT.dry||top===MAT.tundra){
+        // Wildflower patches in open grass and meadows: yellow, pink and violet drifts.
+        if(top!==MAT.dry&&!FOREST_FLOOR.has(b)){const p=noise(x*.07,z*.07,seed+647);if(p>.7&&r<.08*(p-.7)/.3+.012){const c=noise(x*.03,z*.03,seed+649)+(r2-.5)*.35;return put(c<.42?MAT.flowerYellow:c<.62?MAT.flower:MAT.flowerViolet,density);}}
+        if(r<(top===MAT.dry?.02:.008))return put(MAT.tuft,Math.round((.25+.3*r2)/cellMetres));
+        if(top===MAT.grass&&r>.994&&!g.wet)return put(MAT.flower,density);
+      }
+      return 0;
+    }
     function column(vx,vz,into){
       const values=into||new Uint8Array(heightCells);colTop=0;
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
@@ -592,21 +921,15 @@
       if(infinite){if(g.water>h){values.fill(MAT.water,h,g.water);if(g.foam)values[g.water-1]=MAT.foam;written=Math.max(written,g.water);}}
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
-      const gx=Math.floor(x/TG),gz=Math.floor(z/TG);let floorMat=9;
+      const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9;
       for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
-        const dist=Math.hypot((x-t.x)/cellMetres,(z-t.z)/cellMetres),top=t.base+t.height;
-        {const f=dist/(t.radius*(t.redwood?1.5:1.05))+(noise(x*.45,z*.45,seed+619)-.5)*.45;if(f<1.12)floorMat=Math.min(floorMat,f<1?(t.conifer?0:1):2);}
-        written=Math.max(written,top+Math.ceil(t.radius*.65)+2*density+1);
-        if(dist<(t.redwood?1.3:.72)*density)values.fill(t.redwood?MAT.redwood:MAT.bark,t.base,top);
-        if(t.conifer){
-          const low=t.base+(t.redwood?Math.floor(t.height*.45):3*density);
-          for(let y=low;y<Math.min(heightCells,top+2*density);y++)if(!values[y]&&dist<t.radius*(1-(y-low)/(top+2*density-low))+.5)values[y]=MAT.needle;
-        }else if(dist<t.radius){
-          const rise=Math.sqrt(t.radius*t.radius-dist*dist);
-          const low=Math.max(t.base+5*density,Math.floor(top-rise*.55)),high=Math.min(heightCells,Math.ceil(top+rise*.65));
-          for(let y=low;y<high;y++)if(!values[y])values[y]=MAT.leaf;
+        // Needle or leaf litter under trees and bamboo, a ring of bare dirt around it.
+        if(t.radius&&t.cls!==-1||t.kind==='bamboo'){
+          const f=Math.hypot(x-t.x,z-t.z)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
+          if(f<1.12)floorMat=Math.min(floorMat,f<1?(t.conifer?0:1):2);
         }
+        const w=stampPlant(t,x,z,values,h);if(w>written)written=w;
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
       if(infinite&&floorMat<9){const m=values[h-1];if(m===MAT.grass||m===MAT.dirt||m===MAT.tundra||m===MAT.dry)values[h-1]=floorMat===0?MAT.podzol:floorMat===1?MAT.litter:MAT.dirt;}
@@ -634,17 +957,38 @@
       if(infinite){
         const A=ancientNear(x,z);
         if(A&&Math.abs(x-A.x)<A.reach&&Math.abs(z-A.z)<A.reach){
-          {const f=Math.hypot(x-A.x,z-A.z)/(A.reach*.8)+(noise(x*.3,z*.3,seed+621)-.5)*.35,m=values[h-1];if(f<1.2&&(m===MAT.grass||m===MAT.dirt||m===MAT.tundra||m===MAT.dry||m===MAT.podzol))values[h-1]=f<.35?MAT.podzol:f<1?MAT.litter:MAT.dirt;}
-          const d=Math.hypot(x-A.x,z-A.z),fill=(m,y0,y1)=>{const a=Math.max(0,Math.floor(y0/cellMetres)),b=Math.min(heightCells,Math.ceil(y1/cellMetres));for(let y=a;y<b;y++)if(!values[y]||m===MAT.bark)values[y]=m;};
-          // Trunk: wide root flare over the lowest 5 m, gnarled girth, up to the crown.
-          for(let y=Math.max(0,Math.floor(A.base/cellMetres));y<Math.min(heightCells,Math.ceil((A.fork+3)/cellMetres));y++){
-            const u=y*cellMetres-A.base,r=A.R*(1+1.6*Math.max(0,1-u/5)**2)*(1+.12*Math.sin(Math.atan2(z-A.z,x-A.x)*5+u*.4));if(d<r)values[y]=MAT.bark;}
+          const d=Math.hypot(x-A.x,z-A.z),blossom=A.variant==='blossom';
+          const fill=(m,y0,y1,force)=>{const a=Math.max(0,Math.floor(y0/cellMetres)),b=Math.min(heightCells,Math.ceil(y1/cellMetres));for(let y=a;y<b;y++)if(force||!values[y]||m===MAT.bark)values[y]=m;};
+          // Raised grassy mound, mossy near the trunk, strewn with fallen petals under the canopy.
+          let gTop=h;
+          if(d<A.Mr*1.1){
+            const mt=Math.ceil(A.mound(d+(noise(x*.2,z*.2,seed+623)-.5)*1.6)/cellMetres);
+            if(mt>h&&values[h]!==MAT.water){values.fill(MAT.soil,h-1,Math.min(heightCells,mt));gTop=Math.min(heightCells,mt);
+              const r=hash(Math.floor(x*4),Math.floor(z*4),seed+625);values[gTop-1]=d<A.R*2.2+noise(x*.4,z*.4,seed+627)*2?MAT.moss:r<.1?(blossom?(r<.04?MAT.blossomWhite:MAT.blossom):MAT.coral):MAT.grass;}
+          }
+          // Trunk: massive at the foot (root flare), tapering as it leans; spiral ridges twist around it.
+          if(Math.hypot(x-A.x-A.lx/2,z-A.z-A.lz/2)<Math.hypot(A.lx,A.lz)/2+A.R*2.6+1)
+            for(let y=Math.max(0,Math.floor((A.base-1.5)/cellMetres));y<Math.min(heightCells,Math.ceil((A.cy+1)/cellMetres));y++){
+              const u=y*cellMetres-A.base,f=clamp(u/A.H,0,1),ox=A.x+A.lx*f**1.6,oz=A.z+A.lz*f**1.6;
+              const r=A.R*(1-.5*f)*(1+1.3*Math.max(0,1-u/3.5)**2)*(1+.2*Math.sin(Math.atan2(z-oz,x-ox)*6+u*A.twist));if(Math.hypot(x-ox,z-oz)<r)values[y]=MAT.bark;}
+          // Exposed roots arching over the mound.
+          for(const r of A.roots){if(x<r.x0||x>r.x1||z<r.z0||z>r.z1)continue;
+            for(const p of r.pts){const q=Math.hypot(x-p.x,z-p.z);if(q<p.r){const hh=Math.sqrt(p.r*p.r-q*q);fill(MAT.bark,p.y-hh,p.y+hh,true);}}}
           // Limbs: tapering cylinders sampled as spheres along each branch.
           for(const l of A.limbs)for(let s2=0;s2<=14;s2++){const t=s2/14,px=l.x0+(l.x1-l.x0)*t,pz=l.z0+(l.z1-l.z0)*t,py=l.y0+(l.y1-l.y0)*Math.sqrt(t),r=l.r0+(l.r1-l.r0)*t,q=Math.hypot(x-px,z-pz);
             if(q<r){const hh=Math.sqrt(r*r-q*q);fill(MAT.bark,py-hh,py+hh);}}
-          // Crown lobes: lumpy, flattened domes.
-          for(const l of A.lumps){const r=l.r*(.85+.3*noise(x*.3,z*.3,seed+463)),q=Math.hypot(x-l.x,z-l.z);if(q>=r)continue;const hh=Math.sqrt(r*r-q*q)*.42;fill(MAT.leaf,l.y-hh*.6,l.y+hh);}
-          written=Math.max(written,Math.ceil(A.top/cellMetres)+1);
+          // Blossom canopy: lumpy violet domes with white drifts and a little green, strands hanging beneath.
+          const drape=hash(Math.floor(x*4),Math.floor(z*4),seed+629);
+          for(const l of A.lumps){const r=l.r*(.85+.3*noise(x*.3,z*.3,seed+463)),q=Math.hypot(x-l.x,z-l.z);if(q>=r)continue;const hh=Math.sqrt(r*r-q*q)*.5;
+            const a=Math.max(0,Math.floor((l.y-hh*.7-(drape<.14?1+3*drape/.14:0))/cellMetres)),b=Math.min(heightCells,Math.ceil((l.y+hh)/cellMetres));
+            for(let y=a;y<b;y++)if(!values[y]){const n=noise(x*1.1+y*cellMetres*.8,z*1.1,seed+631)*.6+noise(x*.15,z*.15,seed+637)*.4;values[y]=n>.7?MAT.blossomWhite:n<.2?MAT.leaf:MAT.blossom;}}
+          // Coral variant: flat umbrella pads with softly domed tops.
+          for(const p of A.pads){const r=p.r*(.88+.24*noise(x*.35,z*.35,seed+633)),q=Math.hypot(x-p.x,z-p.z);if(q>=r)continue;
+            fill(MAT.coral,p.y-p.th*.4-(q>r*.86?.3:0),p.y+p.th*Math.sqrt(1-(q/r)**4));}
+          // Broken pillars and wall stubs among the roots, mossy on top.
+          for(const s2 of A.stones){const dx=x-s2.x,dz=z-s2.z,inside=s2.wall?Math.abs(dx*s2.ux+dz*s2.uz)<s2.hl&&Math.abs(dz*s2.ux-dx*s2.uz)<.4:Math.hypot(dx,dz)<s2.r;if(!inside)continue;
+            const t=Math.min(heightCells,gTop+Math.max(1,Math.round(s2.ht*(.75+.5*noise(x*.6,z*.6,seed+635))/cellMetres)));for(let y=gTop-1;y<t;y++)values[y]=MAT.stone;values[t-1]=MAT.mossy;written=Math.max(written,t);}
+          written=Math.max(written,gTop,Math.ceil(A.top/cellMetres)+1);
         }
         const bi=Math.floor(x/BG),bj=Math.floor(z/BG);
         for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
@@ -675,7 +1019,8 @@
           }
         }
         const R=ruinNear(x,z);
-        if(R&&Math.abs(x-R.x)<R.reach&&Math.abs(z-R.z)<R.reach){
+        // Ruins never stand in water: a column under a pond or stream keeps its water.
+        if(R&&g.water<=h&&Math.abs(x-R.x)<R.reach&&Math.abs(z-R.z)<R.reach){
           const ground=h*cellMetres-.25;
           for(const q of R.parts){
             let u,inside,side=false;
@@ -692,19 +1037,24 @@
             if(to<=from)continue;
             if(side){
               // Ivy curtains hang from the wall top down a stretch of the face, in patches along the wall.
-              const ivy=noise(u*.45+q.k*3.3,.5,seed+497);if(ivy<.52)continue;
-              const len=(to-from)*(.35+.6*noise(u*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=MAT.leaf;
+              // Climbing ivy creeps up from the foot of the wall in other patches.
+              const ivy=noise(u*.45+q.k*3.3,.5,seed+497),climb=noise(u*.5+q.k*1.7,2.5,seed+507),m=noise(u*.8,q.k,seed+509)>.5?MAT.leaf:MAT.bushLeaf;
+              if(ivy>=.52){const len=(to-from)*(.35+.6*noise(u*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=m;}
+              if(climb>=.5){const up=Math.max(h,from)+Math.round((to-from)*(.15+.75*noise(u*1.6+q.k,3.5,seed+511)));for(let y=Math.max(h,from);y<Math.min(to,up);y++)if(!values[y])values[y]=MAT.bushLeaf;}
               written=Math.max(written,to);continue;
             }
             values.fill(MAT.stone,from,to);written=Math.max(written,to);
             // Moss: on the wall top where it is level enough to hold soil, and in damp patches lower down.
             if(noise(x*.6+q.k,z*.6,seed+501)>.3)values[to-1]=MAT.mossy;
             for(let y=from;y<to-1;y++)if(hash(Math.floor(x*4),y*7919+Math.floor(z*4),seed+503)<.12*clamp((noise(x*.4,z*.4+y*.05,seed+505)-.35)*3,0,1))values[y]=MAT.mossy;
+            // Damp moss creeps up the foot of the wall from the ground.
+            {const band=h+Math.round((.2+.9*noise(x*.5+q.k,z*.5,seed+513))/cellMetres);for(let y=Math.max(from,h-1);y<Math.min(to-1,band);y++)if(hash(Math.floor(x*4),y*131+Math.floor(z*4),seed+515)<.6)values[y]=MAT.mossy;}
           }
         }
       }
       if(prof&&prof.on)prof.features+=now()-t0;
-      if(!g.exposed&&!g.wet&&g.clearing<.5&&(!infinite||values[h-1]===MAT.grass)&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);
+      if(!infinite){if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);}
+      else if(colStep*cellMetres<.51)written=Math.max(written,scatter(g,x,z,values,h));
       colTop=Math.min(heightCells,written);
       return values;
     }
@@ -741,7 +1091,7 @@
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
       const s=2**L,P=NODE+2,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P);let ny=1,reduce=0;
-      prof={geography:0,trees:0,features:0,on:false};let sampled=0;
+      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
       const buf=new Uint8Array(heightCells),floor=new Int32Array(P*P);
@@ -765,7 +1115,7 @@
         const k=j*P+i,b=cols[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
-      const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
+      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       return {...mesh,normals:hillshade(tops,P),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Smooth surface normals per inside column (RGBA8: x, z, cavity, unused) from the haloed column tops, so distant
