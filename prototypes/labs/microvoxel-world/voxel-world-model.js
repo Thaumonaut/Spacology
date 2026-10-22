@@ -32,6 +32,14 @@
   const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
     flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+  // Things that stand on the ground rather than shape it: trees, crystal spires (sunk 0.5 m into the ground), standing
+  // stones, ruins and sandstone arches. They neither tilt the hillshade nor take it, and they cast sun shadows.
+  // Renderer families: crown leaves (broadleaf and needle), trunks, and the grasses that grow stylized blades.
+  const LEAVES=Object.freeze(new Set([MAT.leaf,MAT.birchLeaf,MAT.bushLeaf,MAT.bambooLeaf,MAT.blossom,MAT.blossomWhite,MAT.coral,MAT.acacia,MAT.autumnleaf,MAT.rustleaf,MAT.blossomleaf]));
+  const NEEDLES=Object.freeze(new Set([MAT.needle,MAT.larch,MAT.larchGold]));
+  const BARKS=Object.freeze(new Set([MAT.bark,MAT.redwood,MAT.birchBark,MAT.birchMark,MAT.bamboo,MAT.bambooNode]));
+  const BLADE_GRASS=Object.freeze(new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
+  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
@@ -1820,7 +1828,7 @@
     function node(L,nx,nz){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P);let ny=1,reduce=0;
+      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
@@ -1830,10 +1838,12 @@
         const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,t0=prof.on&&now(),b=new Uint8Array(blocks);let top=0;
         let hi=lim-1;while(hi>=0&&!c[hi])hi--;
         for(let y=0;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
-        c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
+        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);canopy[(j+1)*G+i+1]=top;{const k=(j+1)*G+i+1,m=top>0?b[top-1]&127:0;grassy[k]=BLADE_GRASS.has(m)?1:0;grassMat[k]=grassy[k]?m:0;const gm=grounds[k]>0?b[grounds[k]-1]&127:0;snowy[k]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
         cols[j*P+i]=b;tops[j*P+i]=top;floor[j*P+i]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
+      // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,0,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -1846,26 +1856,108 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      return {...mesh,normals:hillshade(tops,P),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
-    // Smooth surface normals per inside column (RGBA8: x, z, cavity, unused) from the haloed column tops, so distant
-    // terraces light as the slope they form instead of alternating tread/riser bands. Blocks are cubic, so the gradient
-    // is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
-    function hillshade(tops,P){
-      const N=P-2,T=(i,j)=>tops[j*P+i],gx=new Float32Array(N*N),gz=new Float32Array(N*N),cavity=new Float32Array(N*N),out=new Uint8Array(N*N*4);
+    // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
+    // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
+    // the shader turns into a noisy, soft border wherever grass meets other ground). Lit by this instead of their block faces, leaves read as
+    // soft rounded crowns, and the depth below the crown top darkens their undersides.
+    function cover(grassy,G,I,J){let n=0;for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)n+=grassy[(J+b)*G+I+a];return n/25;}
+    function canopyShade(tops,grounds,grassy,G){
+      const N=G-4,T=(i,j)=>tops[j*G+i],out=new Uint8Array(N*N*4);
       for(let j=0;j<N;j++)for(let i=0;i<N;i++){
-        const I=i+1,J=j+1;let sum=0;for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)sum+=T(I+a,J+b);
-        gx[j*N+i]=(T(I+1,J-1)+2*T(I+1,J)+T(I+1,J+1)-T(I-1,J-1)-2*T(I-1,J)-T(I-1,J+1))/8;
-        gz[j*N+i]=(T(I-1,J+1)+2*T(I,J+1)+T(I+1,J+1)-T(I-1,J-1)-2*T(I,J-1)-T(I+1,J-1))/8;
-        cavity[j*N+i]=T(I,J)-sum/9;
+        const I=i+2,J=j+2;let x=0,z=0;
+        for(let b=-1;b<=1;b++){x+=T(I+2,J+b)-T(I-2,J+b)+T(I+1,J+b)-T(I-1,J+b);z+=T(I+b,J+2)-T(I+b,J-2)+T(I+b,J+1)-T(I+b,J-1);}
+        x/=18;z/=18;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
+        out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
       }
-      for(let j=0;j<N;j++)for(let i=0;i<N;i++){
-        let x=0,z=0,n=0;
-        for(let b=Math.max(0,j-1);b<=Math.min(N-1,j+1);b++)for(let a=Math.max(0,i-1);a<=Math.min(N-1,i+1);a++){x+=gx[b*N+a];z+=gz[b*N+a];n++;}
-        x/=n;z/=n;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
-        out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(Math.round(128+cavity[j*N+i]*40),0,255);out[o+3]=255;
+      return {canopy:out};
+    }
+    // Leaf cards for close views: on leaf and needle blocks at the outside of a crown, about 3.5 per square metre of
+    // crown surface (twice that for the smaller conifer sprigs). Each card is x, y, z (block centre, node-local blocks), material + 0–1 seed; then the outward direction (from the
+    // empty space in its 3×3×3 neighbourhood) and a size in metres, +10 for needles, +20 per level of snow cover (0–3).
+    function leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G){
+      const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
+      const chance=Math.min(1,3.5*column*column),at=(i,y,j)=>dense[j*plane+(y-base+1)*P+i];
+      for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++)for(let y=base;y<base+span;y++){
+        const m=at(i,y,j)&127;if(!LEAVES.has(m)&&!NEEDLES.has(m))continue;
+        if(at(i-1,y,j)&&at(i+1,y,j)&&at(i,y-1,j)&&at(i,y+1,j)&&at(i,y,j-1)&&at(i,y,j+1))continue;
+        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,h=hash(gx*131+y,gz,seed+L*577+81);if(h>=(NEEDLES.has(m)?Math.min(1,chance*2):chance))continue;
+        let ox=0,oy=0,oz=0;
+        for(let c=-1;c<=1;c++)for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)if(!at(i+a,y+b,j+c)){ox+=a;oy+=b;oz+=c;}
+        const l=Math.hypot(ox,oy,oz);if(!l)continue;
+        const pine=NEEDLES.has(m),size=(pine?.45:1.15)+(pine?.2:.55)*hash(gx,gz*7+y,seed+83);
+        out.push(i-.5,y+.5,j-.5,m+hash(gx,gz+y*17,seed+82)*.999,ox/l,oy/l,oz/l,size+(pine?10:0)+20*Math.round(cover(snowy,G,i+1,j+1)*3));
+      }
+      return Float32Array.from(out);
+    }
+    // Biome tint per inside column (RGBA8: conifer-ness, snow cover in the 5×5 around it, the local blade-grass material): how much the local forest is conifer rather
+    // than broadleaf, from the same biome and temperature rule as the trees. Sampled on a fixed 16 m world grid and
+    // interpolated, so neighbouring nodes agree and forests blend over tens of metres. Grass and ground take their tone
+    // from it: deep blue-green among conifers, bright warm green among broadleaf trees.
+    const TINT=16,tints=new Map();
+    function coniferAt(i,j){
+      const k=i*65536+j;let v=tints.get(k);if(v!==undefined)return v;const g=geography(i*TINT,j*TINT);
+      v=g.biome==='boreal'||g.biome==='tundra'||g.biome==='montane'||g.biome==='subalpine'?1:g.biome==='forest'?clamp((13-g.temperature)/4,0,1):0;
+      tints.set(k,v);if(tints.size>65536)tints.delete(tints.keys().next().value);return v;
+    }
+    // The grass growing around a column: its own blade grass, else the commonest one in the 5×5 around it, else plain grass.
+    function localGrass(grassy,grassMat,G,I,J){
+      const k=J*G+I;if(grassMat[k])return grassMat[k];const n=new Map();let best=MAT.grass,most=0;
+      for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++){const m=grassMat[(J+b)*G+I+a];if(m){const c=(n.get(m)||0)+1;n.set(m,c);if(c>most){most=c;best=m;}}}
+      return best;
+    }
+    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G){
+      const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
+      for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
+        const x=(x0+(i+.5)*column)/TINT,z=(z0+(j+.5)*column)/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;
+        const c=(coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v,o=(j*NODE+i)*4;
+        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=255;
       }
       return out;
+    }
+    // Grass tufts for close views, about 24 per square metre on columns whose surface is a blade grass: x, top, z (blocks, node
+    // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
+    function grassTufts(L,nx,nz,tops,grounds,P,grassy,G,tint){
+      const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
+      const per=24*column*column;
+      for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
+        // Fewer, shorter tufts toward the edge of a meadow; a few stray ones spill onto the ground beside it. The fourth
+        // value packs the blade material (×128), conifer-ness (0–7, ×16) and the local cover (0–15) with the 0–1 variation seed.
+        // Tufts stand on the ground, and spill only onto open ground: never on a mushroom, bush or stone in the column.
+        const t=grounds[(j+1)*G+i+1],own=grassy[(j+1)*G+i+1],c=cover(grassy,G,i+1,j+1);if(!t||!own&&(c<.3||tops[j*P+i]!==t))continue;
+        const mat=tint[((j-1)*NODE+i-1)*4+2];
+        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,n=Math.floor(per*(own?.35+.65*c:c*.35)+hash(gx,gz,seed+L*977+61));
+        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),mat*128+Math.round(tint[((j-1)*NODE+i-1)*4]/255*7)*16+Math.floor(c*15)+hash(gx,gz,seed+64+q*7)*.999);
+      }
+      // Shuffled by a fixed hash, so drawing any prefix of the list thins the whole tile evenly (the renderer's budget).
+      const order=[...Array(out.length/4).keys()].sort((a,b)=>hash(a,nx*7+nz,seed+91)-hash(b,nx*7+nz,seed+91)),shuffled=new Float32Array(out.length);
+      order.forEach((k,i)=>shuffled.set(out.slice(k*4,k*4+4),i*4));
+      return shuffled;
+    }
+    // Ground surface of a column in blocks: solid from the bottom up to the first air gap, ignoring trees and spires, so
+    // isles, canopies and spires do not tilt the hillshade. Water counts: it is the visible surface.
+    function groundBlocks(c,lim,s){let y=0;while(y<lim&&c[y]&&!ABOVE_GROUND.has(c[y]&127))y++;return Math.floor((y-1)/s)+1;}
+    // Smooth surface normals per inside column (RGBA8: x, z, cavity, local ground top) from ground heights with a two-column
+    // ring (G=N+4), so distant terraces light as the slope they form instead of alternating tread/riser bands. Blocks are
+    // cubic, so the gradient is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
+    // Alpha is the highest ground in the 3×3 around the column, in blocks above groundBase (255: out of range); the shader
+    // keeps block-face lighting for anything above it (isles, canopies).
+    function hillshade(grounds,G){
+      const N=G-4,M=N+2,T=(i,j)=>grounds[j*G+i],gx=new Float32Array(M*M),gz=new Float32Array(M*M),out=new Uint8Array(N*N*4);
+      for(let j=0;j<M;j++)for(let i=0;i<M;i++){
+        const I=i+1,J=j+1;
+        gx[j*M+i]=(T(I+1,J-1)+2*T(I+1,J)+T(I+1,J+1)-T(I-1,J-1)-2*T(I-1,J)-T(I-1,J+1))/8;
+        gz[j*M+i]=(T(I-1,J+1)+2*T(I,J+1)+T(I+1,J+1)-T(I-1,J-1)-2*T(I,J-1)-T(I+1,J-1))/8;
+      }
+      let groundBase=Infinity;for(let j=2;j<N+2;j++)for(let i=2;i<N+2;i++)groundBase=Math.min(groundBase,T(i,j));
+      for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+        let x=0,z=0,sum=0,high=0;
+        for(let b=0;b<3;b++)for(let a=0;a<3;a++){x+=gx[(j+b)*M+i+a];z+=gz[(j+b)*M+i+a];const h=T(i+1+a,j+1+b);sum+=h;high=Math.max(high,h);}
+        x/=9;z/=9;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
+        out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(Math.round(128+(T(i+2,j+2)-sum/9)*40),0,255);out[o+3]=Math.min(255,high-groundBase);
+      }
+      return {normals:out,groundBase};
     }
     return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
@@ -1935,6 +2027,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

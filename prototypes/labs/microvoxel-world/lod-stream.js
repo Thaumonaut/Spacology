@@ -21,7 +21,7 @@
     // than the cache average predicted): coarsen one level instead of thrashing.
     let pressure=0,requested=-1,targetKeys=new Set();
     const cache=new M.BudgetCache(16384,1024*1048576,mesh=>{if(targetKeys.has(mesh.key))pressure++;renderer.dispose(mesh);});
-    let bias=0,lastView=null,world=null,level=0,targets=[],drawList=[],drawKeys=new Set(),drawDirty=true,epoch=0,camera=null,origin={x:0,z:0},coarseFirst=true;
+    let bias=0,lastView=null,world=null,level=0,targets=[],drawList=[],drawKeys=new Set(),drawDirty=true,epoch=0,camera=null,origin={x:0,z:0},coarseFirst=true,lit=new Set();
     const inflight=new Map(),fades=new Map(),outgoing=new Map();
     const stats={completed:0,coarse:0,retained:0,uploads:0,vegetation:0,maxOrigin:0},times={geography:[],trees:[],features:[],reduce:[],mesh:[],node:[],view:[],resolve:[],draw:[],upload:[],gpu:[]};
     let gpu=null;
@@ -35,7 +35,7 @@
       workers.push(slot);
     }
     function setWorld(next){
-      world=next;pressure=bias=0;requested=-1;targetKeys=new Set();cache.clear();inflight.clear();fades.clear();outgoing.clear();targets=[];drawList=[];drawKeys=new Set();drawDirty=true;epoch++;
+      world=next;pressure=bias=0;requested=-1;targetKeys=new Set();cache.clear();inflight.clear();fades.clear();outgoing.clear();lit.clear();targets=[];drawList=[];drawKeys=new Set();drawDirty=true;epoch++;
       for(const k of Object.keys(stats))stats[k]=0;for(const k of Object.keys(times))times[k].length=0;
       for(const s of workers)s.job=null;
       if(world.infinite)while(workers.length<count)spawn();
@@ -89,27 +89,32 @@
       const chain=key=>{const [L,nx,nz]=key.split(':').map(Number),out=[];for(let k=L+1;k<=world.maxLevel;k++){const a=ancestor({L,nx,nz},k);out.push(K(a.L,a.nx,a.nz));}return out;};
       const prevUnder=new Map();for(const k of drawKeys)for(const a of chain(k))prevUnder.set(a,true);
       const fresh=[];
-      for(const n of list)if(!drawKeys.has(n.key)&&(chain(n.key).some(a=>drawKeys.has(a))||prevUnder.has(n.key))){fades.set(n.key,now);fresh.push(n.key);}
+      // Only the real tile's arrival dissolves; coarse-first placeholders replace one another instantly, so a spot does
+      // not sparkle through several dissolves before its detail arrives.
+      for(const n of list)if(n.L<=level&&!drawKeys.has(n.key)&&(chain(n.key).some(a=>drawKeys.has(a))||prevUnder.has(n.key))){fades.set(n.key,now);fresh.push(n.key);}
       if(fresh.length){
         const freshSet=new Set(fresh),freshUnder=new Set();for(const k of fresh)for(const a of chain(k))freshUnder.add(a);
         for(const k of drawKeys)if(!keys.has(k)&&ready(k)&&(freshUnder.has(k)||chain(k).some(a=>freshSet.has(a))))outgoing.set(k,now);
       }
       for(const k of fades.keys())if(!keys.has(k))fades.delete(k);
+      // A tile shown fully lit stays lit if a zoom turns it into a placeholder, rather than flashing flat until the finer
+      // tiles arrive.
+      for(const n of list)if(n.L<=level)lit.add(n.key);for(const k of lit)if(!keys.has(k)&&!outgoing.has(k))lit.delete(k);
       drawList=list;drawKeys=keys;drawDirty=false;push(times.resolve,performance.now()-t0);
     }
     function draw(now){
       if(!world?.infinite)return;
       if(drawDirty)resolve(now);
-      const t0=performance.now(),gl=renderer.gl;stats.maxOrigin=0;
+      const t0=performance.now(),gl=renderer.gl;stats.maxOrigin=0;renderer.worldOrigin=origin;
       if(gpu&&!gpu.active){const q=gl.createQuery();gl.beginQuery(gpu.ext.TIME_ELAPSED_EXT,q);gpu.active=q;}
       const one=(key,mode,t)=>{
         const mesh=cache.items.get(key);if(!mesh)return;const [L,nx,nz]=key.split(':').map(Number),m=world.nodeMetres(L),c=mesh.column;
-        const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);
+        const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);renderer.placeholder(L>level&&!lit.has(key));
         renderer.draw(mesh,[ox,0,oz],[c,c,c],0,0,0,[0,0,0],[((nx*m)%4096+4096)%4096,0,((nz*m)%4096+4096)%4096]);
       };
       for(const n of drawList){const s=fades.get(n.key),t=s===undefined?1:(now-s)/FADE;if(t>=1){fades.delete(n.key);one(n.key,0,0);}else one(n.key,1,t);}
       for(const [key,s] of outgoing){const t=(now-s)/FADE;if(t>=1||drawKeys.has(key)){outgoing.delete(key);continue;}one(key,-1,t);}
-      renderer.dither(0,0);
+      renderer.dither(0,0);renderer.placeholder(false);
       if(gpu?.active){gl.endQuery(gpu.ext.TIME_ELAPSED_EXT);gpu.queries.push(gpu.active);gpu.active=null;
         while(gpu.queries.length&&gl.getQueryParameter(gpu.queries[0],gl.QUERY_RESULT_AVAILABLE)){const q=gpu.queries.shift();if(!gl.getParameter(gpu.ext.GPU_DISJOINT_EXT))push(times.gpu,gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6);gl.deleteQuery(q);}
         if(gpu.queries.length>8){for(const q of gpu.queries)gl.deleteQuery(q);gpu.queries.length=0;}}
