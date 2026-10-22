@@ -7,10 +7,20 @@
     // Biome ground (appended after vegetation; never renumber): grass tones, meadow flowers, autumn leaves and litter, blossom,
     // rosegrass, fen moss, heather, steppe/savanna/golden grasses, badland clays, dunes, rainforest floor. Bamboo culms use 37.
     lushgrass:55,sungrass:56,buttercup:57,violet:58,autumngrass:59,autumnlitter:60,autumnleaf:61,rustleaf:62,petal:63,blossomleaf:64,
-    pinkgrass:65,sphagnum:66,heather:67,steppegrass:68,savgrass:69,goldgrass:70,clay:71,ochre:72,dune:73,junglefloor:74});
+    pinkgrass:65,sphagnum:66,heather:67,steppegrass:68,savgrass:69,goldgrass:70,clay:71,ochre:72,dune:73,junglefloor:74,
+    // ---- Riparian materials (appended; never renumber). Renderer family sets, to add at merge:
+    //   LEAVES:       willowLeaf 75, vine 76, palmLeaf 77, alderLeaf 78
+    //   BARKS:        palmBark 79
+    //   ABOVE_GROUND: rush 80 (cattail stalk), cattail 81 (brown head), lilyPad 82 (flat pad replacing the top water
+    //                 cell), lilyFlower 83 (bloom on a pad)
+    //   BLADE_GRASS:  floodgrass 84 (lush floodplain / oasis grass)
+    //   ground (no set): cobble 85 (rocky river beds and banks in fast reaches)
+    willowLeaf:75,vine:76,palmLeaf:77,alderLeaf:78,palmBark:79,rush:80,cattail:81,lilyPad:82,lilyFlower:83,floodgrass:84,cobble:85});
   const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
     '#e9e4d8','#a3c86a','#a9b552','#5c9a52','#b6c46a','#78b24c','#b88ae6','#f6eefa','#f28b6e','#4e8d45','#98b862','#d9473b','#f1e6cc','#71dcff','#a3a45c','#f4d04e','#a483e6','#5e9a5a','#8aa24c','#e0a93c','#45403c','#7d8f3e',
-    '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd','#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#bf6a43','#dda067','#e2c27f','#4f7f3f']);
+    '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd','#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#bf6a43','#dda067','#e2c27f','#4f7f3f',
+    // Riparian (75-85): willow, vine, palm frond, alder, palm bark, rush, cattail head, lily pad, lily flower, floodgrass, cobble.
+    '#9fc65a','#3d7a3c','#5fae4a','#4a8048','#a07d55','#6f9f45','#7b4a2b','#5b9e4c','#f7c4dc','#5fb35a','#8f938e']);
   // Display names for streamed biome ids (atlas hexes, ground inspection). 'Desert' is matched by coop-session.js.
   const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
     flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
@@ -190,8 +200,8 @@
     const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.1,grassland:.06,tundra:.03,
       flowers:.03,autumn:.8,blossom:.5,fen:.1,heath:.04,golden:.06,bamboo:.9,badlands:.01,pinkgrass:.04,desert:0,beach:0};
     // Vegetated ground: everything tree floors, scree, worn patches and landmarks may paint over. GRASSY: where voxel flowers grow.
-    const TURF=new Set([MAT.grass,MAT.tundra,MAT.dry,MAT.dirt,MAT.mossy,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.sphagnum,MAT.heather,MAT.steppegrass,MAT.savgrass,MAT.goldgrass,MAT.junglefloor]);
-    const GRASSY=new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.pinkgrass]);
+    const TURF=new Set([MAT.grass,MAT.tundra,MAT.dry,MAT.dirt,MAT.mossy,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.sphagnum,MAT.heather,MAT.steppegrass,MAT.savgrass,MAT.goldgrass,MAT.junglefloor,MAT.floodgrass]);
+    const GRASSY=new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.pinkgrass,MAT.floodgrass]);
     // Biome ground palette. n and n2 are ~30-45 m tone blobs whose edges are roughened by 3 m noise, so patches of one
     // material never meet another along a straight voxel line; flower and petal speckle is per 50 cm patch (finer
     // speckle multiplies mesh quads), and plain grassland, forest and jungle floors carry no speckle at all.
@@ -731,6 +741,28 @@
       }
       boulders.set(k,v);if(boulders.size>16384)boulders.delete(boulders.keys().next().value);return v;
     }
+    // River rocks: one candidate per 4 m cell, kept only in fast reaches (boulders mid-stream and at the water's edge,
+    // their tops clear of the water) and in the spray zone around falls and springs (smaller mossy rocks on the banks).
+    // Under a metre across, so only stamped at the finer LODs.
+    const RG=4,riverRocks=new Map();
+    function riverRockCell(i,j){
+      const k=i*1048576+j;if(riverRocks.has(k))return riverRocks.get(k);let v=null;const p=hash(i,j,seed+571);
+      if(p<.6){
+        const x=(i+.15+.7*hash(i,j,seed+573))*RG,z=(j+.15+.7*hash(i,j,seed+575))*RG,g=geography(x,z);
+        if(!g.sea&&!g.gorge&&(g.fast&&g.riverDistance<5.5||g.splash)&&g.slope<1.3){
+          const wet=g.water>g.height,n=g.splash&&!wet?2+Math.floor(hash(i,j,seed+577)*2):1,list=[],mossy=g.splash||!wet;
+          for(let s2=0;s2<n;s2++){
+            const a=hash(s2,k,seed+579)*Math.PI*2,o=s2?.6+1.2*hash(s2,k,seed+581):0,qx=x+Math.cos(a)*o,qz=z+Math.sin(a)*o,G=s2?geography(qx,qz):g;
+            const r=(g.splash&&!wet?.25+.3*hash(s2,k,seed+583):.35+.55*hash(s2,k,seed+583))*(g.riverSize>=.9?1.3:1),ry=r*.7,ground=G.height*cellMetres;
+            // In the channel the rock sits on the bed and its top stands 0.1-0.4 m above the water.
+            const y=G.water>G.height?Math.max(ground+ry*.5,G.water*cellMetres+.1+.3*hash(s2,k,seed+585)-ry):ground+ry*(.1-.3*hash(s2,k,seed+587));
+            list.push({x:qx,z:qz,r,ry,y,mossy:mossy&&!(G.water>G.height)});
+          }
+          v={x,z,list,reach:3.2};
+        }
+      }
+      riverRocks.set(k,v);if(riverRocks.size>16384)riverRocks.delete(riverRocks.keys().next().value);return v;
+    }
     // Regular trees keep clear of giant crowns, ruins and rock landforms.
     // Ruins mask trees tightly: only trunks within 0.6 m of a wall (or on the street) are removed, so forest grows into
     // courtyards and right against the walls.
@@ -799,10 +831,29 @@
         // Rock knolls and spur crests break through alpine meadow and subalpine parkland along the eroded ridges.
         const tor=(biome==='meadow'||biome==='subalpine')&&slope>.4&&spur>.75+(noise(x*.09,z*.09,seed+705)-.5)*.5;
         const exposed=gorgeDistance<half+1.5||rim||lift>0&&fault<.9&&ridge>.55||knoll>0||slope>(T>2?1.8:1.4)&&!sea&&biome!=='snow'&&!glacier||slope>1.8&&!sea&&!glacier||biome==='alpine'||tor||crater;
+        // Riparian corridor: a layer over the chosen biome (biomeOf is untouched). Water feeds the land beside it, falling off
+        // with distance beyond the bank, scaled by channel size (rivers ~34 m, streams ~18 m, creeks ~6 m), and only on ground
+        // near the water's level (a canyon rim far above a river stays dry). Lake shores count by height above the lake.
+        // corridor: the planting style, keyed on climate because the banks themselves usually read as 'wetland' (biomeOf's
+        // wet flag): 'dry' oasis ribbons, 'temperate' willow banks, 'jungle' overhang, 'cold' scrub.
+        let riparian=0,corridor=null,fast=false,calm=false,splash=false;
+        if(RV.size>0||RV.lake){
+          const sz=RV.size||.3,reach=clamp(6+40*(sz-.3),6,34),past=Math.max(0,riverDistance-2.3)*sz;
+          const rise=Math.max(0,metres-floor-1),dry=1-clamp(rise/(3+reach*.25),0,1);
+          if(riverDistance<999){const t=clamp(past/reach,0,1);riparian=(1-t*t*(3-2*t))*dry;}
+          if(RV.lake&&!lakeWater)riparian=Math.max(riparian,clamp(1-(metres-RV.lake)/3,0,1));
+          if(water>height)riparian=0;
+          if(riparian>0){const Mx=C.M,b=biome;
+            corridor=T<7||b==='tundra'||b==='boreal'||b==='montane'||b==='subalpine'||b==='meadow'||b==='heath'?'cold':b==='desert'||b==='badlands'||b==='steppe'||b==='savanna'||b==='golden'||Mx<.3&&T>=15?'dry':T>=19&&Mx>.5?'jungle':'temperate';}
+          // Reach character from existing fields: fast (falls, steep mountain reaches) carries cobbles and boulders; calm
+          // (lakes, held reaches, flat lowland water) holds lilies and cattails; splash: the spray zone around falls and springs.
+          if(riverDistance<9&&!lakeWater&&!held){fast=RV.foam||slope>.45||t.relief>15&&slope>.25&&RV.size<.9;splash=(RV.foam||RV.spring)&&riverDistance<7;}
+          calm=lakeWater||held||!fast&&slope<.2&&!RV.foam;
+        }
         // crease: 0-1 erosion crease (gully floors where the coarse erosion octaves converge; 0 off mountains). erosion:
         // the eroded-terrain offset (m) included in height.
-        return {height,riverDistance,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
-          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,glacier,iceCells:glacier?iceCells:0,crease,erosion,cone:t.cone,setting:t.setting,temperature:T,moisture:C.M,relief:t.relief};
+        return {height,riverDistance,riparian,corridor,fast,calm,splash,lake:RV.lake,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
+          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,glacier,iceCells:glacier?iceCells:0,crease,erosion,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
       }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
@@ -830,6 +881,13 @@
       redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[7.5,4],r:[1,.5],trunk:.33,conifer:true},
       umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[2.5,1.25],r:[1.75,.75],trunk:.15},
       gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[2.5,1],r:[1.1,.4],trunk:.24},
+      // Riparian species (corridor planting only). willow: a domed crown whose rim hangs in curtains of strands; alder: a
+      // small dark round tree of cold banks; palm: a ringed, gently curving trunk under a star of drooping fronds; overhang:
+      // a big jungle tree leaning out over the water, hung with vines.
+      willow:{crown:'willow',bark:MAT.bark,leaf:MAT.willowLeaf,h:[3.25,1.5],r:[1.7,.5],trunk:.22},
+      alder:{crown:'round',bark:MAT.bark,leaf:MAT.alderLeaf,h:[2.75,1.25],r:[.95,.35],trunk:.14},
+      palm:{crown:'palm',bark:MAT.palmBark,leaf:MAT.palmLeaf,h:[4,2],r:[2,.4],trunk:.15},
+      overhang:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[3.75,1.5],r:[1.5,.3],trunk:.26},
     };
     const SPECIES_KEYS=Object.keys(SPECIES);
     // Per-biome tree style. mix: species weights (each species also gathers into groves by its own noise); cold: a
@@ -866,6 +924,17 @@
       badlands:{mix:{umbrella:1},density:0,cactus:.015,deadwood:.004},
     };
     const TREELESS=new Set(['sea','snow','glacier','alpine','gorge']);
+    // Riparian corridor planting by style (geography's `corridor`). tree/bush: chances per 3 m cell at full rip; edge: the
+    // share of water-facing cells that take a waterside tree; mix/water: species for floodplain and waterside cells; k: a
+    // fixed small size (scrub).
+    const HOT_DRY=new Set(['desert','badlands','savanna','golden']);
+    const CORRIDOR={
+      dry:{tree:.42,bush:.22,edge:.4,mix:(b,r)=>!HOT_DRY.has(b)?(r<.55?'willow':r<.75?'alder':'umbrella'):(b==='savanna'||b==='golden'?r<.5:r<.75)?'palm':'umbrella',
+        water:(b,r)=>!HOT_DRY.has(b)?'willow':r<.85?'palm':'umbrella'},
+      temperate:{tree:.3,bush:.2,edge:.38,mix:(b,r)=>r<.4?'willow':r<.72?'alder':'birch',water:(b,r)=>r<.75?'willow':'alder'},
+      jungle:{tree:.35,bush:.18,edge:.45,mix:(b,r)=>r<.8?'jungle':'palm',water:()=>'overhang'},
+      cold:{tree:.5,bush:.12,edge:.45,k:.32,mix:(b,r)=>r<.55?'willow':r<.85?'alder':'birch',water:(b,r)=>r<.6?'willow':'alder'},
+    };
     const treeStyle=b=>TREE_STYLE[b]||TREE_STYLE.default;
     // Quarter-metre units times density: identical metre sizes at either cell size, always integer cells.
     const cells=m=>Math.max(1,Math.round(m*4))*density;
@@ -900,7 +969,10 @@
       const bare=G=>G.exposed||G.sea||G.water>G.height||G.biome==='alpine'||G.biome==='gorge'||G.slope>1.3;
       if(bare(g)||g.highland||g.gorgeDistance<g.gorgeHalf+4||spireNear(x,z,4)||landmarkNear(x,z))return null;
       for(const [u,w] of [[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]])if(bare(geography(x+u,z+w)))return null;
-      const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),edge=1-patch,roll=hash(gx,gz,seed+23),roll2=hash(gx,gz,seed+29),barren=TREELESS.has(b)||b==='desert'||b==='badlands';
+      // Riparian corridor (see geography): rip 0-1 and its planting style. Deserts and badlands are barren except where
+      // a river or lake feeds them.
+      const rip=g.riparian||0,cor=rip>0&&!TREELESS.has(b)?g.corridor:null,CS=cor&&CORRIDOR[cor];
+      const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),edge=1-patch,roll=hash(gx,gz,seed+23),roll2=hash(gx,gz,seed+29),barren=TREELESS.has(b)||(b==='desert'||b==='badlands')&&!(cor&&rip>.12);
       let base=S.density??TREES[b]??(TREELESS.has(b)?0:.25);
       // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
       const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
@@ -909,6 +981,8 @@
       // ground. Just above it, only rare stunted krummholz conifers. Applies on any ground, snow included.
       const warmth=g.temperature-1-g.slope*1.6,tl=clamp(warmth/4,0,1),tline=tl*tl*(3-2*tl);
       if(tline<=0){
+        // Above the treeline, streams still carry a fringe of willow and alder scrub.
+        if(cor&&warmth>-7&&b!=='snow'&&roll2<.6*rip)return growTree(roll<.6?'willow':'alder',S,g,gx,gz,x,z,{k:.22+.12*hash(gx,gz,seed+757)});
         if(warmth>-2.5&&!barren&&roll<.06*(1+warmth/2.5))return growTree('spruce',S,g,gx,gz,x,z,{k:.28+.1*hash(gx,gz,seed+751)});
         return null;
       }
@@ -916,12 +990,20 @@
       const dense=base*(.35+.65*patch),common={x,z,base:g.height};
       const bush=(scale=1)=>Object.freeze({...common,kind:'bush',leaf:S.bushLeaf,lumps:bushLumps(x,z,gx,gz,601,scale)});
       // River and lake edges: twisted trees leaning out over the water, bushes on the bank.
-      if(g.riverDistance<12){
+      if(g.riverDistance<12||rip>.6&&g.lake){
         // Only cells that would take a lakeside plant sample their surroundings for water.
         let wx=0,wz=0;if(roll<.55&&!barren)for(const [u,w] of [[4.5,0],[-4.5,0],[0,4.5],[0,-4.5]]){const G=geography(x+u,z+w);if(G.water>G.height&&!G.sea){wx+=u;wz+=w;}}
-        if(wx||wz){if(roll<.3)return growTree('gnarled',S,g,gx,gz,x,z,{lean:Math.atan2(wz,wx)});if(roll<.55)return bush();}
-        if(g.riverDistance<9)return roll2<.15&&g.riverDistance>4&&!barren?bush():null;
+        // Waterside trees lean out over the water: a twisted tree, or the corridor's own (palm, willow, vine-hung jungle
+        // giant, cold-bank scrub).
+        if(wx||wz){const lean=Math.atan2(wz,wx);
+          if(roll<(CS?CS.edge:.3))return CS?growTree(CS.water(b,hash(gx,gz,seed+775)),S,g,gx,gz,x,z,{lean,maxLean:2,vines:cor==='jungle',scale:(.6+.4*tline)*(CS.scale||1),k:CS.k?CS.k+.15*hash(gx,gz,seed+757):0}):growTree('gnarled',S,g,gx,gz,x,z,{lean});
+          if(roll<.55)return bush();}
+        if(g.riverDistance<9)return roll2<(CS?.28:.15)&&g.riverDistance>4&&!barren?bush():null;
       }
+      // Corridor planting on the floodplain beyond the bank, densest near the water and fading out with rip.
+      if(CS){const r3=hash(gx,gz,seed+771),tl=cor==='cold'?Math.max(tline,.7):tline;
+        if(r3<rip*CS.tree*tl)return growTree(CS.mix(b,hash(gx,gz,seed+773)),S,g,gx,gz,x,z,{scale:(.55+.45*tline)*(CS.scale||1),k:CS.k?CS.k+.2*hash(gx,gz,seed+757):0});
+        if(r3<rip*(CS.tree*tl+CS.bush))return bush();}
       // Warm, wet hills and rainforest margins: dense bamboo clumps that join into groves.
       if(S.bamboo&&g.temperature>15&&g.moisture>.5&&noise(x*.012,z*.012,seed+721)>.62-.08*S.bamboo&&roll2<.9){
         const n=10+Math.floor(hash(gx,gz,seed+41)*8),culms=[],H=6+3*hash(gx,gz,seed+43),id=gx*7+gz;let top=0;
@@ -937,7 +1019,7 @@
       }
       // Cells without a tree: extras by biome. Bushes and shrubs gather at forest edges and in open ground.
       const near=base>.4?.4+1.6*edge:1;let c=0;
-      if(roll2<(c+=S.cactus||0)){
+      if(roll2<(c+=(S.cactus||0)*(1-rip))){
         const ht=1.4+2*hash(gx,gz,seed+61),arms=[];
         for(let i=0;i<1+Math.floor(hash(gx,gz,seed+63)*2.4);i++){const a=hash(i,gx+gz*5,seed+65)*Math.PI*2;arms.push({ux:Math.cos(a),uz:Math.sin(a),at:ht*(.3+.25*hash(i,gx,seed+67)),up:.5+.7*hash(i,gz,seed+69)});}
         return Object.freeze({...common,kind:'cactus',ht,r:.2+.06*hash(gx,gz,seed+71),arms});
@@ -971,11 +1053,20 @@
       let top=g.height+height+Math.ceil(radius*.7)+4*density+1;
       if(P.crown==='umbrella'){const a=hash(gx,gz,seed+97)*Math.PI*2,d=rm*.45;t.pads=[{x,z,y:g.height+height,r:radius},{x:x+Math.cos(a)*d,z:z+Math.sin(a)*d,y:g.height+Math.round(height*.72),r:Math.max(density,Math.round(radius*.6))}];}
       if(P.crown==='gnarled'){
-        const a=o.lean??hash(gx,gz,seed+99)*Math.PI*2,L=(.9+.8*hash(gx,gz,seed+101))*hm*.5;t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;
+        const a=o.lean??hash(gx,gz,seed+99)*Math.PI*2,L=Math.min(o.maxLean??99,(.9+.8*hash(gx,gz,seed+101))*hm*.5);t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;
         const tx=x+t.lx,tz=z+t.lz;
         t.lumps=[0,1,2].map(i=>{const b=a+(i-1)*1.5+hash(i,gx+gz,seed+103)*.4,d=i===1?0:rm*.6;return {x:tx+Math.cos(b)*d,z:tz+Math.sin(b)*d,y:g.height+height-(i===1?0:cells(.35)),r:i===1?radius:Math.max(density,Math.round(radius*.75))};});
         top+=radius;
       }
+      if(P.crown==='palm'){
+        // Crown offset by a gentle lean (toward the water on banks); 7-9 fronds, evenly spread with a little jitter.
+        const a=o.lean??hash(gx,gz,seed+99)*Math.PI*2,L=Math.min(1,hm*.12)*(.4+.6*hash(gx,gz,seed+101)),n=7+Math.floor(hash(gx,gz,seed+141)*3),a0=hash(gx,gz,seed+143)*6.28;
+        t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;t.frond=Math.min(2.4,rm);t.fronds=[];
+        for(let i=0;i<n;i++){const b=a0+i*6.2832/n+(hash(i,gx*3+gz,seed+145)-.5)*.5;t.fronds.push(Math.cos(b),Math.sin(b),.7+.3*hash(i,gz*3+gx,seed+147));}
+        top+=2*density;
+      }
+      // Riverside jungle trees trail vines from their crowns.
+      if(o.vines||sp==='jungle'&&g.riparian>.25)t.vines=true;
       // Big trees shelter a bush or two at their feet.
       if(C.cls===2&&S.bush){const a=hash(gx,gz,seed+105)*Math.PI*2,d=Math.max(.9,rm*.75);t.under=bushLumps(x+Math.cos(a)*d,z+Math.sin(a)*d,gx,gz,611,.9);if(S.bushLeaf)t.underLeaf=S.bushLeaf;}
       t.top=top;return Object.freeze(t);
@@ -1097,7 +1188,9 @@
     function stampTree(t,x,z,values,h,small){
       const crown=t.crown||'round',R=t.radius,top=t.base+t.height,bark=t.bark||MAT.bark,leaf=t.leaf||MAT.leaf,trunk=t.trunk||.72*density;
       let w=t.under&&!small?stampLumps(t.under,x,z,values,h,t.underLeaf||MAT.bushLeaf):0;
-      if(crown==='gnarled')return Math.max(w,stampGnarled(t,x,z,values,leaf,bark,trunk));
+      if(crown==='gnarled')return Math.max(w,stampGnarled(t,x,z,values,leaf,bark,trunk,small));
+      if(crown==='palm')return Math.max(w,stampPalm(t,x,z,values,leaf,bark,trunk));
+      if(crown==='willow')return Math.max(w,stampWillow(t,x,z,values,leaf,bark,trunk,small));
       const dist=Math.hypot((x-t.x)/cellMetres,(z-t.z)/cellMetres);
       if(dist>=(crown==='umbrella'?R*1.15+1:R+1))return w;
       const tTop=t.top||top+Math.ceil(R*.65)+2*density+1;
@@ -1154,11 +1247,57 @@
       if(dist<R){
         const rise=Math.sqrt(R*R-dist*dist),low=Math.max(t.base+clear,Math.floor(top-rise*.55)),high=Math.min(heightCells,Math.ceil(top+rise*.65));
         for(let y=low;y<high;y++)if(!values[y])values[y]=leaf;
+        if(t.vines&&!small&&dist>R*.3)hangVine(x,z,values,low,t.base);
       }
       return Math.max(w,tTop);
     }
+    // A vine strand on ~22% of quarter-metre columns: hangs 0.75-3.25 m below `from` (only through air, so it stops at
+    // the water surface or the ground), never lower than 0.5 m above the tree's base.
+    function hangVine(x,z,values,from,base){
+      const cx=Math.floor(x*4),cz=Math.floor(z*4),r=hash(cx,cz,seed+151);if(r>=.22)return;
+      const to=Math.max(base+2*density,from-Math.round((.75+2.5*hash(cx,cz,seed+153))/cellMetres));
+      for(let y=from-1;y>=to;y--){if(values[y])break;values[y]=MAT.vine;}
+    }
+    // Palm: a trunk ringed every third cell that curves toward its lean (offset grows with the square of height), and a
+    // star of fronds that rise a little from the crown heart then droop, each narrow at the base, widest a third along.
+    function stampPalm(t,x,z,values,leaf,bark,trunk){
+      const tx=t.x+t.lx,tz=t.z+t.lz,F=t.frond,dx=x-tx,dz=z-tz,d=Math.hypot(dx,dz),top=t.base+t.height;
+      if(d>F+.3&&Math.hypot(x-t.x,z-t.z)>Math.hypot(t.lx,t.lz)+trunk*cellMetres+.3)return 0;
+      for(let y=t.base;y<Math.min(heightCells,top);y++){
+        const f=(y-t.base)/t.height,cx=t.x+t.lx*f*f,cz=t.z+t.lz*f*f;
+        if(Math.hypot((x-cx)/cellMetres,(z-cz)/cellMetres)<trunk*(1.2-.35*f))values[y]=(y-t.base)%3===2?MAT.bark:bark;
+      }
+      if(d>=F)return t.top;
+      if(d<.4){for(let y=top-density;y<Math.min(heightCells,top+density);y++)if(!values[y])values[y]=d<.2&&y<top?MAT.palmBark:leaf;}
+      const fr=t.fronds;
+      for(let i=0;i<fr.length;i+=3){
+        const ux=fr[i],uz=fr[i+1],L=F*fr[i+2],along=dx*ux+dz*uz;if(along<=0||along>=L)continue;
+        const u=along/L,perp=Math.abs(dx*uz-dz*ux);if(perp>=.08+.34*Math.sin(Math.PI*Math.min(1,u*1.25)))continue;
+        const y=top+Math.round(L*(.38*u-1.05*u*u)/cellMetres);
+        for(let k=y;k<Math.min(heightCells,y+(perp<.12&&u<.6?2:1)*density);k++)if(k>t.base&&!values[k])values[k]=leaf;
+      }
+      return t.top;
+    }
+    // Weeping willow: a low dome whose outer ring hangs in curtains of strands to near the ground (gaps between strands at
+    // fine detail; solid at coarse LOD so it keeps its silhouette from afar). Strands only fill air, so over water they
+    // stop at the surface.
+    function stampWillow(t,x,z,values,leaf,bark,trunk,small){
+      const R=t.radius,dist=Math.hypot((x-t.x)/cellMetres,(z-t.z)/cellMetres),top=t.base+t.height,O=R*1.08;
+      if(dist>=O+1)return 0;
+      if(dist<trunk)values.fill(bark,t.base,Math.min(heightCells,top));
+      if(dist>=O)return t.top;
+      // Lumpy low dome; strands from its outer two thirds, their hem scalloped by low-frequency noise so the curtain
+      // reads as separate falls of leaves rather than a lampshade. A quarter of strands are a darker green for depth.
+      const q=dist/O,c=Math.sqrt(1-q*q),hi=Math.min(heightCells,Math.ceil(top+R*.42*c*(.8+.4*noise(x*.9,z*.9,seed+159)))),crownLow=Math.floor(top-R*.3*c);
+      let lo=crownLow,m=leaf;
+      if(q>.35){const cx=Math.floor(x*4),cz=Math.floor(z*4),s=hash(cx,cz,seed+155);
+        if(small||s>.4){const fall=clamp((noise(x*1.1,z*1.1,seed+161)-.2)*1.6,.15,1);
+          lo=Math.max(t.base+2*density,crownLow-Math.round(t.height*(.3+.55*(q-.35)/.65)*fall*(small?.85:.55+.45*s)));if(!small&&s>.82)m=MAT.leaf;}}
+      for(let y=lo;y<hi;y++)if(!values[y])values[y]=y<crownLow?m:leaf;
+      return t.top;
+    }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
-    function stampGnarled(t,x,z,values,leaf,bark,trunk){
+    function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
       const L=Math.hypot(t.lx,t.lz),mx=t.x+t.lx/2,mz=t.z+t.lz/2;
       if(Math.hypot(x-mx,z-mz)>L/2+t.radius*cellMetres*1.4+1)return 0;
       const nx=-t.lz/(L||1),nz=t.lx/(L||1);
@@ -1170,6 +1309,7 @@
         const q=Math.hypot((x-l.x)/cellMetres,(z-l.z)/cellMetres),r=l.r*(.85+.3*noise(x*.5,z*.5,seed+125));if(q>=r)continue;
         const hh=Math.sqrt(r*r-q*q),lo=Math.floor(l.y-hh*.5)-(hash(Math.floor(x*4),Math.floor(z*4),seed+127)<.3?2*density:0),hi=Math.min(heightCells,Math.ceil(l.y+hh*.7));
         for(let y=Math.max(0,lo);y<hi;y++)if(!values[y])values[y]=leaf;
+        if(t.vines&&!small&&q>r*.25)hangVine(x,z,values,Math.max(0,lo),t.base);
       }
       return t.top;
     }
@@ -1180,16 +1320,38 @@
     // (open green grass, where flowers grow) are defined with the biome ground palette.
     const LITTER=new Set([MAT.podzol,MAT.litter,MAT.autumnlitter,MAT.petal,MAT.junglefloor]),DRYGRASS=new Set([MAT.dry,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]);
     const FOREST_FLOOR=new Set(['forest','redwood','rainforest','boreal','montane','autumn','blossom','bamboo']);
+    // Cattail from cell h: a green rush stalk whose top stands 0.8-1.4 m above `from` (the water surface or the ground),
+    // a 0.5 m brown head just under its tip.
+    function cattail(values,h,from,r){
+      const e=Math.min(heightCells,from+Math.round((.8+.6*r)/cellMetres)),hd=Math.max(1,Math.round(.5/cellMetres));
+      values.fill(MAT.rush,h,e);for(let y=Math.max(h,e-1-hd);y<e-1;y++)values[y]=MAT.cattail;return e;
+    }
     function scatter(g,x,z,values,h){
       const b=g.biome,cx=Math.floor(x*4),cz=Math.floor(z*4),r=hash(cx,cz,seed+52),r2=hash(cx,cz,seed+54),top=values[h-1]&127;
       const put=(m,n)=>{const e=Math.min(heightCells,h+Math.max(1,n));values.fill(m,h,e);return e;};
       if(g.water>h){
-        if(g.sea||g.foam||g.water-h>2*density||r>=.3*clamp(noise(x*.2,z*.2,seed+641)-.35,0,1))return 0;
+        if(g.sea||g.foam||values[g.water-1]!==MAT.water)return 0;
+        const depth=g.water-h,still=g.calm&&(g.lake||g.riverSize<.9||g.riverDistance>1.2);
+        // Water lilies: round pads flush with the surface (they replace the top water cell) in drifts on calm water away
+        // from the very edge, a few with a pink bloom.
+        if(still&&depth>density&&noise(x*.13,z*.13,seed+661)>.64){
+          const lx=Math.floor(x/.8),lz=Math.floor(z/.8),pr=.22+.16*hash(lx,lz,seed+663);
+          if(hash(lx,lz,seed+665)<.75){const d=Math.hypot(x-(lx+.3+.4*hash(lx,lz,seed+667))*.8,z-(lz+.3+.4*hash(lx,lz,seed+669))*.8);
+            if(d<pr&&(d>.06||hash(lx,lz,seed+671)>.3)){values[g.water-1]=MAT.lilyPad;if(d<.1&&hash(lx,lz,seed+673)<.3){values[g.water]=MAT.lilyFlower;return g.water+1;}return g.water;}}
+        }
+        if(depth>2*density)return 0;
+        const n=noise(x*.2,z*.2,seed+641);
+        // Shallows: cattails (a brown head on a green stalk) where the water is still, reeds elsewhere.
+        if(still&&n>.5&&r<.08*clamp((n-.5)*3,0,1))return cattail(values,h,g.water,r2);
+        if(r>=.3*clamp(n-.35,0,1))return 0;
         const e=Math.min(heightCells,g.water+Math.round((.3+.5*r2)/cellMetres));values.fill(MAT.reed,h,e);return e;
       }
       if(values[h]!==0||g.exposed)return 0;
-      if(top===MAT.mud||(b==='wetland'||b==='fen')&&(GRASSY.has(top)||top===MAT.litter||top===MAT.sphagnum))
-        return r<.14*clamp((noise(x*.25,z*.25,seed+643)-.35)*2.5,0,1)*(top===MAT.mud?1:.5)?put(MAT.reed,Math.round((.45+.6*r2)/cellMetres)):0;
+      // Wet bank mud and marsh grass: reeds, and cattails beside still water; oasis banks carry reed beds into the grass.
+      const marsh=top===MAT.mud||(b==='wetland'||b==='fen')&&(GRASSY.has(top)||top===MAT.litter||top===MAT.sphagnum)||g.corridor==='dry'&&g.riverDistance<10&&top===MAT.floodgrass;
+      if(marsh){const p=clamp((noise(x*.25,z*.25,seed+643)-.35)*2.5,0,1);
+        if(r<.14*p*(top===MAT.mud?1:.5))return g.calm&&r2<.4?cattail(values,h,h,r2/.4):put(MAT.reed,Math.round((.45+.6*r2)/cellMetres));
+        return 0;}
       const floor=LITTER.has(top);
       if(floor||FOREST_FLOOR.has(b)&&TURF.has(top)){
         if(floor&&r>.993&&noise(x*.1,z*.1,seed+657)>.55)return put(MAT.glowFlower,density);
@@ -1210,6 +1372,19 @@
       }
       return 0;
     }
+    // Riparian ground: lush floodplain grass near water fading through greener grass into the biome's own ground, its edge
+    // wobbled by noise. Dry country turns into an oasis ribbon (sand and clay give way to grass); temperate and jungle banks
+    // get lusher; cold banks a little greener. Only open ground is repainted (not litter, snow, rock or bank mud).
+    const RIP_GROUND=new Set([...TURF,MAT.sand,MAT.dune,MAT.clay,MAT.ochre]);
+    function riparianGround(g,x,z,m){
+      if(!RIP_GROUND.has(m)||m===MAT.sphagnum||m===MAT.mossy)return 0;
+      const s=hash(Math.floor(x*2),Math.floor(z*2),seed+783),q=g.riparian+(noise(x*.09,z*.09,seed+781)-.5)*.4+(s-.5)*.1,c=g.corridor;
+      if(c==='dry'){if(q>.5)return s<.22?MAT.lushgrass:s>.93?MAT.sungrass:MAT.floodgrass;if(q>.3)return s<.5?MAT.sungrass:MAT.grass;if(q>.18)return s<.4?MAT.savgrass:0;return 0;}
+      if(c==='cold'){if(q>.55)return s<.3?MAT.mossy:MAT.lushgrass;return 0;}
+      if(q>.55&&TURF.has(m))return s<.3?MAT.lushgrass:MAT.floodgrass;
+      if(q>.35&&(m===MAT.grass||m===MAT.sungrass||m===MAT.dry||m===MAT.steppegrass))return MAT.lushgrass;
+      return 0;
+    }
     function column(vx,vz,into){
       const values=into||new Uint8Array(heightCells);colTop=0;
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
@@ -1225,8 +1400,12 @@
         // Ground variety, each with a noise-wobbled edge: wet mud then sand on river banks (creeks: mud only), gravel scree on
         // steep mountain soil, and worn coarse-dirt patches in open grass.
         const wob=(noise(x*.35,z*.35,seed+611)-.5)*1.6,rd=g.riverDistance+wob;
-        const bank=g.water>h&&!g.sea?0:rd<4.6?MAT.mud:g.riverSize>=.6&&rd<9?MAT.sand:0;
+        // Fast reaches (falls, steep mountain water) have rocky banks: cobbles with gravel and stone, then gravel; their beds are
+        // cobble too.
+        const cob=g.fast&&(hash(Math.floor(x*2),Math.floor(z*2),seed+787)<.3?MAT.gravel:noise(x*.6,z*.6,seed+789)>.68?MAT.stone:MAT.cobble);
+        const bank=g.water>h&&!g.sea?cob:rd<4.6?cob||MAT.mud:g.riverSize>=.6&&rd<9?(g.fast?MAT.gravel:MAT.sand):0;
         values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='beach'?MAT.sand:bank?bank:b==='alpine'?MAT.basalt:turf(b,x,z,h,g);
+        if(g.riparian>0&&!bank&&!g.exposed){const m=riparianGround(g,x,z,values[h-1]);if(m)values[h-1]=m;}
         if(TURF.has(values[h-1])){
           if(g.relief>15&&g.slope>.95+(noise(x*.3,z*.3,seed+613)-.5)*.35)values[h-1]=MAT.gravel;
           else if((b==='grassland'||b==='steppe'||b==='savanna')&&noise(x*.06,z*.06,seed+615)>.93-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
@@ -1320,6 +1499,13 @@
             const half=q.ry*Math.sqrt(1-d*d),a=Math.max(0,Math.floor(Math.min(q.y-half,h*cellMetres-.25)/cellMetres)),b=Math.min(heightCells,Math.ceil((q.y+half)/cellMetres));
             if(b>a){values.fill(MAT.basalt,a,b);written=Math.max(written,b);}}
         }
+        if(colStep*cellMetres<1.01){const ri=Math.floor(x/RG),rj=Math.floor(z/RG);
+          for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
+            const B=riverRockCell(ri+di,rj+dj);if(!B||Math.abs(x-B.x)>B.reach||Math.abs(z-B.z)>B.reach)continue;
+            for(const q of B.list){const d=Math.hypot(x-q.x,z-q.z)/(q.r*(.85+.3*noise(x*1.3,z*1.3,seed+589)));if(d>=1)continue;
+              const half=q.ry*Math.sqrt(1-d*d),a=Math.max(0,Math.floor(Math.min(q.y-half,h*cellMetres-.25)/cellMetres)),b=Math.min(heightCells,Math.ceil((q.y+half)/cellMetres));
+              if(b>a){values.fill(MAT.stone,a,b);if(q.mossy&&d<.8)values[b-1]=MAT.mossy;written=Math.max(written,b);}}
+          }}
         const K=rockNear(x,z);
         if(K&&Math.abs(x-K.x)<K.reach&&Math.abs(z-K.z)<K.reach){
           const ground=h*cellMetres-.25,put=(m,y0,y1)=>{const a=Math.max(0,Math.floor(y0/cellMetres)),b=Math.min(heightCells,Math.ceil(y1/cellMetres));if(b>a){values.fill(m,a,b);written=Math.max(written,b);}};
