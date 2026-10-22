@@ -66,6 +66,12 @@
   vec3 meadow(vec2 p,vec3 grass){
     float broad=meadowNoise(p*.04);
     return mix(grass*vec3(.86,.96,.86),grass*vec3(1.08,1.13,.88),smoothstep(.3,.7,broad));
+  }
+  // Drifting cloud shadows: big soft patches, cast along the sun so they land consistently on ground, crowns and grass.
+  // They follow time, so they hold still when paused or with reduced motion. Returns the sunlight left after clouds.
+  float clouds(vec3 p){
+    vec2 q=(p.xz+vec2(.5,-.4)*p.y)/95.+cloudTime*vec2(.03,.012);
+    return 1.-.5*smoothstep(.52,.74,meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35);
   }`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
@@ -87,7 +93,7 @@
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel;
   uniform highp sampler2DShadow shadowMap;
-  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow;
+  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime;
   uniform vec2 dither;
   uniform sampler2D normalMap, canopyMap, biomeMap;
   out vec4 color;
@@ -113,7 +119,7 @@
     // Warm sun over a cool sky fill; ridges catch a little more light than hollows.
     float key=max(0.,dot(n,SUN));
     // Shadow only removes the sun term, so shade keeps the sky fill: a soft afternoon shadow, never a black one.
-    float sun=sunlight();if(mat==3)sun=.45+.55*sun;
+    float sunVis=sunlight()*clouds(worldPosition),sun=sunVis;if(mat==3)sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
     light*=1.+cavity*.3;
     float grain=(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
@@ -160,7 +166,7 @@
         vec4 t=texture(normalMap,block.xz/normalSize);below=(t.a*255.+groundBase+c.b*255.-block.y)*blockSize;
       }
       vec3 w=worldPosition;float puff=meadowNoise(w.xz*.85+w.y*.6)*.6+meadowNoise(w.xz*2.1-w.y*1.3+3.7)*.4-.5;
-      float tone=(dot(cn,SUN)*.5+.5)*mix(.55,1.,sunlight())+puff*.42-smoothstep(.6,3.5,below)*.3-(trunkInCrown?.25:0.);
+      float tone=(dot(cn,SUN)*.5+.5)*mix(.55,1.,sunVis)+puff*.42-smoothstep(.6,3.5,below)*.3-(trunkInCrown?.25:0.);
       bool pine=mat==17||trunkInCrown&&conifer>.5;
       vec3 shadow=pine?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine?vec3(.5,.72,.4):vec3(.7,.84,.38);
       lit=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone))*heightShade;
@@ -178,7 +184,7 @@
     // big faces reading flat. Sandstone keeps its warmth in every band.
     if(mat==1||mat==22||mat==25||mat==30){
       vec3 w=worldPosition;float facet=meadowNoise(w.xz*.45+w.y*.35)*.6+meadowNoise(w.xz*1.3-w.y*.8+5.1)*.4-.5;
-      float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sunlight())+cavity*.4+facet*.2;
+      float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sunVis)+cavity*.4+facet*.2;
       bool warm=mat==25;
       vec3 shadow=warm?vec3(.5,.36,.38):vec3(.33,.35,.5),mid=warm?vec3(.76,.56,.42):vec3(.5,.53,.6),high=warm?vec3(.9,.76,.58):vec3(.72,.71,.68);
       if(mat==30){shadow=mix(shadow,vec3(.45,.43,.42),.5);mid=mix(mid,vec3(.66,.63,.58),.5);high=mix(high,vec3(.82,.78,.7),.5);}
@@ -228,7 +234,7 @@
   in vec2 field;
   in float along, sheen, conifer;
   uniform vec3 grassColor, lightHalf;
-  uniform float shadowOn, shadowTexel, blockSize;
+  uniform float shadowOn, shadowTexel, blockSize, cloudTime;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
   out vec4 color;
@@ -241,7 +247,7 @@
     // light cool tint.
     vec3 ground=meadow(field,forestGrass(grassColor,conifer))*.86,tip=ground*vec3(1.32,1.3,1.)+vec3(.06,.07,.03)*sheen;
     vec3 base=mix(ground,tip,smoothstep(.15,1.,along));
-    color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight())),1.);
+    color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight()*clouds(vec3(field.x,0,field.y)))),1.);
   }`;
   function makeTuft(){
     // One blade: two tapering quads and a tip, 15 vertices; seven blades per tuft, indexed by z.
@@ -264,32 +270,33 @@
   uniform vec2 halfView;
   uniform float depth, time, grow;
   out vec3 lightCoord, outward;
-  out vec2 uv;
+  out vec2 uv, field;
   out float seed, pine;
   void main(){
     seed=card.w;pine=step(10.,facing.w);outward=facing.xyz;
     // Broadleaf clumps spin freely; conifer sprigs stay upright with a slight tilt so the crown keeps its cone.
     float size=(facing.w-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.5,pine);
-    vec2 at=patternOrigin.xz+card.xz*scale.x;
+    vec2 at=patternOrigin.xz+card.xz*scale.x;field=at;
     float sway=sin(time*1.7+dot(at,vec2(.6,.35))*.8+seed*6.)*.04+.05*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
-    vec3 p=origin+card.xyz*scale+outward*size*mix(.25,.1,pine)+vec3(.92,0,.39)*sway*card.y*scale.y*.02;
+    vec3 p=origin+card.xyz*scale+outward*size*mix(.25,.1,pine);
     uv=mat2(cos(a),-sin(a),sin(a),cos(a))*corner;
     vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
     vec3 q=p-center;
     float forward=q.x*${SY}+q.z*${CY};
     gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
-    gl_Position.xy+=corner*size*.5/halfView;
-    // Drawn as if a card's width nearer the camera, so its own crown's blocks cannot cut it off; trees really in front
-    // still hide it.
-    gl_Position.z-=size/depth;
+    // Wind sways a card on screen only, never in depth, so overlapping clumps cannot trade places as they move.
+    gl_Position.xy+=(corner*size*.5+vec2(.92,.2)*sway*min(card.y*scale.y,30.)*.02)/halfView;
+    // Drawn half a card nearer the camera: enough to clear its own crown's blocks, not a neighbouring tree in front.
+    // A fixed per-card nudge breaks depth ties, so the same clump always wins where two overlap.
+    gl_Position.z-=(size*.5+seed*.02)/depth;
   }`;
   const leafFragment=`#version 300 es
   precision highp float;
   in vec3 lightCoord, outward;
-  in vec2 uv;
+  in vec2 uv, field;
   in float seed, pine;
   uniform vec3 lightHalf;
-  uniform float shadowOn, shadowTexel, blockSize, leafShape;
+  uniform float shadowOn, shadowTexel, blockSize, leafShape, cloudTime;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
   out vec4 color;
@@ -313,7 +320,7 @@
     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(g-c-o);if(e<d){d=e;leafId=fract(o.x*7.+o.y*3.);}}
     float gap=smoothstep(.35,.7,d);
     // Each clump shades as a small tuft: lit toward the sun and its top, darker at its base and rim, a little hue drift.
-    float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight())+(leafId-.5)*.1+dot(uv,vec2(-.4,.5))*.2-r*.12-gap*.12+.12;
+    float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight()*clouds(vec3(field.x,0,field.y)))+(leafId-.5)*.1+dot(uv,vec2(-.4,.5))*.2-r*.12-gap*.12+.12;
     vec3 shadow=pine>.5?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine>.5?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine>.5?vec3(.5,.72,.4):vec3(.7,.84,.38);
     vec3 c=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     color=vec4(c*(.96+.08*fract(seed*3.7))+vec3(-.01,.01,0)*fract(seed*11.),coverage);
@@ -344,10 +351,10 @@
     constructor(canvas){
       this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:true,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
-      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow']));
+      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
-      ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap']));
-      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape']));
+      ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime']));
+      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime']));
       gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
       // Conifer card outline for comparison (?leaves=round|soft|hard|round+soft|mixed); mixed by default.
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
@@ -438,19 +445,19 @@
       }
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
-      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);gl.uniform1f(this.u.grassGrow,this.queue.some(d=>d.mesh.grass)?grow:0);
+      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);gl.uniform1f(this.u.grassGrow,this.queue.some(d=>d.mesh.grass)?grow:0);gl.uniform1f(this.u.cloudTime,this.time);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
       for(const d of this.queue){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
       if(grow>0&&this.queue.some(d=>d.mesh.grass)){
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.grass;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,t.count);this.draws++;this.triangles+=t.count*BLADES*5;}
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
         const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.leaves;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);

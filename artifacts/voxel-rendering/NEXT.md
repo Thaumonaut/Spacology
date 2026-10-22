@@ -3,9 +3,9 @@
 Goal: one consistent anime art style across the whole scene. Trees and grass are done; everything else still uses the
 older flat look. Work through these in order, with a capture in `artifacts/voxel-rendering/` for each.
 
-1. **Anime rocks and cliffs.** Three-band cel shading for basalt, stone, sandstone and gravel, as for tree crowns: sunny
+1. ✅ **Anime rocks and cliffs.** Three-band cel shading for basalt, stone, sandstone and gravel, as for tree crowns: sunny
    warm-grey tops, cool lavender-blue shadow faces, soft highlights on ridges (from the hillshade cavity).
-2. **Drifting cloud shadows.** Large, soft, slowly moving shadows over land and water: one noise lookup in the sun term.
+2. ✅ **Drifting cloud shadows.** Large, soft, slowly moving shadows over land and water: one noise lookup in the sun term.
    Frozen when paused or with reduced motion.
 3. **Stylized water.** Shallow turquoise to deep blue by depth, white foam lines at shores and around rocks (use the
    generator's foam material), gentle moving glints.
