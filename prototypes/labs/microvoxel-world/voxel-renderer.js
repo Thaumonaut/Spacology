@@ -85,7 +85,7 @@
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel;
   uniform highp sampler2DShadow shadowMap;
-  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld;
+  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards;
   uniform vec2 dither;
   uniform sampler2D normalMap, canopyMap;
   out vec4 color;
@@ -151,6 +151,8 @@
       bool pine=mat==17;
       vec3 shadow=pine?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine?vec3(.5,.72,.4):vec3(.7,.84,.38);
       lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),high,smoothstep(.64,.7,tone))*heightShade;
+      // Close up, leaf cards cover the crown; the blocks beneath sink to the deep interior colour so gaps read as depth.
+      if(normalSize>0.)lit=mix(lit,shadow*.82,cards*.75);
     }
     color=vec4(lit,1.);
   }`;
@@ -219,6 +221,61 @@
     }
     return new Float32Array(out);
   }
+  // Leaf cards: camera-facing leaf clusters over the outside of each crown, cut to a fluffy, jagged outline in the
+  // fragment shader and lit by the crown's outward direction in the same anime bands as the voxel crowns.
+  const leafVertex=`#version 300 es
+  precision highp float;
+  layout(location=0) in vec2 corner;
+  layout(location=1) in vec4 card;
+  layout(location=2) in vec4 facing;
+  uniform vec3 origin, scale, patternOrigin, center, lightAt, lightHalf;
+  uniform mat3 lightAxes;
+  uniform vec2 halfView;
+  uniform float depth, time, grow;
+  out vec3 lightCoord, outward;
+  out vec2 uv;
+  out float seed, pine;
+  void main(){
+    seed=card.w;pine=step(10.,facing.w);outward=facing.xyz;
+    float size=(facing.w-10.*pine)*grow,a=seed*6.2832+time*.0;
+    vec2 at=patternOrigin.xz+card.xz*scale.x;
+    float sway=sin(time*1.7+dot(at,vec2(.6,.35))*.8+seed*6.)*.04+.05*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
+    vec3 p=origin+card.xyz*scale+outward*size*.25+vec3(.92,0,.39)*sway*card.y*scale.y*.02;
+    uv=mat2(cos(a),-sin(a),sin(a),cos(a))*corner;
+    vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
+    vec3 q=p-center;
+    float forward=q.x*${SY}+q.z*${CY};
+    gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
+    gl_Position.xy+=corner*size*.5/halfView;
+  }`;
+  const leafFragment=`#version 300 es
+  precision highp float;
+  in vec3 lightCoord, outward;
+  in vec2 uv;
+  in float seed, pine;
+  uniform vec3 lightHalf;
+  uniform float shadowOn, shadowTexel, blockSize;
+  uniform vec2 dither;
+  uniform highp sampler2DShadow shadowMap;
+  out vec4 color;
+  const vec3 SUN=normalize(vec3(-.5,1.,.4));
+  ${SUNLIGHT}
+  ${MEADOW}
+  void main(){
+    if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
+    // Fluffy cluster: a soft blob whose rim is chewed into leaves by two octaves of noise; needles get a spikier rim.
+    float r=length(uv),ang=atan(uv.y,uv.x),lobes=meadowNoise(vec2(ang*2.2+seed*40.,seed*9.))*.5+meadowNoise(uv*5.+seed*23.)*.5;
+    float rim=mix(.62+.36*lobes,.5+.5*abs(sin(ang*7.+seed*20.))*lobes,pine);
+    if(r>rim)discard;
+    // Inside the clump: small leaves (nearest of jittered cell points), each with its own shade, darker in the gaps.
+    vec2 g=uv*3.2+seed*17.,cell=floor(g);float d=9.,leafId=0.;
+    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(g-c-o);if(e<d){d=e;leafId=fract(o.x*7.+o.y*3.);}}
+    float gap=smoothstep(.32,.62,d);
+    // Each clump is lit across its face as well, brighter toward the sun's side.
+    float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight())+(leafId-.5)*.16+dot(uv,vec2(-.55,.45))*.14-r*.1-gap*.22;
+    vec3 shadow=pine>.5?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine>.5?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine>.5?vec3(.5,.72,.4):vec3(.7,.84,.38);
+    color=vec4(mix(mix(shadow,mid,smoothstep(.36,.42,tone)),high,smoothstep(.64,.7,tone)),1.);
+  }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -245,9 +302,12 @@
     constructor(canvas){
       this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:true,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
-      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel']));
+      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap']));
+      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap']));
+      gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
+      this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
       gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255));
       gl.useProgram(this.casterProgram);gl.uniform1i(this.cu.normalMap,0);
@@ -279,11 +339,19 @@
         gl.bindBuffer(gl.ARRAY_BUFFER,gbuffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.grass,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,1);
         out.grass={vao:gvao,buffer:gbuffer,count:mesh.grass.length/4};out.bytes+=mesh.grass.byteLength;
       }
+      if(mesh.leaves?.length){
+        const lvao=gl.createVertexArray(),lbuffer=gl.createBuffer();gl.bindVertexArray(lvao);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,lbuffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.leaves,gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,0);gl.vertexAttribDivisor(1,1);
+        gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(2,1);
+        out.leaves={vao:lvao,buffer:lbuffer,count:mesh.leaves.length/8};out.bytes+=mesh.leaves.byteLength;
+      }
       gl.bindVertexArray(null);
       return out;
     }
     dither(mode,t){this.dithering=[mode,t];}
-    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}}
+    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
@@ -320,15 +388,22 @@
         gl.cullFace(gl.BACK);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
       }
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
+      // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
+      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
       for(const d of this.queue){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
-      // Grass is full grown up to ~3 cm per pixel, shrinks away by 5 cm, and is skipped entirely further out.
-      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));
       if(grow>0&&this.queue.some(d=>d.mesh.grass)){
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.grass;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,t.count);this.draws++;this.triangles+=t.count*BLADES*5;}
+        gl.enable(gl.CULL_FACE);
+      }
+      if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
+        const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        for(const d of this.queue){const t=d.mesh.leaves;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.enable(gl.CULL_FACE);
       }
       this.queue.length=0;

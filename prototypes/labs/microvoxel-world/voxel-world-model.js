@@ -652,7 +652,7 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),grass:grassTufts(L,nx,nz,tops,P,grassy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),grass:grassTufts(L,nx,nz,tops,P,grassy,G),leaves:leafCards(L,nx,nz,dense,P,plane,base,span),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -668,6 +668,24 @@
         out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
       }
       return {canopy:out};
+    }
+    // Leaf cards for close views: on leaf and needle blocks at the outside of a crown, about 2.5 per square metre of
+    // crown surface. Each card is x, y, z (block centre, node-local blocks), seed; then the outward direction (from the
+    // empty space in its 3×3×3 neighbourhood) and a size in metres, +10 for needles.
+    function leafCards(L,nx,nz,dense,P,plane,base,span){
+      const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
+      const chance=Math.min(1,2.5*column*column),at=(i,y,j)=>dense[j*plane+(y-base+1)*P+i];
+      for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++)for(let y=base;y<base+span;y++){
+        const m=at(i,y,j)&127;if(m!==MAT.leaf&&m!==MAT.needle)continue;
+        if(at(i-1,y,j)&&at(i+1,y,j)&&at(i,y-1,j)&&at(i,y+1,j)&&at(i,y,j-1)&&at(i,y,j+1))continue;
+        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,h=hash(gx*131+y,gz,seed+L*577+81);if(h>=chance)continue;
+        let ox=0,oy=0,oz=0;
+        for(let c=-1;c<=1;c++)for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)if(!at(i+a,y+b,j+c)){ox+=a;oy+=b;oz+=c;}
+        const l=Math.hypot(ox,oy,oz);if(!l)continue;
+        const pine=m===MAT.needle,size=(pine?.75:1.15)+(pine?.3:.55)*hash(gx,gz*7+y,seed+83);
+        out.push(i-.5,y+.5,j-.5,hash(gx,gz+y*17,seed+82),ox/l,oy/l,oz/l,size+(pine?10:0));
+      }
+      return Float32Array.from(out);
     }
     // Grass tufts for close views, about 24 per square metre on columns whose surface is grass: x, top, z (blocks, node
     // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
