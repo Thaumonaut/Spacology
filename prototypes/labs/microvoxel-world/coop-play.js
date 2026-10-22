@@ -105,11 +105,15 @@
       return true;
     }
     $('coopSolo').onclick=()=>start('solo');$('coopHost').onclick=()=>start('host');$('coopJoin').onclick=()=>start('join',$('coopCode').value);
+    const panel=$('coop'),fold=$('coopFold');
+    function setFolded(f){panel.classList.toggle('folded',f);fold.setAttribute('aria-expanded',String(!f));fold.setAttribute('aria-label',(f?'Expand':'Collapse')+' co-op panel');fold.textContent=f?'+':'–';}
+    fold.onclick=()=>setFolded(!panel.classList.contains('folded'));
+    setFolded(innerHeight<760||innerWidth<700);
     $('coopReady').onclick=()=>view&&send('ready',{ready:!view.ready});$('coopLeave').onclick=()=>stop();
     for(const b of document.querySelectorAll('[data-role]'))b.onclick=()=>claim(b.dataset.role);
     for(const b of document.querySelectorAll('[data-pack]'))b.onclick=()=>act({kind:'pack',supplies:Number(b.dataset.pack)});
     const api={get active(){return mode!=='off'&&!!view;},hexes:()=>view?.hexes??[],action,describe,act,update,stop,start,claim,
-      snapshot:()=>({mode,role:view?.role??null,day:view?.day??null,phase:view?.phase??null,ready:view?.ready??false,view:view&&JSON.parse(JSON.stringify(view)),session:session?.snapshot()??null,room:$('coopRoom').textContent,status}),
+      snapshot:()=>({mode,role:view?.role??null,day:view?.day??null,phase:view?.phase??null,ready:view?.ready??false,folded:panel.classList.contains('folded'),view:view&&JSON.parse(JSON.stringify(view)),session:session?.snapshot()??null,room:$('coopRoom').textContent,status}),
       ready:flag=>send('ready',{ready:flag})};
     render();return api;
   }

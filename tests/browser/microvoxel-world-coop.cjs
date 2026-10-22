@@ -14,6 +14,11 @@ try{
   await until(b,()=>MicroWorldLab.coop.snapshot().role==='research');
   let A=await coop(a),B=await coop(b);
   assert.deepEqual(A.view.seats,{explore:'you',research:'teammate',logistics:'autopilot'});assert.equal(B.view.seats.research,'you');
+  assert.equal(A.folded,false,'roomy windows open the full co-op panel');
+  await a.locator('#coopFold').click();assert.equal((await coop(a)).folded,true);
+  assert.equal(await a.locator('#coopPhase').isVisible(),true);assert.equal(await a.locator('#coopReady').isVisible(),true);assert.equal(await a.locator('#coopBrief').isVisible(),false);
+  assert.ok((await a.locator('#coop').boundingBox()).height<56,'folded panel is one compact row');
+  await a.locator('#coopFold').click();assert.equal(await a.locator('#coopBrief').isVisible(),true);
   assert.equal(A.phase,'night');assert.match(await a.locator('#coopPhase').innerText(),/DAY 1 · NIGHT · TARGET 6/);
   console.log('PASS host opens a room code; a teammate joins and claims Research; Logistics runs on autopilot');
   let lines=0,sawSample=false,sawHint=false;
@@ -56,5 +61,12 @@ try{
   const crew=await solo.evaluate(()=>MicroWorldLab.snapshot().actors?.length??null);
   await solo.evaluate(()=>document.getElementById('info').click());await solo.locator('#seed').fill('39');await solo.locator('#seed').press('Enter');await ready(solo);
   assert.equal((await coop(solo)).mode,'off','regenerating the world ends the session');
+  const small=await browser.newPage({viewport:{width:700,height:560}});small.on('pageerror',e=>errors.push(e.message));await small.goto(URL);await ready(small);
+  assert.equal((await coop(small)).folded,true,'small windows start with the panel folded');
+  await small.locator('#coopFold').click();await small.locator('[data-role="research"]').click();await small.locator('#coopSolo').click();await until(small,()=>MicroWorldLab.coop.snapshot().role==='research');await small.locator('#coopFold').click();
+  const cv=await small.locator('#world').boundingBox();await small.mouse.click(cv.x+cv.width/2,cv.y+cv.height/2);await until(small,()=>!document.getElementById('inspection').hidden);
+  const [pb,ib]=[await small.locator('#coop').boundingBox(),await small.locator('#inspection').boundingBox()];
+  assert.ok(pb.height<56&&(ib.x>=pb.x+pb.width||ib.y>=pb.y+pb.height),'folded panel and inspection do not overlap');
+  await small.screenshot({path:'/tmp/spacology-coop-small.png'});await small.close();
   assert.deepEqual(errors,[]);console.log(`PASS solo play fills the other roles by autopilot; regenerating ends the session (crew ${crew})`);
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});

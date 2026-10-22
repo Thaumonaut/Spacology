@@ -26,7 +26,7 @@
         <p id="inspectBody"></p><p id="hexSummary" class="hex-summary"></p><button id="hexTask" type="button" hidden>Send explorer</button><p id="hexStatus" class="hex-status" role="status"></p><code id="inspectPosition"></code>
       </aside>
       <aside id="coop" class="coop" aria-label="Co-op supply line">
-        <span class="eyebrow">SUPPLY LINE · CO-OP</span> <span id="coopRoom" class="coop-room"></span>
+        <div class="coop-head"><span class="eyebrow">SUPPLY LINE · CO-OP</span> <span id="coopRoom" class="coop-room"></span><button id="coopFold" class="coop-fold" type="button" aria-expanded="true" aria-controls="coop" aria-label="Collapse co-op panel">–</button></div>
         <div class="coop-roles" role="group" aria-label="Your role"><button data-role="explore" aria-pressed="true">Exploration</button><button data-role="research" aria-pressed="false">Research</button><button data-role="logistics" aria-pressed="false">Logistics</button></div>
         <div id="coopStart" class="coop-row"><button id="coopSolo" type="button">Play solo</button><button id="coopHost" type="button">Host room</button><input id="coopCode" maxlength="8" placeholder="CODE" aria-label="Room code" autocomplete="off"><button id="coopJoin" type="button">Join</button></div>
         <div id="coopGame" hidden>
@@ -35,7 +35,7 @@
           <div id="coopPack" class="coop-row" hidden><span>Supplies</span><button data-pack="4" aria-pressed="false">4</button><button data-pack="8" aria-pressed="false">8 · −1 build</button></div>
           <p id="coopReport" class="coop-report" hidden></p>
           <p id="coopSeats" class="coop-seats"></p>
-          <div class="coop-row"><button id="coopReady" type="button">Ready</button><button id="coopLeave" type="button">Leave</button></div>
+          <div class="coop-row coop-actions"><button id="coopReady" type="button">Ready</button><button id="coopLeave" type="button">Leave</button></div>
         </div>
         <p id="coopStatus" class="hex-status" role="status"></p>
       </aside>
