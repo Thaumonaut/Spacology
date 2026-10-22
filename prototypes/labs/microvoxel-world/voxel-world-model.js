@@ -624,7 +624,7 @@
     function node(L,nx,nz){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G);let ny=1,reduce=0;
+      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),grassy=new Uint8Array(G*G);let ny=1,reduce=0;
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
@@ -634,12 +634,12 @@
         const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,t0=prof.on&&now(),b=new Uint8Array(blocks);let top=0;
         let hi=lim-1;while(hi>=0&&!c[hi])hi--;
         for(let y=0;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
-        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
+        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);canopy[(j+1)*G+i+1]=top;grassy[(j+1)*G+i+1]=top>0&&(b[top-1]&127)===MAT.grass?1:0;c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
         cols[j*P+i]=b;tops[j*P+i]=top;floor[j*P+i]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);c.fill(0,0,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;grassy[j*G+i]=h>=0&&(c[h]&127)===MAT.grass?1:0;c.fill(0,0,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -652,17 +652,34 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      return {...mesh,...hillshade(grounds,G),grass:grassTufts(L,nx,nz,cols,tops,P),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),grass:grassTufts(L,nx,nz,tops,P,grassy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+    }
+    // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
+    // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
+    // the shader turns into a noisy, soft border wherever grass meets other ground). Lit by this instead of their block faces, leaves read as
+    // soft rounded crowns, and the depth below the crown top darkens their undersides.
+    function cover(grassy,G,I,J){let n=0;for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)n+=grassy[(J+b)*G+I+a];return n/25;}
+    function canopyShade(tops,grounds,grassy,G){
+      const N=G-4,T=(i,j)=>tops[j*G+i],out=new Uint8Array(N*N*4);
+      for(let j=0;j<N;j++)for(let i=0;i<N;i++){
+        const I=i+2,J=j+2;let x=0,z=0;
+        for(let b=-1;b<=1;b++){x+=T(I+2,J+b)-T(I-2,J+b)+T(I+1,J+b)-T(I-1,J+b);z+=T(I+b,J+2)-T(I+b,J-2)+T(I+b,J+1)-T(I+b,J-1);}
+        x/=18;z/=18;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
+        out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
+      }
+      return {canopy:out};
     }
     // Grass tufts for close views, about 24 per square metre on columns whose surface is grass: x, top, z (blocks, node
     // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
-    function grassTufts(L,nx,nz,cols,tops,P){
+    function grassTufts(L,nx,nz,tops,P,grassy,G){
       const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
       const per=24*column*column;
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
-        const k=j*P+i,t=tops[k];if(!t||(cols[k][t-1]&127)!==MAT.grass)continue;
-        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,n=Math.floor(per+hash(gx,gz,seed+L*977+61));
-        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),hash(gx,gz,seed+64+q*7));
+        // Fewer, shorter tufts toward the edge of a meadow; a few stray ones spill onto the ground beside it. The fourth
+        // value packs the local cover (0–15) with the 0–1 variation seed.
+        const t=tops[j*P+i],own=grassy[(j+1)*G+i+1],c=cover(grassy,G,i+1,j+1);if(!t||!own&&c<.3)continue;
+        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,n=Math.floor(per*(own?.35+.65*c:c*.35)+hash(gx,gz,seed+L*977+61));
+        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),Math.floor(c*15)+hash(gx,gz,seed+64+q*7)*.999);
       }
       return Float32Array.from(out);
     }
