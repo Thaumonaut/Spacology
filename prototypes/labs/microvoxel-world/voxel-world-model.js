@@ -670,7 +670,7 @@
       return {canopy:out};
     }
     // Leaf cards for close views: on leaf and needle blocks at the outside of a crown, about 3.5 per square metre of
-    // crown surface. Each card is x, y, z (block centre, node-local blocks), seed; then the outward direction (from the
+    // crown surface (twice that for the smaller conifer sprigs). Each card is x, y, z (block centre, node-local blocks), seed; then the outward direction (from the
     // empty space in its 3×3×3 neighbourhood) and a size in metres, +10 for needles.
     function leafCards(L,nx,nz,dense,P,plane,base,span){
       const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
@@ -678,11 +678,11 @@
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++)for(let y=base;y<base+span;y++){
         const m=at(i,y,j)&127;if(m!==MAT.leaf&&m!==MAT.needle)continue;
         if(at(i-1,y,j)&&at(i+1,y,j)&&at(i,y-1,j)&&at(i,y+1,j)&&at(i,y,j-1)&&at(i,y,j+1))continue;
-        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,h=hash(gx*131+y,gz,seed+L*577+81);if(h>=chance)continue;
+        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,h=hash(gx*131+y,gz,seed+L*577+81);if(h>=(m===MAT.needle?Math.min(1,chance*2):chance))continue;
         let ox=0,oy=0,oz=0;
         for(let c=-1;c<=1;c++)for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++)if(!at(i+a,y+b,j+c)){ox+=a;oy+=b;oz+=c;}
         const l=Math.hypot(ox,oy,oz);if(!l)continue;
-        const pine=m===MAT.needle,size=(pine?.6:1.15)+(pine?.3:.55)*hash(gx,gz*7+y,seed+83);
+        const pine=m===MAT.needle,size=(pine?.45:1.15)+(pine?.2:.55)*hash(gx,gz*7+y,seed+83);
         out.push(i-.5,y+.5,j-.5,hash(gx,gz+y*17,seed+82),ox/l,oy/l,oz/l,size+(pine?10:0));
       }
       return Float32Array.from(out);

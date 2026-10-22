@@ -243,7 +243,8 @@
   out float seed, pine;
   void main(){
     seed=card.w;pine=step(10.,facing.w);outward=facing.xyz;
-    float size=(facing.w-10.*pine)*grow,a=seed*6.2832;
+    // Broadleaf clumps spin freely; conifer sprigs stay upright with a slight tilt so the crown keeps its cone.
+    float size=(facing.w-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.5,pine);
     vec2 at=patternOrigin.xz+card.xz*scale.x;
     float sway=sin(time*1.7+dot(at,vec2(.6,.35))*.8+seed*6.)*.04+.05*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     vec3 p=origin+card.xyz*scale+outward*size*mix(.25,.1,pine)+vec3(.92,0,.39)*sway*card.y*scale.y*.02;
@@ -263,27 +264,34 @@
   in vec2 uv;
   in float seed, pine;
   uniform vec3 lightHalf;
-  uniform float shadowOn, shadowTexel, blockSize;
+  uniform float shadowOn, shadowTexel, blockSize, leafShape;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
   out vec4 color;
   const vec3 SUN=normalize(vec3(-.5,1.,.4));
   ${SUNLIGHT}
   ${MEADOW}
+  // Signed distance to an upright triangle of the given size (negative inside).
+  float triangle(vec2 p,float size){p/=size;p.x=abs(p.x)-1.;p.y+=.577;if(p.x+1.732*p.y>0.)p=vec2(p.x-1.732*p.y,-1.732*p.x-p.y)*.5;p.x-=clamp(p.x,-2.,0.);return -length(p)*sign(p.y)*size;}
   void main(){
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
-    // Fluffy cluster: a soft blob whose rim is chewed into leaves by two octaves of noise; needles get a spikier rim.
     float r=length(uv),ang=atan(uv.y,uv.x),lobes=meadowNoise(vec2(ang*2.2+seed*40.,seed*9.))*.5+meadowNoise(uv*5.+seed*23.)*.5;
-    float rim=.62+.36*lobes;
-    if(r>rim)discard;
-    // Inside the clump: small leaves (nearest of jittered cell points), each with its own shade, darker in the gaps.
-    vec2 g=uv*3.2+seed*17.,cell=floor(g);float d=9.,leafId=0.;
+    // Outline. Broadleaf: a round clump. Conifer, by leafShape: 0 round, 1 soft triangle, 2 hard triangle, 3 round or
+    // soft per card, 4 any of the three. Rims are chewed into leaves; hard triangles only lightly.
+    float pick=fract(seed*7.13),shape=leafShape<2.5?leafShape:leafShape<3.5?step(.5,pick):floor(pick*3.);
+    float round=r-(.62+.36*lobes),soft=triangle(uv,.6)-.24+(lobes-.5)*.12,hard=triangle(uv,.9)-.03+(lobes-.5)*.05;
+    float edge=pine<.5||shape<.5?round:shape<1.5?soft:hard;
+    // Antialiased rim: coverage from the outline's screen-space slope (alpha to coverage on the multisampled canvas).
+    float coverage=clamp(.5-edge/max(fwidth(edge),1e-4),0.,1.);if(coverage<=0.)discard;
+    // Inside the clump: small leaves (nearest of jittered cell points), each with its own shade, softly darker in gaps.
+    vec2 g=uv*4.6+seed*17.,cell=floor(g);float d=9.,leafId=0.;
     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(g-c-o);if(e<d){d=e;leafId=fract(o.x*7.+o.y*3.);}}
-    float gap=smoothstep(.32,.62,d);
-    // Each clump is lit across its face as well, brighter toward the sun's side.
-    float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight())+(leafId-.5)*.16+dot(uv,vec2(-.55,.45))*.14-r*.1-gap*.22;
+    float gap=smoothstep(.35,.7,d);
+    // Each clump shades as a small tuft: lit toward the sun and its top, darker at its base and rim, a little hue drift.
+    float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight())+(leafId-.5)*.1+dot(uv,vec2(-.4,.5))*.2-r*.12-gap*.12;
     vec3 shadow=pine>.5?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine>.5?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine>.5?vec3(.5,.72,.4):vec3(.7,.84,.38);
-    color=vec4(mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone)),1.);
+    vec3 c=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
+    color=vec4(c*(.96+.08*fract(seed*3.7))+vec3(-.01,.01,0)*fract(seed*11.),coverage);
   }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
@@ -314,8 +322,10 @@
       ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap']));
-      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap']));
+      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape']));
       gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
+      // Conifer card outline for comparison (?leaves=round|soft|hard|round+soft|mixed); mixed by default.
+      gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
       this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
       gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255));
@@ -409,11 +419,11 @@
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
-        const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);
+        const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.leaves;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
-        gl.enable(gl.CULL_FACE);
+        gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
       }
       this.queue.length=0;
     }
