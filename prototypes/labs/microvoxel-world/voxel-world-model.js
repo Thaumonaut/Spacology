@@ -652,7 +652,19 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      return {...mesh,...hillshade(grounds,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,...hillshade(grounds,G),grass:grassTufts(L,nx,nz,cols,tops,P),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+    }
+    // Grass tufts for close views, about 24 per square metre on columns whose surface is grass: x, top, z (blocks, node
+    // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
+    function grassTufts(L,nx,nz,cols,tops,P){
+      const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
+      const per=24*column*column;
+      for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
+        const k=j*P+i,t=tops[k];if(!t||(cols[k][t-1]&127)!==MAT.grass)continue;
+        const gx=nx*NODE+i-1,gz=nz*NODE+j-1,n=Math.floor(per+hash(gx,gz,seed+L*977+61));
+        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),hash(gx,gz,seed+64+q*7));
+      }
+      return Float32Array.from(out);
     }
     // Ground surface of a column in blocks: solid from the bottom up to the first air gap, ignoring trees and spires, so
     // isles, canopies and spires do not tilt the hillshade. Water counts: it is the visible surface.
