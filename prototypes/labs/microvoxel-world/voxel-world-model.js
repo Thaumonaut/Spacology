@@ -669,12 +669,12 @@
       }
       return {canopy:out};
     }
-    // Leaf cards for close views: on leaf and needle blocks at the outside of a crown, about 2.5 per square metre of
+    // Leaf cards for close views: on leaf and needle blocks at the outside of a crown, about 3.5 per square metre of
     // crown surface. Each card is x, y, z (block centre, node-local blocks), seed; then the outward direction (from the
     // empty space in its 3×3×3 neighbourhood) and a size in metres, +10 for needles.
     function leafCards(L,nx,nz,dense,P,plane,base,span){
       const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
-      const chance=Math.min(1,2.5*column*column),at=(i,y,j)=>dense[j*plane+(y-base+1)*P+i];
+      const chance=Math.min(1,3.5*column*column),at=(i,y,j)=>dense[j*plane+(y-base+1)*P+i];
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++)for(let y=base;y<base+span;y++){
         const m=at(i,y,j)&127;if(m!==MAT.leaf&&m!==MAT.needle)continue;
         if(at(i-1,y,j)&&at(i+1,y,j)&&at(i,y-1,j)&&at(i,y+1,j)&&at(i,y,j-1)&&at(i,y,j+1))continue;

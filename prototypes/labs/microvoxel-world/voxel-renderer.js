@@ -151,8 +151,14 @@
       bool pine=mat==17;
       vec3 shadow=pine?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine?vec3(.5,.72,.4):vec3(.7,.84,.38);
       lit=mix(mix(shadow,mid,smoothstep(.36,.42,tone)),high,smoothstep(.64,.7,tone))*heightShade;
-      // Close up, leaf cards cover the crown; the blocks beneath sink to the deep interior colour so gaps read as depth.
-      if(normalSize>0.)lit=mix(lit,shadow*.82,cards*.75);
+      // Close up, leaf cards cover the crown. The blocks beneath carry the same small-leaf pattern in deeper tones, so any
+      // that show through read as dense foliage rather than flat faces.
+      if(normalSize>0.&&cards>0.){
+        vec3 an=abs(normal);vec2 g=(an.y>.5?w.xz:an.x>.5?w.zy:w.xy)*2.6,cell=floor(g);float d=9.,id=0.;
+        for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(g-c-o);if(e<d){d=e;id=fract(o.x*7.+o.y*3.);}}
+        vec3 inner=mix(shadow*.8,mix(shadow,mid,.55),smoothstep(.3,.6,tone+(id-.5)*.3))*mix(1.,.72,smoothstep(.32,.62,d));
+        lit=mix(lit,inner*heightShade,cards*.85);
+      }
     }
     color=vec4(lit,1.);
   }`;
@@ -247,6 +253,9 @@
     float forward=q.x*${SY}+q.z*${CY};
     gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
     gl_Position.xy+=corner*size*.5/halfView;
+    // Drawn as if a card's width nearer the camera, so its own crown's blocks cannot cut it off; trees really in front
+    // still hide it.
+    gl_Position.z-=size/depth;
   }`;
   const leafFragment=`#version 300 es
   precision highp float;

@@ -12,5 +12,6 @@ Headless captures of `prototypes/microvoxel-world.html?extent=infinite&seed=2718
 | `6-anime-first-pass.png` | Anime pass 1: crowns lit by a smoothed canopy-shape normal in three flat bands (sunny yellow-green, leaf green, teal shadow); simpler two-colour grass. The light/shadow split reads as a straight line down each cone. |
 | `7-anime-crowns-soft-edges.png` | Crowns broken into leafy puffs; a grass cover map gives a noisy, frayed border where grass meets other ground, with shorter, sparser tufts at meadow edges. The bare ring under the giant tree awaits the generator's podzol. |
 | `8-leaf-cards.png` | Leaf cards: camera-facing leaf clumps over each crown's outer blocks, cut to a fluffy outline, filled with small cell-pattern leaves and lit by the crown's outward direction in the anime bands. The blocks underneath sink to a deep teal interior. |
+| `9-leaf-cards-blended.png` | Cards drawn a card-width nearer the camera so their own crown's blocks no longer cut them off; block faces that show through carry the same small-leaf pattern in deeper tones. Crowns read as continuous foliage. |
 
 The flat dark ring around the giant tree in 2–4 is a different ground material from the terrain generator, so no grass grows there.
