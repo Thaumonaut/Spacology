@@ -64,8 +64,6 @@ Choose **Field notes → World footprint → Infinite streaming experiment → G
 
 `node tools/benchmark-microvoxel.cjs 2718 0.25 infinite` samples 64 chunks starting at `(1000000, -1000000)`—8,000 km from zero on each axis. Optional final arguments select a different chunk origin. The same full-resolution patch encoded **580,112 bytes** at 25 cm and **2,320,106 bytes** at 12.5 cm in this fixture, versus 6,291,456 / 50,331,648 dense bytes. These are storage measurements, not device FPS results. Automated regressions cover signed rebasing, distant/guardrail-near travel, return-image equality after eviction, URL reload, density, GPU position bounds, portrait LOD/cache pressure and the offline package. The earlier iOS Simulator results concern the finite world; **streamed-mode iOS and physical-device performance are unverified**.
 
-## Verification and portable copy
-
 ## Co-op supply line
 
 The first playable slice on the hex atlas (OpenSpec: `openspec/changes/add-coop-supply-line`). Up to three players split **Exploration**, **Research** and **Logistics** through a night → day → dusk clock; information moves between roles only at phase turns, and unclaimed seats run on autopilot. The camp's Ferrite root meets the day-1 target (`6 + 3×(day−1)`) but not day 3, so the group must survey, identify and connect a second line. Numbers in `coop-session.js` are illustrative defaults.
@@ -76,6 +74,8 @@ The first playable slice on the hex atlas (OpenSpec: `openspec/changes/add-coop-
 - `vendor/peerjs-1.5.5.min.js` — PeerJS 1.5.5, MIT (`vendor/peerjs-LICENSE`), vendored so the page needs no CDN.
 
 Terrain is never sent: every peer regenerates it from the shared seed. There is no game server, TURN relay, reconnect or save: if the host leaves the room ends, and strict NATs/carrier networks may fail to connect directly. A manual check opened a PeerJS room between two isolated headless browser contexts (join, night → day, leave → autopilot, unknown code); that is not run in CI and is not a mobile-network result.
+
+## Verification and portable copy
 
 ```sh
 npm test -- microvoxel-world
