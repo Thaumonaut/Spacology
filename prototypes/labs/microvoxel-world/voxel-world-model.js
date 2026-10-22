@@ -794,6 +794,15 @@
       let base=S.density??TREES[b]??(TREELESS.has(b)?0:.25);
       // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
       const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
+      // Treeline: forest thins and shrinks over the last ~4 degrees C (about 25 m) below the line, broadleaf dropping out
+      // before conifers. The line is ~1 C (it follows the climate's temperature and lapse rate), lower on steep, exposed
+      // ground. Just above it, only rare stunted krummholz conifers. Applies on any ground, snow included.
+      const warmth=g.temperature-1-g.slope*1.6,tl=clamp(warmth/4,0,1),tline=tl*tl*(3-2*tl);
+      if(tline<=0){
+        if(warmth>-2.5&&!barren&&roll<.06*(1+warmth/2.5))return growTree('spruce',S,g,gx,gz,x,z,{k:.28+.1*hash(gx,gz,seed+751)});
+        return null;
+      }
+      base*=tline;
       const dense=base*(.35+.65*patch),common={x,z,base:g.height};
       const bush=(scale=1)=>Object.freeze({...common,kind:'bush',leaf:S.bushLeaf,lumps:bushLumps(x,z,gx,gz,601,scale)});
       // River and lake edges: twisted trees leaning out over the water, bushes on the bank.
@@ -810,7 +819,12 @@
           culms.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,lx:Math.cos(a)*lean,lz:Math.sin(a)*lean,h,tr:.45+.3*hash(i,id,seed+53)});top=Math.max(top,h);}
         return Object.freeze({...common,kind:'bamboo',culms,top:g.height+Math.ceil((top+1)/cellMetres)+2});
       }
-      if(roll<dense)return growTree(pickSpecies(S,g,x,z,gx,gz,edge),S,g,gx,gz,x,z);
+      if(roll<dense){
+        let sp=pickSpecies(S,g,x,z,gx,gz,edge);
+        // Near the line broadleaf gives way to conifers; trees shrink toward krummholz size.
+        if(tline<1&&!(SPECIES[sp]||{}).conifer&&hash(gx,gz,seed+753)>tline*1.6-.3)sp=S.mix.larch&&hash(gx,gz,seed+755)<.4?'larch':'spruce';
+        return growTree(sp,S,g,gx,gz,x,z,{scale:.4+.6*tline});
+      }
       // Cells without a tree: extras by biome. Bushes and shrubs gather at forest edges and in open ground.
       const near=base>.4?.4+1.6*edge:1;let c=0;
       if(roll2<(c+=S.cactus||0)){
@@ -837,7 +851,7 @@
     }
     // A tree record. Heights and radii are integer cells (quarter-metre quantized, so both cell sizes agree).
     function growTree(sp,S,g,gx,gz,x,z,o={}){
-      const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1);
+      const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
       const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
       const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*Math.sqrt(C.k)/cellMetres)};
       // Larches turn autumn gold in patches.
