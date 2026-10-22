@@ -16,6 +16,9 @@
   const heldKeys=new Set(),velocity={x:0,z:0};
   let born=performance.now();const motion=matchMedia('(prefers-reduced-motion: reduce)');
   const cache=new M.BudgetCache(320,32*1024*1024,mesh=>renderer?.dispose(mesh));
+  const FAR_SPAN=2048,farCache=new M.BudgetCache(160,24*1024*1024,mesh=>renderer?.dispose(mesh)),farKey=(s,tx,tz)=>`far:${world.dataId}:${s}:${tx}:${tz}`;
+  let farVisible=[],farStep=1,farShown=null;
+  const far=()=>world.infinite&&camera.span>maximumSpan()+.01;
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
   function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();busy=false;}
   try{renderer=new MicroRenderer(canvas);worker=new Worker('labs/microvoxel-world/voxel-worker.js');}
@@ -88,7 +91,7 @@
   function drawAtlas(){
     const w=canvas.clientWidth,h=canvas.clientHeight,r=Math.min(devicePixelRatio||1,2);
     if(layer.width!==Math.round(w*r)||layer.height!==Math.round(h*r)){layer.width=Math.round(w*r);layer.height=Math.round(h*r);}
-    ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,w,h);ctx.font='650 10px system-ui,sans-serif';ctx.textAlign='center';
+    ctx.setTransform(r,0,0,r,0,0);ctx.clearRect(0,0,w,h);if(far())return;ctx.font='650 10px system-ui,sans-serif';ctx.textAlign='center';
     const list=atlasView==='off'?[]:coop.active?[...coop.hexes()]:atlas.view(atlasView);if(selectedHex)list.push({...atlas.summary(selectedHex.q,selectedHex.r),state:'selected'});
     for(const hx of list){
       const pts=outline(hx).map(c=>{const p=localPoint(c);return renderer.project(camera,p.x,p.y,p.z);});
@@ -107,11 +110,23 @@
     $('worldTitle').textContent=world.infinite?'The streamed wilds':'The ferrite catchment';$('regionLabel').textContent=world.infinite?'STREAMED WORLD':'SURVEYED REGION';$('regionDetail').textContent=world.infinite?'Seeded ridges / wet corridors':'Basalt ridge / river basin';
     for(const [id,cell] of [['densityBase',.25],['densityFine',.125]])$(id).setAttribute('aria-pressed',String(world.cell===cell));
   }
+  function farTiles(){
+    farStep=2**Math.max(0,Math.min(4,Math.ceil(Math.log2(camera.span/128))));
+    const t=32*farStep,b=renderer.bounds(camera,world.heightMetres),q=logical(),out=[];
+    for(let tz=Math.floor((b.minZ+q.z)/t);tz<=Math.floor((b.maxZ+q.z)/t);tz++)for(let tx=Math.floor((b.minX+q.x)/t);tx<=Math.floor((b.maxX+q.x)/t);tx++)out.push({tx,tz,key:farKey(farStep,tx,tz),distance:Math.hypot((tx+.5)*t-q.x-camera.x,(tz+.5)*t-q.z-camera.z)});
+    return out.sort((a,b)=>a.distance-b.distance);
+  }
   function updateView(){
     if(failed)return;
     viewDirty=false;
-    renderer.resize(economy);if(world.extent!==128)camera.span=Math.min(camera.span,maximumSpan());epoch++;
+    renderer.resize(economy);if(world.extent!==128)camera.span=Math.min(camera.span,limitSpan());epoch++;
     const size=world.chunkMetres,count=world.extent/size;
+    if(far()){
+      visible=[];farVisible=farTiles();$('viewLabel').textContent=`CONTINENT VIEW · ${farStep} m RENDER`;
+      const scale=[50,100,200,500,1000].find(n=>n>=camera.span/8)||1000;$('scaleText').textContent=`${scale} m`;$('scaleLine').style.width=`${canvas.clientWidth*scale/camera.span}px`;
+      pump();hud();return;
+    }
+    farVisible=[];
     let shrink;
     do{
       step=camera.span>80?1/world.cell:camera.span>44?.5/world.cell:1;if(economy)step=Math.min(1/world.cell,step*2);
@@ -135,6 +150,7 @@
   }
   function pump(){
     if(busy||failed||viewDirty)return;
+    if(far()){const t=farVisible.find(t=>!farCache.items.has(t.key));if(t){busy=true;workerStarted=performance.now();worker.postMessage({dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,far:farStep,tx:t.tx,tz:t.tz,token:epoch});}return;}
     const coarse=placeholderStep();let next=coarse&&visible.find(v=>!fallback(v)),requestStep=coarse;
     if(!next){next=visible.find(v=>!cache.items.has(v.key));requestStep=step;}
     if(!next)return;
@@ -144,6 +160,10 @@
     worker.onerror=()=>fail('The world worker could not load. Serve the lab over HTTP, then reload.');
     worker.onmessage=({data})=>{
       busy=false;if(data.error){if(data.dataId===world.dataId)fail(`World generation failed: ${data.error}`);else pump();return;}
+      if(data.far){
+        if(data.dataId===world.dataId&&!failed&&data.far===farStep&&farVisible.some(t=>t.tx===data.tx&&t.tz===data.tz)){push(generationSamples,data.generateMs);const mesh=renderer.upload(data);Object.assign(mesh,{S:data.far,tx:data.tx,tz:data.tz,dataId:data.dataId});farCache.set(farKey(data.far,data.tx,data.tz),mesh,farVisible.map(t=>t.key));}
+        pump();return;
+      }
       const wanted=visible.some(v=>v.cx===data.cx&&v.cz===data.cz&&(data.step===step||data.step===renderStep||data.step===placeholderStep()));
       if(data.dataId===world.dataId&&wanted&&!failed){
         voxelCacheBytes=data.voxelCacheBytes;voxelCacheEntries=data.voxelCacheEntries;vegetationEntries=data.vegetationEntries;cacheHits+=Number(data.cacheHit);completed++;
@@ -163,10 +183,11 @@
       camera.x=camera.z=0;
     }else{camera.x=Math.max(8,Math.min(world.extent-8,camera.x));camera.z=Math.max(8,Math.min(world.extent-8,camera.z));}
   }
+  function limitSpan(){return world.infinite?FAR_SPAN:maximumSpan();}
   function maximumSpan(){return world.extent===128?148:Math.min(116,Math.max(81,renderer.aspect*70));}
   function moveCamera(x,z){camera.x+=x;camera.z+=z;clampCamera();viewDirty=true;}
   function stopKeys(){heldKeys.clear();velocity.x=velocity.z=0;if(persistOnStop){persistOnStop=false;persist();}}
-  function zoom(factor){camera.span=Math.max(8,Math.min(maximumSpan(),camera.span*factor));updateView();}
+  function zoom(factor){camera.span=Math.max(8,Math.min(limitSpan(),camera.span*factor));updateView();}
   $('wide').onclick=()=>{if(world.infinite)camera.span=maximumSpan();else Object.assign(camera,{x:world.extent/2,z:world.extent/2,span:world.extent===128?140:maximumSpan()});updateView();};
   $('close').onclick=()=>{stopKeys();if(world.infinite){position=M.positionAt(world.deposit.x+4,world.deposit.z+4);Object.assign(camera,{x:0,z:0,span:32});updateActors();persist();}else Object.assign(camera,{x:44,z:59,span:32});updateView();};
   $('zoomIn').onclick=()=>zoom(.78);$('zoomOut').onclick=()=>zoom(1/.78);
@@ -189,7 +210,8 @@
   canvas.addEventListener('pointermove',e=>{if(!dragging||dragging.id!==e.pointerId)return;const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;dragging.moved+=Math.abs(dx)+Math.abs(dy);renderer.pan(camera,dx,dy);dragging.x=e.clientX;dragging.y=e.clientY;clampCamera();viewDirty=true;});
   canvas.addEventListener('pointerup',e=>{if(!dragging||dragging.id!==e.pointerId)return;if(dragging.moved<6){const q=logical(),groundWorld=world.infinite?{heightMetres:world.heightMetres,ground:(x,z)=>world.ground(q.x+x,q.z+z)}:world,p=renderer.pick(camera,e.clientX,e.clientY,groundWorld);if(p.y>0&&(world.infinite||p.x>=0&&p.x<world.extent&&p.z>=0&&p.z<world.extent))inspect(world.infinite?{...p,x:p.x+q.x,z:p.z+q.z}:p);}dragging=null;if(world.infinite)persist();});
   canvas.addEventListener('pointercancel',()=>{dragging=null;if(world.infinite)persist();});
-  canvas.addEventListener('wheel',e=>{e.preventDefault();if(!failed)zoom(Math.exp(Math.max(-.4,Math.min(.4,e.deltaY*.001))));},{passive:false});
+  const onWheel=e=>{e.preventDefault();if(!failed)zoom(Math.exp(Math.max(-.4,Math.min(.4,e.deltaY*.001))));};
+  for(const el of [canvas,$('rootMarker'),$('groundMarker')])el.addEventListener('wheel',onWheel,{passive:false});
   const ARROWS=['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'];
   window.addEventListener('keydown',e=>{
     if(failed||!ARROWS.includes(e.key)||e.altKey||e.ctrlKey||e.metaKey||document.querySelector('dialog[open]')||e.target.closest?.('input,select,textarea,[contenteditable]'))return;
@@ -221,7 +243,7 @@
     if(![cx,cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=M.MAX_CHUNK))return;
     position=M.movePosition({cx,cz,x:4,z:4});updateActors();$('closeInspection').click();persist();updateView();$('notes').close();
   });
-  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a,task:a.task&&{...a.task}})),atlas:{view:atlasView,selected:selectedHex&&{...selectedHex},...atlas.snapshot()},meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
+  function snapshot(){return {worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:far()?farVisible.length:visible.length,ready:far()?farVisible.filter(t=>farCache.items.has(t.key)).length:visible.filter(v=>cache.items.has(v.key)).length,farStep:far()?farStep:null,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a,task:a.task&&{...a.task}})),atlas:{view:atlasView,selected:selectedHex&&{...selectedHex},...atlas.snapshot()},meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   rootAPI();
   function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);},coop:Object.freeze({snapshot:coop.snapshot,start:coop.start,claim:coop.claim,act:coop.act,ready:coop.ready,stop:coop.stop,center:(q,r)=>atlas.center(q,r)})});}
   $('export').onclick=()=>{const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`microvoxel-${world.seed}-metrics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
@@ -240,7 +262,7 @@
     const delta=now-previous;previous=now;
     if(!document.hidden&&!failed){
       if(renderer.lost){fail('Graphics context lost. Reload this page to rebuild the world.');return;}
-      const dt=Math.min(delta/1000,.05),{x:dx,z:dz}=renderer.screenDirection(Number(heldKeys.has('ArrowRight'))-Number(heldKeys.has('ArrowLeft')),Number(heldKeys.has('ArrowDown'))-Number(heldKeys.has('ArrowUp'))),length=Math.hypot(dx,dz)||1,speed=Math.min(12,Math.max(2,camera.span*.18)),ease=1-Math.exp(-dt*(dx||dz?16:36));
+      const dt=Math.min(delta/1000,.05),{x:dx,z:dz}=renderer.screenDirection(Number(heldKeys.has('ArrowRight'))-Number(heldKeys.has('ArrowLeft')),Number(heldKeys.has('ArrowDown'))-Number(heldKeys.has('ArrowUp'))),length=Math.hypot(dx,dz)||1,speed=Math.min(far()?camera.span*.4:12,Math.max(2,camera.span*.18)),ease=1-Math.exp(-dt*(dx||dz?16:36));
       velocity.x+=(dx/length*speed-velocity.x)*ease;velocity.z+=(dz/length*speed-velocity.z)*ease;
       if(!dx&&!dz&&Math.hypot(velocity.x,velocity.z)<.01){velocity.x=velocity.z=0;if(persistOnStop&&!heldKeys.size){persistOnStop=false;persist();}}
       if(velocity.x||velocity.z)moveCamera(velocity.x*dt,velocity.z*dt);
@@ -248,6 +270,10 @@
       push(frameSamples,delta);if(!paused){simTime+=dt;if(!coop.update(dt,atlas.crew,atlas))atlas.update(dt);}
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       renderer.begin(camera,motion.matches?0:simTime,economy);
+      if(far()){
+        const q=logical();if(farVisible.length&&farVisible.every(t=>farCache.items.has(t.key)))farShown=farStep;
+        for(const m of farCache.items.values())if(m.dataId===world.dataId&&m.S===(farShown??farStep)){const t=32*m.S;renderer.draw(m,[m.tx*t-q.x,0,m.tz*t-q.z],[m.S,world.cell,m.S],0,0,0,[0,0,0],[0,0,0]);}
+      }
       for(const v of visible){
         const requested=cache.get(v.key),coarse=placeholderStep(),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested||coarse&&cache.items.get(key(v.cx,v.cz,coarse));
         if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,0,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,0,(v.cz%512)*8]:[p.x,0,p.z]);}

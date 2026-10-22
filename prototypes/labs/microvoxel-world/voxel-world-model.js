@@ -225,8 +225,34 @@
       chunk.bytes=chunk.offsets.byteLength+chunk.ends.byteLength+chunk.materials.byteLength;
       return chunk;
     }
-    // Cheap per-chunk vertical extent (5×5 ground samples plus tree headroom) for culling tall streamed columns.
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,vegetationEntries:()=>trees.size});
+    // Continent-scale heightfield: 32x32 columns of S metres each, one box per column, for far zoom.
+    function farMesh(tx,tz,S){
+      const N=32,P=N+2,hs=new Int32Array(P*P),ms=new Uint8Array(P*P),canopy=Math.round(2/cellMetres);
+      for(let j=0;j<P;j++)for(let i=0;i<P;i++){
+        const g=geography((tx*N+i-1+.5)*S,(tz*N+j-1+.5)*S),b=g.biome;let h=g.height,m;
+        if(g.water>h){h=g.water;m=MAT.water;}
+        else{m=g.exposed||b==='alpine'?MAT.basalt:b==='snow'?MAT.snow:b==='sea'||b==='desert'||b==='beach'?MAT.sand:b==='boreal'?MAT.needle:b==='forest'||b==='rainforest'?MAT.leaf:b==='grassland'||b==='savanna'||b==='tundra'?MAT.dry:MAT.grass;if(m===MAT.leaf||m===MAT.needle)h+=canopy;}
+        hs[j*P+i]=h;ms[j*P+i]=m;
+      }
+      const data=[];let quads=0;
+      const quad=(d,side,pos,a,b,m)=>{const u=(d+1)%3,v=(d+2)%3,du=[0,0,0],dv=[0,0,0];du[u]=a;dv[v]=b;const c=[pos,pos.map((t,k)=>t+du[k]),pos.map((t,k)=>t+du[k]+dv[k]),pos.map((t,k)=>t+dv[k])];for(const k of side?[0,1,2,0,2,3]:[0,2,1,0,3,2])data.push(c[k][0],c[k][1],c[k][2],d*2+side,m);quads++;};
+      for(let j=0;j<N;j++)for(let i=0;i<N;){
+        const n=(j+1)*P+i+1,h=hs[n],m=ms[n];let w=1;while(i+w<N&&hs[n+w]===h&&ms[n+w]===m)w++;
+        quad(1,1,[i,h,j],1,w,m);
+        for(let k=0;k<w;k++){
+          const x=i+k,c=n+k,wall=nh=>m===MAT.water?MAT.water:h-nh>4*density?MAT.basalt:MAT.soil;
+          let nh=hs[c-1];if(k===0&&nh<h)quad(0,0,[x,nh,j],h-nh,1,wall(nh));
+          nh=hs[c+1];if(k===w-1&&nh<h)quad(0,1,[x+1,nh,j],h-nh,1,wall(nh));
+          nh=hs[c-P];if(nh<h)quad(2,0,[x,nh,j],1,h-nh,wall(nh));
+          nh=hs[c+P];if(nh<h)quad(2,1,[x,nh,j+1],1,h-nh,wall(nh));
+        }
+        i+=w;
+      }
+      const buffer=new ArrayBuffer(data.length/5*8),view=new DataView(buffer);
+      for(let i=0,j=0;i<data.length;i+=5,j+=8){for(let a=0;a<3;a++)view.setUint16(j+a*2,data[i+a],true);view.setUint8(j+6,data[i+3]);view.setUint8(j+7,data[i+4]);}
+      return {buffer,count:quads*6,quads,step:S};
+    }
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,ground,column,tree,generateChunk,farMesh,vegetationEntries:()=>trees.size});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;

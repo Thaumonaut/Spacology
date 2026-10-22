@@ -8,7 +8,7 @@
   layout(location=2) in float material;
   uniform vec3 origin, scale, localOffset, center, patternOrigin;
   uniform vec2 halfView;
-  uniform float yaw, pitch, overrideMaterial;
+  uniform float yaw, pitch, overrideMaterial, depth;
   out vec3 worldPosition;
   out vec3 normal;
   flat out int mat;
@@ -23,7 +23,7 @@
     mat=int(overrideMaterial>0.?overrideMaterial:material);
     vec3 q=p-center;
     float forward=q.x*${SY}+q.z*${CY};
-    gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/200.,1.);
+    gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
   }`;
   const fragment=`#version 300 es
   precision highp float;
@@ -63,7 +63,7 @@
       this.program=gl.createProgram();const vs=compile(gl,gl.VERTEX_SHADER,vertex),fs=compile(gl,gl.FRAGMENT_SHADER,fragment);
       gl.attachShader(this.program,vs);gl.attachShader(this.program,fs);gl.linkProgram(this.program);gl.deleteShader(vs);gl.deleteShader(fs);
       if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(this.program));
-      gl.useProgram(this.program);this.u={};for(const n of ['origin','scale','localOffset','center','patternOrigin','halfView','yaw','pitch','overrideMaterial','palette','time','detail'])this.u[n]=gl.getUniformLocation(this.program,n);
+      gl.useProgram(this.program);this.u={};for(const n of ['origin','scale','localOffset','center','patternOrigin','halfView','yaw','pitch','overrideMaterial','palette','time','detail','depth'])this.u[n]=gl.getUniformLocation(this.program,n);
       const colors=[...M.COLORS];
       gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;
@@ -73,7 +73,7 @@
     upload(mesh){const gl=this.gl,vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.buffer,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.UNSIGNED_SHORT,false,8,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,1,gl.UNSIGNED_BYTE,false,8,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,8,7);return {vao,buffer,count:mesh.count,bytes:mesh.buffer.byteLength};}
     dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
-    begin(camera,time,economy){const gl=this.gl;this.resize(economy);gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);gl.uniform1f(this.u.detail,economy?.5:1);this.draws=0;this.triangles=0;}
+    begin(camera,time,economy){const gl=this.gl;this.resize(economy);gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.depth,Math.max(200,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){const gl=this.gl;gl.uniform3fv(this.u.origin,origin);gl.uniform3fv(this.u.patternOrigin,patternOrigin);gl.uniform3fv(this.u.scale,scale);gl.uniform3fv(this.u.localOffset,offset);gl.uniform1f(this.u.overrideMaterial,material);gl.uniform1f(this.u.yaw,yaw);gl.uniform1f(this.u.pitch,pitch);gl.bindVertexArray(mesh.vao);gl.drawArrays(gl.TRIANGLES,0,mesh.count);this.draws++;this.triangles+=mesh.count/3;}
     actor(a,time,reduced){
       const walk=reduced?0:Math.sin(time*7+a.phase)*.5,y=a.y;
