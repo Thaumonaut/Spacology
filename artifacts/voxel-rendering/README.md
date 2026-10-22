@@ -14,5 +14,6 @@ Headless captures of `prototypes/microvoxel-world.html?extent=infinite&seed=2718
 | `8-leaf-cards.png` | Leaf cards: camera-facing leaf clumps over each crown's outer blocks, cut to a fluffy outline, filled with small cell-pattern leaves and lit by the crown's outward direction in the anime bands. The blocks underneath sink to a deep teal interior. |
 | `9-leaf-cards-blended.png` | Cards drawn a card-width nearer the camera so their own crown's blocks no longer cut them off; block faces that show through carry the same small-leaf pattern in deeper tones. Crowns read as continuous foliage. |
 | `10-fir-sprigs-base-colour.png` | Conifer cards are upright fir sprigs (narrow top, drooping needle skirt) held close to the crown, so cones keep their shape. Bands rebalanced toward the base green: highlights only on the sunniest puffs and softened toward the base. |
+| `11-conifer-clumps-restored.png` | Fir sprigs rejected (the triangles read worse than the leafy clumps). Conifers use the round leafy clumps again, smaller and held closer to the crown; the base-green balance from 10 stays. |
 
 The flat dark ring around the giant tree in 2–4 is a different ground material from the terrain generator, so no grass grows there.

@@ -243,8 +243,7 @@
   out float seed, pine;
   void main(){
     seed=card.w;pine=step(10.,facing.w);outward=facing.xyz;
-    // Broadleaf clumps spin freely; fir sprigs stay upright with a slight tilt, so tiers keep pointing down the cone.
-    float size=(facing.w-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.6,pine);
+    float size=(facing.w-10.*pine)*grow,a=seed*6.2832;
     vec2 at=patternOrigin.xz+card.xz*scale.x;
     float sway=sin(time*1.7+dot(at,vec2(.6,.35))*.8+seed*6.)*.04+.05*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     vec3 p=origin+card.xyz*scale+outward*size*mix(.25,.1,pine)+vec3(.92,0,.39)*sway*card.y*scale.y*.02;
@@ -276,15 +275,11 @@
     // Fluffy cluster: a soft blob whose rim is chewed into leaves by two octaves of noise; needles get a spikier rim.
     float r=length(uv),ang=atan(uv.y,uv.x),lobes=meadowNoise(vec2(ang*2.2+seed*40.,seed*9.))*.5+meadowNoise(uv*5.+seed*23.)*.5;
     float rim=.62+.36*lobes;
-    if(pine<.5&&r>rim)discard;
-    // Fir sprig: narrow at the top, a wide drooping skirt below, its edges combed into needles.
-    if(pine>.5){float t=(1.-uv.y)*.5,width=.12+.72*t*t+.1*abs(sin(uv.y*13.+seed*9.))*t;if(abs(uv.x)>width||uv.y<-.82+.12*abs(sin(uv.x*11.+seed*5.)))discard;}
+    if(r>rim)discard;
     // Inside the clump: small leaves (nearest of jittered cell points), each with its own shade, darker in the gaps.
     vec2 g=uv*3.2+seed*17.,cell=floor(g);float d=9.,leafId=0.;
     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(g-c-o);if(e<d){d=e;leafId=fract(o.x*7.+o.y*3.);}}
     float gap=smoothstep(.32,.62,d);
-    // Needles: fine strokes sweeping down and out from the sprig's spine instead of round leaves.
-    if(pine>.5){float stroke=fract((abs(uv.x)*1.6+uv.y*.9)*5.5+seed*3.);gap=smoothstep(.55,.9,stroke)*.8;leafId=fract(seed*5.+floor((abs(uv.x)*1.6+uv.y*.9)*5.5)*.37);}
     // Each clump is lit across its face as well, brighter toward the sun's side.
     float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight())+(leafId-.5)*.16+dot(uv,vec2(-.55,.45))*.14-r*.1-gap*.22;
     vec3 shadow=pine>.5?vec3(.13,.3,.33):vec3(.18,.38,.34),mid=pine>.5?vec3(.22,.48,.36):vec3(.35,.62,.3),high=pine>.5?vec3(.5,.72,.4):vec3(.7,.84,.38);
