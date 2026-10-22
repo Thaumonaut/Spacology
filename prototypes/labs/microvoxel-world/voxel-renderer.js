@@ -69,10 +69,17 @@
   }
   // Drifting cloud shadows: big soft patches, cast along the sun so they land consistently on ground, crowns and grass.
   // They follow time, so they hold still when paused or with reduced motion. Returns the sunlight left after clouds.
-  float clouds(vec3 p){
-    vec2 q=(p.xz+worldOffset+vec2(.5,-.4)*p.y)/95.+cloudTime*vec2(.03,.012);
-    return 1.-.5*smoothstep(.52,.74,meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35);
-  }`;
+  // One cloud field for the sky layer and the shadows. Its coordinate is the cloud's position slid along the sun to sea
+  // level, so a cloud and its shadow share it. A slow ~900 m weather pattern decides where cloud banks form: big merged
+  // masses inside them, mostly clear sky between.
+  vec2 cloudCoord(vec2 seaLevel){return seaLevel/150.+cloudTime*vec2(.02,.008);}
+  float cloudWeather(vec2 seaLevel){return meadowNoise(seaLevel/900.+cloudTime*vec2(.0033,.0013)+11.);}
+  float cloudField(vec2 seaLevel){
+    vec2 q=cloudCoord(seaLevel);
+    float n=meadowNoise(q)*.6+meadowNoise(q*2.2+4.)*.3+meadowNoise(q*5.1+9.)*.1;
+    return n*.72+smoothstep(.42,.8,cloudWeather(seaLevel))*.42-.14;
+  }
+  float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
   const SUNLIGHT=`float sunlight(){
@@ -352,8 +359,9 @@
   uniform float cloudTime, cloudFade;
   out vec4 color;
   ${MEADOW}
-  vec2 drift(vec2 p){return (p+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.)/95.+cloudTime*vec2(.03,.012);}
-  float cover(vec2 p){vec2 q=drift(p);return meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35;}
+  vec2 seaLevel(vec2 p){return p+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.;}
+  vec2 drift(vec2 p){return cloudCoord(seaLevel(p));}
+  float cover(vec2 p){return cloudField(seaLevel(p));}
   // Billows: the nearest of jittered cell points, as round puffs (1 at a puff's heart, 0 between puffs), plus which side
   // of its puff this point is on, so every lobe can be lit on its own.
   vec3 billow(vec2 q){
@@ -362,19 +370,20 @@
     return vec3(1.-smoothstep(.1,.75,d),off/max(d,1e-3));
   }
   // Ghibli cumulus seen from above: masses from broad noise, scalloped into cauliflower lobes at two scales.
-  float shapeAt(vec2 p){vec2 q=drift(p);return cover(p)+(billow(q*2.6).x-.5)*.1+(billow(q*6.+3.1).x-.5)*.04;}
+  float shapeAt(vec2 p){vec2 q=drift(p);return cover(p)+(billow(q*4.).x-.5)*.08+(billow(q*9.+3.1).x-.5)*.035;}
   void main(){
     vec2 q=drift(at);float n=cover(at),shape=shapeAt(at);
     float body=smoothstep(.58,.6,shape);
     // Thin wisps between the masses: noise stretched along the wind.
-    float wisp=smoothstep(.72,.78,meadowNoise(q*vec2(14.,2.)+vec2(cloudTime*.05,0)))*smoothstep(.44,.54,n)*(1.-body)*.2;
+    // Wisps here and there: thin streaks along the wind, scattered around the fringes of the cloud banks.
+    float weather=cloudWeather(seaLevel(at)),streak=meadowNoise(q*vec2(16.,1.1)+vec2(cloudTime*.04,0))*meadowNoise(q*.9+21.),wisp=smoothstep(.5,.56,streak)*smoothstep(.3,.45,weather)*(1.-smoothstep(.6,.8,weather))*(1.-body)*.35;
     float alpha=max(body,wisp)*cloudFade;if(alpha<.01)discard;
     // Always golden hour: each lobe lit from the low sun's side in warm cream and peach, a lavender-blue far side, the
     // whole mass darker where it thins away from the sun, and a golden rim on sunward edges.
     vec2 sunDir=normalize(vec2(-.6,.45));
     // Lit where the billowed shape falls away toward the sun (a sunward slope): each lobe gets a bright sunward cheek
     // and a shaded lee side.
-    float tone=.55+(shape-shapeAt(at+sunDir*9.))*7.+(n-cover(at+sunDir*30.))*3.;
+    float tone=.6+(shape-shapeAt(at+sunDir*22.))*3.5+(n-cover(at+sunDir*90.))*2.5;
     vec3 shade=vec3(.72,.74,.9),mid=vec3(.97,.95,.97),lit=vec3(1.,.95,.88),gold=vec3(1.,.84,.66);
     vec3 c=mix(mix(shade,mid,smoothstep(.2,.45,tone)),lit,smoothstep(.62,.85,tone));
     float rim=1.-smoothstep(.6,.66,shape);c=mix(c,gold,rim*smoothstep(.5,.8,tone)*.55);
@@ -491,9 +500,10 @@
       return {at,half:[half,half,(hi[2]-lo[2])/2+camera.span+256],texel};
     }
     end(){
-      // One world frame for everything cloud-related: the stream's rebasing origin (world metres at local zero), wrapped
-      // to a large period so it stays exact in single precision. Taken per frame, never from a particular tile.
-      const CLOUD_PERIOD=95*4096,o=this.worldOrigin||{x:0,z:0},off=[o.x,o.z].map(v=>((v%CLOUD_PERIOD)+CLOUD_PERIOD)%CLOUD_PERIOD);
+      // One world frame for everything cloud-related: the stream's rebasing origin (world metres at local zero). It is
+      // wrapped only beyond ±195 km to stay exact in single precision; the wrap is centred on zero, because wrapping at
+      // zero itself swapped in a different sky whenever the view crossed the world origin near home.
+      const CLOUD_PERIOD=95*4096,o=this.worldOrigin||{x:0,z:0},off=[o.x,o.z].map(v=>v-CLOUD_PERIOD*Math.round(v/CLOUD_PERIOD));
       const gl=this.gl,shadows=!this.economy,c=this.camera;let top=(c.y??8)+c.span*.5;
       if(shadows)for(const d of this.queue)top=Math.max(top,d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1]);
       const box=shadows?this.lightBox(c,this.shadowTarget().size,top):null;
