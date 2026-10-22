@@ -7,7 +7,7 @@ const frames=(p,count)=>p.evaluate(count=>new Promise(resolve=>{const samples=[]
 async function holdMesh(p){
   await p.evaluate(()=>{window.__holdMeshes=true;document.getElementById('world').addEventListener('pointerdown',e=>window.__pointerId=e.pointerId,{once:true});});
   const r=await p.locator('#world').boundingBox(),x=r.x+r.width*.75,y=r.y+r.height*.5;
-  await p.mouse.move(x,y);await p.mouse.down();await p.mouse.move(x-420,y,{steps:8});await p.waitForFunction(()=>window.__heldMeshes.length===1);
+  await p.mouse.move(x,y);await p.mouse.down();await p.mouse.move(x-420,y,{steps:8});await p.waitForFunction(()=>window.__heldMeshes.length>=1);
   return {x:x-420,y};
 }
 async function exercise(p,url){
@@ -28,10 +28,12 @@ async function exercise(p,url){
   assert.equal(batch.after,batch.before,'pointer bursts defer view work to the animation frame');await frames(p,2);
   const before=await state(p),after=await p.evaluate(()=>{window.__holdMeshes=false;window.__heldMeshes.shift().deliver();return MicroWorldLab.snapshot();});
   assert.equal(after.completed,before.completed+1,'still-visible in-flight fine mesh is accepted during drag, not discarded by the old view epoch');assert.ok(after.retainedMeshes>before.retainedMeshes);
-  await p.mouse.up();await ready(p);let s=await state(p);assert.equal(s.cellMetres,.125);assert.equal(s.step,1,'settled terrain keeps full fine density');assert.ok(s.meshCacheEntries<=320&&s.meshCacheBytes<=32*1024*1024);
+  // Several workers may each have held a reply; release the rest so their workers return to the pool.
+  await p.evaluate(()=>{for(const d of window.__heldMeshes.splice(0))d.deliver();});
+  await p.mouse.up();await ready(p);let s=await state(p);assert.equal(s.cellMetres,.125);assert.equal(s.step,1,'settled terrain keeps full fine density');assert.ok(s.meshCacheBytes<=s.meshCacheLimit);
   const fast=await state(p),r=await p.locator('#world').boundingBox();await p.mouse.move(r.x+r.width*.9,r.y+r.height*.5);await p.mouse.down();await p.mouse.move(r.x+r.width*.05,r.y+r.height*.55,{steps:3});await p.mouse.up();
   await p.waitForFunction(()=>{const s=MicroWorldLab.snapshot();return s.shown===s.visible&&s.ready<s.visible;},null,{polling:'raf',timeout:30000});
-  assert.ok((await state(p)).placeholders>fast.placeholders,'large fast fine drag covers new chunks with coarse placeholders before fine meshing');await ready(p);assert.equal((await state(p)).step,1,'placeholders are replaced by full fine density');
+  assert.ok((await state(p)).placeholders>fast.placeholders,'large fast fine drag covers new ground with coarse-first LOD nodes before fine detail');await ready(p);assert.equal((await state(p)).step,1,'placeholders are replaced by full fine density');
   await p.locator('#world').focus();await p.keyboard.down('ArrowRight');const samples=await frames(p,12);await p.keyboard.up('ArrowRight');
   assert.ok(new Set(samples.map(q=>`${q.cx}:${q.x}`)).size>=10,'held key moves on frames without OS key-repeat jumps');await ready(p);
   const stopped=await state(p);for(const q of await frames(p,4))assert.deepEqual(q,stopped.position,'travel stops after bounded easing');

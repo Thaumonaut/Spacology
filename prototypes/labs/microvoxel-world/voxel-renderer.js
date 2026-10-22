@@ -12,6 +12,7 @@
   out vec3 worldPosition;
   out vec3 normal;
   flat out int mat;
+  flat out int shaded;
   void main(){
     vec3 p=(position+localOffset)*scale;
     p=vec3(p.x,p.y*cos(pitch)-p.z*sin(pitch),p.y*sin(pitch)+p.z*cos(pitch));
@@ -20,7 +21,8 @@
     vec3 n=face<.5?vec3(-1,0,0):face<1.5?vec3(1,0,0):face<2.5?vec3(0,-1,0):face<3.5?vec3(0,1,0):face<4.5?vec3(0,0,-1):vec3(0,0,1);
     n=vec3(n.x,n.y*cos(pitch)-n.z*sin(pitch),n.y*sin(pitch)+n.z*cos(pitch));
     normal=vec3(n.x*cos(yaw)+n.z*sin(yaw),n.y,-n.x*sin(yaw)+n.z*cos(yaw));
-    mat=int(overrideMaterial>0.?overrideMaterial:material);
+    int raw=int(overrideMaterial>0.?overrideMaterial:material);
+    mat=raw&127;shaded=raw>>7;
     vec3 q=p-center;
     float forward=q.x*${SY}+q.z*${CY};
     gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
@@ -30,19 +32,29 @@
   in vec3 worldPosition;
   in vec3 normal;
   flat in int mat;
+  flat in int shaded;
   uniform vec3 palette[24];
   uniform float time, detail;
+  uniform vec2 dither;
   out vec4 color;
   float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
   void main(){
+    // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
+    if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
     float light=.58+.42*max(0.,dot(normalize(normal),normalize(vec3(-.5,1.,.4))));
     float grain=(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail;
     vec3 base=palette[mat];
     if(mat==7){float ripple=sin(worldPosition.z*3.+worldPosition.x*1.7-time*1.4);base+=vec3(.025,.04,.04)*ripple;}
     if(mat==1&&normal.y<.5)base+=vec3(.045)*step(.85,fract(worldPosition.y*.7));
     if(mat==6)base+=vec3(.012,.025,.005)*sin(worldPosition.y*1.6);
-    float heightShade=.88+.12*clamp(worldPosition.y/15.,0.,1.);
-    color=vec4(base*(light+grain)*heightShade,1.);
+    // Lowlands sit slightly darker; high ground brightens toward the summits so tall ranges read at any zoom.
+    float heightShade=.88+.12*clamp(worldPosition.y/15.,0.,1.)+.14*clamp((worldPosition.y-24.)/140.,0.,1.);
+    vec3 lit=base*(light+grain)*heightShade;
+    // Aether crystal and moss carry their own light.
+    if(mat==19)lit=base*(.82+.18*light)+vec3(.1,.06,.16)*(.6+.4*sin(time*1.3+worldPosition.y*.9+worldPosition.x*.3));
+    if(mat==20)lit+=vec3(.03,.02,.06)*(.6+.4*sin(time*.8+worldPosition.x*.7+worldPosition.z*.5));
+    if(shaded>0)lit*=.6;
+    color=vec4(lit,1.);
   }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function makeCube(){
@@ -63,7 +75,7 @@
       this.program=gl.createProgram();const vs=compile(gl,gl.VERTEX_SHADER,vertex),fs=compile(gl,gl.FRAGMENT_SHADER,fragment);
       gl.attachShader(this.program,vs);gl.attachShader(this.program,fs);gl.linkProgram(this.program);gl.deleteShader(vs);gl.deleteShader(fs);
       if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(this.program));
-      gl.useProgram(this.program);this.u={};for(const n of ['origin','scale','localOffset','center','patternOrigin','halfView','yaw','pitch','overrideMaterial','palette','time','detail','depth'])this.u[n]=gl.getUniformLocation(this.program,n);
+      gl.useProgram(this.program);this.u={};for(const n of ['origin','scale','localOffset','center','patternOrigin','halfView','yaw','pitch','overrideMaterial','palette','time','detail','depth','dither'])this.u[n]=gl.getUniformLocation(this.program,n);
       const colors=[...M.COLORS];
       gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;
@@ -71,9 +83,10 @@
       gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.clearColor(.77,.81,.76,1);
     }
     upload(mesh){const gl=this.gl,vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.buffer,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.UNSIGNED_SHORT,false,8,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,1,gl.UNSIGNED_BYTE,false,8,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,8,7);return {vao,buffer,count:mesh.count,bytes:mesh.buffer.byteLength};}
+    dither(mode,t){this.gl.uniform2f(this.u.dither,mode,t);}
     dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
-    begin(camera,time,economy){const gl=this.gl;this.resize(economy);gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.depth,Math.max(200,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
+    begin(camera,time,economy){const gl=this.gl;this.resize(economy);gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){const gl=this.gl;gl.uniform3fv(this.u.origin,origin);gl.uniform3fv(this.u.patternOrigin,patternOrigin);gl.uniform3fv(this.u.scale,scale);gl.uniform3fv(this.u.localOffset,offset);gl.uniform1f(this.u.overrideMaterial,material);gl.uniform1f(this.u.yaw,yaw);gl.uniform1f(this.u.pitch,pitch);gl.bindVertexArray(mesh.vao);gl.drawArrays(gl.TRIANGLES,0,mesh.count);this.draws++;this.triangles+=mesh.count/3;}
     actor(a,time,reduced){
       const walk=reduced?0:Math.sin(time*7+a.phase)*.5,y=a.y;
@@ -89,18 +102,20 @@
       if(a.worker)part(0,1.13,.54,.62,.43,.4,4);
       else part(0,1.2,-.28,.42,.5,.22,12);
     }
-    project(camera,x,y,z){const halfY=camera.span/2/this.aspect,dx=x-camera.x,dz=z-camera.z;return {x:this.width*(.5+(dx*CY-dz*SY)/camera.span),y:this.height*(.5-((y-8)*C-(dx*SY+dz*CY)*S)/(2*halfY))};}
+    project(camera,x,y,z){const halfY=camera.span/2/this.aspect,dx=x-camera.x,dz=z-camera.z;return {x:this.width*(.5+(dx*CY-dz*SY)/camera.span),y:this.height*(.5-((y-(camera.y??8))*C-(dx*SY+dz*CY)*S)/(2*halfY))};}
     screenDirection(right,down){return {x:right*CY+down*SY,z:-right*SY+down*CY};}
     pan(camera,dx,dy){const horizontal=-dx*camera.span/this.width,forward=-dy*camera.span/(this.width*S);camera.x+=horizontal*CY+forward*SY;camera.z+=-horizontal*SY+forward*CY;}
     bounds(camera,height){
       const points=[];
-      for(const y of [0,height])for(const h of [-camera.span/2,camera.span/2])for(const v of [-camera.span/2/this.aspect,camera.span/2/this.aspect]){const f=((y-8)*C-v)/S;points.push({x:camera.x+h*CY+f*SY,z:camera.z-h*SY+f*CY});}
+      for(const y of [0,height])for(const h of [-camera.span/2,camera.span/2])for(const v of [-camera.span/2/this.aspect,camera.span/2/this.aspect]){const f=((y-(camera.y??8))*C-v)/S;points.push({x:camera.x+h*CY+f*SY,z:camera.z-h*SY+f*CY});}
       return {minX:Math.min(...points.map(p=>p.x)),maxX:Math.max(...points.map(p=>p.x)),minZ:Math.min(...points.map(p=>p.z)),maxZ:Math.max(...points.map(p=>p.z))};
     }
     pick(camera,clientX,clientY,world){
       const r=this.canvas.getBoundingClientRect(),horizontal=(clientX-r.left-r.width/2)/r.width*camera.span,vertical=(.5-(clientY-r.top)/r.height)*camera.span/this.aspect;
       // March from the camera-facing end, so a cliff cannot select hidden ground behind itself.
-      for(let y=world.heightMetres;y>=0;y-=.0625){const forward=((y-8)*C-vertical)/S,x=camera.x+horizontal*CY+forward*SY,z=camera.z-horizontal*SY+forward*CY,ground=world.ground(x,z);if(ground!==null&&y<=ground)return {x,z,y:ground};}
+      // Coarse 1 m steps find the first hit; 1/16 m steps from just above it place it exactly.
+      const at=y=>{const forward=((y-(camera.y??8))*C-vertical)/S,x=camera.x+horizontal*CY+forward*SY,z=camera.z-horizontal*SY+forward*CY,ground=world.ground(x,z);return ground!==null&&y<=ground?{x,z,y:ground}:null;};
+      for(let top=world.heightMetres;top>-1;top--)if(at(Math.max(0,top))){for(let y=Math.min(world.heightMetres,top+1);y>=0;y-=.0625){const hit=at(y);if(hit)return hit;}break;}
       return {x:-1,y:0,z:-1};
     }
   }
