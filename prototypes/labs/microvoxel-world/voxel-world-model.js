@@ -160,7 +160,7 @@
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
         const bt=clamp((riverDistance-2.3)/(6+RV.w),0,1),bank=bt*bt*(3-2*bt),floor=Math.max(SEA-.6,RV.level-1.2);
-        let h=t.h+(noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3)*(t.h<SEA?.4:1);
+        const bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;let h=t.h+bump*(t.h<SEA?.4:1);
         const L=liftAt(x,z),pass=L.pass,lift=bank<1?0:L.lift;
         const gw=(noise(x*.008,z*.008,seed+227)-.5)*60,half=2+noise(x*.05,z*.05,seed+233);
         const sx=x-gorgeX,sz=z-gorgeZ,along=clamp(sx*gorgeDX+sz*gorgeDZ,-32,32),homeGorge=Math.hypot(sx-along*gorgeDX,sz-along*gorgeDZ)+Math.sin(along*.15)*1.5;
@@ -173,7 +173,7 @@
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=t.relief>24&&ridge>.45;
         const lakeWater=RV.lake>metres+.2&&!gorge,C=climate(x,z),wet=riverDistance<12||lakeWater,biome=gorge?'gorge':biomeOf(C.T-.32*Math.max(0,metres-t.h),C.M,metres,wet,steep);
         const water=sea?Math.round(SEA/cellMetres):riverDistance<7&&!gorge?Math.floor((floor+1)/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):0;
-        return {height,riverDistance,ridge,fault,clearing:0,exposed:gorgeDistance<half+2||(lift>0?ridge>.7||fault<2.5:ridge>.82||fault<1.4||steep&&ridge>.7)||biome==='alpine',wet,
+        return {height,riverDistance,ridge,fault,clearing:0,exposed:gorgeDistance<half+2||(lift>0?ridge>.7||fault<2.5:steep&&ridge>.78||bump>4.15&&!wet&&!sea)||biome==='alpine',wet,
           lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,setting:t.setting,temperature:C.T,moisture:C.M,relief:t.relief};
       }
       const riverDistance=Math.abs(x-riverX(z));
