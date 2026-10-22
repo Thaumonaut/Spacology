@@ -55,6 +55,17 @@
     if(!casts&&normalSize>0.){vec4 t=texture(normalMap,block.xz/normalSize);casts=t.a<.999&&block.y>t.a*255.+groundBase+.5;}
     if(!casts)discard;
   }`;
+  // Meadow colour field shared by grass-topped ground and grass blades, so blade roots match the ground beneath them and
+  // whole fields carry soft painted patches of lighter, yellower and deeper green.
+  const MEADOW=`float meadowNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+    float a=fract(sin(dot(i,vec2(127.1,311.7)))*43758.5453),b=fract(sin(dot(i+vec2(1,0),vec2(127.1,311.7)))*43758.5453),
+    c=fract(sin(dot(i+vec2(0,1),vec2(127.1,311.7)))*43758.5453),d=fract(sin(dot(i+vec2(1,1),vec2(127.1,311.7)))*43758.5453);
+    return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
+  vec3 meadow(vec2 p,vec3 grass){
+    float broad=meadowNoise(p*.045),fine=meadowNoise(p*.21+7.3);
+    vec3 deep=grass*vec3(.78,.9,.8),fresh=grass*vec3(1.08,1.14,.86),gold=grass*vec3(1.22,1.12,.7);
+    return mix(mix(deep,fresh,smoothstep(.25,.75,broad)),gold,smoothstep(.62,.9,fine)*.55);
+  }`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
   const SUNLIGHT=`float sunlight(){
@@ -84,6 +95,7 @@
   // Patterns fade out before their wavelength drops under a few pixels, so they never alias into shimmer or moiré.
   float visible(float wavelength){return smoothstep(2.,5.,wavelength/pixelWorld);}
   ${SUNLIGHT}
+  ${MEADOW}
   void main(){
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
@@ -104,6 +116,7 @@
     light*=1.+cavity*.3;
     float grain=(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
     vec3 base=palette[mat];
+    if(mat==3)base=meadow(worldPosition.xz,base)*.86;
     // Vertical water (waterfalls) carries bright streaks running down.
     if(mat==7&&abs(normal.y)<.5)base+=vec3(.1)*step(.7,fract(worldPosition.y*.8+time*2.4+floor(worldPosition.x*1.7+worldPosition.z*1.3)*.37))*visible(1.2);
     if(mat==7){float ripple=sin(worldPosition.z*3.+worldPosition.x*1.7-time*1.4);base+=vec3(.025,.04,.04)*ripple*visible(1.8);}
@@ -119,8 +132,11 @@
     if(shaded>0&&shadowOn<.5)lit*=.6;
     color=vec4(lit,1.);
   }`;
-  // Grass: an instanced tuft of five tapered blades per tuft (x, top, z in blocks; seed). Wind bends the tips with a
-  // quick flutter plus slow gusts that roll across the meadow; it stops when time does (paused or reduced motion).
+  // Stylized grass: an instanced clump of seven long, curved blades per tuft (x, top, z in blocks; seed). Roots take the
+  // ground's meadow colour and fade to bright yellow-green tips. Wind leans the blades with a quick flutter and slow gusts
+  // rolling across the field, and each gust brightens the tips it passes, so the wind reads as light moving over the
+  // meadow. It stops when time does (paused or reduced motion).
+  const BLADES=7,BLADE_VERTS=15;
   const grassVertex=`#version 300 es
   precision highp float;
   layout(location=0) in vec3 blade;
@@ -130,15 +146,22 @@
   uniform vec2 halfView;
   uniform float depth, time, grow;
   out vec3 lightCoord;
-  out float along, shade;
+  out vec2 field;
+  out float along, sheen;
+  float rand(float n){return fract(sin(n*91.345+tuft.w*311.7)*43758.5453);}
   void main(){
-    float seed=tuft.w,v=blade.y,a=blade.z+seed*6.2832,h=(.28+.3*fract(seed*7.31))*grow;
-    vec3 root=origin+tuft.xyz*scale;vec2 at=patternOrigin.xz+tuft.xz*scale.x,side=vec2(cos(a),sin(a)),dir=vec2(.92,.39);
-    float gust=.5+.5*sin(dot(at,dir)*.45-time*1.3);gust*=gust;
-    float bend=.1+.4*gust+.07*sin(time*2.6+seed*12.+dot(at,vec2(1.3,.7))*2.1);
-    vec2 sway=(dir*bend+side.yx*vec2(-1,1)*(seed-.5)*.25)*h*v*v;
-    vec3 p=root+vec3(side.x*blade.x*.05*(1.-v)+sway.x,h*v*(1.-.35*bend*v),side.y*blade.x*.05*(1.-v)+sway.y);
-    along=v;shade=fract(seed*13.7);
+    float v=blade.y,k=blade.z,seed=tuft.w;
+    // Each blade: its own spot in the clump, facing, length and lean.
+    float a=rand(k)*6.2832,r=.13*sqrt(rand(k+.5)),h=(.34+.34*rand(k+.25))*grow,w=.055+.03*rand(k+.75);
+    vec2 spot=vec2(cos(a),sin(a))*r,face=vec2(-sin(a*1.7+seed*9.),cos(a*1.7+seed*9.)),out_=normalize(spot+vec2(.001));
+    vec3 root=origin+tuft.xyz*scale+vec3(spot.x,0,spot.y);vec2 at=patternOrigin.xz+tuft.xz*scale.x+spot,dir=vec2(.92,.39);
+    float gust=.5+.5*sin(dot(at,dir)*.32-time*1.15+sin(dot(at,vec2(-.3,.9))*.11)*2.);gust=gust*gust*gust;
+    float flutter=sin(time*2.4+seed*12.+k*1.7+dot(at,vec2(1.3,.7))*1.8);
+    vec2 lean=out_*(.25+.35*rand(k+.1))+dir*(.15+.75*gust)+face*.06*flutter;
+    vec2 bend=lean*h*v*v;
+    float up=h*v*(1.-.28*dot(lean,lean)*v);
+    vec3 p=root+vec3(face.x*blade.x*w*(1.-v*v)+bend.x,up,face.y*blade.x*w*(1.-v*v)+bend.y);
+    along=v;sheen=gust;field=at;
     vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
     vec3 q=p-center;
     float forward=q.x*${SY}+q.z*${CY};
@@ -147,22 +170,31 @@
   const grassFragment=`#version 300 es
   precision highp float;
   in vec3 lightCoord;
-  in float along, shade;
+  in vec2 field;
+  in float along, sheen;
   uniform vec3 grassColor, lightHalf;
   uniform float shadowOn, shadowTexel, blockSize;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
   out vec4 color;
   ${SUNLIGHT}
+  ${MEADOW}
   void main(){
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
-    // Darker roots, sunlit tips; same warm sun and cool fill as the ground, and the same shadows.
-    vec3 base=grassColor*(.55+.7*along)*(.85+.3*shade);
-    color=vec4(base*(vec3(.7,.72,.76)*.8+vec3(1.,.95,.85)*.42*sunlight()),1.);
+    // Root matches the ground (same field, same .86 shade); tips lift toward sunlit yellow-green, more so in a gust.
+    vec3 ground=meadow(field,grassColor),tip=ground*vec3(1.17,1.19,.95)+vec3(.05,.06,.03)*sheen;
+    vec3 base=mix(ground*.86,tip,pow(along,1.3));
+    // Soft, wrapped light: shadow tints the blades rather than darkening them.
+    float sun=sunlight();
+    color=vec4(base*mix(vec3(.8,.85,.93),vec3(1.,.97,.9),.35+.65*sun),1.);
   }`;
   function makeTuft(){
-    const out=[];
-    for(let b=0;b<5;b++){const a=b*2.513;for(const [u,v] of [[-1,0],[1,0],[-.6,.5],[1,0],[.6,.5],[-.6,.5],[-.6,.5],[.6,.5],[0,1]])out.push(u,v,a);}
+    // One blade: two tapering quads and a tip, 15 vertices; seven blades per tuft, indexed by z.
+    const rows=[[0,1],[.38,.8],[.72,.5]],out=[];
+    for(let k=0;k<BLADES;k++){
+      for(let r=0;r<2;r++){const [v0,w0]=rows[r],[v1,w1]=rows[r+1];for(const [u,v] of [[-w0,v0],[w0,v0],[-w1,v1],[w0,v0],[w1,v1],[-w1,v1]])out.push(u,v,k);}
+      const [v2,w2]=rows[2];for(const [u,v] of [[-w2,v2],[w2,v2],[0,1]])out.push(u,v,k);
+    }
     return new Float32Array(out);
   }
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
@@ -195,7 +227,7 @@
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap']));
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
-      gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255*1.05));
+      gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255));
       gl.useProgram(this.casterProgram);gl.uniform1i(this.cu.normalMap,0);
       gl.useProgram(this.program);
       const colors=[...M.COLORS];
@@ -269,7 +301,7 @@
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
-        for(const d of this.queue){const t=d.mesh.grass;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,45,t.count);this.draws++;this.triangles+=t.count*15;}
+        for(const d of this.queue){const t=d.mesh.grass;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,t.count);this.draws++;this.triangles+=t.count*BLADES*5;}
         gl.enable(gl.CULL_FACE);
       }
       this.queue.length=0;
