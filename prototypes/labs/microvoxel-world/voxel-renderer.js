@@ -13,7 +13,7 @@
   uniform float yaw, pitch, overrideMaterial, depth;
   uniform vec3 lightAt, lightHalf;
   uniform mat3 lightAxes;
-  out vec3 worldPosition;
+  out vec3 worldPosition, localPosition;
   out vec3 lightCoord;
   out vec3 normal;
   out vec3 block;
@@ -23,7 +23,7 @@
     vec3 p=(position+localOffset)*scale;
     p=vec3(p.x,p.y*cos(pitch)-p.z*sin(pitch),p.y*sin(pitch)+p.z*cos(pitch));
     p=vec3(p.x*cos(yaw)+p.z*sin(yaw),p.y,-p.x*sin(yaw)+p.z*cos(yaw));
-    worldPosition=p+patternOrigin;p+=origin;block=position;
+    worldPosition=p+patternOrigin;p+=origin;localPosition=p;block=position;
     vec3 n=face<.5?vec3(-1,0,0):face<1.5?vec3(1,0,0):face<2.5?vec3(0,-1,0):face<3.5?vec3(0,1,0):face<4.5?vec3(0,0,-1):vec3(0,0,1);
     n=vec3(n.x,n.y*cos(pitch)-n.z*sin(pitch),n.y*sin(pitch)+n.z*cos(pitch));
     normal=vec3(n.x*cos(yaw)+n.z*sin(yaw),n.y,-n.x*sin(yaw)+n.z*cos(yaw));
@@ -70,7 +70,7 @@
   // Drifting cloud shadows: big soft patches, cast along the sun so they land consistently on ground, crowns and grass.
   // They follow time, so they hold still when paused or with reduced motion. Returns the sunlight left after clouds.
   float clouds(vec3 p){
-    vec2 q=(p.xz+vec2(.5,-.4)*p.y)/95.+cloudTime*vec2(.03,.012);
+    vec2 q=(p.xz+worldOffset+vec2(.5,-.4)*p.y)/95.+cloudTime*vec2(.03,.012);
     return 1.-.5*smoothstep(.52,.74,meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35);
   }`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
@@ -86,7 +86,7 @@
   in vec3 worldPosition;
   in vec3 normal;
   in vec3 block;
-  in vec3 lightCoord;
+  in vec3 lightCoord, localPosition;
   flat in int mat;
   flat in int shaded;
   uniform vec3 palette[32];
@@ -94,6 +94,7 @@
   uniform float shadowOn, shadowTexel;
   uniform highp sampler2DShadow shadowMap;
   uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime;
+  uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform sampler2D normalMap, canopyMap, biomeMap;
   out vec4 color;
@@ -119,7 +120,7 @@
     // Warm sun over a cool sky fill; ridges catch a little more light than hollows.
     float key=max(0.,dot(n,SUN));
     // Shadow only removes the sun term, so shade keeps the sky fill: a soft afternoon shadow, never a black one.
-    float sunVis=sunlight()*clouds(worldPosition),sun=sunVis;if(mat==3)sun=.45+.55*sun;
+    float sunVis=sunlight()*clouds(localPosition),sun=sunVis;if(mat==3)sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
     light*=1.+cavity*.3;
     float grain=(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
@@ -207,7 +208,7 @@
   uniform vec2 halfView;
   uniform float depth, time, grow;
   out vec3 lightCoord;
-  out vec2 field;
+  out vec2 field, cloudAt;
   out float along, sheen, conifer;
   float rand(float n){return fract(sin(n*91.345+tuft.w*311.7)*43758.5453);}
   void main(){
@@ -222,7 +223,7 @@
     vec2 bend=lean*h*v*v;
     float up=h*v*(1.-.28*dot(lean,lean)*v);
     vec3 p=root+vec3(face.x*blade.x*w*(1.-v*v)+bend.x,up,face.y*blade.x*w*(1.-v*v)+bend.y);
-    along=v;sheen=gust;field=at;
+    along=v;sheen=gust;field=at;cloudAt=root.xz;
     vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
     vec3 q=p-center;
     float forward=q.x*${SY}+q.z*${CY};
@@ -231,10 +232,11 @@
   const grassFragment=`#version 300 es
   precision highp float;
   in vec3 lightCoord;
-  in vec2 field;
+  in vec2 field, cloudAt;
   in float along, sheen, conifer;
   uniform vec3 grassColor, lightHalf;
   uniform float shadowOn, shadowTexel, blockSize, cloudTime;
+  uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
   out vec4 color;
@@ -247,7 +249,7 @@
     // light cool tint.
     vec3 ground=meadow(field,forestGrass(grassColor,conifer))*.86,tip=ground*vec3(1.32,1.3,1.)+vec3(.06,.07,.03)*sheen;
     vec3 base=mix(ground,tip,smoothstep(.15,1.,along));
-    color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight()*clouds(vec3(field.x,0,field.y)))),1.);
+    color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight()*clouds(vec3(cloudAt.x,0,cloudAt.y)))),1.);
   }`;
   function makeTuft(){
     // One blade: two tapering quads and a tip, 15 vertices; seven blades per tuft, indexed by z.
@@ -276,7 +278,7 @@
     seed=card.w;pine=step(10.,facing.w);outward=facing.xyz;
     // Broadleaf clumps spin freely; conifer sprigs stay upright with a slight tilt so the crown keeps its cone.
     float size=(facing.w-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.5,pine);
-    vec2 at=patternOrigin.xz+card.xz*scale.x;field=at;
+    vec2 at=patternOrigin.xz+card.xz*scale.x;field=(origin+card.xyz*scale).xz;
     float sway=sin(time*1.7+dot(at,vec2(.6,.35))*.8+seed*6.)*.04+.05*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     vec3 p=origin+card.xyz*scale+outward*size*mix(.25,.1,pine);
     uv=mat2(cos(a),-sin(a),sin(a),cos(a))*corner;
@@ -297,6 +299,7 @@
   in float seed, pine;
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel, blockSize, leafShape, cloudTime;
+  uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
   out vec4 color;
@@ -325,6 +328,39 @@
     vec3 c=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     color=vec4(c*(.96+.08*fract(seed*3.7))+vec3(-.01,.01,0)*fract(seed*11.),coverage);
   }`;
+  // Cloud layer for wide views: a plane high above the land shaded from the same noise as the cloud shadows (offset
+  // along the sun by its height), so each cloud floats exactly over its shadow. Anime cumulus: white sunlit tops, a soft
+  // blue-grey band on the far side, soft rims. Fades in only as the view widens.
+  const CLOUD_HEIGHT=320;
+  const cloudVertex=`#version 300 es
+  precision highp float;
+  layout(location=0) in vec2 corner;
+  uniform vec3 center;
+  uniform vec2 halfView, extent, middle;
+  uniform float depth;
+  out vec2 at;
+  void main(){
+    vec3 p=vec3(middle+corner*extent,${CLOUD_HEIGHT}.).xzy;at=p.xz;
+    vec3 q=p-center;
+    float forward=q.x*${SY}+q.z*${CY};
+    gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
+  }`;
+  const cloudFragment=`#version 300 es
+  precision highp float;
+  in vec2 at;
+  uniform vec2 worldOffset;
+  uniform float cloudTime, cloudFade;
+  out vec4 color;
+  ${MEADOW}
+  float cover(vec2 p){vec2 q=(p+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.)/95.+cloudTime*vec2(.03,.012);return meadowNoise(q)*.65+meadowNoise(q*2.3+4.)*.35;}
+  void main(){
+    vec2 p=at;float n=cover(p);
+    float alpha=smoothstep(.56,.68,n)*cloudFade;if(alpha<.01)discard;
+    // Thicker toward the sun means lit; thinning away from it falls into the shadow band.
+    float lit=n-cover(p+vec2(-14.,11.));
+    vec3 c=mix(vec3(.74,.79,.9),vec3(1.,.99,.96),smoothstep(-.02,.03,lit))*mix(.94,1.,smoothstep(.6,.8,n));
+    color=vec4(c,alpha*.92);
+  }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -351,13 +387,15 @@
     constructor(canvas){
       this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:true,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
-      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime']));
+      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
-      ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime']));
-      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime']));
+      ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime','worldOffset']));
+      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset']));
       gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
       // Conifer card outline for comparison (?leaves=round|soft|hard|round+soft|mixed); mixed by default.
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
+      ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade']));
+      this.cloudVao=gl.createVertexArray();
       this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
       gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255));
@@ -433,6 +471,9 @@
       return {at,half:[half,half,(hi[2]-lo[2])/2+camera.span+256],texel};
     }
     end(){
+      // One world frame for everything cloud-related: the stream's rebasing origin (world metres at local zero), wrapped
+      // to a large period so it stays exact in single precision. Taken per frame, never from a particular tile.
+      const CLOUD_PERIOD=95*4096,o=this.worldOrigin||{x:0,z:0},off=[o.x,o.z].map(v=>((v%CLOUD_PERIOD)+CLOUD_PERIOD)%CLOUD_PERIOD);
       const gl=this.gl,shadows=!this.economy,c=this.camera;let top=(c.y??8)+c.span*.5;
       if(shadows)for(const d of this.queue)top=Math.max(top,d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1]);
       const box=shadows?this.lightBox(c,this.shadowTarget().size,top):null;
@@ -445,22 +486,35 @@
       }
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
-      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);gl.uniform1f(this.u.grassGrow,this.queue.some(d=>d.mesh.grass)?grow:0);gl.uniform1f(this.u.cloudTime,this.time);
+      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cards,this.queue.some(d=>d.mesh.leaves)?grow:0);gl.uniform1f(this.u.grassGrow,this.queue.some(d=>d.mesh.grass)?grow:0);gl.uniform1f(this.u.cloudTime,this.time);gl.uniform2f(this.u.worldOffset,...off);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
       for(const d of this.queue){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
       if(grow>0&&this.queue.some(d=>d.mesh.grass)){
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.grass;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,t.count);this.draws++;this.triangles+=t.count*BLADES*5;}
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
         const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.leaves;if(!t)continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
+      }
+      // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything.
+      const fade=Math.min(1,Math.max(0,(c.span-150)/250));
+      if(fade>0){
+        const k=this.ku,b=this.bounds(c,CLOUD_HEIGHT);
+        gl.useProgram(this.cloudProgram);gl.bindVertexArray(this.cloudVao);gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
+        gl.uniform3f(k.center,c.x,c.y??8,c.z);gl.uniform2f(k.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(k.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
+        gl.uniform2f(k.middle,(b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2);gl.uniform2f(k.extent,(b.maxX-b.minX)/2+20,(b.maxZ-b.minZ)/2+20);
+        gl.uniform2f(k.worldOffset,...off);
+        gl.uniform1f(k.cloudTime,this.time);gl.uniform1f(k.cloudFade,fade*fade*(3-2*fade));
+        gl.disable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+        gl.drawArrays(gl.TRIANGLES,0,6);
+        gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.bindVertexArray(null);
       }
       this.queue.length=0;
     }

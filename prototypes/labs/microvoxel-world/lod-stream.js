@@ -100,7 +100,7 @@
     function draw(now){
       if(!world?.infinite)return;
       if(drawDirty)resolve(now);
-      const t0=performance.now(),gl=renderer.gl;stats.maxOrigin=0;
+      const t0=performance.now(),gl=renderer.gl;stats.maxOrigin=0;renderer.worldOrigin=origin;
       if(gpu&&!gpu.active){const q=gl.createQuery();gl.beginQuery(gpu.ext.TIME_ELAPSED_EXT,q);gpu.active=q;}
       const one=(key,mode,t)=>{
         const mesh=cache.items.get(key);if(!mesh)return;const [L,nx,nz]=key.split(':').map(Number),m=world.nodeMetres(L),c=mesh.column;
