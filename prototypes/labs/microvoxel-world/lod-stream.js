@@ -104,12 +104,12 @@
       if(gpu&&!gpu.active){const q=gl.createQuery();gl.beginQuery(gpu.ext.TIME_ELAPSED_EXT,q);gpu.active=q;}
       const one=(key,mode,t)=>{
         const mesh=cache.items.get(key);if(!mesh)return;const [L,nx,nz]=key.split(':').map(Number),m=world.nodeMetres(L),c=mesh.column;
-        const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);
+        const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);renderer.placeholder(L>level);
         renderer.draw(mesh,[ox,0,oz],[c,c,c],0,0,0,[0,0,0],[((nx*m)%4096+4096)%4096,0,((nz*m)%4096+4096)%4096]);
       };
       for(const n of drawList){const s=fades.get(n.key),t=s===undefined?1:(now-s)/FADE;if(t>=1){fades.delete(n.key);one(n.key,0,0);}else one(n.key,1,t);}
       for(const [key,s] of outgoing){const t=(now-s)/FADE;if(t>=1||drawKeys.has(key)){outgoing.delete(key);continue;}one(key,-1,t);}
-      renderer.dither(0,0);
+      renderer.dither(0,0);renderer.placeholder(false);
       if(gpu?.active){gl.endQuery(gpu.ext.TIME_ELAPSED_EXT);gpu.queries.push(gpu.active);gpu.active=null;
         while(gpu.queries.length&&gl.getQueryParameter(gpu.queries[0],gl.QUERY_RESULT_AVAILABLE)){const q=gpu.queries.shift();if(!gl.getParameter(gpu.ext.GPU_DISJOINT_EXT))push(times.gpu,gl.getQueryParameter(q,gl.QUERY_RESULT)/1e6);gl.deleteQuery(q);}
         if(gpu.queries.length>8){for(const q of gpu.queries)gl.deleteQuery(q);gpu.queries.length=0;}}
