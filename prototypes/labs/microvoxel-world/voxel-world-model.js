@@ -35,18 +35,18 @@
   // Things that stand on the ground rather than shape it: trees, crystal spires (sunk 0.5 m into the ground), standing
   // stones, ruins and sandstone arches. They neither tilt the hillshade nor take it, and they cast sun shadows.
   // Renderer families: crown leaves (broadleaf and needle), trunks, and the grasses that grow stylized blades.
-  const LEAVES=Object.freeze(new Set([MAT.leaf,MAT.birchLeaf,MAT.bushLeaf,MAT.bambooLeaf,MAT.blossom,MAT.blossomWhite,MAT.coral,MAT.acacia,MAT.autumnleaf,MAT.rustleaf,MAT.blossomleaf]));
+  const LEAVES=Object.freeze(new Set([MAT.willowLeaf,MAT.vine,MAT.palmLeaf,MAT.alderLeaf,MAT.leaf,MAT.birchLeaf,MAT.bushLeaf,MAT.bambooLeaf,MAT.blossom,MAT.blossomWhite,MAT.coral,MAT.acacia,MAT.autumnleaf,MAT.rustleaf,MAT.blossomleaf]));
   const NEEDLES=Object.freeze(new Set([MAT.needle,MAT.larch,MAT.larchGold]));
-  const BARKS=Object.freeze(new Set([MAT.bark,MAT.redwood,MAT.birchBark,MAT.birchMark,MAT.bamboo,MAT.bambooNode]));
+  const BARKS=Object.freeze(new Set([MAT.palmBark,MAT.bark,MAT.redwood,MAT.birchBark,MAT.birchMark,MAT.bamboo,MAT.bambooNode]));
   // Rock surfaces cel-shaded as anime rock; WARM_ROCKS keep warm sandstone-like bands.
-  const WARM_ROCKS=Object.freeze(new Set([MAT.sandstone,MAT.ochre,MAT.clay]));
-  const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,MAT.cobble,...WARM_ROCKS]));
+  const WARM_ROCKS=Object.freeze(new Set([MAT.rockWarm,MAT.lichenOrange,MAT.sandstone,MAT.ochre,MAT.clay]));
+  const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,MAT.cobble,MAT.rockDark,MAT.rockPale,MAT.lichen,MAT.boulder,MAT.boulderPale,...WARM_ROCKS]));
   // Flowers render as props (stem and petals), not voxels, in close views.
   const FLOWERS=Object.freeze(new Set([MAT.flower,MAT.flowerYellow,MAT.flowerViolet,MAT.glowFlower]));
   // Thin plants drawn as objects at every zoom: bamboo culms, reeds, rushes with cattail heads, ferns and tufts.
   const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft]));
-  const BLADE_GRASS=Object.freeze(new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
-  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus]));
+  const BLADE_GRASS=Object.freeze(new Set([MAT.floodgrass,MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
+  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
