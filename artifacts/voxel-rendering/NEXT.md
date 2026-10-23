@@ -28,3 +28,15 @@ each new leaf material its own card shape and palette, and give each new ground 
 
 Still owed: a full `npm test -- microvoxel` pass (skipped while iterating), and an Economy-mode cap on grass and leaf
 cards before phones.
+
+## Direction and order (user, 2026-10-22)
+
+Smooth terrain (Surface Nets, `?mesh=smooth`) is the chosen look; small things become objects, not voxels. Economy is the
+voxels-only low tier; the normal tier adds every extra.
+
+1. Housekeeping: rebase onto the terrain head, cobble 85 into ROCKS, full `npm test -- microvoxel`, hand over.
+2. Stylized water (depth colour, shore foam, glints).
+3. First-person "Walk" mode: perspective camera at eye height, distance-based tile streaming, sky gradient with clouds
+   from below, haze, billboards facing the player, WASD/mouse and touch controls.
+4. Alongside: smooth terrain as default (seams between detail levels, grass on the smooth surface); generator object
+   lists from the terrain session (trees, bamboo, rocks...) rendered as stylized objects; tighter per-tile buffers.

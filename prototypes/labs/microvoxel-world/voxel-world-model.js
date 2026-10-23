@@ -40,7 +40,7 @@
   const BARKS=Object.freeze(new Set([MAT.bark,MAT.redwood,MAT.birchBark,MAT.birchMark,MAT.bamboo,MAT.bambooNode]));
   // Rock surfaces cel-shaded as anime rock; WARM_ROCKS keep warm sandstone-like bands.
   const WARM_ROCKS=Object.freeze(new Set([MAT.sandstone,MAT.ochre,MAT.clay]));
-  const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,...WARM_ROCKS]));
+  const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,MAT.cobble,...WARM_ROCKS]));
   // Flowers render as props (stem and petals), not voxels, in close views.
   const FLOWERS=Object.freeze(new Set([MAT.flower,MAT.flowerYellow,MAT.flowerViolet,MAT.glowFlower]));
   // Thin plants drawn as objects at every zoom: bamboo culms, reeds, rushes with cattail heads, ferns and tufts.
