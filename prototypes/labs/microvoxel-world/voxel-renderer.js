@@ -712,6 +712,68 @@
     if(!keep)discard;
     color=vec4(c,0.);
   }`;
+  // Mushroom objects: an instanced smooth dome cap (with a slightly curled rim) on a tapered stem, in the anime bands, with
+  // six evenly spaced white spots on the cap and a soft dark ring where the stem meets the ground.
+  const mushroomVertex=`#version 300 es
+  precision highp float;
+  layout(location=0) in vec3 unit;
+  layout(location=1) in float part;
+  layout(location=2) in vec4 a;
+  layout(location=3) in vec4 b;
+  uniform vec3 origin, center, lightAt, lightHalf;
+  uniform mat3 lightAxes;
+  uniform vec2 halfView;
+  uniform float depth;
+  out vec3 n, local, lightCoord;
+  out float isCap;
+  void main(){
+    // a: x, base, z, capRadius; b: capHeight, stemRadius, stemHeight, spin.
+    float spin=b.w,cs=cos(spin),sn=sin(spin);isCap=part;
+    vec3 p,nn;
+    if(part>.5){p=vec3(unit.x*a.w,b.z+unit.y*b.x,unit.z*a.w);nn=normalize(vec3(unit.x/a.w,unit.y/b.x,unit.z/a.w));}
+    else{float r=b.y*(1.-.18*unit.y);p=vec3(unit.x*r,unit.y*(b.z+b.x*.25),unit.z*r);nn=normalize(vec3(unit.x,0,unit.z));}
+    n=vec3(nn.x*cs-nn.z*sn,nn.y,nn.x*sn+nn.z*cs);
+    vec3 w=origin+vec3(a.x,a.y,a.z)+vec3(p.x*cs-p.z*sn,p.y,p.x*sn+p.z*cs);
+    vec3 l=(w-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
+    vec3 q=w-center;float forward=q.x*${SY}+q.z*${CY};
+    gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
+    local=p;
+  }`;
+  const mushroomFragment=`#version 300 es
+  precision highp float;
+  in vec3 n, local, lightCoord;
+  in float isCap;
+  uniform vec3 palette[96], lightHalf;
+  uniform float shadowOn, shadowTexel, blockSize;
+  uniform highp sampler2DShadow shadowMap;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
+  const vec3 SUN=normalize(vec3(-.5,1.,.4));
+  ${SUNLIGHT}
+  void main(){
+    glowOut=vec4(0);
+    float tone=(dot(normalize(n),SUN)*.5+.5)*mix(.6,1.,sunlight());
+    vec3 base=isCap>.5?palette[${M.MAT.mushroom}]:palette[${M.MAT.stem}];
+    if(isCap>.5){
+      // Spots: one at the crown and five around it, on the upper cap.
+      float spot=0.;vec3 un=normalize(n);vec2 sp=un.xz/max(.25,un.y+.35);
+      for(int k=0;k<6;k++){vec2 c=k==0?vec2(0):vec2(cos(float(k)*1.2566),sin(float(k)*1.2566))*.62;spot=max(spot,1.-smoothstep(.15,.2,length(sp-c)));}
+      base=mix(base,palette[${M.MAT.stem}]*1.05,spot*step(.25,un.y));
+    }
+    vec3 shadow=base*vec3(.62,.6,.78),high=mix(base,vec3(1.,.95,.86),.3);
+    vec3 c=mix(mix(shadow,base,smoothstep(.36,.42,tone)),high,smoothstep(.8,.86,tone));
+    if(isCap<.5)c*=.8+.2*smoothstep(0.,.25,local.y);
+    color=vec4(c,1.);
+  }`;
+  function makeMushroom(){
+    // Cap: a unit upper hemisphere (y 0..1) with a slight downward rim lip; stem: a unit cylinder (y 0..1). part 1 = cap.
+    const out=[],ring=14,rows=5,cap=(i,j)=>{const t=j/rows,ang=i/ring*Math.PI*2,phi=t*Math.PI/2,r=Math.cos(phi),y=Math.sin(phi);return [Math.cos(ang)*r,y,Math.sin(ang)*r];};
+    for(let j=0;j<rows;j++)for(let i=0;i<ring;i++){const A=cap(i,j),B=cap(i+1,j),Cc=cap(i+1,j+1),D=cap(i,j+1);for(const v of [A,Cc,B,A,D,Cc])out.push(...v,1);}
+    for(let i=0;i<ring;i++){const a0=i/ring*Math.PI*2,a1=(i+1)/ring*Math.PI*2,P=(a,y)=>[Math.cos(a),y,Math.sin(a)];const A=P(a0,0),B=P(a1,0),Cc=P(a1,1),D=P(a0,1);for(const v of [A,Cc,B,A,D,Cc])out.push(...v,0);}
+    // Underside of the cap: a flat disc facing down, part 1 with y=0.
+    for(let i=0;i<ring;i++){const a0=i/ring*Math.PI*2,a1=(i+1)/ring*Math.PI*2;for(const v of [[0,0,0],[Math.cos(a0),0,Math.sin(a0)],[Math.cos(a1),0,Math.sin(a1)]])out.push(...v,1);}
+    return new Float32Array(out);
+  }
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -747,6 +809,9 @@
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
       ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade']));
       this.cloudVao=gl.createVertexArray();
+      ({program:this.mushroomProgram,u:this.mu}=link(gl,mushroomVertex,mushroomFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','palette','shadowOn','shadowTexel','blockSize','shadowMap']));
+      this.mushroomGeom=makeMushroom();this.mushroomBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.mushroomBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.mushroomGeom,gl.STATIC_DRAW);
+      gl.useProgram(this.mushroomProgram);gl.uniform1i(this.mu.shadowMap,1);gl.uniform1f(this.mu.blockSize,.2);
       ({program:this.stalkProgram,u:this.su}=link(gl,stalkVertex,stalkFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
       ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
       ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','sceneGlow','texel','depthRange','threshold','ink','width']));
@@ -760,7 +825,7 @@
       gl.useProgram(this.program);
       const colors=[...M.COLORS];
       const paletteValues=[...M.COLORS].flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255));
-      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
+      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.mushroomProgram,this.mu]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
       gl.useProgram(this.program);
       gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform1i(this.u.waterMap,6);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;this.queue=[];this.dithering=[0,0];this.casting=false;this.shadow=null;
@@ -812,6 +877,14 @@
         gl.bindBuffer(gl.ARRAY_BUFFER,fbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.flowers,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,1);
         out.flowers={vao:fvao,buffer:fbuf,count:mesh.flowers.length/4};out.bytes+=mesh.flowers.byteLength;
       }
+      if(mesh.mushrooms?.length){
+        const mvao=gl.createVertexArray(),mbuf=gl.createBuffer();gl.bindVertexArray(mvao);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.mushroomBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,1,gl.FLOAT,false,16,12);
+        gl.bindBuffer(gl.ARRAY_BUFFER,mbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.mushrooms,gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,0);gl.vertexAttribDivisor(2,1);
+        gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(3,1);
+        out.mushrooms={vao:mvao,buffer:mbuf,count:mesh.mushrooms.length/8};out.bytes+=mesh.mushrooms.byteLength;
+      }
       if(mesh.stalks?.length){
         const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);
         gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
@@ -834,7 +907,7 @@
     // A coarser tile standing in while finer ones stream in: lit as usual but casting and receiving no sun shadows and
     // carrying no ink, so its blocky shapes stay quiet until the real tile arrives.
     placeholder(on){this.flat=on;}
-    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
+    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
@@ -917,6 +990,13 @@
         const shown=this.queue.filter(d=>d.mesh.grass&&this.onScreen(d)),total=shown.reduce((n,d)=>n+d.mesh.grass.count,0),budget=this.width*this.height/(this.economy?160:40),share=Math.min(1,budget/Math.max(1,total));
         for(const d of shown){const t=d.mesh.grass,count=Math.ceil(t.count*share);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,count);this.draws++;this.triangles+=count*BLADES*3;}
         gl.enable(gl.CULL_FACE);
+      }
+      if(this.queue.some(d=>d.mesh.mushrooms)){
+        const g=this.mu;gl.useProgram(this.mushroomProgram);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        const n=this.mushroomGeom.length/4;
+        for(const d of this.queue){const t=d.mesh.mushrooms;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,[d.origin[0],0,d.origin[2]]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
       }
       if(this.queue.some(d=>d.mesh.stalks)){
         const g=this.su;gl.useProgram(this.stalkProgram);gl.disable(gl.CULL_FACE);

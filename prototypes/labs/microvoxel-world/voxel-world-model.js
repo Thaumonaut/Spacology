@@ -1977,7 +1977,7 @@
       }
       colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,stalks,mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -1993,6 +1993,14 @@
         out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
       }
       return {canopy:out};
+    }
+    // Mushroom objects (the generator skips their voxels in props mode): x, base y, z in node-local metres, then cap radius,
+    // cap height, stem radius, stem height and spin. Only where a mushroom spans a few pixels (columns up to 1 m).
+    function mushroomProps(L,nx,nz){
+      const column=cellMetres*2**L;if(column>1)return new Float32Array(0);
+      const m=NODE*column,x0=nx*m,z0=nz*m,out=[];
+      for(const r of mushroomsNear(x0+m/2,z0+m/2,m*.71))if(r.x>=x0&&r.x<x0+m&&r.z>=z0&&r.z<z0+m)out.push(r.x-x0,r.base,r.z-z0,r.capRadius,r.capHeight,r.stemRadius,r.stemHeight,r.spin);
+      return Float32Array.from(out);
     }
     // Flower props for close views: each column's flower voxels are taken out of the mesh and listed once as x, base y, z
     // (node-local blocks) and material + 0–1 seed, drawn as a stemmed flower that sways with the grass.
