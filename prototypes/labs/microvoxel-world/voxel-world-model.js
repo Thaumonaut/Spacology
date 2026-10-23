@@ -1835,7 +1835,7 @@
     function node(L,nx,nz,options={}){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
+      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
@@ -1845,12 +1845,12 @@
         const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,t0=prof.on&&now(),b=new Uint8Array(blocks);let top=0;
         let hi=lim-1;while(hi>=0&&!c[hi])hi--;
         for(let y=0;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
-        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);canopy[(j+1)*G+i+1]=top;{const k=(j+1)*G+i+1,m=top>0?b[top-1]&127:0;grassy[k]=BLADE_GRASS.has(m)?1:0;grassMat[k]=grassy[k]?m:0;const gm=grounds[k]>0?b[grounds[k]-1]&127:0;snowy[k]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
+        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);canopy[(j+1)*G+i+1]=top;water[(j+1)*G+i+1]=waterDepth(c,lim);{const k=(j+1)*G+i+1,m=top>0?b[top-1]&127:0;grassy[k]=BLADE_GRASS.has(m)?1:0;grassMat[k]=grassy[k]?m:0;const gm=grounds[k]>0?b[grounds[k]-1]&127:0;snowy[k]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
         cols[j*P+i]=b;tops[j*P+i]=top;floor[j*P+i]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,0,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,0,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -1864,7 +1864,7 @@
       }
       colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -1928,7 +1928,8 @@
       }
       return Float32Array.from(out);
     }
-    // Biome tint per inside column (RGBA8: the biome's grass tone (deep forest green vs bright meadow), snow cover in the 5×5 around it, the local blade-grass material): how much the local forest is conifer rather
+    // Biome tint per inside column (RGBA8: the biome's grass tone (deep forest green vs bright meadow), and in alpha the open
+    // water depth (1/32 m steps, up to 8 m); snow cover in the 5×5 around it, the local blade-grass material): how much the local forest is conifer rather
     // than broadleaf, from the same biome and temperature rule as the trees. Sampled on a fixed 16 m world grid and
     // interpolated, so neighbouring nodes agree and forests blend over tens of metres. Grass and ground take their tone
     // from it: deep blue-green among conifers, bright warm green among broadleaf trees.
@@ -1946,7 +1947,18 @@
       for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++){const m=grassMat[(J+b)*G+I+a];if(m){const c=(n.get(m)||0)+1;n.set(m,c);if(c>most){most=c;best=m;}}}
       return best;
     }
-    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G){
+    // Depth of open water at the top of a column, in metres (0 where the surface is land or rock; water under a lily pad counts).
+    function waterDepth(c,lim){let y=lim-1;while(y>=0&&!c[y])y--;
+      // Lily pads float: the water beneath still counts, so drifts of pads do not ring themselves with foam.
+      while(y>=0&&((c[y]&127)===MAT.lilyPad||(c[y]&127)===MAT.lilyFlower))y--;let n=0;while(y>=0&&(c[y]&127)===MAT.water){n++;y--;}return n*cellMetres;}
+    // Water depth seen from above: the true depth, but never more than about 0.6 × the distance to the nearest shore (land or
+    // rock within two columns), so every shore gets shallows and a foam band, even against a steep bank.
+    function shoreDepth(water,G,I,J,column){
+      const d=water[J*G+I];if(!d)return 0;let near=Infinity;
+      for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)if(!water[(J+b)*G+I+a])near=Math.min(near,(Math.hypot(a,b)-.5)*column);
+      return Math.min(d,near*.6);
+    }
+    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
         // Grass tone blends between biomes in irregular drifts: the sample point is warped by noise and the tone averaged over
@@ -1954,7 +1966,7 @@
         const wx=x0+(i+.5)*column,wz=z0+(j+.5)*column,dx=(noise(wx*.02,wz*.02,seed+611)-.5)*40,dz=(noise(wx*.02+9.1,wz*.02,seed+613)-.5)*40;
         const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
         let c=0;for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;const o=(j*NODE+i)*4;
-        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=255;
+        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=Math.min(255,Math.round(shoreDepth(water,G,i+2,j+2,column)*32));
       }
       return out;
     }

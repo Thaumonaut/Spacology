@@ -164,6 +164,18 @@
     }
     // Vertical water (waterfalls) carries bright streaks running down.
     if(mat==7&&abs(normal.y)<.5)base+=vec3(.1)*step(.7,fract(worldPosition.y*.8+time*2.4+floor(worldPosition.x*1.7+worldPosition.z*1.3)*.37))*visible(1.2);
+    // Stylized water on the surface: depth bands from turquoise shallows to deep blue (depth from the biome map's alpha,
+    // filtered so it fades toward shores), broken white foam where it meets land, rocks or lily pads, a faint wave line
+    // rolling shoreward, and blinking sun glints.
+    float waterM=normalSize>0.?texture(biomeMap,block.xz/normalSize).a*8.:1.;
+    if(mat==7&&normal.y>.5){
+      vec2 p=worldPosition.xz;
+      base=mix(mix(vec3(.42,.8,.76),vec3(.22,.58,.66),smoothstep(.25,.9,waterM)),vec3(.13,.33,.52),smoothstep(1.4,3.,waterM));
+      float churn=meadowNoise(p*1.6+vec2(time*.35,-time*.2))*.6+meadowNoise(p*4.1-time*.5)*.4;
+      float foam=smoothstep(.34,.18,waterM+(churn-.5)*.22);
+      float wave=smoothstep(.06,0.,abs(fract(waterM*1.6-time*.12)-.5)-.38)*smoothstep(1.,.35,waterM)*step(.45,churn)*.7;
+      base=mix(base,vec3(.95,.98,1.),max(foam,wave*visible(1.2)));
+    }
     if(mat==7){float ripple=sin(worldPosition.z*3.+worldPosition.x*1.7-time*1.4);base+=vec3(.025,.04,.04)*ripple*visible(1.8);}
     if(mat==1&&normal.y<.5)base+=vec3(.045)*step(.85,fract(worldPosition.y*.7))*visible(1.4);
     if(mat==6)base+=vec3(.012,.025,.005)*sin(worldPosition.y*1.6)*visible(3.9);
@@ -175,6 +187,14 @@
     if(mat==20)lit+=vec3(.03,.02,.06)*(.6+.4*sin(time*.8+worldPosition.x*.7+worldPosition.z*.5));
     // Ground under a sky isle is pre-darkened by the generator; with shadows on the isle casts its own.
     if(shaded>0&&shadowOn<.5)lit*=.6;
+    // Water reads flat and bright: shade only gently, then sparkle where the sun catches it.
+    if(mat==7&&normal.y>.5){
+      lit=base*mix(.82,1.04,sunVis)*heightShade;
+      // Glints: small four-point sparkles in a sparse world grid, each blinking on its own clock.
+      vec2 q=worldPosition.xz*.9,g=floor(q),f=fract(q)-.5;float id=fract(sin(dot(g,vec2(12.9898,78.233)))*43758.5453);
+      float on=step(.9,id)*max(0.,sin(time*2.3+id*40.)),cross=max(smoothstep(.05,0.,abs(f.x))*smoothstep(.22,0.,abs(f.y)),smoothstep(.05,0.,abs(f.y))*smoothstep(.22,0.,abs(f.x)));
+      lit=mix(lit,vec3(1.,.99,.92),cross*on*smoothstep(.3,.9,waterM)*sunVis*visible(.25));
+    }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
     // yellow-green, leaf green, cool teal shadow), broken into leafy puffs and darker beneath the crown.
     // Trunks run up through their crowns to the tip; where bark peeks through the leaves (high in the tree, mostly trunk
