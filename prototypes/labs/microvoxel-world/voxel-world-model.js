@@ -41,6 +41,8 @@
   // Rock surfaces cel-shaded as anime rock; WARM_ROCKS keep warm sandstone-like bands.
   const WARM_ROCKS=Object.freeze(new Set([MAT.sandstone,MAT.ochre,MAT.clay]));
   const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,...WARM_ROCKS]));
+  // Flowers render as props (stem and petals), not voxels, in close views.
+  const FLOWERS=Object.freeze(new Set([MAT.flower,MAT.flowerYellow,MAT.flowerViolet,MAT.glowFlower]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
   const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
@@ -1858,9 +1860,9 @@
         const k=j*P+i,b=cols[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
-      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
+      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),flowers=flowerProps(L,nx,nz,dense,P,plane,base,span),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,P,base,ny);
-      return {...mesh,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -1876,6 +1878,17 @@
         out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
       }
       return {canopy:out};
+    }
+    // Flower props for close views: each column's flower voxels are taken out of the mesh and listed once as x, base y, z
+    // (node-local blocks) and material + 0–1 seed, drawn as a stemmed flower that sways with the grass.
+    function flowerProps(L,nx,nz,dense,P,plane,base,span){
+      if(cellMetres*2**L>.5)return new Float32Array(0);const out=[];
+      for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
+        let low=-1,m=0;
+        for(let y=base;y<base+span;y++){const k=j*plane+(y-base+1)*P+i,v=dense[k]&127;if(FLOWERS.has(v)){if(low<0){low=y;m=v;}dense[k]=0;}}
+        if(low>=0)out.push(i-.5,low,j-.5,m+hash(nx*NODE+i,nz*NODE+j,seed+131)*.999);
+      }
+      return Float32Array.from(out);
     }
     // Leaf cards for close views: on leaf and needle blocks at the outside of a crown, about 3.5 per square metre of
     // crown surface (twice that for the smaller conifer sprigs). Each card is x, y, z (block centre, node-local blocks), material + 0–1 seed; then the outward direction (from the
@@ -2093,6 +2106,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

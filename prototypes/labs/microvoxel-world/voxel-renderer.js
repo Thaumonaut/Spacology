@@ -490,6 +490,50 @@
     }
     color=vec4(mix(c,c*vec3(.46,.48,.6),edge*ink*s.a),1.);
   }`;
+  // Flower props: a camera-facing card rising from the flower's root, drawn as a thin stem and a five-petal head in the
+  // flower's palette colour with a warm centre; it sways with the grass wind.
+  const flowerVertex=`#version 300 es
+  precision highp float;
+  layout(location=0) in vec2 corner;
+  layout(location=1) in vec4 prop;
+  uniform vec3 origin, scale, patternOrigin, center;
+  uniform vec2 halfView;
+  uniform float depth, time, pixelWorld;
+  out vec2 uv;
+  out float seed;
+  flat out int flowerMat;
+  void main(){
+    seed=fract(prop.w);flowerMat=int(prop.w);
+    vec3 root=origin+prop.xyz*scale+vec3(seed-.5,0,fract(seed*7.3)-.5)*scale.x*.6;
+    vec2 at=patternOrigin.xz+prop.xz*scale.x;
+    float sway=sin(time*2.1+seed*9.+dot(at,vec2(1.3,.7))*1.8)*.08+.12*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
+    float w=max(.42,pixelWorld*8.)*(.85+.3*fract(seed*3.1)),h=w*1.35;
+    uv=corner*vec2(1.,.5)+vec2(0,.5);
+    vec3 q=root-center;
+    float forward=q.x*${SY}+q.z*${CY};
+    gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
+    gl_Position.xy+=vec2(corner.x*w*.5+sway*w*uv.y*uv.y,uv.y*h*${C})/halfView;
+    gl_Position.z-=w*.5/depth;
+  }`;
+  const flowerFragment=`#version 300 es
+  precision highp float;
+  in vec2 uv;
+  in float seed;
+  flat in int flowerMat;
+  uniform vec3 palette[96];
+  out vec4 color;
+  void main(){
+    // Head centred near the top; petals as five round lobes; stem a thin line below.
+    // uv.x spans the card width (-1..1), uv.y its height (0..1); one unit of y is about 1.74 of x on screen.
+    vec2 p=vec2(uv.x,(uv.y-.68)*1.74);float r=length(p),a=atan(p.y,p.x)+seed*6.28;
+    float petal=.5+.16*cos(a*5.);
+    bool head=r<petal,core=r<.17,stem=abs(uv.x)<.07&&uv.y<.6;
+    bool leaf=abs(uv.x-(uv.y-.2)*1.1-.08)<.09&&uv.y>.15&&uv.y<.42;
+    if(!head&&!stem&&!leaf)discard;
+    vec3 petalC=palette[flowerMat]*(1.05+.15*smoothstep(-.3,.4,p.y)),coreC=flowerMat==${M.MAT.flowerYellow}?vec3(.55,.32,.12):vec3(1.,.82,.3),green=vec3(.28,.5,.24);
+    vec3 c=core?coreC:head?mix(petalC*.85,petalC,smoothstep(.0,petal,r)):green*(.8+.3*uv.y);
+    color=vec4(c,0.);
+  }`;
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -525,6 +569,7 @@
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
       ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade']));
       this.cloudVao=gl.createVertexArray();
+      ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
       ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','texel','depthRange','threshold','ink','width']));
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);this.postVao=gl.createVertexArray();
       // Outlines on by default; ?outlines=0 turns them off for comparison.
@@ -536,7 +581,7 @@
       gl.useProgram(this.program);
       const colors=[...M.COLORS];
       const paletteValues=[...M.COLORS].flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255));
-      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
+      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
       gl.useProgram(this.program);
       gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;this.queue=[];this.dithering=[0,0];this.casting=false;this.shadow=null;
@@ -577,6 +622,12 @@
         gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(2,1);
         out.leaves={vao:lvao,buffer:lbuffer,count:mesh.leaves.length/8};out.bytes+=mesh.leaves.byteLength;
       }
+      if(mesh.flowers?.length){
+        const fvao=gl.createVertexArray(),fbuf=gl.createBuffer();gl.bindVertexArray(fvao);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,fbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.flowers,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,1);
+        out.flowers={vao:fvao,buffer:fbuf,count:mesh.flowers.length/4};out.bytes+=mesh.flowers.byteLength;
+      }
       if(mesh.smooth?.count){
         // Smooth terrain: float position, signed-byte normal, byte material (16 bytes a vertex).
         const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);gl.bindBuffer(gl.ARRAY_BUFFER,sbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.smooth.buffer,gl.STATIC_DRAW);
@@ -590,7 +641,7 @@
     // A coarser tile standing in while finer ones stream in: drawn flat (no sun, shadows, cavity or ink) and casting no
     // shadow, so its blocky shapes stay quiet until the real tile arrives with full lighting.
     placeholder(on){this.flat=on;}
-    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
+    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
@@ -672,6 +723,13 @@
         // the same fraction of every tile's shuffled list, so meadows thin evenly instead of costing millions of vertices.
         const shown=this.queue.filter(d=>d.mesh.grass&&this.onScreen(d)),total=shown.reduce((n,d)=>n+d.mesh.grass.count,0),budget=this.width*this.height/(this.economy?160:40),share=Math.min(1,budget/Math.max(1,total));
         for(const d of shown){const t=d.mesh.grass,count=Math.ceil(t.count*share);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,count);this.draws++;this.triangles+=count*BLADES*3;}
+        gl.enable(gl.CULL_FACE);
+      }
+      // Flowers draw at every zoom their tiles exist (close views only), never smaller than a few pixels.
+      if(this.queue.some(d=>d.mesh.flowers)){
+        const g=this.fu;gl.useProgram(this.flowerProgram);gl.disable(gl.CULL_FACE);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
+        for(const d of this.queue){const t=d.mesh.flowers;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
