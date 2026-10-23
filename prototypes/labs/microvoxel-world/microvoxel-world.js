@@ -233,6 +233,9 @@
   // Cloud opacity for wide views; remembered where storage is available (sandboxed previews may refuse it).
   const CLOUDS='spacology-voxel-clouds',setClouds=v=>{$('clouds').value=String(v);if(renderer)renderer.cloudOpacity=v/100;};
   try{const saved=localStorage.getItem(CLOUDS);if(saved!==null)setClouds(Number(saved));else setClouds(85);}catch{setClouds(85);}
+  const FOG='spacology-voxel-fog',setFog=v=>{$('fog').value=String(v);if(renderer)renderer.fogAmount=v/100;};
+  try{const saved=localStorage.getItem(FOG);setFog(saved!==null?Number(saved):50);}catch{setFog(50);}
+  $('fog').oninput=()=>{setFog(Number($('fog').value));try{localStorage.setItem(FOG,$('fog').value);}catch{}};
   $('clouds').oninput=()=>{setClouds(Number($('clouds').value));try{localStorage.setItem(CLOUDS,$('clouds').value);}catch{}};
   // Peek under the canopy around the mouse (desktop pointers; touch drags pan instead). Off by default; the Peek button or
   // P toggles it, and the choice is remembered where storage is allowed.
