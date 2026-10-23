@@ -163,7 +163,7 @@
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel;
   uniform highp sampler2DShadow shadowMap;
-  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime, placeholder;
+  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime, placeholder, xray;
   uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform sampler2D normalMap, canopyMap, biomeMap, waterMap;
@@ -179,6 +179,8 @@
   void main(){
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
+    // Crew hidden behind trees or terrain show through as a warm translucent silhouette.
+    if(xray>.5){color=vec4(1.,.84,.5,.55);glowOut=vec4(0);return;}
     vec3 n=normalize(normal);float cavity=0.;
     if(normalSize>0.){
       // Hillshade: distant blocks light as the slope they form, so treads and risers stop alternating into bands.
@@ -800,7 +802,7 @@
     constructor(canvas){
       this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:false,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
-      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder']));
+      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder','xray']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime','worldOffset','palette']));
       ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset','palette']));
@@ -1017,6 +1019,13 @@
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.leaves;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
+      }
+      // X-ray pass: crew parts drawn again only where something nearer covers them.
+      if(this.queue.some(d=>d.caster)){
+        gl.useProgram(this.program);gl.uniform1f(this.u.xray,1);gl.uniform1f(this.u.placeholder,0);gl.uniform2f(this.u.dither,0,0);
+        gl.depthFunc(gl.GREATER);gl.depthMask(false);gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ZERO,gl.ONE);
+        for(const d of this.queue)if(d.caster){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);this.replay(this.u,d);}
+        gl.disable(gl.BLEND);gl.depthMask(true);gl.depthFunc(gl.LESS);gl.uniform1f(this.u.xray,0);
       }
       if(scene){
         const W=scene.w,H=scene.h,p=this.pu;
