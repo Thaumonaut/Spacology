@@ -233,9 +233,16 @@
   const CLOUDS='spacology-voxel-clouds',setClouds=v=>{$('clouds').value=String(v);if(renderer)renderer.cloudOpacity=v/100;};
   try{const saved=localStorage.getItem(CLOUDS);if(saved!==null)setClouds(Number(saved));else setClouds(85);}catch{setClouds(85);}
   $('clouds').oninput=()=>{setClouds(Number($('clouds').value));try{localStorage.setItem(CLOUDS,$('clouds').value);}catch{}};
-  // Peek under the canopy around the mouse (desktop pointers; touch drags pan instead).
-  canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!renderer)return;const r=canvas.getBoundingClientRect();renderer.peekAt={x:e.clientX-r.left,y:e.clientY-r.top};});
-  canvas.addEventListener('pointerleave',()=>{if(renderer)renderer.peekAt=null;});
+  // Peek under the canopy around the mouse (desktop pointers; touch drags pan instead). Off by default; the Peek button or
+  // P toggles it, and the choice is remembered where storage is allowed.
+  let peeking=false,lastPeek=null;
+  const setPeek=on=>{peeking=on;$('peek').setAttribute('aria-pressed',String(on));if(renderer)renderer.peekAt=on?lastPeek:null;try{localStorage.setItem('spacology-voxel-peek',on?'1':'0');}catch{}};
+  try{peeking=localStorage.getItem('spacology-voxel-peek')==='1';}catch{}
+  $('peek').setAttribute('aria-pressed',String(peeking));
+  $('peek').onclick=()=>setPeek(!peeking);
+  document.addEventListener('keydown',e=>{if((e.key==='p'||e.key==='P')&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))setPeek(!peeking);});
+  canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!renderer)return;const r=canvas.getBoundingClientRect();lastPeek={x:e.clientX-r.left,y:e.clientY-r.top};renderer.peekAt=peeking?lastPeek:null;});
+  canvas.addEventListener('pointerleave',()=>{lastPeek=null;if(renderer)renderer.peekAt=null;});
   $('economy').onclick=()=>{economy=!economy;$('economy').setAttribute('aria-pressed',String(economy));meshBudget();stream?.setDetail(!economy);updateView();};
   function regenerate(seed,cell,extent=world.extent){
     if(coop.active&&!coopRegen)coop.stop();
