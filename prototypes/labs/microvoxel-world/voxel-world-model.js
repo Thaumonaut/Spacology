@@ -1977,7 +1977,7 @@
       }
       colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,stalks,fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -1994,6 +1994,17 @@
       }
       return {canopy:out};
     }
+    // Giant sequoia crowns as bough skirts, from the hero tree's tier data: one record per tier, in node-local metres:
+    // crown centre x, z, tier top, tier bottom; radius at the bottom, radius at the top (stepped in), seed. Listed by the
+    // node holding the trunk, at every level (the giant is visible from afar).
+    function sequoiaSkirts(L,nx,nz){
+      const m=NODE*cellMetres*2**L,x0=nx*m,z0=nz*m,A=landmarksAt0(x0+m/2,z0+m/2);
+      if(!A||A.variant!=='sequoia'||!A.tiers||A.x<x0||A.x>=x0+m||A.z<z0||A.z>=z0+m)return new Float32Array(0);
+      const cx=(A.cx??A.x)-x0,cz=(A.cz??A.z)-z0,out=[];
+      A.tiers.forEach((t,k)=>out.push(cx,cz,t.top,t.bottom,t.r,t.r*(1-(t.step||.35)),k*.137+(A.x%1),0));
+      return Float32Array.from(out);
+    }
+    const landmarksAt0=(x,z)=>infinite?ancientNear(x,z):null;
     // Palm fronds as objects (props mode skips palm crown voxels): one record per frond, in node-local metres: crown top
     // x, y, z, yaw, pitch, droop, length, and 1 for a young upright frond (0 otherwise).
     function frondProps(L,nx,nz){

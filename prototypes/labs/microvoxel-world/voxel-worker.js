@@ -6,7 +6,7 @@ self.onmessage=({data})=>{
   const {seed,cell=MicroWorld.CELL,extent=MicroWorld.EXTENT,map=null,cx,cz,step,token,dataId}=data;
   try{
     if(!world||world.seed!==seed||world.cell!==cell||world.extent!==extent||world.map!==map){world=MicroWorld.createWorld(seed,cell,extent,{map});cache=new MicroWorld.BudgetCache(128,4*1024*1024);}
-    if(data.node){const start=performance.now(),{L,nx,nz,smooth,props}=data.node,mesh=world.node(L,nx,nz,{smooth,props});self.postMessage({key:data.key,dataId:world.dataId,...mesh,generateMs:performance.now()-start,vegetationEntries:world.vegetationEntries()},[mesh.buffer,mesh.normals.buffer,mesh.canopy.buffer,mesh.biome.buffer,mesh.waterMap.buffer,mesh.grass.buffer,mesh.leaves.buffer,mesh.flowers.buffer,mesh.stalks.buffer,mesh.fronds.buffer,mesh.mushrooms.buffer,...(mesh.smooth?[mesh.smooth.buffer]:[])]);return;}
+    if(data.node){const start=performance.now(),{L,nx,nz,smooth,props}=data.node,mesh=world.node(L,nx,nz,{smooth,props});self.postMessage({key:data.key,dataId:world.dataId,...mesh,generateMs:performance.now()-start,vegetationEntries:world.vegetationEntries()},[mesh.buffer,mesh.normals.buffer,mesh.canopy.buffer,mesh.biome.buffer,mesh.waterMap.buffer,mesh.grass.buffer,mesh.leaves.buffer,mesh.flowers.buffer,mesh.stalks.buffer,mesh.skirts.buffer,mesh.fronds.buffer,mesh.mushrooms.buffer,...(mesh.smooth?[mesh.smooth.buffer]:[])]);return;}
     const start=performance.now(),key=`${cx}:${cz}`,cached=cache.get(key),chunk=cached||world.generateChunk(cx,cz),generated=performance.now();
     if(!cached)cache.set(key,chunk);
     const mesh=MicroWorld.meshChunk(world,chunk,step),meshed=performance.now();
