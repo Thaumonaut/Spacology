@@ -11,7 +11,7 @@ if(process.argv[2]==='infinite'){
     assert.ok(open>=3,`seed ${seed}: open start`);assert.ok(nearest<=5,`seed ${seed}: barrier within five hexes`);
     out.push({seed,openFirstRing:open,nearestBarrier:nearest,within6:count,sound:bar.filter(h=>h.rock==='sound').length,fractured:bar.filter(h=>h.rock==='fractured').length});
   }
-  console.log(JSON.stringify({revision:'micro-wilds-13',radiusHexes:6,checks:'PASS: open start (>=3 passable first-ring hexes) and a barrier within 5 hexes',seeds:out},null,1));process.exit(0);
+  console.log(JSON.stringify({revision:'micro-wilds-14',radiusHexes:6,checks:'PASS: open start (>=3 passable first-ring hexes) and a barrier within 5 hexes',seeds:out},null,1));process.exit(0);
 }
 const extent=Number(process.argv[2]??256),cell=Number(process.argv[3]??M.CELL),seeds=process.argv.length>4?process.argv.slice(4).map(Number):[0,1,2,3,39,2718,4294967295];
 const stride=4,digest=data=>createHash('sha256').update(data).digest('hex').slice(0,16),rows=[];
