@@ -8,6 +8,7 @@
     entry('team-building','Team-building lab','team-building-lab.html','Combat','Experiment','Compare packs, drafts and guaranteed targeting. Isolated combat forecasts.'),
     entry('equipment-puzzle','Equipment workbench','equipment-puzzle.html','Logistics','Experiment','Fit, connect and power components; test the result against the team-building model.'),
     entry('runner-next','Relay Runner · 3D','../runner/','Exploration','Experiment','The newer Three.js / ECS runner experiment.'),
+    entry('microvoxel-world','Microvoxel World','microvoxel-world.html','Exploration','Experiment','A seeded river catchment: compressed voxels, worker meshing and a moving crew. Separate world-quality proof.'),
     ...K.GAMES.map(g=>({...g,category:g.role,status:g.role==='Reserve'?'Reserve':'Experiment',description:g.output,station:true})),
     entry('battle','Animated battle stage','watchable-fight.html','Combat','Reusable','The original combat choreography, with team and planet controls.'),
     entry('weaver-voyage','Weaver voyage lab','weaver-voyage-lab.html','Combat','Earlier experiment','A 21-node Aether and equipment-set voyage; its own balance model.'),
