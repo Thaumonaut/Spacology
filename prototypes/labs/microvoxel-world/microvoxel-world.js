@@ -233,6 +233,9 @@
   const CLOUDS='spacology-voxel-clouds',setClouds=v=>{$('clouds').value=String(v);if(renderer)renderer.cloudOpacity=v/100;};
   try{const saved=localStorage.getItem(CLOUDS);if(saved!==null)setClouds(Number(saved));else setClouds(85);}catch{setClouds(85);}
   $('clouds').oninput=()=>{setClouds(Number($('clouds').value));try{localStorage.setItem(CLOUDS,$('clouds').value);}catch{}};
+  // Peek under the canopy around the mouse (desktop pointers; touch drags pan instead).
+  canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!renderer)return;const r=canvas.getBoundingClientRect();renderer.peekAt={x:e.clientX-r.left,y:e.clientY-r.top};});
+  canvas.addEventListener('pointerleave',()=>{if(renderer)renderer.peekAt=null;});
   $('economy').onclick=()=>{economy=!economy;$('economy').setAttribute('aria-pressed',String(economy));meshBudget();stream?.setDetail(!economy);updateView();};
   function regenerate(seed,cell,extent=world.extent){
     if(coop.active&&!coopRegen)coop.stop();

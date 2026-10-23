@@ -145,6 +145,14 @@
   float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
+  // Peek: inside a soft screen circle around the cursor (x, y in device pixels, radius; z 0 = off), canopy dissolves with a
+  // dither so the forest floor shows through. Returns true where this fragment should be cut.
+  const PEEK=`uniform vec3 peek;
+  bool peeked(){
+    if(peek.z<=0.)return false;
+    float k=1.-smoothstep(peek.z*.7,peek.z,length(gl_FragCoord.xy-peek.xy));
+    return k>fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));
+  }`;
   const SUNLIGHT=`float sunlight(){
     if(shadowOn<.5||any(lessThan(lightCoord,vec3(0)))||any(greaterThan(lightCoord,vec3(1))))return 1.;
     float bias=max(blockSize*1.2,shadowTexel*2.)/(2.*lightHalf.z),texel=shadowTexel/(2.*lightHalf.x),sum=0.;
@@ -176,9 +184,14 @@
   ${SUNLIGHT}
   ${MEADOW}
   ${MATERIALS}
+  ${PEEK}
   void main(){
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
+    if(peek.z>0.&&normalSize>0.&&xray<.5){
+      float groundTop=texture(normalMap,block.xz/normalSize).a*255.+groundBase;
+      if((block.y-groundTop)*blockSize>1.6&&peeked())discard;
+    }
     // Crew hidden behind trees or terrain show through as a warm translucent silhouette.
     if(xray>.5){color=vec4(1.,.84,.5,.55);glowOut=vec4(0);return;}
     vec3 n=normalize(normal);float cavity=0.;
@@ -498,7 +511,9 @@
   ${MATERIALS}
   // Signed distance to an upright triangle of the given size (negative inside).
   float triangle(vec2 p,float size){p/=size;p.x=abs(p.x)-1.;p.y+=.577;if(p.x+1.732*p.y>0.)p=vec2(p.x-1.732*p.y,-1.732*p.x-p.y)*.5;p.x-=clamp(p.x,-2.,0.);return -length(p)*sign(p.y)*size;}
+  ${PEEK}
   void main(){
+    if(peeked())discard;
     glowOut=vec4(0);
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
     float r=length(uv),ang=atan(uv.y,uv.x),lobes=meadowNoise(vec2(ang*2.2+seed*40.,seed*9.))*.5+meadowNoise(uv*5.+seed*23.)*.5;
@@ -690,7 +705,9 @@
   uniform vec3 palette[96];
   layout(location=0) out vec4 color;
   layout(location=1) out vec4 glowOut;
+  ${PEEK}
   void main(){
+    if(stalkMat==${M.MAT.bamboo}&&uv.y*heightM>1.6&&peeked())discard;
     glowOut=vec4(0);
     vec3 base=palette[stalkMat],c=base;bool keep=false;float x=uv.x,y=uv.y;
     if(stalkMat==${M.MAT.bamboo}){
@@ -802,10 +819,10 @@
     constructor(canvas){
       this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:false,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
-      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder','xray']));
+      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder','xray','peek']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime','worldOffset','palette']));
-      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset','palette']));
+      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset','palette','peek']));
       gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
       // Conifer card outline for comparison (?leaves=round|soft|hard|round+soft|mixed); mixed by default.
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
@@ -814,7 +831,7 @@
       ({program:this.mushroomProgram,u:this.mu}=link(gl,mushroomVertex,mushroomFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','palette','shadowOn','shadowTexel','blockSize','shadowMap']));
       this.mushroomGeom=makeMushroom();this.mushroomBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.mushroomBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.mushroomGeom,gl.STATIC_DRAW);
       gl.useProgram(this.mushroomProgram);gl.uniform1i(this.mu.shadowMap,1);gl.uniform1f(this.mu.blockSize,.2);
-      ({program:this.stalkProgram,u:this.su}=link(gl,stalkVertex,stalkFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
+      ({program:this.stalkProgram,u:this.su}=link(gl,stalkVertex,stalkFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette','peek']));
       ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
       ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','sceneGlow','texel','depthRange','threshold','ink','width']));
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);gl.uniform1i(this.pu.sceneGlow,7);this.postVao=gl.createVertexArray();
@@ -978,7 +995,7 @@
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(scene)gl.clearBufferfv(gl.COLOR,1,[0,0,0,0]);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
-      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);gl.uniform2f(this.u.worldOffset,...off);
+      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);const pk=this.peekAt?[this.peekAt.x*this.pixelRatio,(this.height-this.peekAt.y)*this.pixelRatio,110*this.pixelRatio]:[0,0,0];gl.uniform3fv(this.u.peek,pk);gl.uniform2f(this.u.worldOffset,...off);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
       // Close-zoom tones apply per tile, only where that tile really carries leaf cards or grass blades: a coarse
       // placeholder shown while finer tiles load keeps the far-zoom colours instead of dark, bladeless grass and boxy crowns.
@@ -1001,7 +1018,7 @@
         for(const d of this.queue){const t=d.mesh.mushrooms;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,[d.origin[0],0,d.origin[2]]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
       }
       if(this.queue.some(d=>d.mesh.stalks)){
-        const g=this.su;gl.useProgram(this.stalkProgram);gl.disable(gl.CULL_FACE);
+        const g=this.su;gl.useProgram(this.stalkProgram);gl.disable(gl.CULL_FACE);gl.uniform3fv(g.peek,pk);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
         for(const d of this.queue){const t=d.mesh.stalks;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.enable(gl.CULL_FACE);
@@ -1014,7 +1031,7 @@
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
-        const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
+        const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.uniform3fv(g.peek,pk);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         for(const d of this.queue){const t=d.mesh.leaves;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
