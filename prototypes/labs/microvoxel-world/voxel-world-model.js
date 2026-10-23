@@ -1940,7 +1940,7 @@
           tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
         }
       }else if(crown==='oval'){
-        seg(t.x,t.base,t.z,trunk*1.15,t.x,top,t.z,trunk*.7,bark,1);
+        seg(t.x,t.base,t.z,trunk*1.05,t.x,top-R*.9,t.z,trunk*.45);
         lobe(t.x,top-R*.3,t.z,R,1.6);
       }else if(crown==='umbrella'){
         seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.8);
@@ -1994,7 +1994,7 @@
       // spread mostly over its outer and upper surface, a few inside, with gaps between them where sky and branches show.
       const clumps=[],tid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
       for(let i=0,li=0;i<lobes.length;i+=6,li++){
-        const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],size=Math.max(.55,r*.42),n=10+Math.round(r*5.5);
+        const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],size=Math.max(.4,r*.3),n=20+Math.round(r*11);
         for(let k=0;k<n;k++){
           const h1=hash(k,tid+li*131,seed+921),h2=hash(k,tid+li*131,seed+923),h3=hash(k,tid+li*131,seed+925);
           // Directions biased upward and outward; depth mostly near the surface.
@@ -2556,7 +2556,7 @@
       for(let gz=Math.floor((z0-pad)/TG);gz<=Math.floor((z0+m+pad)/TG);gz++)for(let gx=Math.floor((x0-pad)/TG);gx<=Math.floor((x0+m+pad)/TG);gx++){
         const t=tree(gx,gz);if(!t||t.kind!=='tree')continue;const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+901);
         for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys]=P.lobes.slice(i,i+5);raise(x,z,r,y+r*ys*.85);}
-        if(own&&P.crown){const C=P.crown,keep=L<=1?1:L===2?2:3,grow=Math.sqrt(keep);
+        if(own&&P.crown){const C=P.crown,keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
           for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}}
         for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}

@@ -1284,7 +1284,7 @@
     float ridge=sin(around*6.2832*7.+along*.7+sin(along*2.3+around*9.)*.6)*.5+.5;
     vec3 base=palette[mat],c=base*mix(.6,1.06,smoothstep(.22,.34,tone))*(.88+.16*ridge);
     c=mix(c*vec3(.86,.9,1.04),c,smoothstep(.2,.4,tone));
-    if(mat==${M.MAT.birchBark}){float m=step(.82,fract(along*1.6+sin(around*18.)*.15))*step(.45,fract(around*2.7+along*.37));c=mix(c,palette[${M.MAT.birchMark}],m*.9);}
+    if(mat==${M.MAT.birchBark}){float band=fract(along*2.3+sin(around*11.+along*.7)*.12),w=.05+.06*fract(sin(floor(along*2.3)*17.1)*437.5),m=(1.-smoothstep(w*.6,w,abs(band-.5)))*step(.35,fract(around*2.2+floor(along*2.3)*.37))*step(.2,fract(around*5.1+along*1.3));c=mix(c,palette[${M.MAT.birchMark}],m*.85);}
     color=vec4(c,1.);
   }`;
   // Lobes as anime crown billboards: each crown blob (centre a.xyz, radius a.w, height scale b.x, leaf b.y, seed b.z) is one
@@ -1332,13 +1332,19 @@
   // Shared by the lobe's colour and shadow fragments: the outline, scalloped into leaf clumps.
   // A leaf cluster's outline: a core and six leaves fanned around it at hashed angles and sizes, their tips serrated.
   // lobeEdge returns the cluster's extent along q's direction relative to |q| test: inside when lobeInside > 0.
-  const LOBE_SHAPE=`float lobeInside(vec2 q,float seed){
-    float a=atan(q.y,q.x),v=.55-length(q*vec2(1.,1.15));
-    for(int i=0;i<6;i++){float fi=float(i),h=fract(sin(seed*91.7+fi*13.1)*4375.5),b=fi*1.047+h*.7,L=.3+.2*fract(h*7.3);
-      vec2 c=vec2(cos(b),sin(b))*(.5+.15*h);vec2 d=q-c;float t=atan(d.y,d.x)-b;
-      v=max(v,L*(1.-.18*abs(sin(t*3.+h*9.)))-length(vec2(dot(d,vec2(cos(b),sin(b))),dot(d,vec2(-sin(b),cos(b)))*1.6)));}
-    return v;
+  // A leaf cluster: a shaded core and eight leaves fanned around it at hashed angles and sizes, their tips serrated.
+  // lobeLeaf returns how far inside the cluster the point is (> 0 inside) and, for the leaf it falls on (top-most wins),
+  // its id, the gap to the next leaf under it (small along the overlaps) and which half of the leaf it is on (-1..1
+  // across the midrib), so the fragment can paint each leaf with its own tone, a lit and a shaded half, and dark gaps.
+  const LOBE_SHAPE=`float lobeLeaf(vec2 q,float seed,out float leaf,out float gap,out float side){
+    float core=.42-length(q*vec2(1.,1.15)),v=core,second=-9.;leaf=-1.;side=0.;
+    for(int i=0;i<8;i++){float fi=float(i),h=fract(sin(seed*91.7+fi*13.1)*4375.5),b=fi*.785+h*.6,L=.26+.18*fract(h*7.3);
+      vec2 c=vec2(cos(b),sin(b))*(.48+.18*h),d=q-c;vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x);float along=dot(d,u),across=dot(d,w),t=atan(d.y,d.x)-b;
+      float f=L*(1.-.2*abs(sin(t*3.+h*9.)))-length(vec2(along,across*1.7));
+      if(f>v){second=v;v=f;leaf=fi;side=clamp(across/(L*.6),-1.,1.);}else second=max(second,f);}
+    gap=v-second;return v;
   }
+  float lobeInside(vec2 q,float seed){float a,b,c;return lobeLeaf(q,seed,a,b,c);}
   float lobeEdge(vec2 q,float seed){return lobeInside(q,seed)>0.?9.:0.;}`;
   const lobeFragment=`#version 300 es
   precision highp float;
@@ -1364,22 +1370,28 @@
   void main(){
     glowOut=vec4(0);
     if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
-    float d=length(q),e=1.;if(lobeInside(q,seed)<=0.)discard;d=min(d,.99);
+    float leaf,leafGap,leafSide,d=length(q),e=1.;float inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);if(inside<=0.)discard;d=min(d,.99);
     // The rounded surface behind this point of the quad, and its depth.
     float z=sqrt(max(0.,1.-(d*d)/(e*e)));vec3 nv=normalize(vec3(q.x,q.y,z*.9));
     vec3 n=normalize(ax*nv.x+ay*nv.y+az*nv.z),p=centre+(ax*q.x+ay*q.y+az*z*.9)*rad;
-    lightCoord=((p-lightAt)*lightAxes/lightHalf)*.5+.5;
+    // Light is taken at the cluster's fixed centre, not at the card point (which slides with the camera), so a cluster's
+    // shading and sun shadow hold still as you move.
+    lightCoord=((centre-lightAt)*lightAxes/lightHalf)*.5+.5;
     float leafId=fract(seed*7.31),gap=0.;
     // Anime-tree normal transfer: light mostly by the crown proxy's normal (one soft ellipsoid around the whole crown),
     // keeping a little of the blob's own roundness so clumps still separate.
-    vec3 k=(p-crown.xyz)/vec3(crown.w,crown.w*.78,crown.w);float inner=length(k);
-    vec3 nc=normalize(k+vec3(0,.12,0)),N=normalize(mix(n,nc,.85));
+    vec3 k=(centre-crown.xyz)/vec3(crown.w,crown.w*.78,crown.w);float inner=length(k);
+    vec3 nc=normalize(k+vec3(0,.12,0)),N=nc;
     float sun=sunlight(),wrap=dot(N,SUN)*.5+.5;
     // Fake occlusion: the crown darkens toward its core and its underside.
     float occl=(1.-smoothstep(.35,.95,inner))*.18+(1.-smoothstep(-.7,.1,nc.y))*.2;
     // Each cluster is a little lighter toward its own sunward top and darker at its base, so clusters read as separate
     // painted clumps within the crown's one light.
-    float own=dot(n,SUN)*.12+q.y*.08;
+    // Leaf texture: each leaf its own tone, its sun-facing half lighter and the other half darker (a painted crease
+    // down the midrib), thin dark gaps where one leaf overlaps the next, the cluster's core in shade.
+    float lh=leaf<0.?.5:fract(sin(seed*37.3+leaf*7.7)*4375.5),facing=dot(normalize(ax*1.+ay*.6),SUN)>0.?1.:-1.;
+    float leafTone=leaf<0.?-.1:(lh-.5)*.16+leafSide*facing*.07-(1.-smoothstep(.0,.035,leafGap))*.14-(1.-smoothstep(0.,.05,inside))*.06;
+    float own=q.y*.1+leafTone;
     float tone=wrap*mix(.5,1.,sun)+own+(leafId-.5)*.08-gap*.08-occl*1.3;
     vec3 shadow,mid,high;crownBands(mat,palette[mat],shadow,mid,high);
     // Anime hue shift: shade cools toward teal-blue, light warms toward yellow-green.
