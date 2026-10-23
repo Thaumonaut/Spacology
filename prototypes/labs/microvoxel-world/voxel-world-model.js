@@ -150,9 +150,25 @@
       const M=clamp((m*.8+lift*.008+(noise(wx*.0008,wz*.0008,seed+361)-.5)*.35+(noise(x*.005,z*.005,seed+339)-.5)*.08)*(1-.7*A),0,1);
       v={T,M,V,U,A};climateCells.set(k,v);if(climateCells.size>8192)climateCells.delete(climateCells.keys().next().value);return v;
     }
+    // The last cell quad is kept: neighbouring columns and the biome-edge samples (see geography) mostly share it, which
+    // skips four Map lookups.
+    const quad={i:NaN,j:NaN,a:null,b:null,c:null,d:null};
     function climate(x,z){
-      const gx=x/CG,gz=z/CG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j,a=climateCell(i,j),b=climateCell(i+1,j),c=climateCell(i,j+1),d=climateCell(i+1,j+1),mix=k=>(a[k]+(b[k]-a[k])*u)*(1-w)+(c[k]+(d[k]-c[k])*u)*w;
+      const gx=x/CG,gz=z/CG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j;
+      if(i!==quad.i||j!==quad.j){quad.i=i;quad.j=j;quad.a=climateCell(i,j);quad.b=climateCell(i+1,j);quad.c=climateCell(i,j+1);quad.d=climateCell(i+1,j+1);}
+      const {a,b,c,d}=quad,mix=k=>(a[k]+(b[k]-a[k])*u)*(1-w)+(c[k]+(d[k]-c[k])*u)*w;
       return {T:mix('T'),M:mix('M'),V:mix('V'),U:mix('U'),A:mix('A')};
+    }
+    // climate() plus its gradient per metre (d.T, d.M, ... as [x, z]), from a quad cache of its own. Fields are bilinear
+    // within a 32 m cell, so value + gradient·offset is near exact a few tens of metres away: the biome-edge samples use
+    // that instead of four more climate() calls.
+    // Fills the returned scratch object: T, M, V, U, A and their gradients Tx, Tz, Mx, ... (valid until the next call).
+    const quadD={i:NaN,j:NaN,a:null,b:null,c:null,d:null},climD={};
+    function climateD(x,z){
+      const gx=x/CG,gz=z/CG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j,Q=quadD,o=climD;
+      if(i!==Q.i||j!==Q.j){Q.i=i;Q.j=j;Q.a=climateCell(i,j);Q.b=climateCell(i+1,j);Q.c=climateCell(i,j+1);Q.d=climateCell(i+1,j+1);}
+      const {a,b,c,d}=Q,f=(k,kx,kz)=>{const A=a[k],B=b[k],C=c[k],D=d[k];o[k]=(A+(B-A)*u)*(1-w)+(C+(D-C)*u)*w;o[kx]=((B-A)*(1-w)+(D-C)*w)/CG;o[kz]=((C-A)*(1-u)+(D-B)*u)/CG;};
+      f('T','Tx','Tz');f('M','Mx','Mz');f('V','Vx','Vz');f('U','Ux','Uz');f('A','Ax','Az');return o;
     }
     // Mountains zone by temperature: montane conifer forest, subalpine parkland, green alpine meadow, then rock and snow.
     // Snow holds only on ground gentler than a limit that rises as it gets colder (steeper cold ground is bare rock), and
@@ -193,9 +209,32 @@
       return V>.5?'golden':'savanna';
     }
     // Lowland region values for biomeOf: the cached region fields plus per-column jitter (about 20 m and 6 m wobble).
-    function region(C,x,z){
+    // W: the climate at the column's warped position (see biomeWarp); its difference from C rides in jt/jm, which only the
+    // lowland branch of biomeOf applies, so lowland borders meander while mountain zonation keeps the column's own climate.
+    function region(C,x,z,W=C){
       const f=(noise(x*.21,z*.21,seed+365)-.5)*.6,j=noise(x*.05,z*.05,seed+363)-.5+f,k=noise(x*.045,z*.045,seed+367)-.5-f;
-      return {V:C.V+j*.14,U:C.U+k*.14,A:C.A,jt:j*1.8,jm:k*.08};
+      return {V:W.V+j*.14,U:W.U+k*.14,A:W.A,jt:j*1.8+W.T-C.T,jm:k*.08+W.M-C.M};
+    }
+    // Lowland biome decisions read the climate fields at a domain-warped position (~240 m and ~90 m wavelengths, typically
+    // 30-60 m and up to ~110 m displacement; region()'s 20 m jitter rides on top), so borders that are isolines of the smooth climate meander
+    // instead of running as long straight lines. warp.a and warp.D: a slowly turning angle and a 10-24 m reach that
+    // the edge samples reuse.
+    const warp={x:0,z:0,a:0,D:0};
+    function biomeWarp(x,z){
+      // Octaves on rotated axes, so neither lines up with the climate grid (whose cell rows are what read as straight).
+      const p=(x*.8+z*.6)*.011,q=(z*.8-x*.6)*.011,a=noise(x*.0042,z*.0042,seed+801)-.5,b=noise(x*.0042+17,z*.0042,seed+803)-.5,c=noise(p,q,seed+805)-.5,d=noise(q+29,p,seed+807)-.5;
+      warp.x=x+a*170+c*130;warp.z=z+b*170+d*130;warp.a=(a-b)*9;warp.D=17+20*a;return warp;
+    }
+    // Biomes from biomeOf's lowland branch: the only ones that blend at their edges (see geography). Sea, shore, gorge,
+    // glacier and the mountain zonation (montane, subalpine, meadow, alpine, snow) keep their own edges.
+    const LOWLAND=new Set(['forest','grassland','flowers','autumn','blossom','fen','wetland','heath','steppe','savanna','golden','desert','badlands','boreal','tundra','redwood','rainforest','bamboo','pinkgrass']);
+    // Dithered pick between a column's biome and its edge partner: biome2 wins where blend beats a threshold made of
+    // ~20 m clumps plus per-cell speckle (f: a 0-1 hash of the caller's cell). On the border (blend 0.5) the two mix
+    // about evenly in fine speckle; further in only the clump lows pass, so the other biome thins to scattered patches.
+    // White hash and >=20 m noise cannot alias into stripes when LOD nodes sample one column per 2^L cells.
+    function pickBiome(g,x,z,f){
+      if(!(g.blend>0))return g.biome;
+      return g.blend>.5+(noise(x*.05,z*.05,seed+813)-.5)*.9+(f-.5)*.55?g.biome2:g.biome;
     }
     const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.1,grassland:.06,tundra:.03,
       flowers:.03,autumn:.8,blossom:.5,fen:.1,heath:.04,golden:.06,bamboo:.9,badlands:.01,pinkgrass:.04,desert:0,beach:0};
@@ -823,7 +862,8 @@
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
         zone.slope=slope;zone.crease=crease;
-        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,region(C,x,z));
+        const BW=biomeWarp(x,z),bang=BW.a,breach=BW.D,CW=climateD(BW.x,BW.z),RG=region(C,x,z,CW),mountain=t.relief>15||t.cone>20;
+        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,mountain,slope>1.8,RG);
         const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
@@ -850,10 +890,25 @@
           if(riverDistance<9&&!lakeWater&&!held){fast=RV.foam||slope>.45||t.relief>15&&slope>.25&&RV.size<.9;splash=(RV.foam||RV.spring)&&riverDistance<7;}
           calm=lakeWater||held||!fast&&slope<.2&&!RV.foam;
         }
+        // Biome edge blend: biomeOf again at four points 10-24 m (warp.D) around the warped position, on a cross whose angle drifts
+        // slowly (climate extrapolated by its gradient). Each re-evaluation keeps this column's height, wet/steep/mountain flags and region jitter and
+        // only moves the climate, so sea, shore, snow and mountain zonation never flip (only LOWLAND results count), and a
+        // riparian corridor is not a biome, so it is never a blend partner. blend: the share of samples in another lowland
+        // biome, 0.5 on the border falling to 0 at that reach (bands ~20-48 m wide); biome2: the commonest such biome. Consumers draw biome2 by
+        // pickBiome() (ground, scatter) or a per-tree-cell roll (trees).
+        let biome2=biome,blend=0;
+        if(LOWLAND.has(biome)&&!(water>height)){
+          const ux=Math.cos(bang)*breach,uz=Math.sin(bang)*breach,G=CW,SR={V:0,U:0,A:0,jt:0,jm:0};let n1=0,n2=0,b1=null,b2=null;
+          for(let q=0;q<4;q++){const ox=q&1?-1:1,sx=q<2?ux*ox:-uz*ox,sz=q<2?uz*ox:ux*ox;
+            SR.V=RG.V+G.Vx*sx+G.Vz*sz;SR.U=RG.U+G.Ux*sx+G.Uz*sz;SR.A=RG.A+G.Ax*sx+G.Az*sz;SR.jt=RG.jt+G.Tx*sx+G.Tz*sz;SR.jm=RG.jm+G.Mx*sx+G.Mz*sz;
+            const o=biomeOf(T,C.M,metres,wet,steep,slope>1.4,mountain,slope>1.8,SR);
+            if(o===biome||!LOWLAND.has(o))continue;if(o===b1||!b1){b1=o;n1++;}else if(o===b2||!b2){b2=o;n2++;}}
+          if(n1||n2){biome2=n2>n1?b2:b1;blend=(n1+n2)/4;}
+        }
         // crease: 0-1 erosion crease (gully floors where the coarse erosion octaves converge; 0 off mountains). erosion:
         // the eroded-terrain offset (m) included in height.
         return {height,riverDistance,riparian,corridor,fast,calm,splash,lake:RV.lake,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
-          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,glacier,iceCells:glacier?iceCells:0,crease,erosion,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
+          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,biome2,blend,glacier,iceCells:glacier?iceCells:0,crease,erosion,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
       }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
@@ -962,8 +1017,12 @@
     }
     // A streamed tree cell is a pure function of its 3 m grid cell; tree() memoizes it. It holds one plant: a tree, a
     // bush clump, a bamboo clump, a cactus, a mushroom cluster, a log or a stump (or nothing).
+    // plantBiome: the biome makeTree is planting for (growTree records it as t.biome, which picks the under-canopy floor).
+    let plantBiome=null;
     function makeTree(gx,gz){
-      const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),b=g.biome,S=treeStyle(b);
+      // Near a biome edge the cell plants for its own biome or the neighbour's (pickBiome), so species, density and
+      // extras from both sides mix with a share that falls off with distance from the border.
+      const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),b=pickBiome(g,x,z,hash(gx,gz,seed+817)),S=treeStyle(b);plantBiome=b;
       // Trees never stand on bare rock, cliff-steep ground or water, at the trunk or within 1.5 m of it (so a crown never
       // sits on a rock face). Snow and ice are allowed: the renderer gives those trees snowy crowns.
       const bare=G=>G.exposed||G.sea||G.water>G.height||G.biome==='alpine'||G.biome==='gorge'||G.slope>1.3;
@@ -987,7 +1046,7 @@
         return null;
       }
       base*=tline;
-      const dense=base*(.35+.65*patch),common={x,z,base:g.height};
+      const dense=base*(.35+.65*patch),common={x,z,base:g.height,biome:b};
       const bush=(scale=1)=>Object.freeze({...common,kind:'bush',leaf:S.bushLeaf,lumps:bushLumps(x,z,gx,gz,601,scale)});
       // River and lake edges: twisted trees leaning out over the water, bushes on the bank.
       if(g.riverDistance<12||rip>.6&&g.lake){
@@ -1045,7 +1104,7 @@
     function growTree(sp,S,g,gx,gz,x,z,o={}){
       const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
       const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
-      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*Math.sqrt(C.k)/cellMetres)};
+      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*Math.sqrt(C.k)/cellMetres)};
       // Larches turn autumn gold in patches.
       if(sp==='larch'&&noise(x*.015,z*.015,seed+741)>.64)t.leaf=MAT.larchGold;
       // Biome canopy colours (autumn gold and rust, blossom pinks) for broadleaf crowns, one per tree.
@@ -1326,18 +1385,24 @@
       const e=Math.min(heightCells,from+Math.round((.8+.6*r)/cellMetres)),hd=Math.max(1,Math.round(.5/cellMetres));
       values.fill(MAT.rush,h,e);for(let y=Math.max(h,e-1-hd);y<e-1;y++)values[y]=MAT.cattail;return e;
     }
-    function scatter(g,x,z,values,h){
-      const b=g.biome,cx=Math.floor(x*4),cz=Math.floor(z*4),r=hash(cx,cz,seed+52),r2=hash(cx,cz,seed+54),top=values[h-1]&127;
+    // b: the column's dithered surface biome (pickBiome), so decorations change with the ground across a biome edge.
+    function scatter(g,x,z,values,h,b=g.biome){
+      const cx=Math.floor(x*4),cz=Math.floor(z*4),r=hash(cx,cz,seed+52),r2=hash(cx,cz,seed+54),top=values[h-1]&127;
       const put=(m,n)=>{const e=Math.min(heightCells,h+Math.max(1,n));values.fill(m,h,e);return e;};
       if(g.water>h){
         if(g.sea||g.foam||values[g.water-1]!==MAT.water)return 0;
         const depth=g.water-h,still=g.calm&&(g.lake||g.riverSize<.9||g.riverDistance>1.2);
-        // Water lilies: round pads flush with the surface (they replace the top water cell) in drifts on calm water away
-        // from the very edge, a few with a pink bloom.
-        if(still&&depth>density&&noise(x*.13,z*.13,seed+661)>.64){
-          const lx=Math.floor(x/.8),lz=Math.floor(z/.8),pr=.22+.16*hash(lx,lz,seed+663);
-          if(hash(lx,lz,seed+665)<.75){const d=Math.hypot(x-(lx+.3+.4*hash(lx,lz,seed+667))*.8,z-(lz+.3+.4*hash(lx,lz,seed+669))*.8);
-            if(d<pr&&(d>.06||hash(lx,lz,seed+671)>.3)){values[g.water-1]=MAT.lilyPad;if(d<.1&&hash(lx,lz,seed+673)<.3){values[g.water]=MAT.lilyFlower;return g.water+1;}return g.water;}}
+        // Water lilies: round pads 0.65-1.2 m across, flush with the surface (they replace the top water cell), gathered in
+        // drifts on calm water away from the very edge. One pad per 1.6 m cell, its centre kept far enough inside the cell
+        // that the disc is never clipped square; the larger pads have a narrow notch, and about a third carry a pink bloom.
+        if(still&&depth>density){const n=noise(x*.13,z*.13,seed+661);
+          if(n>.6){const L=1.6,lx=Math.floor(x/L),lz=Math.floor(z/L),pr=.32+.28*hash(lx,lz,seed+663);
+            if(hash(lx,lz,seed+665)<clamp((n-.6)*5,0,.85)){
+              const px=(lx+(pr+(L-2*pr)*hash(lx,lz,seed+667))/L)*L,pz=(lz+(pr+(L-2*pr)*hash(lx,lz,seed+669))/L)*L,dx=x-px,dz=z-pz,d=Math.hypot(dx,dz);
+              const na=hash(lx,lz,seed+671)*6.2832,cut=pr>.45&&d>pr*.35&&Math.cos(Math.atan2(dz,dx)-na)>.94;
+              if(d<pr&&!cut){values[g.water-1]=MAT.lilyPad;
+                if(hash(lx,lz,seed+673)<.33&&Math.abs(dx)<Math.max(.25,cellMetres*.6)&&Math.abs(dz)<Math.max(.25,cellMetres*.6)){values[g.water]=MAT.lilyFlower;return g.water+1;}
+                return g.water;}}}
         }
         if(depth>2*density)return 0;
         const n=noise(x*.2,z*.2,seed+641);
@@ -1395,7 +1460,8 @@
       values.fill(MAT.basalt,0,Math.max(0,h-4*density));
       values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
       if(infinite){
-        const b=g.biome,sub=b==='desert'||b==='beach'||b==='sea'?MAT.sand:b==='badlands'?MAT.clay:MAT.soil;
+        // b: this column's surface biome, dithered across biome edges (pickBiome on its 50 cm cell).
+        const b=pickBiome(g,x,z,hash(Math.floor(x*2),Math.floor(z*2),seed+815)),sub=b==='desert'||b==='beach'||b==='sea'?MAT.sand:b==='badlands'?MAT.clay:MAT.soil;
         if(!g.exposed)values.fill(sub,Math.max(0,h-4*density),h);
         // Ground variety, each with a noise-wobbled edge: wet mud then sand on river banks (creeks: mud only), gravel scree on
         // steep mountain soil, and worn coarse-dirt patches in open grass.
@@ -1419,13 +1485,13 @@
       if(infinite){if(g.water>h){values.fill(MAT.water,h,g.water);if(g.foam)values[g.water-1]=MAT.foam;written=Math.max(written,g.water);}}
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
-      const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9;
+      const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
       for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
         // Needle or leaf litter under trees and bamboo, a ring of bare dirt around conifers.
         if(t.radius&&t.cls!==-1||t.kind==='bamboo'){
           const f=Math.hypot(x-t.x,z-t.z)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
-          if(f<1.12)floorMat=Math.min(floorMat,f<1?(t.conifer?0:1):t.conifer?2:3);
+          if(f<1.12){const m=f<1?(t.conifer?0:1):t.conifer?2:3;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
         }
         const w=stampPlant(t,x,z,values,h);if(w>written)written=w;
       }
@@ -1433,7 +1499,8 @@
       // Under-canopy floor: podzol under conifers; under broadleaf, leaf litter in temperate woods, gold litter in autumn woods,
       // petals in blossom groves, dark jungle floor under rainforest and bamboo, and a shaded moss disc under lone trees in open
       // country. The fringe ring is worn dirt only around conifers (2); around other trees (3) the ground runs up to the trunk.
-      if(infinite&&floorMat<9&&(TURF.has(values[h-1])||values[h-1]===MAT.gravel)){const b=g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.petal:floorMat===2?MAT.dirt:floorMat===3?0
+      // The floor follows the sheltering tree's biome (petals under a blossom tree even in a blend band).
+      if(infinite&&floorMat<9&&(TURF.has(values[h-1])||values[h-1]===MAT.gravel)){const b=floorBiome||g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.petal:floorMat===2?MAT.dirt:floorMat===3?0
         :b==='forest'||b==='redwood'||b==='wetland'?MAT.litter:b==='rainforest'||b==='bamboo'?MAT.junglefloor:b==='fen'?MAT.sphagnum:MAT.mossy;if(m)values[h-1]=m;}
       if(infinite){
         const I=isleAt(x,z),F=isleCell(Math.floor(x/IG),Math.floor(z/IG))?.fall;
@@ -1563,7 +1630,7 @@
       }
       if(prof&&prof.on)prof.features+=now()-t0;
       if(!infinite){if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);}
-      else if(colStep*cellMetres<.51)written=Math.max(written,scatter(g,x,z,values,h));
+      else if(colStep*cellMetres<.51)written=Math.max(written,scatter(g,x,z,values,h,pickBiome(g,x,z,hash(Math.floor(x*2),Math.floor(z*2),seed+815))));
       colTop=Math.min(heightCells,written);
       return values;
     }
