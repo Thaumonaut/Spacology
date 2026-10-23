@@ -1920,8 +1920,11 @@
     function biomeTint(L,nx,nz,grassy,grassMat,snowy,G){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
-        const x=(x0+(i+.5)*column)/TINT,z=(z0+(j+.5)*column)/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;
-        const c=(coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v,o=(j*NODE+i)*4;
+        // Grass tone blends between biomes in irregular drifts: the sample point is warped by noise and the tone averaged over
+        // a 3×3 spread, so a biome border never shows as a straight line along the sampling grid.
+        const wx=x0+(i+.5)*column,wz=z0+(j+.5)*column,dx=(noise(wx*.02,wz*.02,seed+611)-.5)*40,dz=(noise(wx*.02+9.1,wz*.02,seed+613)-.5)*40;
+        const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
+        let c=0;for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;const o=(j*NODE+i)*4;
         out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=255;
       }
       return out;
