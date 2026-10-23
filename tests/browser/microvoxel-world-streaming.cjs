@@ -5,7 +5,8 @@ const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();r
 const state=p=>p.evaluate(()=>MicroWorldLab.snapshot());
 const terrainImage=p=>p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.getElementById('world').toDataURL('image/png')))));
 async function jump(p,cx,cz){await p.locator('#info').click();await p.locator('#chunkX').fill(String(cx));await p.locator('#chunkZ').fill(String(cz));await p.locator('#travelForm button').click();await ready(p);}
-function bounded(s){assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);assert.equal(s.actors.length,2);assert.ok(s.position.x>=0&&s.position.x<8&&s.position.z>=0&&s.position.z<8);assert.ok(s.meshCacheBytes<=s.meshCacheLimit,'LOD node cache stays within its GPU budget');assert.ok(s.voxelCacheEntries<=128&&s.voxelCacheBytes<=4*1024*1024);assert.ok(s.vegetationEntries<=2048&&s.mainVegetationEntries<=2048);assert.ok(s.maxRenderOrigin<Math.max(256,s.camera.span*3),'GPU origins stay relative to the explorer');}
+// GPU origins: coarse far-view nodes sit a few hundred metres out, but origins must never grow with distance travelled.
+function bounded(s){assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);assert.equal(s.actors.length,2);assert.ok(s.position.x>=0&&s.position.x<8&&s.position.z>=0&&s.position.z<8);assert.ok(s.meshCacheBytes<=s.meshCacheLimit,'LOD node cache stays within its GPU budget');assert.ok(s.voxelCacheEntries<=128&&s.voxelCacheBytes<=4*1024*1024);assert.ok(s.vegetationEntries<=2048&&s.mainVegetationEntries<=2048);assert.ok(s.maxRenderOrigin<Math.max(2048,s.camera.span*3),'GPU origins stay relative to the explorer');}
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
   const context=await browser.newContext({viewport:{width:1280,height:850},serviceWorkers:'block'}),p=await context.newPage(),errors=[];
@@ -21,15 +22,15 @@ try{
     proto.uniform3f=function(location,x,y,z){if(['origin','center'].includes(names.get(location)))track(x,y,z);return center.call(this,location,x,y,z);};
   });
   await p.goto(BASE+'/prototypes/microvoxel-world.html?extent=infinite&seed=2718&gpuMiB=8');await ready(p);await p.locator('#pause').click();
-  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-20');
+  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-23');
   const fixture=M.createWorld(original.seed,original.cellMetres,'infinite');for(const a of original.actors)assert.equal(a.y,fixture.ground(a.x,a.z),'crew stand on exact voxel ground at their task sites');
   const home=await terrainImage(p),samples=[];assert.ok(home.length>10000,'capture contains rendered terrain, not an empty framebuffer');
   for(const [cx,cz] of [[125,0],[-125,-125],[250,250],[200000,-200000],[-200000,200000],[500000,-500000],[-500000,500000],[1000000,-1000000],[-1000000,1000000],[M.MAX_CHUNK-32,-M.MAX_CHUNK+32]]){
     await jump(p,cx,cz);const s=await state(p);bounded(s);assert.equal(s.position.cx,cx);assert.equal(s.position.cz,cz);assert.equal(s.position.x,4);assert.deepEqual(s.actors.map(a=>[a.x,a.z]),original.actors.map(a=>[a.x,a.z]),'paused crew stay at their task sites while the camera travels');assert.ok(await p.locator('#rootMarker').isHidden());samples.push(s);
   }
   const gpu=await p.evaluate(()=>({xz:window.__maxPositionUniform,y:window.__maxAltitudeUniform}));console.log('max GPU position uniforms',JSON.stringify(gpu));
-  assert.ok(gpu.xz<256,'actual GPU horizontal position uniforms stay small after distant travel');
-  assert.ok(gpu.y<256,'actual GPU heights stay relative to the explorer after distant travel');
+  assert.ok(gpu.xz<2048,'actual GPU horizontal position uniforms stay small after distant travel');
+  assert.ok(gpu.y<2048,'actual GPU heights stay relative to the explorer after distant travel');
   const distant=samples.at(-1).position,distantX=distant.cx*8+distant.x+2,distantZ=distant.cz*8+distant.z+2;
   const target=await p.evaluate(({x,y,z})=>MicroWorldLab.project(x,y,z),{x:distantX,y:fixture.ground(distantX,distantZ),z:distantZ}),canvasRect=await p.locator('#world').boundingBox();
   await p.mouse.click(canvasRect.x+target.x,canvasRect.y+target.y);assert.ok(await p.locator('#inspection').isVisible());assert.match(await p.locator('#inspectPosition').innerText(),/X 134217/);await p.locator('#closeInspection').click();

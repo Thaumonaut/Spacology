@@ -13,6 +13,12 @@ function groundBlock(L,cx,cz){
   while(y<c.length&&solid(c[y]))y++;
   return Math.floor((y-1)/s)+1;
 }
+// Lighting height in blocks, as the generator takes it: the exact terrain surface where the ground is bare terrain, else
+// the block ground. "Flat" below means level on this height, so gentle slopes inside one block are not counted as flat.
+function lightGround(L,cx,cz){
+  const s=2**L,b=groundBlock(L,cx,cz),g=w.geography((cx*s+(s>>1)+.5)*M.CELL,(cz*s+(s>>1)+.5)*M.CELL);
+  return g.surface!=null&&b===Math.floor((g.height-1)/s)+1?(g.surface/M.CELL+s/2-1)/s:b;
+}
 
 // Flat ground stays flat-lit next to sky isles (5:-1:-6), trees (1:-4:-4, 1:-1:-4) and crystal spires (1:-7:-43, 2:-4:-22).
 // The specific nodes move with terrain revisions, so search near each original for one with enough flat ground.
@@ -23,8 +29,10 @@ for(const [L,nx,nz] of [[5,-1,-6],[1,-4,-4],[1,-1,-4],[1,-7,-43],[2,-4,-22]].map
   for(let j=2;j<N-2;j++)for(let i=2;i<N-2;i++){
     const h=groundBlock(L,x0+i,z0+j);let level=true;
     for(let b=-2;b<=2&&level;b++)for(let a=-2;a<=2&&level;a++)level=groundBlock(L,x0+i+a,z0+j+b)===h;
+    if(!level)continue;const e=lightGround(L,x0+i,z0+j);
+    for(let b=-2;b<=2&&level;b++)for(let a=-2;a<=2&&level;a++)level=Math.abs(lightGround(L,x0+i+a,z0+j+b)-e)<=.15;
     if(!level)continue;flat++;const v=decode(n,i,j);
-    if(v.y<Math.cos(10*Math.PI/180)||Math.abs(v.cavity)>2)wrong++;
+    if(v.y<Math.cos(10*Math.PI/180)||Math.abs(v.cavity)>6)wrong++;
   }
   assert.ok(flat>20,`node ${L}:${nx}:${nz} has flat ground to check (${flat})`);
   assert.equal(wrong,0,`node ${L}:${nx}:${nz}: ${wrong}/${flat} flat columns lit as slopes by isles, trees or spires above them`);

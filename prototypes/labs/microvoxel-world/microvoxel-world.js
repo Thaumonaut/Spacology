@@ -25,7 +25,7 @@
   const continent=()=>world.infinite&&camera.span>maximumSpan()+.01;
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
   function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();stream?.dispose();busy=false;}
-  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-20');
+  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-23');
   try{renderer=new MicroRenderer(canvas);worker=makeWorker();stream=MicroLOD.create({renderer,canvas,createWorker:makeWorker,onFail:text=>fail(text)});stream.setWorld(world);stream.setBudget(budgetMiB);}
   catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;
@@ -36,12 +36,14 @@
   const bytes=n=>n<1048576?`${(n/1024).toFixed(1)} KiB`:`${(n/1048576).toFixed(2)} MiB`;
   const logical=()=>({x:position.cx*world.chunkMetres+position.x,z:position.cz*world.chunkMetres+position.z});
   // Sky and fog colours follow the biomes around the view: the centre and four points 40 m out, sampled twice a second.
-  let atmosphereAt=0;
+  // A jump (travel, reseed, return home) switches the atmosphere at once instead of fading across the world.
+  let atmosphereAt=0,atmosphereFrom=null;
   function atmosphere(){
-    const now=performance.now();if(!world.infinite||!renderer||now-atmosphereAt<500)return;atmosphereAt=now;
-    const q=logical(),x=q.x+camera.x,z=q.z+camera.z,biomes=[];
-    for(const [dx,dz] of [[0,0],[0,0],[40,0],[-40,0],[0,40],[0,-40]])biomes.push(world.geography(x+dx,z+dz).biome);
-    renderer.setAtmosphere(biomes);
+    if(!world.infinite||!renderer)return;
+    const now=performance.now(),q=logical(),x=q.x+camera.x,z=q.z+camera.z,jumped=!atmosphereFrom||Math.hypot(x-atmosphereFrom.x,z-atmosphereFrom.z)>300;
+    if(!jumped&&now-atmosphereAt<500)return;atmosphereAt=now;atmosphereFrom={x,z};
+    const biomes=[];for(const [dx,dz] of [[0,0],[0,0],[40,0],[-40,0],[0,40],[0,-40]])biomes.push(world.geography(x+dx,z+dz).biome);
+    renderer.setAtmosphere(biomes,jumped);
   }
   // The view centres on the explorer's altitude so high ground stays on screen. Discrete moves snap it; travel re-centres
   // smoothly once the ground has drifted more than 10 m from it, and never during a drag (terrain must track the pointer).
