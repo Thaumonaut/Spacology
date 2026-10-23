@@ -240,6 +240,17 @@
   try{peeking=localStorage.getItem('spacology-voxel-peek')==='1';}catch{}
   $('peek').setAttribute('aria-pressed',String(peeking));
   $('peek').onclick=()=>setPeek(!peeking);
+  // Peek size: slider (or [ and ] keys), in CSS pixels; remembered with the toggle.
+  const setPeekSize=v=>{v=Math.max(40,Math.min(320,v));$('peekSize').value=String(v);if(renderer)renderer.peekRadius=v;try{localStorage.setItem('spacology-voxel-peek-size',String(v));}catch{}};
+  try{const v=Number(localStorage.getItem('spacology-voxel-peek-size'));if(v)setPeekSize(v);else setPeekSize(110);}catch{setPeekSize(110);}
+  $('peekSize').oninput=()=>{setPeekSize(Number($('peekSize').value));if(!peeking)setPeek(true);};
+  document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))return;if(e.key===']')setPeekSize(Number($('peekSize').value)*1.25);if(e.key==='[')setPeekSize(Number($('peekSize').value)/1.25);});
+  // View settings popover: setup-level controls kept off the main bar. Closes on outside click or Escape.
+  const settingsOpen=on=>{$('settingsPanel').hidden=!on;$('settings').setAttribute('aria-expanded',String(on));};
+  $('settings').onclick=e=>{e.stopPropagation();settingsOpen($('settingsPanel').hidden);};
+  $('settingsPanel').addEventListener('click',e=>e.stopPropagation());
+  document.addEventListener('click',()=>settingsOpen(false));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')settingsOpen(false);});
   document.addEventListener('keydown',e=>{if((e.key==='p'||e.key==='P')&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))setPeek(!peeking);});
   canvas.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!renderer)return;const r=canvas.getBoundingClientRect();lastPeek={x:e.clientX-r.left,y:e.clientY-r.top};renderer.peekAt=peeking?lastPeek:null;});
   canvas.addEventListener('pointerleave',()=>{lastPeek=null;if(renderer)renderer.peekAt=null;});

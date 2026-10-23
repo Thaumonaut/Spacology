@@ -45,14 +45,18 @@
     <nav class="toolbar" aria-label="World controls">
       <div class="view-controls"><button id="wide">Catchment</button><button id="close">Root site</button></div>
       <div class="zoom-controls"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button></div>
-      <div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div>
       <div class="atlas-controls" role="group" aria-label="Hex atlas view"><button data-atlas="off" aria-pressed="false">Terrain</button><button data-atlas="explore" aria-pressed="true">Explore</button><button data-atlas="logistics" aria-pressed="false">Logistics</button><button data-atlas="research" aria-pressed="false">Research</button></div>
       <button id="pause" aria-pressed="false">Pause crew</button>
-      <label class="lod-control" title="Pin the render level of detail instead of choosing it from the zoom">LOD <select id="lod"></select></label>
-      <label class="lod-control" title="How solid the clouds are in wide views">Clouds <input id="clouds" type="range" min="0" max="100" value="85" aria-label="Cloud opacity"></label>
-      <button id="peek" aria-pressed="false" title="See under tree cover around the mouse (P)">Peek</button>
-      <button id="economy" aria-pressed="false">Economy</button>
-      <button id="metrics" aria-haspopup="dialog">Performance</button>
+      <div class="peek-control"><button id="peek" aria-pressed="false" title="See under tree cover around the mouse (P)">Peek</button><input id="peekSize" type="range" min="40" max="320" value="110" aria-label="Peek size" title="Peek size ([ and ])"></div>
+      <div class="settings"><button id="settings" aria-haspopup="true" aria-expanded="false" aria-controls="settingsPanel" title="View settings">⚙ View</button>
+        <div class="settings-panel" id="settingsPanel" hidden>
+          <div class="setting-row"><span>Voxel size</span><div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div></div>
+          <label class="setting-row lod-control" title="Pin the render level of detail instead of choosing it from the zoom"><span>Detail level</span><select id="lod"></select></label>
+          <label class="setting-row lod-control" title="How solid the clouds are in wide views"><span>Clouds</span><input id="clouds" type="range" min="0" max="100" value="85" aria-label="Cloud opacity"></label>
+          <div class="setting-row"><span>Quality</span><button id="economy" aria-pressed="false" title="Voxels only, no extras">Economy</button></div>
+          <button id="metrics" aria-haspopup="dialog">Performance</button>
+        </div>
+      </div>
     </nav>
     <footer><span id="summary">Preparing voxel stream</span><span>Drag to pan · tap to inspect <span class="desktop-hint">· arrows / + − / Space</span></span></footer>
   </main>

@@ -37,14 +37,14 @@ async function exercise(p,url){
   await p.locator('#world').focus();await p.keyboard.down('ArrowRight');const samples=await frames(p,12);await p.keyboard.up('ArrowRight');
   assert.ok(new Set(samples.map(q=>`${q.cx}:${q.x}`)).size>=10,'held key moves on frames without OS key-repeat jumps');await ready(p);
   const stopped=await state(p);for(const q of await frames(p,4))assert.deepEqual(q,stopped.position,'travel stops after bounded easing');
-  await p.locator('#densityFine').focus();const k=await state(p);await p.keyboard.down('ArrowUp');await frames(p,10);await p.keyboard.up('ArrowUp');
+  await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await p.locator('#densityFine').focus();const k=await state(p);await p.keyboard.down('ArrowUp');await frames(p,10);await p.keyboard.up('ArrowUp');
   const settle=await p.evaluate(()=>new Promise(resolve=>{let n=0;(function tick(){n++;if(!MicroWorldLab.snapshot().moving||n>60)resolve(n);else requestAnimationFrame(tick);})();}));
   const moved=(await state(p)).position,upX=(moved.cx-k.position.cx)*8+moved.x-k.position.x,upZ=(moved.cz-k.position.cz)*8+moved.z-k.position.z;assert.ok(upZ<0&&Math.abs(upX/upZ-Math.tan(35*Math.PI/180))<.02,'one held keydown travels screen-up along the 35 degree view, even when a lab button has focus');assert.ok(settle<=20,'travel stops promptly on keyup');await ready(p);
   await p.keyboard.down('ArrowLeft');await frames(p,3);await p.locator('#info').click();assert.equal((await state(p)).moving,false,'modal focus stops held-key motion');await p.keyboard.up('ArrowLeft');await p.locator('#closeNotes').click();await ready(p);
   await holdMesh(p);await p.mouse.up();await p.locator('#info').click();await p.locator('#seed').fill('39');await p.locator('#seedForm button').click();
   const stale=await p.evaluate(()=>{window.__holdMeshes=false;window.__heldMeshes.shift().deliver();return MicroWorldLab.snapshot();});
   assert.equal(stale.seed,39);assert.equal(stale.completed,0,'old-seed mesh cannot enter regenerated world');assert.equal(stale.failed,false);await ready(p);
-  await holdMesh(p);await p.mouse.up();await p.locator('#densityBase').click();
+  await holdMesh(p);await p.mouse.up();await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await p.locator('#densityBase').click();
   const staleError=await p.evaluate(()=>{window.__holdMeshes=false;const held=window.__heldMeshes.shift();held.data.error='obsolete fine-density failure';held.deliver();return MicroWorldLab.snapshot();});
   assert.equal(staleError.cellMetres,.25);assert.equal(staleError.completed,0);assert.equal(staleError.failed,false,'obsolete-world errors cannot fail the replacement world');await ready(p);assert.deepEqual(errors,[]);
 }

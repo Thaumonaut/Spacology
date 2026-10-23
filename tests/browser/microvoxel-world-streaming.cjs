@@ -44,7 +44,7 @@ try{
   const pick=await p.evaluate(({x,y,z})=>MicroWorldLab.project(x,y,z),{x:q.cx*8+q.x+2,y:ground,z:q.cz*8+q.z+2});
   await p.mouse.click(rect.x+pick.x,rect.y+pick.y);assert.ok(await p.locator('#inspection').isVisible());
   assert.ok((await p.locator('#inspectPosition').innerText()).includes('X '));await p.locator('#closeInspection').click();
-  const densityPosition=(await state(p)).position;await p.locator('#densityFine').click();await ready(p);bounded(await state(p));assert.deepEqual((await state(p)).position,densityPosition);assert.equal((await state(p)).cellMetres,.125);
+  const densityPosition=(await state(p)).position;await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await p.locator('#densityFine').click();await ready(p);bounded(await state(p));assert.deepEqual((await state(p)).position,densityPosition);assert.equal((await state(p)).cellMetres,.125);
   await jump(p,-1000000,1000000);bounded(await state(p));await p.locator('#wide').click();await ready(p);bounded(await state(p));
   await p.setViewportSize({width:390,height:844});await ready(p);bounded(await state(p));
   for(let i=0;i<2;i++){await p.locator('#close').click();await ready(p);for(let z=0;z<4;z++){await p.locator('#zoomOut').click();await ready(p);}bounded(await state(p));}
@@ -62,7 +62,7 @@ try{
     for(let i=1;i<=4;i++)await finger.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:tx+tdx*i/4,y:ty+tdy*i/4}]});
     await finger.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await ready(copy);
     const moved=await copy.evaluate(({cx,cz,x,z})=>MicroWorldLab.project(cx*8+x,8,cz*8+z),touchPoint.position);bounded(await state(copy));assert.ok(Math.abs(moved.x-landmark.x-tdx)<1&&Math.abs(moved.y-landmark.y-tdy)<1,'packaged terrain follows native touch across signed chunks');
-    await copy.locator('#densityFine').tap();await ready(copy);await copy.locator('#close').tap();await ready(copy);await copy.locator('#rootMarker').tap();assert.match(await copy.locator('#inspectBody').innerText(),/seeded ridge/);await copy.locator('#closeInspection').tap();
+    await copy.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await copy.locator('#densityFine').tap();await ready(copy);await copy.locator('#close').tap();await ready(copy);await copy.locator('#rootMarker').tap();assert.match(await copy.locator('#inspectBody').innerText(),/seeded ridge/);await copy.locator('#closeInspection').tap();
     assert.deepEqual(copyErrors,[]);await offline.close();
   }finally{fs.rmSync(tmp,{recursive:true,force:true});}
   console.log('PASS streamed world: distant signed travel, GPU origin bounds, deterministic return image, drag/rebase continuity, compact reload, ground selection, density, portrait LOD and packaged touch');

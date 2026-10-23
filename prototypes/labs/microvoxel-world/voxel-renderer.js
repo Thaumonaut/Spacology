@@ -1006,7 +1006,7 @@
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(scene)gl.clearBufferfv(gl.COLOR,1,[0,0,0,0]);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
-      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);const pk=this.peekAt?[this.peekAt.x*this.pixelRatio,(this.height-this.peekAt.y)*this.pixelRatio,110*this.pixelRatio]:[0,0,0];gl.uniform3fv(this.u.peek,pk);gl.uniform2f(this.u.worldOffset,...off);
+      const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);const pk=this.peekAt?[this.peekAt.x*this.pixelRatio,(this.height-this.peekAt.y)*this.pixelRatio,(this.peekRadius||110)*this.pixelRatio]:[0,0,0];gl.uniform3fv(this.u.peek,pk);gl.uniform2f(this.u.worldOffset,...off);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
       // Close-zoom tones apply per tile, only where that tile really carries leaf cards or grass blades: a coarse
       // placeholder shown while finer tiles load keeps the far-zoom colours instead of dark, bladeless grass and boxy crowns.
