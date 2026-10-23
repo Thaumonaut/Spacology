@@ -24,7 +24,7 @@
   const continent=()=>world.infinite&&camera.span>maximumSpan()+.01;
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
   function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();stream?.dispose();busy=false;}
-  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-15');
+  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-16');
   try{renderer=new MicroRenderer(canvas);worker=makeWorker();stream=MicroLOD.create({renderer,canvas,createWorker:makeWorker,onFail:text=>fail(text)});stream.setWorld(world);stream.setBudget(budgetMiB);}
   catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;
@@ -364,7 +364,7 @@
       if(world.infinite)stream.draw(now);
       for(const v of visible){
         const requested=cache.get(v.key),coarse=placeholderStep(),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested||coarse&&cache.items.get(key(v.cx,v.cz,coarse));
-        if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,0,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,0,(v.cz%512)*8]:[p.x,0,p.z]);}
+        if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,(mesh.y0||0)*world.cell,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,(mesh.y0||0)*world.cell,(v.cz%512)*8]:[p.x,0,p.z]);}
       }
       for(const a of actors){const p=localPoint(a);if(Math.abs(p.x-camera.x)>camera.span*2||Math.abs(p.z-camera.z)>camera.span*2)continue;renderer.actor({...a,x:p.x,z:p.z},simTime,motion.matches||!a.walking);}
       renderer.end();

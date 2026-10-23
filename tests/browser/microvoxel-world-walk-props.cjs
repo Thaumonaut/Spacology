@@ -6,11 +6,19 @@ try{
   const p=await browser.newPage({viewport:{width:960,height:640},deviceScaleFactor:1});
   await p.setContent('<style>body{margin:0}canvas{display:block;width:960px;height:640px}</style><canvas></canvas>');
   for(const file of ['macro-map.js','voxel-world-model.js','voxel-renderer.js'])await p.addScriptTag({url:BASE+'/prototypes/labs/microvoxel-world/'+file});
-  for(const fixture of [
-    {name:'palm',x:-386.14587421899193,z:561.5324577879394,base:16.5,target:20.5,prop:'fronds'},
-    {name:'mushroom',x:-2036.12765730978,z:-2231.1978865843266,base:22.75,target:24.7,prop:'mushrooms'},
-    {name:'water',x:-404,z:566,target:15.5}
-  ]){
+  // Prop sites move with terrain revisions: find a riverside palm (walking the macro rivers nearest home), a mushroom
+  // ring (spiralling out from home) and the river beside that palm.
+  const fixtures=await p.evaluate(()=>{
+    const w=MicroWorld.createWorld(2718,.25,'infinite'),out=[],rivers=[...w.macro.rivers].sort((a,b)=>Math.hypot(a.x[a.x.length-1],a.z[a.z.length-1])-Math.hypot(b.x[b.x.length-1],b.z[b.z.length-1]));
+    let palm=null,river=null;for(let n=0,ri=0;ri<rivers.length&&!palm&&n<4000;ri++){const r=rivers[ri];for(let i=r.x.length-1;i>=0&&!palm&&n<4000;i-=2,n++){const q=w.palmsNear(r.x[i]+8,r.z[i],14);if(q.length){palm=q[0];river=[r.x[i],r.z[i]];}}}
+    if(palm)out.push({name:'palm',x:palm.x,z:palm.z,base:palm.base,target:palm.crownTop[1],prop:'fronds'});
+    let mush=null;for(let R=0,n=0;R<6000&&!mush&&n<4000;R+=60)for(let k=0,K=Math.max(1,Math.round(R/60))*6;k<K&&!mush;k++,n++){const t=k/K*Math.PI*2,q=w.mushroomsNear(Math.cos(t)*R,Math.sin(t)*R,10);if(q.length)mush=q[0];}
+    if(mush)out.push({name:'mushroom',x:mush.x,z:mush.z,base:mush.base,target:mush.base+mush.stemHeight+mush.capHeight,prop:'mushrooms'});
+    if(river){const g=w.geography(river[0],river[1]);out.push({name:'water',x:river[0],z:river[1],target:Math.max(g.water,g.height)*w.cell});}
+    return out;
+  });
+  assert.equal(fixtures.length,3,'palm, mushroom and water fixtures exist');
+  for(const fixture of fixtures){
     const result=await p.evaluate(q=>{
       document.querySelector('canvas').remove();const canvas=document.createElement('canvas');document.body.append(canvas);const w=MicroWorld.createWorld(2718,.25,'infinite'),r=new MicroRenderer(canvas),meshes=[],nx=Math.floor(q.x/8),nz=Math.floor(q.z/8);
       const x=q.x+6,z=q.z+7,eyeY=Math.max(w.ground(x,z)+1.6,q.base||0),camera={mode:'walk',x,z,y:eyeY-1.6,eyeY,yaw:Math.atan2(x-q.x,z-q.z),lookPitch:Math.atan2(q.target-eyeY,Math.hypot(x-q.x,z-q.z)),fov:70,viewDistance:600,span:32};

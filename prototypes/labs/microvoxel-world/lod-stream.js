@@ -49,13 +49,16 @@
       if(world.infinite)while(workers.length<count)spawn();
     }
     function setBudget(mib){cache.maxBytes=mib*1048576;while(cache.bytes>cache.maxBytes&&cache.items.size)cache.delete(cache.items.keys().next().value);}
-    // Target nodes at level L that can reach the screen: candidates from the view footprint up to world height, then a
-    // projection test against each node's own height bound.
+    // Target nodes at level L that can reach the screen: candidates from the view footprint over the heights the view can
+    // show (its depth slab around the view centre, capped by the world's tallest content; the world is 10 km tall), then a
+    // projection test against each node's own height range: the exact range of its slices once built, else its bounds.
     function compute(L){
-      const m=world.nodeMetres(L),b=renderer.bounds(camera,world.heightMetres),out=[],w=canvas.clientWidth,h=canvas.clientHeight;
+      const m=world.nodeMetres(L),cy=camera.y??8,reach=renderer.yReach(camera),ceiling=Math.min(world.contentTop?world.contentTop():world.heightMetres,cy+reach),floor=Math.max(0,cy-reach);
+      const b=renderer.bounds(camera,Math.max(floor,ceiling),floor),out=[],w=canvas.clientWidth,h=canvas.clientHeight;
       for(let nz=Math.floor((b.minZ+origin.z)/m);nz<=Math.floor((b.maxZ+origin.z)/m);nz++)for(let nx=Math.floor((b.minX+origin.x)/m);nx<=Math.floor((b.maxX+origin.x)/m);nx++){
-        const ox=nx*m-origin.x,oz=nz*m-origin.z,top=world.nodeBound(L,nx,nz);let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
-        for(const y of [0,top])for(const z of [oz,oz+m])for(const x of [ox,ox+m]){const p=renderer.project(camera,x,y,z);x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
+        const ox=nx*m-origin.x,oz=nz*m-origin.z,built=cache.items.get(K(L,nx,nz)),top=built?built.hi:world.nodeBound(L,nx,nz),low=built?built.lo:0;let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+        if(top<floor||low>ceiling)continue;
+        for(const y of [Math.max(low,floor),Math.min(top,ceiling)])for(const z of [oz,oz+m])for(const x of [ox,ox+m]){const p=renderer.project(camera,x,y,z);x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
         if(x1<0||x0>w||y1<0||y0>h)continue;
         out.push({L,nx,nz,key:K(L,nx,nz),distance:Math.hypot(ox+m/2-camera.x,oz+m/2-camera.z)});
       }
@@ -171,7 +174,8 @@
       const job=slot.job;slot.job=null;if(job)inflight.delete(job.key);
       if(data.error){if(data.dataId===world.dataId)onFail(`World generation failed: ${data.error}`);pump();return;}
       if(data.dataId!==world.dataId||!job||data.key!==job.key){pump();return;}
-      const t0=performance.now(),mesh=renderer.upload(data);Object.assign(mesh,{key:data.key,column:data.column,level:data.level,quads:data.quads});
+      // lo/hi: the node's exact content heights (m), from its lowest slice origin to its top, for later view tests.
+      const t0=performance.now(),mesh=renderer.upload(data);Object.assign(mesh,{key:data.key,column:data.column,level:data.level,quads:data.slices.reduce((n,s)=>n+s.quads,0),lo:(mesh.bottom||0)*data.column,hi:data.top*data.column});
       cache.set(data.key,mesh,[...drawKeys,...outgoing.keys()]);
       push(times.upload,performance.now()-t0);stats.completed++;stats.uploads++;if(job.coarse)stats.coarse++;if(job.epoch!==epoch)stats.retained++;stats.vegetation=data.vegetationEntries||stats.vegetation;
       push(times.node,data.generateMs);for(const k of ['geography','trees','features','reduce','mesh'])push(times[k],data.timing?.[k]||0);

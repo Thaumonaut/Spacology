@@ -7,7 +7,7 @@ const R=globalThis.MicroRenderer.prototype,w=M.createWorld(2718,M.CELL,'infinite
 // Sun-view axes (right, up, away from the sun) for the renderer's sun direction (-.5, 1, .4).
 const sun=[-.5,1,.4].map(v=>v/Math.hypot(.5,1,.4)),f=sun.map(v=>-v),r=[f[2],0,-f[0]].map(v=>v/Math.hypot(f[2],f[0]));
 const axes=[...r,r[1]*f[2]-r[2]*f[1],r[2]*f[0]-r[0]*f[2],r[0]*f[1]-r[1]*f[0],...f];
-const width=1280,height=676,view={aspect:width/height,bounds:R.bounds,canvas:{getBoundingClientRect:()=>({left:0,top:0,width,height})}};
+const width=1280,height=676,view={aspect:width/height,bounds:R.bounds,yReach:R.yReach,canvas:{getBoundingClientRect:()=>({left:0,top:0,width,height})}};
 // A steep site (chunk 834, 396) where the ground climbs ~100 m above the view centre within a close view.
 const x0=834*8+5.1,z0=396*8+2.35;
 for(const span of [16,32,64]){

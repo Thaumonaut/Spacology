@@ -29,8 +29,10 @@ function run({M}){
 }
 const mean=a=>a.reduce((s,v)=>s+v,0)/a.length,p50=a=>[...a].sort((x,y)=>x-y)[a.length>>1];
 // Visible output of a node: its quads, ignoring the single hidden bottom face older builds emitted at y=0.
-function surface(n){const v=new DataView(n.buffer),out=[];for(let q=0;q<n.count;q+=6){const o=q*8,pts=[];for(let k=0;k<6;k++)pts.push([0,1,2].map(a=>v.getUint16(o+k*8+a*2,true)).join(','));
-  const normal=v.getUint8(o+6);if(normal===2&&pts.every(p=>p.split(',')[1]==='0'))continue;out.push(pts.join(';')+'|'+normal+'|'+v.getUint8(o+7));}return out.sort().join('\n');}
+// Vertical-slice nodes (micro-wilds-16 on) carry their quads per slice with y local to the slice origin; earlier builds
+// carry one buffer in absolute blocks. Both are compared in absolute blocks.
+function surface(n){const out=[];for(const sl of n.slices||[{y:0,buffer:n.buffer,count:n.count}]){const v=new DataView(sl.buffer);for(let q=0;q<sl.count;q+=6){const o=q*8,pts=[];for(let k=0;k<6;k++)pts.push([0,1,2].map(a=>v.getUint16(o+k*8+a*2,true)+(a===1?sl.y:0)).join(','));
+  const normal=v.getUint8(o+6);if(normal===2&&pts.every(p=>p.split(',')[1]==='0'))continue;out.push(pts.join(';')+'|'+normal+'|'+v.getUint8(o+7));}}return out.sort().join('\n');}
 function worldHash(M){const h=crypto.createHash('sha256'),w=M.createWorld(seed,cell,'infinite');h.update(JSON.stringify(w.deposit));
   for(let i=0;i<600;i++){const x=(i*37.7)%600-300,z=(i*91.3)%600-300,g=w.geography(x,z);h.update(JSON.stringify([g.height,g.exposed,g.biome,g.water,g.riverDistance]));}
   for(const [cx,cz] of [[0,0],[-3,2],[-128,16],[1000000,-1000000]]){const c=w.generateChunk(cx,cz);for(const a of [c.offsets,c.ends,c.materials])h.update(Buffer.from(a.buffer));}
