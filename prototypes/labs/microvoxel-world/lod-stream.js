@@ -83,7 +83,12 @@
     // A pinned level never changes; the caller narrows the view instead when overBudget is reported.
     function update(view){
       const t0=performance.now();lastView=view;camera=view.camera;origin=view.origin;coarseFirst=!view.pinned;
-      const avg=cache.items.size>16?cache.bytes/cache.items.size:40*1024,fits=list=>list.length<=cache.maxEntries*.5&&list.length*avg<=cache.maxBytes*.5;
+      const avg=cache.items.size>16?cache.bytes/cache.items.size:40*1024,fits=list=>{
+        if(list.length>cache.maxEntries*.5)return false;
+        // Count real bytes for targets already resident and estimate only the misses, so a temporary average spike in a
+        // mostly-built view does not coarsen the whole view; the .6 margin leaves churn room under the hard cap.
+        let known=0,misses=0;for(const t of list){const m=cache.items.get(t.key);if(m)known+=m.bytes;else misses++;}
+        return known+misses*avg<=cache.maxBytes*.6;};
       if(view.level!==requested||view.fresh){requested=view.level;bias=0;}
       if(pressure&&!view.pinned){bias++;pressure=0;}
       const walking=camera.mode==='walk';let L=clamp(view.level+bias,0,world.maxLevel),list=walking?walkTargets(L):compute(L);
@@ -167,7 +172,7 @@
       for(const s of workers){
         if(s.job)continue;const job=nextJob();if(!job)return;
         s.job={...job,epoch};s.started=performance.now();inflight.set(job.key,s);
-        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map});
+        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map,gallery:world.gallery||false});
       }
     }
     function receive(slot,data){

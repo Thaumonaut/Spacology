@@ -417,7 +417,7 @@ Range 6-8 40-50 5-95 10-90`};
   //   minor     low ridges and hill ranges (50-130 m)
   //   home      one range on the start's skyline, about 1.1-1.4 km away, so the opening view shows mountains
   // Ranges keep off each other (parallel chains stay a valley apart), off the coast and out of the home lowland.
-  const RANGE_KINDS={spine:{pw:1.6,apron:.16,K:2.4},coastal:{pw:1.6,apron:.15,K:2.2},interior:{pw:1.6,apron:.15,K:2.3},massif:{pw:1.25,apron:.2,K:2.4},
+  const RANGE_KINDS={spine:{pw:1.9,apron:.16,K:2.4},coastal:{pw:1.9,apron:.15,K:2.2},interior:{pw:1.9,apron:.15,K:2.3},massif:{pw:1.5,apron:.2,K:2.4},
     secondary:{pw:1.5,apron:.14,K:2.2},branch:{pw:1.5,apron:.12,K:2},minor:{pw:1.4,apron:.12,K:2},home:{pw:1.55,apron:.14,K:2.6}};
   function landInfo(G,h){
     const {n,off,nb,border}=G,ocean=new Uint8Array(n),stack=[];
@@ -514,32 +514,33 @@ Range 6-8 40-50 5-95 10-90`};
       const tries=(n,fn)=>{for(let k=0,got=0;k<n*5&&got<n;k++)if(fn())got++;};
       // Spines: from near the deepest interior along the long axis.
       if(A>=45)tries(A>220?2:1,()=>{const c=majors.length?pick(cells,c=>t[c]>=Math.max(6,t[deep]*.5)):pick(cells,c=>t[c]>=t[deep]*.7);if(c<0)return false;
-        const r=chain('spine',c,axis+(rng()-.5)*.5,clamp(ext*R(.55,.8),8000,30000),R(270,340),R(1700,2300),{...base,minT:5,turn:.3},.8,1500);if(r)majors.push(r);return !!r;});
+        const r=chain('spine',c,axis+(rng()-.5)*.5,clamp(ext*R(.55,.8),8000,30000),R(700,950),R(1500,2100),{...base,minT:5,turn:.3},.8,1500);if(r)majors.push(r);return !!r;});
       // Then coastal ranges (along a coast, holding the seed's coast distance) and interior chains in turn until the landmass
       // has about one long range per 40 km2 (2-5 on a continent).
       const wantMaj=A>=45?clamp(Math.round(A/40),2,5):A>=20?1:0;
       for(let k=0;k<60&&majors.length<wantMaj;k++){
         if(k%2===0&&A>=40){const c=pick(cells,c=>t[c]>=6&&t[c]<=16);if(c<0)continue;let gx=0,gy=0;for(let e=off[c];e<off[c+1];e++){const d=nb[e],L=Math.hypot(px[d]-px[c],py[d]-py[c])||1;gx+=(t[d]-t[c])*(px[d]-px[c])/L;gy+=(t[d]-t[c])*(py[d]-py[c])/L;}
-          const r=chain('coastal',c,Math.atan2(gy,gx)+Math.PI/2,R(9000,20000),R(220,300),R(1300,1900),{...base,minT:4,target:t[c]},k<30?.7:.55,1500);if(r)majors.push(r);}
-        else{const c=pick(cells,c=>t[c]>=6);if(c<0)continue;const r=chain('interior',c,rng()*Math.PI*2,R(7000,16000),R(240,320),R(1300,2000),{...base,minT:4,turn:.4},k<30?.7:.55,1500);if(r)majors.push(r);}}
-      tries(clamp(Math.round(A/80),0,3),()=>{const c=pick(cells,c=>t[c]>=6);return c>=0&&!!chain('massif',c,rng()*Math.PI*2,R(800,2200),R(200,280),R(1200,1700),{...base,minT:4},.7,1500);});
-      tries(clamp(Math.round(A/32),A>12?1:0,9),()=>{const c=pick(cells,c=>t[c]>=5);return c>=0&&!!chain('secondary',c,rng()*Math.PI*2,R(4000,10000),R(140,220),R(900,1400),{...base,minT:3},.65,1200);});
+          const r=chain('coastal',c,Math.atan2(gy,gx)+Math.PI/2,R(9000,20000),R(550,800),R(1200,1700),{...base,minT:4,target:t[c]},k<30?.7:.55,1500);if(r)majors.push(r);}
+        else{const c=pick(cells,c=>t[c]>=6);if(c<0)continue;const r=chain('interior',c,rng()*Math.PI*2,R(7000,16000),R(600,850),R(1200,1800),{...base,minT:4,turn:.4},k<30?.7:.55,1500);if(r)majors.push(r);}}
+      tries(clamp(Math.round(A/80),0,3),()=>{const c=pick(cells,c=>t[c]>=6);return c>=0&&!!chain('massif',c,rng()*Math.PI*2,R(800,2200),R(550,750),R(1100,1600),{...base,minT:4},.7,1500);});
+      tries(clamp(Math.round(A/32),A>12?1:0,9),()=>{const c=pick(cells,c=>t[c]>=5);return c>=0&&!!chain('secondary',c,rng()*Math.PI*2,R(4000,10000),R(350,520),R(800,1250),{...base,minT:3},.65,1200);});
       // Branches: spurs off the long ranges, leaving at 30-65 degrees, lower and narrower than the parent there.
       for(const P of majors)for(let b=2+Math.floor(rng()*3);b>0;b--){
         const i=Math.floor(P.x.length*R(.15,.85)),j=Math.min(P.x.length-1,i+1),i0=Math.max(0,i-1),dir=Math.atan2(P.y[j]-P.y[i0],P.x[j]-P.x[i0]),side=rng()<.5?-1:1;
         const pts=walk(P.x[i],P.y[i],dir+side*R(.55,1.15),P.length*R(.2,.42),{...base,minT:3}),r=finish(pts,'branch',P.H[i]*R(.55,.8),P.w[i]*R(.55,.75),true);
         if(r&&r.length>1500&&r.x.every((x,v)=>Math.hypot(x-hx,r.y[v]-hy)>r.w[v]+900))ranges.push(r);}
-      tries(clamp(Math.round(A/12),0,16),()=>{const c=pick(cells,c=>t[c]>=3);return c>=0&&!!chain('minor',c,rng()*Math.PI*2,R(1500,5000),R(50,130),R(450,1000),{...base,minT:2},.45,700);});
+      tries(clamp(Math.round(A/12),0,16),()=>{const c=pick(cells,c=>t[c]>=3);return c>=0&&!!chain('minor',c,rng()*Math.PI*2,R(1500,5000),R(130,300),R(450,900),{...base,minT:2},.45,700);});
       // Stratovolcanoes on the seaward flank of coastal ranges (one or two each) and now and then alone on a big landmass.
       for(const P of majors){if(P.kind!=='coastal')continue;let last=-1e9;
         for(let v=Math.floor(P.x.length*.2);v<P.x.length*.8;v+=3){const sAlong=v*P.length/(P.x.length-1);if(sAlong-last<5000||rng()>.12)continue;
           const j=Math.min(P.x.length-1,v+1),dx=P.x[j]-P.x[v-1],dy=P.y[j]-P.y[v-1],L=Math.hypot(dx,dy)||1;
-          for(const sd of [1,-1]){const x=P.x[v]-dy/L*sd*P.w[v]*.8,y=P.y[v]+dx/L*sd*P.w[v]*.8,c=cellAt(x,y);if(c<0||ocean[c]||t[c]>=t[cellAt(P.x[v],P.y[v])]||t[c]<3||Math.hypot(x-hx,y-hy)<3500||volcanoes.some(o=>Math.hypot(o.x-x,o.y-y)<4500))continue;
-            volcanoes.push({x,y,H:R(150,230)});last=sAlong;break;}}}
+          for(const sd of [1,-1]){const x=P.x[v]-dy/L*sd*P.w[v]*.8,y=P.y[v]+dx/L*sd*P.w[v]*.8,vH=R(2400,3200),c=cellAt(x,y);if(c<0||ocean[c]||t[c]>=t[cellAt(P.x[v],P.y[v])]||t[c]<3||Math.hypot(x-hx,y-hy)<vH*1.8+800||volcanoes.some(o=>Math.hypot(o.x-x,o.y-y)<8000))continue;
+            volcanoes.push({x,y,H:vH});last=sAlong;break;}}}
       // Then volcanoes at the ends of long ranges near the coast and alone near the coast, up to ~1 per 50 km2 of land.
-      const want=A>=30?clamp(Math.round(A/50),1,4):0,mine=()=>volcanoes.filter(v=>comp[cellAt(v.x,v.y)]===ci).length,spaced=(x,y)=>volcanoes.every(v=>Math.hypot(v.x-x,v.y-y)>4500)&&Math.hypot(x-hx,y-hy)>3500;
-      for(const P of majors)for(const e of [0,P.x.length-1]){if(mine()>=want)break;const c=cellAt(P.x[e],P.y[e]);if(c>=0&&!ocean[c]&&t[c]>=3&&t[c]<=20&&spaced(P.x[e],P.y[e])&&rng()<.7)volcanoes.push({x:P.x[e],y:P.y[e],H:R(150,220)});}
-      for(let k=0;k<30&&mine()<want;k++){const c=pick(cells,c=>t[c]>=4&&t[c]<=14&&h[c]>=SEA_H);if(c>=0&&spaced(px[c],py[c])&&rangeField(ranges,px[c],py[c],seed,{}).core<60)volcanoes.push({x:px[c],y:py[c],H:R(160,240)});}
+      // The apron of a 2-3 km cone reaches ~7 km out, so the home lowland must clear the whole cone, not just its centre.
+      const want=A>=30?clamp(Math.round(A/50),1,4):0,mine=()=>volcanoes.filter(v=>comp[cellAt(v.x,v.y)]===ci).length,spaced=(x,y,vH)=>volcanoes.every(v=>Math.hypot(v.x-x,v.y-y)>8000)&&Math.hypot(x-hx,y-hy)>vH*1.8+800;
+      for(const P of majors)for(const e of [0,P.x.length-1]){if(mine()>=want)break;const vH=R(2200,3000),c=cellAt(P.x[e],P.y[e]);if(c>=0&&!ocean[c]&&t[c]>=3&&t[c]<=20&&spaced(P.x[e],P.y[e],vH)&&rng()<.7)volcanoes.push({x:P.x[e],y:P.y[e],H:vH});}
+      for(let k=0;k<30&&mine()<want;k++){const vH=R(2400,3200),c=pick(cells,c=>t[c]>=4&&t[c]<=14&&h[c]>=SEA_H);if(c>=0&&spaced(px[c],py[c],vH)&&rangeField(ranges,px[c],py[c],seed,{}).core<60)volcanoes.push({x:px[c],y:py[c],H:vH});}
     }
     // The home range: a chain whose crest passes 0.85-1 km from the start, diagonally up-screen (toward -x, -z in the
     // world, turned 35-60 degrees to one side), where the 50-degree view of a 2 km span still holds its summits, so the
@@ -548,13 +549,13 @@ Range 6-8 40-50 5-95 10-90`};
       const up=Math.atan2(-Math.cos(35*Math.PI/180),-Math.sin(35*Math.PI/180));
       for(let k=0;k<16;k++){const dir=up+(rng()<.5?-1:1)*R(.6,1.05),D=R(850,1000),x=hx+Math.cos(dir)*D,y=hy+Math.sin(dir)*D,c=cellAt(x,y);if(c<0||ocean[c]||t[c]<3)continue;
         const o={comp:comp[home],step:300,homeR:D*.92,minT:2},ang=dir+Math.PI/2+(rng()-.5)*.4,a=walk(x,y,ang,R(3500,6000),o),b=walk(x,y,ang+Math.PI,R(3500,6000),o);
-        const r=finish([...b.reverse(),...a.slice(1)],'home',R(220,270),Math.min(D-300,R(560,700)),false);
+        const r=finish([...b.reverse(),...a.slice(1)],'home',R(600,750),Math.min(D-300,R(560,700)),false);
         if(r&&r.length>3000){ranges.push(r);break;}}
     }
     return {ranges,volcanoes,land:{ocean,t,comp}};
   }
   // Volcano cone (m) at distance d from a volcano of height Hv: concave flanks to a summit (the world adds the crater).
-  const coneAt=(Hv,d)=>{const R=Hv*2.8;return d<R?Hv*(1-d/R)**1.8:0;};
+  const coneAt=(Hv,d)=>{const R=Hv*1.8;return d<R?Hv*(1-d/R)**1.8:0;};
 
   function generate(seed,template){
     const t0=Date.now?Date.now():0,start=typeof performance!=='undefined'?performance.now():t0;

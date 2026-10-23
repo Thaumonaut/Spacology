@@ -2,8 +2,8 @@
 const { chromium } = require('playwright');
 const M = require('../prototypes/labs/microvoxel-world/voxel-world-model.js');
 const SHOTS = [
-  { name: 'conifer-tiers', px: -1045, pz: -688, ax: -1078, az: -720 },
-  { name: 'conifer-inside', px: -1085, pz: -735, ax: -1078, az: -720 },
+  { name: 'conifer-tiers', seed: 203749, px: -2350, pz: 700, ax: -2500, az: 1100 },
+  { name: 'volcano-view', seed: 203749, px: -8930, pz: -3823, ax: -8150, az: 100 },
 ];
 (async () => {
   const browser = await chromium.launch();
@@ -12,7 +12,7 @@ const SHOTS = [
   for (const s of SHOTS) {
     const pos = M.positionAt(s.px, s.pz);
     const yaw = Math.atan2(-(s.ax - s.px), -(s.az - s.pz));
-    await page.goto(`http://localhost:8765/prototypes/microvoxel-world.html?cx=${pos.cx}&cz=${pos.cz}&lx=${pos.x}&lz=${pos.z}&walk=1&yaw=${yaw}`);
+    await page.goto(`http://localhost:8765/prototypes/microvoxel-world.html?seed=${s.seed||2718}&cx=${pos.cx}&cz=${pos.cz}&lx=${pos.x}&lz=${pos.z}&walk=1&yaw=${yaw}`);
     try {
       await page.waitForFunction(() => {
         const s = window.MicroWorldLab && window.MicroWorldLab.snapshot();

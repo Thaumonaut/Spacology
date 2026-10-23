@@ -75,12 +75,14 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-19':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-20':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
+    // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
+    const gallery=infinite&&options&&!!options.gallery;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
     const gorgeX=-Math.cos(massifAngle)*58,gorgeZ=-Math.sin(massifAngle)*58,gorgeDX=-Math.sin(massifAngle),gorgeDZ=Math.cos(massifAngle);
-    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}`,trees=new Map();
+    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}${gallery?':gallery':''}`,trees=new Map();
     // Streamed geography is a pure function of (seed, x, z): macro map → relief → climate → biome. Nothing is stored
     // per column; the macro map (MacroMap, one finite Azgaar-style continent map per seed) is built once and cached.
     const SEA=14,MM=infinite?MacroLib.get(seed,mapTemplate):null;
@@ -152,19 +154,22 @@
     // on a big landmass, each a smooth cone (its height above the ground there, x2.8 radius) with a summit crater. They are
     // part of plate relief, so rivers route around them and they cast rain shadows; tall cones are capped softly below the
     // column ceiling. One volcano per 700 m lookup cell at most (their bases are narrower than a cell).
-    const VG=700,volcanoes=new Map();
-    if(infinite)for(const v of MM.volcanoes||[])volcanoes.set(Math.floor(v.x/VG)*65536+Math.floor(v.z/VG),{x:v.x,z:v.z,H:v.H,R:v.H*2.8});
-    const volcanoCell=(i,j)=>volcanoes.get(i*65536+j)||null;
+    // Volcano lookup: each cone is registered in every VG cell its radius touches (R can be ~5 km now, far more than one
+    // cell), so a point anywhere on the flank finds its volcano with a single map hit instead of a fixed ±1-cell scan.
+    const VG=700,volcanoCells=new Map();
+    if(infinite)for(const v of MM.volcanoes||[]){const V={x:v.x,z:v.z,H:v.H,R:v.H*1.8};
+      const i0=Math.floor((v.x-V.R)/VG),i1=Math.floor((v.x+V.R)/VG),j0=Math.floor((v.z-V.R)/VG),j1=Math.floor((v.z+V.R)/VG);
+      for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const k=i*65536+j;let a=volcanoCells.get(k);if(!a)volcanoCells.set(k,a=[]);a.push(V);}}
     function tectonics(x,z){
-      const t=plateRelief(x,z),i=Math.floor(x/VG),j=Math.floor(z/VG);let cone=0,vx=0,vz=0,vr=0;
-      for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
-        const V=volcanoCell(i+di,j+dj);if(!V)continue;const d=Math.hypot(x-V.x,z-V.z);if(d>=V.R)continue;
+      const t=plateRelief(x,z),list=volcanoCells.get(Math.floor(x/VG)*65536+Math.floor(z/VG));let cone=0,vx=0,vz=0,vr=0;
+      if(list)for(const V of list){
+        const d=Math.hypot(x-V.x,z-V.z);if(d>=V.R)continue;
         // Concave flanks steepening to a summit crater: a bowl inside a sharp rim with a slight raised lip.
         const crater=V.R*.075,q=d/crater;let c=q<1?V.H*((1-crater/V.R)**1.8-.08*(1-q*q)):V.H*(1-d/V.R)**1.8;c+=V.H*.02*Math.exp(-(((q-1)/.35)**2));
         if(c>cone){cone=c;vx=V.x;vz=V.z;vr=V.R;}
       }
       if(!cone)return t;
-      let h=t.h+cone;if(h>400)h=400+(h-400)*.3;
+      let h=t.h+cone;if(h>3200)h=3200+(h-3200)*.3;
       return {...t,h,cone:h-t.h,vx,vz,vr};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
@@ -667,7 +672,7 @@
     //   so the next, finer octave runs down the walls of the gullies above it.
     // Input: point, running gradient (m/m) and first-octave amplitude (m). Writes height offset, gradient and crease to
     // `ero`: crease is 0-1, high on gully floors where the coarse octaves converge (where water would gather).
-    const ero={offset:0,gx:0,gz:0,crease:0},EG=56,TAU=Math.PI*2,ASK=Math.asin(.95);
+    const ero={offset:0,gx:0,gz:0,crease:0},EG=84,TAU=Math.PI*2,ASK=Math.asin(.95);
     function erodeAt(x,z,gx,gz,E){
       let off=0,ox=0,oz=0,crease=0,cell=EG,amp=E;
       for(let o=0;o<3;o++,cell*=.5,amp*=.42){
@@ -678,8 +683,9 @@
         let C=0,S=0,Cx=0,Cz=0,Sx=0,Sz=0,wt=0;
         for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
           const ci=ix+i,cj=iz+j,qx=px-(ci+.5+(hash(ci,cj,k)-.5)*.6),qz=pz-(cj+.5+(hash(ci,cj,k+1)-.5)*.6),w=Math.exp(-4*(qx*qx+qz*qz));
-          // Per-cell jitter of the wave direction (about ±17°) breaks up parallel combing.
-          const t=(hash(ci,cj,k+2)-.5)*.6,ct=Math.cos(t),st=Math.sin(t),vx=ux*ct-uz*st,vz=ux*st+uz*ct;
+          // Per-cell jitter of the wave direction (about ±11°) breaks up parallel combing without chopping arêtes into
+          // isolated spikes — ridges stay coherent enough to read as rock.
+          const t=(hash(ci,cj,k+2)-.5)*.38,ct=Math.cos(t),st=Math.sin(t),vx=ux*ct-uz*st,vz=ux*st+uz*ct;
           const ph=(qx*vx+qz*vz)*TAU,c=Math.cos(ph)*w,s=Math.sin(ph)*w,d=TAU/cell;
           C+=c;S+=s;Cx-=s*vx*d;Cz-=s*vz*d;Sx+=c*vx*d;Sz+=c*vz*d;wt+=w;
         }
@@ -728,12 +734,15 @@
       const t=tectonics(x,z);cragAt(x,z,t.relief,t.cone);const s=mountainSurface(x,z,t);
       return {offset:s.erosion,crease:s.crease,gradient:[s.gx,s.gz]};
     }
-    // Soft ceiling for the tallest summits: above 400 m, height eases toward 480 m, inside the 512 m column with room for
-    // snow, trees and sky isles.
-    const summit=h=>h>400?400+80*Math.tanh((h-400)/80):h;
+    // Soft ceiling for the tallest summits: above 3 km, height eases toward 3.4 km, well inside the 10 km column.
+    const summit=h=>h>3000?3000+400*Math.tanh((h-3000)/400):h;
     // Strength of erosion here (first-octave amplitude, m): proportional to the relief the plates or a cone raise. A
     // volcano's crater and the smooth summit cone just around it are left uneroded.
-    const erosionStrength=(t,x,z)=>clamp((t.relief-8)/40,0,1)*Math.min(t.relief,200)*.1+(t.cone?clamp(t.cone/40,0,1)*t.cone*.12*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0);
+    // Erosion is patchy: a broad field decides which faces are deeply dissected and which stay smooth slabs and scree
+    // aprons, so a range reads as rock massif rather than a uniform bed of spikes. Depth tracks relief (its cap grew with
+    // the ranges); a volcano's crater and smooth summit cone stay uneroded.
+    const erosionStrength=(t,x,z)=>{const patch=.3+.7*noise(x*.0009,z*.0009,seed+743);
+      return (clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.12*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
     function outcropAt(x,z){
@@ -743,8 +752,10 @@
       return d<r?1-d/r:0;
     }
     // Sky isles: aether-lifted rock, one candidate per 120 m cell, commoner over mountain belts. Not ground: crew walk beneath them.
-    const IG=120,isles=new Map();
+    // Disabled for now (SKY_ISLES=false): no slabs, no isle falls feeding drainage, no shade marks. Flip to restore.
+    const SKY_ISLES=false,IG=120,isles=new Map();
     function isleCell(i,j){
+      if(!SKY_ISLES)return null;
       const k=i*65536+j;if(isles.has(k))return isles.get(k);
       let v=null;const p=hash(i,j,seed+371);
       if(p<.45){
@@ -797,6 +808,7 @@
     const AG=220,ancients=new Map(),ancientSites=new Map();
     const ANCIENT_CHANCE={rainforest:.15,forest:.15,redwood:.08,montane:.06,grassland:.06,savanna:.06,wetland:.05,blossom:.15,autumn:.12,flowers:.08,pinkgrass:.05,golden:.05};
     function ancientSite(i,j){
+      if(gallery)return galleryAncientSite(i,j);
       const k=i*65536+j;if(ancientSites.has(k))return ancientSites.get(k);let v=null;const p=hash(i,j,seed+441);
       if(p<.15){
         const x=(i+.3+.4*hash(i,j,seed+443))*AG,z=(j+.3+.4*hash(i,j,seed+445))*AG,g=geography(x,z);
@@ -991,7 +1003,7 @@
     function boulderCell(i,j){
       const k=i*1048576+j;if(boulders.has(k))return boulders.get(k);let v=null;const p=hash(i,j,seed+551);
       const x=(i+.2+.6*hash(i,j,seed+553))*BG,z=(j+.2+.6*hash(i,j,seed+555))*BG;
-      let mtn=false;if(p>=.2){const t=tectonics(x,z);mtn=t.relief>15||t.cone>20;}
+      let mtn=false;if(p>=.2){const t=tectonics(x,z);mtn=gallery||t.relief>15||t.cone>20;}
       if(p<.2||mtn){
         const g=geography(x,z),bad=G=>G.sea||G.wet||G.water>G.height||G.gorge||G.highland||G.biome==='snow'||G.glacier||G.iceCells>0;
         const tone=b=>{const t=hash(b,k,seed+575);return t<.6?MAT.boulder:MAT.boulderPale;};
@@ -1116,6 +1128,7 @@
     const spireNear=(x,z,margin)=>{const S=spiresNear(x,z);return !!S&&S.list.some(p=>Math.hypot(x-p.x,z-p.z)<p.r+margin);};
     function geography(x,z){
       if(infinite){
+        if(gallery)return galleryGeo(x,z);
         const t=tectonics(x,z);
         const RV=riverAt(x,z,t),riverDistance=RV.d;
         // Macro lakes: membership is the macro map's smooth lake field, its edge roughened by ~90 m and ~22 m noise so
@@ -1289,19 +1302,19 @@
     // (open tiered cone), spire (redwood: a needle point over the trunk), umbrella (flat acacia pads), gnarled
     // (twisted, leaning lakeside tree).
     const SPECIES={
-      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[2.6,.65],trunk:.6},
-      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[2.6,.65],trunk:.7},
-      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.4,.5],trunk:.3},
-      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[3.4,.85],trunk:1.35,conifer:true},
-      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[30,10],r:[3,.9],trunk:1.15,conifer:true},
-      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.redwood,h:[40,10],r:[2.8,.9],trunk:2,conifer:true},
+      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[3.4,.85],trunk:.6},
+      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[3.4,.85],trunk:.7},
+      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.9,.6],trunk:.3},
+      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[4.6,1.15],trunk:1.35,conifer:true},
+      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[30,10],r:[4.2,1.05],trunk:1.15,conifer:true},
+      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.redwood,h:[40,10],r:[3.6,1],trunk:2.4,conifer:true},
       umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[5,3],r:[2.4,.6],trunk:.32},
-      gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[5,3],r:[1.3,.4],trunk:.42},
+      gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[5,3],r:[1.8,.5],trunk:.42},
       // Riparian species (corridor planting only). willow: a domed crown whose rim hangs in curtains of strands; alder: a
       // small dark round tree of cold banks; palm: a ringed, gently curving trunk under a star of drooping fronds; overhang:
       // a big jungle tree leaning out over the water, hung with vines.
-      willow:{crown:'willow',bark:MAT.bark,leaf:MAT.willowLeaf,h:[5,3],r:[2.2,.5],trunk:.4},
-      alder:{crown:'round',bark:MAT.bark,leaf:MAT.alderLeaf,h:[5,3],r:[1.5,.4],trunk:.4},
+      willow:{crown:'willow',bark:MAT.bark,leaf:MAT.willowLeaf,h:[5,3],r:[2.8,.6],trunk:.4},
+      alder:{crown:'round',bark:MAT.bark,leaf:MAT.alderLeaf,h:[5,3],r:[2,.5],trunk:.4},
       palm:{crown:'palm',bark:MAT.palmBark,leaf:MAT.palmLeaf,h:[5,3],r:[2,.4],trunk:.24},
       overhang:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[6,4],r:[1.6,.4],trunk:.6},
     };
@@ -1356,7 +1369,7 @@
     const cells=m=>Math.max(1,Math.round(m*4))*density;
     // Stamped heights stay under nodeBound (ground + 50 m on low relief, +60 m where relief exceeds 15 m); radii fit the
     // 5x5 tree-cell neighbourhood scanned for stamping.
-    const MAX_TREE=48,MAX_RADIUS=4.25;
+    const MAX_TREE=48,MAX_RADIUS=6.5;
     function pickSpecies(S,g,x,z,gx,gz,edge){
       const mix=S.cold&&g.temperature<S.cold.below?S.cold.mix:S.mix,w={};let total=0;
       // Groves: each species is weighted by its own low-frequency noise; birches favour forest edges.
@@ -1468,12 +1481,14 @@
     }
     // A tree record. Heights and radii are integer cells (quarter-metre quantized, so both cell sizes agree).
     function growTree(sp,S,g,gx,gz,x,z,o={}){
-      const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
+      const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:o.cls??-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
       // Per-tree girth: most trunks sit near the species norm but the range runs from skinny poles (~0.5x) to real
       // veterans (~1.85x), so a stand mixes whip-thin boles with chonky ones. Big-class trees are floored fat.
       const girth=C.cls===2?1.1+.8*hash(gx,gz,seed+13):.5+Math.pow(hash(gx,gz,seed+13),1.35)*1.35;
       const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
-      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*girth*Math.sqrt(C.k)/cellMetres)};
+      // Trunk girth scales with the tree's own height (allometry: a given species keeps its proportions at its mean
+      // height, so a young 12 m spruce is a pole while a 40 m veteran is chonky) rather than varying free of height.
+      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,hm*(P.trunk/P.h[0])*girth/cellMetres)};
       // Larches turn autumn gold in patches.
       if(sp==='larch'&&noise(x*.015,z*.015,seed+741)>.64)t.leaf=MAT.larchGold;
       // Biome canopy colours (autumn gold and rust, blossom pinks) for broadleaf crowns, one per tree.
@@ -1508,6 +1523,7 @@
     }
     function tree(gx,gz){
       if(infinite){
+        if(gallery)return galleryTreeCell(gx,gz);
         const key=gx*134217728+gz;if(trees.has(key))return trees.get(key);
         const value=makeTree(gx,gz);
         if(trees.size>=2048)trees.delete(trees.keys().next().value);trees.set(key,value);return value;
@@ -1521,6 +1537,62 @@
       const value=(!infinite&&(x<1||z<1||x>edge-1||z>edge-1||x>extent-1||z>extent-1))||g.clearing>.1||g.riverDistance<11||g.exposed||g.highland||g.gorgeDistance<g.gorgeHalf+4||hash(gx,gz,seed+23)<.28?null:{x,z,base:g.height,height:(12+Math.floor(hash(gx,gz,seed+4)*9))*density,radius:(5+Math.floor(hash(gx,gz,seed+5)*3))*density};
       if(value)Object.freeze(value);if(trees.size>=2048)trees.delete(trees.keys().next().value);trees.set(key,value);return value;
     }
+    // Specimen gallery (options.gallery): a flat exhibit field instead of terrain, for checking props outside worldgen.
+    // geography returns a fixed field; feature cells are forced only where a pad makes them legal (highland blocks ruins,
+    // spires, rocks and boulders everywhere else but stamps nothing itself), and each pad is a cell whose own roll
+    // produces the exhibit — so every specimen is built by the same code path as the wild.
+    const GAL_H=Math.round(28/cellMetres),GAL_BOUND=140,GAL_PADS=[],GAL_ANCIENTS=new Map(),GAL_TREES=new Map(),GAL_SPOTS=[];
+    const galPadAt=(x,z)=>{for(const p of GAL_PADS)if(x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1)return p;return null;};
+    function galleryGeo(x,z){
+      const o=(galPadAt(x,z)||{}).over||{},biome=o.biome||'grassland';
+      return {height:GAL_H,riverDistance:999,riparian:0,corridor:null,fast:false,calm:false,splash:false,lake:0,riverLevel:0,riverWidth:0,riverSize:0,riverDir:[0,0],riverSpeed:0,riverDepth:0,riverZone:null,macroRiver:false,coast:999,spring:false,foam:false,bar:0,ridge:0,fault:99,clearing:0,exposed:!!o.exposed,wet:false,slope:.05,cliff:0,talus:false,lift:0,highland:!o.open,pass:false,gorge:false,gorgeDistance:999,gorgeHalf:0,rock:0,sea:false,water:0,biome,biome2:null,blend:0,glacier:false,iceCells:0,crease:0,erosion:0,hollow:0,spur:0,surface:GAL_H*cellMetres,cone:0,setting:'',temperature:o.temperature??14,moisture:.55,relief:20};
+    }
+    const galleryTreeCell=(gx,gz)=>GAL_TREES.get(gx*134217728+gz)||null;
+    const galleryAncientSite=(i,j)=>{const s=GAL_ANCIENTS.get(i*65536+j);return s?{x:s.x,z:s.z,g:galleryGeo(s.x,s.z),p:0}:null;};
+    function buildGallery(){
+      const pad=(x0,z0,x1,z1,over)=>GAL_PADS.push({x0,z0,x1,z1,over});
+      const site=(i,j,S,a,b)=>[(i+.3+.4*hash(i,j,seed+a))*S,(j+.3+.4*hash(i,j,seed+b))*S];
+      const put=(x,z,rec,kind,label)=>{const gx=Math.floor(x/TG),gz=Math.floor(z/TG);GAL_TREES.set(gx*134217728+gz,Object.freeze({x,z,base:GAL_H,biome:'grassland',top:GAL_H+cells(14),...rec}));GAL_SPOTS.push({kind,label,x,z});};
+      // Cells near (tx,tz) whose own roll passes `test(i,j)`, nearest first.
+      const scan=(S,tx,tz,test)=>{let best=null,bd=1e9;for(let j=Math.floor(tz/S)-8;j<=Math.floor(tz/S)+8;j++)for(let i=Math.floor(tx/S)-8;i<=Math.floor(tx/S)+8;i++){if(!test(i,j))continue;const d=Math.hypot((i+.5)*S-tx,(j+.5)*S-tz);if(d<bd){bd=d;best=[i,j];}}return best;};
+      // Ferrite outcrop at spawn: the root survey lands here, and the ore fill shows beside it.
+      pad(6,-16,20,-2,{open:true,exposed:true});GAL_SPOTS.push({kind:'outcrop',label:'ferrite outcrop',x:12,z:-8});
+      // Exhibit avenue along +x: every species at young / mature / veteran size, alternating sides of the walk.
+      const NATURAL={oak:'forest',birch:'forest',jungle:'rainforest',spruce:'montane',larch:'montane',redwood:'redwood',umbrella:'savanna',gnarled:'wetland',willow:'wetland',alder:'wetland',palm:'desert',overhang:'rainforest'};
+      let x=26,side=1;
+      for(const {sp,S:style,label} of [...SPECIES_KEYS.map(sp=>({sp})),{sp:'oak',S:'autumn',label:'oak (autumn)'},{sp:'oak',S:'blossom',label:'oak (blossom)'}]){
+        const wide=SPECIES[sp].conifer||sp==='umbrella',S=treeStyle(style||NATURAL[sp]||'forest');
+        for(const [k,cls,tag] of [[.55,0,'young'],[1,1,'mature'],[1.55,2,'veteran']]){
+          const gx=Math.floor(x/TG),gz=Math.floor(side*(wide?10:9)/TG);
+          plantBiome=style||NATURAL[sp]||'forest';const t=growTree(sp,S,galleryGeo(x,side*(wide?10:9)),gx,gz,x,side*(wide?10:9),{k,cls,vines:sp==='jungle'||sp==='overhang'});
+          GAL_TREES.set(gx*134217728+gz,t);GAL_SPOTS.push({kind:'tree',label:`${label||sp} ${tag}`,x,z:side*(wide?10:9)});x+=wide?26:15;side=-side;
+        }
+      }
+      // Ground props on the avenue shoulder.
+      const FS=treeStyle('forest'),AS=treeStyle('autumn');
+      put(x+4,-9,{kind:'bush',leaf:FS.bushLeaf,lumps:bushLumps(x+4,-9,Math.floor((x+4)/TG),Math.floor(-9/TG),601,1)},'prop','bush');
+      put(x+12,-9,{kind:'bush',leaf:AS.bushLeaf,lumps:bushLumps(x+12,-9,Math.floor((x+12)/TG),Math.floor(-9/TG),601,1)},'prop','bush (autumn)');
+      put(x+20,-9,{kind:'mushroom',list:[{x:x+20,z:-9,base:GAL_H,cr:1.8,sr:.61,sh:2.2,ct:1.12,spin:1},{x:x+23.4,z:-8,base:GAL_H,cr:1.2,sr:.41,sh:1.5,ct:.75,spin:3.2},{x:x+17.4,z:-7,base:GAL_H,cr:.8,sr:.27,sh:1,ct:.5,spin:5.1}]},'prop','mushrooms');
+      put(x+30,-9,{kind:'log',ux:Math.cos(.7),uz:Math.sin(.7),len:3.4,r:.34},'prop','fallen log');
+      put(x+36,-9,{kind:'stump',r:.42,ht:.7},'prop','stump');
+      pad(x+42,-14,x+54,-4,{open:true,biome:'desert'});
+      put(x+48,-9,{kind:'cactus',ht:2.4,r:.24,arms:[{ux:1,uz:0,at:1,up:.7},{ux:0,uz:1,at:1.5,up:.9}]},'prop','cactus');
+      put(x+62,-9,{kind:'bamboo',culms:[{x:x+62,z:-9,lx:.02,lz:0,h:9,tr:.55},{x:x+63,z:-8.5,lx:0,lz:.02,h:7.5,tr:.45},{x:x+61.3,z:-8,lx:-.02,lz:0,h:8,tr:.5}],top:GAL_H+cells(10)+2},'prop','bamboo');
+      // One castle, one town and one temple ruin — the cells picked are ones whose own rolls make that kind.
+      const ruinKind=(i,j)=>hash(i,j,seed+461)<.45?(hash(1,i*65536+j,seed+471)<.25?'castle':hash(1,i*65536+j,seed+471)<.7?'town':'temple'):null;
+      for(const kind of ['castle','town','temple']){const f=scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});}}}
+      // Sandstone arch and hoodoos on desert pads; a spire cluster; a boulder meadow.
+      const rockKind=(i,j)=>hash(i,j,seed+501)<.4?(hash(i,j,seed+507)<.45?'arch':'hoodoos'):null;
+      for(const kind of ['arch','hoodoos']){const f=scan(KG,700,-80,(i,j)=>rockKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],KG,503,505);if(Math.hypot(rx,rz)>60){pad(f[0]*KG,f[1]*KG,(f[0]+1)*KG,(f[1]+1)*KG,{open:true,biome:'desert'});GAL_SPOTS.push({kind:'rock',label:kind,x:rx,z:rz});}}}
+      {const f=scan(SG,140,-70,(i,j)=>hash(i,j,seed+391)<.2);if(f){const [sx2,sz2]=site(f[0],f[1],SG,393,395);if(Math.hypot(sx2,sz2)>40){pad(f[0]*SG,f[1]*SG,(f[0]+1)*SG,(f[1]+1)*SG,{open:true});GAL_SPOTS.push({kind:'spire',label:'crystal spires',x:sx2,z:sz2});}}}
+      pad(60,-64,140,-28,{open:true,biome:'meadow'});GAL_SPOTS.push({kind:'boulders',label:'boulder field',x:100,z:-46});
+      // Two world trees: a giant sequoia on a montane pad and a blossom/coral ancient, each in a real site cell.
+      {const [ax,az]=site(-1,0,AG,443,445);pad(ax-40,az-40,ax+40,az+80,{open:true,biome:'montane'});
+        GAL_ANCIENTS.set(-65536,{x:ax,z:az});GAL_SPOTS.push({kind:'ancient',label:'giant sequoia',x:ax,z:az});}
+      {let bc=null;for(const [i,j] of [[-1,-1],[-2,-1],[-1,-2],[-2,0],[0,-1],[-2,-2],[-3,-1],[-1,-3],[-3,0],[0,-2]])if(hash(9,i*65536+j,seed+447)<.62){bc=[i,j];break;}
+        if(bc){const [bx,bz]=site(bc[0],bc[1],AG,443,445);if(Math.hypot(bx,bz)>40){pad(bx-40,bz-40,bx+40,bz+40,{open:true,biome:'forest'});GAL_ANCIENTS.set(bc[0]*65536+bc[1],{x:bx,z:bz});GAL_SPOTS.push({kind:'ancient',label:'blossom ancient',x:bx,z:bz});}}}
+    }
+    if(gallery)buildGallery();
     // Root geology and identity survive render/cache changes.
     let rootSite=null,score=Infinity;
     if(infinite){
@@ -1645,14 +1717,19 @@
         const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
         const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
         const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
-        const tierR=y=>{
+        const bearing=Math.atan2(z-t.z,x-t.x);
+        const tierR=(y,ang)=>{
           const u=apex-y,k=Math.floor(u/period),q=(u-k*period)/period,h1=hash(k,id,seed+131),h2=hash(k,id,seed+137);
           // Convex envelope: the crown holds near-full width through its lower tiers and narrows fast toward the tip —
           // stacked shelves, not a smooth cone. Each tier droops out to its full width early (q**1.15) and steps in hard.
           const env=R*Math.pow(Math.min(1,(k+1)/5.5),.55)*(.86+.14*h1);
-          if(k===0)return env*q**.8;
-          const step=soft?.3+.12*h2:.45+.18*h2;
-          return env*(1-step+step*q**1.15);
+          if(k===0)return ang===undefined?env*q**.8*.62:env*q**.8;
+          const step=soft?.3+.12*h2:.45+.18*h2,base=env*(1-step+step*q**1.15);
+          if(ang===undefined)return base*.62;
+          // Each tier reaches farther in its own random directions (hemlock tiers sway most): the silhouette is ragged
+          // limbs of unequal length, not a lathe of even shelves.
+          const asym=(soft?.5:.4)*(hash(k,id,seed+139)-.5)*2;
+          return base*(1+asym*Math.cos(ang-hash(k,id,seed+141)*6.2832));
         };
         // The trunk stops below the first height where the tiers no longer wrap it in at least a cell of needles, so it never
         // pokes out of the crown (the tier tops are the narrow points). Its foot flares into root buttresses over the
@@ -1672,9 +1749,18 @@
             for(let y=Math.max(t.base,Math.floor(py-hh));y<Math.min(heightCells,low,Math.ceil(py+hh)+1);y++)values[y]=bark;
           }
         }
-        for(let y=low;y<Math.min(heightCells,apex);y++){
+        // Drooping tips: the outer edge of every shelf hangs a little below its line (~0.9 m on stiff conifers), so
+        // crowns read as draped boughs rather than stacked plates. Below the floor, only the lowest shelf drapes.
+        const droop=Math.max(1,Math.round((soft?.4:.9)/cellMetres));
+        const effR=y=>{
+          if(y<low)return tierR(low,bearing)*Math.max(0,1-(low-y)/(droop+1));
+          let r=tierR(y,bearing);for(let dy=1;dy<=droop&&y+dy<apex;dy++){const ra=tierR(y+dy,bearing)*(1-dy/(droop+1));if(ra>r)r=ra;}return r;
+        };
+        // A sparse per-cell gap lets sky show between the branch platforms, like real crowns.
+        const gap=soft?.3:.15;
+        for(let y=Math.max(t.base+1,low-droop);y<Math.min(heightCells,apex);y++){
           if(values[y])continue;
-          if(dist<tierR(y)+.5&&(!soft||hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+123)>.3))values[y]=leaf;
+          if(dist<effR(y)+.5&&hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+123)>gap)values[y]=leaf;
         }
         return Math.max(w,tTop);
       }
@@ -1987,7 +2073,6 @@
         if(g.gorge&&g.talus&&g.water<=h){const c=hash(Math.floor(x*2),Math.floor(z*2),seed+839);values[h-1]=c<.35?MAT.stone:c<.45?MAT.boulder:MAT.gravel;}
         if((g.exposed&&(g.relief>15||g.cone>20||g.cliff>0)||scree)&&!g.iceCells&&!g.gorge&&g.water<=h&&g.riverDistance>6){top=h=roughRock(g,x,z,values,h,scree);written=Math.max(written,rockTop+density);}
       }else values[h-1]=g.exposed?MAT.basalt:g.riverDistance<9?MAT.sand:MAT.grass;
-      if(Math.hypot(x-deposit.x,z-deposit.z)<1.15&&g.exposed)values.fill(MAT.ore,h-3*density,h);
       if(infinite){if(g.water>h){values.fill(MAT.water,h,g.water);if(g.foam)values[g.water-1]=MAT.foam;written=Math.max(written,g.water);}}
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
@@ -2189,6 +2274,9 @@
       if(prof&&prof.on)prof.features+=now()-t0;
       if(!infinite){if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);}
       else if(colStep*cellMetres<.51)written=Math.max(written,scatter(g,x,z,values,h,pickBiome(g,x,z,hash(Math.floor(x*2),Math.floor(z*2),seed+815))));
+      // The ferrite vein fills last so later stamps (a trunk flare, litter, moss) cannot hide the whole seam; ore under a
+      // root edge reads as the vein running beneath the tree.
+      if(Math.hypot(x-deposit.x,z-deposit.z)<1.15&&g.exposed)values.fill(MAT.ore,h-3*density,h);
       colTop=Math.min(heightCells,written);
       return values;
     }
@@ -2205,7 +2293,7 @@
     // to y0, so a 10 km column costs only its occupied band.
     function generateChunk(cx,cz){
       if(![cx,cz].every(n=>Number.isInteger(n)&&(!infinite||Math.abs(n)<=MAX_CHUNK)))throw new Error('Chunk coordinates exceed the supported range');
-      const offsets=new Uint16Array(chunkCells*chunkCells+1),ends=[],materials=[];
+      const offs=new Array(chunkCells*chunkCells+1),ends=[],materials=[];
       if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
       const bands=[];let y0=heightCells,y1=0;
       for(let z=0;z<chunkCells;z++)for(let x=0;x<chunkCells;x++){
@@ -2215,11 +2303,13 @@
       if(!infinite){y0=0;y1=heightCells;}y1=Math.max(y1,y0+1);
       const height=y1-y0;
       for(let i=0;i<bands.length;i++){
-        const {fl,v}=bands[i],at=y=>y<fl?MAT.basalt:y-fl<v.length?v[y-fl]:0;offsets[i]=ends.length;
+        const {fl,v}=bands[i],at=y=>y<fl?MAT.basalt:y-fl<v.length?v[y-fl]:0;offs[i]=ends.length;
         for(let y=y0;y<y1;){const material=at(y);let end=y+1;while(end<y1&&at(end)===material)end++;ends.push(end-y0);materials.push(material);y=end;}
       }
-      if(ends.length>65535)throw new Error('Column runs exceed the chunk offset format');
-      offsets[chunkCells*chunkCells]=ends.length;
+      offs[chunkCells*chunkCells]=ends.length;
+      // High-altitude bands alternate materials enough to outgrow Uint16 offsets at fine cell sizes, so like `ends`
+      // the array widens only when a chunk actually needs it.
+      const offsets=ends.length>65535?Uint32Array.from(offs):Uint16Array.from(offs);
       const chunk={cx,cz,size:chunkCells,y0,height,cell:cellMetres,offsets,ends:height>255?Uint16Array.from(ends):Uint8Array.from(ends),materials:Uint8Array.from(materials)};
       chunk.bytes=chunk.offsets.byteLength+chunk.ends.byteLength+chunk.materials.byteLength;
       return chunk;
@@ -2248,6 +2338,7 @@
         v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0?Math.min(m*.15,30):0));}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       for(let j=Math.floor((z0-16)/AG);j<=Math.floor((z0+m+16)/AG);j++)for(let i=Math.floor((x0-16)/AG);i<=Math.floor((x0+m+16)/AG);i++){const A=ancientCell(i,j);if(A)v=Math.max(v,A.top+2);}
+      if(gallery)v=Math.max(v,GAL_BOUND);
       v=Math.min(v,heightCells*cellMetres);bounds.set(k,v);if(bounds.size>16384)bounds.delete(bounds.keys().next().value);return v;
     }
     const heightBound=(cx,cz)=>nodeBound(Math.log2(CHUNK*density/NODE),cx,cz);
@@ -2256,7 +2347,8 @@
     let contentCeiling=0;
     function contentTop(){
       if(!infinite)return heightCells*cellMetres;
-      if(!contentCeiling){let m=SEA;for(const h of MM.heights)m=Math.max(m,MacroLib.metres(h));contentCeiling=Math.min(heightCells*cellMetres,m*1.25+300);}
+      if(gallery)return GAL_BOUND;
+      if(!contentCeiling){let m=SEA;for(const h of MM.heights)m=Math.max(m,MacroLib.metres(h));contentCeiling=Math.min(heightCells*cellMetres,Math.max(m*1.25,2900)+300);}
       return contentCeiling;
     }
     // Vertical slices (3D chunks): every level splits its columns into slices of SLICE blocks, so slice k of level L holds
@@ -2596,7 +2688,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite&&!gallery?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,gallery,gallerySpots:gallery?Object.freeze(GAL_SPOTS.slice()):null,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk,y0=chunk.y0||0;

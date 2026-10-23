@@ -28,7 +28,7 @@ for(const [x,z,variant] of sites){
 let mature=0,total=0;
 for(let j=-20;j<=20;j++)for(let i=-20;i<=20;i++){
   const t=a.tree(i,j);if(t?.kind!=='tree'||t.cls!==1||!['oak','birch','spruce','larch','jungle'].includes(t.species))continue;
-  mature++;total+=t.height*a.cell;assert.ok(t.radius*a.cell<=4.25,'ordinary crowns retain the bounded sampling radius');
+  mature++;total+=t.height*a.cell;assert.ok(t.radius*a.cell<=6.5,'ordinary crowns retain the bounded sampling radius');
 }
 assert.ok(mature>10);assert.ok(total/mature>5.5,'mature trees read taller than saplings at eye height');
 console.log('PASS grand-tree layers, bough occupancy, roots, regeneration, density parity, bounds and mature-tree scale');

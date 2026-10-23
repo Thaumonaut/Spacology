@@ -1225,7 +1225,7 @@
         fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nuniform float walkView, cameraPixelScale, fogAmount, cameraFar;\nuniform vec3 skyHorizon;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
         // Pattern visibility follows local projected size rather than the overhead span.
         fragmentSource=fragmentSource.replace(/(wavelength|blockSize)\/pixelWorld/g,'$1/(walkView>.5?max(.001,viewDepth*cameraPixelScale):pixelWorld)');
-        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-cameraFar*.65)*.008);vec3 air=skyHorizon;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
+        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=min(.72,1.-exp(-max(0.,viewDistance-cameraFar*.55)*.0045));vec3 air=skyHorizon;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
       }
     }
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);

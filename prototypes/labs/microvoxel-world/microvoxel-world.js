@@ -1,8 +1,9 @@
 (function(){
   'use strict';
   const M=MicroWorld,H=HexAtlas,$=id=>document.getElementById(id),canvas=$('world');
-  const params=new URLSearchParams(location.search),mapParam=params.get('map')||null,initial=Number(params.get('seed')??2718),initialCell=Number(params.get('cell')??M.CELL),initialExtent=(params.get('extent')??'infinite')==='infinite'?'infinite':Number(params.get('extent'));
-  let world=M.createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL,[128,256,'infinite'].includes(initialExtent)?initialExtent:'infinite',{map:mapParam});
+  const params=new URLSearchParams(location.search),mapParam=params.get('map')||null,galleryParam=params.get('gallery')==='1'||params.get('gallery')==='true',initial=Number(params.get('seed')??2718),initialCell=Number(params.get('cell')??M.CELL),initialExtent=(params.get('extent')??'infinite')==='infinite'?'infinite':Number(params.get('extent'));
+  let world=M.createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL,[128,256,'infinite'].includes(initialExtent)?initialExtent:'infinite',{map:mapParam,gallery:galleryParam});
+  if(world.gallerySpots)console.log('Specimen gallery — exhibits at:\n'+world.gallerySpots.map(s=>`  ${s.kind.padEnd(9)} ${s.label.padEnd(22)} ${Math.round(s.x)}, ${Math.round(s.z)}`).join('\n'));
   let renderer,worker,epoch=0,busy=false,failed=false,paused=false,economy=false,simTime=0,selection=null,visible=[],step=2,renderStep=null;
   const camera={x:60,y:8,z:62,span:88,mode:'map',yaw:Number(params.get('yaw')??35*Math.PI/180)||0,lookPitch:-.08,fov:Math.max(60,Math.min(90,Number(params.get('fov')??70)||70))},frameSamples=[],generationSamples=[],meshSamples=[],actors=[];
   let position=M.positionAt(world.deposit.x+4,world.deposit.z+4),travelled=0,vegetationEntries=0;
@@ -24,7 +25,7 @@
   const continent=()=>world.infinite&&camera.span>maximumSpan()+.01;
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
   function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();stream?.dispose();busy=false;}
-  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-19');
+  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-20');
   try{renderer=new MicroRenderer(canvas);worker=makeWorker();stream=MicroLOD.create({renderer,canvas,createWorker:makeWorker,onFail:text=>fail(text)});stream.setWorld(world);stream.setBudget(budgetMiB);}
   catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;
@@ -151,7 +152,7 @@
   // Aim for about five screen pixels per voxel (ten in Economy): with hillshade, leaf cards and outlines carrying the
   // detail, finer levels cost far more geometry than they show.
   function autoLevel(){if(camera.mode==='walk')return 0;const ppm=canvas.width/camera.span;return Math.max(0,Math.round(Math.log2((economy?10:5)/ppm/world.cell)));}
-  function updateStream(){camera.viewDistance=economy?500:1100;
+  function updateStream(){camera.viewDistance=economy?1200:6000;
     visible=[];viewY=camera.y;
     const pin=camera.mode==='walk'?null:pinnedVoxel(),want=pin?Math.round(Math.log2(pin)):autoLevel();let r;
     // A pinned level never coarsens; if its nodes cannot fit the budget, the view narrows instead.
@@ -277,7 +278,7 @@
     if(coop.active&&!coopRegen)coop.stop();
     const resized=extent!==world.extent;
     const reseeded=seed!==world.seed;
-    walk.leave(true);stopKeys();world=M.createWorld(seed,cell,extent,{map:mapParam});cache.clear();stream?.setWorld(world);renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=placeholders=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
+    walk.leave(true);stopKeys();world=M.createWorld(seed,cell,extent,{map:mapParam,gallery:galleryParam});cache.clear();stream?.setWorld(world);renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=placeholders=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
     if(world.infinite&&(resized||reseeded)){position=M.positionAt(world.deposit.x+4,world.deposit.z+4);travelled=0;Object.assign(camera,{x:0,z:0,span:32});}
     else if(resized)Object.assign(camera,{x:world.extent/2,z:world.extent/2,span:world.extent===128?140:maximumSpan()});
     anchor();
