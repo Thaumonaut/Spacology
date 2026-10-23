@@ -1151,7 +1151,8 @@
   // down at the edge and a concave underside back toward the trunk. Slightly larger than the voxel crown so it covers
   // it; needle-fringed edge, lit in the needle bands (bright top, dark underside), with sun shadows.
   const SKIRT_SEGS=28,SKIRT_ROWS=7;
-  const skirtVertex=`#version 300 es
+  const skirtVertex=shadow=>`#version 300 es
+  ${shadow?'#define SHADOW':''}
   precision highp float;
   layout(location=0) in vec3 grid;
   layout(location=1) in vec4 a;
@@ -1163,9 +1164,11 @@
   out vec3 lightCoord, nrm;
   out vec2 uvs;
   out float under, seed;
+  flat out int tierMat;
   void main(){
-    // grid: angle 0..1, row 0..1 down the skirt (1..1.25 = lip), side (0 top, 1 underside). a: cx, cz, top, bottom; b: r, rTop, seed.
-    float ang=grid.x*6.2832,u=grid.y,h=a.z-a.w;seed=b.z;under=grid.z;
+    // grid: angle 0..1, row 0..1 down the skirt (1..1.25 = lip), side (0 top, 1 underside). a: cx, cz, top, bottom; b: r, rTop,
+    // seed, needle material (0: the plain needle).
+    float ang=grid.x*6.2832,u=grid.y,h=a.z-a.w;seed=b.z;under=grid.z;tierMat=b.w>0.?int(b.w):${M.MAT.needle};
     float jag=1.+.06*sin(ang*7.+seed*20.)+.04*sin(ang*13.+seed*7.);
     float r,y;
     if(grid.z<.5){
@@ -1181,14 +1184,20 @@
     nrm=grid.z<.5?normalize(radial*slope.y+vec3(0,slope.x,0)):normalize(-radial*.3+vec3(0,-1,0));
     uvs=vec2(grid.x,u);
     vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
+    #ifdef SHADOW
+    gl_Position=vec4(l,1.);
+    #else
     gl_Position=toClip(p);
+    #endif
   }`;
   const skirtFragment=`#version 300 es
   precision highp float;
   in vec3 lightCoord, nrm;
   in vec2 uvs;
   in float under, seed;
+  flat in int tierMat;
   uniform vec3 palette[96], lightHalf;
+  uniform vec2 dither;
   uniform float shadowOn, shadowTexel, blockSize;
   uniform float cloudTime;
   uniform vec2 worldOffset;
@@ -1201,20 +1210,150 @@
   ${MATERIALS}
   void main(){
     glowOut=vec4(0);
+    if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
     // Needle fringe: the lip breaks into drooping spikes.
     if(under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
     vec3 n=normalize(nrm);float sun=sunlight();
     float clumps=meadowNoise(vec2(uvs.x*48.,uvs.y*5.+seed*11.))-.5;
     float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y));
-    vec3 shadow,mid,high;crownBands(${M.MAT.needle},palette[${M.MAT.needle}],shadow,mid,high);
+    vec3 shadow,mid,high;crownBands(tierMat,palette[tierMat],shadow,mid,high);
     vec3 c=mix(mix(shadow,mid,smoothstep(.33,.39,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     color=vec4(c,1.);
   }`;
-  function makeSkirt(){
-    const out=[],rows=[];for(let i=0;i<=SKIRT_ROWS;i++)rows.push(i/SKIRT_ROWS);rows.push(1.125,1.25);
-    const strip=(rs,side)=>{for(let j=0;j<rs.length-1;j++)for(let i=0;i<SKIRT_SEGS;i++){const a0=i/SKIRT_SEGS,a1=(i+1)/SKIRT_SEGS,v0=rs[j],v1=rs[j+1];for(const [x,y] of [[a0,v0],[a1,v0],[a1,v1],[a0,v0],[a1,v1],[a0,v1]])out.push(x,y,side);}};
+  function makeSkirt(SEGS=SKIRT_SEGS,ROWS=SKIRT_ROWS){
+    const out=[],rows=[];for(let i=0;i<=ROWS;i++)rows.push(i/ROWS);rows.push(1.125,1.25);
+    const strip=(rs,side)=>{for(let j=0;j<rs.length-1;j++)for(let i=0;i<SEGS;i++){const a0=i/SEGS,a1=(i+1)/SEGS,v0=rs[j],v1=rs[j+1];for(const [x,y] of [[a0,v0],[a1,v0],[a1,v1],[a0,v0],[a1,v1],[a0,v1]])out.push(x,y,side);}};
     strip(rows,0);strip([0,.5,1],1);
     return new Float32Array(out);
+  }
+  // Object trees (see the model's treeParts): bark tubes and crown lobes, instanced per node, plus conifer tiers drawn with
+  // the bough-skirt program on a lighter mesh. Each has a SHADOW variant for the sun's depth map.
+  // Tubes: an 8-sided cylinder from (a.xyz, radius a.w) to (b.xyz, radius b.w), bark material c.x. Bark reads as cel bands
+  // with soft vertical ridges; birch is white with dark marks.
+  const TUBE_SIDES=8;
+  const tubeVertex=shadow=>`#version 300 es
+  ${shadow?'#define SHADOW':''}
+  precision highp float;
+  layout(location=0) in vec2 unit;
+  layout(location=1) in vec4 a;
+  layout(location=2) in vec4 b;
+  layout(location=3) in vec4 c;
+  uniform vec3 origin, center, lightAt, lightHalf;
+  uniform mat3 lightAxes;
+  uniform vec2 halfView;
+  uniform float depth;
+  out vec3 lightCoord, nrm;
+  out float along, around;
+  flat out int mat;
+  void main(){
+    vec3 p0=origin+a.xyz,p1=origin+b.xyz,ax=p1-p0;float L=max(length(ax),1e-4);vec3 d=ax/L;
+    vec3 u=normalize(abs(d.y)<.95?cross(d,vec3(0,1,0)):cross(d,vec3(1,0,0))),w=cross(d,u);
+    float ang=unit.x*6.2832;vec3 radial=cos(ang)*u+sin(ang)*w;
+    vec3 p=p0+ax*unit.y+radial*mix(a.w,b.w,unit.y);
+    nrm=radial;mat=int(c.x);along=unit.y*L+a.y*.0;around=unit.x+c.y;
+    vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
+    #ifdef SHADOW
+    gl_Position=vec4(l,1.);
+    #else
+    gl_Position=toClip(p);
+    #endif
+  }`;
+  const tubeFragment=`#version 300 es
+  precision highp float;
+  in vec3 lightCoord, nrm;
+  in float along, around;
+  flat in int mat;
+  uniform vec3 palette[96], lightHalf;
+  uniform vec2 dither;
+  uniform float shadowOn, shadowTexel, blockSize;
+  uniform highp sampler2DShadow shadowMap;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
+  const vec3 SUN=normalize(vec3(-.5,1.,.4));
+  ${SUNLIGHT}
+  void main(){
+    glowOut=vec4(0);
+    if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
+    vec3 n=normalize(nrm);float tone=max(0.,dot(n,SUN))*mix(.35,1.,sunlight())+.12*n.y;
+    float ridge=sin(around*6.2832*7.+along*.7+sin(along*2.3+around*9.)*.6)*.5+.5;
+    vec3 base=palette[mat],c=base*mix(.6,1.06,smoothstep(.22,.34,tone))*(.88+.16*ridge);
+    c=mix(c*vec3(.86,.9,1.04),c,smoothstep(.2,.4,tone));
+    if(mat==${M.MAT.birchBark}){float m=step(.82,fract(along*1.6+sin(around*18.)*.15))*step(.45,fract(around*2.7+along*.37));c=mix(c,palette[${M.MAT.birchMark}],m*.9);}
+    color=vec4(c,1.);
+  }`;
+  // Lobes: a crown ellipsoid (centre a.xyz, radius a.w, height scale b.x, leaf b.y, seed b.z), its surface bulged into a few
+  // big leafy puffs and many small ones, swaying gently at the top, lit in the anime crown bands like the voxel crowns.
+  const lobeVertex=shadow=>`#version 300 es
+  ${shadow?'#define SHADOW':''}
+  precision highp float;
+  layout(location=0) in vec3 unit;
+  layout(location=1) in vec4 a;
+  layout(location=2) in vec4 b;
+  uniform vec3 origin, center, lightAt, lightHalf;
+  uniform mat3 lightAxes;
+  uniform vec2 halfView;
+  uniform float depth, time;
+  out vec3 lightCoord, nrm, wpos;
+  out float up;
+  flat out int mat;
+  float lh(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+  float ln(vec3 p){vec3 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
+    return mix(mix(mix(lh(i),lh(i+vec3(1,0,0)),f.x),mix(lh(i+vec3(0,1,0)),lh(i+vec3(1,1,0)),f.x),f.y),mix(mix(lh(i+vec3(0,0,1)),lh(i+vec3(1,0,1)),f.x),mix(lh(i+vec3(0,1,1)),lh(i+1.),f.x),f.y),f.z);}
+  void main(){
+    vec3 n=unit;mat=int(b.y);float sd=b.z*37.;
+    float bump=ln(n*2.2+sd)*.26+ln(n*5.3+sd*1.7)*.1-.17;
+    vec3 e=vec3(n.x,n.y*b.x,n.z)*a.w*(1.+bump);
+    float sway=sin(time*1.1+sd+a.x*.3)*.035*a.w*max(0.,n.y+.2);
+    vec3 p=origin+a.xyz+e+vec3(sway,0,sway*.6);
+    nrm=normalize(vec3(n.x,n.y/b.x,n.z));up=n.y;wpos=p;
+    vec3 l=(p-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;
+    #ifdef SHADOW
+    gl_Position=vec4(l,1.);
+    #else
+    gl_Position=toClip(p);
+    #endif
+  }`;
+  const lobeFragment=`#version 300 es
+  precision highp float;
+  in vec3 lightCoord, nrm, wpos;
+  in float up;
+  flat in int mat;
+  uniform vec3 palette[96], lightHalf;
+  uniform vec2 dither, worldOffset;
+  uniform float cloudTime;
+  uniform float shadowOn, shadowTexel, blockSize;
+  uniform highp sampler2DShadow shadowMap;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
+  const vec3 SUN=normalize(vec3(-.5,1.,.4));
+  ${SUNLIGHT}
+  ${MEADOW}
+  ${MATERIALS}
+  void main(){
+    glowOut=vec4(0);
+    if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
+    vec3 n=normalize(nrm);
+    float puff=meadowNoise(wpos.xz*.9+wpos.y*.7)*.6+meadowNoise(wpos.xz*2.6-wpos.y*1.9)*.4-.5;
+    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sunlight())+puff*.3-(1.-smoothstep(-.6,.25,up))*.28;
+    vec3 shadow,mid,high;crownBands(mat,palette[mat],shadow,mid,high);
+    float soft=mat==${M.MAT.leaf}?.1:.07;
+    color=vec4(mix(mix(shadow,mid,smoothstep(.33-soft,.33+soft,tone)),mix(mid,high,.65),smoothstep(.83-soft,.83+soft,tone)),1.);
+  }`;
+  const objectCaster=`#version 300 es
+  precision highp float;
+  void main(){}`;
+  function makeTube(){
+    const out=[];for(let i=0;i<TUBE_SIDES;i++){const a0=i/TUBE_SIDES,a1=(i+1)/TUBE_SIDES;for(const [a,v] of [[a0,0],[a1,0],[a1,1],[a0,0],[a1,1],[a0,1]])out.push(a,v);}
+    return new Float32Array(out);
+  }
+  // Unit icosphere as a triangle list (subdivided `sub` times).
+  function makeIcosphere(sub){
+    const t=(1+Math.sqrt(5))/2,norm=v=>{const l=Math.hypot(...v);return v.map(c=>c/l);};
+    let V=[[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]].map(norm);
+    let F=[[0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],[1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],[3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],[4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]];
+    for(let s=0;s<sub;s++){const mid=new Map(),m=(a,b)=>{const k=a<b?a+','+b:b+','+a;if(!mid.has(k)){V.push(norm(V[a].map((c,i)=>(c+V[b][i])/2)));mid.set(k,V.length-1);}return mid.get(k);};
+      F=F.flatMap(([a,b,c])=>{const ab=m(a,b),bc=m(b,c),ca=m(c,a);return [[a,ab,ca],[b,bc,ab],[c,ca,bc],[ab,bc,ca]];});}
+    return new Float32Array(F.flatMap(f=>f.flatMap(i=>V[i])));
   }
   function compile(gl,type,source){const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const e=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(e);}return s;}
   function link(gl,vertexSource,fragmentSource,names){
@@ -1296,7 +1435,19 @@
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
       ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade','cloudY']));
       this.cloudVao=gl.createVertexArray();
-      ({program:this.skirtProgram,u:this.ku2}=link(gl,skirtVertex,skirtFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap']));
+      ({program:this.skirtProgram,u:this.ku2}=link(gl,skirtVertex(false),skirtFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap','dither']));
+      // Object trees: tubes, lobes and (on a lighter skirt mesh) conifer tiers, with depth-only shadow variants.
+      const OBJ=['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap','dither'];
+      ({program:this.tubeProgram,u:this.tu}=link(gl,tubeVertex(false),tubeFragment,OBJ));
+      ({program:this.lobeProgram,u:this.lou}=link(gl,lobeVertex(false),lobeFragment,OBJ));
+      ({program:this.tubeCaster,u:this.tuc}=link(gl,tubeVertex(true),objectCaster,OBJ));
+      ({program:this.lobeCaster,u:this.louc}=link(gl,lobeVertex(true),objectCaster,OBJ));
+      ({program:this.skirtCaster,u:this.kuc}=link(gl,skirtVertex(true),objectCaster,OBJ));
+      for(const [p,u] of [[this.tubeProgram,this.tu],[this.lobeProgram,this.lou]]){gl.useProgram(p);gl.uniform1i(u.shadowMap,1);gl.uniform1f(u.blockSize,.3);}
+      const geometry=data=>{const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);return {buffer:b,count:data.length};};
+      this.tubeGeom=geometry(makeTube());this.tubeGeom.verts=this.tubeGeom.count/2;
+      this.lobeGeom=geometry(makeIcosphere(2));this.lobeGeom.verts=this.lobeGeom.count/3;
+      this.tierGeom=geometry(makeSkirt(14,4));this.tierGeom.verts=this.tierGeom.count/3;
       this.skirtGeom=makeSkirt();this.skirtBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.skirtBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.skirtGeom,gl.STATIC_DRAW);
       gl.useProgram(this.skirtProgram);gl.uniform1i(this.ku2.shadowMap,1);gl.uniform1f(this.ku2.blockSize,.5);
       ({program:this.frondProgram,u:this.ru}=link(gl,frondVertex,frondFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap']));
@@ -1322,7 +1473,7 @@
       gl.useProgram(this.program);
       const colors=[...M.COLORS];
       const paletteValues=[...M.COLORS].flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255));
-      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
+      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.tubeProgram,this.tu],[this.lobeProgram,this.lou]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
       gl.useProgram(this.program);
       gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform1i(this.u.waterMap,6);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;this.queue=[];this.dithering=[0,0];this.casting=false;this.shadow=null;
@@ -1355,6 +1506,7 @@
       const rb=mesh.base||0,rm=rb*(mesh.column||0),shift=(a,stride,k,v)=>{if(a?.length&&v)for(let i=k;i<a.length;i+=stride)a[i]-=v;};
       shift(mesh.grass,4,1,rb);shift(mesh.flowers,4,1,rb);shift(mesh.leaves,8,1,rb);shift(mesh.stalks,8,1,rb);
       shift(mesh.skirts,8,2,rm);shift(mesh.skirts,8,3,rm);shift(mesh.fronds,8,1,rm);shift(mesh.mushrooms,8,1,rm);
+      shift(mesh.treeSegs,12,1,rm);shift(mesh.treeSegs,12,5,rm);shift(mesh.treeLobes,8,1,rm);shift(mesh.treeTiers,8,2,rm);shift(mesh.treeTiers,8,3,rm);
       return {rb,rm};
     }
     upload(mesh){const gl=this.gl;let out;const {rb,rm}=mesh.slices?this.rebaseProps(mesh):{rb:0,rm:0};
@@ -1404,6 +1556,20 @@
         gl.bindBuffer(gl.ARRAY_BUFFER,fbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.flowers,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,1);
         out.flowers={vao:fvao,buffer:fbuf,count:mesh.flowers.length/4};out.bytes+=mesh.flowers.byteLength;
       }
+      // Object trees: instance buffers over the shared tube, lobe and tier meshes; their tops raise the tile's top (in
+      // blocks) so culling and the sun's shadow box reach the crowns.
+      const instanced=(data,geom,comps,slots)=>{
+        const vao=gl.createVertexArray(),buf=gl.createBuffer(),stride=slots*16;gl.bindVertexArray(vao);
+        gl.bindBuffer(gl.ARRAY_BUFFER,geom.buffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,comps,gl.FLOAT,false,comps*4,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+        for(let k=0;k<slots;k++){gl.enableVertexAttribArray(1+k);gl.vertexAttribPointer(1+k,4,gl.FLOAT,false,stride,k*16);gl.vertexAttribDivisor(1+k,1);}
+        out.bytes+=data.byteLength;return {vao,buffer:buf,count:data.length/(slots*4)};
+      };
+      let treeTop=0;
+      if(mesh.treeSegs?.length){out.treeSegs=instanced(mesh.treeSegs,this.tubeGeom,2,3);for(let k=0;k<mesh.treeSegs.length;k+=12)treeTop=Math.max(treeTop,mesh.treeSegs[k+1],mesh.treeSegs[k+5]);}
+      if(mesh.treeLobes?.length){out.treeLobes=instanced(mesh.treeLobes,this.lobeGeom,3,2);for(let k=0;k<mesh.treeLobes.length;k+=8)treeTop=Math.max(treeTop,mesh.treeLobes[k+1]+mesh.treeLobes[k+3]*mesh.treeLobes[k+4]*1.3);}
+      if(mesh.treeTiers?.length){out.treeTiers=instanced(mesh.treeTiers,this.tierGeom,3,2);for(let k=0;k<mesh.treeTiers.length;k+=8)treeTop=Math.max(treeTop,mesh.treeTiers[k+2]);}
+      if(treeTop){out.frondTop=Math.max(out.frondTop||0,treeTop+rm);if(mesh.column)out.top=Math.max(out.top,Math.ceil((treeTop+rm)/mesh.column)-(out.slices?0:0));}
       if(mesh.skirts?.length){
         const kvao=gl.createVertexArray(),kbuf=gl.createBuffer();gl.bindVertexArray(kvao);
         gl.bindBuffer(gl.ARRAY_BUFFER,this.skirtBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,12,0);
@@ -1462,7 +1628,7 @@
     // carrying no ink, so its blocky shapes stay quiet until the real tile arrives.
     placeholder(on){this.flat=on;}
     disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);gl.deleteVertexArray(g.smooth.vao);}}
-    dispose(mesh){if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
+    dispose(mesh){for(const k of ['treeSegs','treeLobes','treeTiers'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     // Biomes around the view (names; repeats weight a biome); the atmosphere eases toward their average.
     setAtmosphere(biomes){
@@ -1483,7 +1649,7 @@
       for(let i=0;i<4;i++)v.viewProj[12+i]+=yb*this.view.viewProj[4+i];
       // Layer base in the GPU's explorer-relative height (like the eye); the bank noise adds yBase back so it stays put.
       const layer=v.ortho?[(c.y??8)-4-yb,10]:[(c.eyeY??c.y??8)-2.1-yb,6];
-      for(const [program,u] of [[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
+      for(const [program,u] of [[this.tubeProgram,this.tu],[this.lobeProgram,this.lou],[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
         gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
       }
@@ -1553,6 +1719,28 @@
       for(const x of [d.origin[0],d.origin[0]+size])for(const z of [d.origin[2],d.origin[2]+size])for(const y of [d.origin[1],top]){const p=this.project(c,x,y,z);x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
       const m=40;return x1>-m&&x0<this.width+m&&y1>-m&&y0<this.height+m;
     }
+    // Object trees of the queued tiles: tubes, lobes and conifer tiers, into the sun's depth map (shadow) or the scene.
+    drawTrees(shadow,c,{lightAt,box,cy,shadows}){
+      const gl=this.gl,yb=this.yBase||0;if(!this.queue.some(d=>d.mesh.treeSegs||d.mesh.treeLobes||d.mesh.treeTiers))return;
+      gl.disable(gl.CULL_FACE);
+      const kinds=[['treeSegs',shadow?this.tubeCaster:this.tubeProgram,shadow?this.tuc:this.tu,this.tubeGeom],['treeLobes',shadow?this.lobeCaster:this.lobeProgram,shadow?this.louc:this.lou,this.lobeGeom],['treeTiers',shadow?this.skirtCaster:this.skirtProgram,shadow?this.kuc:this.ku2,this.tierGeom]];
+      for(const [key,program,u,geom] of kinds){
+        if(!this.queue.some(d=>d.mesh[key]))continue;gl.useProgram(program);
+        gl.uniform3f(u.center,c.x,cy,c.z);gl.uniform2f(u.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(u.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(u.time,this.time);
+        if(shadow||shadows){gl.uniform3fv(u.lightAt,lightAt);gl.uniform3fv(u.lightHalf,box.half);gl.uniformMatrix3fv(u.lightAxes,false,LIGHT_AXES);gl.uniform1f(u.shadowTexel,box.texel);}
+        if(!shadow){gl.uniform1f(u.shadowOn,shadows?1:0);if(program===this.skirtProgram)gl.uniform1f(u.blockSize,.3);}
+        for(const d of this.queue){
+          const t=d.mesh[key];if(!t)continue;
+          if(shadow){if(d.flat||d.dither[0]<0||c.mode==='walk'&&(Math.abs(d.origin[0]-c.x)>96+32*d.scale[0]||Math.abs(d.origin[2]-c.z)>96+32*d.scale[0]))continue;}
+          else{if(!this.onScreen(d))continue;gl.uniform2f(u.dither,d.dither[0],d.dither[1]);}
+          const o=[d.origin[0],d.origin[1]+(d.mesh.propMetres||0)-yb,d.origin[2]];gl.uniform3fv(u.origin,program===this.skirtProgram||program===this.skirtCaster?[o[0],o[1],o[2]]:o);
+          gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,geom.verts,t.count);
+          if(!shadow){this.draws++;this.triangles+=t.count*geom.verts/3;}
+        }
+      }
+      if(!shadow&&this.skirtProgram){gl.useProgram(this.skirtProgram);gl.uniform1f(this.ku2.blockSize,.5);gl.uniform2f(this.ku2.dither,0,0);}
+      gl.enable(gl.CULL_FACE);gl.bindVertexArray(null);
+    }
     // A tile's biome map on unit 3, for object programs that tint by biome (size 0: no map, no tint).
     bindBiome(u,m){const gl=this.gl;gl.uniform1f(u.biomeSize,m.biomeMap?m.normalSize||0:0);if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}}
     end(){
@@ -1575,6 +1763,7 @@
         gl.useProgram(this.casterProgram);gl.uniform3fv(this.cu.lightAt,lightAt);gl.uniform3fv(this.cu.lightHalf,box.half);gl.uniformMatrix3fv(this.cu.lightAxes,false,LIGHT_AXES);gl.cullFace(gl.FRONT);
         for(const d of this.queue){if(d.flat||d.dither[0]<0||c.mode==='walk'&&(Math.abs(d.origin[0]-c.x)>96+32*d.scale[0]||Math.abs(d.origin[2]-c.z)>96+32*d.scale[0]))continue;gl.uniform1f(this.cu.caster,d.caster?1:0);this.replay(this.cu,d);}
         gl.cullFace(gl.BACK);
+        this.drawTrees(true,c,{lightAt,box,cy});
       }
       // Economy draws straight to the canvas without outlines or antialiasing.
       const post=!this.economy&&(c.mode==='walk'||(this.outlines||(this.fogAmount??.5)>0)&&c.span<1800),scene=post?this.sceneTarget():null;
@@ -1604,6 +1793,7 @@
         for(const d of this.queue){const t=d.mesh.skirts;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d,true));gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
         gl.enable(gl.CULL_FACE);
       }
+      this.drawTrees(false,c,{lightAt,box,cy,shadows});
       if(this.queue.some(d=>d.mesh.fronds)){
         const g=this.ru;gl.useProgram(this.frondProgram);gl.disable(gl.CULL_FACE);
         gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.shadowOn,shadows?1:0);

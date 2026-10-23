@@ -614,9 +614,12 @@
     // and streams (courseAt) are skipped out at sea, beyond any coast.
     // Channels are only looked for out to a normalized distance of 125 (past any valley, bank or riparian reach);
     // beyond that the point reads as far from water (999), which lets the course search prune most candidates.
+    // wideColumns: set while node() samples columns 16 m or wider, where local creeks and streams (at most ~7 m across)
+    // cannot show; their drainage network is skipped there (the macro rivers still draw).
+    let wideColumns=false,columnTone=.3;
     function riverAt(x,z,t){
       const wx=x+(noise(x*.02,z*.02,seed+345)-.5)*12,wz=z+(noise(x*.02,z*.02,seed+347)-.5)*12;
-      const r={e:125,lake:0,dx:0,dz:0};macroCourse(wx,wz,r);if(!(t&&t.coast<-700))courseAt(0,wx,wz,r);if(r.hw===undefined)r.e=999;
+      const r={e:125,lake:0,dx:0,dz:0};macroCourse(wx,wz,r);if(!(t&&t.coast<-700)&&!wideColumns)courseAt(0,wx,wz,r);if(r.hw===undefined)r.e=999;
       return {d:r.e,level:r.level||0,lake:0,w:r.e<999?r.hw:0,foam:!!r.foam,spring:!!r.spring,size:r.s||0,dir:[r.dx||0,r.dz||0],macro:!!r.macro,pool:r.macro?r.pool:null,
         speed:r.speed||0,depth:r.depth||0,zone:r.e<999?r.zone:null,curve:r.curve||0,slope:r.slope||0,cx:r.x,cz:r.z,dist:r.dist||0};
     }
@@ -1394,7 +1397,7 @@
     // bush clump, a bamboo clump, a cactus, a mushroom cluster, a log or a stump (or nothing).
     // plantBiome: the biome makeTree is planting for (growTree records it as t.biome, which picks the under-canopy floor).
     let plantBiome=null;
-    // coarse: for far-view columns (8 m and wider), where a tree is smaller than a column: skip the checks of the ground
+    // coarse: for far-view columns (4 m and wider), where a tree is about a column or smaller: skip the checks of the ground
     // and water around the trunk (one geography lookup a tree instead of five to nine).
     function makeTree(gx,gz,coarse=false){
       // Near a biome edge the cell plants for its own biome or the neighbour's (pickBiome), so species, density and
@@ -1630,7 +1633,8 @@
     // only that far.
     let colTop=0,colFloor=0,scratch=null,scratch32=null;
     // colStep: cells between sampled columns (set by node()). Plants and scatter smaller than a sampled column are skipped.
-    let colStep=1,propsMode=false;
+    // treeObjects: trees (kind 'tree') are drawn as objects, so node() columns leave them out (see treeParts).
+    let colStep=1,propsMode=false,treeObjects=false;
     // Stamp one plant record into the column at (x,z) whose first air cell is h. Returns one past the highest cell the
     // stamp may have written (0 if none). Plants only fill air, except trunks and culms.
     function stampPlant(t,x,z,values,h){
@@ -1907,6 +1911,79 @@
       for(let y=lo;y<hi;y++)if(!values[y])values[y]=y<crownLow?m:leaf;
       return t.top;
     }
+    // ---- Trees as objects ----
+    // A tree's shape built once (not per column), in world metres, for drawing as instanced objects: segs (trunk and
+    // branch tubes: x0,y0,z0,r0,x1,y1,z1,r1, material), lobes (crown ellipsoids: x,y,z,r, height scale, material) and tiers
+    // (conifer bough skirts: x,z, top, bottom, radius, top radius, seed, material). It follows stampTree's hash chain, so an
+    // object tree matches the voxel tree drawn for the same record at coarse levels.
+    const partsCache=new WeakMap();
+    function treeParts(t){
+      let P=partsCache.get(t);if(P)return P;
+      const M=cellMetres,crown=t.crown||'round',R=t.radius,top=t.base+t.height,bark=t.bark||MAT.bark,leaf=t.leaf||MAT.leaf,trunk=t.trunk||.72*density;
+      const segs=[],lobes=[],tiers=[];
+      const seg=(x0,y0,z0,r0,x1,y1,z1,r1,m=bark)=>segs.push(x0,y0*M,z0,r0*M,x1,y1*M,z1,r1*M,m);
+      const lobe=(x,y,z,r,ys,m=leaf)=>lobes.push(x,y*M,z,r*M,ys,m);
+      if(crown==='spire'||crown==='cone'||crown==='larch'){
+        const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
+        const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
+        const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
+        const flareH=Math.min(t.height*.12,Math.round(3/M));
+        seg(t.x,t.base,t.z,trunk*2.2,t.x,t.base+flareH,t.z,trunk*1.05);
+        seg(t.x,t.base+flareH,t.z,trunk*1.05,t.x,apex-period*.8,t.z,trunk*.5);
+        for(let k=0;;k++){
+          const tierTop=apex-k*period,tierBottom=apex-(k+1)*period;if(tierTop<=low)break;
+          const h1=hash(k,id,seed+131),h2=hash(k,id,seed+137),env=R*Math.pow(Math.min(1,(k+1)/5.5),.55)*(.86+.14*h1);
+          const step=soft?.3+.12*h2:.45+.18*h2,rTop=k===0?0:env*(1-step);
+          tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
+        }
+      }else if(crown==='oval'){
+        seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.7);
+        lobe(t.x,top-R*.3,t.z,R,1.6);
+      }else if(crown==='umbrella'){
+        seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.8);
+        const P2=t.pads[1],y0=t.base+Math.round(t.height*.45);seg(t.x,y0,t.z,trunk*.8,P2.x,P2.y,P2.z,trunk*.5);
+        for(const p of t.pads)lobe(p.x,p.y,p.z,p.r,.32);
+      }else if(crown==='gnarled'){
+        const L=Math.hypot(t.lx,t.lz),nx=-t.lz/(L||1),nz=t.lx/(L||1),at=f=>{const wob=Math.sin(f*7+t.x)*.35*f;return [t.x+t.lx*f**1.5+nx*wob,t.base+t.height*f,t.z+t.lz*f**1.5+nz*wob,trunk*(1.35-.55*f)];};
+        for(let i=0;i<4;i++){const a=at(i/4),b=at((i+1)/4);seg(a[0],a[1],a[2],a[3],b[0],b[1],b[2],b[3]);}
+        for(const l of t.lumps)lobe(l.x,l.y-l.r*.1,l.z,l.r,.6);
+      }else if(crown==='willow'){
+        const O=R*1.08;seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.7);
+        lobe(t.x,top,t.z,O,.42);
+        // The weeping curtain: a hanging skirt from the dome's rim nearly to the ground.
+        tiers.push(t.x,t.z,(top-R*.25)*M,(t.base+Math.max(2*density,t.height*.35))*M,O*M,O*.9*M,hash(Math.floor(t.x*4),Math.floor(t.z*4),seed+155),leaf);
+      }else if(crown==='palm'){
+        const at=f=>[t.x+t.lx*f*f,t.base+t.height*f,t.z+t.lz*f*f,trunk*(1.2-.35*f)];
+        for(let i=0;i<4;i++){const a=at(i/4),b=at((i+1)/4);seg(a[0],a[1],a[2],a[3],b[0],b[1],b[2],b[3]);}
+      }else{
+        // Broadleaf (oak and kin): the same fork, stems, branches and lobes as stampTree.
+        const clear=t.cls===-1?density:Math.max(Math.ceil(2.5/M),Math.round(t.height*.35));
+        const tidX=Math.floor(t.x*4),tidZ=Math.floor(t.z*4),forkY=t.base+Math.round(t.height*(.5+.12*hash(tidX,tidZ,seed+167)));
+        seg(t.x,t.base,t.z,trunk*1.9,t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15);
+        seg(t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15,t.x,forkY,t.z,trunk);
+        const a0=hash(tidX,tidZ,seed+173)*6.2832,nS=2+Math.floor(hash(tidZ,tidX,seed+169)*2),stems=[];
+        for(let i=0;i<nS;i++){
+          const a=a0+i*6.2832/nS+(hash(i,tidX,seed+175)-.5)*.8,o=R*(i===0?.05+.15*hash(0,tidZ,seed+177):.25+.4*hash(i,tidZ,seed+177));
+          stems.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:top-Math.round(R*(.02+.3*hash(i,tidX*3,seed+179)))});
+        }
+        const L=[],nL=4+Math.floor(hash(tidX,tidZ,seed+171)*3);
+        for(let i=0;i<nS;i++)L.push({x:stems[i].x,z:stems[i].z,y:stems[i].y+Math.round(density*.5),r:Math.max(2*density,Math.round(R*(.5+.2*hash(i,tidZ*5+tidX,seed+181)))),stem:i,at:.95});
+        for(let i=0;i<nL;i++){
+          const a=a0+(i+.5)*6.2832/nL+(hash(i,tidX+tidZ,seed+183)-.5)*.9,o=R*(.45+.4*hash(i,tidX,seed+185));
+          L.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:Math.round(forkY+(top-forkY)*(.3+.6*hash(i,tidZ,seed+187))),r:Math.max(2*density,Math.round(R*(.38+.25*hash(i,tidX*3+tidZ,seed+189)))),stem:i%nS,at:.4+.3*hash(i,tidX,seed+191)});
+        }
+        const nSkirt=1+Math.floor(hash(tidX,tidZ,seed+193)*2);
+        for(let i=0;i<nSkirt;i++){
+          const a=a0+hash(i,tidZ,seed+195)*6.2832,o=R*(.15+.35*hash(i,tidX,seed+197));
+          L.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:Math.round(forkY+(top-forkY)*(.1+.2*hash(i,tidZ,seed+199))),r:Math.max(2*density,Math.round(R*(.3+.2*hash(i,tidX*7+tidZ,seed+201)))),stem:i%nS,at:.15+.15*hash(i,tidZ,seed+203)});
+        }
+        for(const st of stems)seg(t.x,forkY,t.z,Math.max(.75*density,trunk*.7),st.x,st.y,st.z,Math.max(1,.5*density));
+        for(let i=nS;i<L.length;i++){const l=L[i],st=stems[l.stem],u=l.at;seg(t.x+(st.x-t.x)*u,forkY+(st.y-forkY)*Math.sqrt(u),t.z+(st.z-t.z)*u,Math.max(1,.6*density),l.x,l.y,l.z,Math.max(1,.45*density));}
+        // Lobes droop below their centres (the voxel dome spans y-0.8h..y+0.6h) and never hang below the canopy floor.
+        for(const l of L){const ys=.7,cy=Math.max(l.y-l.r*.1,t.base+clear+l.r*ys);lobe(l.x,cy,l.z,l.r,ys);}
+      }
+      P={segs,lobes,tiers};partsCache.set(t,P);return P;
+    }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
     function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
       const L=Math.hypot(t.lx,t.lz),mx=t.x+t.lx/2,mz=t.z+t.lz/2;
@@ -2053,7 +2130,7 @@
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
       if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       let t0=prof&&prof.on&&now();
-      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;
+      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;columnTone=GRASS_TONE[g.biome]??.3;
       if(prof&&prof.on){const t=now();prof.geography+=t-t0;t0=t;}
       colFloor=into?bandFloor(h,g.iceCells):0;
       values.fill(MAT.basalt,colFloor,Math.max(colFloor,h-4*density));
@@ -2087,8 +2164,8 @@
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
       const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
-      if(infinite&&colStep*cellMetres>=8){
-        // Far views (8 m and wider columns): a column samples one point of the canopy, so instead of testing all 25 tree
+      if(infinite&&colStep*cellMetres>=4){
+        // Far views (4 m and wider columns): a column samples one point of the canopy, so instead of testing all 25 tree
         // cells around it, it takes the tree of its own cell or, failing that, of one neighbour picked by hash (two cells
         // keep the canopy cover close to the fine levels'), and stamps it as if the point fell inside the crown at a
         // hashed spot, which gives each column its own crown height.
@@ -2112,6 +2189,7 @@
           const f=Math.sqrt(d2)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
           if(f<1.12){const m=f<1?(t.conifer?0:1):t.conifer?2:3;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
         }
+        if(treeObjects&&t.kind==='tree'){if(t.under){const w=stampLumps(t.under,x,z,values,h,t.underLeaf||MAT.bushLeaf);if(w>written)written=w;}continue;}
         const w=stampPlant(t,x,z,values,h);if(w>written)written=w;
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
@@ -2384,8 +2462,8 @@
     function node(L,nx,nz,options={}){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,G=NODE+4,cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
-      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;propsMode=!!options.props;
+      const s=2**L,P=NODE+2,G=NODE+4,tones=new Float32Array(G*G),cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
+      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;wideColumns=s*cellMetres>=16;propsMode=!!options.props;treeObjects=!!(options.treeObjects&&options.props!==false&&L<=TREE_OBJECT_LEVEL);
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // scratch is reused: only the band [colFloor, colTop) was written, so only that is scanned and cleared.
       if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
@@ -2400,12 +2478,12 @@
         const run=basaltRun(c,buf32,hi+1,fl),full=Math.floor(run/s),top=hi>=full*s?((hi/s)|0)+1:full,b=new Uint8Array(top-full);
         for(let y=full*s;y<=hi;y++){const m=c[y];if(m)b[((y/s)|0)-full]=m;}
         const k=j*P+i;cols[k]=b;colY0[k]=full;
-        const kk=(j+1)*G+i+1;grounds[kk]=groundBlocks(c,lim,s,run);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
+        const kk=(j+1)*G+i+1;tones[kk]=columnTone;grounds[kk]=groundBlocks(c,lim,s,run);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
         tops[k]=top;floor[k]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;tones[j*G+i]=columnTone;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -2417,7 +2495,7 @@
         const k=j*P+i,b=cols[k],y0=colY0[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=y<y0?BASALT:b[y-y0];
       }
-      colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0);
+      const objectTrees=treeObjects;wideColumns=false;colStep=1;propsMode=false;treeObjects=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0);
       // Slices: greedy meshing runs per slice over a window of the footprint's dense volume (the rows just above and below
       // the window take part, so each face between two slices is emitted exactly once); Surface Nets runs once over the
       // footprint and each quad goes to the slice holding its owned edge, so slice seams close exactly.
@@ -2425,7 +2503,8 @@
       for(let k=k0;k<=k1;k++){const a=Math.max(base,k*SL),e=Math.min(ny,(k+1)*SL);if(e<=a)continue;const m=greedy(voxels,NODE,span,NODE,a-k*SL,{y0:a-base+1,h:e-a});if(m.count)byK.set(k,{y:k*SL,...m});}
       if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
       const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
-      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      const objects=objectTrees?treeObjectsIn(L,nx,nz,canopy,grounds,G):null;
+      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2441,6 +2520,26 @@
         out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
       }
       return {canopy:out};
+    }
+    // Object trees of a node (those whose trunk stands in it), as flat arrays in node-local metres (x, z) and absolute
+    // metres (y): treeSegs (12 a segment), treeLobes (8 a lobe), treeTiers (8 a tier, the sequoiaSkirts layout with the
+    // leaf material last). Their crowns are also rasterized into the canopy heights, so crown shading, Peek and the crew
+    // x-ray see them as they saw voxel crowns.
+    const TREE_OBJECT_LEVEL=3;
+    function treeObjectsIn(L,nx,nz,canopy,grounds,G){
+      const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,segs=[],lobes=[],tiers=[];
+      const raise=(cx,cz,r,topM)=>{const tb=Math.ceil(topM/blockM);
+        const i0=Math.max(0,Math.floor((cx-r-x0)/blockM)+2),i1=Math.min(G-1,Math.ceil((cx+r-x0)/blockM)+2),j0=Math.max(0,Math.floor((cz-r-z0)/blockM)+2),j1=Math.min(G-1,Math.ceil((cz+r-z0)/blockM)+2);
+        for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const px=x0+(i-2+.5)*blockM,pz=z0+(j-2+.5)*blockM;if(Math.hypot(px-cx,pz-cz)<r){const k=j*G+i;if(tb>canopy[k])canopy[k]=tb;}}};
+      // Trees whose crowns overhang this node from a neighbour still shade its canopy map.
+      const pad=12;
+      for(let gz=Math.floor((z0-pad)/TG);gz<=Math.floor((z0+m+pad)/TG);gz++)for(let gx=Math.floor((x0-pad)/TG);gx<=Math.floor((x0+m+pad)/TG);gx++){
+        const t=tree(gx,gz);if(!t||t.kind!=='tree')continue;const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+901);
+        for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys,mat]=P.lobes.slice(i,i+6);raise(x,z,r,y+r*ys*.85);if(own)lobes.push(x-x0,y,z-z0,r,ys,mat,(sd+i*.137)%1,0);}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
+        if(own)for(let i=0;i<P.segs.length;i+=9){const S=P.segs.slice(i,i+9);segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,0,0);}
+      }
+      return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers)};
     }
     // Giant sequoia crowns as bough skirts, from the hero tree's tier data: one record per tier, in node-local metres:
     // crown centre x, z, tier top, tier bottom; radius at the bottom, radius at the top (stepped in), seed. Listed by the
@@ -2573,19 +2672,22 @@
         // views keep their real depth colour instead of reading as shore everywhere.
         const I=i+2,J=j+2,d=water[J*G+I],o=(j*NODE+i)*4;let near=4;
         if(d)for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)if(!water[(J+b)*G+I+a])near=Math.min(near,Math.max(0,(Math.hypot(a,b)-.5)*column));
-        const x=(x0+(i+.5)*column)/FLOW,z=(z0+(j+.5)*column)/FLOW,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b,f=[0,1].map(c=>(flowAt(a,b)[c]*(1-u)+flowAt(a+1,b)[c]*u)*(1-v)+(flowAt(a,b+1)[c]*(1-u)+flowAt(a+1,b+1)[c]*u)*v);
+        // Flow only matters on water, and only where its moving pattern can be seen: dry columns, and columns 16 m and
+        // wider, skip its geography lookups.
+        const x=(x0+(i+.5)*column)/FLOW,z=(z0+(j+.5)*column)/FLOW,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b,f=d&&column<16?[0,1].map(c=>(flowAt(a,b)[c]*(1-u)+flowAt(a+1,b)[c]*u)*(1-v)+(flowAt(a,b+1)[c]*(1-u)+flowAt(a+1,b+1)[c]*u)*v):[0,0];
         out[o]=Math.min(255,Math.round(d*32));out[o+1]=d?Math.min(255,Math.round(near*64)):0;out[o+2]=Math.round(128+f[0]*127);out[o+3]=Math.round(128+f[1]*127);
       }
       return out;
     }
-    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water){
+    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4),dominant=dominantGrass(grassMat);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
         // Grass tone blends between biomes in irregular drifts: the sample point is warped by noise and the tone averaged over
         // a 3×3 spread, so a biome border never shows as a straight line along the sampling grid.
         const wx=x0+(i+.5)*column,wz=z0+(j+.5)*column,dx=(noise(wx*.02,wz*.02,seed+611)-.5)*40,dz=(noise(wx*.02+9.1,wz*.02,seed+613)-.5)*40;
         const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
-        let c=0;for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;const o=(j*NODE+i)*4;
+        // Columns as wide as the tint grid already average over it: one sample.
+        let c=0;if(column>=TINT&&tones)c=tones[(j+2)*G+i+2];else{for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;}const o=(j*NODE+i)*4;
         out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2,dominant);out[o+3]=255;
       }
       return out;
