@@ -1394,7 +1394,9 @@
     // bush clump, a bamboo clump, a cactus, a mushroom cluster, a log or a stump (or nothing).
     // plantBiome: the biome makeTree is planting for (growTree records it as t.biome, which picks the under-canopy floor).
     let plantBiome=null;
-    function makeTree(gx,gz){
+    // coarse: for far-view columns (8 m and wider), where a tree is smaller than a column: skip the checks of the ground
+    // and water around the trunk (one geography lookup a tree instead of five to nine).
+    function makeTree(gx,gz,coarse=false){
       // Near a biome edge the cell plants for its own biome or the neighbour's (pickBiome), so species, density and
       // extras from both sides mix with a share that falls off with distance from the border.
       const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),b=pickBiome(g,x,z,hash(gx,gz,seed+817)),S=treeStyle(b);plantBiome=b;
@@ -1402,7 +1404,7 @@
       // sits on a rock face). Snow and ice are allowed: the renderer gives those trees snowy crowns.
       const bare=G=>G.exposed||G.sea||G.water>G.height||G.biome==='alpine'||G.biome==='gorge'||G.slope>1.3;
       if(bare(g)||g.highland||g.gorgeDistance<g.gorgeHalf+4||spireNear(x,z,4)||landmarkNear(x,z))return null;
-      for(const [u,w] of [[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]])if(bare(geography(x+u,z+w)))return null;
+      if(!coarse)for(const [u,w] of [[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]])if(bare(geography(x+u,z+w)))return null;
       // Riparian corridor (see geography): rip 0-1 and its planting style. Deserts and badlands are barren except where
       // a river or lake feeds them.
       const rip=g.riparian||0,cor=rip>0&&!TREELESS.has(b)?g.corridor:null,CS=cor&&CORRIDOR[cor];
@@ -1426,7 +1428,7 @@
       // River and lake edges: twisted trees leaning out over the water, bushes on the bank.
       if(g.riverDistance<12||rip>.6&&g.lake){
         // Only cells that would take a lakeside plant sample their surroundings for water.
-        let wx=0,wz=0;if(roll<.55&&!barren)for(const [u,w] of [[4.5,0],[-4.5,0],[0,4.5],[0,-4.5]]){const G=geography(x+u,z+w);if(G.water>G.height&&!G.sea){wx+=u;wz+=w;}}
+        let wx=0,wz=0;if(roll<.55&&!barren&&!coarse)for(const [u,w] of [[4.5,0],[-4.5,0],[0,4.5],[0,-4.5]]){const G=geography(x+u,z+w);if(G.water>G.height&&!G.sea){wx+=u;wz+=w;}}
         // Waterside trees lean out over the water: a twisted tree, or the corridor's own (palm, willow, vine-hung jungle
         // giant, cold-bank scrub).
         if(wx||wz){const lean=Math.atan2(wz,wx);
@@ -1520,6 +1522,14 @@
       // Big trees shelter a bush or two at their feet.
       if(C.cls===2&&S.bush){const a=hash(gx,gz,seed+105)*Math.PI*2,d=Math.max(.9,rm*.75);t.under=bushLumps(x+Math.cos(a)*d,z+Math.sin(a)*d,gx,gz,611,.5+.3*hash(gx,gz,seed+107));if(S.bushLeaf)t.underLeaf=S.bushLeaf;}
       t.top=top;return Object.freeze(t);
+    }
+    // Far-view trees (see makeTree's coarse), in their own larger cache so they never evict the detailed ones.
+    const coarseTrees=new Map();
+    function coarseTree(gx,gz){
+      if(gallery)return galleryTreeCell(gx,gz);
+      const key=gx*134217728+gz;if(coarseTrees.has(key))return coarseTrees.get(key);
+      const value=makeTree(gx,gz,true);
+      if(coarseTrees.size>=16384)coarseTrees.delete(coarseTrees.keys().next().value);coarseTrees.set(key,value);return value;
     }
     function tree(gx,gz){
       if(infinite){
@@ -2077,7 +2087,20 @@
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
       const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
-      for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
+      if(infinite&&colStep*cellMetres>=8){
+        // Far views (8 m and wider columns): a column samples one point of the canopy, so instead of testing all 25 tree
+        // cells around it, it takes the tree of its own cell or, failing that, of one neighbour picked by hash (two cells
+        // keep the canopy cover close to the fine levels'), and stamps it as if the point fell inside the crown at a
+        // hashed spot, which gives each column its own crown height.
+        const k=Math.floor(hash(gx,gz,seed+861)*8),nb=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]][k];
+        let t=coarseTree(gx,gz);if(!t||t.kind==='bush')t=coarseTree(gx+nb[0],gz+nb[1]);
+        if(t&&(!t.kind||t.kind==='tree'||t.kind==='bamboo')){
+          const r=(t.radius?t.radius*cellMetres:1.5)*.85,a=hash(Math.floor(x),Math.floor(z),seed+863)*6.2832,q=Math.sqrt(hash(Math.floor(x),Math.floor(z),seed+865))*r;
+          const px=t.x+(t.lx||0)+Math.cos(a)*q,pz=t.z+(t.lz||0)+Math.sin(a)*q;
+          if(t.radius&&t.cls!==-1||t.kind==='bamboo'){const m=t.conifer?0:1;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
+          const w=stampPlant(t,px,pz,values,h);if(w>written)written=w;
+        }
+      }else for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
         // One squared distance per candidate gates both the litter ring and the stamp call: no crown part of a tree
         // reaches past ~1.6 crown radii plus its gnarled/palm lean offset, so farther trees can be skipped without a
