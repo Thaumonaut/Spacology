@@ -20,14 +20,16 @@
     //   ROCKS:        rockDark 86, rockPale 87 (strata tones of mountain rock), lichen 89 (grey-green lichen on rock)
     //   WARM_ROCKS:   rockWarm 88 (warm brown-grey stratum), lichenOrange 90 (rust lichen on rock)
     //   ABOVE_GROUND: boulder 91, boulderPale 92 (boulders, tors and loose stones)
-    rockDark:86,rockPale:87,rockWarm:88,lichen:89,lichenOrange:90,boulder:91,boulderPale:92});
+    rockDark:86,rockPale:87,rockWarm:88,lichen:89,lichenOrange:90,boulder:91,boulderPale:92,
+    // ---- Ruin materials (appended; never renumber). ABOVE_GROUND: masonry 93 (dressed stone of ruin walls and rubble).
+    masonry:93});
   const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
     '#e9e4d8','#a3c86a','#a9b552','#5c9a52','#b6c46a','#78b24c','#b88ae6','#f6eefa','#f28b6e','#4e8d45','#98b862','#d9473b','#f1e6cc','#71dcff','#a3a45c','#f4d04e','#a483e6','#5e9a5a','#8aa24c','#e0a93c','#45403c','#7d8f3e',
     '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd','#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#bf6a43','#dda067','#e2c27f','#4f7f3f',
     // Riparian (75-85): willow, vine, palm frond, alder, palm bark, rush, cattail head, lily pad, lily flower, floodgrass, cobble.
     '#9fc65a','#3d7a3c','#5fae4a','#4a8048','#a07d55','#6f9f45','#7b4a2b','#5b9e4c','#f7c4dc','#5fb35a','#8f938e',
     // Mountain rock (86-92): dark, pale and warm strata, grey-green and rust lichen, boulder, pale boulder.
-    '#5f6a7c','#8a919d','#83776b','#8a9470','#a8845e','#8b8a88','#a4a29c']);
+    '#5f6a7c','#8a919d','#83776b','#8a9470','#a8845e','#8b8a88','#a4a29c','#aba595']);
   // Display names for streamed biome ids (atlas hexes, ground inspection). 'Desert' is matched by coop-session.js.
   const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
     flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
@@ -43,10 +45,11 @@
   const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,MAT.cobble,MAT.rockDark,MAT.rockPale,MAT.lichen,MAT.boulder,MAT.boulderPale,...WARM_ROCKS]));
   // Flowers render as props (stem and petals), not voxels, in close views.
   const FLOWERS=Object.freeze(new Set([MAT.flower,MAT.flowerYellow,MAT.flowerViolet,MAT.glowFlower]));
-  // Thin plants drawn as objects at every zoom: bamboo culms, reeds, rushes with cattail heads, ferns and tufts.
-  const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft]));
+  // Thin plants drawn as objects at every zoom: bamboo culms, reeds, rushes with cattail heads, ferns, tufts and hanging
+  // vine strands.
+  const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft,MAT.vine]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.floodgrass,MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
-  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
+  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.masonry,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
@@ -1984,7 +1987,7 @@
             fill(MAT.coral,p.y-p.th*(.45+.55*Math.sqrt(1-(q/r)**2)),p.y+p.th*Math.sqrt(1-(q/r)**4));}
           // Broken pillars and wall stubs among the roots, mossy on top.
           for(const s2 of A.stones){const dx=x-s2.x,dz=z-s2.z,inside=s2.wall?Math.abs(dx*s2.ux+dz*s2.uz)<s2.hl&&Math.abs(dz*s2.ux-dx*s2.uz)<.4:Math.hypot(dx,dz)<s2.r;if(!inside)continue;
-            const t=Math.min(heightCells,gTop+Math.max(1,Math.round(s2.ht*(.75+.5*noise(x*.6,z*.6,seed+635))/cellMetres)));for(let y=gTop-1;y<t;y++)values[y]=MAT.stone;values[t-1]=MAT.mossy;written=Math.max(written,t);}
+            const t=Math.min(heightCells,gTop+Math.max(1,Math.round(s2.ht*(.75+.5*noise(x*.6,z*.6,seed+635))/cellMetres)));for(let y=gTop-1;y<t;y++)values[y]=MAT.masonry;values[t-1]=MAT.mossy;written=Math.max(written,t);}
           written=Math.max(written,gTop,Math.ceil(A.top/cellMetres)+1);
           }
         }
@@ -2045,24 +2048,41 @@
             // `side`: the 0.3 m strip just outside a wall face, where ivy hangs.
             if(q.t==='box'){const dx=x-q.cx,dz=z-q.cz,v=Math.abs(-dx*q.uz+dz*q.ux);u=dx*q.ux+dz*q.uz;inside=Math.abs(u)<q.hl&&v<q.hw;side=!inside&&Math.abs(u)<q.hl&&v<q.hw+.3;}
             else{const d=Math.hypot(x-q.cx,z-q.cz),o=q.th?Math.abs(d-q.r)-q.th/2:d-q.r;inside=o<0;side=!inside&&o<.3;u=Math.atan2(z-q.cz,x-q.cx)*q.r;}
+            // Rubble: fallen stones heaped against the foot of broken stretches, out to 1.6 m from the face.
+            const broken=q.rough?clamp((noise(x*.3+q.k*7.1,z*.3,seed+493)-.35)*2.2,0,1):0;
+            if(!inside&&broken>.25&&q.seat!==false){
+              const out=q.t==='box'?Math.abs(-(x-q.cx)*q.uz+(z-q.cz)*q.ux)-q.hw:(q.th?Math.abs(Math.hypot(x-q.cx,z-q.cz)-q.r)-q.th/2:Math.hypot(x-q.cx,z-q.cz)-q.r);
+              const along=q.t==='box'?(x-q.cx)*q.ux+(z-q.cz)*q.uz:u;
+              if(out>.3&&out<1.6&&(q.t!=='box'||Math.abs(along)<q.hl+.5)){
+                const pile=broken*(1-out/1.6)*(.25+.6*noise(x*1.6+q.k,z*1.6,seed+519)),cells=Math.round(pile/cellMetres);
+                if(cells>0&&!values[h]){values.fill(MAT.masonry,h,Math.min(heightCells,h+cells));written=Math.max(written,h+cells);}
+              }
+            }
             if(!inside&&!side)continue;
             let top=q.y1+(q.gable?q.gable*(1-Math.abs(u)/q.hl):0);
-            // Crumbling: broken stretches drop by up to `rough`; intact stretches keep battlements (alternate 0.8 m merlons).
-            const broken=q.rough?clamp((noise(x*.3+q.k*7.1,z*.3,seed+493)-.35)*2.2,0,1):0;top-=q.rough*broken;
+            // Crumbling: broken stretches drop by up to `rough`, in whole stone courses (0.45 m), with single stones missing
+            // here and there along the top; intact stretches keep battlements (alternate 0.8 m merlons).
+            top-=q.rough*broken;
+            if(broken>0){top=Math.floor(top/.45)*.45;if(hash(Math.floor(u/.8+Math.floor(top/.45)*.5),q.k,seed+517)<.3)top-=.45;}
             if(q.crenel&&broken<.05&&Math.floor(u/.8)%2)top-=.8;
             const from=Math.max(0,Math.floor((q.seat===false?q.y0:Math.min(q.y0,ground))/cellMetres)),to=Math.min(heightCells,Math.ceil(top/cellMetres));
             if(to<=from)continue;
             if(side){
               // Ivy curtains hang from the wall top down a stretch of the face, in patches along the wall.
               // Climbing ivy creeps up from the foot of the wall in other patches.
-              const ivy=noise(u*.45+q.k*3.3,.5,seed+497),climb=noise(u*.5+q.k*1.7,2.5,seed+507),m=noise(u*.8,q.k,seed+509)>.5?MAT.leaf:MAT.bushLeaf;
-              if(ivy>=.52){const len=(to-from)*(.35+.6*noise(u*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=m;}
-              if(climb>=.5){const up=Math.max(h,from)+Math.round((to-from)*(.15+.75*noise(u*1.6+q.k,3.5,seed+511)));for(let y=Math.max(h,from);y<Math.min(to,up);y++)if(!values[y])values[y]=MAT.bushLeaf;}
+              // Each 25 cm strand has its own length and some are missing, so curtains read as hanging strands, not stripes.
+              const ivy=noise(u*.45+q.k*3.3,.5,seed+497),climb=noise(u*.5+q.k*1.7,2.5,seed+507),strand=hash(Math.floor(u*4),q.k,seed+521);
+              if(ivy>=.48&&strand>.2){const len=(to-from)*(.35+.65*strand*noise(u*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=MAT.vine;}
+              if(climb>=.5&&strand<.8){const up=Math.max(h,from)+Math.round((to-from)*(.1+.7*strand*noise(u*1.6+q.k,3.5,seed+511)));for(let y=Math.max(h,from);y<Math.min(to,up);y++)if(!values[y])values[y]=MAT.vine;}
+              // Grass tufts crowd the corner where the wall meets the ground.
+              if(!values[h]&&hash(Math.floor(x*4),Math.floor(z*4),seed+523)<.45){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+525)*.25/cellMetres);for(let y=h;y<Math.min(heightCells,h+n);y++)if(!values[y])values[y]=MAT.tuft;}
               written=Math.max(written,to);continue;
             }
-            values.fill(MAT.stone,from,to);written=Math.max(written,to);
-            // Moss: on the wall top where it is level enough to hold soil, and in damp patches lower down.
+            values.fill(MAT.masonry,from,to);written=Math.max(written,to);
+            // Moss: on the wall top where it is level enough to hold soil, and in damp patches lower down. Grass tufts take
+            // root in the cracks of crumbled tops.
             if(noise(x*.6+q.k,z*.6,seed+501)>.3)values[to-1]=MAT.mossy;
+            if(broken>.1&&to<heightCells-2&&!values[to]&&hash(Math.floor(x*4),to*31+Math.floor(z*4),seed+527)<.35){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+529)*.3/cellMetres);for(let y=to;y<to+n;y++)values[y]=MAT.tuft;written=Math.max(written,to+n);}
             for(let y=from;y<to-1;y++)if(hash(Math.floor(x*4),y*7919+Math.floor(z*4),seed+503)<.12*clamp((noise(x*.4,z*.4+y*.05,seed+505)-.35)*3,0,1))values[y]=MAT.mossy;
             // Damp moss creeps up the foot of the wall from the ground.
             {const band=h+Math.round((.2+.9*noise(x*.5+q.k,z*.5,seed+513))/cellMetres);for(let y=Math.max(from,h-1);y<Math.min(to-1,band);y++)if(hash(Math.floor(x*4),y*131+Math.floor(z*4),seed+515)<.6)values[y]=MAT.mossy;}

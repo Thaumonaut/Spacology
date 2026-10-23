@@ -119,13 +119,17 @@
     float l=dot(c,vec3(.3,.59,.11)),kl=max(dot(key,vec3(.3,.59,.11)),.05);return mix(c,clamp(key*mix(l/kl,1.,.5),0.,1.),k);
   }
   float plantSeed(vec2 block){return fract(sin(dot(floor(block*.35),vec2(12.9898,78.233)))*43758.5453);}
-  vec3 undergrowth(sampler2D map,float size,vec2 block,vec3 c,float k,float seed){
-    if(size<=0.)return c;
-    vec4 t=texelFetch(map,clamp(ivec2(block),ivec2(0),ivec2(int(size)-1)),0);int local=int(t.b*255.+.5);if(local<=0)return c;
+  // rgb: the key for this plant; a: how far it is from green (0 green or golden biomes, 1 rose and violet ones); a<0: none.
+  vec4 biomeKey(sampler2D map,float size,vec2 block,float seed){
+    if(size<=0.)return vec4(-1);
+    vec4 t=texelFetch(map,clamp(ivec2(block),ivec2(0),ivec2(int(size)-1)),0);int local=int(t.b*255.+.5);if(local<=0)return vec4(-1);
     vec3 g=palette[local];float green=1.-smoothstep(0.,.05,g.b-g.g);
     vec3 key=mix(mix(g,g*vec3(1.06,1.1,.82),green),vec3(.22,.36,.22),t.r*green*.8);
     float r=fract(seed*7.13+.31);key=r<.55?key:r<.8?mix(key,vec3(1.),.4):clamp(key*vec3(.85,.9,1.2),0.,1.);
-    return biomeTint(c,key,k);
+    return vec4(key,1.-green);
+  }
+  vec3 undergrowth(sampler2D map,float size,vec2 block,vec3 c,float k,float seed){
+    vec4 key=biomeKey(map,size,block,seed);return key.a<0.?c:biomeTint(c,key.rgb,k);
   }`;
   // Shadow casters: things standing on the ground (trees, spires, stones, arches), anything above the local ground top
   // (sky isles) and the crew. Terrain never casts, so its single-block steps cannot shadow each other into moiré.
@@ -315,9 +319,23 @@
       base=isBladeGrass(mat)?mix(mix(field,palette[2],.3)*vec3(1.06,1.,.82),field,g):mix(base,field,g);
     }
     if(normalSize>0.){
-      bool under=mat==${M.MAT.bushLeaf}||mat==${M.MAT.fern}||mat==${M.MAT.tuft};
+      bool under=mat==${M.MAT.bushLeaf}||mat==${M.MAT.fern}||mat==${M.MAT.tuft}||mat==${M.MAT.mossy}||mat==${M.MAT.vine};
       float k=under?.85:isBladeGrass(mat)||isLeaf(mat)||isBark(mat)||mat==7||mat==19||mat==20?0.:.12;
       if(k>0.)base=undergrowth(biomeMap,normalSize,block.xz,base,k,under?plantSeed(block.xz):0.);
+    }
+    // Moss: fuzzy, a fine stipple of lighter tips and darker hollows, a little brighter on top.
+    if(mat==${M.MAT.mossy}){
+      vec3 w=worldPosition*14.;float f=hash(floor(w))*.6+hash(floor(w*2.3+.5))*.4;
+      base*=mix(1.,.8+.38*f+(normal.y>.5?.06:0.),visible(.1));
+    }
+    // Ruin masonry: dressed blocks in 0.45 m courses, each 0.8 m stone offset from the course below, with its own tone and
+    // a slightly darker, chipped mortar joint; tops read as a grid of laid stones. Fades to the plain colour when small.
+    if(mat==${M.MAT.masonry}){
+      vec3 w=worldPosition;bool top=abs(normal.y)>.5;float along=abs(normal.x)>abs(normal.z)?w.z:w.x,row=floor(w.y/.45);
+      vec2 q=top?w.xz/vec2(.8,.45):vec2(along/.8+row*.5,w.y/.45);vec2 cell=floor(q),f=fract(q);
+      float tone=hash(vec3(cell,top?7.:3.)),joint=min(min(f.x,1.-f.x)*.8,min(f.y,1.-f.y)*.45);
+      float chip=meadowNoise(w.xz*3.1+w.y*2.7)*.03;
+      base*=mix(1.,(.88+.2*tone)*mix(.72,1.,smoothstep(.025+chip,.05+chip,joint)),visible(.45));
     }
     // Vertical water (waterfalls) carries bright streaks running down.
     if(mat==7&&abs(normal.y)<.2)base+=vec3(.1)*step(.7,fract(worldPosition.y*.8+time*2.4+floor(worldPosition.x*1.7+worldPosition.z*1.3)*.37))*visible(1.2);
@@ -424,7 +442,9 @@
         float tiers=1.-smoothstep(.2,.4,blockSize/period);
         tone+=(.14*(1.-smoothstep(0.,.35,f))-.42*smoothstep(.62,.9,f))*tiers;
       }
-      vec3 shadow,mid,high;crownBands(trunkInCrown?(pine?${M.MAT.needle}:${M.MAT.leaf}):mat,mat==${M.MAT.bushLeaf}?base:palette[mat],shadow,mid,high);
+      vec3 shadow,mid,high;crownBands(trunkInCrown?(pine?${M.MAT.needle}:${M.MAT.leaf}):mat,mat==${M.MAT.bushLeaf}||mat==${M.MAT.vine}?base:palette[mat],shadow,mid,high);
+      // Plain green crowns (leaf, needle) in a rose or violet biome take its colours too, one tone per tree.
+      if(normalSize>0.&&(mat==${M.MAT.leaf}||mat==${M.MAT.needle}||trunkInCrown)){vec4 key=biomeKey(biomeMap,normalSize,block.xz,plantSeed(block.xz*.5));if(key.a>0.){float k=.8*key.a;shadow=biomeTint(shadow,key.rgb,k);mid=biomeTint(mid,key.rgb,k);high=biomeTint(high,key.rgb,k);}}
       if(walkView>.5){shadow*=vec3(.92,.96,1.04);high*=vec3(1.03,1.01,.97);}
       // Broadleaf crowns get softer band edges so a crown reads as a few big lobes, not a cluster of florets.
       float soft=pine?.03:(walkView>.5?.13:.07);
@@ -576,11 +596,13 @@
   out float seed, pine, snowCover;
   flat out int leafMat;
   flat out vec3 cardTint;
+  flat out vec4 crownKey;
   ${BIOME_TINT}
   void main(){
     seed=fract(card.w);leafMat=int(card.w);cardTint=palette[leafMat];
     // Bushes take the biome's colour like the rest of the undergrowth; tree crowns keep their species colours.
-    if(leafMat==${M.MAT.bushLeaf})cardTint=undergrowth(biomeMap,biomeSize,card.xz,cardTint,.85,plantSeed(card.xz));
+    if(leafMat==${M.MAT.bushLeaf}||leafMat==${M.MAT.vine})cardTint=undergrowth(biomeMap,biomeSize,card.xz,cardTint,.85,plantSeed(card.xz));
+    crownKey=vec4(0);if(leafMat==${M.MAT.leaf}||leafMat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,card.xz,plantSeed(card.xz*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     snowCover=floor(facing.w/20.)/3.;float packed=mod(facing.w,20.);pine=step(10.,packed);outward=facing.xyz;
     // Broadleaf clumps spin freely; conifer sprigs stay upright with a slight tilt so the crown keeps its cone.
     float size=(packed-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.5,pine);
@@ -611,6 +633,7 @@
   in float seed, pine, snowCover;
   flat in int leafMat;
   flat in vec3 cardTint;
+  flat in vec4 crownKey;
   uniform vec3 palette[96];
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel, blockSize, leafShape, cloudTime;
@@ -623,6 +646,7 @@
   ${SUNLIGHT}
   ${MEADOW}
   ${MATERIALS}
+  ${BIOME_TINT}
   // Signed distance to an upright triangle of the given size (negative inside).
   float triangle(vec2 p,float size){p/=size;p.x=abs(p.x)-1.;p.y+=.577;if(p.x+1.732*p.y>0.)p=vec2(p.x-1.732*p.y,-1.732*p.x-p.y)*.5;p.x-=clamp(p.x,-2.,0.);return -length(p)*sign(p.y)*size;}
   ${PEEK}
@@ -653,6 +677,7 @@
     // Each clump shades as a small tuft: lit toward the sun and its top, darker at its base and rim, a little hue drift.
     float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight()*clouds(vec3(field.x,0,field.y)))+(leafId-.5)*.1+dot(uv,vec2(-.4,.5))*.2-r*.12-gap*.12+.12;
     vec3 shadow,mid,high;crownBands(leafMat,cardTint,shadow,mid,high);
+    if(crownKey.a>0.){shadow=biomeTint(shadow,crownKey.rgb,crownKey.a);mid=biomeTint(mid,crownKey.rgb,crownKey.a);high=biomeTint(high,crownKey.rgb,crownKey.a);}
     if(palm){tone+=.18*along-.1;high=mix(high,vec3(.86,.9,.42),.35);}
     vec3 c=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     // Snow on the upper part of clumps facing up, on trees standing on snowy ground.
@@ -875,15 +900,17 @@
     tint=stalkMat==${M.MAT.bamboo}||stalkMat==${M.MAT.bambooNode}?palette[stalkMat]:undergrowth(biomeMap,biomeSize,prop.xz,palette[stalkMat],.85,seed);
     vec3 root=origin+prop.xyz*scale+vec3(seed-.5,0,fract(seed*7.3)-.5)*scale.x*.5;
     vec2 at=patternOrigin.xz+prop.xz*scale.x;
-    float w=stalkMat==${M.MAT.bamboo}?.5:stalkMat==${M.MAT.fern}?max(.9,heightM*2.2):stalkMat==${M.MAT.tuft}?max(.45,heightM*1.6):.38;
+    float w=stalkMat==${M.MAT.bamboo}?.5:stalkMat==${M.MAT.fern}?max(.9,heightM*2.2):stalkMat==${M.MAT.tuft}?max(.45,heightM*1.6):stalkMat==${M.MAT.vine}?.4:.38;
     w=max(w,localPixel(root,pixelWorld)*5.);
     float sway=sin(time*1.6+seed*9.+dot(at,vec2(1.3,.7))*1.2)*.05+.09*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     // Bamboo carries its leaves in the canopy, which only shifts gently, so culms sway as little as the canopy does.
     if(stalkMat==${M.MAT.bamboo})sway*=.15;
     uv=corner*vec2(1.,.5)+vec2(0,.5);
+    // Vines hang from their top, so they swing most at the bottom.
+    float swing=stalkMat==${M.MAT.vine}?(1.-uv.y)*(1.-uv.y)*.6:uv.y*uv.y;
     // An upright quad in world space facing the camera's right axis, so every point sorts at its true depth.
     vec3 right=camRight;
-    vec3 q=root+right*(corner.x*w*.5+sway*heightM*uv.y*uv.y)+vec3(0,uv.y*max(heightM,localPixel(root,pixelWorld)*6.),0)-center;
+    vec3 q=root+right*(corner.x*w*.5+sway*heightM*swing)+vec3(0,uv.y*max(heightM,localPixel(root,pixelWorld)*6.),0)-center;
     gl_Position=toClip(q+center);
   }`;
   const stalkFragment=`#version 300 es
@@ -906,6 +933,12 @@
       c=base*(.85+.3*smoothstep(-r,r,-x))*(ring<.06?.75:1.);
       float side=mod(floor(along),2.)*2.-1.,sx=x*side,sy=fract(along);
       if(!keep&&y>.35&&sx>0.&&sx<.9&&abs(sy-.15-sx*.25)<.05*(1.-sx)+.02){keep=true;c=palette[${M.MAT.bambooLeaf}]*(.9+.2*sx);}
+    }else if(stalkMat==${M.MAT.vine}){
+      // A wavy stem with small paired-off leaves every ~16 cm, alternating sides, larger toward the top.
+      float m=y*heightM,stem=x-.18*sin(m*4.+seed*6.)*(1.-y*.5);
+      keep=abs(stem)<.045;c=base*.75;
+      float a=m/.16,side=mod(floor(a),2.)*2.-1.;vec2 l=vec2((stem-side*.2)/(.2+.08*y),(fract(a)-.5)/.42);
+      if(dot(l,l)<1.){keep=true;c=base*(.85+.3*(1.-length(l))+.1*side);}
     }else if(stalkMat==${M.MAT.tuft}){
       float a=atan(x*1.2,y),k=floor((a+1.)/.33+.5),ca=k*.33-1.;keep=abs(ca)<1.&&abs(a-ca)*length(vec2(x,y))<.035*(1.-y)+.004&&length(vec2(x,y))<.95-abs(ca)*.25;c=base*(.7+.5*y);
     }else{
