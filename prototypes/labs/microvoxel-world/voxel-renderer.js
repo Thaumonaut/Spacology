@@ -556,6 +556,8 @@
     float w=stalkMat==${M.MAT.bamboo}?.5:stalkMat==${M.MAT.fern}?max(.9,heightM*2.2):stalkMat==${M.MAT.tuft}?max(.45,heightM*1.6):.38;
     w=max(w,pixelWorld*5.);
     float sway=sin(time*1.6+seed*9.+dot(at,vec2(1.3,.7))*1.2)*.05+.09*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
+    // Bamboo carries its leaves in the canopy, which only shifts gently, so culms sway as little as the canopy does.
+    if(stalkMat==${M.MAT.bamboo})sway*=.15;
     uv=corner*vec2(1.,.5)+vec2(0,.5);
     vec3 q=root-center;
     float forward=q.x*${SY}+q.z*${CY};
