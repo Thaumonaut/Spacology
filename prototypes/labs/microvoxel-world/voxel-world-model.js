@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-21':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-23':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -1158,14 +1158,18 @@
         const {slope,erosion,crease,spur}=mountainSurface(x,z,t);
         let h=summit(t.h+bump*(t.h<SEA?.4:1)+crag+erosion);
         // Crags: steep mountain ground breaks into cliff bands, 2.5-6 m risers between narrower ledges along wandering
-        // contours (a cubic step within each band, so the band keeps its height but stands up as a wall), with broken
-        // blocks along spur crests, so rock faces read as fractured stepped walls rather than smooth slopes. Bands fade out
-        // beside channels. cliff: 0-1 on a riser (bare rock); talus: the foot of a riser (scree).
+        // contours (a cubic step within each band, so the band keeps its height but stands up as a wall), with rounded
+        // knuckles of rock along spur crests, so rock faces read as fractured stepped walls rather than smooth slopes. Bands
+        // fade out beside channels and break open into ramps (about a third of the ground, in ~50 m patches), so every face
+        // has a walkable way up between its walls. cliff: 0-1 on a riser (bare rock); talus: the foot of a riser (scree).
         let cliff=0,talus=false;
-        const cs=t.relief>15?clamp((slope-.5)/.45,0,1)*clamp((t.relief-15)/30,0,1)*clamp((riverDistance-3)/6,0,1):0;
-        if(cs>0){const band=2.5+3.5*noise(x*.013,z*.013,seed+941),wq=(noise(x*.035,z*.035,seed+943)-.5)*band*1.6+(noise(x*.11,z*.11,seed+945)-.5)*1.2,u=h+wq,k=Math.floor(u/band),f=u/band-k;
-          h+=((k+f*f*f)*band-wq-h)*cs*.9;if(f>.55)cliff=cs*clamp((f-.55)/.2,0,1);else if(f<.2&&cs>.5)talus=true;}
-        if(t.relief>15&&spur>.55&&slope>.45){const b=hash(Math.floor(x*1.1),Math.floor(z*1.1),seed+947);h+=(b-.55)*1.6*clamp((spur-.55)/.4,0,1)*clamp((slope-.45)/.4,0,1);}
+        const cs=t.relief>15?clamp((slope-.62)/.45,0,1)*clamp((t.relief-15)/30,0,1)*clamp((riverDistance-3)/6,0,1)*clamp((noise(x*.02,z*.02,seed+949)-.36)/.12,0,1):0;
+        // The band period is constant: a period that varied over the map would be multiplied by the band count (h/band, ~400
+        // at 1.5 km), sliding the steps sideways a whole band per few metres and shredding faces into comb teeth. Riser
+        // height varies instead through the step's sharpness.
+        if(cs>0){const band=4,sharp=2+2.5*noise(x*.013,z*.013,seed+941),wq=(noise(x*.035,z*.035,seed+943)-.5)*band*1.6+(noise(x*.11,z*.11,seed+945)-.5)*1.2,u=h+wq,k=Math.floor(u/band),f=u/band-k;
+          h+=((k+f**sharp)*band-wq-h)*cs*.9;if(f>.55)cliff=cs*clamp((f-.55)/.2,0,1);else if(f<.2&&cs>.5)talus=true;}
+        if(t.relief>15&&spur>.55&&slope>.45){const b=noise(x*.3,z*.3,seed+947)*.7+noise(x*.75,z*.75,seed+948)*.3;h+=(b-.5)*1.6*clamp((spur-.55)/.4,0,1)*clamp((slope-.45)/.4,0,1);}
         // Mesa and butte walls are cliffs too.
         if(t.wall>.3)cliff=Math.max(cliff,t.wall);
         // Glaciers: in cold ground, ice fills hollows up to a smooth surface (plate relief plus a share of the crag), so
@@ -1632,7 +1636,9 @@
     let prof=null;const now=()=>performance.now();
     // colTop: one past the highest cell the last column() call can have written, so callers reusing a buffer scan and clear
     // only that far.
-    let colTop=0,colFloor=0,scratch=null,scratch32=null;
+    // colH, colSurf: the last column's ground height in cells and its unquantized surface (cells; NaN when unknown), so
+    // nodes can light slopes from the exact ground instead of its 1-block steps.
+    let colTop=0,colFloor=0,colH=0,colSurf=NaN,scratch=null,scratch32=null;
     // colStep: cells between sampled columns (set by node()). Plants and scatter smaller than a sampled column are skipped.
     let colStep=1,propsMode=false;
     // Stamp one plant record into the column at (x,z) whose first air cell is h. Returns one past the highest cell the
@@ -2053,11 +2059,11 @@
     // of riser below the tread, ice up to its thickness, sunk boulders and ruin foundations a few metres), with margin.
     function bandFloor(h,ice=0){return infinite?Math.max(0,Math.min(h-ice,h-8*density-Math.ceil((3.2*colStep*cellMetres+2)/cellMetres))-64*density)&~7:0;}
     function column(vx,vz,into){
-      const values=into||new Uint8Array(heightCells);colTop=0;colFloor=0;
+      const values=into||new Uint8Array(heightCells);colTop=0;colFloor=0;colSurf=NaN;
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
       if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       let t0=prof&&prof.on&&now();
-      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;
+      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;colH=h;colSurf=g.surface!=null?g.surface/cellMetres:NaN;
       if(prof&&prof.on){const t=now();prof.geography+=t-t0;t0=t;}
       colFloor=into?bandFloor(h,g.iceCells):0;
       values.fill(MAT.basalt,colFloor,Math.max(colFloor,h-4*density));
@@ -2375,8 +2381,12 @@
     function node(L,nx,nz,options={}){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,G=NODE+4,cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
+      const s=2**L,P=NODE+2,G=NODE+4,cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),fine=new Float32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;propsMode=!!options.props;
+      // Lighting height of the column just sampled, in blocks: its exact surface where the ground is bare terrain (top block at
+      // the terrain height), else the block ground (boulders, ruins, water). The exact height is offset by the mean amount the
+      // block ground rounds up ((s-2)/2s blocks), so the two kinds sit level beside each other.
+      const fineGround=gb=>colSurf===colSurf&&gb===Math.floor((colH-1)/s)+1?(colSurf+s/2-1)/s:gb;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // scratch is reused: only the band [colFloor, colTop) was written, so only that is scanned and cleared.
       if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
@@ -2391,12 +2401,12 @@
         const run=basaltRun(c,buf32,hi+1,fl),full=Math.floor(run/s),top=hi>=full*s?((hi/s)|0)+1:full,b=new Uint8Array(top-full);
         for(let y=full*s;y<=hi;y++){const m=c[y];if(m)b[((y/s)|0)-full]=m;}
         const k=j*P+i;cols[k]=b;colY0[k]=full;
-        const kk=(j+1)*G+i+1;grounds[kk]=groundBlocks(c,lim,s,run);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
+        const kk=(j+1)*G+i+1;grounds[kk]=groundBlocks(c,lim,s,run);fine[kk]=fineGround(grounds[kk]);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
         tops[k]=top;floor[k]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));fine[j*G+i]=fineGround(grounds[j*G+i]);let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -2414,9 +2424,9 @@
       // footprint and each quad goes to the slice holding its owned edge, so slice seams close exactly.
       const SL=options.sliceBlocks||SLICE,voxels=options.smooth?objectsOnly(dense):dense,byK=new Map(),k0=Math.floor(base/SL),k1=Math.floor((ny-1)/SL);
       for(let k=k0;k<=k1;k++){const a=Math.max(base,k*SL),e=Math.min(ny,(k+1)*SL);if(e<=a)continue;const m=greedy(voxels,NODE,span,NODE,a-k*SL,{y0:a-base+1,h:e-a});if(m.count)byK.set(k,{y:k*SL,...m});}
-      if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
+      if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,fine,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
       const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
-      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2609,17 +2619,19 @@
     function objectsOnly(dense){const out=new Uint8Array(dense.length);for(let k=0;k<dense.length;k++){const m=dense[k];out[k]=isTerrain(m)?0:m;}return out;}
     // Returns Map(slice index -> {buffer, count, top}): each quad goes to the slice holding the lower sample of its owned
     // edge, with y local to that slice's origin (k*SL blocks).
-    function surfaceNets(cols,colY0,tops,grounds,G,P,base,SL){
+    function surfaceNets(cols,colY0,tops,grounds,fine,G,P,base,SL){
       const cell=(k,b)=>{const y0=colY0[k];if(b<y0)return MAT.basalt;const c=cols[k];return b-y0<c.length?c[b-y0]:0;};
       // Height range covers every sampled column, halo included, so a taller neighbour is never cut off at the seam.
       let ny=1;for(let k=0;k<P*P;k++)ny=Math.max(ny,tops[k]);
-      // Ground-surface gradient (Sobel over the hillshade's two-ring ground heights): identical on both sides of a seam.
-      const GH=(i,j)=>grounds[clamp(j,0,G-1)*G+clamp(i,0,G-1)];
+      // Ground-surface gradient (Sobel over the hillshade's two-ring exact ground heights): identical on both sides of a seam.
+      const GH=(i,j)=>grounds[clamp(j,0,G-1)*G+clamp(i,0,G-1)],FH=(i,j)=>fine[clamp(j,0,G-1)*G+clamp(i,0,G-1)];
       const groundNormal=(bx,bz)=>{const fx=bx-.5+2,fz=bz-.5+2,i0=Math.floor(fx),j0=Math.floor(fz),u=fx-i0,v=fz-j0;let x=0,z=0;
         for(const [di,dj,w] of [[0,0,(1-u)*(1-v)],[1,0,u*(1-v)],[0,1,(1-u)*v],[1,1,u*v]]){const i=i0+di,j=j0+dj;
-          x+=w*(GH(i+1,j-1)+2*GH(i+1,j)+GH(i+1,j+1)-GH(i-1,j-1)-2*GH(i-1,j)-GH(i-1,j+1))/8;z+=w*(GH(i-1,j+1)+2*GH(i,j+1)+GH(i+1,j+1)-GH(i-1,j-1)-2*GH(i,j-1)-GH(i+1,j-1))/8;}
+          x+=w*(FH(i+1,j-1)+2*FH(i+1,j)+FH(i+1,j+1)-FH(i-1,j-1)-2*FH(i-1,j)-FH(i-1,j+1))/8;z+=w*(FH(i-1,j+1)+2*FH(i,j+1)+FH(i+1,j+1)-FH(i-1,j-1)-2*FH(i,j-1)-FH(i+1,j-1))/8;}
         const l=Math.hypot(x,1,z);return [-x/l,1/l,-z/l];};
-      const groundAt=(bx,bz)=>GH(Math.floor(bx)+2,Math.floor(bz)+2);
+      // Ground range around a vertex: the lowest and highest ground of the 3×3 columns about it. On a steep slope a riser's
+      // vertices sit several blocks from their own column's ground but still within this range.
+      const groundSpan=(bx,bz)=>{const i=Math.floor(bx)+2,j=Math.floor(bz)+2;let lo=Infinity,hi=-Infinity;for(let b=-1;b<=1;b++)for(let a=-1;a<=1;a++){const h=GH(i+a,j+b);if(h<lo)lo=h;if(h>hi)hi=h;}return [lo,hi];};
       // Each column's surface material and height, so a slope shows its grass, snow or rock rather than the soil beneath.
       const surf=new Uint8Array(P*P),surfY=new Int32Array(P*P);for(let k=0;k<P*P;k++){for(let b=ny-1;b>=0;b--){const m=cell(k,b);if(isTerrain(m)){surf[k]=m&127;surfY[k]=b;break;}}}
       const Y=ny-base+2,at=(i,y,j)=>{if(i<0||j<0||i>=P||j>=P)return 0;const b=y+base-1;if(b<0)return 1;if(b>=ny)return 0;const m=cell(j*P+i,b);return isTerrain(m)?m:0;};
@@ -2651,9 +2663,9 @@
       // Normals from the occupancy gradient over a 4×4×4 block around each cell: smooth and pointing into the air.
       const normal=(i,y,j)=>{let x=0,yy=0,z=0;for(let c=-1;c<=2;c++)for(let b=-1;b<=2;b++)for(let a=-1;a<=2;a++){if(!S(i+a,y+b,j+c))continue;const w=(a<=0?-1:1)*(Math.abs(a-.5)<1?1:.5),wy=(b<=0?-1:1)*(Math.abs(b-.5)<1?1:.5),wz=(c<=0?-1:1)*(Math.abs(c-.5)<1?1:.5);x-=w;yy-=wy;z-=wz;}const l=Math.hypot(x,yy,z)||1;return [x/l,yy/l,z/l];};
       const outs=new Map();let out=null,sliceY=0;
-      // Near the ground surface, normals come from the ground gradient (so seams match); elsewhere (isles, overhangs) from
-      // the 3D occupancy.
-      const push=(v,i,y,j,m)=>{const X=rx[v]-.5,Yv=ry[v]-1+base+.5-sliceY,Z=rz[v]-.5,[a,b,c]=Math.abs(Yv+sliceY-groundAt(X,Z))<2.5?groundNormal(X,Z):normal(i,y,j);out.push(X,Yv,Z,a,b,c,m);};
+      // On the ground surface (within the local ground range, give or take 2.5 blocks), normals come from the ground gradient
+      // (so seams match and steep risers light as one slope); elsewhere (isles, overhangs) from the 3D occupancy.
+      const push=(v,i,y,j,m)=>{const X=rx[v]-.5,Yv=ry[v]-1+base+.5-sliceY,Z=rz[v]-.5,[lo,hi]=groundSpan(X,Z),Y=Yv+sliceY,[a,b,c]=Y>lo-2.5&&Y<hi+2.5?groundNormal(X,Z):normal(i,y,j);out.push(X,Yv,Z,a,b,c,m);};
       // Quads across each owned edge with a solid/air change; wound so the front faces the air.
       for(let d=0;d<3;d++)for(let j=1;j<=NODE;j++)for(let y=0;y<CY;y++)for(let i=1;i<=NODE;i++){
         const A=S(i,y,j),B=d===0?S(i+1,y,j):d===1?S(i,y+1,j):S(i,y,j+1);if(!A===!B)continue;
@@ -2681,22 +2693,22 @@
     const BASALT4=MAT.basalt*0x01010101;
     // from: the band floor (a multiple of 8): everything below it is basalt and is not read.
     function basaltRun(c,c32,lim,from=0){const n=lim>>2;let k=from>>2;while(k<n&&c32[k]===BASALT4)k++;let y=k<<2;while(y<lim&&c[y]===MAT.basalt)y++;return y;}
-    // Smooth surface normals per inside column (RGBA8: x, z, cavity, local ground top) from ground heights with a two-column
+    // Smooth surface normals per inside column (RGBA8: x, z, cavity, local ground top) from exact ground heights (block ground where objects stand) with a two-column
     // ring (G=N+4), so distant terraces light as the slope they form instead of alternating tread/riser bands. Blocks are
     // cubic, so the gradient is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
     // Alpha is the highest ground in the 3×3 around the column, in blocks above groundBase (255: out of range); the shader
     // keeps block-face lighting for anything above it (isles, canopies).
-    function hillshade(grounds,G){
-      const N=G-4,M=N+2,T=(i,j)=>grounds[j*G+i],gx=new Float32Array(M*M),gz=new Float32Array(M*M),out=new Uint8Array(N*N*4);
+    function hillshade(grounds,fine,G){
+      const N=G-4,M=N+2,T=(i,j)=>fine[j*G+i],gx=new Float32Array(M*M),gz=new Float32Array(M*M),out=new Uint8Array(N*N*4);
       for(let j=0;j<M;j++)for(let i=0;i<M;i++){
         const I=i+1,J=j+1;
         gx[j*M+i]=(T(I+1,J-1)+2*T(I+1,J)+T(I+1,J+1)-T(I-1,J-1)-2*T(I-1,J)-T(I-1,J+1))/8;
         gz[j*M+i]=(T(I-1,J+1)+2*T(I,J+1)+T(I+1,J+1)-T(I-1,J-1)-2*T(I,J-1)-T(I+1,J-1))/8;
       }
-      let groundBase=Infinity;for(let j=2;j<N+2;j++)for(let i=2;i<N+2;i++)groundBase=Math.min(groundBase,T(i,j));
+      let groundBase=Infinity;for(let j=2;j<N+2;j++)for(let i=2;i<N+2;i++)groundBase=Math.min(groundBase,grounds[j*G+i]);
       for(let j=0;j<N;j++)for(let i=0;i<N;i++){
         let x=0,z=0,sum=0,high=0;
-        for(let b=0;b<3;b++)for(let a=0;a<3;a++){x+=gx[(j+b)*M+i+a];z+=gz[(j+b)*M+i+a];const h=T(i+1+a,j+1+b);sum+=h;high=Math.max(high,h);}
+        for(let b=0;b<3;b++)for(let a=0;a<3;a++){x+=gx[(j+b)*M+i+a];z+=gz[(j+b)*M+i+a];sum+=T(i+1+a,j+1+b);high=Math.max(high,grounds[(j+1+b)*G+i+1+a]);}
         x/=9;z/=9;const l=Math.hypot(x,1,z),o=(j*N+i)*4;
         out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(Math.round(128+(T(i+2,j+2)-sum/9)*40),0,255);out[o+3]=Math.min(255,high-groundBase);
       }
