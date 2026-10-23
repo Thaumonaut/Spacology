@@ -1002,7 +1002,7 @@
     vec3 sun=normalize(vec3(-.5,1.,.4));float a=max(0.,dot(ray,sun));
     sky+=vec3(1.,.75,.4)*(pow(a,90.)*.3+smoothstep(.9997,.9999,a));
     if(ray.y>.015){
-      vec2 at=eye.xz+ray.xz*max(0.,(320.-eye.y)/ray.y)+worldOffset+vec2(.5,-.4)*320.;
+      vec2 at=eye.xz+ray.xz*max(0.,(${CLOUD_HEIGHT}.-eye.y)/ray.y)+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.;
       float n=cloudField(at),body=smoothstep(.55,.64,n),rim=1.-smoothstep(.6,.7,n);
       vec3 cloud=mix(vec3(.57,.62,.71),vec3(1.,.88,.68),rim*.8);
       sky=mix(sky,cloud,body*cloudFade*smoothstep(.015,.12,ray.y));
