@@ -196,7 +196,8 @@
     float waterM=wm.r*8.,shoreM=wm.g*4.;vec2 flow=wm.ba*2.-1.;
     if(mat==7&&normal.y>.5){
       vec2 p=worldPosition.xz;
-      float look=min(waterM,.25+shoreM*1.6);
+      // Colour from depth alone: the shore-distance estimate differs between detail levels and drew seams.
+      float look=waterM;
       vec3 bed=vec3(.74,.71,.56),col=mix(mix(vec3(.36,.8,.79),vec3(.15,.6,.73),smoothstep(.2,1.,look)),vec3(.08,.34,.6),smoothstep(1.2,3.5,look));
       base=mix(bed*vec3(.86,1.,.98),col,.3+.7*smoothstep(.0,.5,look));
       float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);float rush=smoothstep(.15,1.,speed);
@@ -208,9 +209,15 @@
         base=mix(base,base*1.1+vec3(.1,.14,.13),c*.42*(1.-smoothstep(.8,3.,look)*.6)*show);
       }
       base=mix(base,base*1.08+vec3(.05,.07,.06),smoothstep(.5,.12,shoreM)*.6);
+      // Current: soft lighter lines stretched along the flow and drifting downstream, so any river reads as moving.
+      if(speed>.2){
+        vec2 across=vec2(-dir.y,dir.x);float u=dot(p,dir),v=dot(p,across);
+        float lines=meadowNoise(vec2(u*.35-time*(.6+1.6*speed),v*1.8))*.7+meadowNoise(vec2(u*.9-time*(1.+2.*speed),v*4.1+3.))*.3;
+        base=mix(base,base*1.08+vec3(.09,.13,.12),smoothstep(.58,.72,lines)*smoothstep(.2,.5,speed)*.75*visible(.5));
+      }
       // White water: in fast reaches, aerated turquoise with foam streaks stretched along the current and racing downstream,
       // breaking into churn where the channel is shallow or tight. Calm reaches stay clear.
-      float rapids=smoothstep(.55,.95,speed);
+      float rapids=smoothstep(.75,1.,speed);
       if(rapids>.01){
         vec2 across=vec2(-dir.y,dir.x);float u=dot(p,dir),v=dot(p,across);
         float streak=meadowNoise(vec2(u*.55-time*(2.5+3.*rapids),v*2.6))*.65+meadowNoise(vec2(u*1.4-time*(4.+4.*rapids),v*5.3+7.))*.35;

@@ -2072,9 +2072,9 @@
       if(g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){
         const gx=geography(x+2,z).riverDistance-geography(x-2,z).riverDistance,gz=geography(x,z+2).riverDistance-geography(x,z-2).riverDistance,l=Math.hypot(gx,gz);
         if(l>1e-6){let dx=-gz/l,dz=gx/l;const ahead=geography(x+dx*4,z+dz*4).riverLevel,behind=geography(x-dx*4,z-dz*4).riverLevel;if(ahead>behind){dx=-dx;dz=-dz;}
-          // Speed 0–1 from the drop along the course (about 1 m in 80 m is full speed) plus a little where the channel narrows;
-          // stored as the flow vector's length, with a floor so a river always shows its direction.
-          const speed=clamp(Math.abs(behind-ahead)/8/.012+clamp((6-g.riverWidth)/6,0,1)*.3,0,1),k=.15+.85*speed;v=[dx*k,dz*k];}
+          // Speed 0–1: every river flows (base 0.4), rising with the drop along the course (about 1 m in 80 m is full speed)
+          // and where the channel narrows. Stored as the flow vector's length; lakes have none.
+          const speed=clamp(.4+Math.abs(behind-ahead)/8/.012*.6+clamp((6-g.riverWidth)/6,0,1)*.25,0,1);v=[dx*speed,dz*speed];}
       }
       flows.set(k,v);if(flows.size>65536)flows.delete(flows.keys().next().value);return v;
     }
