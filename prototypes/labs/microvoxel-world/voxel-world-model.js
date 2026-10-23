@@ -2018,7 +2018,7 @@
       // spread mostly over its outer and upper surface, a few inside, with gaps between them where sky and branches show.
       const clumps=[],loose=[],tid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
       for(let i=0,li=0;i<lobes.length;i+=6,li++){
-        const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],size=Math.max(.4,r*.3),n=20+Math.round(r*11);
+        const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],bush=t.kind==='bush',size=bush?Math.max(.17,r*.26):Math.max(.4,r*.3),n=bush?16+Math.round(r*20):20+Math.round(r*11);
         for(let k=0;k<n;k++){
           const h1=hash(k,tid+li*131,seed+921),h2=hash(k,tid+li*131,seed+923),h3=hash(k,tid+li*131,seed+925);
           // Directions biased upward and outward; depth mostly near the surface.

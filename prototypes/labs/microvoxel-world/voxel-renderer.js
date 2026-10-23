@@ -1316,11 +1316,11 @@
   ${BIOME_TINT}
   void main(){
     mat=int(b.y);seed=b.z;rad=a.w;kind=b.w;crown=vec4(origin+crownIn.xyz,crownIn.w);
-    // Biome colours, as for the voxel crowns and bushes: bush leaves take the undergrowth palette; plain green crowns
+    // Biome colours: bushes share the plain leaf greens of the crowns around them, and plain green crowns and bushes
     // follow rose and violet biomes, one tone per plant (keyed by the crown's centre).
     vec2 blk=crownIn.xz/max(blockScale,.001);tintBase=palette[mat];crownKey=vec4(0);
-    if(mat==${M.MAT.bushLeaf})tintBase=undergrowth(biomeMap,biomeSize,blk,tintBase,.85,plantSeed(blk));
-    else if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
+    if(mat==${M.MAT.bushLeaf})mat=${M.MAT.leaf};
+    if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     float sway=sin(time*1.1+b.z*37.+a.x*.3)*.03*a.w;
     centre=origin+a.xyz+vec3(sway,0,sway*.6);
     #ifdef SHADOW
@@ -1415,8 +1415,8 @@
     float own=q.y*.1+leafTone;
     // Forced shadow, painted rather than lit: below a wavy line through the lower third of the plant, and in its core,
     // the clusters drop into a flat darker band with a crisp edge.
-    float forced=step(k.y+.08*sin(k.x*9.+k.z*7.),-.3)*.22+step(inner,.45)*.12;
-    float tone=wrap*mix(.5,1.,sun)+own+(leafId-.5)*.08-gap*.08-occl*1.3-forced;
+    float forced=step(k.y+.08*sin(k.x*9.+k.z*7.),-.3)*.13+step(inner,.45)*.07;
+    float tone=max(.12,wrap*mix(.5,1.,sun)+own+(leafId-.5)*.08-gap*.08-occl-forced);
     vec3 shadow,mid,high;crownBands(mat,tintBase,shadow,mid,high);
     if(crownKey.a>0.){shadow=biomeTint(shadow,crownKey.rgb,crownKey.a);mid=biomeTint(mid,crownKey.rgb,crownKey.a);high=biomeTint(high,crownKey.rgb,crownKey.a);}
     // Anime hue shift: shade cools toward teal-blue, light warms toward yellow-green.
