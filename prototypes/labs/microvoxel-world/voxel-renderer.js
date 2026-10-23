@@ -231,7 +231,8 @@
       lit=mix(lit,lit*vec3(.8,.92,1.08),clamp(-fv*9.,0.,1.));
       // Sun glints: a small moving wave normal per pixel; where a facet tilts to reflect the sun into the camera, the surface
       // flares. The camera's reflection angle stands in for the sun direction (a true reflection would sit off-screen).
-      vec2 wp=worldPosition.xz;float t=time;vec3 wn=fn;
+      // Glints follow their own facet field on a clock ten times slower, so each flash lingers instead of flickering.
+      vec2 wp=worldPosition.xz;float t=time;vec3 wn=facetNormal(wp,time*.1);
       glint=smoothstep(.99975,.99998,dot(wn,normalize(vec3(-.07,1.,-.05))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
       lit+=vec3(1.,.96,.86)*glint*.6;
     }
