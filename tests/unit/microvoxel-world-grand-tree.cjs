@@ -1,7 +1,11 @@
 'use strict';
 const assert=require('node:assert/strict'),M=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');
 const a=M.createWorld(2718,.25,'infinite'),b=M.createWorld(2718,.125,'infinite');
-for(const [x,z,variant] of [[-998,-1402,'coral'],[1841,-763,'blossom']]){
+// Find one coral and one blossom world tree (locations move with terrain revisions).
+const sites=[];for(const want of ['coral','blossom']){let hit=null;
+  for(let r=0;r<9000&&!hit;r+=110)for(let k=0;k<Math.max(1,Math.floor(r/110))*6&&!hit;k++){const t=k/Math.max(1,Math.floor(r/110)*6)*Math.PI*2,x=Math.round(Math.cos(t)*r),z=Math.round(Math.sin(t)*r),A=a.landmarksAt(x,z).ancient;if(A&&A.variant===want)hit=[Math.round(A.x),Math.round(A.z),want];}
+  assert.ok(hit,`a ${want} world tree exists`);sites.push(hit);}
+for(const [x,z,variant] of sites){
   const A=a.landmarksAt(x,z).ancient,B=b.landmarksAt(x,z).ancient;
   assert.equal(A.variant,variant);assert.equal(B.variant,variant);assert.ok(Math.abs(A.H-B.H)<.5&&A.x===B.x&&A.z===B.z,'landmark structure is density-independent up to ground-cell rounding');
   assert.equal(JSON.stringify(A),JSON.stringify(M.createWorld(2718,.25,'infinite').landmarksAt(x,z).ancient),'landmark regeneration is deterministic');
