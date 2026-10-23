@@ -71,7 +71,10 @@ try{
     await p.setViewportSize({width,height});await p.locator('#close').click();await ready(p);
     assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight),'fixed-screen layout');
     const canvas=await p.locator('#world').boundingBox();assert.ok(canvas.height>=100&&canvas.width<=width);
-    for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','metrics','densityBase','densityFine']){const r=await p.locator('#'+id).boundingBox();assert.ok(r.width>=44&&r.height>=44&&r.y+r.height<=height,'visible touch targets');}
+    // Main bar targets, then the View menu's (opened) targets: all 44 px and on screen.
+    for(const id of ['wide','close','zoomIn','zoomOut','pause','peek','settings']){const r=await p.locator('#'+id).boundingBox();assert.ok(r.width>=44&&r.height>=44&&r.y+r.height<=height,'visible touch targets');}
+    await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});
+    for(const id of ['economy','metrics','densityBase','densityFine']){const r=await p.locator('#'+id).boundingBox();assert.ok(r&&r.width>=44&&r.height>=44&&r.y>=0&&r.y+r.height<=height&&r.x>=0&&r.x+r.width<=width,'View menu touch targets on screen');}
     await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await p.locator('#metrics').click();assert.ok(await p.locator('#performance').evaluate(el=>el.scrollWidth<=el.clientWidth),'dialog does not overflow');await p.keyboard.press('Escape');
   }
   // Density changes actual cells, not metres, resource identity or camera framing.

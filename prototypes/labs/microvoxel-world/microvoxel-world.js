@@ -246,7 +246,12 @@
   $('peekSize').oninput=()=>{setPeekSize(Number($('peekSize').value));if(!peeking)setPeek(true);};
   document.addEventListener('keydown',e=>{if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||''))return;if(e.key===']')setPeekSize(Number($('peekSize').value)*1.25);if(e.key==='[')setPeekSize(Number($('peekSize').value)/1.25);});
   // View settings popover: setup-level controls kept off the main bar. Closes on outside click or Escape.
-  const settingsOpen=on=>{$('settingsPanel').hidden=!on;$('settings').setAttribute('aria-expanded',String(on));};
+  // Placed from the toolbar's real top edge (it wraps on narrow screens): fixed, right-aligned, as wide as fits, and two
+  // columns when the space above the bar is short.
+  const settingsOpen=on=>{const panel=$('settingsPanel');panel.hidden=!on;$('settings').setAttribute('aria-expanded',String(on));if(!on)return;
+    const bar=document.querySelector('.toolbar').getBoundingClientRect(),room=bar.top-16,compact=room<320&&innerWidth>=520;
+    Object.assign(panel.style,{position:'fixed',right:'8px',bottom:(innerHeight-bar.top+8)+'px',width:Math.min(innerWidth-16,compact?560:300)+'px'});
+    panel.classList.toggle('compact',compact);};
   $('settings').onclick=e=>{e.stopPropagation();settingsOpen($('settingsPanel').hidden);};
   $('settingsPanel').addEventListener('click',e=>e.stopPropagation());
   document.addEventListener('click',()=>settingsOpen(false));
