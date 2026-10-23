@@ -95,12 +95,14 @@
     float n=meadowNoise(q)*.6+meadowNoise(q*2.2+4.)*.3+meadowNoise(q*5.1+9.)*.1;
     return n*.72+smoothstep(.42,.8,cloudWeather(seaLevel))*.42-.14;
   }
-  // Caustic light cells: bright thin edges between jittered cells, compressed across the flow so they stretch along it.
-  float caustic(vec2 p,vec2 dir){
-    vec2 q=(p-dir*dot(p,dir)*.28)*1.3,cell=floor(q);float d1=9.,d2=9.;
-    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(q-c-o);if(e<d1){d2=d1;d1=e;}else if(e<d2)d2=e;}
-    return 1.-smoothstep(.0,.1,d2-d1);
+  // Soft caustics: the edges between jittered cells, domain-warped so they wobble into rounded, wavy lines, drawn with a
+  // screen-space-aware width so they stay smooth at every zoom. Two layers at different scales drift apart and shimmer.
+  float causticLayer(vec2 p,float t){
+    vec2 q=p+.45*vec2(meadowNoise(p*.55+t*.13),meadowNoise(p*.55+vec2(7.1,3.3)-t*.11))-.225,cell=floor(q);float d1=9.,d2=9.;
+    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));o=.5+.4*sin(t*.35+6.2831*o);float e=length(q-c-o);if(e<d1){d2=d1;d1=e;}else if(e<d2)d2=e;}
+    float e=d2-d1,w=.07+fwidth(e)*1.5;return 1.-smoothstep(0.,w,e);
   }
+  float caustic(vec2 p,float t){return causticLayer(p*.9,t)*.75+causticLayer(p*1.6+vec2(3.7,1.9),t*1.3)*.35;}
   float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
@@ -155,7 +157,7 @@
     float sunVis=(placeholder>0.?1.:sunlight())*clouds(localPosition),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
     light*=1.+cavity*.3;
-    float grain=(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
+    float grain=mat==7?0.:(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
     vec3 base=palette[mat];
     // Grass ground: the root colour under visible blades; once they fade with distance, the blades' average colour, so a
     // meadow keeps its tone at every zoom.
@@ -173,25 +175,24 @@
     // Stylized water on the surface: depth bands from turquoise shallows to deep blue (depth from the biome map's alpha,
     // filtered so it fades toward shores), broken white foam where it meets land, rocks or lily pads, a faint wave line
     // rolling shoreward, and blinking sun glints.
-    // Stylized water, after the user's references: clear in the shallows (the bed shows through, deepening to teal-blue),
-    // a thin crisp foam outline right at the shore, and soft caustic light cells stretched along the river's flow and
-    // carried downstream (a two-phase flow map), so the water has a clear direction even in a still frame.
+    // Stylized water, after the user's references: calm and simple. Clear in the shallows (the bed shows through),
+    // deepening to teal-blue with depth and distance from the banks; one soft caustic pattern carried downstream by a
+    // two-phase flow map; a lighter band inside the shore with a thin antialiased white edge.
     vec4 wm=normalSize>0.?texture(waterMap,block.xz/normalSize):vec4(.125,1.,.5,.5);
     float waterM=wm.r*8.,shoreM=wm.g*4.;vec2 flow=wm.ba*2.-1.;
     if(mat==7&&normal.y>.5){
       vec2 p=worldPosition.xz;
-      // Colour depth also deepens away from the banks, so even an evenly deep river reads as a channel.
       float look=min(waterM,.25+shoreM*1.6);
-      vec3 bed=vec3(.74,.71,.56),col=mix(mix(vec3(.34,.8,.78),vec3(.14,.6,.72),smoothstep(.2,1.,look)),vec3(.07,.33,.6),smoothstep(1.2,3.5,look));
+      vec3 bed=vec3(.74,.71,.56),col=mix(mix(vec3(.36,.8,.79),vec3(.15,.6,.73),smoothstep(.2,1.,look)),vec3(.08,.34,.6),smoothstep(1.2,3.5,look));
       base=mix(bed*vec3(.86,1.,.98),col,.3+.7*smoothstep(.0,.5,look));
       float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);
-      float ph=time*.22,w=abs(fract(ph)*2.-1.);
-      float c=mix(caustic(p-dir*fract(ph)*1.8,dir),caustic(p-dir*fract(ph+.5)*1.8+3.7,dir),w);
-      base+=vec3(.85,1.,1.)*c*.2*(1.-smoothstep(.6,2.8,waterM))*visible(.5);
-      float foam=smoothstep(.15,.09,shoreM+(meadowNoise(p*2.6+dir*time*.5)-.5)*.07);
-      base=mix(base,vec3(.97,.99,1.),foam);
+      float ph=time*.1,w=abs(fract(ph)*2.-1.);
+      float c=mix(caustic(p-dir*fract(ph)*1.4,time),caustic(p-dir*fract(ph+.5)*1.4+5.3,time),w);
+      base=mix(base,base*1.1+vec3(.1,.14,.13),c*.42*(1.-smoothstep(.8,3.,look)*.6)*visible(.6));
+      base=mix(base,base*1.08+vec3(.05,.07,.06),smoothstep(.5,.12,shoreM)*.6);
+      float edge=shoreM+(meadowNoise(p*1.8+dir*time*.4)-.5)*.04,aa=max(fwidth(edge)*1.2,.006);
+      base=mix(base,vec3(.97,.99,1.),1.-smoothstep(.06,.06+aa,edge));
     }
-    if(mat==7){float ripple=sin(worldPosition.z*3.+worldPosition.x*1.7-time*1.4);base+=vec3(.025,.04,.04)*ripple*visible(1.8);}
     if(mat==1&&normal.y<.5)base+=vec3(.045)*step(.85,fract(worldPosition.y*.7))*visible(1.4);
     if(mat==6)base+=vec3(.012,.025,.005)*sin(worldPosition.y*1.6)*visible(3.9);
     // Lowlands sit slightly darker; high ground brightens toward the summits so tall ranges read at any zoom.
@@ -207,7 +208,7 @@
       lit=base*mix(.82,1.04,sunVis)*heightShade;
       // Glints: small four-point sparkles in a sparse world grid, each blinking on its own clock.
       vec2 q=worldPosition.xz*.9,g=floor(q),f=fract(q)-.5;float id=fract(sin(dot(g,vec2(12.9898,78.233)))*43758.5453);
-      float on=step(.9,id)*max(0.,sin(time*2.3+id*40.)),cross=max(smoothstep(.05,0.,abs(f.x))*smoothstep(.22,0.,abs(f.y)),smoothstep(.05,0.,abs(f.y))*smoothstep(.22,0.,abs(f.x)));
+      float on=step(.97,id)*max(0.,sin(time*2.3+id*40.)),cross=max(smoothstep(.035,0.,abs(f.x))*smoothstep(.16,0.,abs(f.y)),smoothstep(.035,0.,abs(f.y))*smoothstep(.16,0.,abs(f.x)));
       lit=mix(lit,vec3(1.,.99,.92),cross*on*smoothstep(.3,.9,waterM)*sunVis*visible(.25));
     }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
