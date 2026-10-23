@@ -304,7 +304,13 @@
     // brightness step along tile edges); it only skips sun shadows, which its blocky shapes would cast wrongly.
     float sunVis=(placeholder>0.?1.:sunlight())*clouds(localPosition),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
-    light*=1.+cavity*.3;
+    // Relief lighting for mountains: rock, and ground in proportion to its steepness, gets a warm strong sun over a cool
+    // darker fill, so peaks and slopes read as form (sunward faces bright and warm, shaded faces cool, never black).
+    // Flat meadows keep the softer light above.
+    float relief=isLeaf(mat)||isBark(mat)||mat==7?0.:isRock(mat)||isWarmRock(mat)?1.:smoothstep(.12,.55,1.-n.y);
+    vec3 form=mix(vec3(.46,.5,.64),vec3(.64,.7,.84),n.y*.5+.5)*.72+vec3(1.1,.96,.78)*key*.68*sun;
+    light=mix(light,form,relief);
+    light*=1.+cavity*mix(.3,.65,relief);
     float grain=mat==7?0.:(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
     vec3 base=palette[mat];
     // Grass ground: the root colour under visible blades; once they fade with distance, the blades' average colour, so a
