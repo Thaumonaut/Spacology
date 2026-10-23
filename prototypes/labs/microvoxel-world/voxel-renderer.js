@@ -477,6 +477,8 @@
     seed=fract(card.w);leafMat=int(card.w);snowCover=floor(facing.w/20.)/3.;float packed=mod(facing.w,20.);pine=step(10.,packed);outward=facing.xyz;
     // Broadleaf clumps spin freely; conifer sprigs stay upright with a slight tilt so the crown keeps its cone.
     float size=(packed-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.5,pine);
+    // Palm fronds point along their outward direction (projected to the screen) and are long, so crowns radiate.
+    if(leafMat==${M.MAT.palmLeaf}){vec2 o=vec2(outward.x*${CY}-outward.z*${SY},outward.y*${C}-(outward.x*${SY}+outward.z*${CY})*${S});a=atan(o.x,-o.y)+(seed-.5)*.5;size*=1.9;}
     vec2 at=patternOrigin.xz+card.xz*scale.x;field=(origin+card.xyz*scale).xz;
     float sway=sin(time*1.7+dot(at,vec2(.6,.35))*.8+seed*6.)*.04+.05*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     vec3 p=origin+card.xyz*scale+outward*size*mix(.25,.1,pine);
@@ -522,6 +524,14 @@
     float pick=fract(seed*7.13),shape=leafShape<2.5?leafShape:leafShape<3.5?step(.5,pick):floor(pick*3.);
     float round=r-(.62+.36*lobes),soft=triangle(uv,.6)-.24+(lobes-.5)*.12,hard=triangle(uv,.9)-.03+(lobes-.5)*.05;
     float edge=pine<.5||shape<.5?round:shape<1.5?soft:hard;
+    // Palm frond: a rib arching from the card centre outward (toward -y) and drooping, lined with comb-like leaflets.
+    bool palm=leafMat==${M.MAT.palmLeaf};float along=0.;
+    if(palm){
+      along=clamp(-uv.y*.5+.5,0.,1.);float ribX=uv.x-.35*along*along*sign(seed-.5),width=.07+.42*sin(along*3.1416)*(1.-along*.3);
+      float leaflet=abs(fract((along*9.+abs(ribX)*2.2))-.5);
+      edge=abs(ribX)-width*(1.-smoothstep(.32,.5,leaflet)*.55)-(uv.y>.95?1.:0.);
+      if(along<.04)edge=1.;
+    }
     // Antialiased rim: coverage from the outline's screen-space slope (alpha to coverage on the multisampled canvas).
     float coverage=clamp(.5-edge/max(fwidth(edge),1e-4),0.,1.);if(coverage<=0.)discard;
     // Inside the clump: small leaves (nearest of jittered cell points), each with its own shade, softly darker in gaps.
@@ -531,6 +541,7 @@
     // Each clump shades as a small tuft: lit toward the sun and its top, darker at its base and rim, a little hue drift.
     float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight()*clouds(vec3(field.x,0,field.y)))+(leafId-.5)*.1+dot(uv,vec2(-.4,.5))*.2-r*.12-gap*.12+.12;
     vec3 shadow,mid,high;crownBands(leafMat,palette[leafMat],shadow,mid,high);
+    if(palm){tone+=.18*along-.1;high=mix(high,vec3(.86,.9,.42),.35);}
     vec3 c=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     // Snow on the upper part of clumps facing up, on trees standing on snowy ground.
     if(snowCover>0.)c=mix(c,mix(vec3(.74,.8,.92),vec3(.98,.98,1.),smoothstep(.4,.7,tone)),smoothstep(.15,.45,uv.y+(lobes-.5)*.5+outward.y*.4)*smoothstep(0.,.5,snowCover));
