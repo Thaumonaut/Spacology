@@ -199,15 +199,27 @@
       float look=min(waterM,.25+shoreM*1.6);
       vec3 bed=vec3(.74,.71,.56),col=mix(mix(vec3(.36,.8,.79),vec3(.15,.6,.73),smoothstep(.2,1.,look)),vec3(.08,.34,.6),smoothstep(1.2,3.5,look));
       base=mix(bed*vec3(.86,1.,.98),col,.3+.7*smoothstep(.0,.5,look));
-      float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);
-      float ph=time*.1,w=abs(fract(ph)*2.-1.);
+      float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);float rush=smoothstep(.15,1.,speed);
+      // Faster water carries its pattern further and quicker; lakes and pools barely drift.
+      float ph=time*(.06+.5*rush),w=abs(fract(ph)*2.-1.);
       float show=visible(.6);
       if(show>.01){
-        float c=mix(caustic(p-dir*fract(ph)*1.4,time),caustic(p-dir*fract(ph+.5)*1.4+5.3,time),w);
+        float reach=1.4+3.*rush;float c=mix(caustic(p-dir*fract(ph)*reach,time),caustic(p-dir*fract(ph+.5)*reach+5.3,time),w);
         base=mix(base,base*1.1+vec3(.1,.14,.13),c*.42*(1.-smoothstep(.8,3.,look)*.6)*show);
       }
       base=mix(base,base*1.08+vec3(.05,.07,.06),smoothstep(.5,.12,shoreM)*.6);
-      float edge=shoreM+(meadowNoise(p*1.8+dir*time*.4)-.5)*.04,aa=max(fwidth(edge)*1.2,.006);
+      // White water: in fast reaches, aerated turquoise with foam streaks stretched along the current and racing downstream,
+      // breaking into churn where the channel is shallow or tight. Calm reaches stay clear.
+      float rapids=smoothstep(.55,.95,speed);
+      if(rapids>.01){
+        vec2 across=vec2(-dir.y,dir.x);float u=dot(p,dir),v=dot(p,across);
+        float streak=meadowNoise(vec2(u*.55-time*(2.5+3.*rapids),v*2.6))*.65+meadowNoise(vec2(u*1.4-time*(4.+4.*rapids),v*5.3+7.))*.35;
+        float churn=meadowNoise(p*1.9-dir*time*3.)*(1.-smoothstep(.3,1.4,min(waterM,.3+shoreM)));
+        float white=smoothstep(.62-.12*rapids,.7-.1*rapids,streak+churn*.35);
+        base=mix(base,mix(base,vec3(.62,.9,.92),.45),rapids);
+        base=mix(base,vec3(.95,.99,1.),white*rapids*visible(.4));
+      }
+      float edge=shoreM+(meadowNoise(p*1.8+dir*time*(.4+2.*rush))-.5)*(.04+.08*rapids),aa=max(fwidth(edge)*1.2,.006);
       base=mix(base,vec3(.97,.99,1.),1.-smoothstep(.06,.06+aa,edge));
     }
     if(mat==1&&normal.y<.5)base+=vec3(.045)*step(.85,fract(worldPosition.y*.7))*visible(1.4);

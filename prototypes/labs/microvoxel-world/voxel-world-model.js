@@ -2065,13 +2065,16 @@
       // Lily pads float: the water beneath still counts, so drifts of pads do not ring themselves with foam.
       while(y>=0&&((c[y]&127)===MAT.lilyPad||(c[y]&127)===MAT.lilyFlower))y--;let n=0;while(y>=0&&(c[y]&127)===MAT.water){n++;y--;}return n*cellMetres;}
     // Water map per inside column (RGBA8): open-water depth (1/32 m, up to 8 m), distance to the nearest shore within two
-    // columns (1/64 m, up to 4 m), and the river's flow direction (x, z; 0.5 = still water), smoothed on an 8 m grid.
+    // columns (1/64 m, up to 4 m), and the river's flow (x, z; 0.5 = still water; direction downstream, length the speed: calm pools to rapids), smoothed on an 8 m grid.
     const FLOW=8,flows=new Map();
     function flowAt(i,j){
       const k=i*65536+j;let v=flows.get(k);if(v)return v;const x=i*FLOW,z=j*FLOW,g=geography(x,z);v=[0,0];
       if(g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){
         const gx=geography(x+2,z).riverDistance-geography(x-2,z).riverDistance,gz=geography(x,z+2).riverDistance-geography(x,z-2).riverDistance,l=Math.hypot(gx,gz);
-        if(l>1e-6){let dx=-gz/l,dz=gx/l;const ahead=geography(x+dx*4,z+dz*4).riverLevel,behind=geography(x-dx*4,z-dz*4).riverLevel;if(ahead>behind){dx=-dx;dz=-dz;}v=[dx,dz];}
+        if(l>1e-6){let dx=-gz/l,dz=gx/l;const ahead=geography(x+dx*4,z+dz*4).riverLevel,behind=geography(x-dx*4,z-dz*4).riverLevel;if(ahead>behind){dx=-dx;dz=-dz;}
+          // Speed 0–1 from the drop along the course (about 1 m in 80 m is full speed) plus a little where the channel narrows;
+          // stored as the flow vector's length, with a floor so a river always shows its direction.
+          const speed=clamp(Math.abs(behind-ahead)/8/.012+clamp((6-g.riverWidth)/6,0,1)*.3,0,1),k=.15+.85*speed;v=[dx*k,dz*k];}
       }
       flows.set(k,v);if(flows.size>65536)flows.delete(flows.keys().next().value);return v;
     }
