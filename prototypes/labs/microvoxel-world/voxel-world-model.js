@@ -2102,8 +2102,10 @@
     const FLOW=8,flows=new Map();
     function flowAt(i,j){
       const k=i*65536+j;let v=flows.get(k);if(v)return v;const x=i*FLOW,z=j*FLOW,g=geography(x,z);v=[0,0];
+      // Open sea has no river current (the generator's river data runs on past the mouth); estuaries flow gently.
+      if(g.sea){flows.set(k,v);return v;}
       // Prefer the generator's own river data (direction and speed stored along each river) when it provides them.
-      if(g.riverDir&&g.riverSpeed!==undefined&&g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){const sp=clamp(g.riverSpeed,0,1);v=[g.riverDir[0]*sp,g.riverDir[1]*sp];}
+      if(g.riverDir&&g.riverSpeed!==undefined&&g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){const sp=g.riverZone==='estuary'?Math.min(.45,g.riverSpeed*.4):clamp(g.riverSpeed,0,1);v=[g.riverDir[0]*sp,g.riverDir[1]*sp];}
       else if(g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){
         const gx=geography(x+2,z).riverDistance-geography(x-2,z).riverDistance,gz=geography(x,z+2).riverDistance-geography(x,z-2).riverDistance,l=Math.hypot(gx,gz);
         if(l>1e-6){let dx=-gz/l,dz=gx/l;const ahead=geography(x+dx*4,z+dz*4).riverLevel,behind=geography(x-dx*4,z-dz*4).riverLevel;if(ahead>behind){dx=-dx;dz=-dz;}
