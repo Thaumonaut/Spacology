@@ -15,7 +15,10 @@ function groundBlock(L,cx,cz){
 }
 
 // Flat ground stays flat-lit next to sky isles (5:-1:-6), trees (1:-4:-4, 1:-1:-4) and crystal spires (1:-7:-43, 2:-4:-22).
-for(const [L,nx,nz] of [[5,-1,-6],[1,-4,-4],[1,-1,-4],[1,-7,-43],[2,-4,-22]]){
+// The specific nodes move with terrain revisions, so search near each original for one with enough flat ground.
+const flatCount=(L,nx,nz)=>{const x0=nx*N,z0=nz*N;let f=0;for(let j=2;j<N-2;j+=5)for(let i=2;i<N-2;i+=5){const h=groundBlock(L,x0+i,z0+j);let ok=true;for(let b=-2;b<=2&&ok;b+=2)for(let a=-2;a<=2&&ok;a+=2)ok=groundBlock(L,x0+i+a,z0+j+b)===h;if(ok)f++;}return f;};
+const near=(L,nx,nz)=>{for(let r=0;r<=18;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;if(flatCount(L,nx+dx,nz+dz)>5)return [L,nx+dx,nz+dz];}return [L,nx,nz];};
+for(const [L,nx,nz] of [[5,-1,-6],[1,-4,-4],[1,-1,-4],[1,-7,-43],[2,-4,-22]].map(([L,x,z])=>near(L,x,z))){
   const n=w.node(L,nx,nz),x0=nx*N,z0=nz*N;let flat=0,wrong=0;
   for(let j=2;j<N-2;j++)for(let i=2;i<N-2;i++){
     const h=groundBlock(L,x0+i,z0+j);let level=true;

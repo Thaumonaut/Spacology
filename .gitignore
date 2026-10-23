@@ -12,6 +12,7 @@ node_modules/
 # Local terrain inference outputs and Python caches
 artifacts/terrain-diffusion/
 __pycache__/
+*/artifacts/
 
 
 /output

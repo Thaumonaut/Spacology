@@ -1,8 +1,43 @@
 (function(root){
   'use strict';
   const M=root.MicroWorld,ANGLE=50*Math.PI/180,S=Math.sin(ANGLE),C=Math.cos(ANGLE),YAW=35*Math.PI/180,SY=Math.sin(YAW),CY=Math.cos(YAW);
-  const CAMERA_UNIFORMS=['viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale'];
+  const CAMERA_UNIFORMS=['skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','inverseViewProj'];
   const dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
+  // Biome atmospheres, all at golden hour: sky horizon and zenith, and the sunlit and shaded fog colours. The renderer
+  // blends the biomes around the view and eases toward them, so crossing a border shifts the sky over a few seconds.
+  const SKY={
+    base:[[.86,.81,.7],[.39,.64,.82],[1,.93,.82],[.64,.71,.8]],
+    blossom:[[.94,.8,.86],[.56,.55,.86],[1,.88,.93],[.72,.64,.86]],
+    pinkgrass:[[.93,.82,.84],[.5,.6,.86],[1,.9,.9],[.74,.68,.84]],
+    heath:[[.9,.79,.82],[.45,.55,.8],[.98,.9,.92],[.7,.66,.8]],
+    autumn:[[.96,.78,.58],[.46,.6,.8],[1,.86,.68],[.72,.62,.62]],
+    redwood:[[.8,.84,.74],[.42,.62,.72],[.92,.94,.84],[.56,.68,.64]],
+    rainforest:[[.78,.86,.78],[.38,.64,.72],[.9,.96,.88],[.56,.72,.68]],
+    bamboo:[[.82,.88,.76],[.42,.66,.74],[.94,.97,.86],[.58,.72,.64]],
+    fen:[[.8,.84,.78],[.44,.6,.7],[.9,.93,.86],[.58,.68,.68]],
+    wetland:[[.8,.86,.8],[.4,.62,.74],[.92,.95,.9],[.58,.7,.72]],
+    desert:[[.97,.82,.6],[.46,.62,.86],[1,.9,.72],[.8,.68,.58]],
+    badlands:[[.97,.76,.56],[.48,.58,.82],[1,.86,.7],[.8,.62,.56]],
+    savanna:[[.96,.84,.62],[.44,.63,.85],[1,.91,.74],[.78,.7,.6]],
+    golden:[[.97,.84,.6],[.45,.62,.84],[1,.9,.7],[.78,.68,.58]],
+    steppe:[[.92,.84,.68],[.42,.62,.84],[.98,.92,.78],[.72,.7,.66]],
+    boreal:[[.82,.85,.86],[.34,.56,.82],[.94,.96,.97],[.6,.7,.82]],
+    tundra:[[.84,.87,.9],[.34,.56,.86],[.96,.97,1],[.64,.72,.86]],
+    snow:[[.86,.89,.94],[.32,.54,.88],[.97,.98,1],[.66,.74,.9]],
+    glacier:[[.84,.9,.95],[.3,.56,.88],[.96,.99,1],[.62,.76,.9]],
+    montane:[[.84,.84,.82],[.36,.58,.84],[.96,.95,.92],[.6,.7,.8]],
+    beach:[[.88,.86,.78],[.34,.64,.88],[1,.95,.86],[.66,.76,.84]],
+    sea:[[.84,.86,.82],[.32,.62,.88],[.98,.96,.9],[.62,.74,.86]]};
+  const skyFor=b=>SKY[b]||SKY.base;
+  // 4×4 inverse (column-major), for unprojecting depth in the post pass.
+  function invert(m){
+    const o=new Float32Array(16),[a,b,c,d,e,f,g,h,i,j,k,l,mm,n,p,q]=m;
+    o[0]=f*k*q-f*l*p-j*g*q+j*h*p+n*g*l-n*h*k;o[4]=-e*k*q+e*l*p+i*g*q-i*h*p-mm*g*l+mm*h*k;o[8]=e*j*q-e*l*n-i*f*q+i*h*n+mm*f*l-mm*h*j;o[12]=-e*j*p+e*k*n+i*f*p-i*g*n-mm*f*k+mm*g*j;
+    o[1]=-b*k*q+b*l*p+j*c*q-j*d*p-n*c*l+n*d*k;o[5]=a*k*q-a*l*p-i*c*q+i*d*p+mm*c*l-mm*d*k;o[9]=-a*j*q+a*l*n+i*b*q-i*d*n-mm*b*l+mm*d*j;o[13]=a*j*p-a*k*n-i*b*p+i*c*n+mm*b*k-mm*c*j;
+    o[2]=b*g*q-b*h*p-f*c*q+f*d*p+n*c*h-n*d*g;o[6]=-a*g*q+a*h*p+e*c*q-e*d*p-mm*c*h+mm*d*g;o[10]=a*f*q-a*h*n-e*b*q+e*d*n+mm*b*h-mm*d*f;o[14]=-a*f*p+a*g*n+e*b*p-e*c*n-mm*b*g+mm*c*f;
+    o[3]=-b*g*l+b*h*k+f*c*l-f*d*k-j*c*h+j*d*g;o[7]=a*g*l-a*h*k-e*c*l+e*d*k+i*c*h-i*d*g;o[11]=-a*f*l+a*h*j+e*b*l-e*d*j-i*b*h+i*d*f;o[15]=a*f*k-a*g*j-e*b*k+e*c*j+i*b*g-i*c*f;
+    const det=a*o[0]+b*o[4]+c*o[8]+d*o[12];for(let x=0;x<16;x++)o[x]/=det;return o;
+  }
   function cameraView(c,aspect,width){
     const ortho=c.mode!=='walk',yaw=ortho?YAW:c.yaw,pitch=ortho?-ANGLE:c.lookPitch||0;
     const right=[Math.cos(yaw),0,-Math.sin(yaw)],forward=[-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)];
@@ -75,6 +110,27 @@
     if(walkView>.5)gl_Position=toClip(p+normalize(eye-p)*xray*1.5);else gl_Position.z-=xray*1.5/depth;
     #endif
   }`;
+  // Biome tint: undergrowth (ferns, bushes, tufts, reeds) takes the biome's palette, and soil and stone lean slightly toward
+  // it, so every biome harmonises without per-biome hand tuning: a blossom grove's undergrowth runs pink, violet and white,
+  // a redwood forest's dark forest greens. The key is the column's grass as the eye sees it (conifer woods darker and
+  // greener); each plant picks that tone, a paler one or a cooler one. Brightness moves halfway to the key's.
+  // Needs palette[] declared before it.
+  const BIOME_TINT=`vec3 biomeTint(vec3 c,vec3 key,float k){
+    float l=dot(c,vec3(.3,.59,.11)),kl=max(dot(key,vec3(.3,.59,.11)),.05);return mix(c,clamp(key*mix(l/kl,1.,.5),0.,1.),k);
+  }
+  float plantSeed(vec2 block){return fract(sin(dot(floor(block*.35),vec2(12.9898,78.233)))*43758.5453);}
+  // rgb: the key for this plant; a: how far it is from green (0 green or golden biomes, 1 rose and violet ones); a<0: none.
+  vec4 biomeKey(sampler2D map,float size,vec2 block,float seed){
+    if(size<=0.)return vec4(-1);
+    vec4 t=texelFetch(map,clamp(ivec2(block),ivec2(0),ivec2(int(size)-1)),0);int local=int(t.b*255.+.5);if(local<=0)return vec4(-1);
+    vec3 g=palette[local];float green=1.-smoothstep(0.,.05,g.b-g.g);
+    vec3 key=mix(mix(g,g*vec3(1.06,1.1,.82),green),vec3(.22,.36,.22),t.r*green*.8);
+    float r=fract(seed*7.13+.31);key=r<.55?key:r<.8?mix(key,vec3(1.),.4):clamp(key*vec3(.85,.9,1.2),0.,1.);
+    return vec4(key,1.-green);
+  }
+  vec3 undergrowth(sampler2D map,float size,vec2 block,vec3 c,float k,float seed){
+    vec4 key=biomeKey(map,size,block,seed);return key.a<0.?c:biomeTint(c,key.rgb,k);
+  }`;
   // Shadow casters: things standing on the ground (trees, spires, stones, arches), anything above the local ground top
   // (sky isles) and the crew. Terrain never casts, so its single-block steps cannot shadow each other into moiré.
   const aboveGround=[...M.ABOVE_GROUND].map(m=>`m==${m}`).join('||');
@@ -112,10 +168,13 @@
     c=fract(sin(dot(i+vec2(0,1),vec2(127.1,311.7)))*43758.5453),d=fract(sin(dot(i+vec2(1,1),vec2(127.1,311.7)))*43758.5453);
     return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}
   // Grass takes its biome's tone: bright warm green in open meadows, deep cool green on redwood and boreal forest floors.
-  vec3 forestGrass(vec3 grass,float tone){return mix(grass*vec3(1.06,1.1,.82),vec3(.2,.38,.33),tone);}
+  // The warm yellow-green grading suits green and golden grasses; rose and violet ones (blue above green) skip it and keep
+  // their own hue instead of turning beige.
+  float greenness(vec3 c){return 1.-smoothstep(0.,.05,c.b-c.g);}
+  vec3 forestGrass(vec3 grass,float tone){float g=greenness(grass);return mix(mix(grass,grass*vec3(1.06,1.1,.82),g),vec3(.2,.38,.33),tone*g);}
   vec3 meadow(vec2 p,vec3 grass){
-    float broad=meadowNoise(p*.04);
-    return mix(grass*vec3(.86,.96,.86),grass*vec3(1.08,1.13,.88),smoothstep(.3,.7,broad));
+    float broad=meadowNoise(p*.04),g=greenness(grass);
+    return mix(grass*mix(vec3(.9),vec3(.86,.96,.86),g),grass*mix(vec3(1.08),vec3(1.08,1.13,.88),g),smoothstep(.3,.7,broad));
   }
   // Drifting cloud shadows: big soft patches, cast along the sun so they land consistently on ground, crowns and grass.
   // They follow time, so they hold still when paused or with reduced motion. Returns the sunlight left after clouds.
@@ -217,6 +276,7 @@
   ${SUNLIGHT}
   ${MEADOW}
   ${MATERIALS}
+  ${BIOME_TINT}
   ${PEEK}
   void main(){
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
@@ -244,7 +304,13 @@
     // brightness step along tile edges); it only skips sun shadows, which its blocky shapes would cast wrongly.
     float sunVis=(placeholder>0.?1.:sunlight())*clouds(localPosition),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
-    light*=1.+cavity*.3;
+    // Relief lighting for mountains: rock, and ground in proportion to its steepness, gets a warm strong sun over a cool
+    // darker fill, so peaks and slopes read as form (sunward faces bright and warm, shaded faces cool, never black).
+    // Flat meadows keep the softer light above.
+    float relief=isLeaf(mat)||isBark(mat)||mat==7?0.:isRock(mat)||isWarmRock(mat)?1.:smoothstep(.12,.55,1.-n.y);
+    vec3 form=mix(vec3(.46,.5,.64),vec3(.64,.7,.84),n.y*.5+.5)*.72+vec3(1.1,.96,.78)*key*.68*sun;
+    light=mix(light,form,relief);
+    light*=1.+cavity*mix(.3,.65,relief);
     float grain=mat==7?0.:(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
     vec3 base=palette[mat];
     // Grass ground: the root colour under visible blades; once they fade with distance, the blades' average colour, so a
@@ -257,6 +323,25 @@
       vec2 p=worldPosition.xz;float cover=texture(canopyMap,block.xz/normalSize).a,edge=meadowNoise(p*1.7)*.65+meadowNoise(p*5.3+2.1)*.35;
       float g=smoothstep(.4,.6,cover+(edge-.5)*.6);int local=int(texelFetch(biomeMap,clamp(ivec2(block.xz),ivec2(0),ivec2(int(normalSize)-1)),0).b*255.+.5);vec3 field=meadow(p,forestGrass(palette[local],conifer))*mix(vec3(1.08,1.1,.94),vec3(.86),grassGrow);
       base=isBladeGrass(mat)?mix(mix(field,palette[2],.3)*vec3(1.06,1.,.82),field,g):mix(base,field,g);
+    }
+    if(normalSize>0.){
+      bool under=mat==${M.MAT.bushLeaf}||mat==${M.MAT.fern}||mat==${M.MAT.tuft}||mat==${M.MAT.mossy}||mat==${M.MAT.vine};
+      float k=under?.85:isBladeGrass(mat)||isLeaf(mat)||isBark(mat)||mat==7||mat==19||mat==20?0.:.12;
+      if(k>0.)base=undergrowth(biomeMap,normalSize,block.xz,base,k,under?plantSeed(block.xz):0.);
+    }
+    // Moss: fuzzy, a fine stipple of lighter tips and darker hollows, a little brighter on top.
+    if(mat==${M.MAT.mossy}){
+      vec3 w=worldPosition*14.;float f=hash(floor(w))*.6+hash(floor(w*2.3+.5))*.4;
+      base*=mix(1.,.8+.38*f+(normal.y>.5?.06:0.),visible(.1));
+    }
+    // Ruin masonry: dressed blocks in 0.45 m courses, each 0.8 m stone offset from the course below, with its own tone and
+    // a slightly darker, chipped mortar joint; tops read as a grid of laid stones. Fades to the plain colour when small.
+    if(mat==${M.MAT.masonry}){
+      vec3 w=worldPosition;bool top=abs(normal.y)>.5;float along=abs(normal.x)>abs(normal.z)?w.z:w.x,row=floor(w.y/.45);
+      vec2 q=top?w.xz/vec2(.8,.45):vec2(along/.8+row*.5,w.y/.45);vec2 cell=floor(q),f=fract(q);
+      float tone=hash(vec3(cell,top?7.:3.)),joint=min(min(f.x,1.-f.x)*.8,min(f.y,1.-f.y)*.45);
+      float chip=meadowNoise(w.xz*3.1+w.y*2.7)*.03;
+      base*=mix(1.,(.88+.2*tone)*mix(.72,1.,smoothstep(.025+chip,.05+chip,joint)),visible(.45));
     }
     // Vertical water (waterfalls) carries bright streaks running down.
     if(mat==7&&abs(normal.y)<.2)base+=vec3(.1)*step(.7,fract(worldPosition.y*.8+time*2.4+floor(worldPosition.x*1.7+worldPosition.z*1.3)*.37))*visible(1.2);
@@ -363,7 +448,9 @@
         float tiers=1.-smoothstep(.2,.4,blockSize/period);
         tone+=(.14*(1.-smoothstep(0.,.35,f))-.42*smoothstep(.62,.9,f))*tiers;
       }
-      vec3 shadow,mid,high;crownBands(trunkInCrown?(pine?${M.MAT.needle}:${M.MAT.leaf}):mat,palette[mat],shadow,mid,high);
+      vec3 shadow,mid,high;crownBands(trunkInCrown?(pine?${M.MAT.needle}:${M.MAT.leaf}):mat,mat==${M.MAT.bushLeaf}||mat==${M.MAT.vine}?base:palette[mat],shadow,mid,high);
+      // Plain green crowns (leaf, needle) in a rose or violet biome take its colours too, one tone per tree.
+      if(normalSize>0.&&(mat==${M.MAT.leaf}||mat==${M.MAT.needle}||trunkInCrown)){vec4 key=biomeKey(biomeMap,normalSize,block.xz,plantSeed(block.xz*.5));if(key.a>0.){float k=.8*key.a;shadow=biomeTint(shadow,key.rgb,k);mid=biomeTint(mid,key.rgb,k);high=biomeTint(high,key.rgb,k);}}
       if(walkView>.5){shadow*=vec3(.92,.96,1.04);high*=vec3(1.03,1.01,.97);}
       // Broadleaf crowns get softer band edges so a crown reads as a few big lobes, not a cluster of florets.
       float soft=pine?.03:(walkView>.5?.13:.07);
@@ -485,7 +572,7 @@
     // Root matches the ground (same field, same .86 shade); tips lift toward sunlit yellow-green, more so in a gust.
     // Anime grass: one clean gradient from the ground's colour to a bright tip, a sheen where gusts pass, and shadow as a
     // light cool tint.
-    vec3 ground=meadow(field,forestGrass(palette[bladeMat],conifer))*.86,tip=ground*vec3(1.32,1.3,1.)+vec3(.06,.07,.03)*sheen;
+    vec3 ground=meadow(field,forestGrass(palette[bladeMat],conifer))*.86,tip=ground*mix(vec3(1.25),vec3(1.32,1.3,1.),greenness(ground))+mix(vec3(.06),vec3(.06,.07,.03),greenness(ground))*sheen;
     vec3 base=mix(ground,tip,smoothstep(.15,1.,along));
     color=vec4(base*mix(vec3(.86,.9,.97),vec3(1.),smoothstep(.3,.7,sunlight()*clouds(vec3(cloudAt.x,0,cloudAt.y)))),dither.x!=0.?0.:1.);
   }`;
@@ -507,13 +594,22 @@
   uniform vec3 origin, scale, patternOrigin, center, lightAt, lightHalf;
   uniform mat3 lightAxes;
   uniform vec2 halfView;
-  uniform float depth, time, grow;
+  uniform float depth, time, grow, biomeSize;
+  uniform vec3 palette[96];
+  uniform sampler2D biomeMap;
   out vec3 lightCoord, outward;
   out vec2 uv, field;
   out float seed, pine, snowCover;
   flat out int leafMat;
+  flat out vec3 cardTint;
+  flat out vec4 crownKey;
+  ${BIOME_TINT}
   void main(){
-    seed=fract(card.w);leafMat=int(card.w);snowCover=floor(facing.w/20.)/3.;float packed=mod(facing.w,20.);pine=step(10.,packed);outward=facing.xyz;
+    seed=fract(card.w);leafMat=int(card.w);cardTint=palette[leafMat];
+    // Bushes take the biome's colour like the rest of the undergrowth; tree crowns keep their species colours.
+    if(leafMat==${M.MAT.bushLeaf}||leafMat==${M.MAT.vine})cardTint=undergrowth(biomeMap,biomeSize,card.xz,cardTint,.85,plantSeed(card.xz));
+    crownKey=vec4(0);if(leafMat==${M.MAT.leaf}||leafMat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,card.xz,plantSeed(card.xz*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
+    snowCover=floor(facing.w/20.)/3.;float packed=mod(facing.w,20.);pine=step(10.,packed);outward=facing.xyz;
     // Broadleaf clumps spin freely; conifer sprigs stay upright with a slight tilt so the crown keeps its cone.
     float size=(packed-10.*pine)*grow,a=mix(seed*6.2832,(seed-.5)*.5,pine);
     // Palm fronds point along their outward direction (projected to the screen) and are long, so crowns radiate.
@@ -542,6 +638,8 @@
   in vec2 uv, field;
   in float seed, pine, snowCover;
   flat in int leafMat;
+  flat in vec3 cardTint;
+  flat in vec4 crownKey;
   uniform vec3 palette[96];
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel, blockSize, leafShape, cloudTime;
@@ -554,6 +652,7 @@
   ${SUNLIGHT}
   ${MEADOW}
   ${MATERIALS}
+  ${BIOME_TINT}
   // Signed distance to an upright triangle of the given size (negative inside).
   float triangle(vec2 p,float size){p/=size;p.x=abs(p.x)-1.;p.y+=.577;if(p.x+1.732*p.y>0.)p=vec2(p.x-1.732*p.y,-1.732*p.x-p.y)*.5;p.x-=clamp(p.x,-2.,0.);return -length(p)*sign(p.y)*size;}
   ${PEEK}
@@ -583,7 +682,8 @@
     float gap=smoothstep(.35,.7,d);
     // Each clump shades as a small tuft: lit toward the sun and its top, darker at its base and rim, a little hue drift.
     float tone=(dot(normalize(outward),SUN)*.5+.5)*mix(.55,1.,sunlight()*clouds(vec3(field.x,0,field.y)))+(leafId-.5)*.1+dot(uv,vec2(-.4,.5))*.2-r*.12-gap*.12+.12;
-    vec3 shadow,mid,high;crownBands(leafMat,palette[leafMat],shadow,mid,high);
+    vec3 shadow,mid,high;crownBands(leafMat,cardTint,shadow,mid,high);
+    if(crownKey.a>0.){shadow=biomeTint(shadow,crownKey.rgb,crownKey.a);mid=biomeTint(mid,crownKey.rgb,crownKey.a);high=biomeTint(high,crownKey.rgb,crownKey.a);}
     if(palm){tone+=.18*along-.1;high=mix(high,vec3(.86,.9,.42),.35);}
     vec3 c=mix(mix(shadow,mid,smoothstep(.3,.36,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     // Snow on the upper part of clumps facing up, on trees standing on snowy ground.
@@ -654,8 +754,45 @@
   uniform sampler2D sceneColor, sceneGlow;
   uniform highp sampler2D sceneDepth;
   uniform vec2 texel;
-  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar;
+  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime;
+  uniform vec3 skyHorizon, skyZenith, fogLit, fogShade;
+  uniform vec2 fogOffset, fogLayer;
+  uniform vec3 eye;
+  uniform mat4 inverseViewProj;
   out vec4 color;
+  // Fog banks: drifting 3D noise clouds in a layer resting on fogLayer.x (the ground under the view, or the walker's feet),
+  // densest low and thinning over fogLayer.y metres, carried by the wind and slowly churning. Each pixel marches its view
+  // ray through the layer in ten jittered steps, so banks have thickness, overlap, part and pass in front of one another
+  // (and of the sky in Walk). Tops and sun-facing sides catch warm light; the insides stay cool.
+  float fogHash(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+  float fogNoise(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
+    return mix(mix(mix(fogHash(i),fogHash(i+vec3(1,0,0)),f.x),mix(fogHash(i+vec3(0,1,0)),fogHash(i+vec3(1,1,0)),f.x),f.y),
+      mix(mix(fogHash(i+vec3(0,0,1)),fogHash(i+vec3(1,0,1)),f.x),mix(fogHash(i+vec3(0,1,1)),fogHash(i+vec3(1,1,1)),f.x),f.y),f.z);}
+  float bank(vec3 p,out float h){
+    h=(p.y-fogLayer.x)/fogLayer.y;
+    vec2 w=p.xz+fogOffset-fogTime*vec2(1.1,.45);
+    vec3 q=vec3(w.x/52.,p.y/8.,w.y/52.);
+    // Weather: whole stretches lie under fog while others are clear (~350 m drifts), banks within them.
+    float weather=smoothstep(.3,.62,fogNoise(vec3(w/350.,fogTime*.004)));
+    float n=fogNoise(q)*.62+fogNoise(q*2.3+vec3(0,fogTime*.025,0))*.38;
+    return smoothstep(.56,.72,n+.2*weather-abs(h)*.14)*exp(-abs(h)*.8);
+  }
+  vec3 fogBanks(vec3 to,inout float T){
+    // The layer is a slab 3 thicknesses either side of its base: valleys far below and peaks far above stay clear.
+    vec3 r=to-eye;float top=fogLayer.x+3.*fogLayer.y,bottom=fogLayer.x-3.*fogLayer.y,t0=0.,t1=1.;
+    if(abs(r.y)>1e-4){float a=(top-eye.y)/r.y,b=(bottom-eye.y)/r.y;t0=max(t0,min(a,b));t1=min(t1,max(a,b));}else if(eye.y>top||eye.y<bottom)return vec3(0);
+    float L=length(r);t1=min(t1,t0+(walkView>.5?240.:420.)/L);
+    if(t0>=t1)return vec3(0);
+    float seg=(t1-t0)*L/10.,jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))),k=fogAmount*(walkView>.5?.06:.16);
+    vec3 sun=normalize(vec3(-.5,1.,.4)),dir=r/L,acc=vec3(0);float glow=pow(max(0.,dot(dir,sun)),4.);
+    for(int i=0;i<10;i++){
+      vec3 p=eye+r*mix(t0,t1,(float(i)+jitter)/10.);float h,d=bank(p,h)*k;if(d<=0.)continue;
+      float a=1.-exp(-d*seg);
+      vec3 lit=mix(fogShade,fogLit,clamp(.45+h*.3-d*3.,0.,1.))+vec3(.12,.07,.02)*glow;
+      acc+=T*a*lit;T*=1.-a;if(T<.03)break;
+    }
+    return acc;
+  }
   float metres(vec2 uv){float d=texture(sceneDepth,uv).r;return walkView>.5?cameraNear*cameraFar/(cameraFar-d*(cameraFar-cameraNear)):d*2.*depthRange;}
   void main(){
     vec2 uv=gl_FragCoord.xy*texel;vec4 s=texture(sceneColor,uv);vec3 c=s.rgb;float edge=0.;
@@ -679,7 +816,33 @@
     float self=texture(sceneGlow,uv).r;
     vec3 shade=c*(walkView>.5?vec3(.67,.72,.76):vec3(.46,.48,.6));
     vec3 inked=mix(c,shade,edge*ink*s.a);
-    color=vec4(inked+vec3(1.,.95,.84)*(glow*.55+self*.5),1.);
+    // Layered atmosphere, each layer capped so none becomes a wall: in Walk, aerial perspective (a sky-tinted haze that
+    // warms toward the sun, nothing within ~12 m) and a thin ground-hugging mist; then the drifting fog banks.
+    vec3 scene=inked+vec3(1.,.95,.84)*(glow*.55+self*.5),clear=scene;float T=1.,seen=1.;vec3 fog=vec3(0);
+    if(fogAmount>0.){
+      float z=texture(sceneDepth,uv).r;
+      if(z<1.||walkView>.5){
+        vec4 w=inverseViewProj*vec4(uv*2.-1.,min(z,.99999)*2.-1.,1.);vec3 to=w.xyz/w.w;
+        if(walkView>.5&&z<1.){
+          vec3 r=to-eye;float d=length(r);vec3 dir=r/d,sun=normalize(vec3(-.5,1.,.4));
+          vec3 sky=mix(skyHorizon,skyZenith,smoothstep(0.,.85,dir.y));
+          vec3 air=mix(mix(fogShade,skyHorizon,.45),sky,smoothstep(60.,320.,d))+vec3(.16,.09,.02)*pow(max(0.,dot(dir,sun)),5.);
+          float aerial=(1.-exp(-max(0.,d-12.)*.012*fogAmount))*.68;
+          scene=mix(scene,air,aerial);
+          // Ground mist: a 2.5 m layer around the feet (mean density from three points along the ray), so grazing views
+          // thicken while views down into a valley or up a slope stay clear.
+          float B=fogLayer.x,H=2.5;vec3 mid=(eye+to)*.5;
+          float mean=(exp(-abs(eye.y-B)/H)+exp(-abs(mid.y-B)/H)+exp(-abs(to.y-B)/H))/3.;
+          float mist=(1.-exp(-mean*d*.02*fogAmount))*.4;
+          scene=mix(scene,mix(air,fogLit,.5),mist);seen=(1.-aerial)*(1.-mist);
+        }
+        // Banks never hide more than 60% on their own (their light scaled down to match).
+        fog=fogBanks(to,T);if(T<.4){fog*=.6/(1.-T);T=.4;}seen*=T;
+      }
+    }
+    // However the layers stack, at least a fifth of the scene shows through.
+    vec3 fogged=scene*T+fog;
+    color=vec4(mix(clear,fogged,min(1.,.8/max(.001,1.-seen))),1.);
   }`;
   // Flower props: a camera-facing card rising from the flower's root, drawn as a thin stem and a five-petal head in the
   // flower's palette colour with a warm centre; it sways with the grass wind.
@@ -735,23 +898,30 @@
   layout(location=2) in vec4 extra;
   uniform vec3 origin, scale, patternOrigin, center;
   uniform vec2 halfView;
-  uniform float depth, time, pixelWorld;
+  uniform float depth, time, pixelWorld, biomeSize;
+  uniform vec3 palette[96];
+  uniform sampler2D biomeMap;
   out vec2 uv;
   out float seed, heightM, head;
   flat out int stalkMat;
+  flat out vec3 tint;
+  ${BIOME_TINT}
   void main(){
     seed=fract(prop.w);stalkMat=int(prop.w);head=extra.y;heightM=extra.x*scale.y;
+    tint=stalkMat==${M.MAT.bamboo}||stalkMat==${M.MAT.bambooNode}?palette[stalkMat]:undergrowth(biomeMap,biomeSize,prop.xz,palette[stalkMat],.85,seed);
     vec3 root=origin+prop.xyz*scale+vec3(seed-.5,0,fract(seed*7.3)-.5)*scale.x*.5;
     vec2 at=patternOrigin.xz+prop.xz*scale.x;
-    float w=stalkMat==${M.MAT.bamboo}?.5:stalkMat==${M.MAT.fern}?max(.9,heightM*2.2):stalkMat==${M.MAT.tuft}?max(.45,heightM*1.6):.38;
+    float w=stalkMat==${M.MAT.bamboo}?.5:stalkMat==${M.MAT.fern}?max(.9,heightM*2.2):stalkMat==${M.MAT.tuft}?max(.45,heightM*1.6):stalkMat==${M.MAT.vine}?.4:.38;
     w=max(w,localPixel(root,pixelWorld)*5.);
     float sway=sin(time*1.6+seed*9.+dot(at,vec2(1.3,.7))*1.2)*.05+.09*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     // Bamboo carries its leaves in the canopy, which only shifts gently, so culms sway as little as the canopy does.
     if(stalkMat==${M.MAT.bamboo})sway*=.15;
     uv=corner*vec2(1.,.5)+vec2(0,.5);
+    // Vines hang from their top, so they swing most at the bottom.
+    float swing=stalkMat==${M.MAT.vine}?(1.-uv.y)*(1.-uv.y)*.6:uv.y*uv.y;
     // An upright quad in world space facing the camera's right axis, so every point sorts at its true depth.
     vec3 right=camRight;
-    vec3 q=root+right*(corner.x*w*.5+sway*heightM*uv.y*uv.y)+vec3(0,uv.y*max(heightM,localPixel(root,pixelWorld)*6.),0)-center;
+    vec3 q=root+right*(corner.x*w*.5+sway*heightM*swing)+vec3(0,uv.y*max(heightM,localPixel(root,pixelWorld)*6.),0)-center;
     gl_Position=toClip(q+center);
   }`;
   const stalkFragment=`#version 300 es
@@ -759,6 +929,7 @@
   in vec2 uv;
   in float seed, heightM, head;
   flat in int stalkMat;
+  flat in vec3 tint;
   uniform vec3 palette[96];
   layout(location=0) out vec4 color;
   layout(location=1) out vec4 glowOut;
@@ -766,17 +937,19 @@
   void main(){
     if(stalkMat==${M.MAT.bamboo}&&uv.y*heightM>1.6&&peeked())discard;
     glowOut=vec4(0);
-    vec3 base=palette[stalkMat],c=base;bool keep=false;float x=uv.x,y=uv.y;
+    vec3 base=tint,c=base;bool keep=false;float x=uv.x,y=uv.y;
     if(stalkMat==${M.MAT.bamboo}){
       // Culm: slim, with node rings every ~0.4 m; leaf sprigs off the upper nodes, alternating sides.
       float r=.16;keep=abs(x)<r;float along=y*heightM/.4,ring=fract(along);
       c=base*(.85+.3*smoothstep(-r,r,-x))*(ring<.06?.75:1.);
       float side=mod(floor(along),2.)*2.-1.,sx=x*side,sy=fract(along);
       if(!keep&&y>.35&&sx>0.&&sx<.9&&abs(sy-.15-sx*.25)<.05*(1.-sx)+.02){keep=true;c=palette[${M.MAT.bambooLeaf}]*(.9+.2*sx);}
-    }else if(stalkMat==${M.MAT.fern}){
-      // Fan of fronds from the root, each a tapering leaf with serrated edges.
-      vec2 p=vec2(x*1.1,y);float a=atan(p.x,p.y),r=length(p),k=floor((a+1.2)/.4+.5),ca=k*.4-1.2,d=abs(a-ca)*r;
-      keep=abs(ca)<1.15&&r<.95-abs(ca)*.15&&d<.06*(1.-r)+.012+.02*abs(sin(r*40.));c=base*(.75+.4*r);
+    }else if(stalkMat==${M.MAT.vine}){
+      // A wavy stem with small paired-off leaves every ~16 cm, alternating sides, larger toward the top.
+      float m=y*heightM,stem=x-.18*sin(m*4.+seed*6.)*(1.-y*.5);
+      keep=abs(stem)<.045;c=base*.75;
+      float a=m/.16,side=mod(floor(a),2.)*2.-1.;vec2 l=vec2((stem-side*.2)/(.2+.08*y),(fract(a)-.5)/.42);
+      if(dot(l,l)<1.){keep=true;c=base*(.85+.3*(1.-length(l))+.1*side);}
     }else if(stalkMat==${M.MAT.tuft}){
       float a=atan(x*1.2,y),k=floor((a+1.)/.33+.5),ca=k*.33-1.;keep=abs(ca)<1.&&abs(a-ca)*length(vec2(x,y))<.035*(1.-y)+.004&&length(vec2(x,y))<.95-abs(ca)*.25;c=base*(.7+.5*y);
     }else{
@@ -788,6 +961,70 @@
     if(!keep)discard;
     color=vec4(c,0.);
   }`;
+  // Fern objects, after the sword fern: ten long narrow fronds rising in a vase from the root and arching over at the tip,
+  // each a ribbon cut in the fragment shader into slanted, pointed leaflets along a darker midrib. Up to about a metre
+  // tall or more. Lit by the frond's own facing (darker undersides), tinted by the biome, swaying with the grass wind.
+  const FERN_FRONDS=10,FERN_SEGS=7;
+  const fernVertex=`#version 300 es
+  precision highp float;
+  layout(location=0) in vec3 grid;
+  layout(location=1) in vec4 prop;
+  layout(location=2) in vec4 extra;
+  uniform vec3 origin, scale, patternOrigin, center;
+  uniform vec2 halfView;
+  uniform float depth, time, biomeSize;
+  uniform vec3 palette[96];
+  uniform sampler2D biomeMap;
+  out vec2 uv;
+  out vec3 nrm;
+  flat out vec3 tint;
+  ${BIOME_TINT}
+  void main(){
+    float seed=fract(prop.w),H=max(extra.x*scale.y,.2),f=grid.x,t=grid.y,s=grid.z;
+    vec3 root=origin+prop.xyz*scale+vec3(seed-.5,0,fract(seed*7.3)-.5)*scale.x*.5;
+    vec2 at=patternOrigin.xz+prop.xz*scale.x;
+    float a=(f+fract(seed*13.+f*.37)*.6)/${FERN_FRONDS}.*6.2832+seed*6.;
+    // Inner fronds stand taller and steeper, outer ones reach out and arch lower.
+    float inner=fract(seed*5.1+f*.618),R=H*(.75+.45*(1.-inner)),lift=H*(.9+.45*inner);
+    vec3 dir=vec3(cos(a),0,sin(a)),side=vec3(-dir.z,0,dir.x);
+    float sway=sin(time*1.6+seed*9.+dot(at,vec2(1.3,.7))*1.2+f*1.7)*.07;
+    // Spine: rises steeply, then droops toward the tip.
+    vec3 spine=dir*R*t*t+vec3(0,lift*(1.9*t-1.1*t*t),0)+side*sway*t*t*R;
+    vec3 tang=normalize(dir*R*2.*t+vec3(0,lift*(1.9-2.2*t),0)+vec3(0,.001,0));
+    float w=(lift+R)*.085*pow(max(0.,1.-t),.6)*smoothstep(0.,.15,t)+H*.008;
+    // The blade is gently cupped: its edges sit a little lower than the midrib.
+    vec3 p=root+spine+side*s*w-vec3(0,abs(s)*w*.3,0);
+    nrm=normalize(cross(tang,side));if(nrm.y<0.)nrm=-nrm;
+    uv=vec2(s,t);
+    tint=palette[${M.MAT.fern}];
+    tint=undergrowth(biomeMap,biomeSize,prop.xz,tint,.85,seed);
+    gl_Position=toClip(p);
+  }`;
+  const fernFragment=`#version 300 es
+  precision highp float;
+  in vec2 uv;
+  in vec3 nrm;
+  flat in vec3 tint;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
+  const vec3 SUN=normalize(vec3(-.5,1.,.4));
+  void main(){
+    glowOut=vec4(0);
+    float s=abs(uv.x),t=uv.y;
+    // About twenty leaflets a side, slanted toward the tip, each tapering to a point; the midrib runs down the middle.
+    float cell=fract(t*20.-s*.7)-.5;bool rib=s<.08;
+    if(!rib&&abs(cell)>.42*pow(max(0.,1.-s),.8)+.02)discard;
+    vec3 n=normalize(nrm);float up=gl_FrontFacing?1.:-1.;
+    float tone=(dot(n*up,SUN)*.5+.5)*.75+t*.18+(cell-.5)*.1;
+    vec3 c=tint*mix(.6,1.15,tone)*(rib?.82:1.)*(1.-.12*s);
+    color=vec4(c,0.);
+  }`;
+  function makeFern(){
+    const out=[];for(let f=0;f<FERN_FRONDS;f++)for(let j=0;j<FERN_SEGS;j++)for(const [s0,s1] of [[-1,0],[0,1]]){
+      const t0=j/FERN_SEGS,t1=(j+1)/FERN_SEGS;for(const [s,t] of [[s0,t0],[s1,t0],[s1,t1],[s0,t0],[s1,t1],[s0,t1]])out.push(f,t,s);
+    }
+    return new Float32Array(out);
+  }
   // Mushroom objects: an instanced smooth dome cap (with a slightly curled rim) on a tapered stem, in the anime bands, with
   // six evenly spaced white spots on the cap and a soft dark ring where the stem meets the ground.
   const mushroomVertex=`#version 300 es
@@ -984,10 +1221,10 @@
     if(vertexSource.includes('toClip(')){
       vertexSource=vertexSource.replace('  void main(){',CAMERA+'\n  void main(){');
       if(fragmentSource.includes('out vec4 color')){
-        fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nuniform float walkView, cameraPixelScale;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
+        fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nuniform float walkView, cameraPixelScale, fogAmount, cameraFar;\nuniform vec3 skyHorizon;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
         // Pattern visibility follows local projected size rather than the overhead span.
         fragmentSource=fragmentSource.replace(/(wavelength|blockSize)\/pixelWorld/g,'$1/(walkView>.5?max(.001,viewDepth*cameraPixelScale):pixelWorld)');
-        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-18.)*.0018-max(0.,viewDistance-150.)*.006);vec3 air=mix(vec3(.76,.83,.84),vec3(.86,.81,.7),smoothstep(70.,300.,viewDistance));color.rgb=mix(color.rgb,air,haze);}}`;
+        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-cameraFar*.5)*.012);vec3 air=skyHorizon;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
       }
     }
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -1001,7 +1238,7 @@
   const DRAW_UNIFORMS=['origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
   const skyFragment=`#version 300 es
   precision highp float;
-  uniform vec3 eye,camForward,camRight,camUp;
+  uniform vec3 eye,camForward,camRight,camUp,skyHorizon,skyZenith;
   uniform vec2 resolution,worldOffset;
   uniform float tanFov,cloudTime,cloudFade;
   layout(location=0) out vec4 color;
@@ -1010,8 +1247,7 @@
   void main(){
     vec2 uv=(gl_FragCoord.xy/resolution*2.-1.)*vec2(resolution.x/resolution.y,1.);
     vec3 ray=normalize(camForward+(camRight*uv.x+camUp*uv.y)*tanFov);
-    vec3 horizon=vec3(.86,.81,.7),blue=vec3(.39,.64,.82);
-    vec3 sky=mix(horizon,blue,smoothstep(0.,.85,ray.y));
+    vec3 sky=mix(skyHorizon,skyZenith,smoothstep(0.,.85,ray.y));
     vec3 sun=normalize(vec3(-.5,1.,.4));float a=max(0.,dot(ray,sun));
     sky+=vec3(1.,.75,.4)*(pow(a,90.)*.3+smoothstep(.9997,.9999,a));
     if(ray.y>.015){
@@ -1053,7 +1289,7 @@
       ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder','xray','peek']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime','worldOffset','palette']));
-      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset','palette','peek']));
+      ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset','palette','peek','biomeMap','biomeSize']));
       gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
       // Conifer card outline for comparison (?leaves=round|soft|hard|round+soft|mixed); mixed by default.
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
@@ -1068,7 +1304,10 @@
       ({program:this.mushroomProgram,u:this.mu}=link(gl,mushroomVertex,mushroomFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','palette','shadowOn','shadowTexel','blockSize','shadowMap']));
       this.mushroomGeom=makeMushroom();this.mushroomBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.mushroomBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.mushroomGeom,gl.STATIC_DRAW);
       gl.useProgram(this.mushroomProgram);gl.uniform1i(this.mu.shadowMap,1);gl.uniform1f(this.mu.blockSize,.2);
-      ({program:this.stalkProgram,u:this.su}=link(gl,stalkVertex,stalkFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette','peek']));
+      ({program:this.stalkProgram,u:this.su}=link(gl,stalkVertex,stalkFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette','peek','biomeMap','biomeSize']));
+      ({program:this.fernProgram,u:this.fe}=link(gl,fernVertex,fernFragment,['origin','scale','patternOrigin','center','halfView','depth','time','palette','biomeMap','biomeSize']));
+      this.fernGeom=makeFern();this.fernBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.fernBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.fernGeom,gl.STATIC_DRAW);
+      for(const [program,u] of [[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.leafProgram,this.lu]]){gl.useProgram(program);gl.uniform1i(u.biomeMap,3);}
       ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
       ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','sceneGlow','texel','depthRange','threshold','ink','width']));
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);gl.uniform1i(this.pu.sceneGlow,7);this.postVao=gl.createVertexArray();
@@ -1082,7 +1321,7 @@
       gl.useProgram(this.program);
       const colors=[...M.COLORS];
       const paletteValues=[...M.COLORS].flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255));
-      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
+      for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
       gl.useProgram(this.program);
       gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform1i(this.u.waterMap,6);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;this.queue=[];this.dithering=[0,0];this.casting=false;this.shadow=null;
@@ -1160,6 +1399,21 @@
         gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(3,1);
         out.mushrooms={vao:mvao,buffer:mbuf,count:mesh.mushrooms.length/8};out.bytes+=mesh.mushrooms.byteLength;
       }
+      let ferns=null;
+      if(mesh.stalks?.length){
+        const all=mesh.stalks,keep=[],fern=[];for(let k=0;k<all.length;k+=8)(Math.floor(all[k+3])===M.MAT.fern?fern:keep).push(k);
+        if(fern.length){ferns=new Float32Array(fern.length*8);fern.forEach((k,i)=>ferns.set(all.subarray(k,k+8),i*8));}
+        const rest=new Float32Array(keep.length*8);keep.forEach((k,i)=>rest.set(all.subarray(k,k+8),i*8));mesh={...mesh,stalks:rest.length?rest:null};
+      }
+      if(ferns){
+        const fvao=gl.createVertexArray(),fbuf=gl.createBuffer();gl.bindVertexArray(fvao);
+        gl.bindBuffer(gl.ARRAY_BUFFER,this.fernBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,12,0);
+        gl.bindBuffer(gl.ARRAY_BUFFER,fbuf);gl.bufferData(gl.ARRAY_BUFFER,ferns,gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,0);gl.vertexAttribDivisor(1,1);
+        gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(2,1);
+        let top=0;for(let k=0;k<ferns.length;k+=8)top=Math.max(top,ferns[k+1]+ferns[k+4]*1.5);
+        out.ferns={vao:fvao,buffer:fbuf,count:ferns.length/8};out.bytes+=ferns.byteLength;out.top=Math.max(out.top,Math.ceil(top));
+      }
       if(mesh.stalks?.length){
         const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);
         gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
@@ -1185,19 +1439,31 @@
     // A coarser tile standing in while finer ones stream in: lit as usual but casting and receiving no sun shadows and
     // carrying no ink, so its blocky shapes stay quiet until the real tile arrives.
     placeholder(on){this.flat=on;}
-    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.seams){this.gl.deleteBuffer(mesh.seams.buffer);this.gl.deleteVertexArray(mesh.seams.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
+    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.seams){this.gl.deleteBuffer(mesh.seams.buffer);this.gl.deleteVertexArray(mesh.seams.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
-    cameraUniforms(){
-      const gl=this.gl,v=this.view;
-      for(const [program,u] of [[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
+    // Biomes around the view (names; repeats weight a biome); the atmosphere eases toward their average.
+    setAtmosphere(biomes){
+      const t=SKY.base.map(c=>c.map(()=>0));for(const b of biomes)skyFor(b).forEach((c,i)=>c.forEach((v,j)=>t[i][j]+=v/biomes.length));
+      this.skyTarget=biomes.length?t:null;
+    }
+    cameraUniforms(time){
+      const now=performance.now(),dt=Math.min(1,(now-(this.skyClock||now))/1000);this.skyClock=now;
+      const target=this.skyTarget||SKY.base;this.sky_=this.sky_||target.map(c=>[...c]);
+      const k=1-Math.exp(-dt/1.5);this.sky_.forEach((c,i)=>c.forEach((v,j)=>c[j]=v+(target[i][j]-v)*k));
+      // Fog: the slider's amount (0..1), and the mist layer's base and thickness. The map's base is the eased ground under the view centre, its thickness growing with the span; Walk's
+      // base is just under the walker's feet, a thin mist.
+      const gl=this.gl,v=this.view,c=this.camera,o=this.worldOrigin||{x:0,z:0},P=95*4096,off=[o.x,o.z].map(x=>x-P*Math.round(x/P)),fog=this.fogAmount??.5;
+      const layer=v.ortho?[(c.y??8)-4,10]:[(c.eyeY??c.y??8)-2.1,6];
+      for(const [program,u] of [[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
+        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
       }
     }
     sky(off){
       const gl=this.gl,u=this.skyU;gl.useProgram(this.skyProgram);gl.uniform2f(u.resolution,this.canvas.width,this.canvas.height);gl.uniform1f(u.tanFov,Math.tan(this.view.fovY/2));gl.uniform2fv(u.worldOffset,off);gl.uniform1f(u.cloudTime,this.time);gl.uniform1f(u.cloudFade,this.cloudOpacity??.85);
       gl.disable(gl.DEPTH_TEST);gl.depthMask(false);gl.bindVertexArray(this.postVao);gl.drawArrays(gl.TRIANGLES,0,3);gl.depthMask(true);gl.enable(gl.DEPTH_TEST);
     }
-    begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.view=cameraView(camera,this.aspect,this.canvas.width);this.cameraUniforms();this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
+    begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.view=cameraView(camera,this.aspect,this.canvas.width);this.cameraUniforms(time);this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){this.queue.push({mesh,origin,scale,material,yaw,pitch,offset,patternOrigin,dither:this.dithering,flat:!!this.flat,caster:this.casting});}
     replay(u,d){const gl=this.gl,m=d.mesh;gl.uniform3fv(u.origin,d.origin);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.bindVertexArray(m.smooth.vao);gl.drawArrays(gl.TRIANGLES,0,m.smooth.count);if(this.camera.mode==='walk'&&m.seams){gl.bindVertexArray(m.seams.vao);gl.drawArrays(gl.TRIANGLES,0,m.seams.count);}gl.uniform1f(u.smoothMesh,0);}}
@@ -1250,6 +1516,8 @@
       for(const x of [d.origin[0],d.origin[0]+size])for(const z of [d.origin[2],d.origin[2]+size])for(const y of [d.origin[1],top]){const p=this.project(c,x,y,z);x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
       const m=40;return x1>-m&&x0<this.width+m&&y1>-m&&y0<this.height+m;
     }
+    // A tile's biome map on unit 3, for object programs that tint by biome (size 0: no map, no tint).
+    bindBiome(u,m){const gl=this.gl;gl.uniform1f(u.biomeSize,m.biomeMap?m.normalSize||0:0);if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}}
     end(){
       // One world frame for everything cloud-related: the stream's rebasing origin (world metres at local zero). It is
       // wrapped only beyond ±195 km to stay exact in single precision; the wrap is centred on zero, because wrapping at
@@ -1267,7 +1535,7 @@
         gl.cullFace(gl.BACK);
       }
       // Economy draws straight to the canvas without outlines or antialiasing.
-      const post=!this.economy&&(c.mode==='walk'||this.outlines&&c.span<1800),scene=post?this.sceneTarget():null;
+      const post=!this.economy&&(c.mode==='walk'||(this.outlines||(this.fogAmount??.5)>0)&&c.span<1800),scene=post?this.sceneTarget():null;
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(scene)gl.clearBufferfv(gl.COLOR,1,[0,0,0,0]);if(c.mode==='walk')this.sky(off);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
@@ -1311,7 +1579,13 @@
       if(this.queue.some(d=>d.mesh.stalks)){
         const g=this.su;gl.useProgram(this.stalkProgram);gl.disable(gl.CULL_FACE);gl.uniform3fv(g.peek,pk);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
-        for(const d of this.queue){const t=d.mesh.stalks;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        for(const d of this.queue){const t=d.mesh.stalks;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        gl.enable(gl.CULL_FACE);
+      }
+      if(this.queue.some(d=>d.mesh.ferns)){
+        const g=this.fe,n=this.fernGeom.length/3;gl.useProgram(this.fernProgram);gl.disable(gl.CULL_FACE);
+        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);
+        for(const d of this.queue){const t=d.mesh.ferns;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
         gl.enable(gl.CULL_FACE);
       }
       // Flowers draw at every zoom their tiles exist (close views only), never smaller than a few pixels.
@@ -1325,7 +1599,7 @@
         const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.uniform3fv(g.peek,pk);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
         gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
         if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
-        for(const d of this.queue){const t=d.mesh.leaves;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        for(const d of this.queue){const t=d.mesh.leaves;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
       }
       // X-ray pass: crew parts drawn again only where something nearer covers them.
@@ -1346,7 +1620,7 @@
         gl.uniform2f(p.texel,1/W,1/H);gl.uniform1f(p.depthRange,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
         // Lines only where the depth jumps by about a metre up close, more as the view widens (tens of metres at continent
         // view, where only cliffs and isles ink); they fade out over the widest zooms.
-        gl.uniform1f(p.width,c.mode==='walk'?.8*this.pixelRatio:Math.max(1,this.pixelRatio));gl.uniform1f(p.threshold,c.mode==='walk'?.6:Math.max(1.2,c.span*.012));gl.uniform1f(p.ink,c.mode==='walk'?(this.outlines?.35:0):.75*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
+        gl.uniform1f(p.width,c.mode==='walk'?.8*this.pixelRatio:Math.max(1,this.pixelRatio));gl.uniform1f(p.threshold,c.mode==='walk'?.6:Math.max(1.2,c.span*.012));gl.uniform1f(p.ink,!this.outlines?0:c.mode==='walk'?.35:.75*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
         gl.disable(gl.DEPTH_TEST);gl.bindVertexArray(this.postVao);gl.drawArrays(gl.TRIANGLES,0,3);gl.enable(gl.DEPTH_TEST);gl.bindVertexArray(null);
       }
       // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything (after the outlines, so no lines
