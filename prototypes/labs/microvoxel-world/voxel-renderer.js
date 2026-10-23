@@ -510,11 +510,10 @@
     float sway=sin(time*2.1+seed*9.+dot(at,vec2(1.3,.7))*1.8)*.08+.12*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     float w=max(.42,pixelWorld*8.)*(.85+.3*fract(seed*3.1)),h=w*1.35;
     uv=corner*vec2(1.,.5)+vec2(0,.5);
-    vec3 q=root-center;
+    vec3 right=vec3(${CY},0,-${SY});
+    vec3 q=root+right*(corner.x*w*.5+sway*w*uv.y*uv.y)+vec3(0,uv.y*h,0)-center;
     float forward=q.x*${SY}+q.z*${CY};
     gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
-    gl_Position.xy+=vec2(corner.x*w*.5+sway*w*uv.y*uv.y,uv.y*h*${C})/halfView;
-    gl_Position.z-=w*.5/depth;
   }`;
   const flowerFragment=`#version 300 es
   precision highp float;
@@ -559,11 +558,11 @@
     // Bamboo carries its leaves in the canopy, which only shifts gently, so culms sway as little as the canopy does.
     if(stalkMat==${M.MAT.bamboo})sway*=.15;
     uv=corner*vec2(1.,.5)+vec2(0,.5);
-    vec3 q=root-center;
+    // An upright quad in world space facing the camera's right axis, so every point sorts at its true depth.
+    vec3 right=vec3(${CY},0,-${SY});
+    vec3 q=root+right*(corner.x*w*.5+sway*heightM*uv.y*uv.y)+vec3(0,uv.y*max(heightM,pixelWorld*6.),0)-center;
     float forward=q.x*${SY}+q.z*${CY};
     gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
-    gl_Position.xy+=vec2(corner.x*w*.5+sway*heightM*uv.y*uv.y,uv.y*max(heightM,pixelWorld*6.)*${C})/halfView;
-    gl_Position.z-=w*.4/depth;
   }`;
   const stalkFragment=`#version 300 es
   precision highp float;

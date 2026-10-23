@@ -231,7 +231,7 @@
   const CLOUDS='spacology-voxel-clouds',setClouds=v=>{$('clouds').value=String(v);if(renderer)renderer.cloudOpacity=v/100;};
   try{const saved=localStorage.getItem(CLOUDS);if(saved!==null)setClouds(Number(saved));else setClouds(85);}catch{setClouds(85);}
   $('clouds').oninput=()=>{setClouds(Number($('clouds').value));try{localStorage.setItem(CLOUDS,$('clouds').value);}catch{}};
-  $('economy').onclick=()=>{economy=!economy;$('economy').setAttribute('aria-pressed',String(economy));meshBudget();updateView();};
+  $('economy').onclick=()=>{economy=!economy;$('economy').setAttribute('aria-pressed',String(economy));meshBudget();stream?.setDetail(!economy);updateView();};
   function regenerate(seed,cell,extent=world.extent){
     if(coop.active&&!coopRegen)coop.stop();
     const resized=extent!==world.extent;

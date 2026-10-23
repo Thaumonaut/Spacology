@@ -38,6 +38,10 @@
       w.onmessage=({data})=>receive(slot,data);
       workers.push(slot);
     }
+    // Detail: true builds objects, grass, leaf cards and flowers with each tile; false (Economy) is voxels only. Changing it
+    // rebuilds every tile.
+    let detail=true;
+    function setDetail(on){if(detail===on)return;detail=on;if(world)setWorld(world);}
     function setWorld(next){
       world=next;pressure=bias=0;requested=-1;targetKeys=new Set();cache.clear();inflight.clear();fades.clear();outgoing.clear();lit.clear();targets=[];drawList=[];drawKeys=new Set();drawDirty=true;epoch++;
       for(const k of Object.keys(stats))stats[k]=0;for(const k of Object.keys(times))times[k].length=0;
@@ -145,7 +149,7 @@
       for(const s of workers){
         if(s.job)continue;const job=nextJob();if(!job)return;
         s.job={...job,epoch};s.started=performance.now();inflight.set(job.key,s);
-        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent});
+        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent});
       }
     }
     function receive(slot,data){
@@ -169,7 +173,7 @@
     }
     const complete=()=>targets.length>0&&targets.every(t=>ready(t.key));
     function dispose(){for(const s of workers)s.w.terminate();workers.length=0;cache.clear();}
-    return {setWorld,setBudget,update,draw,pump,snapshot,dispose,complete,cache,get pending(){return inflight.size>0||drawDirty;}};
+    return {setWorld,setDetail,setBudget,update,draw,pump,snapshot,dispose,complete,cache,get pending(){return inflight.size>0||drawDirty;}};
   }
   root.MicroLOD={create,deviceBudgetMiB};
 })(globalThis);
