@@ -8,17 +8,24 @@ try{
   for(const file of ['macro-map.js','voxel-world-model.js','voxel-renderer.js'])await p.addScriptTag({url:BASE+'/prototypes/labs/microvoxel-world/'+file});
   for(const fixture of [
     {name:'palm',x:-386.14587421899193,z:561.5324577879394,base:16.5,target:20.5,prop:'fronds'},
-    {name:'mushroom',x:-2036.12765730978,z:-2231.1978865843266,base:22.75,target:24.7,prop:'mushrooms'},
+    {name:'mushroom',x:-2036.12765730978,z:-2231.1978865843266,base:22.75,target:24.7,prop:'mushrooms',aim:true},
     {name:'water',x:-404,z:566,target:15.5}
   ]){
     const result=await p.evaluate(q=>{
       document.querySelector('canvas').remove();const canvas=document.createElement('canvas');document.body.append(canvas);const w=MicroWorld.createWorld(2718,.25,'infinite'),r=new MicroRenderer(canvas),meshes=[],nx=Math.floor(q.x/8),nz=Math.floor(q.z/8);
       const x=q.x+6,z=q.z+7,eyeY=Math.max(w.ground(x,z)+1.6,q.base||0),camera={mode:'walk',x,z,y:eyeY-1.6,eyeY,yaw:Math.atan2(x-q.x,z-q.z),lookPitch:Math.atan2(q.target-eyeY,Math.hypot(x-q.x,z-q.z)),fov:70,viewDistance:600,span:32};
-      let count=0,water=false;
+      let count=0,water=false,aim=null;
       for(let j=nz-2;j<=nz+2;j++)for(let i=nx-2;i<=nx+2;i++){
         const data=w.node(0,i,j,{smooth:true,props:true});count+=q.prop?(data[q.prop]?.length||0)/8:0;water ||= data.waterMap.some((v,k)=>k%4===0&&v>0);
+        if(q.aim&&data[q.prop]){const a=data[q.prop];
+          for(let k=0;k<a.length;k+=8){const ax=i*8+a[k],az=j*8+a[k+2],d=Math.hypot(ax-q.x,az-q.z);
+            if(!aim||d<aim.d)aim={d,x:ax,y:a[k+1]+a[k+6]+a[k+4]*.4,z:az,r:a[k+3]};}}
         meshes.push({mesh:r.upload(data),origin:[i*8,0,j*8]});
       }
+      // Aim at the nearest real prop instance so worldgen changes can't leave the fixture staring at empty ground.
+      if(q.aim&&aim){const dist=Math.max(3.5,aim.r*3),ang=Math.atan2(q.x-aim.x,q.z-aim.z);
+        camera.x=aim.x+Math.sin(ang)*dist;camera.z=aim.z+Math.cos(ang)*dist;camera.eyeY=aim.y+.6;camera.y=aim.y-1;
+        camera.yaw=Math.atan2(camera.x-aim.x,camera.z-aim.z);camera.lookPitch=Math.atan2(aim.y-camera.eyeY,Math.hypot(camera.x-aim.x,camera.z-aim.z));}
       const draw=()=>{
         r.begin(camera,0,false);for(const d of meshes)r.draw(d.mesh,d.origin);r.end();
         const gl=r.gl,bytes=new Uint8Array(canvas.width*canvas.height*4);gl.readPixels(0,0,canvas.width,canvas.height,gl.RGBA,gl.UNSIGNED_BYTE,bytes);return bytes;

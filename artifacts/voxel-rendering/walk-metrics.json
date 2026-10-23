@@ -1,22 +1,22 @@
 {
   "lod": "auto",
-  "worldId": "wilds:micro-wilds-14:2718",
-  "dataId": "wilds:micro-wilds-14:2718:cell:0.25:extent:infinite",
+  "worldId": "wilds:micro-wilds-15:2718",
+  "dataId": "wilds:micro-wilds-15:2718:cell:0.25:extent:infinite",
   "seed": 2718,
-  "revision": "micro-wilds-14",
+  "revision": "micro-wilds-15",
   "extent": "infinite",
   "position": {
     "cx": -2,
-    "x": 6.226150161115835,
+    "x": 6.160991877946355,
     "cz": -6,
-    "z": 5.754087861369298
+    "z": 5.661032189138068
   },
-  "travelled": 10.066399999999994,
+  "travelled": 10.17999999999999,
   "vegetationEntries": 2048,
   "mainVegetationEntries": 0,
-  "maxRenderOrigin": 725.7540878613693,
+  "maxRenderOrigin": 725.661032189138,
   "deposit": {
-    "id": "wilds:micro-wilds-14:2718:ore:root",
+    "id": "wilds:micro-wilds-15:2718:ore:root",
     "kind": "Ferrite",
     "x": 20,
     "z": -10,
@@ -27,21 +27,23 @@
   },
   "camera": {
     "x": 0,
-    "y": 28.75,
+    "y": 29,
     "z": 0,
-    "span": 8.12200740275,
+    "span": 8,
     "mode": "walk",
-    "yaw": 9.96837448132563,
-    "lookPitch": -0.3199999999999995,
+    "yaw": 10.03525690928259,
+    "lookPitch": -0.3200000000000002,
     "fov": 70,
     "viewDistance": 600,
-    "eyeY": 30.349999999999994
+    "eyeY": 30.599999999999998
   },
   "walk": {
     "active": true,
     "transitioning": false,
     "pointerLocked": false,
-    "height": 28.75,
+    "airborne": false,
+    "swimming": false,
+    "height": 29,
     "water": 0
   },
   "glError": 0,
@@ -54,8 +56,8 @@
   "chunkMetres": 8,
   "step": 1,
   "renderStep": 1,
-  "viewUpdates": 177,
-  "retainedMeshes": 33,
+  "viewUpdates": 62,
+  "retainedMeshes": 13,
   "placeholders": 61,
   "shown": 456,
   "moving": false,
@@ -68,27 +70,27 @@
   "paused": false,
   "economy": false,
   "reducedMotion": false,
-  "simTime": 10.547299999976152,
+  "simTime": 20.923700000000164,
   "actors": [
     {
       "role": "explorer",
       "worker": false,
-      "x": 21.914202113533133,
-      "z": -1.956511467972676,
-      "y": 28.75,
-      "yaw": -0.5235987755982944,
+      "x": 31.176914536239792,
+      "z": 0,
+      "y": 29.5,
+      "yaw": 1.5707963267948966,
       "phase": 0,
-      "walking": true,
+      "walking": false,
       "task": {
         "kind": "survey",
-        "q": 2,
+        "q": 3,
         "r": 0,
-        "key": "2,0",
+        "key": "3,0",
         "target": {
-          "x": 20.784609690826528,
+          "x": 31.176914536239792,
           "z": 0
         },
-        "work": 2,
+        "work": 1.5499999999999996,
         "source": "auto"
       },
       "carrying": null
@@ -118,44 +120,44 @@
       "x": 21.5,
       "z": -8.5
     },
-    "surveyed": 2,
+    "surveyed": 3,
     "sampled": 1,
     "identified": 1,
-    "frontier": 7,
-    "summaryEntries": 10,
+    "frontier": 8,
+    "summaryEntries": 12,
     "tasks": [
       {
         "role": "explorer",
         "kind": "survey",
-        "key": "2,0",
+        "key": "3,0",
         "source": "auto"
       },
       null
     ]
   },
   "meshCacheEntries": 571,
-  "meshCacheBytes": 103488704,
+  "meshCacheBytes": 114810880,
   "meshCacheLimit": 402653184,
   "voxelCacheBytes": 0,
   "voxelCacheEntries": 0,
   "cacheHits": 0,
   "completed": 571,
-  "firstReadyMs": 800.1000000238419,
+  "firstReadyMs": 9090.300000011921,
   "frameSamples": 240,
-  "frameP50": 16.69999999999891,
-  "frameP95": 16.799999999999272,
-  "frameP99": 16.800000000000182,
+  "frameP50": 1783.2999999999884,
+  "frameP95": 5049.099999999977,
+  "frameP99": 5858.400000000023,
   "generationP95": 0,
   "meshingP95": 0,
-  "drawCalls": 599,
-  "triangles": 506836,
+  "drawCalls": 632,
+  "triangles": 669727,
   "pixelRatio": 1,
   "viewport": {
     "width": 1280,
     "height": 625
   },
   "renderer": "WebKit WebGL",
-  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.7827.55 Safari/537.36",
   "stream": {
     "rings": {
       "0": 124,
@@ -174,7 +176,7 @@
     "inflight": 0,
     "workers": 4,
     "entries": 571,
-    "bytes": 103488704,
+    "bytes": 114810880,
     "budget": 402653184,
     "levels": {
       "0": 152,
@@ -186,66 +188,66 @@
     },
     "completed": 571,
     "coarse": 61,
-    "retained": 33,
+    "retained": 13,
     "uploads": 571,
     "vegetation": 2048,
-    "maxOrigin": 725.7540878613693,
-    "gpuTimer": true,
+    "maxOrigin": 725.661032189138,
+    "gpuTimer": false,
     "timing": {
       "geography": {
-        "p50": 4.400000095367432,
-        "p95": 8.000000238418579,
+        "p50": 5.200000524520874,
+        "p95": 11.600000381469727,
         "n": 240
       },
       "trees": {
-        "p50": 10,
-        "p95": 61.199997425079346,
+        "p50": 14.399999856948853,
+        "p95": 91.20000267028809,
         "n": 240
       },
       "features": {
-        "p50": 0.8000001907348633,
-        "p95": 2.4000003337860107,
+        "p50": 1.1999998092651367,
+        "p95": 2.799999952316284,
         "n": 240
       },
       "reduce": {
-        "p50": 1.200000286102295,
-        "p95": 3.200000286102295,
+        "p50": 1.5999999046325684,
+        "p95": 4.399999618530273,
         "n": 240
       },
       "mesh": {
-        "p50": 0.30000001192092896,
-        "p95": 0.800000011920929,
+        "p50": 0.5,
+        "p95": 1.2000000476837158,
         "n": 240
       },
       "node": {
-        "p50": 26.100000023841858,
-        "p95": 82.39999997615814,
+        "p50": 35.10000002384186,
+        "p95": 122.69999998807907,
         "n": 240
       },
       "view": {
-        "p50": 0.19999998807907104,
-        "p95": 0.30000001192092896,
-        "n": 177
+        "p50": 0.20000004768371582,
+        "p95": 0.6000000238418579,
+        "n": 62
       },
       "resolve": {
-        "p50": 0.5,
-        "p95": 0.6000000238418579,
-        "n": 240
+        "p50": 0.699999988079071,
+        "p95": 1,
+        "n": 193
       },
       "draw": {
-        "p50": 0.19999998807907104,
-        "p95": 0.30000001192092896,
+        "p50": 0.20000004768371582,
+        "p95": 0.5,
         "n": 240
       },
       "upload": {
-        "p50": 2.5,
-        "p95": 3.899999976158142,
+        "p50": 3,
+        "p95": 4.899999976158142,
         "n": 240
       },
       "gpu": {
         "p50": 0,
         "p95": 0,
-        "n": 240
+        "n": 0
       }
     }
   }

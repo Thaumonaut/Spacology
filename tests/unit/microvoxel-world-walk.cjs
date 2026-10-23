@@ -10,7 +10,23 @@ assert.ok(!canStep(world(()=>5,()=>6.1),0,0,.2,0),'water deeper than 1 m blocks'
 assert.ok(canStep(world(()=>5,()=>6),0,0,.2,0),'water exactly 1 m deep remains walkable');
 assert.equal(surface(world(()=>5,()=>6.5),0,0).water,1.5);
 assert.ok(!canStep(world(x=>x>.1?null:5),0,0,.2,0),'finite-world boundaries block');
-console.log('Walk slope, cliff, shallow/deep water and edge constraints pass');
+// Gameplay limits (what the walk loop passes): 0.55 m steps, 60° slopes, free drops, deep water.
+const game={step:.55,slope:1.7,water:Infinity,drop:Infinity};
+assert.ok(canStep(world(x=>x<.1?5:5.5),0,0,.2,0,game),'0.5 m ledges are steppable');
+assert.ok(canStep(world(x=>5+x*1.5),0,0,.2,0,game),'60-degree slopes are traversable');
+assert.ok(!canStep(world(x=>x<.1?5:8),0,0,.2,0,game),'cliffs still block under game limits');
+assert.ok(canStep(world(x=>x<.1?8:5),0,0,.2,0,game),'drops fall instead of blocking');
+assert.ok(canStep(world(()=>5,()=>20),0,0,.2,0,game),'deep water is swimmable');
+assert.ok(canStep(world(x=>x<.1?5:8),0,0,.2,0,{...game,lift:2.5}),'a mid-air step reaches high ledges');
+// Body collision: worlds expose blockingAt for the column's solid voxels.
+const wall=Object.assign(world(()=>5),{blockingAt:()=>true});
+assert.ok(!canStep(wall,0,0,.2,0,{...game,feet:5}),'solid objects block the body');
+const lowWall=Object.assign(world(()=>5),{blockingAt:(x,z,low,high)=>low<5.9&&high>5.9});
+assert.ok(!canStep(lowWall,0,0,.2,0,{...game,feet:5}),'a wall at body height blocks');
+assert.ok(canStep(lowWall,0,0,.2,0,{...game,feet:6.5}),'airborne feet clear low walls');
+const paving=Object.assign(world(()=>5),{blockingAt:(x,z,low)=>low<5.55});
+assert.ok(canStep(paving,0,0,.2,0,{...game,feet:5}),'low paving does not read as a wall');
+console.log('Walk slope, cliff, step/drop, body collision, shallow/deep water and edge constraints pass');
 
 globalThis.MicroWorld=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');require('../../prototypes/labs/microvoxel-world/voxel-renderer.js');
 const R=globalThis.MicroRenderer,buf=new ArrayBuffer(6*16),f=new Float32Array(buf),bytes=new Uint8Array(buf);

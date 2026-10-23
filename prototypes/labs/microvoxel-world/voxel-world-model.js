@@ -47,6 +47,10 @@
   const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.floodgrass,MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
   const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
+  // What a walking body can't pass through: trunks and limbs, giant mushroom stems, boulders, rock
+  // crags and sea stacks, crystals and ruin masonry. Every terrain rock lives below the capsule's low
+  // bound, so the whole ROCKS family is safe to include. Foliage, water and thin plants stay passable.
+  const BODY_SOLID=Object.freeze(new Set([...BARKS,...ROCKS,MAT.stem,MAT.mossy,MAT.crystal,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
@@ -68,7 +72,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-15':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-16':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
@@ -1141,24 +1145,25 @@
     const TG=infinite?3:5;
     // ---- Vegetation ----
     // Species: sizes in metres as [base, random spread] for height (h) and crown radius (r); trunk = trunk radius.
-    // crown: round (broadleaf dome), oval (airy birch), cone (spruce), larch (open tiered cone), spire (redwood: a needle
-    // point over the trunk), umbrella (flat acacia pads), gnarled (twisted, leaning lakeside tree).
+    // crown: round (broadleaf: a forked trunk carrying a deep lobed canopy), oval (airy birch), cone (spruce), larch
+    // (open tiered cone), spire (redwood: a needle point over the trunk), umbrella (flat acacia pads), gnarled
+    // (twisted, leaning lakeside tree).
     const SPECIES={
-      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[5.5,3.5],r:[2,.9],trunk:.26},
-      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[8,4],r:[2.25,.75],trunk:.32},
-      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[5,3],r:[1.15,.55],trunk:.17},
-      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[6,3.5],r:[1.4,.65],trunk:.25,conifer:true},
-      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[6,3],r:[1.4,.6],trunk:.22,conifer:true},
-      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[7.5,4],r:[1,.5],trunk:.33,conifer:true},
-      umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[2.5,1.25],r:[1.75,.75],trunk:.15},
-      gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[2.5,1],r:[1.1,.4],trunk:.24},
+      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[2.6,.65],trunk:.6},
+      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[2.6,.65],trunk:.7},
+      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.4,.5],trunk:.3},
+      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[7,5],r:[1.5,.6],trunk:.5,conifer:true},
+      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[7,5],r:[1.5,.6],trunk:.42,conifer:true},
+      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[10,6],r:[1.2,.5],trunk:.75,conifer:true},
+      umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[5,3],r:[2.4,.6],trunk:.32},
+      gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[5,3],r:[1.3,.4],trunk:.42},
       // Riparian species (corridor planting only). willow: a domed crown whose rim hangs in curtains of strands; alder: a
       // small dark round tree of cold banks; palm: a ringed, gently curving trunk under a star of drooping fronds; overhang:
       // a big jungle tree leaning out over the water, hung with vines.
-      willow:{crown:'willow',bark:MAT.bark,leaf:MAT.willowLeaf,h:[3.25,1.5],r:[1.7,.5],trunk:.22},
-      alder:{crown:'round',bark:MAT.bark,leaf:MAT.alderLeaf,h:[2.75,1.25],r:[.95,.35],trunk:.14},
-      palm:{crown:'palm',bark:MAT.palmBark,leaf:MAT.palmLeaf,h:[4,2],r:[2,.4],trunk:.15},
-      overhang:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[3.75,1.5],r:[1.5,.3],trunk:.26},
+      willow:{crown:'willow',bark:MAT.bark,leaf:MAT.willowLeaf,h:[5,3],r:[2.2,.5],trunk:.4},
+      alder:{crown:'round',bark:MAT.bark,leaf:MAT.alderLeaf,h:[5,3],r:[1.5,.4],trunk:.4},
+      palm:{crown:'palm',bark:MAT.palmBark,leaf:MAT.palmLeaf,h:[5,3],r:[2,.4],trunk:.24},
+      overhang:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[6,4],r:[1.6,.4],trunk:.6},
     };
     const SPECIES_KEYS=Object.keys(SPECIES);
     // Per-biome tree style. mix: species weights (each species also gathers into groves by its own noise); cold: a
@@ -1209,8 +1214,8 @@
     const treeStyle=b=>TREE_STYLE[b]||TREE_STYLE.default;
     // Quarter-metre units times density: identical metre sizes at either cell size, always integer cells.
     const cells=m=>Math.max(1,Math.round(m*4))*density;
-    // Stamped heights stay well under nodeBound (ground + 24 m); radii fit the 3x3 tree-cell neighbourhood.
-    const MAX_TREE=16,MAX_RADIUS=3.25;
+    // Stamped heights stay under nodeBound (ground + 24 m); radii fit the 3x3 tree-cell neighbourhood.
+    const MAX_TREE=18,MAX_RADIUS=3.25;
     function pickSpecies(S,g,x,z,gx,gz,edge){
       const mix=S.cold&&g.temperature<S.cold.below?S.cold.mix:S.mix,w={};let total=0;
       // Groves: each species is weighted by its own low-frequency noise; birches favour forest edges.
@@ -1316,7 +1321,7 @@
         if(hash(gx,gz,seed+85)<.55){const a=hash(gx,gz,seed+87)*Math.PI;return Object.freeze({...common,kind:'log',ux:Math.cos(a),uz:Math.sin(a),len:2.4+2*hash(gx,gz,seed+89),r:.24+.14*hash(gx,gz,seed+91)});}
         return Object.freeze({...common,kind:'stump',r:.28+.18*hash(gx,gz,seed+93),ht:.35+.45*hash(gx,gz,seed+95)});
       }
-      if(roll2<(c+=(S.bush||0)*near))return bush();
+      if(roll2<(c+=(S.bush||0)*near*1.5))return bush(.45+.35*hash(gx,gz,seed+97));
       if(roll2<(c+=(S.shrub||0)*near))return growTree(S.shrubLeaf||((S.mix.birch||0)>(S.mix.oak||0)?'birch':'oak'),S,g,gx,gz,x,z,{k:.3});
       return null;
     }
@@ -1352,7 +1357,7 @@
       // Riverside jungle trees trail vines from their crowns.
       if(o.vines||sp==='jungle'&&g.riparian>.25)t.vines=true;
       // Big trees shelter a bush or two at their feet.
-      if(C.cls===2&&S.bush){const a=hash(gx,gz,seed+105)*Math.PI*2,d=Math.max(.9,rm*.75);t.under=bushLumps(x+Math.cos(a)*d,z+Math.sin(a)*d,gx,gz,611,.9);if(S.bushLeaf)t.underLeaf=S.bushLeaf;}
+      if(C.cls===2&&S.bush){const a=hash(gx,gz,seed+105)*Math.PI*2,d=Math.max(.9,rm*.75);t.under=bushLumps(x+Math.cos(a)*d,z+Math.sin(a)*d,gx,gz,611,.5+.3*hash(gx,gz,seed+107));if(S.bushLeaf)t.underLeaf=S.bushLeaf;}
       t.top=top;return Object.freeze(t);
     }
     function tree(gx,gz){
@@ -1479,8 +1484,8 @@
       if(crown==='palm')return Math.max(w,stampPalm(t,x,z,values,leaf,bark,trunk));
       if(crown==='willow')return Math.max(w,stampWillow(t,x,z,values,leaf,bark,trunk,small));
       const dist=Math.hypot((x-t.x)/cellMetres,(z-t.z)/cellMetres);
-      if(dist>=(crown==='umbrella'?R*1.15+1:R+1))return w;
-      const tTop=t.top||top+Math.ceil(R*.65)+2*density+1;
+      if(dist>=(crown==='umbrella'?R*1.15+1:crown==='round'?R*1.55+2*density:R+1))return w;
+      const tTop=t.top||top+Math.ceil(crown==='round'?R*1.1:R*.65)+2*density+1;
       if(crown==='spire'||crown==='cone'||crown==='larch'){
         // Conifers: stacked bough tiers ("Bob Ross" trees) rather than one smooth cone. The crown runs from cell `low` up to
         // `apex` (one past the highest needle cell); span = apex - low. Tiers are counted DOWN from apex with period
@@ -1528,14 +1533,66 @@
         }
         return Math.max(w,tTop);
       }
-      // Round broadleaf crown.
-      const clear=t.cls===-1?density:5*density;
-      if(dist<trunk)values.fill(bark,t.base,top);
-      if(dist<R){
-        const rise=Math.sqrt(R*R-dist*dist),low=Math.max(t.base+clear,Math.floor(top-rise*.55)),high=Math.min(heightCells,Math.ceil(top+rise*.65));
-        for(let y=low;y<high;y++)if(!values[y])values[y]=leaf;
-        if(t.vines&&!small&&dist>R*.3)hangVine(x,z,values,low,t.base);
+      // Broadleaf crown (oak and kin): a thick bole ends in a fork partway up and splits into a few
+      // leaning stems; branches run out from the stems to leaf lobes at differing heights — a deep,
+      // irregular canopy hanging in separate masses around the stems, not a lid on a pole.
+      // Positions come from hashes so the same tree stamps identically in both worlds.
+      // Canopy floor: at least ~2.5 m of clearance under a full tree (8 ft headroom), more on tall
+      // trees — the crown reads as a roof overhead, not foliage walls at eye level.
+      const clear=t.cls===-1?density:Math.max(Math.ceil(2.5/cellMetres),Math.round(t.height*.35));
+      const tidX=Math.floor(t.x*4),tidZ=Math.floor(t.z*4);
+      const forkY=t.base+Math.round(t.height*(.5+.12*hash(tidX,tidZ,seed+167)));
+      // Trunk: a strong root flare tapering to the trunk radius at the fork, where it ends.
+      if(dist<trunk*1.9)for(let y=t.base;y<Math.min(heightCells,forkY);y++){const f=(y-t.base)/Math.max(1,forkY-t.base);if(dist<trunk*(1+.9*(1-f)*(1-f)))values[y]=bark;}
+      // Stems: 2-3 leaders rising from the fork and leaning apart; one stays near the trunk axis so
+      // bark always reaches the canopy's heart. Each ends inside a high lobe.
+      const a0=hash(tidX,tidZ,seed+173)*6.2832,nS=2+Math.floor(hash(tidZ,tidX,seed+169)*2),stems=[];
+      for(let i=0;i<nS;i++){
+        const a=a0+i*6.2832/nS+(hash(i,tidX,seed+175)-.5)*.8,o=R*(i===0?.05+.15*hash(0,tidZ,seed+177):.25+.4*hash(i,tidZ,seed+177));
+        stems.push({x:t.x+Math.cos(a)*o*cellMetres,z:t.z+Math.sin(a)*o*cellMetres,y:top-Math.round(R*(.02+.3*hash(i,tidX*3,seed+179)))});
       }
+      // Lobes: one crowning each stem tip, a ring at mid heights between them, and a couple of low
+      // skirt lobes that drape beside the trunk under the main canopy.
+      const lobes=[],nL=4+Math.floor(hash(tidX,tidZ,seed+171)*3);
+      for(let i=0;i<nS;i++)lobes.push({x:stems[i].x,z:stems[i].z,y:stems[i].y+Math.round(density*.5),r:Math.max(2*density,Math.round(R*(.5+.2*hash(i,tidZ*5+tidX,seed+181)))),stem:i,at:.95});
+      for(let i=0;i<nL;i++){
+        const a=a0+(i+.5)*6.2832/nL+(hash(i,tidX+tidZ,seed+183)-.5)*.9,o=R*(.45+.4*hash(i,tidX,seed+185));
+        lobes.push({x:t.x+Math.cos(a)*o*cellMetres,z:t.z+Math.sin(a)*o*cellMetres,y:Math.round(forkY+(top-forkY)*(.3+.6*hash(i,tidZ,seed+187))),r:Math.max(2*density,Math.round(R*(.38+.25*hash(i,tidX*3+tidZ,seed+189)))),stem:i%nS,at:.4+.3*hash(i,tidX,seed+191)});
+      }
+      const nSkirt=1+Math.floor(hash(tidX,tidZ,seed+193)*2);
+      for(let i=0;i<nSkirt;i++){
+        const a=a0+hash(i,tidZ,seed+195)*6.2832,o=R*(.15+.35*hash(i,tidX,seed+197));
+        lobes.push({x:t.x+Math.cos(a)*o*cellMetres,z:t.z+Math.sin(a)*o*cellMetres,y:Math.round(forkY+(top-forkY)*(.1+.2*hash(i,tidZ,seed+199))),r:Math.max(2*density,Math.round(R*(.3+.2*hash(i,tidX*7+tidZ,seed+201)))),stem:i%nS,at:.15+.15*hash(i,tidZ,seed+203)});
+      }
+      // Bark: each stem runs fork→tip and a thinner branch leaves the stem partway up for every
+      // other lobe. Steps follow the branch length so the bark never breaks into dashes; stamped
+      // before the leaves so a wrapped limb keeps a bark heart.
+      const tube=(x0,z0,y0,x1,z1,y1,r0,r1)=>{
+        const steps=Math.max(8,Math.ceil(Math.hypot((x1-x0)/cellMetres,(z1-z0)/cellMetres,y1-y0)*2));
+        for(let s=0;s<=steps;s++){
+          const u=s/steps,px=x0+(x1-x0)*u,pz=z0+(z1-z0)*u,q=Math.hypot(x-px,z-pz)/cellMetres,r=r0+(r1-r0)*u;
+          if(q>=r+.5)continue;const py=y0+(y1-y0)*Math.sqrt(u),hh=Math.sqrt(Math.max(0,r*r-q*q));
+          for(let y=Math.max(t.base,Math.floor(py-hh));y<Math.min(heightCells,Math.ceil(py+hh));y++)values[y]=bark;
+        }
+      };
+      for(const s of stems)tube(t.x,t.z,forkY,s.x,s.z,s.y,Math.max(.75*density,trunk*.7),Math.max(1,.5*density));
+      for(let i=nS;i<lobes.length;i++){
+        const l=lobes[i],s=stems[l.stem],u=l.at,sx=t.x+(s.x-t.x)*u,sz=t.z+(s.z-t.z)*u,sy=forkY+(s.y-forkY)*Math.sqrt(u);
+        tube(sx,sz,sy,l.x,l.z,l.y,Math.max(1,.6*density),Math.max(1,.45*density));
+      }
+      // Lobes: squashed domes drooping below their centres with a noise-ragged rim; at fine detail
+      // the edge drips a cell here and there, so the underside reads as separate boughs.
+      let vineFrom=0;
+      for(const l of lobes){
+        const q=Math.hypot((x-l.x)/cellMetres,(z-l.z)/cellMetres);if(q>=l.r*1.2)continue;
+        const r=l.r*(.85+.3*noise(x*.5,z*.5,seed+125));if(q>=r)continue;
+        const hh=Math.sqrt(r*r-q*q);let lo=Math.max(t.base+clear,Math.floor(l.y-hh*.8));
+        if(!small&&q>r*.5&&hash(Math.floor(x*4),Math.floor(z*4),seed+127)<.4)lo=Math.max(t.base+clear,lo-density);
+        const hi=Math.min(heightCells,Math.ceil(l.y+hh*.6));
+        for(let y=lo;y<hi;y++)if(!values[y])values[y]=leaf;
+        if(!vineFrom||lo<vineFrom)vineFrom=lo;
+      }
+      if(t.vines&&!small&&vineFrom&&dist>R*.3)hangVine(x,z,values,vineFrom,t.base);
       return Math.max(w,tTop);
     }
     // A vine strand on ~22% of quarter-metre columns: hangs 0.75-3.25 m below `from` (only through air, so it stops at
@@ -1652,11 +1709,12 @@
       const floor=LITTER.has(top);
       if(floor||FOREST_FLOOR.has(b)&&TURF.has(top)){
         if(floor&&r>.993&&noise(x*.1,z*.1,seed+657)>.55)return put(MAT.glowFlower,density);
-        // Ferns: small domed clumps on a 0.75 m grid, gathered in damp patches.
-        const fx=Math.floor(x/.75),fz=Math.floor(z/.75);
-        if(hash(fx,fz,seed+651)<.16*clamp((noise(x*.12,z*.12,seed+645)-.4)*3,0,1)+.006){
+        // Ferns: small domed clumps on a 0.75 m grid, carpeting the damp floor — dense drifts with
+        // scattered clumps everywhere else, like a Pacific Northwest understory.
+        const fx=Math.floor(x/.75),fz=Math.floor(z/.75),damp=clamp((noise(x*.12,z*.12,seed+645)-.3)*3,0,1);
+        if(hash(fx,fz,seed+651)<.42*damp+.07){
           const d=Math.hypot(x-(fx+.5+(hash(fx,fz,seed+653)-.5)*.2)*.75,z-(fz+.5+(hash(fx,fz,seed+655)-.5)*.2)*.75);
-          if(d<.34)return put(MAT.fern,Math.round((.35+.35*hash(fx,fz,seed+659))*(1-d/.5)/cellMetres));
+          if(d<.38)return put(MAT.fern,Math.round((.35+.45*hash(fx,fz,seed+659))*(1-d/.55)/cellMetres));
         }
         return 0;
       }
@@ -1933,6 +1991,14 @@
       else if(colStep*cellMetres<.51)written=Math.max(written,scatter(g,x,z,values,h,pickBiome(g,x,z,hash(Math.floor(x*2),Math.floor(z*2),seed+815))));
       colTop=Math.min(heightCells,written);
       return values;
+    }
+    const bodyCol=new Uint8Array(heightCells);
+    // True when the column at (x,z) metres holds a body-solid voxel between `low` and `high` metres.
+    // Walk mode tests the body capsule against this so trunks, boulders and ruin walls stop the walker.
+    function blockingAt(x,z,low,high){
+      bodyCol.fill(0);const v=column(Math.floor(x/cellMetres),Math.floor(z/cellMetres),bodyCol);
+      for(let y=Math.max(0,Math.floor(low/cellMetres)),e=Math.min(heightCells,Math.ceil(high/cellMetres));y<e;y++)if(BODY_SOLID.has(v[y]))return true;
+      return false;
     }
     function generateChunk(cx,cz){
       if(![cx,cz].every(n=>Number.isInteger(n)&&(!infinite||Math.abs(n)<=MAX_CHUNK)))throw new Error('Chunk coordinates exceed the supported range');
@@ -2265,7 +2331,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
