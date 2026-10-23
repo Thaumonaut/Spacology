@@ -650,13 +650,17 @@
   out vec4 color;
   float metres(vec2 uv){float d=texture(sceneDepth,uv).r;return walkView>.5?cameraNear*cameraFar/(cameraFar-d*(cameraFar-cameraNear)):d*2.*depthRange;}
   void main(){
-    vec2 uv=gl_FragCoord.xy*texel;vec4 s=texture(sceneColor,uv);vec3 c=s.rgb;float d=metres(uv),edge=0.;
+    vec2 uv=gl_FragCoord.xy*texel;vec4 s=texture(sceneColor,uv);vec3 c=s.rgb;float edge=0.;
     // Two rings of eight neighbours: the inner ring draws the line's core, the outer ring a softer fringe, so lines are
     // about two pixels wide (scaled with the device pixel ratio) and feather off rather than stopping hard.
-    for(int r=1;r<=2;r++)for(int i=0;i<8;i++){
-      float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*float(r)*width*texel;
-      float limit=walkView>.5?max(.6,d*.015):threshold;
-      edge=max(edge,smoothstep(limit,limit*2.2,metres(uv+o)-d)*(r==1?1.:.45));
+    if(ink>0.){
+      float d=metres(uv);
+      for(int r=1;r<=2;r++)for(int i=0;i<8;i++){
+        float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*float(r)*width*texel;
+        float limit=walkView>.5?max(.6,d*.015):threshold;
+        edge=max(edge,smoothstep(limit,limit*2.2,metres(uv+o)-d)*(r==1?1.:.45));
+      }
+      if(walkView>.5)edge*=1.-smoothstep(12.,100.,d);
     }
     // Bloom: sun glints (alpha strictly between 0 and 1) glow outward like a blown-out sensor, with a faint four-point streak.
     float glow=0.;
@@ -665,7 +669,8 @@
       glow+=g*(i==0||i==2||i==4||i==6?1.4:1.)/float(r*r+1);
     }
     float self=texture(sceneGlow,uv).r;
-    vec3 inked=mix(c,c*vec3(.46,.48,.6),edge*ink*s.a);
+    vec3 shade=c*(walkView>.5?vec3(.67,.72,.76):vec3(.46,.48,.6));
+    vec3 inked=mix(c,shade,edge*ink*s.a);
     color=vec4(inked+vec3(1.,.95,.84)*(glow*.55+self*.5),1.);
   }`;
   // Flower props: a camera-facing card rising from the flower's root, drawn as a thin stem and a five-petal head in the
@@ -1254,7 +1259,7 @@
         gl.cullFace(gl.BACK);
       }
       // Economy draws straight to the canvas without outlines or antialiasing.
-      const ink=this.outlines&&!this.economy&&(c.mode==='walk'||c.span<1800),scene=ink?this.sceneTarget():null;
+      const post=!this.economy&&(c.mode==='walk'||this.outlines&&c.span<1800),scene=post?this.sceneTarget():null;
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(scene)gl.clearBufferfv(gl.COLOR,1,[0,0,0,0]);if(c.mode==='walk')this.sky(off);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
@@ -1333,7 +1338,7 @@
         gl.uniform2f(p.texel,1/W,1/H);gl.uniform1f(p.depthRange,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
         // Lines only where the depth jumps by about a metre up close, more as the view widens (tens of metres at continent
         // view, where only cliffs and isles ink); they fade out over the widest zooms.
-        gl.uniform1f(p.width,Math.max(1,this.pixelRatio));gl.uniform1f(p.threshold,c.mode==='walk'?.6:Math.max(1.2,c.span*.012));gl.uniform1f(p.ink,.75*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
+        gl.uniform1f(p.width,c.mode==='walk'?.8*this.pixelRatio:Math.max(1,this.pixelRatio));gl.uniform1f(p.threshold,c.mode==='walk'?.6:Math.max(1.2,c.span*.012));gl.uniform1f(p.ink,c.mode==='walk'?(this.outlines?.35:0):.75*(1-Math.min(1,Math.max(0,(c.span-600)/1200))));
         gl.disable(gl.DEPTH_TEST);gl.bindVertexArray(this.postVao);gl.drawArrays(gl.TRIANGLES,0,3);gl.enable(gl.DEPTH_TEST);gl.bindVertexArray(null);
       }
       // Clouds fade in from ~150 m spans to full by ~400 m, drawn last over everything (after the outlines, so no lines
