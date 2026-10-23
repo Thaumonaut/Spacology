@@ -1207,7 +1207,7 @@
         const n=1+Math.floor(hash(gx,gz,seed+73)*3),list=[],R0=1.3+.6*hash(gx,gz,seed+83);
         for(let i=0;i<n;i++){
           const s=i===0?1:i===1?.6+.1*hash(i,gz,seed+79):.42+.08*hash(i,gz,seed+79),cr=R0*s,a=hash(i,gx+gz*3,seed+75)*Math.PI*2+i*2.1,o=i?R0+cr+.25:0;
-          list.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,cr,sr:cr*.34,sh:cr*(1.1+.4*hash(i,gx*3+gz,seed+81)),ct:cr*.62,spin:hash(i,gx,seed+77)*6.28});
+          const mx=x+Math.cos(a)*o,mz=z+Math.sin(a)*o;list.push({x:mx,z:mz,base:geography(mx,mz).height,cr,sr:cr*.34,sh:cr*(1.1+.4*hash(i,gx*3+gz,seed+81)),ct:cr*.62,spin:hash(i,gx,seed+77)*6.28});
         }
         return Object.freeze({...common,kind:'mushroom',list});
       }
@@ -1303,11 +1303,12 @@
       if(kind==='bush')return stampLumps(t.lumps,x,z,values,h,t.leaf||MAT.bushLeaf);
       if(kind==='log'){
         const dx=x-t.x,dz=z-t.z,u=dx*t.ux+dz*t.uz,v=-dx*t.uz+dz*t.ux;if(Math.abs(u)>=t.len/2||Math.abs(v)>=t.r)return 0;
-        const e=fillAir(MAT.bark,h,h+Math.max(1,c(2*Math.sqrt(t.r*t.r-v*v))));
+        // A straight log at its centre's ground height (rests on the hillside rather than bending with it).
+        const B=t.base??h,lo=Math.max(h,B+c(t.r-Math.sqrt(t.r*t.r-v*v))),e=fillAir(MAT.bark,lo,Math.max(lo+1,B+c(t.r+Math.sqrt(t.r*t.r-v*v))));
         if(noise(u*1.3+t.x,v*3+t.z,seed+111)>.55&&values[e-1]===MAT.bark)values[e-1]=MAT.mossy;return e;
       }
       if(kind==='stump'){
-        const d=Math.hypot(x-t.x,z-t.z);if(d>=t.r)return 0;const e=fillAir(MAT.bark,h,h+Math.max(1,c(t.ht)));
+        const d=Math.hypot(x-t.x,z-t.z);if(d>=t.r)return 0;const e=fillAir(MAT.bark,h,Math.max(h+1,(t.base??h)+c(t.ht)));
         if(d<t.r-.12&&values[e-1]===MAT.bark)values[e-1]=MAT.dry;return e;
       }
       if(kind==='mushroom'){
@@ -1315,7 +1316,8 @@
         for(const m of t.list){
           const dx=x-m.x,dz=z-m.z,d=Math.hypot(dx,dz);if(d>=m.cr)continue;
           // Clean dome cap, wider than tall, its rim curling down a little; short thick stem under the centre.
-          const q=d/m.cr,capLow=h+c(m.sh-m.ct*.3*q*q),e=Math.min(heightCells,h+c(m.sh)+Math.max(1,c(m.ct*Math.sqrt(1-q*q))));
+          // Anchored to the mushroom's own base (not each column's ground), so caps stay level on slopes.
+          const q=d/m.cr,B=m.base??h,capLow=Math.max(h,B+c(m.sh-m.ct*.3*q*q)),e=Math.min(heightCells,Math.max(capLow+1,B+c(m.sh)+Math.max(1,c(m.ct*Math.sqrt(1-q*q)))));
           if(d<m.sr)fillAir(MAT.stem,h,capLow);
           fillAir(MAT.mushroom,capLow,e);
           // White spots on the top surface only: one at the crown and five evenly spaced around it.
