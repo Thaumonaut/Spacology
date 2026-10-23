@@ -1305,7 +1305,7 @@
     // (open tiered cone), spire (redwood: a needle point over the trunk), umbrella (flat acacia pads), gnarled
     // (twisted, leaning lakeside tree).
     const SPECIES={
-      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[3.4,.85],trunk:.6},
+      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[4.4,1.3],trunk:.6},
       jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[3.4,.85],trunk:.7},
       birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.9,.6],trunk:.3},
       spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[4.6,1.15],trunk:1.35,conifer:true},
@@ -1490,7 +1490,10 @@
       // Per-tree girth: most trunks sit near the species norm but the range runs from skinny poles (~0.5x) to real
       // veterans (~1.85x), so a stand mixes whip-thin boles with chonky ones. Big-class trees are floored fat.
       const girth=C.cls===2?1.1+.8*hash(gx,gz,seed+13):.5+Math.pow(hash(gx,gz,seed+13),1.35)*1.35;
-      const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
+      // Broadleaf crowns spread with the trunk: a thick old oak carries a huge, wide canopy (up to the 6.5 m radius the
+      // column search reaches), a pole a small one.
+      const spread=P.crown==='round'?clamp(.7+.45*girth,.85,1.55):1;
+      const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1)*spread);
       // Trunk girth scales with the tree's own height (allometry: a given species keeps its proportions at its mean
       // height, so a young 12 m spruce is a pole while a 40 m veteran is chonky) rather than varying free of height.
       const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,hm*(P.trunk/P.h[0])*girth/cellMetres)};
@@ -1913,7 +1916,7 @@
     }
     // ---- Trees as objects ----
     // A tree's shape built once (not per column), in world metres, for drawing as instanced objects: segs (trunk and
-    // branch tubes: x0,y0,z0,r0,x1,y1,z1,r1, material), lobes (crown ellipsoids: x,y,z,r, height scale, material) and tiers
+    // branch tubes: x0,y0,z0,r0,x1,y1,z1,r1, material, flag: 1 trunk foot, 2 branch), lobes (crown ellipsoids: x,y,z,r, height scale, material) and tiers
     // (conifer bough skirts: x,z, top, bottom, radius, top radius, seed, material). It follows stampTree's hash chain, so an
     // object tree matches the voxel tree drawn for the same record at coarse levels.
     const partsCache=new WeakMap();
@@ -1921,14 +1924,14 @@
       let P=partsCache.get(t);if(P)return P;
       const M=cellMetres,crown=t.crown||'round',R=t.radius,top=t.base+t.height,bark=t.bark||MAT.bark,leaf=t.leaf||MAT.leaf,trunk=t.trunk||.72*density;
       const segs=[],lobes=[],tiers=[];
-      const seg=(x0,y0,z0,r0,x1,y1,z1,r1,m=bark)=>segs.push(x0,y0*M,z0,r0*M,x1,y1*M,z1,r1*M,m);
+      const seg=(x0,y0,z0,r0,x1,y1,z1,r1,m=bark,root=0)=>segs.push(x0,y0*M,z0,r0*M,x1,y1*M,z1,r1*M,m,root);
       const lobe=(x,y,z,r,ys,m=leaf)=>lobes.push(x,y*M,z,r*M,ys,m);
       if(crown==='spire'||crown==='cone'||crown==='larch'){
         const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
         const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
         const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
         const flareH=Math.min(t.height*.12,Math.round(3/M));
-        seg(t.x,t.base,t.z,trunk*2.2,t.x,t.base+flareH,t.z,trunk*1.05);
+        seg(t.x,t.base,t.z,trunk*1.6,t.x,t.base+flareH,t.z,trunk*1.05,bark,1);
         seg(t.x,t.base+flareH,t.z,trunk*1.05,t.x,apex-period*.8,t.z,trunk*.5);
         for(let k=0;;k++){
           const tierTop=apex-k*period,tierBottom=apex-(k+1)*period;if(tierTop<=low)break;
@@ -1937,7 +1940,7 @@
           tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
         }
       }else if(crown==='oval'){
-        seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.7);
+        seg(t.x,t.base,t.z,trunk*1.15,t.x,top,t.z,trunk*.7,bark,1);
         lobe(t.x,top-R*.3,t.z,R,1.6);
       }else if(crown==='umbrella'){
         seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.8);
@@ -1959,7 +1962,7 @@
         // Broadleaf (oak and kin): the same fork, stems, branches and lobes as stampTree.
         const clear=t.cls===-1?density:Math.max(Math.ceil(2.5/M),Math.round(t.height*.35));
         const tidX=Math.floor(t.x*4),tidZ=Math.floor(t.z*4),forkY=t.base+Math.round(t.height*(.5+.12*hash(tidX,tidZ,seed+167)));
-        seg(t.x,t.base,t.z,trunk*1.9,t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15);
+        seg(t.x,t.base,t.z,trunk*1.45,t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15,bark,1);
         seg(t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15,t.x,forkY,t.z,trunk);
         const a0=hash(tidX,tidZ,seed+173)*6.2832,nS=2+Math.floor(hash(tidZ,tidX,seed+169)*2),stems=[];
         for(let i=0;i<nS;i++){
@@ -1978,11 +1981,28 @@
           L.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:Math.round(forkY+(top-forkY)*(.1+.2*hash(i,tidZ,seed+199))),r:Math.max(2*density,Math.round(R*(.3+.2*hash(i,tidX*7+tidZ,seed+201)))),stem:i%nS,at:.15+.15*hash(i,tidZ,seed+203)});
         }
         for(const st of stems)seg(t.x,forkY,t.z,Math.max(.75*density,trunk*.7),st.x,st.y,st.z,Math.max(1,.5*density));
-        for(let i=nS;i<L.length;i++){const l=L[i],st=stems[l.stem],u=l.at;seg(t.x+(st.x-t.x)*u,forkY+(st.y-forkY)*Math.sqrt(u),t.z+(st.z-t.z)*u,Math.max(1,.6*density),l.x,l.y,l.z,Math.max(1,.45*density));}
+        for(let i=nS;i<L.length;i++){const l=L[i],st=stems[l.stem],u=l.at;seg(t.x+(st.x-t.x)*u,forkY+(st.y-forkY)*Math.sqrt(u),t.z+(st.z-t.z)*u,Math.max(1,.6*density),l.x,l.y,l.z,Math.max(1,.45*density),bark,2);}
         // Lobes droop below their centres (the voxel dome spans y-0.8h..y+0.6h) and never hang below the canopy floor.
         for(const l of L){const ys=.7,cy=Math.max(l.y-l.r*.1,t.base+clear+l.r*ys);lobe(l.x,cy,l.z,l.r,ys);}
       }
-      P={segs,lobes,tiers};partsCache.set(t,P);return P;
+      // Crown proxy (x, y, z, radius): one ellipsoid around all the lobes. The renderer lights every lobe mostly by this
+      // shape's normal (the anime-tree normal transfer), so a crown shades as one soft mass, not a cluster of balls.
+      let proxy=null;
+      if(lobes.length){let w=0,cx=0,cy=0,cz=0;for(let i=0;i<lobes.length;i+=6){const r=lobes[i+3];w+=r;cx+=lobes[i]*r;cy+=lobes[i+1]*r;cz+=lobes[i+2]*r;}cx/=w;cy/=w;cz/=w;
+        let cr=0;for(let i=0;i<lobes.length;i+=6)cr=Math.max(cr,Math.hypot(lobes[i]-cx,(lobes[i+1]-cy)*1.3,lobes[i+2]-cz)+lobes[i+3]);proxy=[cx,cy,cz,cr];}
+      // Leaf clusters, the way anime trees are painted: each lobe breaks into many small clumps (x, y, z, size, seed)
+      // spread mostly over its outer and upper surface, a few inside, with gaps between them where sky and branches show.
+      const clumps=[],tid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
+      for(let i=0,li=0;i<lobes.length;i+=6,li++){
+        const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],size=Math.max(.55,r*.42),n=10+Math.round(r*5.5);
+        for(let k=0;k<n;k++){
+          const h1=hash(k,tid+li*131,seed+921),h2=hash(k,tid+li*131,seed+923),h3=hash(k,tid+li*131,seed+925);
+          // Directions biased upward and outward; depth mostly near the surface.
+          const yv=clamp(h1*2-1+.25,-1,1),a=h2*6.2832,rr=Math.sqrt(1-yv*yv),depth=.62+.38*Math.sqrt(h3);
+          clumps.push(lx+Math.cos(a)*rr*r*depth,ly+yv*r*ys*depth,lz+Math.sin(a)*rr*r*depth,size*(.75+.5*hash(k,tid,seed+927)),lobes[i+5],hash(k,tid+li,seed+929));
+        }
+      }
+      P={segs,lobes,tiers,crown:proxy,clumps};partsCache.set(t,P);return P;
     }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
     function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
@@ -2522,7 +2542,7 @@
       return {canopy:out};
     }
     // Object trees of a node (those whose trunk stands in it), as flat arrays in node-local metres (x, z) and absolute
-    // metres (y): treeSegs (12 a segment), treeLobes (8 a lobe), treeTiers (8 a tier, the sequoiaSkirts layout with the
+    // metres (y): treeSegs (12 a segment), treeLobes (12 a lobe: centre, radius, height scale, material, seed, 0, then the crown proxy's centre and radius), treeTiers (8 a tier, the sequoiaSkirts layout with the
     // leaf material last). Their crowns are also rasterized into the canopy heights, so crown shading, Peek and the crew
     // x-ray see them as they saw voxel crowns.
     const TREE_OBJECT_LEVEL=3;
@@ -2535,9 +2555,11 @@
       const pad=12;
       for(let gz=Math.floor((z0-pad)/TG);gz<=Math.floor((z0+m+pad)/TG);gz++)for(let gx=Math.floor((x0-pad)/TG);gx<=Math.floor((x0+m+pad)/TG);gx++){
         const t=tree(gx,gz);if(!t||t.kind!=='tree')continue;const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+901);
-        for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys,mat]=P.lobes.slice(i,i+6);raise(x,z,r,y+r*ys*.85);if(own)lobes.push(x-x0,y,z-z0,r,ys,mat,(sd+i*.137)%1,0);}
+        for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys]=P.lobes.slice(i,i+5);raise(x,z,r,y+r*ys*.85);}
+        if(own&&P.crown){const C=P.crown,keep=L<=1?1:L===2?2:3,grow=Math.sqrt(keep);
+          for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}}
         for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
-        if(own)for(let i=0;i<P.segs.length;i+=9){const S=P.segs.slice(i,i+9);segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,0,0);}
+        if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
       }
       return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers)};
     }
