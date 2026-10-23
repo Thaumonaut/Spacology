@@ -151,7 +151,7 @@
   // Aim for about five screen pixels per voxel (ten in Economy): with hillshade, leaf cards and outlines carrying the
   // detail, finer levels cost far more geometry than they show.
   function autoLevel(){if(camera.mode==='walk')return 0;const ppm=canvas.width/camera.span;return Math.max(0,Math.round(Math.log2((economy?10:5)/ppm/world.cell)));}
-  function updateStream(){camera.viewDistance=economy?300:600;
+  function updateStream(){camera.viewDistance=economy?500:1100;
     visible=[];viewY=camera.y;
     const pin=camera.mode==='walk'?null:pinnedVoxel(),want=pin?Math.round(Math.log2(pin)):autoLevel();let r;
     // A pinned level never coarsens; if its nodes cannot fit the budget, the view narrows instead.

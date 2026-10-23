@@ -781,7 +781,7 @@
     // The layer is a slab 3 thicknesses either side of its base: valleys far below and peaks far above stay clear.
     vec3 r=to-eye;float top=fogLayer.x+3.*fogLayer.y,bottom=fogLayer.x-3.*fogLayer.y,t0=0.,t1=1.;
     if(abs(r.y)>1e-4){float a=(top-eye.y)/r.y,b=(bottom-eye.y)/r.y;t0=max(t0,min(a,b));t1=min(t1,max(a,b));}else if(eye.y>top||eye.y<bottom)return vec3(0);
-    float L=length(r);t1=min(t1,t0+(walkView>.5?240.:420.)/L);
+    float L=length(r);t1=min(t1,t0+(walkView>.5?320.:600.)/L);
     if(t0>=t1)return vec3(0);
     float seg=(t1-t0)*L/10.,jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))),k=fogAmount*(walkView>.5?.06:.16);
     vec3 sun=normalize(vec3(-.5,1.,.4)),dir=r/L,acc=vec3(0);float glow=pow(max(0.,dot(dir,sun)),4.);
@@ -827,7 +827,7 @@
           vec3 r=to-eye;float d=length(r);vec3 dir=r/d,sun=normalize(vec3(-.5,1.,.4));
           vec3 sky=mix(skyHorizon,skyZenith,smoothstep(0.,.85,dir.y));
           vec3 air=mix(mix(fogShade,skyHorizon,.45),sky,smoothstep(60.,320.,d))+vec3(.16,.09,.02)*pow(max(0.,dot(dir,sun)),5.);
-          float aerial=(1.-exp(-max(0.,d-12.)*.012*fogAmount))*.68;
+          float aerial=(1.-exp(-max(0.,d-12.)*.007*fogAmount))*.6;
           scene=mix(scene,air,aerial);
           // Ground mist: a 2.5 m layer around the feet (mean density from three points along the ray), so grazing views
           // thicken while views down into a valley or up a slope stay clear.
@@ -1224,7 +1224,7 @@
         fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nuniform float walkView, cameraPixelScale, fogAmount, cameraFar;\nuniform vec3 skyHorizon;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
         // Pattern visibility follows local projected size rather than the overhead span.
         fragmentSource=fragmentSource.replace(/(wavelength|blockSize)\/pixelWorld/g,'$1/(walkView>.5?max(.001,viewDepth*cameraPixelScale):pixelWorld)');
-        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-cameraFar*.5)*.012);vec3 air=skyHorizon;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
+        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-cameraFar*.65)*.008);vec3 air=skyHorizon;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
       }
     }
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);

@@ -1291,9 +1291,9 @@
       oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[2.6,.65],trunk:.6},
       jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[2.6,.65],trunk:.7},
       birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.4,.5],trunk:.3},
-      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[7,5],r:[1.5,.6],trunk:.5,conifer:true},
-      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[7,5],r:[1.5,.6],trunk:.42,conifer:true},
-      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[10,6],r:[1.2,.5],trunk:.75,conifer:true},
+      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[3.4,.85],trunk:1.1,conifer:true},
+      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[30,10],r:[3,.9],trunk:.95,conifer:true},
+      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[40,10],r:[2.8,.9],trunk:1.5,conifer:true},
       umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[5,3],r:[2.4,.6],trunk:.32},
       gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[5,3],r:[1.3,.4],trunk:.42},
       // Riparian species (corridor planting only). willow: a domed crown whose rim hangs in curtains of strands; alder: a
@@ -1319,8 +1319,8 @@
       rainforest:{mix:{jungle:.85,umbrella:.15},bush:.12,deadwood:.03,mushroom:.015,bamboo:1},
       montane:{mix:{spruce:.6,larch:.4},bush:.04,deadwood:.03,mushroom:.006},
       boreal:{mix:{spruce:.55,birch:.25,larch:.2},bush:.05,deadwood:.04,mushroom:.008},
-      subalpine:{mix:{spruce:.6,larch:.4},size:.6,bush:.05},
-      tundra:{mix:{spruce:.65,birch:.35},size:.55,bush:.04},
+      subalpine:{mix:{spruce:.6,larch:.4},size:.95,bush:.05},
+      tundra:{mix:{spruce:.65,birch:.35},size:.7,bush:.04},
       wetland:{mix:{gnarled:.4,birch:.3,oak:.3},bush:.1,deadwood:.03},
       savanna:{mix:{umbrella:.85,oak:.15},bush:.05,bamboo:.4},
       steppe:{mix:{umbrella:.6,oak:.4},size:.8,bush:.04},
@@ -1353,8 +1353,9 @@
     const treeStyle=b=>TREE_STYLE[b]||TREE_STYLE.default;
     // Quarter-metre units times density: identical metre sizes at either cell size, always integer cells.
     const cells=m=>Math.max(1,Math.round(m*4))*density;
-    // Stamped heights stay under nodeBound (ground + 24 m); radii fit the 3x3 tree-cell neighbourhood.
-    const MAX_TREE=18,MAX_RADIUS=3.25;
+    // Stamped heights stay under nodeBound (ground + 50 m on low relief, +60 m where relief exceeds 15 m); radii fit the
+    // 5x5 tree-cell neighbourhood scanned for stamping.
+    const MAX_TREE=48,MAX_RADIUS=4.25;
     function pickSpecies(S,g,x,z,gx,gz,edge){
       const mix=S.cold&&g.temperature<S.cold.below?S.cold.mix:S.mix,w={};let total=0;
       // Groves: each species is weighted by its own low-frequency noise; birches favour forest edges.
@@ -1632,7 +1633,11 @@
         // bottom), so the renderer can shade the same tiers. Each tier's radius follows the cone envelope at its bottom
         // edge, flares outward toward that edge (a drooping skirt) and steps in by 30-45% to the tier above; a per-tier
         // hash varies size and step. The top tier is a small point. Larches are softer (smaller steps) and open.
-        const low=t.base+(crown==='spire'?Math.floor(t.height*.45):crown==='larch'?4*density:3*density),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
+        // Clear bole: mature and big conifers are self-pruned — bare trunk for roughly the lower third (more on the
+        // biggest), so a 30 m spruce shows ~10 m of trunk before the first boughs. Young and fixed-size trees keep
+        // their skirts low.
+        const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
+        const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
         const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
         const tierR=y=>{
           const u=apex-y,k=Math.floor(u/period),q=(u-k*period)/period,h1=hash(k,id,seed+131),h2=hash(k,id,seed+137);
@@ -1958,7 +1963,7 @@
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
       const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
-      for(let dz=-1;dz<=1;dz++)for(let dx=-1;dx<=1;dx++){
+      for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
         // Needle or leaf litter under trees and bamboo, a ring of bare dirt around conifers.
         if(t.radius&&t.cls!==-1||t.kind==='bamboo'){
@@ -2187,7 +2192,7 @@
       // Ground plus the most crag, erosion, bump and ice could add there, trees on top, and a margin for relief peaking
       // between the samples.
       for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n),A=Math.max(cragRelief(t.relief),t.cone*.3)*.6;
-        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?40:24)+(t.relief>0?Math.min(m*.15,30):0));}
+        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0?Math.min(m*.15,30):0));}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       for(let j=Math.floor((z0-16)/AG);j<=Math.floor((z0+m+16)/AG);j++)for(let i=Math.floor((x0-16)/AG);i<=Math.floor((x0+m+16)/AG);i++){const A=ancientCell(i,j);if(A)v=Math.max(v,A.top+2);}
       v=Math.min(v,heightCells*cellMetres);bounds.set(k,v);if(bounds.size>16384)bounds.delete(bounds.keys().next().value);return v;
