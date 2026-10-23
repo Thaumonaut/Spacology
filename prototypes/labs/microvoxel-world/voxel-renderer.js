@@ -103,6 +103,17 @@
     for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=.5+.4*sin(t*.35+6.2831*cellJitter(c));float e=length(q-c-o);if(e<d1){d2=d1;d1=e;}else if(e<d2)d2=e;}
     float e=d2-d1,w=.07+fwidth(e)*1.5;return 1.-smoothstep(0.,w,e);
   }
+  // Low-poly water facets: a world-space equilateral triangle lattice (edge ~0.7 m) whose corners bob on travelling waves;
+  // each triangle takes one flat normal from its three corner heights, so the surface reads as displaced facets.
+  float waveHeight(vec2 v,float t){return .055*sin(dot(v,vec2(.8,.6))*2.3+t*1.4)+.04*sin(dot(v,vec2(-.45,.89))*3.1+t*1.9+1.7)+.025*sin(dot(v,vec2(.15,-.99))*4.7+t*2.6+4.1);}
+  vec3 facetNormal(vec2 p,float t){
+    const float E=.7;vec2 s=vec2(p.x+p.y*.57735,p.y*1.1547)/E,c=floor(s),f=fract(s);
+    // Lower triangle: c, c+(1,0), c+(0,1); upper: c+(1,1), c+(1,0), c+(0,1) (lattice coordinates).
+    vec2 a=f.x+f.y<1.?c:c+vec2(1,1),b=c+vec2(1,0),d=c+vec2(0,1);
+    vec2 A=vec2(a.x-a.y*.5,a.y*.866)*E,B=vec2(b.x-b.y*.5,b.y*.866)*E,D=vec2(d.x-d.y*.5,d.y*.866)*E;
+    vec3 PA=vec3(A.x,waveHeight(A,t),A.y),PB=vec3(B.x,waveHeight(B,t),B.y),PD=vec3(D.x,waveHeight(D,t),D.y);
+    vec3 n=normalize(cross(PD-PA,PB-PA));return n.y<0.?-n:n;
+  }
   float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
@@ -210,16 +221,13 @@
     // Water reads flat and bright: shade only gently, then sparkle where the sun catches it.
     float glint=0.;
     if(mat==7&&normal.y>.5){
-      lit=base*mix(.82,1.04,sunVis)*heightShade;
+      // Each low-poly facet shades flat: tilted toward the sun a touch brighter, away a touch darker.
+      vec3 fn=facetNormal(worldPosition.xz,time);float facet=dot(fn,SUN)-dot(vec3(0,1,0),SUN);
+      lit=base*mix(.82,1.04,sunVis)*heightShade*(1.+facet*2.2*visible(.35));
       // Sun glints: a small moving wave normal per pixel; where a facet tilts to reflect the sun into the camera, the surface
       // flares. The camera's reflection angle stands in for the sun direction (a true reflection would sit off-screen).
-      // Wave tilt from three crossing travelling sine waves: analytic slopes, nearly free.
-      vec2 wp=worldPosition.xz;float t=time;vec2 sl=vec2(0);
-      for(int k=0;k<3;k++){vec2 d=k==0?vec2(.8,.6):k==1?vec2(-.5,.87):vec2(.2,-.98);float f=k==0?4.1:k==1?6.3:9.7;sl+=d*cos(dot(wp,d)*f+t*(1.3+float(k)*.7)+float(k)*2.1)*(f*.017);}
-      vec3 wn=normalize(vec3(-sl.x,1.,-sl.y));
-      glint=smoothstep(.99935,.99985,dot(wn,normalize(vec3(-.08,1.,-.05))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
-      // Break the waves' regular grid: each small patch flickers on and off on its own clock.
-      vec2 cell=floor(wp*1.7);glint*=step(.62,cellJitter(cell+floor(t*.9+cellJitter(cell).x*3.)).x);
+      vec2 wp=worldPosition.xz;float t=time;vec3 wn=fn;
+      glint=smoothstep(.99955,.99995,dot(wn,normalize(vec3(-.07,1.,-.05))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
       lit+=vec3(1.,.96,.86)*glint*.6;
     }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
