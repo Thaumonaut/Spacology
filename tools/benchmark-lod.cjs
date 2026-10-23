@@ -13,6 +13,8 @@ function load(spec){
   if(fs.existsSync(spec))return {label:spec,M:require(path.resolve(spec))};
   const tmp=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'lod-bench-')),'voxel-world-model.js');
   fs.writeFileSync(tmp,execFileSync('git',['show',`${spec}:prototypes/labs/microvoxel-world/voxel-world-model.js`],{cwd:root}));
+  // Revisions from micro-wilds-14 on load the macro map beside the model.
+  try{fs.writeFileSync(path.join(path.dirname(tmp),'macro-map.js'),execFileSync('git',['show',`${spec}:prototypes/labs/microvoxel-world/macro-map.js`],{cwd:root,stdio:['ignore','pipe','ignore']}));}catch{}
   return {label:spec,M:require(tmp)};
 }
 function run({M}){

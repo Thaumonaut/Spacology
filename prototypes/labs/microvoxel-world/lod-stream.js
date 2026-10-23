@@ -149,7 +149,7 @@
       for(const s of workers){
         if(s.job)continue;const job=nextJob();if(!job)return;
         s.job={...job,epoch};s.started=performance.now();inflight.set(job.key,s);
-        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent});
+        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map});
       }
     }
     function receive(slot,data){

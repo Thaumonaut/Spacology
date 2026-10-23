@@ -62,79 +62,48 @@
     return result;
   }
   const positionAt=(x,z)=>movePosition({cx:0,cz:0,x:0,z:0},x,z);
-  function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT){
+  // The macro map module: a global in the page and worker (loaded before this file), required in Node.
+  const MacroLib=root.MacroMap||(typeof require==='function'?require('./macro-map.js'):null);
+  // options.map: a macro-map template override (e.g. 'archipelago'); otherwise the seed picks one.
+  function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-13':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-14':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
-    seed=Number(seed)>>>0;
+    seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
     const gorgeX=-Math.cos(massifAngle)*58,gorgeZ=-Math.sin(massifAngle)*58,gorgeDX=-Math.sin(massifAngle),gorgeDZ=Math.cos(massifAngle);
-    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}`,trees=new Map();
-    // Streamed geography is a pure function of (seed, x, z): plates → relief → climate → biome. Nothing is stored.
-    const PLATE=640,SEA=14,W=160;
-    const sites=new Map();
-    function site(i,j){
-      const k=i*1048576+j;let s=sites.get(k);if(s)return s;
-      const a=hash(i,j,seed+307)*Math.PI*2,v=.4+.6*hash(i,j,seed+309);
-      s={i,j,x:(i-.35+.7*hash(i,j,seed+301))*PLATE,z:(j-.35+.7*hash(i,j,seed+303))*PLATE,continental:i===0&&j===0||hash(i,j,seed+305)<.62,vx:Math.cos(a)*v,vz:Math.sin(a)*v};
-      sites.set(k,s);if(sites.size>4096)sites.delete(sites.keys().next().value);return s;
-    }
-    // The nearest plates and their distances; boundaries are evaluated pairwise so relief is continuous everywhere.
-    // Returns a shared scratch list (valid until the next call): plateRelief reads it before anything calls plates again.
-    // Stable insertion sort, so ties keep the same order a stable sort would give.
-    const nearP=new Array(9),nearD=new Float64Array(9),near5=Array.from({length:5},()=>({p:null,D:0}));
-    function plates(x,z){
-      const wx=x+(noise(x*.002,z*.002,seed+311)-.5)*180,wz=z+(noise(x*.002,z*.002,seed+313)-.5)*180;
-      const ci=Math.floor(wx/PLATE+.5),cj=Math.floor(wz/PLATE+.5);let n=0;
-      for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
-        const p=site(ci+di,cj+dj),D=Math.hypot(wx-p.x,wz-p.z);let k=n++;
-        while(k>0&&nearD[k-1]>D){nearD[k]=nearD[k-1];nearP[k]=nearP[k-1];k--;}nearD[k]=D;nearP[k]=p;
-      }
-      for(let i=0;i<5;i++){near5[i].p=nearP[i];near5[i].D=nearD[i];}
-      return near5;
-    }
+    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}`,trees=new Map();
+    // Streamed geography is a pure function of (seed, x, z): macro map → relief → climate → biome. Nothing is stored
+    // per column; the macro map (MacroMap, one finite Azgaar-style continent map per seed) is built once and cached.
+    const SEA=14,MM=infinite?MacroLib.get(seed,mapTemplate):null;
     const ridged=(x,z,k)=>1-Math.abs(noise(x,z,k)-.5)*2;
-    // Plate relief: crust level, shelves, collision/subduction ranges, arcs, rifts. Used by columns and, unblended, by climate.
+    // Macro relief (the old plate relief's role): ground level from the macro map's smooth height, `relief` (the mountain
+    // share above the ~28 m lowland, which drives crag detail, erosion, zonation and the treeline) and a `setting` for the
+    // atlas and volcanoes: coastal ranges near the sea are 'subduction', inland ranges 'collision', high islets 'arc',
+    // and a slow fault field cuts 'rift' seams (narrow gorges) through low hills. Near the home start relief is softened
+    // and the ground kept at least 8 m above the sea, as the plate world's opening was.
+    const mac={};
     function plateRelief(x,z){
-      const near=plates(x,z),open=clamp((130-Math.hypot(x,z))/60,0,1),D0=near[0].D;
-      const level=p=>p.continental?20+(noise(x*.004,z*.004,seed+317)-.5)*12+(noise(x*.011,z*.011,seed+319)-.5)*5:4+noise(x*.006,z*.006,seed+321)*3;
-      const r=ridged(x*.011,z*.011,seed+323)*.65+ridged(x*.029,z*.029,seed+325)*.35;
-      let base=0,sum=0;for(const {p,D} of near){const k=Math.exp(-(D-D0)/45);base+=level(p)*k;sum+=k;}base/=sum;
-      let up=0,down=0,best=null,shearF=0;
-      for(let i=0;i<near.length;i++)for(let j=i+1;j<near.length;j++){
-        const P=near[i],Q=near[j],third=near.reduce((m,o,k)=>k===i||k===j?m:Math.min(m,o.D),Infinity),w=clamp((third-Q.D)/180,0,1);if(!w)continue;
-        const a=P.p,b=Q.p,ex=b.x-a.x,ez=b.z-a.z,len=Math.hypot(ex,ez),nx=ex/len,nz=ez/len,rx=a.vx-b.vx,rz=a.vz-b.vz;
-        // Belt coordinates use one orientation per plate pair (by plate index), so they don't flip where the nearer plate changes.
-        const o=a.i<b.i||a.i===b.i&&a.j<b.j?1:-1,u=o*(z*nx-x*nz),s=o*(x*nx+z*nz),belt=(ridged(u*.003,s*.009,seed+329)*.6+ridged(u*.008,s*.02,seed+330)*.4)*.7+r*.3,peaks=.5+.8*noise(u*.004,len*.01,seed+332);
-        const conv=rx*nx+rz*nz,shear=Math.abs(rz*nx-rx*nz),edge=(Q.D**2-P.D**2)/(2*len),f=clamp(1-edge/W,0,1),c=clamp(conv/1.1,0,1);
-        // Distance from the boundary measured into the continental side (negative offshore) for ocean–continent margins.
-        const land=a.continental?edge:-edge;let v=0,setting=null;
-        if(conv>.2){
-          // The collision crest wanders off the straight plate boundary (signed distance o*edge, shifted by along-belt
-          // noise), so a range winds between bays and spurs instead of following a ruled line.
-          if(a.continental&&b.continental){const sd=o*edge-(noise(u*.005,len*.01+3,seed+334)-.5)*150-(noise(u*.018,len*.01+7,seed+336)-.5)*40,fc=clamp(1-(Math.hypot(sd,24)-24)/W,0,1);
-            v=c*(150*fc**1.6*(.3+.7*belt)*peaks+14*clamp(1-edge/(W*2.2),0,1));setting='collision';}
-          else if(a.continental!==b.continental){v=land>0?c*105*Math.exp(-(((land-95)/60)**2))*clamp(land/30,0,1)*(.35+.65*belt)*peaks:-9*c*Math.exp(-(((land+40)/30)**2))*clamp(-land/20,0,1);setting=land>0?'subduction':'trench';}
-          else{v=c*f*clamp((noise(x*.009,z*.009,seed+327)-.55)/.12,0,1)*40*(.5+.5*r);setting='arc';}
-        }else if(conv<-.45){v=a.continental&&b.continental?-8*f**1.5*clamp(-conv/1.1,0,1):3*f;setting='rift';}
-        else if(shear>.6)shearF=Math.max(shearF,f*w);
-        v*=w;if(v>0)up=Math.max(up,v);else down=Math.min(down,v);
-        if(setting&&(!best||Math.abs(v)>best.v))best={v:Math.abs(v),setting,f:f*w};
-      }
-      let relief=(up+down)*(1-open*.85),setting='craton',f=0;
-      if(best&&best.v>1){setting=best.setting;f=best.f;}else if(shearF>.4){setting='transform';f=shearF;}
-      let h=base+relief;if(open)h+=open*Math.max(0,SEA+4-h);
+      MM.at(x,z,mac);const open=clamp((180-Math.hypot(x,z))/90,0,1);
+      let h=mac.m,relief=Math.max(0,h-SEA-14);const base=h-relief;
+      if(open){relief*=1-open*.85;h=base+relief;h+=open*Math.max(0,SEA+8-h);}
+      let setting='craton',f=0;
       if(h<SEA)setting=h>SEA-6?'shelf':'ocean';
-      return {h,base:base+(relief<0?relief:0),relief,setting,f,cone:0};
+      else if(relief>40)setting=mac.distToCoast<2400?'subduction':'collision';
+      else if(relief>12&&mac.distToCoast<700)setting='arc';
+      else if(relief<25){const n=noise(x*.0006,z*.0006,seed+931);if(n>.74){setting='rift';f=clamp((n-.74)/.08,0,1);}}
+      return {h,base:h-relief,relief,setting,f,cone:0,coast:mac.distToCoast,precip:mac.precip,lake:mac.lake,lakeD:mac.lakeD};
     }
+    // Tiers of the home massif rise from just above the home ground (8 m above the sea in the plate world).
+    const homeLevel=infinite?plateRelief(0,0).h:SEA+6;
     // Stratovolcanoes on the land side of subduction margins and in island arcs: one candidate per 700 m cell, a smooth
     // cone 110-190 m high with a summit crater. They are part of plate relief, so rivers route around them and they cast
     // rain shadows; tall cones on high ground are capped softly below the column ceiling.
     const VG=700,volcanoes=new Map();
     function volcanoCell(i,j){
       const k=i*65536+j;if(volcanoes.has(k))return volcanoes.get(k);let v=null;
-      if(hash(i,j,seed+421)<.55){
+      if(hash(i,j,seed+421)<.14){
         const x=(i+.25+.5*hash(i,j,seed+423))*VG,z=(j+.25+.5*hash(i,j,seed+425))*VG;
         if(Math.hypot(x,z)>400){const p=plateRelief(x,z);if((p.setting==='subduction'||p.setting==='arc')&&p.h>SEA){const H=110+80*hash(i,j,seed+427);v={x,z,H,R:H*2.6};}}
       }
@@ -153,23 +122,27 @@
       return {...t,h,cone:h-t.h,vx,vz,vr};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
-    // Latitude changes one degree per 170 m and folds at the poles, so a few kilometres span cool-temperate to warm and an endless
-    // walk cycles through every climate instead of freezing over. Home sits at a temperate 24-40 degrees.
-    const latAngle=hash(seed,13,seed+331)*Math.PI*2,latCos=Math.cos(latAngle),latSin=Math.sin(latAngle),lat0=24+hash(seed,17,seed+333)*16,twist=(hash(seed,19,seed+335)-.5)*.8;
+    // Latitude runs north-south across the macro map (400 m per degree, folding at the poles far out at sea), the same
+    // field the macro map's climate used, so the ~20 km map spans warm south to cool north. Home sits at 24-40 degrees.
+    // Moisture blends the local upwind rain-out with the macro map's precipitation, so continental rain shadows and wet
+    // windward coasts agree with the map; arid basins are where the macro map is dry.
+    const twist=(hash(seed,19,seed+335)-.5)*.8,latC=infinite?MM.latC:30,latOff=infinite?MM.oy-MacroLib.HEIGHT/2:0;
     const climateCells=new Map(),CG=32;
-    function latitude(x,z){const a=((lat0+(x*latCos+z*latSin)/170+90)%360+360)%360;return a<180?a-90:270-a;}
-    function wind(lat){const L=Math.abs(lat),dir=L<30||L>60?-1:1,t=twist;return {x:dir*(-latSin*Math.cos(t)-latCos*Math.sin(t)),z:dir*(latCos*Math.cos(t)-latSin*Math.sin(t))};}
+    function latitude(x,z){const a=((latC-(z+latOff)/400+90)%360+360)%360;return a<180?a-90:270-a;}
+    // Easterly trades under 30 degrees and over 60, westerlies between (as the macro map's wind passes).
+    function wind(lat){const L=Math.abs(lat),dir=L<30||L>60?-1:1,t=twist;return {x:dir*Math.cos(t),z:dir*Math.sin(t)};}
     // Slow region fields ride along in the cached cell: V and U pick among biomes that share a climate (kilometre-scale, gently
-    // domain-warped, so regions are large blobs), A marks the few large arid basins (deserts, badlands) and dries their moisture.
+    // domain-warped, so regions are large blobs), A marks the arid basins (deserts, badlands) and dries their moisture.
     function climateCell(i,j){
       const k=i*16777216+j;let v=climateCells.get(k);if(v)return v;
       const x=i*CG,z=j*CG,lat=latitude(x,z),w=wind(lat);let m=.6,prev=null,lift=0;
       for(let s=10;s>=0;s--){const e=tectonics(x-w.x*48*s,z-w.z*48*s).h;if(e<SEA)m=1;else{if(prev!==null){const rise=Math.max(0,e-Math.max(prev,SEA));const rain=Math.min(m*.3,rise*.007);m-=rain;if(s<=1)lift+=rise;}m=m*.995+.004;}prev=e;}
-      const here=tectonics(x,z).h,T=29-.4*Math.abs(lat)+(noise(x*.0011,z*.0011,seed+343)-.5)*7+(noise(x*.003,z*.003,seed+337)-.5)*3-.17*Math.max(0,here-SEA);
+      const T0=tectonics(x,z),here=T0.h,P=T0.precip,T=29-.4*Math.abs(lat)+(noise(x*.0011,z*.0011,seed+343)-.5)*7+(noise(x*.003,z*.003,seed+337)-.5)*3-.17*Math.max(0,here-SEA);
       const wx=x+(noise(x*.0015,z*.0015,seed+345)-.5)*700,wz=z+(noise(x*.0015,z*.0015,seed+347)-.5)*700;
       const V=noise(wx*.0011,wz*.0011,seed+349)*.7+noise(wx*.004,wz*.004,seed+351)*.3,U=noise(wz*.0009,wx*.0009,seed+353)*.7+noise(wx*.0035,wz*.0035,seed+355)*.3;
-      const A=clamp((noise(wx*.00028,wz*.00028,seed+357)*.8+noise(wx*.0012,wz*.0012,seed+359)*.2-.6)/.12,0,1)*clamp((Math.hypot(x,z)-900)/1200,0,1);
-      const M=clamp((m*.8+lift*.008+(noise(wx*.0008,wz*.0008,seed+361)-.5)*.35+(noise(x*.005,z*.005,seed+339)-.5)*.08)*(1-.7*A),0,1);
+      const A=clamp((.36-P+(noise(wx*.0012,wz*.0012,seed+359)-.5)*.12)/.12,0,1)*clamp((Math.hypot(x,z)-900)/1200,0,1);
+      const local=m*.8+lift*.008+(noise(wx*.0008,wz*.0008,seed+361)-.5)*.35+(noise(x*.005,z*.005,seed+339)-.5)*.08;
+      const M=clamp((local*.55+P*.42)*(1-.6*A),0,1);
       v={T,M,V,U,A};climateCells.set(k,v);if(climateCells.size>8192)climateCells.delete(climateCells.keys().next().value);return v;
     }
     // The last cell quad is kept: neighbouring columns and the biome-edge samples (see geography) mostly share it, which
@@ -353,16 +326,25 @@
       const D=DRAIN[lv],key=ti*65536+tj;let T=D.tiles.get(key);if(T)return T;
       const {G,T:TS,M:MG}=D,W=TS+2*MG,i0=ti*TS-MG,j0=tj*TS-MG,n=W*W;
       const px=new Float32Array(n),pz=new Float32Array(n),h=new Float32Array(n),rel=new Float32Array(n),fill=new Float32Array(n),down=new Int32Array(n).fill(-1),acc=new Float32Array(n),done=new Uint8Array(n),order=new Int32Array(n);
-      const fed=new Uint8Array(n),src=new Map();
+      const fed=new Uint8Array(n),src=new Map(),sink=new Uint8Array(n);
       for(let j=0;j<W;j++)for(let i=0;i<W;i++){
         const k=j*W+i,gi=i0+i,gj=j0+j;px[k]=(gi+.2+.6*hash(gi,gj,seed+D.salt))*G;pz[k]=(gj+.2+.6*hash(gi,gj,seed+D.salt+2))*G;
         const t=tectonics(px[k],pz[k]);cragAt(px[k],pz[k],t.relief,t.cone);
         const g=t.h+upliftAt(px[k],pz[k]).up+cragLow;h[k]=g<SEA?g:g-(creaseAt||ownCrease)(px[k],pz[k])*CREASE_DEPTH*clamp((g-SEA-.5)/12,0,1);rel[k]=Math.max(t.relief,t.cone);
+        // The home start sits on a low drainage dome (in the routed surface only), so creeks rise around camp and flow
+        // away from it instead of crossing the opening's gorge and massif.
+        {const r=Math.hypot(px[k],pz[k]);if(r<240&&h[k]>=SEA)h[k]+=7*(1-r/240)**2;}
+        // Macro rivers and lakes are outlets for the local network: nodes on a macro channel or under a macro lake drain
+        // at its level, so creeks and streams end in them (never crossing a lake) and never redraw the big rivers.
+        if(h[k]>=SEA){
+          if(t.lake>=0&&t.lakeD>.4){sink[k]=1;h[k]=Math.min(h[k],lakeLevel(t.lake));}
+          else if(MM.riverNear(px[k],pz[k],mr)&&mr.dist<mr.hw+G*.45){const lv=macroLevels(mr.river);sink[k]=1;h[k]=Math.min(h[k],lv[mr.seg]+(lv[mr.seg+1]-lv[mr.seg])*mr.t);}
+        }
       }
       const hk=new Float64Array(n),hv=new Int32Array(n);let hn=0,on=0;
       const push=(e,k)=>{let c=hn++;while(c>0){const q=(c-1)>>1;if(hk[q]<=e)break;hk[c]=hk[q];hv[c]=hv[q];c=q;}hk[c]=e;hv[c]=k;};
       const pop=()=>{const k=hv[0],e=hk[--hn],v=hv[hn];let c=0;for(;;){let l=2*c+1;if(l>=hn)break;if(l+1<hn&&hk[l+1]<hk[l])l++;if(hk[l]>=e)break;hk[c]=hk[l];hv[c]=hv[l];c=l;}hk[c]=e;hv[c]=v;return k;};
-      for(let k=0;k<n;k++){const i=k%W,j=(k/W)|0;if(i===0||j===0||i===W-1||j===W-1||h[k]<SEA){done[k]=1;fill[k]=h[k];push(h[k],k);}}
+      for(let k=0;k<n;k++){const i=k%W,j=(k/W)|0;if(i===0||j===0||i===W-1||j===W-1||h[k]<SEA||sink[k]){done[k]=1;fill[k]=h[k];push(h[k],k);}}
       while(hn){const c=pop(),ci=c%W,cj=(c/W)|0;order[on++]=c;for(const [di,dj] of N8){const i=ci+di,j=cj+dj;if(i<0||j<0||i>=W||j>=W)continue;const k=j*W+i;if(done[k])continue;done[k]=1;fill[k]=Math.max(h[k],fill[c]+.01);down[k]=c;push(fill[k],k);}}
       // The flood only proves a way down exists; water takes the steepest one (over the filled surface, so it stays
       // acyclic and lakes still drain through their spill). On jittered nodes this bends courses instead of leaving the
@@ -384,15 +366,15 @@
       const mouth=new Float32Array(n),steps=new Uint16Array(n),spill=new Int32Array(n).fill(-1),deep=new Float32Array(n),area=new Uint16Array(n);
       for(let o=0;o<on;o++){
         const c=order[o],d=down[c];
-        if(d<0||h[d]<SEA){mouth[c]=acc[c];steps[c]=0;}else{mouth[c]=mouth[d];steps[c]=steps[d]+1;}
+        if(d<0||h[d]<SEA||sink[d]){mouth[c]=acc[c];steps[c]=0;}else{mouth[c]=mouth[d];steps[c]=steps[d]+1;}
         if(d>=0&&fill[c]-h[c]>.5){const s=spill[d]>=0?spill[d]:d;spill[c]=s;deep[s]=Math.max(deep[s],fill[c]-h[c]);area[s]++;}
       }
-      // Lakes: basins at least 4 m deep over 4+ nodes (or 8 m deep), with a channel leaving through the spill. Every other
-      // basin is breached: its nodes keep their own height and the levels downstream are lowered until they fall again.
+      // Lakes come from the macro map, so every local basin is breached: its nodes keep their own height and the levels
+      // downstream are lowered until they fall again.
       const lake=new Uint8Array(n),lvl=new Float32Array(n),keep=new Map();
       for(let k=0;k<n;k++){
         const s=spill[k];if(s<0){lvl[k]=fill[k];continue;}
-        let ok=keep.get(s);if(ok===undefined){ok=(deep[s]>=4&&area[s]>=4||deep[s]>=8)&&!!channelClass(acc[s],rel[s],fed[s],mouth[s]);keep.set(s,ok);}
+        let ok=keep.get(s);if(ok===undefined){ok=false;keep.set(s,ok);}
         lake[k]=ok?1:0;lvl[k]=ok?fill[k]:h[k];
       }
       for(let o=on-1;o>=0;o--){const c=order[o],d=down[c];if(d>=0&&!lake[d]&&lvl[d]>lvl[c]-.01)lvl[d]=lvl[c]-.01;}
@@ -405,7 +387,7 @@
       // so tributaries still join.
       const qx=new Float32Array(px),qz=new Float32Array(pz);
       for(let k=0;k<n;k++){
-        const d=down[k];if(d<0||h[k]<SEA||lake[k])continue;const C=channelClass(acc[k],rel[k],fed[k],mouth[k]);if(!C)continue;
+        const d=down[k];if(d<0||h[k]<SEA||lake[k]||sink[k])continue;const C=channelClass(acc[k],rel[k],fed[k],mouth[k]);if(!C)continue;
         const ex=px[d]-px[k],ez=pz[d]-pz[k],L=Math.hypot(ex,ez)||1,grade=Math.max(0,lvl[k]-lvl[d])/L;
         const flat=(.3+.7*clamp(1-grade/.06,0,1))*clamp(1-rel[k]/30,0,1),side=((C.s>=.6?steps[k]>>1:steps[k])&1?1:-1)*(.65+.35*hash(k%W+i0,((k/W)|0)+j0,seed+349));
         const a=flat*(6+3.2*C.hw)*side;qx[k]=px[k]-ez/L*a;qz[k]=pz[k]+ex/L*a;
@@ -413,18 +395,18 @@
       // Per-node channel class (half-width, reach, head area; head 0 = no channel; spring = a creek head), and falls: a
       // reach dropping at least 7 m at over 18% onto a reach less than half as steep is a real step, so its water falls.
       const hw=new Float32Array(n),cs=new Float32Array(n),head=new Float32Array(n),knick=new Uint8Array(n),spring=new Uint8Array(n);
-      for(let k=0;k<n;k++){const C=channelClass(acc[k],rel[k],fed[k],mouth[k]);if(C){hw[k]=C.hw;cs[k]=C.s;head[k]=C.head;spring[k]=C.head<Infinity&&acc[k]<C.head*2&&!lake[k]?1:0;}}
+      for(let k=0;k<n;k++){const C=sink[k]?null:channelClass(acc[k],rel[k],fed[k],mouth[k]);if(C){hw[k]=C.hw;cs[k]=C.s;head[k]=C.head;spring[k]=C.head<Infinity&&acc[k]<C.head*2&&!lake[k]?1:0;}}
       const grade=k=>{const d=down[k];return d<0?0:(lvl[k]-lvl[d])/(Math.hypot(px[d]-px[k],pz[d]-pz[k])||1);};
       for(let k=0;k<n;k++){const d=down[k];if(!head[k]||d<0||h[k]<SEA||lake[k]||lvl[d]<SEA+1)continue;const g=grade(k);if(g>.18&&lvl[k]-lvl[d]>=7&&grade(d)<g*.5)knick[k]=1;}
-      T={i0,j0,W,px,pz,qx,qz,h,lvl,lake,feed,down,acc,rel,fed,mouth,hw,cs,head,spring,knick,src};D.tiles.set(key,T);if(D.tiles.size>D.cap)D.tiles.delete(D.tiles.keys().next().value);return T;
+      T={i0,j0,W,px,pz,qx,qz,h,lvl,lake,feed,down,acc,rel,fed,mouth,hw,cs,head,spring,knick,src,sink};D.tiles.set(key,T);if(D.tiles.size>D.cap)D.tiles.delete(D.tiles.keys().next().value);return T;
     }
     // Channel classes by upstream area. hw: half-width (m); s: how far its influence reaches (banks, sand, tree-free strip)
     // relative to a main river; head: area where the channel starts.
     // Channels whose system reaches its mouth with under 20 nodes of catchment aren't drawn (unless fed by an isle fall).
     function channelClass(acc,rel,fed,mouth){
       if(mouth<20&&!fed)return null;
-      if(acc>=60)return {hw:Math.min(12,1+.42*Math.sqrt(acc)),s:1,head:60};
-      if(acc>=20)return {hw:.9+.2*Math.sqrt(acc),s:.6,head:20};
+      // The macro map carries the main rivers: the local network's largest class is a stream.
+      if(acc>=20)return {hw:Math.min(3.5,.9+.2*Math.sqrt(acc)),s:.6,head:20};
       const need=rel>15?4:8;if(acc>=need)return {hw:.35+.06*Math.sqrt(acc),s:.3,head:need};
       return fed?{hw:.6,s:.3,head:Infinity}:null;
     }
@@ -441,7 +423,7 @@
         // level) so it reaches the water wherever the shore lies; geography() doesn't carve it where the ground is under the
         // lake. Other lake nodes draw no channel and no springs.
         if(T.lake[a]){if(Math.hypot(wx-T.px[a],wz-T.pz[a])<G*1.6)r.lake=Math.max(r.lake||0,T.lvl[a]);if(!T.feed[a])continue;}
-        if(!T.head[a]||T.h[a]<SEA||b<0)continue;
+        if(!T.head[a]||T.h[a]<SEA||b<0||T.sink[a])continue;
         const Ah=T.hw[a],As=T.cs[a],Bh=T.head[b]?T.hw[b]:Ah,Bs=T.head[b]?T.cs[b]:As,ax=T.qx[a],az=T.qz[a];
         const bx=T.qx[b],bz=T.qz[b],c=T.down[b],cx=c<0?bx:(bx+T.qx[c])/2,cz=c<0?bz:(bz+T.qz[c])/2,F=T.src.get(a);
         const wide=Math.max(Ah,Bh)*(Bs>=.6?1.8:1),sMax=Math.max(As,Bs),sMin=Math.min(As,Bs);
@@ -457,12 +439,13 @@
           let level=f0+(f1-f0)*t,foam=false;
           if(fall){const q=U*fall.k,step=Math.ceil(q-1e-6);level=fall.f0+(fall.f1-fall.f0)*Math.min(1,step/fall.k);foam=q>.001&&step<fall.k&&(q-Math.floor(q))*fall.len/fall.k<3;}
           const hw=(Ah+(Bh-Ah)*U)*(Bs>=.6?1+.8*clamp((SEA+1.2-level)/1.2,0,1):1),s=As+(Bs-As)*U,e=(dist-hw)/s+2.3;
-          if(e<r.e)Object.assign(r,{e,dist,hw,s,level,foam,x:qx,z:qz,spring});
+          if(e<r.e){const L=Math.hypot(ex,ez)||1,S=Math.max(.0005,(f0-f1)/L),d=clamp(.25+hw*.3,.25,1.2);Object.assign(r,{e,dist,hw,s,level,foam,x:qx,z:qz,spring,dx:ex/L,dz:ez/L,macro:false,
+            speed:clamp(d**(2/3)*Math.sqrt(S)/.045,.1,3)*(foam?1.5:1),depth:d,zone:spring?'source':S>.03||T.rel[a]>15?'upper':'middle',curve:0,slope:S});}
         };
         if(F)piece(F.x,F.z,fa,ax,az,fa,0,0);
         else if(T.spring[a]){
           // A creek head is a spring: a small pool where groundwater rises.
-          if(As<.5){const sd=Math.hypot(wx-ax,wz-az),e=(sd-1.6)/As+2.3;if(e<r.e)Object.assign(r,{e,dist:sd,hw:1.6,s:As,level:fa,foam:false,x:ax,z:az,spring:true});}
+          if(As<.5){const sd=Math.hypot(wx-ax,wz-az),e=(sd-1.6)/As+2.3;if(e<r.e){const L=Math.hypot(bx-ax,bz-az)||1;Object.assign(r,{e,dist:sd,hw:1.6,s:As,level:fa,foam:false,x:ax,z:az,spring:true,dx:(bx-ax)/L,dz:(bz-az)/L,macro:false,speed:.1,depth:.4,zone:'source',curve:0,slope:0});}}
           piece(ax,az,fa,(ax+bx)/2,(az+bz)/2,(fa+fb)/2,0,0);
         }
         const mx=(ax+bx)/2,mz=(az+bz)/2,fm=(fa+fb)/2,len=Math.hypot(bx-mx,bz-mz)+Math.hypot(cx-bx,cz-bz),drop=fm-fc,N=As>=.6?8:4;
@@ -475,11 +458,54 @@
       }
       return r.e<999?r:null;
     }
-    // A light meander warp only (meander loops come from the control network above).
-    function riverAt(x,z){
+    // Macro rivers: the macro map's flux rivers are the main channels. Each river's water level is a profile along its
+    // course (built on first use): the broad landform under each course point (macro height plus the smooth crag octaves),
+    // as a running minimum from the source so the water only ever runs down, held at least at the level of the lake or
+    // parent river it ends in and at most at the level of the lake it leaves.
+    const riverLevels=new Map(),lakeLevels=new Map(),mr={},RIVER_ZONES=['source','upper','middle','lower','estuary'];
+    function lakeLevel(id){let v=lakeLevels.get(id);if(v===undefined){v=Math.max(SEA+1,MM.lakes[id].metres-.4);lakeLevels.set(id,v);}return v;}
+    function macroLevels(ri){
+      let lv=riverLevels.get(ri);if(lv)return lv;
+      const r=MM.rivers[ri],m=r.x.length;lv=new Float32Array(m);let run=Infinity;
+      for(let i=0;i<m;i++){const t=tectonics(r.x[i],r.z[i]),c=cragAt(r.x[i],r.z[i],t.relief,t.cone);run=Math.min(run,t.h+Math.min(c,cragLow));lv[i]=run-.3;}
+      // Rivers reaching the sea ease down to sea level over their last 300 m, so the water meets the sea flush.
+      if(r.end==='ocean')for(let i=0;i<m;i++){const rest=r.length-r.along[i];if(rest<300)lv[i]=Math.min(lv[i],SEA+.2+rest/300*(lv[i]-SEA-.2));}
+      if(r.end==='lake'&&r.lake>=0){const L=lakeLevel(r.lake);for(let i=0;i<m;i++)lv[i]=Math.max(lv[i],L);}
+      if(r.end==='river'&&r.parent>=0){const P=macroLevels(r.parent),q=MM.rivers[r.parent],ex=r.x[m-1],ez=r.z[m-1];let best=0,bd=Infinity;for(let i=0;i<q.x.length;i++){const d=(q.x[i]-ex)**2+(q.z[i]-ez)**2;if(d<bd){bd=d;best=i;}}
+        for(let i=0;i<m;i++)lv[i]=Math.max(lv[i],P[best]);}
+      for(const L of MM.lakes)if(L.outletRiver===ri){const v=lakeLevel(L.id);for(let i=0;i<m;i++)lv[i]=Math.min(lv[i],v);}
+      // Bed slope over a ~120 m window, flow speed (Manning: v = d^(2/3) sqrt(S) / n, n = 0.04; pools, lake reaches and
+      // estuaries run slow) and the course zone from elevation, slope and discharge.
+      const al=r.along,sl=new Float32Array(m),sp=new Float32Array(m),zn=new Uint8Array(m),outlet=MM.lakes.some(L=>L.outletRiver===ri),Q=r.flux;
+      for(let i=0,a=0,b=0;i<m;i++){while(a<i&&al[i]-al[a]>60)a++;while(b<m-1&&al[b]-al[i]<60)b++;sl[i]=Math.max(.0003,(lv[a]-lv[b])/Math.max(1,al[b]-al[a]));}
+      for(let i=0;i<m;i++){
+        const rest=r.length-al[i],h=lv[i]-SEA,S=sl[i];
+        zn[i]=r.end==='ocean'&&h<1.6&&rest<700?4:!outlet&&al[i]<250?0:S>.015||h>80?1:S<.003&&(Q[i]>500||h<12&&Q[i]>250)?3:2;
+        sp[i]=clamp(r.depth[i]**(2/3)*Math.sqrt(S)/.04,.15,4)*(zn[i]===4?.6:1)*(r.end==='lake'&&rest<300?.4+.6*rest/300:1);
+      }
+      lv.slope=sl;lv.speed=sp;lv.zone=zn;
+      riverLevels.set(ri,lv);return lv;
+    }
+    // A macro river's course for renderers: per vertex x, z, flux (discharge; tributaries add in), hw (half-width, m),
+    // depth (m), level (water surface, m), slope (m/m), speed (m/s) and zone (0 source .. 4 estuary; names in zones).
+    function riverProfile(i){const r=MM.rivers[i];if(!r)return null;const lv=macroLevels(i);
+      return {id:i,end:r.end,parent:r.parent,lake:r.lake,x:r.x,z:r.z,flux:r.flux,hw:r.hw,depth:r.depth,level:Float32Array.from(lv,v=>v-.2),slope:lv.slope,speed:lv.speed,zone:lv.zone,zones:RIVER_ZONES};}
+    // Macro channel at a point, in courseAt's terms (e, dist, hw, s, level, x, z, dx, dz), merged into r if nearer.
+    function macroCourse(wx,wz,r){
+      if(!MM.riverNear(wx,wz,mr))return;
+      const lv=macroLevels(mr.river),level=lv[mr.seg]+(lv[mr.seg+1]-lv[mr.seg])*mr.t;
+      // A river widens into an estuary as it reaches sea level.
+      const hw=mr.hw*(1+.8*clamp((SEA+1.2-level)/1.2,0,1)),e=(mr.dist-hw)/mr.size+2.3;
+      if(e<r.e){const i=mr.seg,t=mr.t,R=MM.rivers[mr.river],j=t<.5?i:i+1;Object.assign(r,{e,dist:mr.dist,hw,s:mr.size,level,foam:false,x:mr.x,z:mr.z,spring:false,dx:mr.dx,dz:mr.dz,macro:true,
+        speed:lv.speed[i]+(lv.speed[i+1]-lv.speed[i])*t,depth:R.depth[i]+(R.depth[i+1]-R.depth[i])*t,zone:RIVER_ZONES[lv.zone[j]],curve:R.curvature[i]+(R.curvature[i+1]-R.curvature[i])*t,slope:lv.slope[i]+(lv.slope[i+1]-lv.slope[i])*t});}
+    }
+    // A light meander warp only (meander loops come from the macro courses and the local control network). Local creeks
+    // and streams (courseAt) are skipped out at sea, beyond any coast.
+    function riverAt(x,z,t){
       const wx=x+(noise(x*.02,z*.02,seed+345)-.5)*12,wz=z+(noise(x*.02,z*.02,seed+347)-.5)*12;
-      const r={e:999,lake:0};courseAt(0,wx,wz,r);
-      return {d:r.e,level:r.level||0,lake:r.lake||0,w:r.e<999?r.hw:0,foam:!!r.foam,spring:!!r.spring,size:r.s||0};
+      const r={e:999,lake:0,dx:0,dz:0};macroCourse(wx,wz,r);if(!(t&&t.coast<-700))courseAt(0,wx,wz,r);
+      return {d:r.e,level:r.level||0,lake:0,w:r.e<999?r.hw:0,foam:!!r.foam,spring:!!r.spring,size:r.s||0,dir:[r.dx||0,r.dz||0],macro:!!r.macro,
+        speed:r.speed||0,depth:r.depth||0,zone:r.e<999?r.zone:null,curve:r.curve||0,slope:r.slope||0,cx:r.x,cz:r.z,dist:r.dist||0};
     }
     // Mountains are built in two layers on top of plate relief (and volcano cones):
     // 1. cragAt: the massif landform. Gradient-damped fBm (Inigo Quilez's trick): value-noise octaves fade where the
@@ -910,6 +936,9 @@
       const out=[];
       for(let j=Math.floor((z-radius-6)/BG);j<=Math.floor((z+radius+6)/BG);j++)for(let i=Math.floor((x-radius-6)/BG);i<=Math.floor((x+radius+6)/BG);i++){
         const B=boulderCell(i,j);if(B)for(const q of B.list)if(Math.hypot(q.x-x,q.z-z)<radius+q.r)out.push({x:q.x,z:q.z,y:q.y,size:q.r,height:q.ry,rot:q.rot,seed:q.k});}
+      // River rocks too (river: true; inWater: set for rocks standing in the channel, which the renderer foams around).
+      for(let j=Math.floor((z-radius-4)/RG);j<=Math.floor((z+radius+4)/RG);j++)for(let i=Math.floor((x-radius-4)/RG);i<=Math.floor((x+radius+4)/RG);i++){
+        const B=riverRockCell(i,j);if(B)B.list.forEach((q,n)=>{if(Math.hypot(q.x-x,q.z-z)<radius+q.r)out.push({x:q.x,z:q.z,y:q.y,size:q.r,height:q.ry,rot:hash(i*7+n,j,seed+589)*TAU,seed:i*1048576+j+n,river:true,inWater:!!q.wet});});}
       return out;
     }
     // River rocks: one candidate per 4 m cell, kept only in fast reaches (boulders mid-stream and at the water's edge,
@@ -920,14 +949,15 @@
       const k=i*1048576+j;if(riverRocks.has(k))return riverRocks.get(k);let v=null;const p=hash(i,j,seed+571);
       if(p<.6){
         const x=(i+.15+.7*hash(i,j,seed+573))*RG,z=(j+.15+.7*hash(i,j,seed+575))*RG,g=geography(x,z);
-        if(!g.sea&&!g.gorge&&(g.fast&&g.riverDistance<5.5||g.splash)&&g.slope<1.3){
+        // Upper-course channels are strewn with boulders (more of them mid-stream); falls and springs keep their spray rocks.
+        if(!g.sea&&!g.gorge&&(g.fast&&g.riverDistance<5.5||g.splash)&&g.slope<1.3&&(p<.45||g.riverZone==='upper'||g.splash)){
           const wet=g.water>g.height,n=g.splash&&!wet?2+Math.floor(hash(i,j,seed+577)*2):1,list=[],mossy=g.splash||!wet;
           for(let s2=0;s2<n;s2++){
             const a=hash(s2,k,seed+579)*Math.PI*2,o=s2?.6+1.2*hash(s2,k,seed+581):0,qx=x+Math.cos(a)*o,qz=z+Math.sin(a)*o,G=s2?geography(qx,qz):g;
             const r=(g.splash&&!wet?.25+.3*hash(s2,k,seed+583):.35+.55*hash(s2,k,seed+583))*(g.riverSize>=.9?1.3:1),ry=r*.7,ground=G.height*cellMetres;
             // In the channel the rock sits on the bed and its top stands 0.1-0.4 m above the water.
             const y=G.water>G.height?Math.max(ground+ry*.5,G.water*cellMetres+.1+.3*hash(s2,k,seed+585)-ry):ground+ry*(.1-.3*hash(s2,k,seed+587));
-            list.push({x:qx,z:qz,r,ry,y,mossy:mossy&&!(G.water>G.height)});
+            list.push({x:qx,z:qz,r,ry,y,mossy:mossy&&!(G.water>G.height),wet:G.water>G.height});
           }
           v={x,z,list,reach:3.2};
         }
@@ -949,7 +979,11 @@
     function geography(x,z){
       if(infinite){
         const t=tectonics(x,z);
-        const RV=riverAt(x,z),riverDistance=RV.d;
+        const RV=riverAt(x,z,t),riverDistance=RV.d;
+        // Macro lakes: membership is the macro map's smooth lake field, its edge roughened by ~90 m and ~22 m noise so
+        // shores wander into coves and points. LD > .5 is water; a shore band outside it shelves gently up from the water.
+        let LD=0,lakeL=0;
+        if(t.lake>=0&&t.lakeD>.05){LD=t.lakeD+(noise(x*.011,z*.011,seed+921)-.5)*.3+(noise(x*.045,z*.045,seed+923)-.5)*.1;if(LD>.1){lakeL=lakeLevel(t.lake);RV.lake=lakeL;}}
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
         const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
@@ -974,32 +1008,44 @@
         // The drainage level is interpolated between coarse nodes; cap it by the broad landform (plate relief plus the lower
         // of the crag and its broad octaves, never above the ground) so water sits on the valley floor and cuts into the ground.
         // A channel at a lake's level (running through it, or across a low island in it) holds exactly that level.
-        const held=RV.lake&&RV.level>=RV.lake-.5,floor=Math.max(SEA-.6,(held?RV.lake:Math.min(RV.level,t.h+Math.min(crag,low)+.1))-1.2),valley=held?4+RV.w:6+RV.w+Math.min(70,Math.max(0,t.h+crag-floor)*1.3)*(.3+.7*clamp((RV.size-.3)/.7,0,1));
+        const held=RV.lake&&RV.level>=RV.lake-.5,floor=Math.max(SEA-1,(held?RV.lake:Math.min(RV.level,t.h+Math.min(crag,low)+.1))-1.2),valley=held?4+RV.w:6+RV.w+Math.min(70,Math.max(0,t.h+crag-floor)*1.3)*(.3+.7*clamp((RV.size-.3)/.7,0,1));
         const bt=clamp((riverDistance-2.3)/valley,0,1),bank=bt*bt*(3-2*bt);
         // Rivers and streams clear the massif from their valleys; creeks just notch through it (bank carving below).
         const L=liftAt(x,z),pass=L.pass,lift=bank<1&&RV.size>=.5?0:L.lift;
         const gw=(noise(x*.008,z*.008,seed+227)-.5)*60,half=2+noise(x*.05,z*.05,seed+233);
         const sx=x-gorgeX,sz=z-gorgeZ,along=clamp(sx*gorgeDX+sz*gorgeDZ,-32,32),homeGorge=Math.hypot(sx-along*gorgeDX,sz-along*gorgeDZ)+Math.sin(along*.15)*1.5;
         const faulted=(t.setting==='rift'||t.setting==='transform')&&t.f>.3;
-        const gorgeDistance=lift>0||riverDistance<16||t.base<SEA+6?Infinity:Math.min(homeGorge,faulted?Math.abs(noise((x+gw)*.006,(z-gw)*.006,seed+231)-.5)*170:Infinity);
+        const gorgeDistance=lift>0||riverDistance<16||lakeL||t.base<SEA+6?Infinity:Math.min(homeGorge,faulted?Math.abs(noise((x+gw)*.006,(z-gw)*.006,seed+231)-.5)*170:Infinity);
         const gorge=gorgeDistance<half,rock=noise(x*.02,z*.02,seed+239)>.45?'sound':'fractured';
         // Raising ground (massif tiers, knolls) raises the glacier bed with it; only ice counts as ice.
-        if(lift>0){const before=h;h=Math.max(h,Math.min(h,SEA+8)+L.up);iceBase+=h-before;}
+        if(lift>0){const before=h;h=Math.max(h,Math.min(h,homeLevel+2)+L.up);iceBase+=h-before;}
         const knoll=lift>0||riverDistance<14||t.h<SEA+1.5||gorgeDistance<half+6||slope>.5?0:outcropAt(x,z);
         h+=knoll*1.6;iceBase+=knoll*1.6;
-        // Carve the valley, but keep a bank: outside the wet channel the ground stays 0.3 m above the water surface
-        // (never above the original land), so water is always contained. Ground already under a lake keeps its natural
-        // bed (no channel grooves through the lake), and only that ground holds lake water (not an outlet cut below it).
-        const underLake=RV.lake>h+.2;
-        if(bank<1&&!underLake){const before=h;h=Math.min(h,floor+(h-floor)*bank);if(riverDistance>=3.4)h=Math.max(h,Math.min(before,floor+1.3));}
+        // Lake basin: a bed shelving from 0.3 m at the shore to the lake's depth, flat water at the lake level. The shore
+        // band holds the ground at least 0.2 m above the water (raising it only where the land would dip below the lake),
+        // easing from a low beach up into the natural land.
+        let underLake=false;
+        if(lakeL){
+          if(LD>.5){const k=clamp((LD-.5)/.3,0,1),bed=lakeL-.3-(1.5+Math.min(5,Math.sqrt(MM.lakes[t.lake].cells)*1.2))*k*k*(3-2*k);h=Math.min(h,bed);underLake=true;}
+          else{const k=(.5-LD)/.4,w=clamp((LD-.1)/.15,0,1),tgt=Math.max(lakeL+.2,Math.min(h,lakeL+.2+k*k*10)),d=(tgt-h)*w*w*(3-2*w);h+=d;if(d>0)iceBase+=d;}
+        }
+        // Carve the valley and the channel. Ws is the water surface; edge (m) is the distance beyond the wet edge. The bed
+        // shelves from just under the water at the edge to its full depth over about half the channel, and outside it a
+        // bank rises gently (0.18-0.3 m per m) from 0.25 m above the water into the valley side, never above the original
+        // land, so water is always contained and banks are shallow slopes rather than dirt walls. Ground under a lake keeps
+        // the lake bed (no channel grooves through the lake).
+        const Ws=floor+1,edge=(riverDistance-2.3)*(RV.size||.3)-.5;
+        if(riverDistance<999&&!underLake){const before=h;
+          if(edge<0){const sh=Math.max(1.2,RV.w*.45),q=clamp(-edge/sh,0,1),depth=.8+Math.min(1.6,RV.w*.12);h=Math.min(before,Ws-.12-depth*q*q*(3-2*q));}
+          else{if(bank<1)h=Math.min(h,floor+(h-floor)*bank);h=Math.max(h,Math.min(before,Ws+.25+edge*(RV.size>=.6?.18:.3)));}}
         if(gorge)h=Math.max(SEA+1,t.base-7);
         iceBase=Math.min(iceBase,h);
-        const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
+        const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA&&!underLake&&!(edge<0&&Ws>SEA+.1&&riverDistance<999),steep=slope>.9;
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
         zone.slope=slope;zone.crease=crease;zone.hollow=hollow;zone.spur=spur;zone.x=x;zone.z=z;
         const BW=biomeWarp(x,z),bang=BW.a,breach=BW.D,CW=climateD(BW.x,BW.z),RG=region(C,x,z,CW),mountain=t.relief>15||t.cone>20;
-        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,mountain,slope>1.8,RG);
-        const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
+        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,sea?metres:Math.max(metres,SEA),wet,steep,slope>1.4,mountain,slope>1.8,RG);
+        const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):edge<0&&!gorge&&Ws/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
         const rim=lift>0&&!pass&&[[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]].some(([u,v])=>upliftAt(x+u,z+v).up<L.up-1.5);
@@ -1022,7 +1068,7 @@
             corridor=T<7||b==='tundra'||b==='boreal'||b==='montane'||b==='subalpine'||b==='meadow'||b==='heath'?'cold':b==='desert'||b==='badlands'||b==='steppe'||b==='savanna'||b==='golden'||Mx<.3&&T>=15?'dry':T>=19&&Mx>.5?'jungle':'temperate';}
           // Reach character from existing fields: fast (falls, steep mountain reaches) carries cobbles and boulders; calm
           // (lakes, held reaches, flat lowland water) holds lilies and cattails; splash: the spray zone around falls and springs.
-          if(riverDistance<9&&!lakeWater&&!held){fast=RV.foam||slope>.45||t.relief>15&&slope>.25&&RV.size<.9;splash=(RV.foam||RV.spring)&&riverDistance<7;}
+          if(riverDistance<9&&!lakeWater&&!held){fast=RV.foam||RV.zone==='upper'&&RV.speed>1.2||slope>.45||t.relief>15&&slope>.25&&RV.size<.9;splash=(RV.foam||RV.spring)&&riverDistance<7;}
           calm=lakeWater||held||!fast&&slope<.2&&!RV.foam;
         }
         // Biome edge blend: biomeOf again at four points 10-24 m (warp.D) around the warped position, on a cross whose angle drifts
@@ -1044,7 +1090,13 @@
         // the eroded-terrain offset (m) included in height. hollow (m): depth below the broad landform (+ hollows and cols,
         // - peaks and ridges). spur: erosion / strength, about -1.4 (gully floor) to 1.4 (spur crest); 0 off mountains.
         // surface: ground height (m) before it is quantized to cells.
-        return {height,riverDistance,riparian,corridor,fast,calm,splash,lake:RV.lake,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
+        // Flow: the reach's speed, fastest mid-channel and slowing toward the banks and on the inside of bends; zero on
+        // lakes. riverDepth: water depth in this column (m); riverZone: source, upper, middle, lower or estuary.
+        let riverSpeed=0;
+        if(riverDistance<999&&!lakeWater){const across=clamp(RV.dist/Math.max(.5,RV.w),0,1.5),mid=clamp(1-across*across,0,1),side=RV.dir[0]*(z-RV.cz)-RV.dir[1]*(x-RV.cx),
+          inside=side*RV.curve>0?clamp(Math.abs(RV.curve)*60,0,1)*clamp(across,0,1):0;riverSpeed=RV.speed*(.3+.7*mid)*(1-.45*inside);}
+        const riverDepth=water>height&&!sea&&!lakeWater?(water-height)*cellMetres:0;
+        return {height,riverDistance,riparian,corridor,fast,calm,splash,lake:RV.lake,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,riverDir:RV.dir,riverSpeed,riverDepth,riverZone:riverDistance<999?RV.zone:null,macroRiver:RV.macro,coast:t.coast,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
           lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,biome2,blend,glacier,iceCells:glacier?iceCells:0,crease,erosion,hollow,spur,surface:h,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
       }
       const riverDistance=Math.abs(x-riverX(z));
@@ -1650,7 +1702,7 @@
         // Fast reaches (falls, steep mountain water) have rocky banks: cobbles with gravel and stone, then gravel; their beds are
         // cobble too.
         const cob=g.fast&&(hash(Math.floor(x*2),Math.floor(z*2),seed+787)<.3?MAT.gravel:noise(x*.6,z*.6,seed+789)>.68?MAT.stone:MAT.cobble);
-        const bank=g.water>h&&!g.sea?cob:rd<4.6?cob||MAT.mud:g.riverSize>=.6&&rd<9?(g.fast?MAT.gravel:MAT.sand):0;
+        const bank=g.water>h&&!g.sea?cob:rd<4.6?cob||MAT.mud:g.riverSize>=.6&&rd<9?(g.fast||g.riverZone==='middle'&&noise(x*.08,z*.08,seed+791)>.5?MAT.gravel:MAT.sand):0;
         values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='beach'?MAT.sand:bank?bank:b==='alpine'?MAT.basalt:turf(b,x,z,h,g);
         if(g.riparian>0&&!bank&&!g.exposed){const m=riparianGround(g,x,z,values[h-1]);if(m)values[h-1]=m;}
         if(TURF.has(values[h-1])){
@@ -2117,7 +2169,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
