@@ -144,8 +144,9 @@
     // Warm sun over a cool sky fill; ridges catch a little more light than hollows.
     float key=max(0.,dot(n,SUN));
     // Shadow only removes the sun term, so shade keeps the sky fill: a soft afternoon shadow, never a black one.
-    if(placeholder>0.){n=vec3(0,1,0);cavity=0.;}
-    float sunVis=placeholder>0.?.85:sunlight()*clouds(localPosition),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
+    // A coarser tile standing in for finer ones keeps the same lighting (so long-lived fallback coverage never shows a
+    // brightness step along tile edges); it only skips sun shadows, which its blocky shapes would cast wrongly.
+    float sunVis=(placeholder>0.?1.:sunlight())*clouds(localPosition),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
     light*=1.+cavity*.3;
     float grain=(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
@@ -638,8 +639,8 @@
       return out;
     }
     dither(mode,t){this.dithering=[mode,t];}
-    // A coarser tile standing in while finer ones stream in: drawn flat (no sun, shadows, cavity or ink) and casting no
-    // shadow, so its blocky shapes stay quiet until the real tile arrives with full lighting.
+    // A coarser tile standing in while finer ones stream in: lit as usual but casting and receiving no sun shadows and
+    // carrying no ink, so its blocky shapes stay quiet until the real tile arrives.
     placeholder(on){this.flat=on;}
     dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
