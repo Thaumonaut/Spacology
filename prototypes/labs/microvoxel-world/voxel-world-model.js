@@ -297,8 +297,8 @@
           return s>.9?MAT.sungrass:n<.45?MAT.lushgrass:n>.75?MAT.sungrass:MAT.grass;}
         case 'pinkgrass':return n2>.32-(g.riverDistance<30?.22:0)?(s<.16?MAT.violet:s>.9?MAT.sungrass:MAT.pinkgrass):s>.93?MAT.pinkgrass:n<.5?MAT.sungrass:MAT.grass;
         case 'autumn':return n2>.62?(s<.25?MAT.autumngrass:MAT.autumnlitter):s<.1?MAT.autumnlitter:n<.33?MAT.sungrass:MAT.autumngrass;
-        // Blossom groves: rose and violet grass under the pink and white crowns, pale petal drifts, a few green tufts.
-        case 'blossom':return s<.06+.3*clamp((n2-.55)*4,0,1)?MAT.petal:s>.95?MAT.lushgrass:n<.42?MAT.violet:MAT.pinkgrass;
+        // Blossom groves: rose grass with violet drifts under the pink and white crowns.
+        case 'blossom':return n2>.55&&s<.5?MAT.violet:n<.4?MAT.violet:MAT.pinkgrass;
         case 'fen':return n2>.86&&r>-.02?MAT.mud:n>.55?(s<.2?MAT.mossy:MAT.sphagnum):n<.3?MAT.lushgrass:s<.15?MAT.sphagnum:MAT.mossy;
         case 'heath':return n2>.45?(s<.3?MAT.sungrass:s<.4?MAT.violet:MAT.heather):s<.12?MAT.heather:n>.55?MAT.sungrass:MAT.steppegrass;
         case 'steppe':return n>.8?(s<.4?MAT.steppegrass:MAT.dry):s<.12?MAT.goldgrass:n<.32?MAT.sungrass:MAT.steppegrass;
@@ -1788,11 +1788,13 @@
       const floor=LITTER.has(top);
       if(floor||FOREST_FLOOR.has(b)&&TURF.has(top)){
         if(floor&&r>.993&&noise(x*.1,z*.1,seed+657)>.55)return put(MAT.glowFlower,density);
-        // Ferns: small domed clumps on a 0.75 m grid, gathered in damp patches.
-        const fx=Math.floor(x/.75),fz=Math.floor(z/.75);
-        if(hash(fx,fz,seed+651)<.16*clamp((noise(x*.12,z*.12,seed+645)-.4)*3,0,1)+.006){
-          const d=Math.hypot(x-(fx+.5+(hash(fx,fz,seed+653)-.5)*.2)*.75,z-(fz+.5+(hash(fx,fz,seed+655)-.5)*.2)*.75);
-          if(d<.34)return put(MAT.fern,Math.round((.35+.35*hash(fx,fz,seed+659))*(1-d/.5)/cellMetres));
+        // Ferns: big sword ferns crowded in clumps in damp patches, rarely alone; one plant per ~0.9 m grid cell, filling
+        // most cells toward a patch's heart and growing larger there (0.5-1.25 m). Each plant is a single column (snapped
+        // to even cells so 0.5 m sampling still finds it); the renderer draws the whole fern as one object.
+        const FG=.9,fx=Math.floor(x/FG),fz=Math.floor(z/FG),patch=clamp((noise(x*.12,z*.12,seed+645)-.42)*3.2,0,1);
+        if(patch>0&&hash(fx,fz,seed+651)<.8*patch){
+          const cell=2*cellMetres,cx=Math.floor((fx+.5+(hash(fx,fz,seed+653)-.5)*.5)*FG/cell),cz=Math.floor((fz+.5+(hash(fx,fz,seed+655)-.5)*.5)*FG/cell);
+          if(Math.floor(x/cell)===cx&&Math.floor(z/cell)===cz)return put(MAT.fern,Math.round((.5+.3*hash(fx,fz,seed+659)+.45*patch)/cellMetres));
         }
         return 0;
       }
@@ -1906,10 +1908,10 @@
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
       // Under-canopy floor: podzol under conifers; under broadleaf, leaf litter in temperate woods, gold litter in autumn woods,
-      // petals in blossom groves, dark jungle floor under rainforest and bamboo, and a shaded moss disc under lone trees in open
+      // rose grass in blossom groves, dark jungle floor under rainforest and bamboo, and a shaded moss disc under lone trees in open
       // country. The fringe ring is worn dirt only around conifers (2); around other trees (3) the ground runs up to the trunk.
-      // The floor follows the sheltering tree's biome (petals under a blossom tree even in a blend band).
-      if(infinite&&floorMat<9&&(TURF.has(values[h-1])||values[h-1]===MAT.gravel)){const b=floorBiome||g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.petal:floorMat===2?MAT.dirt:floorMat===3?0
+      // The floor follows the sheltering tree's biome (rose grass under a blossom tree even in a blend band).
+      if(infinite&&floorMat<9&&(TURF.has(values[h-1])||values[h-1]===MAT.gravel)){const b=floorBiome||g.biome,m=floorMat===0?MAT.podzol:b==='autumn'?MAT.autumnlitter:b==='blossom'?MAT.pinkgrass:floorMat===2?MAT.dirt:floorMat===3?0
         :b==='forest'||b==='redwood'||b==='wetland'?MAT.litter:b==='rainforest'||b==='bamboo'?MAT.junglefloor:b==='fen'?MAT.sphagnum:MAT.mossy;if(m)values[h-1]=m;}
       if(infinite){
         const I=isleAt(x,z),F=isleCell(Math.floor(x/IG),Math.floor(z/IG))?.fall;
@@ -2249,8 +2251,11 @@
       tints.set(k,v);if(tints.size>65536)tints.delete(tints.keys().next().value);return v;
     }
     // The grass growing around a column: its own blade grass, else the commonest one in the 5×5 around it, else plain grass.
-    function localGrass(grassy,grassMat,G,I,J){
-      const k=J*G+I;if(grassMat[k])return grassMat[k];const n=new Map();let best=MAT.grass,most=0;
+    // The grass of a column, or the commonest within two columns; failing that (deep under canopy) the node's commonest
+    // grass, so undergrowth and soil there still take the biome's colour rather than a default green.
+    function dominantGrass(grassMat){const n=new Map();let best=MAT.grass,most=0;for(const m of grassMat)if(m){const c=(n.get(m)||0)+1;n.set(m,c);if(c>most){most=c;best=m;}}return best;}
+    function localGrass(grassy,grassMat,G,I,J,fallback=MAT.grass){
+      const k=J*G+I;if(grassMat[k])return grassMat[k];const n=new Map();let best=fallback,most=0;
       for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++){const m=grassMat[(J+b)*G+I+a];if(m){const c=(n.get(m)||0)+1;n.set(m,c);if(c>most){most=c;best=m;}}}
       return best;
     }
@@ -2291,14 +2296,14 @@
       return out;
     }
     function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water){
-      const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
+      const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4),dominant=dominantGrass(grassMat);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
         // Grass tone blends between biomes in irregular drifts: the sample point is warped by noise and the tone averaged over
         // a 3×3 spread, so a biome border never shows as a straight line along the sampling grid.
         const wx=x0+(i+.5)*column,wz=z0+(j+.5)*column,dx=(noise(wx*.02,wz*.02,seed+611)-.5)*40,dz=(noise(wx*.02+9.1,wz*.02,seed+613)-.5)*40;
         const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
         let c=0;for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;const o=(j*NODE+i)*4;
-        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=255;
+        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2,dominant);out[o+3]=255;
       }
       return out;
     }
