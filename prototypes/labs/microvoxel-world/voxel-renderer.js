@@ -95,14 +95,14 @@
     float n=meadowNoise(q)*.6+meadowNoise(q*2.2+4.)*.3+meadowNoise(q*5.1+9.)*.1;
     return n*.72+smoothstep(.42,.8,cloudWeather(seaLevel))*.42-.14;
   }
-  // Soft caustics: the edges between jittered cells, domain-warped so they wobble into rounded, wavy lines, drawn with a
-  // screen-space-aware width so they stay smooth at every zoom. Two layers at different scales drift apart and shimmer.
-  float causticLayer(vec2 p,float t){
-    vec2 q=p+.45*vec2(meadowNoise(p*.55+t*.13),meadowNoise(p*.55+vec2(7.1,3.3)-t*.11))-.225,cell=floor(q);float d1=9.,d2=9.;
-    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));o=.5+.4*sin(t*.35+6.2831*o);float e=length(q-c-o);if(e<d1){d2=d1;d1=e;}else if(e<d2)d2=e;}
+  // Soft caustics, kept cheap: the edges between jittered cells (one layer, a cheap arithmetic hash), wobbled by a sine
+  // warp into rounded, wavy lines, at a width that tracks screen-space change so they stay smooth at every zoom.
+  vec2 cellJitter(vec2 c){vec3 q=fract(vec3(c.xyx)*vec3(.1031,.103,.0973));q+=dot(q,q.yzx+33.33);return fract((q.xx+q.yz)*q.zy);}
+  float caustic(vec2 p,float t){
+    vec2 q=p*.95+.25*sin(p.yx*1.3+vec2(t*.5,t*.37)),cell=floor(q);float d1=9.,d2=9.;
+    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=.5+.4*sin(t*.35+6.2831*cellJitter(c));float e=length(q-c-o);if(e<d1){d2=d1;d1=e;}else if(e<d2)d2=e;}
     float e=d2-d1,w=.07+fwidth(e)*1.5;return 1.-smoothstep(0.,w,e);
   }
-  float caustic(vec2 p,float t){return causticLayer(p*.9,t)*.75+causticLayer(p*1.6+vec2(3.7,1.9),t*1.3)*.35;}
   float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
@@ -188,8 +188,11 @@
       base=mix(bed*vec3(.86,1.,.98),col,.3+.7*smoothstep(.0,.5,look));
       float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);
       float ph=time*.1,w=abs(fract(ph)*2.-1.);
-      float c=mix(caustic(p-dir*fract(ph)*1.4,time),caustic(p-dir*fract(ph+.5)*1.4+5.3,time),w);
-      base=mix(base,base*1.1+vec3(.1,.14,.13),c*.42*(1.-smoothstep(.8,3.,look)*.6)*visible(.6));
+      float show=visible(.6);
+      if(show>.01){
+        float c=mix(caustic(p-dir*fract(ph)*1.4,time),caustic(p-dir*fract(ph+.5)*1.4+5.3,time),w);
+        base=mix(base,base*1.1+vec3(.1,.14,.13),c*.42*(1.-smoothstep(.8,3.,look)*.6)*show);
+      }
       base=mix(base,base*1.08+vec3(.05,.07,.06),smoothstep(.5,.12,shoreM)*.6);
       float edge=shoreM+(meadowNoise(p*1.8+dir*time*.4)-.5)*.04,aa=max(fwidth(edge)*1.2,.006);
       base=mix(base,vec3(.97,.99,1.),1.-smoothstep(.06,.06+aa,edge));
@@ -210,12 +213,13 @@
       lit=base*mix(.82,1.04,sunVis)*heightShade;
       // Sun glints: a small moving wave normal per pixel; where a facet tilts to reflect the sun into the camera, the surface
       // flares. The camera's reflection angle stands in for the sun direction (a true reflection would sit off-screen).
-      vec2 wp=worldPosition.xz;float t=time;
-      float h0=meadowNoise(wp*1.7+vec2(t*.6,t*.25))+.5*meadowNoise(wp*3.9-vec2(t*.4,-t*.7));
-      float hx=meadowNoise((wp+vec2(.03,0))*1.7+vec2(t*.6,t*.25))+.5*meadowNoise((wp+vec2(.03,0))*3.9-vec2(t*.4,-t*.7));
-      float hz=meadowNoise((wp+vec2(0,.03))*1.7+vec2(t*.6,t*.25))+.5*meadowNoise((wp+vec2(0,.03))*3.9-vec2(t*.4,-t*.7));
-      vec3 wn=normalize(vec3(-(hx-h0)/.03*.08,1.,-(hz-h0)/.03*.08));
-      glint=smoothstep(.99935,.99985,dot(wn,normalize(vec3(-.13,1.,-.09))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
+      // Wave tilt from three crossing travelling sine waves: analytic slopes, nearly free.
+      vec2 wp=worldPosition.xz;float t=time;vec2 sl=vec2(0);
+      for(int k=0;k<3;k++){vec2 d=k==0?vec2(.8,.6):k==1?vec2(-.5,.87):vec2(.2,-.98);float f=k==0?4.1:k==1?6.3:9.7;sl+=d*cos(dot(wp,d)*f+t*(1.3+float(k)*.7)+float(k)*2.1)*(f*.017);}
+      vec3 wn=normalize(vec3(-sl.x,1.,-sl.y));
+      glint=smoothstep(.99935,.99985,dot(wn,normalize(vec3(-.08,1.,-.05))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
+      // Break the waves' regular grid: each small patch flickers on and off on its own clock.
+      vec2 cell=floor(wp*1.7);glint*=step(.62,cellJitter(cell+floor(t*.9+cellJitter(cell).x*3.)).x);
       lit+=vec3(1.,.96,.86)*glint*.6;
     }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
