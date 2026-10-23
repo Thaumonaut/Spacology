@@ -18,13 +18,13 @@
   const cache=new M.BudgetCache(320,32*1024*1024,mesh=>renderer?.dispose(mesh));
   // The streamed world zooms out to FAR_SPAN through one LOD system (lod-stream.js); finite fixtures keep chunk meshes.
   // LOD pin (Performance testing): null = automatic, 'v<step>' = render step in cells (streamed: level log2(step)).
-  const FAR_SPAN=2048,budgetMiB=MicroLOD.deviceBudgetMiB(params);
+  const FAR_SPAN=8192,budgetMiB=MicroLOD.deviceBudgetMiB(params);
   let lod=params.get('lod'),stream=null;
   const pinnedVoxel=()=>lod?.[0]==='v'?Number(lod.slice(1)):null;
   const continent=()=>world.infinite&&camera.span>maximumSpan()+.01;
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
   function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();stream?.dispose();busy=false;}
-  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-18');
+  const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-19');
   try{renderer=new MicroRenderer(canvas);worker=makeWorker();stream=MicroLOD.create({renderer,canvas,createWorker:makeWorker,onFail:text=>fail(text)});stream.setWorld(world);stream.setBudget(budgetMiB);}
   catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;

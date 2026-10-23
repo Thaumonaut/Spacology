@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-18':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-19':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
@@ -244,18 +244,19 @@
       const V=R?R.V:.5,U=R?R.U:.5,A=R?R.A:0;if(R){T+=R.jt;M+=R.jm;}
       if(wet&&M>.5&&T>0&&!steep)return T<13&&V>.5?'fen':'wetland';
       if(T<1)return 'tundra';
-      // Cool: boreal forest where wet enough, otherwise heather moor; bare tundra only near freezing.
-      if(T<7)return M>.42?'boreal':T<3.5?'tundra':'heath';
+      // Cool: boreal forest where wet enough, otherwise heather moor; bare tundra only near freezing. Forests yield to open
+      // country more readily than before: moors, meadows and grasslands claim a wider moisture band.
+      if(T<7)return M>.48?'boreal':T<3.5?'tundra':'heath';
       if(T<19){
         if(M>.82&&T<13&&!steep&&U>.58)return 'fen';
         if(M>.68&&T>=9&&T<16&&V>.58&&!wet)return 'redwood';
-        if(M>.5)return T<12.5&&V<.4?'autumn':T>=11.5&&U>.6?'blossom':'forest';
-        if(M>.24)return T<10.5&&V<.3?'heath':U<.36?'flowers':T>=12&&V>.64?'pinkgrass':'grassland';
+        if(M>.56)return T<12.5&&V<.4?'autumn':T>=11.5&&U>.6?'blossom':'forest';
+        if(M>.24)return T<10.5&&V<.3?'heath':U<.45?'flowers':T>=12&&V>.64?'pinkgrass':'grassland';
         return A>.55&&M<.24&&T>=13?'desert':'steppe';
       }
       // Warm: rainforest, bamboo on its wetter hills and fringes, savanna (golden in its own regions), deserts and badlands in arid basins.
-      if(M>.72)return U>.62||h>SEA+14&&U>.45?'bamboo':'rainforest';
-      if(M>.56&&(h>SEA+10||U>.55))return 'bamboo';
+      if(M>.76)return U>.62||h>SEA+14&&U>.45?'bamboo':'rainforest';
+      if(M>.6&&(h>SEA+10||U>.55))return 'bamboo';
       if(A>.55&&M<.32)return V>.58||h>SEA+18?'badlands':'desert';
       return V>.5?'golden':'savanna';
     }
@@ -287,8 +288,8 @@
       if(!(g.blend>0))return g.biome;
       return g.blend>.5+(noise(x*.05,z*.05,seed+813)-.5)*.9+(f-.5)*.55?g.biome2:g.biome;
     }
-    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.1,grassland:.06,tundra:.03,
-      flowers:.03,autumn:.8,blossom:.5,fen:.1,heath:.04,golden:.06,bamboo:.9,badlands:.01,pinkgrass:.04,desert:0,beach:0};
+    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.08,grassland:.04,tundra:.03,
+      flowers:.02,autumn:.8,blossom:.5,fen:.1,heath:.03,golden:.05,bamboo:.9,badlands:.01,pinkgrass:.03,desert:0,beach:0};
     // Vegetated ground: everything tree floors, scree, worn patches and landmarks may paint over. GRASSY: where voxel flowers grow.
     const TURF=new Set([MAT.grass,MAT.tundra,MAT.dry,MAT.dirt,MAT.mossy,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.sphagnum,MAT.heather,MAT.steppegrass,MAT.savgrass,MAT.goldgrass,MAT.junglefloor,MAT.floodgrass]);
     const GRASSY=new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.pinkgrass,MAT.floodgrass]);
@@ -1468,8 +1469,11 @@
     // A tree record. Heights and radii are integer cells (quarter-metre quantized, so both cell sizes agree).
     function growTree(sp,S,g,gx,gz,x,z,o={}){
       const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
+      // Per-tree girth: most trunks sit near the species norm but the range runs from skinny poles (~0.5x) to real
+      // veterans (~1.85x), so a stand mixes whip-thin boles with chonky ones. Big-class trees are floored fat.
+      const girth=C.cls===2?1.1+.8*hash(gx,gz,seed+13):.5+Math.pow(hash(gx,gz,seed+13),1.35)*1.35;
       const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
-      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*Math.sqrt(C.k)/cellMetres)};
+      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,P.trunk*girth*Math.sqrt(C.k)/cellMetres)};
       // Larches turn autumn gold in patches.
       if(sp==='larch'&&noise(x*.015,z*.015,seed+741)>.64)t.leaf=MAT.larchGold;
       // Biome canopy colours (autumn gold and rust, blossom pinks) for broadleaf crowns, one per tree.
@@ -1643,17 +1647,20 @@
         const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
         const tierR=y=>{
           const u=apex-y,k=Math.floor(u/period),q=(u-k*period)/period,h1=hash(k,id,seed+131),h2=hash(k,id,seed+137);
-          const env=R*Math.min(1,(k+1)/5.5)*(.86+.14*h1);
+          // Convex envelope: the crown holds near-full width through its lower tiers and narrows fast toward the tip —
+          // stacked shelves, not a smooth cone. Each tier droops out to its full width early (q**1.15) and steps in hard.
+          const env=R*Math.pow(Math.min(1,(k+1)/5.5),.55)*(.86+.14*h1);
           if(k===0)return env*q**.8;
-          const step=soft?.2+.1*h2:.3+.15*h2;
-          return env*(1-step+step*q**1.6);
+          const step=soft?.3+.12*h2:.45+.18*h2;
+          return env*(1-step+step*q**1.15);
         };
         // The trunk stops below the first height where the tiers no longer wrap it in at least a cell of needles, so it never
         // pokes out of the crown (the tier tops are the narrow points). Its foot flares into root buttresses over the
-        // first ~3 m (more on bigger trees), like an old-growth bole.
+        // first ~3 m (more on bigger trees) and the bole tapers to ~55% of its base radius by the crown, like an
+        // old-growth trunk.
         const flareH=Math.min(t.height*.12,Math.round(3/cellMetres));
-        if(dist<trunk*2.6){let trunkTop=low;while(trunkTop<apex&&tierR(trunkTop)-.5>=trunk)trunkTop++;
-          for(let y=t.base;y<Math.min(heightCells,trunkTop);y++){const f=clamp((y-t.base)/flareH,0,1),r=trunk*(1+1.6*(1-f)*(1-f));if(dist<r)values[y]=bark;}}
+        if(dist<trunk*2.6){let trunkTop=low;while(trunkTop<apex&&tierR(trunkTop)-.5>=trunk)trunkTop++;const tspan=Math.max(1,trunkTop-t.base);
+          for(let y=t.base;y<Math.min(heightCells,trunkTop);y++){const f=clamp((y-t.base)/flareH,0,1),g=(y-t.base)/tspan,r=trunk*(1+1.6*(1-f)*(1-f))*(1-.45*g);if(dist<r)values[y]=bark;}}
         // Short dead branch stubs whisker the clear bole of grown trees (self-pruned limbs break off near the trunk).
         if(t.cls>=1&&dist<trunk+4*density){
           const nS=5+Math.floor(hash(id,7,seed+163)*4);
@@ -1987,9 +1994,14 @@
       const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
       for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
+        // One squared distance per candidate gates both the litter ring and the stamp call: no crown part of a tree
+        // reaches past ~1.6 crown radii plus its gnarled/palm lean offset, so farther trees can be skipped without a
+        // sqrt or a stampPlant entry. Other plant kinds are rare enough to stamp unconditionally.
+        const ddx=x-t.x,ddz=z-t.z,d2=ddx*ddx+ddz*ddz;
+        if(!t.kind||t.kind==='tree'){const reach=Math.max(t.radius?t.radius*cellMetres*1.6:0,3.8)+Math.hypot(t.lx||0,t.lz||0);if(d2>reach*reach)continue;}
         // Needle or leaf litter under trees and bamboo, a ring of bare dirt around conifers.
         if(t.radius&&t.cls!==-1||t.kind==='bamboo'){
-          const f=Math.hypot(x-t.x,z-t.z)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
+          const f=Math.sqrt(d2)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
           if(f<1.12){const m=f<1?(t.conifer?0:1):t.conifer?2:3;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
         }
         const w=stampPlant(t,x,z,values,h);if(w>written)written=w;
@@ -2222,7 +2234,8 @@
     // Streamed LOD nodes: level L samples one world column every 2^L cells, so a node of NODE x NODE columns covers
     // NODE*2^L cells per side. Every level is real voxels (trees, spires, isles included), built at its own spacing
     // rather than generated at full resolution and thrown away.
-    const NODE=32,MAX_LEVEL=Math.round(Math.log2(8/cellMetres)),nodeMetres=L=>NODE*cellMetres*2**L;
+    // MAX_LEVEL covers the 8 km zoom-out (autoLevel requests ~8 there) and lets distant walk rings go coarse and cheap.
+    const NODE=32,MAX_LEVEL=Math.round(Math.log2(64/cellMetres)),nodeMetres=L=>NODE*cellMetres*2**L;
     // Upper bound on anything a node can hold (ground, trees, spires, isles), so a view only requests nodes that can reach it.
     const bounds=new Map();
     function nodeBound(L,nx,nz){

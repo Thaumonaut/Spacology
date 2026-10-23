@@ -2,7 +2,8 @@
 const { chromium } = require('playwright');
 const M = require('../prototypes/labs/microvoxel-world/voxel-world-model.js');
 const SHOTS = [
-  { name: 'fern-forest', px: -2600, pz: -2960, ax: -2600, az: -3030 },
+  { name: 'conifer-tiers', px: -1045, pz: -688, ax: -1078, az: -720 },
+  { name: 'conifer-inside', px: -1085, pz: -735, ax: -1078, az: -720 },
 ];
 (async () => {
   const browser = await chromium.launch();
@@ -19,7 +20,7 @@ const SHOTS = [
       }, null, { timeout: 150000 });
     } catch (e) { console.log('ready-timeout', s.name); }
     await page.waitForTimeout(3500);
-    await page.screenshot({ path: `/tmp/${s.name}.png` });
+    await page.screenshot({ path: `/tmp/${s.name}.png`, timeout: 120000 });
     console.log('shot', s.name);
   }
   await browser.close();
