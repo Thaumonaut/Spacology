@@ -23,10 +23,10 @@
   }
   function create({renderer,canvas,createWorker,onFail}){
     const count=clamp((navigator.hardwareConcurrency||4)-1,1,4),workers=[];
-    // Evicting a node the view still needs means the level does not fit the budget (e.g. tall terrain has larger nodes
+    // Evicting a node the view still needs (a target, or a stand-in being drawn) means the level does not fit the budget (e.g. tall terrain has larger nodes
     // than the cache average predicted): coarsen one level instead of thrashing.
     let pressure=0,requested=-1,targetKeys=new Set();
-    const cache=new M.BudgetCache(16384,1024*1048576,mesh=>{if(targetKeys.has(mesh.key))pressure++;renderer.dispose(mesh);});
+    const cache=new M.BudgetCache(16384,1024*1048576,mesh=>{if(targetKeys.has(mesh.key)||drawKeys.has(mesh.key))pressure++;renderer.dispose(mesh);});
     let bias=0,lastView=null,world=null,level=0,targets=[],drawList=[],drawKeys=new Set(),drawDirty=true,epoch=0,camera=null,origin={x:0,z:0},coarseFirst=true,lit=new Set();
     const inflight=new Map(),fades=new Map(),outgoing=new Map();
     const stats={completed:0,coarse:0,retained:0,uploads:0,vegetation:0,maxOrigin:0},times={geography:[],trees:[],features:[],reduce:[],mesh:[],node:[],view:[],resolve:[],draw:[],upload:[],gpu:[]};
@@ -189,7 +189,10 @@
       if(data.dataId!==world.dataId||!job||data.key!==job.key){pump();return;}
       // lo/hi: the node's exact content heights (m), from its lowest slice origin to its top, for later view tests.
       const t0=performance.now(),mesh=renderer.upload(data);Object.assign(mesh,{key:data.key,column:data.column,level:data.level,quads:data.slices.reduce((n,s)=>n+s.quads,0),lo:(mesh.bottom||0)*data.column,hi:data.top*data.column});
-      cache.set(data.key,mesh,[...drawKeys,...outgoing.keys()]);
+      // Eviction order (oldest first): spent stand-ins and fading nodes before anything the view needs, and built targets
+      // last, so a target is only evicted (raising pressure and coarsening the view) when the targets truly do not fit,
+      // never because coverage stand-ins crowded it out. Otherwise the level would depend on what was cached before.
+      cache.set(data.key,mesh,[...outgoing.keys(),...drawKeys,...targets.filter(t=>ready(t.key)).map(t=>t.key)]);
       push(times.upload,performance.now()-t0);stats.completed++;stats.uploads++;if(job.coarse)stats.coarse++;if(job.epoch!==epoch)stats.retained++;stats.vegetation=data.vegetationEntries||stats.vegetation;
       push(times.node,data.generateMs);for(const k of ['geography','trees','features','reduce','mesh'])push(times[k],data.timing?.[k]||0);
       drawDirty=true;if(pressure&&lastView)update(lastView);else pump();

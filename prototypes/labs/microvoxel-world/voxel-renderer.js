@@ -1846,7 +1846,16 @@
     }
     // Whether a recorded tile overlaps the screen (with a margin): grass and leaf cards are skipped for tiles just outside
     // it, which the stream keeps loaded around the view.
-    onScreen(d){
+    // Screen area (CSS pixels) of a tile's ground footprint, scaled by the share of its screen box inside the viewport (map
+    // view; the orthographic footprint area does not depend on height).
+    screenArea(d){
+      const c=this.camera,size=32*d.scale[0],y=d.origin[1],P=[[0,0],[size,0],[size,size],[0,size]].map(([u,v])=>this.project(c,d.origin[0]+u,y,d.origin[2]+v));
+      let area=0;for(let i=0;i<4;i++){const a=P[i],b=P[(i+1)%4];area+=a.x*b.y-b.x*a.y;}area=Math.abs(area)/2;
+      const x0=Math.min(...P.map(p=>p.x)),x1=Math.max(...P.map(p=>p.x)),y0=Math.min(...P.map(p=>p.y)),y1=Math.max(...P.map(p=>p.y)),box=(x1-x0)*(y1-y0);
+      const seen=Math.max(0,Math.min(x1,this.width)-Math.max(x0,0))*Math.max(0,Math.min(y1,this.height)-Math.max(y0,0));
+      return box>0?area*seen/box:0;
+    }
+    onScreen(d,margin=40){
       if(this.camera.mode==='walk'){
         if(d.caster)return true;
         const v=this.view,m=v.viewProj,size=32*d.scale[0],top=d.origin[1]+(d.mesh.top||0)*d.scale[1];
@@ -1856,7 +1865,7 @@
       }
       const c=this.camera,size=32*d.scale[0],top=d.origin[1]+(d.mesh.top||0)*d.scale[1];let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
       for(const x of [d.origin[0],d.origin[0]+size])for(const z of [d.origin[2],d.origin[2]+size])for(const y of [d.origin[1],top]){const p=this.project(c,x,y,z);x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
-      const m=40;return x1>-m&&x0<this.width+m&&y1>-m&&y0<this.height+m;
+      const m=margin;return x1>-m&&x0<this.width+m&&y1>-m&&y0<this.height+m;
     }
     // Object trees of the queued tiles: tubes, lobes and conifer tiers, into the sun's depth map (shadow) or the scene.
     drawTrees(shadow,c,{lightAt,box,cy,shadows}){
@@ -1926,8 +1935,11 @@
         if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         // Tuft budget per frame tied to screen size (about one per 40 CSS pixels; Economy a quarter). Wide grassy views draw
         // the same fraction of every tile's shuffled list, so meadows thin evenly instead of costing millions of vertices.
-        const shown=this.queue.filter(d=>d.mesh.grass&&this.onScreen(d)),total=shown.reduce((n,d)=>n+d.mesh.grass.count,0),budget=this.width*this.height/(this.economy?160:40),share=Math.min(1,budget/Math.max(1,total));
-        for(const d of shown){const t=d.mesh.grass,count=Math.ceil(t.count*share);gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,count);this.draws++;this.triangles+=count*BLADES*3;}
+        // On the map each tile gets its own budget from the screen area it covers (same density), so its grass never depends
+        // on which other tiles happen to be queued; Walk shares one budget across the view.
+        const shown=this.queue.filter(d=>d.mesh.grass&&this.onScreen(d)),total=shown.reduce((n,d)=>n+d.mesh.grass.count,0),density=this.economy?160:40,budget=this.width*this.height/density,share=Math.min(1,budget/Math.max(1,total));
+        const tileCount=d=>{const t=d.mesh.grass;if(c.mode==='walk')return Math.ceil(t.count*share);const a=this.screenArea(d);return Math.min(t.count,Math.ceil(a/density));};
+        for(const d of shown){const t=d.mesh.grass,count=tileCount(d);gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,count);this.draws++;this.triangles+=count*BLADES*3;}
         gl.enable(gl.CULL_FACE);
       }
       if(this.queue.some(d=>d.mesh.skirts)){
