@@ -302,6 +302,12 @@
     // Lowlands sit slightly darker; high ground brightens toward the summits so tall ranges read at any zoom.
     float heightShade=.88+.12*clamp(worldPosition.y/15.,0.,1.)+.14*clamp((worldPosition.y-24.)/140.,0.,1.);
     vec3 lit=base*(light+grain)*heightShade;
+    if(walkView>.5&&(mat==${M.MAT.bark}||mat==${M.MAT.redwood})){
+      vec2 p=worldPosition.xz;float warp=meadowNoise(vec2(worldPosition.y*.12,p.x*.35+p.y*.27))-.5;
+      float ridge=sin((p.x+p.y)*4.8+warp*1.8),fine=sin((p.x-p.y)*15.+warp*3.);
+      float relief=(ridge*.16*visible(1.3)+fine*.045*visible(.4))*(1.-abs(normal.y));
+      lit*=1.+relief;lit+=vec3(.035,.025,.015)*max(0.,ridge)*visible(1.3)*key*sun;
+    }
     // Aether crystal and moss carry their own light.
     if(mat==19)lit=base*(.82+.18*(.58+.42*key))+vec3(.1,.06,.16)*(.6+.4*sin(time*1.3+worldPosition.y*.9+worldPosition.x*.3));
     if(mat==20)lit+=vec3(.03,.02,.06)*(.6+.4*sin(time*.8+worldPosition.x*.7+worldPosition.z*.5));
@@ -325,11 +331,9 @@
     }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
     // yellow-green, leaf green, cool teal shadow), broken into leafy puffs and darker beneath the crown.
-    // Trunks run up through their crowns to the tip; where bark peeks through the leaves (high in the tree, mostly trunk
-    // tips) it is painted as deep crown interior, so forests do not freckle with bark. Below 45% of the tree's height
-    // trunks keep their bark, including a giant's long visible trunk.
+    // Map-only crown camouflage hides bark tips from above; Walk keeps the actual bark on trunks and branches.
     bool trunkInCrown=false;
-    if(isBark(mat)&&normalSize>0.){
+    if(walkView<.5&&isBark(mat)&&normalSize>0.){
       float ground=texture(normalMap,block.xz/normalSize).a*255.+groundBase,crown=max(texture(canopyMap,block.xz/normalSize).b*255.,1.),h=(block.y-ground)/crown;
       trunkInCrown=h>.45;
     }
@@ -337,11 +341,14 @@
       vec3 cn=normalize(normal);float below=0.;
       if(normalSize>0.){
         vec4 c=texture(canopyMap,block.xz/normalSize);vec2 g=c.rg*2.-1.;
-        cn=normalize(mix(vec3(g.x,sqrt(max(0.,1.-dot(g,g))),g.y),cn,.22));
+        // The heightfield describes the crown top, not the underside seen from the ground.
+        float faceWeight=walkView>.5?(normal.y<-.1?1.:.35):.22;
+        cn=normalize(mix(vec3(g.x,sqrt(max(0.,1.-dot(g,g))),g.y),cn,faceWeight));
         vec4 t=texture(normalMap,block.xz/normalSize);below=(t.a*255.+groundBase+c.b*255.-block.y)*blockSize;
       }
       vec3 w=worldPosition;float puff=meadowNoise(w.xz*.32+w.y*.25)*.75+meadowNoise(w.xz*.9-w.y*.6+3.7)*.25-.5;
       float tone=(dot(cn,SUN)*.5+.5)*mix(.55,1.,sunVis)+puff*.3-smoothstep(.6,3.5,below)*.3-(trunkInCrown?.25:0.);
+      if(walkView>.5)tone-=(1.-smoothstep(-.35,.25,normal.y))*.14;
       bool pine=isNeedle(mat)||trunkInCrown&&conifer>.5;
       // Bob Ross conifers: the crown reads as five or six stacked bough skirts, each with a sunlit top and a dark drooping
       // underside, spaced by the crown's height (from the canopy map) so small and giant trees both get layers.
@@ -357,8 +364,9 @@
         tone+=(.14*(1.-smoothstep(0.,.35,f))-.42*smoothstep(.62,.9,f))*tiers;
       }
       vec3 shadow,mid,high;crownBands(trunkInCrown?(pine?${M.MAT.needle}:${M.MAT.leaf}):mat,palette[mat],shadow,mid,high);
+      if(walkView>.5){shadow*=vec3(.92,.96,1.04);high*=vec3(1.03,1.01,.97);}
       // Broadleaf crowns get softer band edges so a crown reads as a few big lobes, not a cluster of florets.
-      float soft=pine?.03:.07;
+      float soft=pine?.03:(walkView>.5?.13:.07);
       lit=mix(mix(shadow,mid,smoothstep(.33-soft,.33+soft,tone)),mix(mid,high,.65),smoothstep(.83-soft,.83+soft,tone))*heightShade;
       // Trees on snowy ground carry snow on their upward-facing boughs and lobes (tier tops on conifers).
       float snow=normalSize>0.?texture(biomeMap,block.xz/normalSize).g:0.;
@@ -979,7 +987,7 @@
         fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nuniform float walkView, cameraPixelScale;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
         // Pattern visibility follows local projected size rather than the overhead span.
         fragmentSource=fragmentSource.replace(/(wavelength|blockSize)\/pixelWorld/g,'$1/(walkView>.5?max(.001,viewDepth*cameraPixelScale):pixelWorld)');
-        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-150.)*.007);color.rgb=mix(color.rgb,vec3(.86,.81,.7),haze);}}`;
+        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=1.-exp(-max(0.,viewDistance-18.)*.0018-max(0.,viewDistance-150.)*.006);vec3 air=mix(vec3(.76,.83,.84),vec3(.86,.81,.7),smoothstep(70.,300.,viewDistance));color.rgb=mix(color.rgb,air,haze);}}`;
       }
     }
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
