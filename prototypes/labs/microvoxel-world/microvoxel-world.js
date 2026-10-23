@@ -34,6 +34,14 @@
   const push=(list,n)=>{list.push(n);if(list.length>240)list.shift();};
   const bytes=n=>n<1048576?`${(n/1024).toFixed(1)} KiB`:`${(n/1048576).toFixed(2)} MiB`;
   const logical=()=>({x:position.cx*world.chunkMetres+position.x,z:position.cz*world.chunkMetres+position.z});
+  // Sky and fog colours follow the biomes around the view: the centre and four points 40 m out, sampled twice a second.
+  let atmosphereAt=0;
+  function atmosphere(){
+    const now=performance.now();if(!world.infinite||!renderer||now-atmosphereAt<500)return;atmosphereAt=now;
+    const q=logical(),x=q.x+camera.x,z=q.z+camera.z,biomes=[];
+    for(const [dx,dz] of [[0,0],[0,0],[40,0],[-40,0],[0,40],[0,-40]])biomes.push(world.geography(x+dx,z+dz).biome);
+    renderer.setAtmosphere(biomes);
+  }
   // The view centres on the explorer's altitude so high ground stays on screen. Discrete moves snap it; travel re-centres
   // smoothly once the ground has drifted more than 10 m from it, and never during a drag (terrain must track the pointer).
   let viewY=8,climbing=false,freshView=true;
@@ -363,6 +371,7 @@
       if(viewDirty)updateView();
       push(frameSamples,delta);if(!paused){simTime+=dt;if(!coop.update(dt,atlas.crew,atlas))atlas.update(dt);}
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
+      atmosphere();
       renderer.begin(camera,motion.matches?0:simTime,economy);
       if(world.infinite)stream.draw(now);
       for(const v of visible){
