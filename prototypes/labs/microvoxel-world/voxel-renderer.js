@@ -128,7 +128,8 @@
   uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform sampler2D normalMap, canopyMap, biomeMap, waterMap;
-  out vec4 color;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
   const vec3 SUN=normalize(vec3(-.5,1.,.4));
   float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
   // Patterns fade out before their wavelength drops under a few pixels, so they never alias into shimmer or moiré.
@@ -204,12 +205,18 @@
     // Ground under a sky isle is pre-darkened by the generator; with shadows on the isle casts its own.
     if(shaded>0&&shadowOn<.5)lit*=.6;
     // Water reads flat and bright: shade only gently, then sparkle where the sun catches it.
+    float glint=0.;
     if(mat==7&&normal.y>.5){
       lit=base*mix(.82,1.04,sunVis)*heightShade;
-      // Glints: small four-point sparkles in a sparse world grid, each blinking on its own clock.
-      vec2 q=worldPosition.xz*.9,g=floor(q),f=fract(q)-.5;float id=fract(sin(dot(g,vec2(12.9898,78.233)))*43758.5453);
-      float on=step(.97,id)*max(0.,sin(time*2.3+id*40.)),cross=max(smoothstep(.035,0.,abs(f.x))*smoothstep(.16,0.,abs(f.y)),smoothstep(.035,0.,abs(f.y))*smoothstep(.16,0.,abs(f.x)));
-      lit=mix(lit,vec3(1.,.99,.92),cross*on*smoothstep(.3,.9,waterM)*sunVis*visible(.25));
+      // Sun glints: a small moving wave normal per pixel; where a facet tilts to reflect the sun into the camera, the surface
+      // flares. The camera's reflection angle stands in for the sun direction (a true reflection would sit off-screen).
+      vec2 wp=worldPosition.xz;float t=time;
+      float h0=meadowNoise(wp*1.7+vec2(t*.6,t*.25))+.5*meadowNoise(wp*3.9-vec2(t*.4,-t*.7));
+      float hx=meadowNoise((wp+vec2(.03,0))*1.7+vec2(t*.6,t*.25))+.5*meadowNoise((wp+vec2(.03,0))*3.9-vec2(t*.4,-t*.7));
+      float hz=meadowNoise((wp+vec2(0,.03))*1.7+vec2(t*.6,t*.25))+.5*meadowNoise((wp+vec2(0,.03))*3.9-vec2(t*.4,-t*.7));
+      vec3 wn=normalize(vec3(-(hx-h0)/.03*.08,1.,-(hz-h0)/.03*.08));
+      glint=smoothstep(.99935,.99985,dot(wn,normalize(vec3(-.13,1.,-.09))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
+      lit+=vec3(1.,.96,.86)*glint*.6;
     }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny
     // yellow-green, leaf green, cool teal shadow), broken into leafy puffs and darker beneath the crown.
@@ -305,7 +312,9 @@
     }
     // Alpha marks what may carry an ink outline: flowers stay unlined (single blocks that coarsen into specks), and so
     // does a tile mid-dissolve between detail levels, whose dithered holes would otherwise ink into hatched ghosts.
+    // Alpha marks what may carry an ink outline. The second output carries sun-glint strength for the bloom.
     color=vec4(lit,mat==9||dither.x!=0.||placeholder>0.?0.:1.);
+    glowOut=vec4(glint,0,0,1);
   }`;
   // Stylized grass: an instanced clump of seven long, curved blades per tuft (x, top, z in blocks; seed). Roots take the
   // ground's meadow colour and fade to bright yellow-green tips. Wind leans the blades with a quick flutter and slow gusts
@@ -355,10 +364,12 @@
   uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
-  out vec4 color;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
   ${SUNLIGHT}
   ${MEADOW}
   void main(){
+    glowOut=vec4(0);
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
     // Root matches the ground (same field, same .86 shade); tips lift toward sunlit yellow-green, more so in a gust.
     // Anime grass: one clean gradient from the ground's colour to a bright tip, a sheen where gusts pass, and shadow as a
@@ -420,7 +431,8 @@
   uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform highp sampler2DShadow shadowMap;
-  out vec4 color;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
   const vec3 SUN=normalize(vec3(-.5,1.,.4));
   ${SUNLIGHT}
   ${MEADOW}
@@ -428,6 +440,7 @@
   // Signed distance to an upright triangle of the given size (negative inside).
   float triangle(vec2 p,float size){p/=size;p.x=abs(p.x)-1.;p.y+=.577;if(p.x+1.732*p.y>0.)p=vec2(p.x-1.732*p.y,-1.732*p.x-p.y)*.5;p.x-=clamp(p.x,-2.,0.);return -length(p)*sign(p.y)*size;}
   void main(){
+    glowOut=vec4(0);
     if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
     float r=length(uv),ang=atan(uv.y,uv.x),lobes=meadowNoise(vec2(ang*2.2+seed*40.,seed*9.))*.5+meadowNoise(uv*5.+seed*23.)*.5;
     // Outline. Broadleaf: a round clump. Conifer, by leafShape: 0 round, 1 soft triangle, 2 hard triangle, 3 round or
@@ -511,7 +524,7 @@
   void main(){vec2 p=vec2(gl_VertexID==1?3.:-1.,gl_VertexID==2?3.:-1.);gl_Position=vec4(p,0,1);}`;
   const postFragment=`#version 300 es
   precision highp float;
-  uniform sampler2D sceneColor;
+  uniform sampler2D sceneColor, sceneGlow;
   uniform highp sampler2D sceneDepth;
   uniform vec2 texel;
   uniform float depthRange, threshold, ink, width;
@@ -525,7 +538,15 @@
       float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*float(r)*width*texel;
       edge=max(edge,smoothstep(threshold,threshold*2.2,metres(uv+o)-d)*(r==1?1.:.45));
     }
-    color=vec4(mix(c,c*vec3(.46,.48,.6),edge*ink*s.a),1.);
+    // Bloom: sun glints (alpha strictly between 0 and 1) glow outward like a blown-out sensor, with a faint four-point streak.
+    float glow=0.;
+    for(int r=1;r<=4;r++)for(int i=0;i<8;i++){
+      float a=float(i)*.7854,d=float(r*r+1)*1.6*width;vec2 o=vec2(cos(a),sin(a))*d*texel;float g=texture(sceneGlow,uv+o).r;
+      glow+=g*(i==0||i==2||i==4||i==6?1.4:1.)/float(r*r+1);
+    }
+    float self=texture(sceneGlow,uv).r;
+    vec3 inked=mix(c,c*vec3(.46,.48,.6),edge*ink*s.a);
+    color=vec4(inked+vec3(1.,.95,.84)*(glow*.55+self*.5),1.);
   }`;
   // Flower props: a camera-facing card rising from the flower's root, drawn as a thin stem and a five-petal head in the
   // flower's palette colour with a warm centre; it sways with the grass wind.
@@ -557,8 +578,10 @@
   in float seed;
   flat in int flowerMat;
   uniform vec3 palette[96];
-  out vec4 color;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
   void main(){
+    glowOut=vec4(0);
     // Head centred near the top; petals as five round lobes; stem a thin line below.
     // uv.x spans the card width (-1..1), uv.y its height (0..1); one unit of y is about 1.74 of x on screen.
     vec2 p=vec2(uv.x,(uv.y-.68)*1.74);float r=length(p),a=atan(p.y,p.x)+seed*6.28;
@@ -606,8 +629,10 @@
   in float seed, heightM, head;
   flat in int stalkMat;
   uniform vec3 palette[96];
-  out vec4 color;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
   void main(){
+    glowOut=vec4(0);
     vec3 base=palette[stalkMat],c=base;bool keep=false;float x=uv.x,y=uv.y;
     if(stalkMat==${M.MAT.bamboo}){
       // Culm: slim, with node rings every ~0.4 m; leaf sprigs off the upper nodes, alternating sides.
@@ -667,8 +692,8 @@
       this.cloudVao=gl.createVertexArray();
       ({program:this.stalkProgram,u:this.su}=link(gl,stalkVertex,stalkFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
       ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
-      ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','texel','depthRange','threshold','ink','width']));
-      gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);this.postVao=gl.createVertexArray();
+      ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','sceneGlow','texel','depthRange','threshold','ink','width']));
+      gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);gl.uniform1i(this.pu.sceneGlow,7);this.postVao=gl.createVertexArray();
       // Outlines on by default; ?outlines=0 turns them off for comparison.
       this.outlines=new URLSearchParams(root.location?.search||'').get('outlines')!=='0';
       this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
@@ -782,14 +807,14 @@
     sceneTarget(){
       const gl=this.gl,w=this.canvas.width,h=this.canvas.height;let t=this.scene;
       if(t&&t.w===w&&t.h===h)return t;
-      if(t){for(const f of [t.msaa,t.resolve])gl.deleteFramebuffer(f);for(const r of [t.colorRb,t.depthRb])gl.deleteRenderbuffer(r);for(const x of [t.color,t.depth])gl.deleteTexture(x);}
+      if(t){for(const f of [t.msaa,t.resolve])gl.deleteFramebuffer(f);for(const r of [t.colorRb,t.glowRb,t.depthRb])gl.deleteRenderbuffer(r);for(const x of [t.color,t.glow,t.depth])gl.deleteTexture(x);}
       const samples=Math.min(4,gl.getParameter(gl.MAX_SAMPLES)),rb=(format)=>{const r=gl.createRenderbuffer();gl.bindRenderbuffer(gl.RENDERBUFFER,r);gl.renderbufferStorageMultisample(gl.RENDERBUFFER,samples,format,w,h);return r;};
       const tex=(format)=>{const x=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,x);gl.texStorage2D(gl.TEXTURE_2D,1,format,w,h);for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);return x;};
       gl.activeTexture(gl.TEXTURE4);
-      t={w,h,colorRb:rb(gl.RGBA8),depthRb:rb(gl.DEPTH_COMPONENT24),color:tex(gl.RGBA8),depth:tex(gl.DEPTH_COMPONENT24),msaa:gl.createFramebuffer(),resolve:gl.createFramebuffer()};
+      t={w,h,colorRb:rb(gl.RGBA8),glowRb:rb(gl.RGBA8),depthRb:rb(gl.DEPTH_COMPONENT24),color:tex(gl.RGBA8),glow:tex(gl.RGBA8),depth:tex(gl.DEPTH_COMPONENT24),msaa:gl.createFramebuffer(),resolve:gl.createFramebuffer()};
       gl.activeTexture(gl.TEXTURE0);
-      gl.bindFramebuffer(gl.FRAMEBUFFER,t.msaa);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER,t.colorRb);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,t.depthRb);
-      gl.bindFramebuffer(gl.FRAMEBUFFER,t.resolve);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t.color,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,t.depth,0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,t.msaa);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.RENDERBUFFER,t.colorRb);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT1,gl.RENDERBUFFER,t.glowRb);gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,t.depthRb);
+      gl.bindFramebuffer(gl.FRAMEBUFFER,t.resolve);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t.color,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT1,gl.TEXTURE_2D,t.glow,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,t.depth,0);
       gl.bindFramebuffer(gl.FRAMEBUFFER,null);
       return this.scene=t;
     }
@@ -819,7 +844,7 @@
       // Economy draws straight to the canvas without outlines or antialiasing.
       const ink=this.outlines&&!this.economy&&c.span<1800,scene=ink?this.sceneTarget():null;
       gl.bindFramebuffer(gl.FRAMEBUFFER,scene?scene.msaa:null);
-      gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
+      gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(scene)gl.clearBufferfv(gl.COLOR,1,[0,0,0,0]);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
       const pixel=c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);gl.uniform2f(this.u.worldOffset,...off);
       if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
@@ -859,9 +884,11 @@
       if(scene){
         const W=scene.w,H=scene.h,p=this.pu;
         gl.bindFramebuffer(gl.READ_FRAMEBUFFER,scene.msaa);gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER,scene.resolve);
-        gl.blitFramebuffer(0,0,W,H,0,0,W,H,gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT,gl.NEAREST);
+        gl.readBuffer(gl.COLOR_ATTACHMENT0);gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.NONE]);gl.blitFramebuffer(0,0,W,H,0,0,W,H,gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT,gl.NEAREST);
+        gl.readBuffer(gl.COLOR_ATTACHMENT1);gl.drawBuffers([gl.NONE,gl.COLOR_ATTACHMENT1]);gl.blitFramebuffer(0,0,W,H,0,0,W,H,gl.COLOR_BUFFER_BIT,gl.NEAREST);
+        gl.readBuffer(gl.COLOR_ATTACHMENT0);gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);
         gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,H);
-        gl.useProgram(this.postProgram);gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,scene.color);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,scene.depth);gl.activeTexture(gl.TEXTURE0);
+        gl.useProgram(this.postProgram);gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,scene.color);gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_2D,scene.depth);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,scene.glow);gl.activeTexture(gl.TEXTURE0);
         gl.uniform2f(p.texel,1/W,1/H);gl.uniform1f(p.depthRange,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
         // Lines only where the depth jumps by about a metre up close, more as the view widens (tens of metres at continent
         // view, where only cliffs and isles ink); they fade out over the widest zooms.
