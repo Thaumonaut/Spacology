@@ -105,8 +105,10 @@
   }
   // Low-poly water facets: a world-space equilateral triangle lattice (edge ~0.7 m) whose corners bob on travelling waves;
   // each triangle takes one flat normal from its three corner heights, so the surface reads as displaced facets.
-  float waveHeight(vec2 v,float t){return .055*sin(dot(v,vec2(.8,.6))*2.3+t*1.4)+.04*sin(dot(v,vec2(-.45,.89))*3.1+t*1.9+1.7)+.025*sin(dot(v,vec2(.15,-.99))*4.7+t*2.6+4.1);}
+  float waveHeight(vec2 v,float t){return .055*sin(dot(v,vec2(.8,.6))*2.3+t*.7)+.04*sin(dot(v,vec2(-.45,.89))*3.1+t*.95+1.7)+.025*sin(dot(v,vec2(.15,-.99))*4.7+t*1.3+4.1);}
   vec3 facetNormal(vec2 p,float t){
+    // A slow warp stretches and squeezes the lattice, so facets range from about half to one and a half times the edge.
+    p+=.55*vec2(sin(p.y*.9+sin(p.x*.37)*2.),sin(p.x*.8+sin(p.y*.41)*2.));
     const float E=.7;vec2 s=vec2(p.x+p.y*.57735,p.y*1.1547)/E,c=floor(s),f=fract(s);
     // Lower triangle: c, c+(1,0), c+(0,1); upper: c+(1,1), c+(1,0), c+(0,1) (lattice coordinates).
     vec2 a=f.x+f.y<1.?c:c+vec2(1,1),b=c+vec2(1,0),d=c+vec2(0,1);
@@ -223,11 +225,14 @@
     if(mat==7&&normal.y>.5){
       // Each low-poly facet shades flat: tilted toward the sun a touch brighter, away a touch darker.
       vec3 fn=facetNormal(worldPosition.xz,time);float facet=dot(fn,SUN)-dot(vec3(0,1,0),SUN);
-      lit=base*mix(.82,1.04,sunVis)*heightShade*(1.+facet*2.2*visible(.35));
+      // Facets turned away from the sun shift toward a deeper, bluer tone rather than going dark.
+      float fv=facet*visible(.35);
+      lit=base*mix(.82,1.04,sunVis)*heightShade*(1.+max(fv,0.)*2.2);
+      lit=mix(lit,lit*vec3(.8,.92,1.08),clamp(-fv*9.,0.,1.));
       // Sun glints: a small moving wave normal per pixel; where a facet tilts to reflect the sun into the camera, the surface
       // flares. The camera's reflection angle stands in for the sun direction (a true reflection would sit off-screen).
       vec2 wp=worldPosition.xz;float t=time;vec3 wn=fn;
-      glint=smoothstep(.99955,.99995,dot(wn,normalize(vec3(-.07,1.,-.05))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
+      glint=smoothstep(.99975,.99998,dot(wn,normalize(vec3(-.07,1.,-.05))))*sunVis*smoothstep(.3,.9,waterM)*visible(.15);
       lit+=vec3(1.,.96,.86)*glint*.6;
     }
     // Anime crowns: leaves light by the rounded canopy shape, not their block faces, in three flat bands (sunny

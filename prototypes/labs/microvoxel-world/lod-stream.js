@@ -5,8 +5,8 @@
   // its whole group (or finer nodes still cached), so old detail never disappears before new detail covers it. New nodes
   // dissolve in over the ones they replace; node borders carry skirts (in the mesher) to hide level seams.
   const M=root.MicroWorld,FADE=250,SAMPLES=240;
-  // Smooth-terrain comparison: ?mesh=smooth meshes the ground with Surface Nets (standing objects stay blocky).
-  const SMOOTH=new URLSearchParams(root.location?.search||'').get('mesh')==='smooth';
+  // Smooth terrain (Surface Nets for the ground, standing objects stay blocky) is the default; ?mesh=blocky compares.
+  const SMOOTH=new URLSearchParams(root.location?.search||'').get('mesh')!=='blocky';
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const percentile=(list,p)=>{if(!list.length)return 0;const s=[...list].sort((a,b)=>a-b);return s[Math.floor((s.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>SAMPLES)list.shift();};
