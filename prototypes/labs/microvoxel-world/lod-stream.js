@@ -10,12 +10,14 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const percentile=(list,p)=>{if(!list.length)return 0;const s=[...list].sort((a,b)=>a-b);return s[Math.floor((s.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>SAMPLES)list.shift();};
-  // GPU budget: WebGL cannot report device memory, so classify the device. Desktop 1 GiB; phones/tablets 512 MiB with
-  // >= 6 GB reported RAM, else 384 MiB. `?gpuMiB=` overrides; Economy uses 128 MiB.
+  // GPU budget: WebGL cannot report device memory, so classify the device. Desktop 384 MiB; phones/tablets 256 MiB with
+  // >= 6 GB reported RAM, else 192 MiB. `?gpuMiB=` overrides; Economy uses 128 MiB.
   function deviceBudgetMiB(params){
     const forced=Number(params.get('gpuMiB'));if(Number.isFinite(forced)&&forced>=2)return forced;
     const mobile=matchMedia('(pointer: coarse)').matches&&navigator.maxTouchPoints>0;
-    return mobile?(navigator.deviceMemory>=6?512:384):1024;
+    // A cache of tiles already seen; a full close view needs roughly 50 MiB, so these leave room to pan back without
+    // holding a whole session's worth of terrain.
+    return mobile?(navigator.deviceMemory>=6?256:192):384;
   }
   function create({renderer,canvas,createWorker,onFail}){
     const count=clamp((navigator.hardwareConcurrency||4)-1,1,4),workers=[];

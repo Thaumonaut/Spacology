@@ -43,6 +43,8 @@
   const ROCKS=Object.freeze(new Set([MAT.basalt,MAT.stone,MAT.gravel,...WARM_ROCKS]));
   // Flowers render as props (stem and petals), not voxels, in close views.
   const FLOWERS=Object.freeze(new Set([MAT.flower,MAT.flowerYellow,MAT.flowerViolet,MAT.glowFlower]));
+  // Thin plants drawn as objects at every zoom: bamboo culms, reeds, rushes with cattail heads, ferns and tufts.
+  const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
   const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
@@ -1860,9 +1862,9 @@
         const k=j*P+i,b=cols[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
-      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),flowers=flowerProps(L,nx,nz,dense,P,plane,base,span),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
+      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),flowers=flowerProps(L,nx,nz,dense,P,plane,base,span),stalks=stalkProps(L,nx,nz,dense,P,plane,base,span),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -1887,6 +1889,20 @@
         let low=-1,m=0;
         for(let y=base;y<base+span;y++){const k=j*plane+(y-base+1)*P+i,v=dense[k]&127;if(FLOWERS.has(v)){if(low<0){low=y;m=v;}dense[k]=0;}}
         if(low>=0)out.push(i-.5,low,j-.5,m+hash(nx*NODE+i,nz*NODE+j,seed+131)*.999);
+      }
+      return Float32Array.from(out);
+    }
+    // Stalk objects: each vertical run of a thin-plant material in a column is taken out of the mesh and listed as x, base
+    // y, z (node-local blocks), material + 0–1 seed, then height in blocks and whether a cattail head tops it.
+    function stalkProps(L,nx,nz,dense,P,plane,base,span){
+      const out=[];
+      for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
+        let start=-1,m=0,head=0;
+        for(let y=base;y<=base+span;y++){
+          const k=j*plane+(y-base+1)*P+i,v=y<base+span?dense[k]&127:0;
+          if(y<base+span&&STALKS.has(v)){if(start<0){start=y;m=v===MAT.cattail?MAT.rush:v===MAT.bambooNode?MAT.bamboo:v;head=0;}if(v===MAT.cattail)head=1;dense[k]=0;continue;}
+          if(start>=0){out.push(i-.5,start,j-.5,m+hash(nx*NODE+i,nz*NODE+j+start,seed+137)*.999,y-start,head,0,0);start=-1;}
+        }
       }
       return Float32Array.from(out);
     }
@@ -2117,6 +2133,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={STALKS,FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);
