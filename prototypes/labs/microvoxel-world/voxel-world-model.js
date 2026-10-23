@@ -2078,7 +2078,9 @@
     function waterMap(L,nx,nz,water,G){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
-        const I=i+2,J=j+2,d=water[J*G+I],o=(j*NODE+i)*4;let near=2.5*column;
+        // No shore within the two-column ring means it is further than we can see here: record it as far (4 m), so close
+        // views keep their real depth colour instead of reading as shore everywhere.
+        const I=i+2,J=j+2,d=water[J*G+I],o=(j*NODE+i)*4;let near=4;
         if(d)for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)if(!water[(J+b)*G+I+a])near=Math.min(near,Math.max(0,(Math.hypot(a,b)-.5)*column));
         const x=(x0+(i+.5)*column)/FLOW,z=(z0+(j+.5)*column)/FLOW,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b,f=[0,1].map(c=>(flowAt(a,b)[c]*(1-u)+flowAt(a+1,b)[c]*u)*(1-v)+(flowAt(a,b+1)[c]*(1-u)+flowAt(a+1,b+1)[c]*u)*v);
         out[o]=Math.min(255,Math.round(d*32));out[o+1]=d?Math.min(255,Math.round(near*64)):0;out[o+2]=Math.round(128+f[0]*127);out[o+3]=Math.round(128+f[1]*127);
