@@ -11,7 +11,7 @@
   layout(location=3) in vec3 smoothNormal;
   uniform vec3 origin, scale, localOffset, center, patternOrigin;
   uniform vec2 halfView;
-  uniform float yaw, pitch, overrideMaterial, depth, smoothMesh;
+  uniform float yaw, pitch, overrideMaterial, depth, smoothMesh, xray;
   uniform vec3 lightAt, lightHalf;
   uniform mat3 lightAxes;
   out vec3 worldPosition, localPosition;
@@ -40,6 +40,9 @@
     vec3 q=p-center;
     float forward=q.x*${SY}+q.z*${CY};
     gl_Position=vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
+    // X-ray silhouettes only for real cover: pulled 1.5 m toward the camera, a crew part shows through only where
+    // something at least that far in front hides it (never their own body, gear or the grass at their feet).
+    gl_Position.z-=xray*1.5/depth;
     #endif
   }`;
   // Shadow casters: things standing on the ground (trees, spires, stones, arches), anything above the local ground top
