@@ -1995,7 +1995,7 @@
         let cr=0;for(let i=0;i<lobes.length;i+=6)cr=Math.max(cr,Math.hypot(lobes[i]-cx,(lobes[i+1]-cy)*1.3,lobes[i+2]-cz)+lobes[i+3]);proxy=[cx,cy,cz,cr];}
       // Leaf clusters, the way anime trees are painted: each lobe breaks into many small clumps (x, y, z, size, seed)
       // spread mostly over its outer and upper surface, a few inside, with gaps between them where sky and branches show.
-      const clumps=[],tid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
+      const clumps=[],loose=[],tid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
       for(let i=0,li=0;i<lobes.length;i+=6,li++){
         const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],size=Math.max(.4,r*.3),n=20+Math.round(r*11);
         for(let k=0;k<n;k++){
@@ -2004,8 +2004,18 @@
           const yv=clamp(h1*2-1+.25,-1,1),a=h2*6.2832,rr=Math.sqrt(1-yv*yv),depth=.62+.38*Math.sqrt(h3);
           clumps.push(lx+Math.cos(a)*rr*r*depth,ly+yv*r*ys*depth,lz+Math.sin(a)*rr*r*depth,size*(.75+.5*hash(k,tid,seed+927)),lobes[i+5],hash(k,tid+li,seed+929));
         }
+        // Loose leaves: single small leaves just outside the surface, mostly round the upper rim, so the outline breaks
+        // up. Bushes carry many, tree lobes a few.
+        const nl=t.kind==='bush'?6+Math.round(r*14):2+Math.round(r*2);
+        for(let k=0;k<nl;k++){
+          const h1=hash(k,tid+li*137,seed+931),h2=hash(k,tid+li*137,seed+933),h3=hash(k,tid+li*137,seed+935);
+          const yv=clamp(h1*1.6-.45,-1,1),a=h2*6.2832,rr=Math.sqrt(1-yv*yv),depth=1.02+.22*h3;
+          loose.push(lx+Math.cos(a)*rr*r*depth,ly+yv*r*ys*depth,lz+Math.sin(a)*rr*r*depth,.13+.09*hash(k,tid,seed+937),lobes[i+5],hash(k,tid+li,seed+939));
+        }
       }
-      P={segs,lobes,tiers,crown:proxy,clumps};partsCache.set(t,P);return P;
+      // Forced contact shadow (x, ground y, z, radius in metres): a painted dark pool where the plant meets the ground.
+      const M0=cellMetres,contact=t.kind==='bush'?[t.x,t.base*M0,t.z,Math.max(...t.lumps.map(l=>Math.hypot(l.x-t.x,l.z-t.z)+l.r))*1.15]:[t.x,t.base*M0,t.z,(t.trunk||1)*M0*3.2+.4];
+      P={segs,lobes,tiers,crown:proxy,clumps,loose,contact};partsCache.set(t,P);return P;
     }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
     function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
@@ -2551,7 +2561,7 @@
     const TREE_OBJECT_LEVEL=3,underBushes=new WeakMap();
     function underBush(t){let b=underBushes.get(t);if(!b){b={kind:'bush',x:t.under[0].x,z:t.under[0].z,base:t.base,lumps:t.under,leaf:t.underLeaf||MAT.bushLeaf};underBushes.set(t,b);}return b;}
     function treeObjectsIn(L,nx,nz,canopy,grounds,G){
-      const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,segs=[],lobes=[],tiers=[];
+      const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,segs=[],lobes=[],tiers=[],shadows=[];
       const raise=(cx,cz,r,topM)=>{const tb=Math.ceil(topM/blockM);
         const i0=Math.max(0,Math.floor((cx-r-x0)/blockM)+2),i1=Math.min(G-1,Math.ceil((cx+r-x0)/blockM)+2),j0=Math.max(0,Math.floor((cz-r-z0)/blockM)+2),j1=Math.min(G-1,Math.ceil((cz+r-z0)/blockM)+2);
         for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const px=x0+(i-2+.5)*blockM,pz=z0+(j-2+.5)*blockM;if(Math.hypot(px-cx,pz-cz)<r){const k=j*G+i;if(tb>canopy[k])canopy[k]=tb;}}};
@@ -2564,12 +2574,15 @@
         const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+(t===t0?901:903));
         for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys]=P.lobes.slice(i,i+5);raise(x,z,r,y+r*ys*.85);}
         if(own&&P.crown){const C=P.crown,keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
-          for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}}
+          for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}
+          // Loose leaves only where a single leaf can be seen (the two finest levels); kind 1 in the lobe record.
+          if(L<=1)for(let i=0;i<P.loose.length;i+=6){const [x,y,z,sz,mat,sdc]=P.loose.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz,1,mat,sdc,1,C[0]-x0,C[1],C[2]-z0,C[3]);}}
+        if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
         for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }
-      return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers)};
+      return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers),treeShadows:Float32Array.from(shadows)};
     }
     // Giant sequoia crowns as bough skirts, from the hero tree's tier data: one record per tier, in node-local metres:
     // crown centre x, z, tier top, tier bottom; radius at the bottom, radius at the top (stepped in), seed. Listed by the

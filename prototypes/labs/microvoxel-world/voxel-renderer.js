@@ -1312,9 +1312,10 @@
   flat out int mat;
   flat out vec3 tintBase;
   flat out vec4 crownKey;
+  flat out float kind;
   ${BIOME_TINT}
   void main(){
-    mat=int(b.y);seed=b.z;rad=a.w;crown=vec4(origin+crownIn.xyz,crownIn.w);
+    mat=int(b.y);seed=b.z;rad=a.w;kind=b.w;crown=vec4(origin+crownIn.xyz,crownIn.w);
     // Biome colours, as for the voxel crowns and bushes: bush leaves take the undergrowth palette; plain green crowns
     // follow rose and violet biomes, one tone per plant (keyed by the crown's centre).
     vec2 blk=crownIn.xz/max(blockScale,.001);tintBase=palette[mat];crownKey=vec4(0);
@@ -1365,6 +1366,7 @@
   flat in int mat;
   flat in vec3 tintBase;
   flat in vec4 crownKey;
+  flat in float kind;
   uniform vec3 palette[96], lightHalf, lightAt;
   uniform mat3 lightAxes;
   uniform mat4 viewProj;
@@ -1383,7 +1385,13 @@
   void main(){
     glowOut=vec4(0);
     if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
-    float leaf,leafGap,leafSide,d=length(q),e=1.;float inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);if(inside<=0.)discard;d=min(d,.99);
+    float leaf,leafGap,leafSide,d=length(q),e=1.,inside;
+    if(kind>.5){
+      // A loose leaf: one pointed leaf at a hashed angle, split into a lit and a shaded half.
+      float b=seed*6.2832;vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x);float al=dot(q,u),ac=dot(q,w);
+      inside=.85*(1.-al*al)-abs(ac)*2.4-.12;leaf=floor(seed*8.);leafGap=1.;leafSide=clamp(ac*3.,-1.,1.);
+    }else inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);
+    if(inside<=0.)discard;d=min(d,.99);
     // The rounded surface behind this point of the quad, and its depth.
     float z=sqrt(max(0.,1.-(d*d)/(e*e)));vec3 nv=normalize(vec3(q.x,q.y,z*.9));
     vec3 n=normalize(ax*nv.x+ay*nv.y+az*nv.z),p=centre+(ax*q.x+ay*q.y+az*z*.9)*rad;
@@ -1405,7 +1413,10 @@
     float lh=leaf<0.?.5:fract(sin(seed*37.3+leaf*7.7)*4375.5),facing=dot(normalize(ax*1.+ay*.6),SUN)>0.?1.:-1.;
     float leafTone=leaf<0.?-.1:(lh-.5)*.16+leafSide*facing*.07-(1.-smoothstep(.0,.035,leafGap))*.14-(1.-smoothstep(0.,.05,inside))*.06;
     float own=q.y*.1+leafTone;
-    float tone=wrap*mix(.5,1.,sun)+own+(leafId-.5)*.08-gap*.08-occl*1.3;
+    // Forced shadow, painted rather than lit: below a wavy line through the lower third of the plant, and in its core,
+    // the clusters drop into a flat darker band with a crisp edge.
+    float forced=step(k.y+.08*sin(k.x*9.+k.z*7.),-.3)*.22+step(inner,.45)*.12;
+    float tone=wrap*mix(.5,1.,sun)+own+(leafId-.5)*.08-gap*.08-occl*1.3-forced;
     vec3 shadow,mid,high;crownBands(mat,tintBase,shadow,mid,high);
     if(crownKey.a>0.){shadow=biomeTint(shadow,crownKey.rgb,crownKey.a);mid=biomeTint(mid,crownKey.rgb,crownKey.a);high=biomeTint(high,crownKey.rgb,crownKey.a);}
     // Anime hue shift: shade cools toward teal-blue, light warms toward yellow-green.
@@ -1426,6 +1437,34 @@
   flat in int mat;
   ${LOBE_SHAPE}
   void main(){if(length(q)>lobeEdge(q,seed))discard;}`;
+  // Forced contact shadows: a flat, scalloped dark pool under each plant (a.xyz ground centre, a.w radius), multiplied
+  // over what is already drawn, darkest at the stem and softening to its painted edge.
+  const pondVertex=`#version 300 es
+  precision highp float;
+  layout(location=0) in vec2 corner;
+  layout(location=1) in vec4 a;
+  uniform vec3 origin, center;
+  uniform vec2 halfView;
+  uniform float depth;
+  out vec2 q;
+  out float seed;
+  void main(){
+    q=corner;seed=fract(a.x*.37+a.z*.71);
+    vec3 p=origin+a.xyz+vec3(corner.x*a.w,.06,corner.y*a.w);
+    gl_Position=toClip(p);
+  }`;
+  const pondFragment=`#version 300 es
+  precision highp float;
+  in vec2 q;
+  in float seed;
+  uniform vec2 dither;
+  layout(location=0) out vec4 color;
+  layout(location=1) out vec4 glowOut;
+  void main(){
+    float a=atan(q.y,q.x),edge=.86+.06*sin(a*6.+seed*30.)+.04*sin(a*11.+seed*9.),d=length(q)/edge;if(d>1.)discard;
+    float k=mix(.62,.86,smoothstep(.35,1.,d));
+    color=vec4(vec3(k)*vec3(.94,.97,1.04),1.);glowOut=vec4(1);
+  }`;
   const objectCaster=`#version 300 es
   precision highp float;
   void main(){}`;
@@ -1528,6 +1567,7 @@
       ({program:this.tubeProgram,u:this.tu}=link(gl,tubeVertex(false),tubeFragment,OBJ));
       ({program:this.lobeProgram,u:this.lou}=link(gl,lobeVertex(false),lobeFragment,OBJ));
       ({program:this.tubeCaster,u:this.tuc}=link(gl,tubeVertex(true),objectCaster,OBJ));
+      ({program:this.pondProgram,u:this.pu2}=link(gl,pondVertex,pondFragment,['origin','center','halfView','depth','dither']));
       ({program:this.lobeCaster,u:this.louc}=link(gl,lobeVertex(true),lobeCasterFragment,OBJ));
       ({program:this.skirtCaster,u:this.kuc}=link(gl,skirtVertex(true),objectCaster,OBJ));
       for(const [p,u] of [[this.tubeProgram,this.tu],[this.lobeProgram,this.lou]]){gl.useProgram(p);gl.uniform1i(u.shadowMap,1);gl.uniform1f(u.blockSize,.3);gl.uniform1i(u.biomeMap,3);}
@@ -1596,7 +1636,7 @@
       const rb=mesh.base||0,rm=rb*(mesh.column||0),shift=(a,stride,k,v)=>{if(a?.length&&v)for(let i=k;i<a.length;i+=stride)a[i]-=v;};
       shift(mesh.grass,4,1,rb);shift(mesh.flowers,4,1,rb);shift(mesh.leaves,8,1,rb);shift(mesh.stalks,8,1,rb);
       shift(mesh.skirts,8,2,rm);shift(mesh.skirts,8,3,rm);shift(mesh.fronds,8,1,rm);shift(mesh.mushrooms,8,1,rm);
-      shift(mesh.treeSegs,12,1,rm);shift(mesh.treeSegs,12,5,rm);shift(mesh.treeLobes,12,1,rm);shift(mesh.treeLobes,12,9,rm);shift(mesh.treeTiers,8,2,rm);shift(mesh.treeTiers,8,3,rm);
+      shift(mesh.treeSegs,12,1,rm);shift(mesh.treeSegs,12,5,rm);shift(mesh.treeLobes,12,1,rm);shift(mesh.treeLobes,12,9,rm);shift(mesh.treeTiers,8,2,rm);shift(mesh.treeTiers,8,3,rm);shift(mesh.treeShadows,4,1,rm);
       return {rb,rm};
     }
     upload(mesh){const gl=this.gl;let out;const {rb,rm}=mesh.slices?this.rebaseProps(mesh):{rb:0,rm:0};
@@ -1662,6 +1702,7 @@
         if(feet.length)out.treeSegs=instanced(pick(feet),this.tubeGeom,2,3);if(limbs.length)out.treeLimbs=instanced(pick(limbs),this.limbGeom,2,3);
       }
       if(mesh.treeLobes?.length){out.treeLobes=instanced(mesh.treeLobes,this.lobeGeom,2,3);for(let k=0;k<mesh.treeLobes.length;k+=12)treeTop=Math.max(treeTop,mesh.treeLobes[k+1]+mesh.treeLobes[k+3]*mesh.treeLobes[k+4]*1.3);}
+      if(mesh.treeShadows?.length)out.treeShadows=instanced(mesh.treeShadows,this.lobeGeom,2,1);
       if(mesh.treeTiers?.length){out.treeTiers=instanced(mesh.treeTiers,this.tierGeom,3,2);for(let k=0;k<mesh.treeTiers.length;k+=8)treeTop=Math.max(treeTop,mesh.treeTiers[k+2]);}
       if(treeTop){out.frondTop=Math.max(out.frondTop||0,treeTop+rm);if(mesh.column)out.top=Math.max(out.top,Math.ceil((treeTop+rm)/mesh.column)-(out.slices?0:0));}
       if(mesh.skirts?.length){
@@ -1724,7 +1765,7 @@
     // Quarters of the next drawn node to skip (finished finer nodes cover them); a masked stand-in draws ground only.
     mask(bits){this.maskBits=bits||0;}
     disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);gl.deleteVertexArray(g.smooth.vao);}}
-    dispose(mesh){for(const k of ['treeSegs','treeLimbs','treeLobes','treeTiers'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
+    dispose(mesh){for(const k of ['treeSegs','treeLimbs','treeLobes','treeTiers','treeShadows'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     // Biomes around the view (names; repeats weight a biome); the atmosphere eases toward their average.
     setAtmosphere(biomes){
@@ -1745,7 +1786,7 @@
       for(let i=0;i<4;i++)v.viewProj[12+i]+=yb*this.view.viewProj[4+i];
       // Layer base in the GPU's explorer-relative height (like the eye); the bank noise adds yBase back so it stays put.
       const layer=v.ortho?[(c.y??8)-4-yb,10]:[(c.eyeY??c.y??8)-2.1-yb,6];
-      for(const [program,u] of [[this.tubeProgram,this.tu],[this.lobeProgram,this.lou],[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
+      for(const [program,u] of [[this.pondProgram,this.pu2],[this.tubeProgram,this.tu],[this.lobeProgram,this.lou],[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
         gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
       }
@@ -1873,6 +1914,12 @@
       // Close-zoom tones apply per tile, only where that tile really carries leaf cards or grass blades: a coarse
       // placeholder shown while finer tiles load keeps the far-zoom colours instead of dark, bladeless grass and boxy crowns.
       for(const d of this.queue){if(c.mode==='walk'&&!this.onScreen(d))continue;gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);gl.uniform1f(this.u.placeholder,d.flat?1:0);gl.uniform1f(this.u.cards,d.mesh.leaves?grow:0);gl.uniform1f(this.u.grassGrow,d.mesh.grass?grow:0);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
+      if(this.queue.some(d=>d.mesh.treeShadows)){
+        const g=this.pu2;gl.useProgram(this.pondProgram);gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
+        gl.enable(gl.BLEND);gl.blendFunc(gl.DST_COLOR,gl.ZERO);gl.depthMask(false);gl.disable(gl.CULL_FACE);
+        for(const d of this.queue){const t=d.mesh.treeShadows;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,[d.origin[0],d.origin[1]+(d.mesh.propMetres||0)-(this.yBase||0),d.origin[2]]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);}
+        gl.disable(gl.BLEND);gl.depthMask(true);gl.enable(gl.CULL_FACE);gl.bindVertexArray(null);
+      }
       if(grow>0&&this.queue.some(d=>d.mesh.grass)){
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
         gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
