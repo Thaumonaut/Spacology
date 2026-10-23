@@ -2129,7 +2129,8 @@
     // The voxel data is unchanged; only the mesh differs. Samples are block centres (dense index i, block coordinate i-0.5);
     // each cell between eight samples with a solid/air change gets one vertex at the mean of its crossing edges, lightly
     // relaxed toward its neighbours. A node owns the edges whose lower sample is inside it, so neighbours never double up.
-    const isTerrain=m=>m&&!ABOVE_GROUND.has(m&127);
+    // Rock objects (boulders, chips, stone) are smoothed with the ground, so mountains do not mix blobs and cubes.
+    const isTerrain=m=>m&&(!ABOVE_GROUND.has(m&127)||ROCKS.has(m&127)||(m&127)===MAT.stone);
     function objectsOnly(dense){const out=new Uint8Array(dense.length);for(let k=0;k<dense.length;k++){const m=dense[k];out[k]=isTerrain(m)?0:m;}return out;}
     function surfaceNets(cols,tops,grounds,G,P,base){
       // Height range covers every sampled column, halo included, so a taller neighbour is never cut off at the seam.
