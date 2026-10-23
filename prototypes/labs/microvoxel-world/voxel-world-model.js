@@ -932,6 +932,18 @@
       }
       return out;
     }
+    // Palms as objects (metres): trunk base and lean, crown point, and per-frond yaw/pitch/droop/length for authored meshes.
+    function palmsNear(x,z,radius=12){
+      if(!infinite)return [];const out=[];
+      for(let gz=Math.floor((z-radius-4)/TG);gz<=Math.floor((z+radius+4)/TG);gz++)for(let gx=Math.floor((x-radius-4)/TG);gx<=Math.floor((x+radius+4)/TG);gx++){
+        const t=tree(gx,gz);if(!t||t.species!=='palm'||Math.hypot(t.x-x,t.z-z)>radius+3)continue;
+        const H=t.height*cellMetres,b=t.base*cellMetres;
+        out.push({x:t.x,z:t.z,base:b,height:H,lean:[t.lx,t.lz],crownTop:[t.x+t.lx,b+H,t.z+t.lz],
+          fronds:t.fronds.map(f=>({yaw:f.yaw,pitch:Math.atan(f.rise),droop:f.droop,length:f.length})),
+          young:t.young.map(f=>({yaw:f.yaw,pitch:Math.atan(1.6),length:f.length})),coconuts:!!t.coconuts,leaf:t.leaf,bark:t.bark});
+      }
+      return out;
+    }
     function bouldersNear(x,z,radius=12){
       const out=[];
       for(let j=Math.floor((z-radius-6)/BG);j<=Math.floor((z+radius+6)/BG);j++)for(let i=Math.floor((x-radius-6)/BG);i<=Math.floor((x+radius+6)/BG);i++){
@@ -1313,8 +1325,13 @@
       if(P.crown==='palm'){
         // Crown offset by a gentle lean (toward the water on banks); 7-9 fronds, evenly spread with a little jitter.
         const a=o.lean??hash(gx,gz,seed+99)*Math.PI*2,L=Math.min(1,hm*.12)*(.4+.6*hash(gx,gz,seed+101)),n=7+Math.floor(hash(gx,gz,seed+141)*3),a0=hash(gx,gz,seed+143)*6.28;
-        t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;t.frond=Math.min(2.4,rm);t.fronds=[];
-        for(let i=0;i<n;i++){const b=a0+i*6.2832/n+(hash(i,gx*3+gz,seed+145)-.5)*.5;t.fronds.push(Math.cos(b),Math.sin(b),.7+.3*hash(i,gz*3+gx,seed+147));}
+        // Each frond: yaw, length 2-3.5 m, rise (initial upward slope) and droop; alternate fronds sit lower and droop more.
+        // Two or three short young fronds point up from the centre.
+        t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;t.fronds=[];t.young=[];
+        for(let i=0;i<n;i++){const b=a0+i*6.2832/n+(hash(i,gx*3+gz,seed+145)-.5)*.5,low=i%2===1,len=2+1.5*hash(i,gz*3+gx,seed+147);
+          t.fronds.push({yaw:b,ux:Math.cos(b),uz:Math.sin(b),length:len,rise:low?.35:.75+.25*hash(i,gx,seed+149),droop:low?1.25:.9+.2*hash(i,gz,seed+151)});}
+        for(let i=0;i<2+Math.floor(hash(gx,gz,seed+153)*2);i++){const b=a0+i*2.4;t.young.push({yaw:b,ux:Math.cos(b),uz:Math.sin(b),length:.9+.4*hash(i,gx,seed+155)});}
+        t.frond=Math.max(...t.fronds.map(f=>f.length));t.coconuts=hash(gx,gz,seed+157)<.6;
         top+=2*density;
       }
       // Riverside jungle trees trail vines from their crowns.
@@ -1522,15 +1539,19 @@
         const f=(y-t.base)/t.height,cx=t.x+t.lx*f*f,cz=t.z+t.lz*f*f;
         if(Math.hypot((x-cx)/cellMetres,(z-cz)/cellMetres)<trunk*(1.2-.35*f))values[y]=(y-t.base)%3===2?MAT.bark:bark;
       }
-      if(d>=F)return t.top;
-      if(d<.4){for(let y=top-density;y<Math.min(heightCells,top+density);y++)if(!values[y])values[y]=d<.2&&y<top?MAT.palmBark:leaf;}
-      const fr=t.fronds;
-      for(let i=0;i<fr.length;i+=3){
-        const ux=fr[i],uz=fr[i+1],L=F*fr[i+2],along=dx*ux+dz*uz;if(along<=0||along>=L)continue;
-        const u=along/L,perp=Math.abs(dx*uz-dz*ux);if(perp>=.08+.34*Math.sin(Math.PI*Math.min(1,u*1.25)))continue;
-        const y=top+Math.round(L*(.38*u-1.05*u*u)/cellMetres);
-        for(let k=y;k<Math.min(heightCells,y+(perp<.12&&u<.6?2:1)*density);k++)if(k>t.base&&!values[k])values[k]=leaf;
-      }
+      if(d>=F||propsMode)return propsMode?top:t.top;
+      if(d<.3){for(let y=top-density;y<Math.min(heightCells,top+density);y++)if(!values[y])values[y]=d<.2&&y<top?MAT.palmBark:leaf;}
+      // Coconuts: a small cluster just under the crown.
+      if(t.coconuts&&d<.45&&d>.15){const y=top-2*density;for(let k=y;k<y+density;k++)if(!values[k])values[k]=MAT.palmBark;}
+      // Fronds as thin arched strokes (1-2 voxels): up and out, then drooping; a stroke keeps the starburst from afar.
+      const stroke=(f,rise,droop,thick)=>{
+        const along=dx*f.ux+dz*f.uz;if(along<=0||along>=f.length)return;
+        const u=along/f.length,perp=Math.abs(dx*f.uz-dz*f.ux);if(perp>=thick*(1-.5*u))return;
+        const y=top+Math.round(f.length*(rise*u-droop*u*u)/cellMetres);
+        for(let k=y;k<Math.min(heightCells,y+density);k++)if(k>t.base&&!values[k])values[k]=leaf;
+      };
+      for(const f of t.fronds)stroke(f,f.rise,f.droop,.2);
+      for(const f of t.young)stroke(f,1.6,.4,.14);
       return t.top;
     }
     // Weeping willow: a low dome whose outer ring hangs in curtains of strands to near the ground (gaps between strands at
@@ -2169,7 +2190,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
