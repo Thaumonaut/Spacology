@@ -15,12 +15,19 @@
     //                 cell), lilyFlower 83 (bloom on a pad)
     //   BLADE_GRASS:  floodgrass 84 (lush floodplain / oasis grass)
     //   ground (no set): cobble 85 (rocky river beds and banks in fast reaches)
-    willowLeaf:75,vine:76,palmLeaf:77,alderLeaf:78,palmBark:79,rush:80,cattail:81,lilyPad:82,lilyFlower:83,floodgrass:84,cobble:85});
+    willowLeaf:75,vine:76,palmLeaf:77,alderLeaf:78,palmBark:79,rush:80,cattail:81,lilyPad:82,lilyFlower:83,floodgrass:84,cobble:85,
+    // ---- Mountain rock materials (appended; never renumber). Renderer family sets, to add at merge:
+    //   ROCKS:        rockDark 86, rockPale 87 (strata tones of mountain rock), lichen 89 (grey-green lichen on rock)
+    //   WARM_ROCKS:   rockWarm 88 (warm brown-grey stratum), lichenOrange 90 (rust lichen on rock)
+    //   ABOVE_GROUND: boulder 91, boulderPale 92 (boulders, tors and loose stones)
+    rockDark:86,rockPale:87,rockWarm:88,lichen:89,lichenOrange:90,boulder:91,boulderPale:92});
   const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
     '#e9e4d8','#a3c86a','#a9b552','#5c9a52','#b6c46a','#78b24c','#b88ae6','#f6eefa','#f28b6e','#4e8d45','#98b862','#d9473b','#f1e6cc','#71dcff','#a3a45c','#f4d04e','#a483e6','#5e9a5a','#8aa24c','#e0a93c','#45403c','#7d8f3e',
     '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd','#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#bf6a43','#dda067','#e2c27f','#4f7f3f',
     // Riparian (75-85): willow, vine, palm frond, alder, palm bark, rush, cattail head, lily pad, lily flower, floodgrass, cobble.
-    '#9fc65a','#3d7a3c','#5fae4a','#4a8048','#a07d55','#6f9f45','#7b4a2b','#5b9e4c','#f7c4dc','#5fb35a','#8f938e']);
+    '#9fc65a','#3d7a3c','#5fae4a','#4a8048','#a07d55','#6f9f45','#7b4a2b','#5b9e4c','#f7c4dc','#5fb35a','#8f938e',
+    // Mountain rock (86-92): dark, pale and warm strata, grey-green and rust lichen, boulder, pale boulder.
+    '#5f6a7c','#8a919d','#83776b','#8a9470','#a8845e','#8b8a88','#a4a29c']);
   // Display names for streamed biome ids (atlas hexes, ground inspection). 'Desert' is matched by coop-session.js.
   const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
     flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
@@ -173,16 +180,26 @@
     // Mountains zone by temperature: montane conifer forest, subalpine parkland, green alpine meadow, then rock and snow.
     // Snow holds only on ground gentler than a limit that rises as it gets colder (steeper cold ground is bare rock), and
     // it lies lower in gullies than on spurs, so the snowline runs down creases in tongues instead of following a contour.
-    // zone.slope / zone.crease: the mountain slope and erosion crease of the current column, set by geography().
+    // zone.slope / zone.crease / zone.hollow / zone.spur: the mountain slope, erosion crease, depth below the broad landform
+    // (m, + in hollows) and erosion spur of the current column, set by geography(). zone.x / zone.z: the column.
     // R: lowland region values for the column (see region()): V/U pick among same-climate biomes, A is aridity (desert and
     // badlands only inside the few large arid basins), j* are small per-column jitters so lowland borders are ragged, not contours.
-    const zone={slope:0,crease:0};
+    const zone={slope:0,crease:0,hollow:0,spur:0,x:0,z:0};
     function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,R=null){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
-        const snowT=T-2.2*zone.crease;
-        if(snowT<-3&&zone.slope<.7+.12*clamp(-3-snowT,0,5))return 'snow';
-        if(snowT<-3||cliff&&T<2)return 'alpine';
+        // Snow gathers where wind and avalanches drop it: in hollows, gullies, cirques and cols (a little lower there).
+        // Peaks, ridge crests, arêtes and spurs that stand out of the broad landform blow bare; only gentle ledges on them
+        // keep thin patches. Below the snowline nothing changes.
+        const hollow=zone.hollow,snowT=T-2.2*zone.crease,deep=.12*clamp(hollow,0,6);
+        const gentle=zone.slope<.7+.12*clamp(-3-snowT+deep,0,5)+.15*clamp(hollow/4,0,1)+.55*zone.crease;
+        if(snowT>=-3&&snowT-deep<-3&&gentle)return 'snow';
+        if(snowT<-3){
+          const j=noise(zone.x*.11,zone.z*.11,seed+801)-.5,crest=clamp((-hollow-1.2+j*3)/3,0,1)+clamp((zone.spur-.35+j*.5)/.4,0,1);
+          if(crest<.5)return gentle?'snow':'alpine';
+          return zone.slope<.32&&snowT<-5&&noise(zone.x*.3,zone.z*.3,seed+803)>.62?'snow':'alpine';
+        }
+        if(cliff&&T<2)return 'alpine';
         if(T<-1)return 'meadow';
         if(T<1.5)return 'subalpine';
         if(T<16&&M>.15&&!(wet&&M>.5))return 'montane';
@@ -764,21 +781,103 @@
       rocks.set(k,v);if(rocks.size>4096)rocks.delete(rocks.keys().next().value);return v;
     }
     const rockNear=(x,z)=>rockCell(Math.floor(x/KG),Math.floor(z/KG));
-    // Boulders: one candidate per 9 m cell. Common on mountain foothills and moraine ground below glaciers (relief),
-    // rare lone erratics elsewhere. Lumpy ellipsoids 0.8-2.5 m half-size, half sunk, sometimes with a smaller companion.
+    // Boulders: one candidate cell per 9 m. Lowlands keep rare lone erratics (and a few on tundra and alpine meadow); on
+    // mountains boulders are everywhere but snow and ice: clusters of two to five in falling sizes (0.5-3 m across) on rock
+    // slopes, denser smaller rubble on talus and scree, clusters on alpine meadows and moraine ground, few in montane
+    // forest, and tors (stacked blocks, the upper ones perched) on ridge crests and peaks. Boulders sit on the ground with
+    // only their foot embedded; a small one may rest on a bigger one.
     const BG=9,boulders=new Map();
+    // A rock block: rounded-angular, wider than tall (about 1.2-1.6 : 1) with a flatter top, undercut toward its foot so
+    // it is widest a little above the ground and a shadow line wraps its base. In a frame scaled by (r, ry, r): the
+    // intersection of a near-level top facet, six random half-spaces, a slightly larger ellipsoid and an inverted cone
+    // (the undercut). The block spans about -0.85 (foot) to 0.65 (top) in that frame. rest: grounded, so its foot reaches
+    // the ground. cap: material for top faces (moss or snow), or 0. rot: yaw of its first side facet.
+    function rockShape(x,z,y,r,ry,k,mat,cap,rest=true){
+      const P=new Float32Array(28);
+      for(let n=0;n<7;n++){const a=hash(n,k,seed+591)*TAU,e=n?hash(n,k,seed+593)*1-.2:1.35+.2*hash(n,k,seed+593),c=Math.cos(e);
+        P[n*4]=Math.cos(a)*c;P[n*4+1]=Math.sin(e);P[n*4+2]=Math.sin(a)*c;P[n*4+3]=n?.78+.17*hash(n,k,seed+595):.58+.12*hash(n,k,seed+595);}
+      return {x,z,y,r,ry,P,mat,cap,rest,rot:hash(1,k,seed+591)*TAU,k};
+    }
+    // Vertical span [lo, hi] (m) of a rock block in the column at (x, z), or null. jit (0-1, per column) nudges the faces
+    // for one-block surface roughness. Also sets spanFoot: the column is near the block's centre (where it meets the ground).
+    const span=[0,0];let spanFoot=false;
+    function rockSpan(q,x,z,jit){
+      const u=(x-q.x)/q.r,v=(z-q.z)/q.r,d2=u*u+v*v;if(d2>=1.3)return null;
+      const P=q.P,f=1+(jit-.5)*.12,dn=Math.sqrt(d2);let hi=Math.sqrt(1.3-d2),lo=Math.max(-hi,-.85+1.05*dn*Math.sqrt(dn));
+      for(let i=0;i<28;i+=4){const ny=P[i+1],R=P[i+3]*f-P[i]*u-P[i+2]*v;
+        if(ny>.02)hi=Math.min(hi,R/ny);else if(ny<-.02)lo=Math.max(lo,R/ny);else if(R<0)return null;}
+      if(hi<=lo)return null;span[0]=q.y+lo*q.ry;span[1]=q.y+hi*q.ry;spanFoot=dn<.45;return span;
+    }
+    const BOULDER_MEADOW=new Set(['meadow','tundra','subalpine']);
+    // Centre height for a block of half-height ry resting on ground g (m): about 15% of its height embedded, a little
+    // deeper on slopes so the uphill side beds in.
+    const restY=(ground,r,ry,slope)=>ground+.63*ry-Math.min(slope,1.5)*r*.2;
     function boulderCell(i,j){
       const k=i*1048576+j;if(boulders.has(k))return boulders.get(k);let v=null;const p=hash(i,j,seed+551);
-      if(p<.2){
-        const x=(i+.2+.6*hash(i,j,seed+553))*BG,z=(j+.2+.6*hash(i,j,seed+555))*BG,g=geography(x,z);
-        const chance=g.sea||g.wet||g.water>g.height||g.gorge||g.highland||g.slope>1.1||g.biome==='snow'||g.glacier||Math.hypot(x,z)<30?0:g.relief>15?.2:['meadow','tundra','subalpine'].includes(g.biome)?.1:.006;
-        if(p<chance){
-          const big=g.relief>15?1:.7,r=(.8+1.7*hash(i,j,seed+557)**2)*big,list=[{x,z,r,ry:r*(.6+.25*hash(i,j,seed+559)),y:g.height*cellMetres-r*.25}];
-          if(hash(i,j,seed+561)<.4){const a=hash(i,j,seed+563)*Math.PI*2,o=r+.4,cx=x+Math.cos(a)*o,cz=z+Math.sin(a)*o,cr=r*.45;list.push({x:cx,z:cz,r:cr,ry:cr*.7,y:geography(cx,cz).height*cellMetres-cr*.25});}
-          v={x,z,list,reach:r*2+1};
+      const x=(i+.2+.6*hash(i,j,seed+553))*BG,z=(j+.2+.6*hash(i,j,seed+555))*BG;
+      let mtn=false;if(p>=.2){const t=tectonics(x,z);mtn=t.relief>15||t.cone>20;}
+      if(p<.2||mtn){
+        const g=geography(x,z),bad=G=>G.sea||G.wet||G.water>G.height||G.gorge||G.highland||G.biome==='snow'||G.glacier||G.iceCells>0;
+        const tone=b=>{const t=hash(b,k,seed+575);return t<.6?MAT.boulder:MAT.boulderPale;};
+        const capOf=G=>G.temperature<-6?MAT.snow:G.temperature>-1&&!G.exposed&&G.biome!=='alpine'?MAT.mossy:0;
+        mtn=g.relief>15||g.cone>20;
+        if(!mtn){
+          // Lone erratics (with an occasional smaller companion).
+          const chance=bad(g)||g.slope>1.1||Math.hypot(x,z)<30?0:BOULDER_MEADOW.has(g.biome)?.1:.006;
+          if(p<chance){
+            const r=.4+.9*hash(i,j,seed+557)**2,ry=r*(1+.25*hash(i,j,seed+559)),list=[rockShape(x,z,restY(g.height*cellMetres,r,ry,g.slope),r,ry,k,tone(0),capOf(g))];
+            if(hash(i,j,seed+561)<.4){const a=hash(i,j,seed+563)*TAU,o=r+.3,cx=x+Math.cos(a)*o,cz=z+Math.sin(a)*o,cr=r*.5,G=geography(cx,cz);list.push(rockShape(cx,cz,restY(G.height*cellMetres,cr,cr*.9,G.slope),cr,cr*.9,k+7,tone(1),capOf(G)));}
+            v={x,z,list,reach:r*2.5+1};
+          }
+        }else if(!bad(g)&&g.slope<1.9){
+          const q=hash(i,j,seed+557),rock=g.exposed||g.biome==='alpine',talus=rock&&g.slope>.45&&g.slope<1.15&&g.spur<-.25||!rock&&g.slope>.9;
+          const tor=(rock||BOULDER_MEADOW.has(g.biome))&&g.slope<.8&&(g.spur>.75||g.hollow<-5)&&q<.45,m=hash(i,j,seed+561);
+          // Clusters in this cell and blocks per cluster.
+          const clusters=tor?1:talus?(q<.9?2:0):rock?(q<.8?1+(m<.4):0):BOULDER_MEADOW.has(g.biome)?(q<.6?1:0):q<.3?1:0;
+          const list=[];let reach=0;
+          const add=(o)=>{list.push(o);reach=Math.max(reach,Math.hypot(o.x-x,o.z-z)+o.r*1.2);};
+          if(tor){
+            // Tor: two or three slabby blocks, each smaller, stacked with a lean; only the base is grounded.
+            let r=1.3+.9*hash(0,k,seed+569),ry=r*(.62+.15*hash(0,k,seed+571)),y=restY(g.height*cellMetres,r,ry,g.slope),cx=x,cz=z;const blocks=2+Math.floor(2*hash(0,k,seed+573));
+            for(let s2=0;s2<blocks;s2++){
+              add(rockShape(cx,cz,y,r,ry,k*7+s2,s2&1?MAT.boulderPale:MAT.boulder,s2===blocks-1?capOf(g):0,s2===0));
+              const nr=r*(.65+.2*hash(s2,k,seed+577)),nry=nr*(.62+.15*hash(s2,k,seed+579)),a=hash(s2,k,seed+581)*TAU,o=r*.3*hash(s2,k,seed+583);
+              y+=ry*.6+nry*.8;cx+=Math.cos(a)*o;cz+=Math.sin(a)*o;r=nr;ry=nry;
+            }
+          }
+          for(let c=0;c<clusters&&!tor;c++){
+            // A cluster: a main block and up to four smaller ones around it in falling sizes; sometimes the last small one
+            // rests on top of the main block instead.
+            const n=talus?2+Math.floor(3*hash(c,k,seed+587)):rock||BOULDER_MEADOW.has(g.biome)?2+Math.floor(4*hash(c,k,seed+587)):1+Math.floor(2*hash(c,k,seed+587));
+            const cx=(i+.15+.7*hash(c,k,seed+565))*BG,cz=(j+.15+.7*hash(c,k,seed+567))*BG,h=hash(c,k,seed+569);
+            let main=null;
+            for(let b=0;b<n;b++){
+              const id=c*8+b,a=hash(id,k,seed+581)*TAU;
+              let r=b?main.r*.72**b*(.85+.3*hash(id,k,seed+577)):(talus?.35+.5*h:.5+1*h*h);if(r<.25)break;
+              let ry=r*(1+.25*hash(id,k,seed+571));
+              if(b&&b===n-1&&r<main.r*.5&&hash(id,k,seed+589)<.35){
+                const o=main.r*.3,px=main.x+Math.cos(a)*o,pz=main.z+Math.sin(a)*o;
+                add(rockShape(px,pz,main.y+main.ry*.6+ry*.8,r,ry,k*31+id,tone(id),main.cap,false));break;
+              }
+              const o=b?main.r*.95+r*.6:0,px=cx+Math.cos(a)*o,pz=cz+Math.sin(a)*o,G=b?geography(px,pz):geography(cx,cz);
+              if(bad(G)||G.slope>2){if(!b)break;continue;}
+              if(G.slope>1.4){r*=.6;ry*=.6;}
+              const o2=rockShape(px,pz,restY(G.height*cellMetres,r,ry,G.slope),r,ry,k*31+id,tone(id),capOf(G));
+              add(o2);if(!b)main=o2;
+            }
+          }
+          if(list.length)v={x,z,list,reach:reach+.5};
         }
       }
       boulders.set(k,v);if(boulders.size>16384)boulders.delete(boulders.keys().next().value);return v;
+    }
+    // Boulder props near (x, z) within `radius` m, for renderers that draw rock meshes: centre (m), size (half-width, m),
+    // height (half-height, m), yaw and a per-block seed. The voxel boulders are stamped regardless.
+    function bouldersNear(x,z,radius=12){
+      const out=[];
+      for(let j=Math.floor((z-radius-6)/BG);j<=Math.floor((z+radius+6)/BG);j++)for(let i=Math.floor((x-radius-6)/BG);i<=Math.floor((x+radius+6)/BG);i++){
+        const B=boulderCell(i,j);if(B)for(const q of B.list)if(Math.hypot(q.x-x,q.z-z)<radius+q.r)out.push({x:q.x,z:q.z,y:q.y,size:q.r,height:q.ry,rot:q.rot,seed:q.k});}
+      return out;
     }
     // River rocks: one candidate per 4 m cell, kept only in fast reaches (boulders mid-stream and at the water's edge,
     // their tops clear of the water) and in the spray zone around falls and springs (smaller mossy rocks on the banks).
@@ -831,6 +930,9 @@
         const crater=t.cone>20&&Math.hypot(x-t.vx,z-t.vz)<t.vr*.075+1.5+noise(x*.3,z*.3,seed+707)*2;
         // Ice is capped in thickness (thicker along erosion creases, where glaciers flow), so a glacier keeps the shape of
         // its gully or cirque instead of levelling it into a flat sheet.
+        // hollow (m): depth of the ground below that broad surface: positive in cirques, gullies and cols, negative on peaks,
+        // ridge crests and spurs that stand out of it. Snow gathers by it (biomeOf).
+        const hollow=iceTop+1-h;
         let ice=0;if((t.relief>15||t.cone>20)&&!crater&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
@@ -861,7 +963,7 @@
         iceBase=Math.min(iceBase,h);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
-        zone.slope=slope;zone.crease=crease;
+        zone.slope=slope;zone.crease=crease;zone.hollow=hollow;zone.spur=spur;zone.x=x;zone.z=z;
         const BW=biomeWarp(x,z),bang=BW.a,breach=BW.D,CW=climateD(BW.x,BW.z),RG=region(C,x,z,CW),mountain=t.relief>15||t.cone>20;
         const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,mountain,slope>1.8,RG);
         const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
@@ -906,9 +1008,11 @@
           if(n1||n2){biome2=n2>n1?b2:b1;blend=(n1+n2)/4;}
         }
         // crease: 0-1 erosion crease (gully floors where the coarse erosion octaves converge; 0 off mountains). erosion:
-        // the eroded-terrain offset (m) included in height.
+        // the eroded-terrain offset (m) included in height. hollow (m): depth below the broad landform (+ hollows and cols,
+        // - peaks and ridges). spur: erosion / strength, about -1.4 (gully floor) to 1.4 (spur crest); 0 off mountains.
+        // surface: ground height (m) before it is quantized to cells.
         return {height,riverDistance,riparian,corridor,fast,calm,splash,lake:RV.lake,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
-          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,biome2,blend,glacier,iceCells:glacier?iceCells:0,crease,erosion,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
+          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,biome2,blend,glacier,iceCells:glacier?iceCells:0,crease,erosion,hollow,spur,surface:h,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
       }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
@@ -1450,12 +1554,49 @@
       if(q>.35&&(m===MAT.grass||m===MAT.sungrass||m===MAT.dry||m===MAT.steppegrass))return MAT.lushgrass;
       return 0;
     }
+    // Rough mountain rock. Smooth rock slopes voxelize into regular one-block staircases that light as striped contours, so
+    // exposed mountain rock (away from water and ice) is broken up in the column: strata 0.55-1.65 m thick, wandering with a
+    // 2D warp, are cut back into ledges of uneven height and length (soft layers recessed, hard ones jutting); a chip field
+    // of 1-3 blocks roughens every tread; at fine levels hard layers overhang the ledge below as lips. Tones follow the
+    // strata and lichen speckles the treads. Talus (gully-side rock of moderate slope, below crags) is rubble instead:
+    // gravel and stone with chips only. Snow and ice stay smooth. Returns the new ground top (cells); writes rockTop, the
+    // highest cell written (lips included).
+    let rockTop=0;
+    const STRATA=1.1,stratum=k=>(k+.5*hash(k,7,seed+815))*STRATA;
+    function rockTone(k,region){const t=hash(k,11,seed+825)+(region-.5)*.5;return t<.2?MAT.rockDark:t>.85?MAT.rockPale:t>.7&&region>.5?MAT.rockWarm:MAT.basalt;}
+    function roughRock(g,x,z,values,h,scree=false){
+      const s=Math.min(g.slope,3),r=.35+.65*clamp((s-.2)/.8,0,1),Hm=h*cellMetres,step=colStep*cellMetres;
+      const chip=((noise(x*.9,z*.9,seed+819)-.5)*2+(noise(x*2.1,z*2.1,seed+821)-.5))*.3*(.4+r);
+      const talus=scree||s>.45&&s<1.15&&g.spur<-.25&&g.hollow>-2;
+      // Strata follow the smooth (unquantized) surface, so ledge lines are clean contours, never one-column fins.
+      const Hs=Math.min(g.surface,Hm+cellMetres),warp=(noise(x*.06,z*.06,seed+811)-.5)*3+(noise(x*.19,z*.19,seed+813)-.5)*.8,u=Hs+warp;
+      let k=Math.floor(u/STRATA);if(u<stratum(k))k--;
+      const depth=u-stratum(k),soft=hash(k,9,seed+817);
+      const ht=clamp(Math.floor((Hs-(talus?0:r*(.4+.5*soft)*depth)+chip*(talus?.6:1))/cellMetres),Math.max(1,h-8*density),heightCells-8*density);
+      if(ht<h)values.fill(0,ht,h);else if(ht>h)values.fill(MAT.basalt,h,ht);
+      rockTop=ht;
+      if(talus){const c=hash(Math.floor(x*2),Math.floor(z*2),seed+837);values[ht-1]=c<.3?MAT.stone:c<.4?MAT.boulder:MAT.gravel;if(ht>h)values.fill(MAT.gravel,h,ht-1);return ht;}
+      // Tones through the visible riser depth, by the stratum each cell lies in.
+      const region=noise(x*.035,z*.035,seed+823),D=Math.min(ht,Math.ceil((s*step+1.8)/cellMetres));
+      let kk=k+1;for(let y=ht-1;y>=ht-D;y--){const uy=(y+.5)*cellMetres+warp;while(kk>-1e9&&uy<stratum(kk))kk--;values[y]=rockTone(kk,region);}
+      // Lichen on treads: grey-green in patches, rust in drier regions.
+      if(s<1.7&&noise(x*.4,z*.4,seed+827)>.7&&hash(Math.floor(x*4),Math.floor(z*4),seed+829)<.6)values[ht-1]=noise(x*.07,z*.07,seed+831)>.72&&hash(Math.floor(x*4),Math.floor(z*4),seed+853)<.5?MAT.lichenOrange:MAT.lichen;
+      // Lip: within reach of the riser of the next stratum up, a hard layer overhangs this ledge (solid over air).
+      if(step<.51&&s>.6){
+        const bn=stratum(k+1),d=(bn-u)/s,reach=.45+.4*noise(x*.5,z*.5,seed+833);
+        if(d<reach&&bn-u<.6*(stratum(k+2)-bn)&&hash(k+1,13,seed+835)>.35){
+          const top=bn-warp+chip,hi=Math.min(heightCells,Math.floor(top/cellMetres)),lo=Math.max(ht,Math.floor((top-.5-.25*hash(k+1,15,seed+839))/cellMetres));
+          if(hi>ht+1&&hi>lo){values.fill(rockTone(k+1,region),lo-ht<2?ht:lo,hi);rockTop=hi;}
+        }
+      }
+      return ht;
+    }
     function column(vx,vz,into){
       const values=into||new Uint8Array(heightCells);colTop=0;
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
       if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       let t0=prof&&prof.on&&now();
-      const g=geography(x,z),h=g.height;let written=h+density;
+      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;
       if(prof&&prof.on){const t=now();prof.geography+=t-t0;t0=t;}
       values.fill(MAT.basalt,0,Math.max(0,h-4*density));
       values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
@@ -1473,13 +1614,14 @@
         values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='beach'?MAT.sand:bank?bank:b==='alpine'?MAT.basalt:turf(b,x,z,h,g);
         if(g.riparian>0&&!bank&&!g.exposed){const m=riparianGround(g,x,z,values[h-1]);if(m)values[h-1]=m;}
         if(TURF.has(values[h-1])){
-          if(g.relief>15&&g.slope>.95+(noise(x*.3,z*.3,seed+613)-.5)*.35)values[h-1]=MAT.gravel;
+          if(g.relief>15&&g.slope>.95+(noise(x*.3,z*.3,seed+613)-.5)*.35){values[h-1]=MAT.gravel;scree=true;}
           else if((b==='grassland'||b==='steppe'||b==='savanna')&&noise(x*.06,z*.06,seed+615)>.93-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
         }
         if(g.iceCells)values.fill(MAT.ice,h-g.iceCells,h);
         // Snow is a layer, not a skin: steps in snowfields and on cold glaciers (their snowy upper reaches; warmer tongues
         // show blue ice) are white down the riser too.
         if(b==='snow'&&!g.exposed||b==='glacier'&&g.temperature<-6)values.fill(MAT.snow,Math.max(0,h-(b==='snow'?4*density:Math.min(4*density,g.iceCells))),h);
+        if((g.exposed&&(g.relief>15||g.cone>20)||scree)&&!g.iceCells&&!g.gorge&&g.water<=h&&g.riverDistance>6){top=h=roughRock(g,x,z,values,h,scree);written=Math.max(written,rockTop+density);}
       }else values[h-1]=g.exposed?MAT.basalt:g.riverDistance<9?MAT.sand:MAT.grass;
       if(Math.hypot(x-deposit.x,z-deposit.z)<1.15&&g.exposed)values.fill(MAT.ore,h-3*density,h);
       if(infinite){if(g.water>h){values.fill(MAT.water,h,g.water);if(g.foam)values[g.water-1]=MAT.foam;written=Math.max(written,g.water);}}
@@ -1559,12 +1701,24 @@
             const t=Math.min(heightCells,gTop+Math.max(1,Math.round(s2.ht*(.75+.5*noise(x*.6,z*.6,seed+635))/cellMetres)));for(let y=gTop-1;y<t;y++)values[y]=MAT.stone;values[t-1]=MAT.mossy;written=Math.max(written,t);}
           written=Math.max(written,gTop,Math.ceil(A.top/cellMetres)+1);
         }
-        const bi=Math.floor(x/BG),bj=Math.floor(z/BG);
-        for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
-          const B=boulderCell(bi+di,bj+dj);if(!B||Math.abs(x-B.x)>B.reach||Math.abs(z-B.z)>B.reach)continue;
-          for(const q of B.list){const d=Math.hypot(x-q.x,z-q.z)/(q.r*(.85+.3*noise(x*.9,z*.9,seed+565)));if(d>=1)continue;
-            const half=q.ry*Math.sqrt(1-d*d),a=Math.max(0,Math.floor(Math.min(q.y-half,h*cellMetres-.25)/cellMetres)),b=Math.min(heightCells,Math.ceil((q.y+half)/cellMetres));
-            if(b>a){values.fill(MAT.basalt,a,b);written=Math.max(written,b);}}
+        // Boulders and tors (blocks under half a sampled column are skipped; none at 4 m+ columns), then loose stones on
+        // mountain ground at the two finest levels: one candidate per 1.5 m cell, kept inside its cell.
+        if(colStep*cellMetres<2.01){const bi=Math.floor(x/BG),bj=Math.floor(z/BG),jit=hash(Math.floor(x*4),Math.floor(z*4),seed+597),half=colStep*cellMetres*.5;
+          for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
+            const B=boulderCell(bi+di,bj+dj);if(!B||Math.abs(x-B.x)>B.reach||Math.abs(z-B.z)>B.reach)continue;
+            for(const q of B.list){if(q.r<half)continue;const sp=rockSpan(q,x,z,jit);if(!sp)continue;
+              let a=Math.floor(sp[0]/cellMetres);const b=Math.min(heightCells,Math.floor(sp[1]/cellMetres)+(jit>.8?1:jit<.15?-1:0));
+              // Only the foot meets the ground; elsewhere the undercut leaves a gap (solid over air) that reads as a shadow line.
+              if(q.rest&&spanFoot)a=Math.min(a,Math.max(top-1,a-2*density));a=Math.max(0,a);
+              // Rims thinner than two blocks are dropped: no single floating voxels.
+              if(b-a>=2){values.fill(q.mat,a,b);if(q.cap&&noise(x*.7,z*.7,seed+599)>.5)values[b-1]=q.cap;else if(jit<.1)values[b-1]=MAT.lichen;written=Math.max(written,b);}}
+          }}
+        if(colStep*cellMetres<.51&&(g.relief>15||g.cone>20)&&!g.iceCells&&g.biome!=='snow'&&g.water<=h&&!g.riparian&&values[top]===0){
+          const b=g.biome,p=g.exposed||b==='alpine'?.45:scree?.4:BOULDER_MEADOW.has(b)?.3:b==='montane'?.05:0;
+          const si=Math.floor(x/1.5),sj=Math.floor(z/1.5);
+          if(p&&hash(si,sj,seed+841)<p){const sx=(si+.25+.5*hash(si,sj,seed+843))*1.5,sz=(sj+.25+.5*hash(si,sj,seed+845))*1.5,sr=.15+.22*hash(si,sj,seed+847),d=Math.hypot(x-sx,z-sz)/sr;
+            if(d<1){const th=Math.max(1,Math.round(sr*(.5+.5*hash(si,sj,seed+849))*Math.sqrt(1-d*d)/cellMetres+hash(Math.floor(x*4),Math.floor(z*4),seed+597)-.5));const c=hash(si,sj,seed+851);
+              values.fill(c<.5?MAT.boulder:c<.8?MAT.boulderPale:MAT.stone,top,Math.min(heightCells,top+th));written=Math.max(written,top+th);}}
         }
         if(colStep*cellMetres<1.01){const ri=Math.floor(x/RG),rj=Math.floor(z/RG);
           for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
@@ -1713,7 +1867,7 @@
       }
       return out;
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
