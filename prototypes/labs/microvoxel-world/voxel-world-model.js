@@ -1112,7 +1112,10 @@
         // Macro lakes: membership is the macro map's smooth lake field, its edge roughened by ~90 m and ~22 m noise so
         // shores wander into coves and points. LD > .5 is water; a shore band outside it shelves gently up from the water.
         let LD=0,lakeL=0;
-        if(t.lake>=0&&t.lakeD>.05){LD=t.lakeD+(noise(x*.011,z*.011,seed+921)-.5)*.3+(noise(x*.045,z*.045,seed+923)-.5)*.1;if(LD>.1){lakeL=lakeLevel(t.lake);RV.lake=lakeL;}}
+        if(t.lake>=0&&t.lakeD>.05){LD=t.lakeD+(noise(x*.011,z*.011,seed+921)-.5)*.3+(noise(x*.045,z*.045,seed+923)-.5)*.1;
+          // The lake follows the land's contour: ground standing well above its level (a mountain flank that now rises where
+          // the macro lake field reaches) is shore, not lake, so lakes never cut walls into hillsides.
+          if(LD>.1){const L0=lakeLevel(t.lake);LD=Math.max(Math.min(LD,.16),Math.min(LD,.5+.4*clamp((L0+3-t.h)/6,-1,1)));if(LD>.1){lakeL=L0;RV.lake=lakeL;}}}
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
         const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
@@ -1172,7 +1175,7 @@
         let underLake=false;
         if(lakeL){
           if(LD>.5){const k=clamp((LD-.5)/.3,0,1),bed=lakeL-.3-(1.5+Math.min(5,Math.sqrt(MM.lakes[t.lake].cells)*1.2))*k*k*(3-2*k);h=Math.min(h,bed);underLake=true;}
-          else{const k=(.5-LD)/.4,w=clamp((LD-.1)/.15,0,1),tgt=Math.max(lakeL+.2,Math.min(h,lakeL+.2+k*k*10)),d=(tgt-h)*w*w*(3-2*w);h+=d;if(d>0)iceBase+=d;}
+          else{const k=(.5-LD)/.4,w=clamp((LD-.1)/.15,0,1),tgt=Math.max(lakeL+.2,Math.min(h,lakeL+.2+k*k*10)),/* shore shaping only near lake level: high ground (mountain walls above a lake) is left alone, not cut down */near=h>tgt?clamp(1-(h-lakeL-12)/30,0,1):1,d=(tgt-h)*w*w*(3-2*w)*near;h+=d;if(d>0)iceBase+=d;}
         }
         // Delta fan: low marsh spreading from the apex toward the sea, sinking to sandbars and lagoons at the shore (only ever
         // lowering the land); the distributaries are carved through it below.
