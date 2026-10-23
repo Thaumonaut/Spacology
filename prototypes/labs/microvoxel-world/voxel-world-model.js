@@ -888,6 +888,15 @@
     }
     // Boulder props near (x, z) within `radius` m, for renderers that draw rock meshes: centre (m), size (half-width, m),
     // height (half-height, m), yaw and a per-block seed. The voxel boulders are stamped regardless.
+    // Mushrooms as objects (metres) for renderers that draw them as meshes: one entry per cluster member.
+    function mushroomsNear(x,z,radius=12){
+      if(!infinite)return [];const out=[];
+      for(let gz=Math.floor((z-radius-4)/TG);gz<=Math.floor((z+radius+4)/TG);gz++)for(let gx=Math.floor((x-radius-4)/TG);gx<=Math.floor((x+radius+4)/TG);gx++){
+        const t=tree(gx,gz);if(!t||t.kind!=='mushroom')continue;
+        for(const m of t.list)if(Math.hypot(m.x-x,m.z-z)<radius+m.cr)out.push({x:m.x,z:m.z,base:m.base*cellMetres,capRadius:m.cr,capHeight:m.ct,stemRadius:m.sr,stemHeight:m.sh,spin:m.spin,color:MAT.mushroom,spot:MAT.stem});
+      }
+      return out;
+    }
     function bouldersNear(x,z,radius=12){
       const out=[];
       for(let j=Math.floor((z-radius-6)/BG);j<=Math.floor((z+radius+6)/BG);j++)for(let i=Math.floor((x-radius-6)/BG);i<=Math.floor((x+radius+6)/BG);i++){
@@ -1205,9 +1214,13 @@
       if(roll2<(c+=(S.mushroom||0)*(.5+patch))){
         // One to three distinct mushrooms of falling size, spaced so their caps never touch.
         const n=1+Math.floor(hash(gx,gz,seed+73)*3),list=[],R0=1.3+.6*hash(gx,gz,seed+83);
+        // Members on a slope: a member whose ground differs from the main one by more than 30% of its stem height would
+        // be half-buried (or float), so it is dropped.
         for(let i=0;i<n;i++){
           const s=i===0?1:i===1?.6+.1*hash(i,gz,seed+79):.42+.08*hash(i,gz,seed+79),cr=R0*s,a=hash(i,gx+gz*3,seed+75)*Math.PI*2+i*2.1,o=i?R0+cr+.25:0;
-          const mx=x+Math.cos(a)*o,mz=z+Math.sin(a)*o;list.push({x:mx,z:mz,base:geography(mx,mz).height,cr,sr:cr*.34,sh:cr*(1.1+.4*hash(i,gx*3+gz,seed+81)),ct:cr*.62,spin:hash(i,gx,seed+77)*6.28});
+          const mx=x+Math.cos(a)*o,mz=z+Math.sin(a)*o,base=geography(mx,mz).height,sh=cr*(1.1+.4*hash(i,gx*3+gz,seed+81));
+          if(i&&Math.abs(base-list[0].base)*cellMetres>sh*.3)continue;
+          list.push({x:mx,z:mz,base,cr,sr:cr*.34,sh,ct:cr*.62,spin:hash(i,gx,seed+77)*6.28});
         }
         return Object.freeze({...common,kind:'mushroom',list});
       }
@@ -1291,11 +1304,12 @@
     // only that far.
     let colTop=0;
     // colStep: cells between sampled columns (set by node()). Plants and scatter smaller than a sampled column are skipped.
-    let colStep=1;
+    let colStep=1,propsMode=false;
     // Stamp one plant record into the column at (x,z) whose first air cell is h. Returns one past the highest cell the
     // stamp may have written (0 if none). Plants only fill air, except trunks and culms.
     function stampPlant(t,x,z,values,h){
       const kind=t.kind||'tree',small=colStep*cellMetres>1.01;
+      if(propsMode&&kind==='mushroom')return 0;
       if(kind==='tree')return stampTree(t,x,z,values,h,small);
       if(kind==='bamboo')return stampBamboo(t,x,z,values,h,small);
       if(small)return 0;
@@ -1838,7 +1852,7 @@
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
       const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
-      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;
+      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;propsMode=!!options.props;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
       const buf=new Uint8Array(heightCells),floor=new Int32Array(P*P);
@@ -1864,7 +1878,7 @@
         const k=j*P+i,b=cols[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
-      colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
+      colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
       return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
@@ -2079,7 +2093,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
