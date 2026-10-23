@@ -1301,15 +1301,25 @@
   uniform vec3 origin, center, lightAt, lightHalf;
   uniform mat3 lightAxes;
   uniform vec2 halfView;
-  uniform float depth, time;
+  uniform float depth, time, biomeSize, blockScale;
   uniform vec3 camForward;
+  uniform vec3 palette[96];
+  uniform sampler2D biomeMap;
   out vec2 q;
   out vec3 centre, ax, ay, az;
   out vec4 crown;
   out float rad, seed;
   flat out int mat;
+  flat out vec3 tintBase;
+  flat out vec4 crownKey;
+  ${BIOME_TINT}
   void main(){
     mat=int(b.y);seed=b.z;rad=a.w;crown=vec4(origin+crownIn.xyz,crownIn.w);
+    // Biome colours, as for the voxel crowns and bushes: bush leaves take the undergrowth palette; plain green crowns
+    // follow rose and violet biomes, one tone per plant (keyed by the crown's centre).
+    vec2 blk=crownIn.xz/max(blockScale,.001);tintBase=palette[mat];crownKey=vec4(0);
+    if(mat==${M.MAT.bushLeaf})tintBase=undergrowth(biomeMap,biomeSize,blk,tintBase,.85,plantSeed(blk));
+    else if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     float sway=sin(time*1.1+b.z*37.+a.x*.3)*.03*a.w;
     centre=origin+a.xyz+vec3(sway,0,sway*.6);
     #ifdef SHADOW
@@ -1353,6 +1363,8 @@
   in vec4 crown;
   in float rad, seed;
   flat in int mat;
+  flat in vec3 tintBase;
+  flat in vec4 crownKey;
   uniform vec3 palette[96], lightHalf, lightAt;
   uniform mat3 lightAxes;
   uniform mat4 viewProj;
@@ -1366,6 +1378,7 @@
   ${SUNLIGHT}
   ${MEADOW}
   ${MATERIALS}
+  ${BIOME_TINT}
   ${LOBE_SHAPE}
   void main(){
     glowOut=vec4(0);
@@ -1393,7 +1406,8 @@
     float leafTone=leaf<0.?-.1:(lh-.5)*.16+leafSide*facing*.07-(1.-smoothstep(.0,.035,leafGap))*.14-(1.-smoothstep(0.,.05,inside))*.06;
     float own=q.y*.1+leafTone;
     float tone=wrap*mix(.5,1.,sun)+own+(leafId-.5)*.08-gap*.08-occl*1.3;
-    vec3 shadow,mid,high;crownBands(mat,palette[mat],shadow,mid,high);
+    vec3 shadow,mid,high;crownBands(mat,tintBase,shadow,mid,high);
+    if(crownKey.a>0.){shadow=biomeTint(shadow,crownKey.rgb,crownKey.a);mid=biomeTint(mid,crownKey.rgb,crownKey.a);high=biomeTint(high,crownKey.rgb,crownKey.a);}
     // Anime hue shift: shade cools toward teal-blue, light warms toward yellow-green.
     shadow*=vec3(.82,.95,1.12);high=mix(high,high*vec3(1.08,1.06,.84),.6);
     float soft=.06;
@@ -1510,13 +1524,14 @@
       this.cloudVao=gl.createVertexArray();
       ({program:this.skirtProgram,u:this.ku2}=link(gl,skirtVertex(false),skirtFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap','dither']));
       // Object trees: tubes, lobes and (on a lighter skirt mesh) conifer tiers, with depth-only shadow variants.
-      const OBJ=['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap','dither'];
+      const OBJ=['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap','dither','biomeMap','biomeSize','blockScale'];
       ({program:this.tubeProgram,u:this.tu}=link(gl,tubeVertex(false),tubeFragment,OBJ));
       ({program:this.lobeProgram,u:this.lou}=link(gl,lobeVertex(false),lobeFragment,OBJ));
       ({program:this.tubeCaster,u:this.tuc}=link(gl,tubeVertex(true),objectCaster,OBJ));
       ({program:this.lobeCaster,u:this.louc}=link(gl,lobeVertex(true),lobeCasterFragment,OBJ));
       ({program:this.skirtCaster,u:this.kuc}=link(gl,skirtVertex(true),objectCaster,OBJ));
-      for(const [p,u] of [[this.tubeProgram,this.tu],[this.lobeProgram,this.lou]]){gl.useProgram(p);gl.uniform1i(u.shadowMap,1);gl.uniform1f(u.blockSize,.3);}
+      for(const [p,u] of [[this.tubeProgram,this.tu],[this.lobeProgram,this.lou]]){gl.useProgram(p);gl.uniform1i(u.shadowMap,1);gl.uniform1f(u.blockSize,.3);gl.uniform1i(u.biomeMap,3);}
+      for(const [p,u] of [[this.lobeCaster,this.louc]]){gl.useProgram(p);gl.uniform1i(u.biomeMap,3);}
       const geometry=data=>{const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);return {buffer:b,count:data.length};};
       this.tubeGeom=geometry(makeTube());this.tubeGeom.verts=this.tubeGeom.count/2;
       // Stems and branches: a lighter tube (6 sides, 2 rings); only trunk feet need the full one for their roots.
@@ -1815,7 +1830,7 @@
         for(const d of this.queue){
           const t=d.mesh[key];if(!t)continue;
           if(shadow){if(d.flat||d.dither[0]<0||c.mode==='walk'&&(Math.abs(d.origin[0]-c.x)>96+32*d.scale[0]||Math.abs(d.origin[2]-c.z)>96+32*d.scale[0]))continue;}
-          else{if(!this.onScreen(d))continue;gl.uniform2f(u.dither,d.dither[0],d.dither[1]);}
+          else{if(!this.onScreen(d))continue;gl.uniform2f(u.dither,d.dither[0],d.dither[1]);if(program===this.lobeProgram){this.bindBiome(u,d.mesh);gl.uniform1f(u.blockScale,d.scale[0]);}}
           const o=[d.origin[0],d.origin[1]+(d.mesh.propMetres||0)-yb,d.origin[2]];gl.uniform3fv(u.origin,program===this.skirtProgram||program===this.skirtCaster?[o[0],o[1],o[2]]:o);
           gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,geom.verts,t.count);
           if(!shadow){this.draws++;this.triangles+=t.count*geom.verts/3;}

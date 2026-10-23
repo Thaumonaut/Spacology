@@ -1926,7 +1926,10 @@
       const segs=[],lobes=[],tiers=[];
       const seg=(x0,y0,z0,r0,x1,y1,z1,r1,m=bark,root=0)=>segs.push(x0,y0*M,z0,r0*M,x1,y1*M,z1,r1*M,m,root);
       const lobe=(x,y,z,r,ys,m=leaf)=>lobes.push(x,y*M,z,r*M,ys,m);
-      if(crown==='spire'||crown==='cone'||crown==='larch'){
+      if(t.kind==='bush'){
+        // A bush: each of its domed lumps (metres) a squat blob resting on the ground, in the bush leaf.
+        for(const l of t.lumps){const r=Math.max(l.r,.3)*1.1;lobes.push(l.x,t.base*M+l.ht*.42,l.z,r,clamp(l.ht/r*.62,.5,1.4),t.leaf||MAT.bushLeaf);}
+      }else if(crown==='spire'||crown==='cone'||crown==='larch'){
         const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
         const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
         const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
@@ -2209,7 +2212,7 @@
           const f=Math.sqrt(d2)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
           if(f<1.12){const m=f<1?(t.conifer?0:1):t.conifer?2:3;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
         }
-        if(treeObjects&&t.kind==='tree'){if(t.under){const w=stampLumps(t.under,x,z,values,h,t.underLeaf||MAT.bushLeaf);if(w>written)written=w;}continue;}
+        if(treeObjects&&(t.kind==='tree'||t.kind==='bush'))continue;
         const w=stampPlant(t,x,z,values,h);if(w>written)written=w;
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
@@ -2545,7 +2548,8 @@
     // metres (y): treeSegs (12 a segment), treeLobes (12 a lobe: centre, radius, height scale, material, seed, 0, then the crown proxy's centre and radius), treeTiers (8 a tier, the sequoiaSkirts layout with the
     // leaf material last). Their crowns are also rasterized into the canopy heights, so crown shading, Peek and the crew
     // x-ray see them as they saw voxel crowns.
-    const TREE_OBJECT_LEVEL=3;
+    const TREE_OBJECT_LEVEL=3,underBushes=new WeakMap();
+    function underBush(t){let b=underBushes.get(t);if(!b){b={kind:'bush',x:t.under[0].x,z:t.under[0].z,base:t.base,lumps:t.under,leaf:t.underLeaf||MAT.bushLeaf};underBushes.set(t,b);}return b;}
     function treeObjectsIn(L,nx,nz,canopy,grounds,G){
       const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,segs=[],lobes=[],tiers=[];
       const raise=(cx,cz,r,topM)=>{const tb=Math.ceil(topM/blockM);
@@ -2554,12 +2558,16 @@
       // Trees whose crowns overhang this node from a neighbour still shade its canopy map.
       const pad=12;
       for(let gz=Math.floor((z0-pad)/TG);gz<=Math.floor((z0+m+pad)/TG);gz++)for(let gx=Math.floor((x0-pad)/TG);gx<=Math.floor((x0+m+pad)/TG);gx++){
-        const t=tree(gx,gz);if(!t||t.kind!=='tree')continue;const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+901);
+        const t0=tree(gx,gz);if(!t0||t0.kind!=='tree'&&t0.kind!=='bush')continue;
+        // A big tree's foot bushes are a bush of their own (own lighting mass), cached on the tree's lump list.
+        for(const t of [t0,t0.under&&underBush(t0)]){if(!t)continue;
+        const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+(t===t0?901:903));
         for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys]=P.lobes.slice(i,i+5);raise(x,z,r,y+r*ys*.85);}
         if(own&&P.crown){const C=P.crown,keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
           for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}}
         for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
+        }
       }
       return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers)};
     }
