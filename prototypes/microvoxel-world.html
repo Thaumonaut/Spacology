@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#172a28"><title>Microvoxel World · Spacology</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="labs/microvoxel-world/microvoxel-world.css">
 </head>
 <body>
@@ -14,6 +15,7 @@
   <main>
     <section class="viewport" aria-label="Orthographic microvoxel world">
       <canvas id="world" tabindex="0" aria-label="World map. Drag or arrow keys to pan; plus and minus to zoom; R to return to the root; Space to pause. Tap terrain to inspect."></canvas>
+      <div id="walkFade" aria-hidden="true"></div><span id="walkCrosshair" aria-hidden="true"></span><div id="walkHint" class="faded" role="status"></div><div id="walkTouch" aria-hidden="true"><span><i id="walkStick"></i>MOVE</span><span>LOOK</span></div>
       <canvas id="atlasLayer" class="atlas-layer" aria-hidden="true"></canvas>
       <div class="map-caption"><span class="eyebrow" id="regionLabel">SURVEYED REGION</span><b id="regionDetail">Basalt ridge / river basin</b><span id="seedLabel"></span><span id="positionLabel" hidden></span></div>
       <div class="compass" aria-hidden="true">N<br>↑</div>
@@ -45,11 +47,20 @@
     <nav class="toolbar" aria-label="World controls">
       <div class="view-controls"><button id="wide">Catchment</button><button id="close">Root site</button></div>
       <div class="zoom-controls"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button></div>
-      <div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div>
       <div class="atlas-controls" role="group" aria-label="Hex atlas view"><button data-atlas="off" aria-pressed="false">Terrain</button><button data-atlas="explore" aria-pressed="true">Explore</button><button data-atlas="logistics" aria-pressed="false">Logistics</button><button data-atlas="research" aria-pressed="false">Research</button></div>
+      <button id="walk" title="Walk at eye height">Walk</button><button id="map" hidden title="Return to overhead map (M)">Map</button><output id="walkCompass" aria-label="Compass bearing"></output>
       <button id="pause" aria-pressed="false">Pause crew</button>
-      <button id="economy" aria-pressed="false">Economy</button>
-      <button id="metrics" aria-haspopup="dialog">Performance</button>
+      <div class="peek-control"><button id="peek" aria-pressed="false" title="See under tree cover around the mouse (P)">Peek</button><input id="peekSize" type="range" min="40" max="320" value="110" aria-label="Peek size" title="Peek size ([ and ])"></div>
+      <div class="settings"><button id="settings" aria-haspopup="true" aria-expanded="false" aria-controls="settingsPanel" title="View settings">⚙ View</button>
+        <div class="settings-panel" id="settingsPanel" hidden>
+          <div class="setting-row"><span>Voxel size</span><div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div></div>
+          <label class="setting-row lod-control" title="Pin the render level of detail instead of choosing it from the zoom"><span>Detail level</span><select id="lod"></select></label>
+          <label class="setting-row lod-control" title="How solid the clouds are in wide views"><span>Clouds</span><input id="clouds" type="range" min="0" max="100" value="85" aria-label="Cloud opacity"></label>
+          <label class="setting-row"><span>Walk FOV</span><input id="walkFov" type="range" min="60" max="90" value="70" aria-label="Walk field of view"></label>
+          <div class="setting-row"><span>Quality</span><button id="economy" aria-pressed="false" title="Voxels only, no extras">Economy</button></div>
+          <button id="metrics" aria-haspopup="dialog">Performance</button>
+        </div>
+      </div>
     </nav>
     <footer><span id="summary">Preparing voxel stream</span><span>Drag to pan · tap to inspect <span class="desktop-hint">· arrows / + − / Space</span></span></footer>
   </main>
@@ -77,12 +88,15 @@
     <p class="muted">Newly exposed chunks show unfilled background while loading. A previous LOD stays visible during a zoom transition until replacement meshes for the visible view are ready. Rendering approximation never replaces exact ground queries.</p>
     <button id="export">Export measurements</button>
   </dialog>
+  <script src="labs/microvoxel-world/macro-map.js"></script>
   <script src="labs/microvoxel-world/voxel-world-model.js"></script>
   <script src="labs/microvoxel-world/voxel-renderer.js"></script>
+  <script src="labs/microvoxel-world/lod-stream.js"></script>
   <script src="labs/microvoxel-world/hex-atlas.js"></script>
   <script src="labs/microvoxel-world/vendor/peerjs-1.5.5.min.js"></script>
   <script src="labs/microvoxel-world/coop-session.js"></script>
   <script src="labs/microvoxel-world/coop-net.js"></script>
   <script src="labs/microvoxel-world/coop-play.js"></script>
+  <script src="labs/microvoxel-world/walk-camera.js"></script>
   <script src="labs/microvoxel-world/microvoxel-world.js"></script>
 </body></html>

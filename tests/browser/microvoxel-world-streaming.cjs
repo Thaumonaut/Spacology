@@ -5,7 +5,7 @@ const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();r
 const state=p=>p.evaluate(()=>MicroWorldLab.snapshot());
 const terrainImage=p=>p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>resolve(document.getElementById('world').toDataURL('image/png')))));
 async function jump(p,cx,cz){await p.locator('#info').click();await p.locator('#chunkX').fill(String(cx));await p.locator('#chunkZ').fill(String(cz));await p.locator('#travelForm button').click();await ready(p);}
-function bounded(s){assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);assert.equal(s.actors.length,2);assert.ok(s.position.x>=0&&s.position.x<8&&s.position.z>=0&&s.position.z<8);assert.ok(s.visible<=320&&s.meshCacheEntries<=320&&s.meshCacheBytes<=32*1024*1024);assert.ok(s.voxelCacheEntries<=128&&s.voxelCacheBytes<=4*1024*1024);assert.ok(s.vegetationEntries<=2048&&s.mainVegetationEntries<=2048);assert.ok(s.maxRenderOrigin<256);}
+function bounded(s){assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);assert.equal(s.actors.length,2);assert.ok(s.position.x>=0&&s.position.x<8&&s.position.z>=0&&s.position.z<8);assert.ok(s.meshCacheBytes<=s.meshCacheLimit,'LOD node cache stays within its GPU budget');assert.ok(s.voxelCacheEntries<=128&&s.voxelCacheBytes<=4*1024*1024);assert.ok(s.vegetationEntries<=2048&&s.mainVegetationEntries<=2048);assert.ok(s.maxRenderOrigin<Math.max(256,s.camera.span*3),'GPU origins stay relative to the explorer');}
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
   const context=await browser.newContext({viewport:{width:1280,height:850},serviceWorkers:'block'}),p=await context.newPage(),errors=[];
@@ -17,8 +17,8 @@ try{
     proto.uniform3fv=function(location,value){if(names.get(location)==='origin')window.__maxPositionUniform=Math.max(window.__maxPositionUniform,...value.map(Math.abs));return uniform.call(this,location,value);};
     proto.uniform3f=function(location,x,y,z){if(names.get(location)==='center')window.__maxPositionUniform=Math.max(window.__maxPositionUniform,Math.abs(x),Math.abs(z));return center.call(this,location,x,y,z);};
   });
-  await p.goto(BASE+'/prototypes/microvoxel-world.html?extent=infinite&seed=2718');await ready(p);await p.locator('#pause').click();
-  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-4');
+  await p.goto(BASE+'/prototypes/microvoxel-world.html?extent=infinite&seed=2718&gpuMiB=8');await ready(p);await p.locator('#pause').click();
+  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-14');
   const fixture=M.createWorld(original.seed,original.cellMetres,'infinite');for(const a of original.actors)assert.equal(a.y,fixture.ground(a.x,a.z),'crew stand on exact voxel ground at their task sites');
   const home=await terrainImage(p),samples=[];assert.ok(home.length>10000,'capture contains rendered terrain, not an empty framebuffer');
   for(const [cx,cz] of [[125,0],[-125,-125],[250,250],[200000,-200000],[-200000,200000],[500000,-500000],[-500000,500000],[1000000,-1000000],[-1000000,1000000],[M.MAX_CHUNK-32,-M.MAX_CHUNK+32]]){
@@ -28,7 +28,7 @@ try{
   const distant=samples.at(-1).position,distantX=distant.cx*8+distant.x+2,distantZ=distant.cz*8+distant.z+2;
   const target=await p.evaluate(({x,y,z})=>MicroWorldLab.project(x,y,z),{x:distantX,y:fixture.ground(distantX,distantZ),z:distantZ}),canvasRect=await p.locator('#world').boundingBox();
   await p.mouse.click(canvasRect.x+target.x,canvasRect.y+target.y);assert.ok(await p.locator('#inspection').isVisible());assert.match(await p.locator('#inspectPosition').innerText(),/X 134217/);await p.locator('#closeInspection').click();
-  const beforeReturn=await state(p);assert.equal(beforeReturn.meshCacheEntries,320,'distant travel fills and evicts the GPU cache');
+  const beforeReturn=await state(p);assert.ok(beforeReturn.meshCacheBytes<=beforeReturn.meshCacheLimit&&beforeReturn.meshCacheLimit===8*1048576,'distant travel stays within the small test budget (?gpuMiB=8), evicting home nodes');
   await p.locator('#close').click();await ready(p);const returnedState=await state(p);assert.deepEqual(returnedState.position,original.position);
   assert.ok(returnedState.completed>beforeReturn.completed,'returning rebuilds evicted meshes');assert.equal(returnedState.cacheHits,beforeReturn.cacheHits,'returning regenerates evicted CPU chunks too');
   assert.ok(await terrainImage(p)===home,'returning after eviction renders the same paused terrain pixels without stored terrain');
@@ -44,7 +44,7 @@ try{
   const pick=await p.evaluate(({x,y,z})=>MicroWorldLab.project(x,y,z),{x:q.cx*8+q.x+2,y:ground,z:q.cz*8+q.z+2});
   await p.mouse.click(rect.x+pick.x,rect.y+pick.y);assert.ok(await p.locator('#inspection').isVisible());
   assert.ok((await p.locator('#inspectPosition').innerText()).includes('X '));await p.locator('#closeInspection').click();
-  const densityPosition=(await state(p)).position;await p.locator('#densityFine').click();await ready(p);bounded(await state(p));assert.deepEqual((await state(p)).position,densityPosition);assert.equal((await state(p)).cellMetres,.125);
+  const densityPosition=(await state(p)).position;await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await p.locator('#densityFine').click();await ready(p);bounded(await state(p));assert.deepEqual((await state(p)).position,densityPosition);assert.equal((await state(p)).cellMetres,.125);
   await jump(p,-1000000,1000000);bounded(await state(p));await p.locator('#wide').click();await ready(p);bounded(await state(p));
   await p.setViewportSize({width:390,height:844});await ready(p);bounded(await state(p));
   for(let i=0;i<2;i++){await p.locator('#close').click();await ready(p);for(let z=0;z<4;z++){await p.locator('#zoomOut').click();await ready(p);}bounded(await state(p));}
@@ -62,7 +62,7 @@ try{
     for(let i=1;i<=4;i++)await finger.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:tx+tdx*i/4,y:ty+tdy*i/4}]});
     await finger.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await ready(copy);
     const moved=await copy.evaluate(({cx,cz,x,z})=>MicroWorldLab.project(cx*8+x,8,cz*8+z),touchPoint.position);bounded(await state(copy));assert.ok(Math.abs(moved.x-landmark.x-tdx)<1&&Math.abs(moved.y-landmark.y-tdy)<1,'packaged terrain follows native touch across signed chunks');
-    await copy.locator('#densityFine').tap();await ready(copy);await copy.locator('#close').tap();await ready(copy);await copy.locator('#rootMarker').tap();assert.match(await copy.locator('#inspectBody').innerText(),/seeded ridge/);await copy.locator('#closeInspection').tap();
+    await copy.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await copy.locator('#densityFine').tap();await ready(copy);await copy.locator('#close').tap();await ready(copy);await copy.locator('#rootMarker').tap();assert.match(await copy.locator('#inspectBody').innerText(),/seeded ridge/);await copy.locator('#closeInspection').tap();
     assert.deepEqual(copyErrors,[]);await offline.close();
   }finally{fs.rmSync(tmp,{recursive:true,force:true});}
   console.log('PASS streamed world: distant signed travel, GPU origin bounds, deterministic return image, drag/rebase continuity, compact reload, ground selection, density, portrait LOD and packaged touch');
