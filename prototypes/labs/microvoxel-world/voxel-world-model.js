@@ -1,6 +1,6 @@
 (function(root){
   'use strict';
-  const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=1024,EXTENT=128,REVISION='micro-catchment-1';
+  const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=2048,EXTENT=128,REVISION='micro-catchment-1';
   const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32,
     // Vegetation (appended; never renumber): leaves/needles, barks/culms, then small standing objects.
     birchBark:33,birchLeaf:34,larch:35,bushLeaf:36,bamboo:37,bambooLeaf:38,blossom:39,blossomWhite:40,coral:41,fern:42,tuft:43,mushroom:44,stem:45,glowFlower:46,reed:47,flowerYellow:48,flowerViolet:49,cactus:50,acacia:51,larchGold:52,birchMark:53,bambooNode:54,
@@ -68,7 +68,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-14':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-15':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
@@ -1952,18 +1952,21 @@
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;propsMode=!!options.props;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
-      const buf=new Uint8Array(heightCells),floor=new Int32Array(P*P);
+      const buf=new Uint8Array(heightCells),buf32=new Uint32Array(buf.buffer),floor=new Int32Array(P*P);
       for(let j=0;j<P;j++)for(let i=0;i<P;i++){
         prof.on=((i+j)&3)===0;if(prof.on)sampled++;
         const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,t0=prof.on&&now(),b=new Uint8Array(blocks);let top=0;
         let hi=lim-1;while(hi>=0&&!c[hi])hi--;
-        for(let y=0;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
-        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s);canopy[(j+1)*G+i+1]=top;water[(j+1)*G+i+1]=waterDepth(c,lim);{const k=(j+1)*G+i+1,m=top>0?b[top-1]&127:0;grassy[k]=BLADE_GRASS.has(m)?1:0;grassMat[k]=grassy[k]?m:0;const gm=grounds[k]>0?b[grounds[k]-1]&127:0;snowy[k]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
+        // The column's bedrock run (basalt from the bottom up) fills whole blocks with basalt in one go; only the cells above
+        // it are read one by one, so tall mountain columns cost little more than lowland ones.
+        const run=basaltRun(c,buf32,hi+1),full=Math.floor(run/s);if(full){b.fill(MAT.basalt,0,full);top=full;}
+        for(let y=full*s;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
+        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s,run);canopy[(j+1)*G+i+1]=top;water[(j+1)*G+i+1]=waterDepth(c,lim);{const k=(j+1)*G+i+1,m=top>0?b[top-1]&127:0;grassy[k]=BLADE_GRASS.has(m)?1:0;grassMat[k]=grassy[k]?m:0;const gm=grounds[k]>0?b[grounds[k]-1]&127:0;snowy[k]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
         cols[j*P+i]=b;tops[j*P+i]=top;floor[j*P+i]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s);let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,0,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim));let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,0,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -2212,7 +2215,11 @@
     }
     // Ground surface of a column in blocks: solid from the bottom up to the first air gap, ignoring trees and spires, so
     // isles, canopies and spires do not tilt the hillshade. Water counts: it is the visible surface.
-    function groundBlocks(c,lim,s){let y=0;while(y<lim&&c[y]&&!ABOVE_GROUND.has(c[y]&127))y++;return Math.floor((y-1)/s)+1;}
+    // from: a known solid run at the bottom (see basaltRun) the scan may skip.
+    function groundBlocks(c,lim,s,from=0){let y=Math.min(from,lim);while(y<lim&&c[y]&&!ABOVE_GROUND.has(c[y]&127))y++;return Math.floor((y-1)/s)+1;}
+    // Length of the column's leading basalt run below lim, read four cells at a time (c32: a Uint32 view of c's buffer).
+    const BASALT4=MAT.basalt*0x01010101;
+    function basaltRun(c,c32,lim){const n=lim>>2;let k=0;while(k<n&&c32[k]===BASALT4)k++;let y=k<<2;while(y<lim&&c[y]===MAT.basalt)y++;return y;}
     // Smooth surface normals per inside column (RGBA8: x, z, cavity, local ground top) from ground heights with a two-column
     // ring (G=N+4), so distant terraces light as the slope they form instead of alternating tread/riser bands. Blocks are
     // cubic, so the gradient is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
