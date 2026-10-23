@@ -23,4 +23,20 @@ select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .lod-control{display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap}.lod-control select{min-height:44px;color:inherit;background:transparent;border:1px solid var(--line);border-radius:5px;padding:0 8px}.lod-control option{color:#111;background:#fff}
 .peek-control{display:flex;align-items:center;gap:6px}.peek-control input{width:72px;accent-color:#e9b96a;opacity:.45}.peek-control:has(#peek[aria-pressed=true]) input{opacity:1}
 .settings{position:relative}.settings-panel{position:absolute;right:0;bottom:calc(100% + 10px);z-index:20;display:grid;gap:8px;min-width:280px;padding:12px;background:#1c302c;border:1px solid var(--line);border-radius:8px;box-shadow:0 10px 30px #0006}
-.settings-panel[hidden]{display:none}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}.setting-row>span{opacity:.75}.lod-control input[type=range]{width:84px;accent-color:#e9b96a}
+.settings-panel{box-sizing:border-box;max-width:calc(100vw - 16px)}.settings-panel .setting-row>*{min-width:0}.settings-panel select{max-width:130px}.settings-panel.tight{padding:8px;gap:4px}.settings-panel[hidden]{display:none}.settings-panel.compact{grid-template-columns:1fr 1fr;min-width:0}.settings-panel.compact #metrics{grid-column:span 2}.settings-panel.compact .setting-row{gap:8px}.setting-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}.setting-row>span{opacity:.75}.lod-control input[type=range]{width:84px;accent-color:#e9b96a}
+
+/* Walk keeps the landscape primary, especially on phones. */
+#walkFade{position:absolute;inset:0;background:#e0d5bc;pointer-events:none;z-index:20;opacity:0}
+#walkCrosshair{display:none;position:absolute;left:50%;top:50%;width:4px;height:4px;border-radius:50%;background:#fff9;box-shadow:0 0 2px #172a28;pointer-events:none}
+#walkHint{position:absolute;bottom:48px;left:50%;transform:translateX(-50%);max-width:90%;width:max-content;padding:8px 12px;border-radius:8px;background:#172a28c9;color:#f9ead0;font-size:12px;pointer-events:none;transition:opacity 1s;z-index:6}
+#walkHint.faded{opacity:0}#walkCompass,#walkTouch{display:none}
+body.walking #walkCrosshair,body.walking #walkCompass{display:block}
+body.walking .toolbar>*:not(#map):not(#walkCompass):not(.settings){display:none}
+body.walking .toolbar{justify-content:space-between}body.walking #walkCompass{font-size:12px;color:var(--ink,#e4d1aa)}
+body.walking .map-caption,body.walking .compass,body.walking .scale,body.walking .view-label,body.walking .root-marker,body.walking .ground-marker,body.walking #atlasLayer,body.walking #coop,body.walking #inspection{display:none}
+body.walking footer>span:last-child{visibility:hidden}
+#walkTouch{position:absolute;inset:0;pointer-events:none;align-items:flex-end;justify-content:space-around;padding-bottom:24px;font-size:10px;letter-spacing:2px;color:#f9ead077}
+#walkTouch span{position:relative;width:80px;height:80px;border:1px solid #f9ead044;border-radius:50%;display:grid;place-items:center}
+#walkStick{position:absolute;width:26px;height:26px;border:1px solid #fff5;border-radius:50%}
+@media(pointer:coarse){body.walking #walkTouch{display:flex}}
+@media(prefers-reduced-motion:reduce){#walkHint{transition:none}}

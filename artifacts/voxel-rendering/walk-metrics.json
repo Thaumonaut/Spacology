@@ -1,0 +1,252 @@
+{
+  "lod": "auto",
+  "worldId": "wilds:micro-wilds-14:2718",
+  "dataId": "wilds:micro-wilds-14:2718:cell:0.25:extent:infinite",
+  "seed": 2718,
+  "revision": "micro-wilds-14",
+  "extent": "infinite",
+  "position": {
+    "cx": -2,
+    "x": 6.226150161115835,
+    "cz": -6,
+    "z": 5.754087861369298
+  },
+  "travelled": 10.066399999999994,
+  "vegetationEntries": 2048,
+  "mainVegetationEntries": 0,
+  "maxRenderOrigin": 725.7540878613693,
+  "deposit": {
+    "id": "wilds:micro-wilds-14:2718:ore:root",
+    "kind": "Ferrite",
+    "x": 20,
+    "z": -10,
+    "y": 29.75,
+    "rule": "Dry basalt outcrop in the seeded ridge and fracture fields",
+    "geology": "Outcrop-exposed basalt",
+    "surveyed": true
+  },
+  "camera": {
+    "x": 0,
+    "y": 28.75,
+    "z": 0,
+    "span": 8.12200740275,
+    "mode": "walk",
+    "yaw": 9.96837448132563,
+    "lookPitch": -0.3199999999999995,
+    "fov": 70,
+    "viewDistance": 600,
+    "eyeY": 30.349999999999994
+  },
+  "walk": {
+    "active": true,
+    "transitioning": false,
+    "pointerLocked": false,
+    "height": 28.75,
+    "water": 0
+  },
+  "glError": 0,
+  "cellMetres": 0.25,
+  "chunkCells": [
+    32,
+    1024,
+    32
+  ],
+  "chunkMetres": 8,
+  "step": 1,
+  "renderStep": 1,
+  "viewUpdates": 177,
+  "retainedMeshes": 33,
+  "placeholders": 61,
+  "shown": 456,
+  "moving": false,
+  "visible": 456,
+  "ready": 456,
+  "farStep": null,
+  "renderReady": 456,
+  "pending": false,
+  "failed": false,
+  "paused": false,
+  "economy": false,
+  "reducedMotion": false,
+  "simTime": 10.547299999976152,
+  "actors": [
+    {
+      "role": "explorer",
+      "worker": false,
+      "x": 21.914202113533133,
+      "z": -1.956511467972676,
+      "y": 28.75,
+      "yaw": -0.5235987755982944,
+      "phase": 0,
+      "walking": true,
+      "task": {
+        "kind": "survey",
+        "q": 2,
+        "r": 0,
+        "key": "2,0",
+        "target": {
+          "x": 20.784609690826528,
+          "z": 0
+        },
+        "work": 2,
+        "source": "auto"
+      },
+      "carrying": null
+    },
+    {
+      "role": "researcher",
+      "worker": true,
+      "x": 22.5,
+      "z": -8.5,
+      "y": 29.5,
+      "yaw": 0,
+      "phase": 2,
+      "walking": false,
+      "task": null,
+      "carrying": null
+    }
+  ],
+  "atlas": {
+    "view": "explore",
+    "selected": null,
+    "radius": 6,
+    "rootHex": {
+      "q": 2,
+      "r": -1
+    },
+    "camp": {
+      "x": 21.5,
+      "z": -8.5
+    },
+    "surveyed": 2,
+    "sampled": 1,
+    "identified": 1,
+    "frontier": 7,
+    "summaryEntries": 10,
+    "tasks": [
+      {
+        "role": "explorer",
+        "kind": "survey",
+        "key": "2,0",
+        "source": "auto"
+      },
+      null
+    ]
+  },
+  "meshCacheEntries": 571,
+  "meshCacheBytes": 103488704,
+  "meshCacheLimit": 402653184,
+  "voxelCacheBytes": 0,
+  "voxelCacheEntries": 0,
+  "cacheHits": 0,
+  "completed": 571,
+  "firstReadyMs": 800.1000000238419,
+  "frameSamples": 240,
+  "frameP50": 16.69999999999891,
+  "frameP95": 16.799999999999272,
+  "frameP99": 16.800000000000182,
+  "generationP95": 0,
+  "meshingP95": 0,
+  "drawCalls": 599,
+  "triangles": 506836,
+  "pixelRatio": 1,
+  "viewport": {
+    "width": 1280,
+    "height": 625
+  },
+  "renderer": "WebKit WebGL",
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36",
+  "stream": {
+    "rings": {
+      "0": 124,
+      "1": 93,
+      "2": 93,
+      "3": 89,
+      "4": 57
+    },
+    "level": 0,
+    "column": 0.25,
+    "visible": 456,
+    "ready": 456,
+    "covered": 456,
+    "drawn": 456,
+    "fading": 0,
+    "inflight": 0,
+    "workers": 4,
+    "entries": 571,
+    "bytes": 103488704,
+    "budget": 402653184,
+    "levels": {
+      "0": 152,
+      "1": 108,
+      "2": 106,
+      "3": 109,
+      "4": 67,
+      "5": 29
+    },
+    "completed": 571,
+    "coarse": 61,
+    "retained": 33,
+    "uploads": 571,
+    "vegetation": 2048,
+    "maxOrigin": 725.7540878613693,
+    "gpuTimer": true,
+    "timing": {
+      "geography": {
+        "p50": 4.400000095367432,
+        "p95": 8.000000238418579,
+        "n": 240
+      },
+      "trees": {
+        "p50": 10,
+        "p95": 61.199997425079346,
+        "n": 240
+      },
+      "features": {
+        "p50": 0.8000001907348633,
+        "p95": 2.4000003337860107,
+        "n": 240
+      },
+      "reduce": {
+        "p50": 1.200000286102295,
+        "p95": 3.200000286102295,
+        "n": 240
+      },
+      "mesh": {
+        "p50": 0.30000001192092896,
+        "p95": 0.800000011920929,
+        "n": 240
+      },
+      "node": {
+        "p50": 26.100000023841858,
+        "p95": 82.39999997615814,
+        "n": 240
+      },
+      "view": {
+        "p50": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "n": 177
+      },
+      "resolve": {
+        "p50": 0.5,
+        "p95": 0.6000000238418579,
+        "n": 240
+      },
+      "draw": {
+        "p50": 0.19999998807907104,
+        "p95": 0.30000001192092896,
+        "n": 240
+      },
+      "upload": {
+        "p50": 2.5,
+        "p95": 3.899999976158142,
+        "n": 240
+      },
+      "gpu": {
+        "p50": 0,
+        "p95": 0,
+        "n": 240
+      }
+    }
+  }
+}

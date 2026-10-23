@@ -61,6 +61,21 @@
       }
       return out.sort((a,b)=>a.distance-b.distance);
     }
+    // A non-overlapping quadtree of distance rings. Keep coarse coverage all around the walker so turning never
+    // waits for generation; near tiles refine through 40/80/160/320 m rings. Rendering culls the far hemisphere.
+    function walkTargets(bias){
+      const out=[],far=camera.viewDistance||600,R=world.maxLevel,m=world.nodeMetres(R),px=origin.x+camera.x,pz=origin.z+camera.z;
+      const visit=(L,nx,nz)=>{
+        const size=world.nodeMetres(L),x=nx*size,z=nz*size;
+        const distance=Math.hypot(Math.max(x-px,0,px-x-size),Math.max(z-pz,0,pz-z-size));
+        if(distance>far)return;
+        const ring=Math.min(world.maxLevel,Math.max(0,Math.ceil(Math.log2(Math.max(40,distance)/40))+bias));
+        if(L>ring){for(let j=0;j<2;j++)for(let i=0;i<2;i++)visit(L-1,nx*2+i,nz*2+j);}
+        else out.push({L,nx,nz,key:K(L,nx,nz),distance:Math.hypot(x+size/2-px,z+size/2-pz)});
+      };
+      for(let z=Math.floor((pz-far)/m);z<=Math.floor((pz+far)/m);z++)for(let x=Math.floor((px-far)/m);x<=Math.floor((px+far)/m);x++)visit(R,x,z);
+      return out.sort((a,b)=>a.distance-b.distance);
+    }
     // Choose the level: the requested one, made coarser (automatic) until the visible set fits comfortably in budget.
     // A pinned level never changes; the caller narrows the view instead when overBudget is reported.
     function update(view){
@@ -68,8 +83,8 @@
       const avg=cache.items.size>16?cache.bytes/cache.items.size:40*1024,fits=list=>list.length<=cache.maxEntries*.5&&list.length*avg<=cache.maxBytes*.5;
       if(view.level!==requested||view.fresh){requested=view.level;bias=0;}
       if(pressure&&!view.pinned){bias++;pressure=0;}
-      let L=clamp(view.level+bias,0,world.maxLevel),list=compute(L);
-      while(!view.pinned&&!fits(list)&&L<world.maxLevel)list=compute(++L);
+      const walking=camera.mode==='walk';let L=clamp(view.level+bias,0,world.maxLevel),list=walking?walkTargets(L):compute(L);
+      while(!view.pinned&&!fits(list)&&L<world.maxLevel)list=walking?walkTargets(++L):compute(++L);
       epoch++;
       level=L;targets=list;targetKeys=new Set(list.map(t=>t.key));drawDirty=true;push(times.view,performance.now()-t0);pump();
       return {level,overBudget:!fits(list)};
@@ -78,15 +93,15 @@
     // Draw list: per group, the finest complete coverage. A coarser node is drawn only where some target below it is not
     // ready, so a group swaps to finer detail all at once and never overlaps itself.
     function resolve(now){
-      const t0=performance.now(),R=Math.min(world.maxLevel,level+3),tree=new Map(),roots=new Map();
+      const t0=performance.now(),R=Math.min(world.maxLevel,Math.max(level,...targets.map(t=>t.L))+3),tree=new Map(),roots=new Map();
       for(const t of targets){
         let child=t;
-        for(let k=level+1;k<=R;k++){const a=ancestor(t,k),key=K(a.L,a.nx,a.nz);let node=tree.get(key);if(!node){node={...a,key,children:new Map()};tree.set(key,node);}node.children.set(child.key,child);child=node;}
-        if(level===R)roots.set(t.key,t);else roots.set(child.key,child);
+        for(let k=t.L+1;k<=R;k++){const a=ancestor(t,k),key=K(a.L,a.nx,a.nz);let node=tree.get(key);if(!node){node={...a,key,children:new Map()};tree.set(key,node);}node.children.set(child.key,child);child=node;}
+        if(t.L===R)roots.set(t.key,t);else roots.set(child.key,child);
       }
       const fine=n=>{for(const d of [1,2]){if(n.L-d<0)break;const f=2**d,list=[];for(let j=0;j<f;j++)for(let i=0;i<f;i++){const key=K(n.L-d,n.nx*f+i,n.nz*f+j);if(!ready(key)){list.length=0;break;}list.push({L:n.L-d,nx:n.nx*f+i,nz:n.nz*f+j,key});}if(list.length===f*f)return list;}return null;};
       const visit=n=>{
-        if(n.L===level){if(ready(n.key))return {list:[n],complete:true};const f=fine(n);return f?{list:f,complete:true}:{list:[],complete:false};}
+        if(!n.children){if(ready(n.key))return {list:[n],complete:true};const f=fine(n);return f?{list:f,complete:true}:{list:[],complete:false};}
         const parts=[...n.children.values()].map(visit);
         if(parts.every(p=>p.complete))return {list:parts.flatMap(p=>p.list),complete:true};
         if(ready(n.key))return {list:[n],complete:true};
@@ -99,7 +114,7 @@
       const fresh=[];
       // Only the real tile's arrival dissolves; coarse-first placeholders replace one another instantly, so a spot does
       // not sparkle through several dissolves before its detail arrives.
-      for(const n of list)if(n.L<=level&&!drawKeys.has(n.key)&&(chain(n.key).some(a=>drawKeys.has(a))||prevUnder.has(n.key))){fades.set(n.key,now);fresh.push(n.key);}
+      for(const n of list)if((camera.mode==='walk'?targetKeys.has(n.key):n.L<=level)&&!drawKeys.has(n.key)&&(chain(n.key).some(a=>drawKeys.has(a))||prevUnder.has(n.key))){fades.set(n.key,now);fresh.push(n.key);}
       if(fresh.length){
         const freshSet=new Set(fresh),freshUnder=new Set();for(const k of fresh)for(const a of chain(k))freshUnder.add(a);
         for(const k of drawKeys)if(!keys.has(k)&&ready(k)&&(freshUnder.has(k)||chain(k).some(a=>freshSet.has(a))))outgoing.set(k,now);
@@ -107,7 +122,7 @@
       for(const k of fades.keys())if(!keys.has(k))fades.delete(k);
       // A tile shown fully lit stays lit if a zoom turns it into a placeholder, rather than flashing flat until the finer
       // tiles arrive.
-      for(const n of list)if(n.L<=level)lit.add(n.key);for(const k of lit)if(!keys.has(k)&&!outgoing.has(k))lit.delete(k);
+      for(const n of list)if(camera.mode==='walk'?targetKeys.has(n.key):n.L<=level)lit.add(n.key);for(const k of lit)if(!keys.has(k)&&!outgoing.has(k))lit.delete(k);
       drawList=list;drawKeys=keys;drawDirty=false;push(times.resolve,performance.now()-t0);
     }
     function draw(now){
@@ -117,7 +132,7 @@
       if(gpu&&!gpu.active){const q=gl.createQuery();gl.beginQuery(gpu.ext.TIME_ELAPSED_EXT,q);gpu.active=q;}
       const one=(key,mode,t)=>{
         const mesh=cache.items.get(key);if(!mesh)return;const [L,nx,nz]=key.split(':').map(Number),m=world.nodeMetres(L),c=mesh.column;
-        const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);renderer.placeholder(L>level&&!lit.has(key));
+        const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);renderer.placeholder((camera.mode==='walk'?!targetKeys.has(key):L>level)&&!lit.has(key));
         renderer.draw(mesh,[ox,0,oz],[c,c,c],0,0,0,[0,0,0],[((nx*m)%4096+4096)%4096,0,((nz*m)%4096+4096)%4096]);
       };
       for(const n of drawList){const s=fades.get(n.key),t=s===undefined?1:(now-s)/FADE;if(t>=1){fades.delete(n.key);one(n.key,0,0);}else one(n.key,1,t);}
@@ -133,10 +148,10 @@
     // fine node, so a fresh view fills quickly and then sharpens. Then targets nearest the view centre.
     function nextJob(){
       if(coarseFirst){
-        const C=Math.min(world.maxLevel,level+2);
-        if(C>level)for(const t of targets){
+        for(const t of targets){
+          const C=Math.min(world.maxLevel,t.L+2);if(C===t.L)continue;
           if(ready(t.key))continue;let covered=false;
-          for(let k=level+1;k<=Math.min(world.maxLevel,level+3)&&!covered;k++){const a=ancestor(t,k);covered=ready(K(a.L,a.nx,a.nz));}
+          for(let k=t.L+1;k<=Math.min(world.maxLevel,t.L+3)&&!covered;k++){const a=ancestor(t,k);covered=ready(K(a.L,a.nx,a.nz));}
           if(covered)continue;const a=ancestor(t,C),key=K(a.L,a.nx,a.nz);
           if(!inflight.has(key))return {...a,key,coarse:true};
         }
@@ -164,10 +179,10 @@
     }
     function snapshot(){
       // Covered: ready, or something drawable over it (a ready ancestor within three levels, or all finer nodes cached).
-      const R=Math.min(world?.maxLevel??0,level+3),covered=targets.filter(t=>{if(ready(t.key))return true;for(let k=level+1;k<=R;k++){const a=ancestor(t,k);if(ready(K(a.L,a.nx,a.nz)))return true;}if(t.L===0)return false;const f=[];for(let j=0;j<2;j++)for(let i=0;i<2;i++)f.push(K(t.L-1,t.nx*2+i,t.nz*2+j));return f.every(ready);}).length;
+      const covered=targets.filter(t=>{if(ready(t.key))return true;for(let k=t.L+1;k<=Math.min(world.maxLevel,t.L+3);k++){const a=ancestor(t,k);if(ready(K(a.L,a.nx,a.nz)))return true;}if(t.L===0)return false;const f=[];for(let j=0;j<2;j++)for(let i=0;i<2;i++)f.push(K(t.L-1,t.nx*2+i,t.nz*2+j));return f.every(ready);}).length;
       const readyCount=targets.filter(t=>ready(t.key)).length,levels={};
       for(const m of cache.items.values())levels[m.level]=(levels[m.level]||0)+1;
-      return {level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
+      return {rings:camera?.mode==='walk'?Object.fromEntries([...new Set(targets.map(t=>t.L))].map(L=>[L,targets.filter(t=>t.L===L).length])):null,level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
         entries:cache.items.size,bytes:cache.bytes,budget:cache.maxBytes,levels,...stats,gpuTimer:!!gpu,
         timing:Object.fromEntries(Object.entries(times).map(([k,v])=>[k,{p50:percentile(v,.5),p95:percentile(v,.95),n:v.length}]))};
     }

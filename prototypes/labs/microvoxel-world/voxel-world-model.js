@@ -810,7 +810,7 @@
             v={x,z,g0,variant:'sequoia',base,H,R,crownLow,apex,tiers,per,roots,top:apex+1,reach:CR+2,floorR:CR*1.15};
             ancients.set(k,v);if(ancients.size>4096)ancients.delete(ancients.keys().next().value);return v;
           }
-          const Mr=12+5*H_(1),Mh=2.2+1.6*H_(2),base=g0+Mh-.6,H=20+7*H_(3),R=2.3+.7*H_(4),la=H_(5)*Math.PI*2,lean=3.5+3*H_(6);
+          const Mr=18+6*H_(1),Mh=2.2+1.6*H_(2),base=g0+Mh-.6,H=20+7*H_(3),R=4+1.1*H_(4),la=H_(5)*Math.PI*2,lean=3.5+3*H_(6);
           const lx=Math.cos(la)*lean,lz=Math.sin(la)*lean,cx=x+lx,cz=z+lz,cy=base+H,twist=(H_(7)<.5?1:-1)*(.25+.15*H_(8)),variant=H_(9)<.62?'blossom':'coral';
           const mound=d=>g0+Mh*(.5+.5*Math.cos(Math.PI*clamp(d/Mr,0,1)))**1.3;
           // Roots: tapering tubes from the trunk foot, arching over the mound and diving into the ground beyond it.
@@ -824,17 +824,32 @@
             }
             roots.push({pts,x0,x1,z0,z1});
           }
-          // Limbs fan out and up from the leaning crown point; the canopy sits on their ends.
-          const limbs=[],lumps=[],pads=[],nl=5+Math.floor(H_(11)*2);
+          // Low forks carry a broad, layered crown rather than a cluster perched on a tall pole.
+          const limbs=[],lumps=[],pads=[],nl=7+Math.floor(H_(11)*2);
           for(let m=0;m<nl;m++){
-            const a=m/nl*Math.PI*2+(H_(80+m)-.5)*.7,reach=7+5*H_(100+m),ey=cy+2.5+4*H_(120+m),ex=cx+Math.cos(a)*reach,ez=cz+Math.sin(a)*reach;
-            limbs.push({x0:cx,z0:cz,y0:cy-2,x1:ex,z1:ez,y1:ey,r0:R*.45,r1:.45});
-            if(variant==='blossom')lumps.push({x:ex,z:ez,y:ey+1,r:4.5+2.5*H_(140+m)});
-            else{pads.push({x:ex,z:ez,y:ey+.4,r:4.2+2.4*H_(140+m),th:1.1+.5*H_(160+m)});
-              pads.push({x:cx+Math.cos(a)*reach*.55,z:cz+Math.sin(a)*reach*.55,y:cy+(ey-cy)*.45-1.2,r:2.6+1.4*H_(180+m),th:.9});}
+            const a=m/nl*Math.PI*2+(H_(80+m)-.5)*.45,reach=15+9*H_(100+m),ey=cy-2+6*H_(120+m),ex=cx+Math.cos(a)*reach,ez=cz+Math.sin(a)*reach,f=.48+.18*H_(320+m);
+            const x0=x+lx*f**1.6,z0=z+lz*f**1.6,y0=base+H*f,steps=Math.ceil(Math.hypot(ex-x0,ez-z0,ey-y0)/.65);
+            limbs.push({x0,z0,y0,x1:ex,z1:ez,y1:ey,r0:R*.65,r1:.85,steps});
+            const ix=x0+(ex-x0)*.55,iz=z0+(ez-z0)*.55,iy=y0+(ey-y0)*Math.sqrt(.55);
+            if(variant==='blossom'){
+              lumps.push({x:ex,z:ez,y:ey+1,r:7+3.5*H_(140+m)});
+              lumps.push({x:ix,z:iz,y:iy+1,r:5+2*H_(180+m)});
+            }else{
+              pads.push({x:ex,z:ez,y:ey+1.5,r:7+3.5*H_(140+m),th:3+1.6*H_(160+m)});
+              pads.push({x:ix,z:iz,y:iy+1,r:5+2*H_(180+m),th:2.8});
+            }
           }
-          if(variant==='blossom'){lumps.push({x:cx,z:cz,y:cy+5,r:6.5});for(let m=0;m<nl;m++){const A=lumps[m],B=lumps[(m+1)%nl];lumps.push({x:(A.x+B.x+cx)/3,z:(A.z+B.z+cz)/3,y:(A.y+B.y)/2+1.5,r:4});}}
-          else pads.push({x:cx,z:cz,y:cy+5.5,r:5.2,th:1.4});
+          if(variant==='blossom')lumps.push({x:cx,z:cz,y:cy+4,r:10});
+          else pads.push({x:cx,z:cz,y:cy+4,r:10,th:3.8});
+          // A separate lower storey leaves open windows between the old boughs and the high crown.
+          for(let m=0;m<4;m++){
+            const a=la+m*Math.PI/2+.25,reach=12+7*H_(340+m),f=.28+.1*H_(360+m),ey=base+H*(.52+.12*H_(380+m));
+            const ex=x+Math.cos(a)*reach,ez=z+Math.sin(a)*reach,x0=x+lx*f**1.6,z0=z+lz*f**1.6,y0=base+H*f;
+            limbs.push({x0,z0,y0,x1:ex,z1:ez,y1:ey,r0:R*.55,r1:.85,steps:Math.ceil(Math.hypot(ex-x0,ez-z0,ey-y0)/.65)});
+            const r=6+2*H_(400+m);
+            if(variant==='blossom')lumps.push({x:ex,z:ez,y:ey+1,r});
+            else pads.push({x:ex,z:ez,y:ey+1,r,th:2.8});
+          }
           // A few broken pillars and wall stubs among the roots.
           const stones=[];if(H_(12)<.45)for(let m=0;m<3+Math.floor(H_(13)*3);m++){const a=H_(200+m)*Math.PI*2,d=Mr*(.6+.4*H_(220+m));stones.push({x:x+Math.cos(a)*d,z:z+Math.sin(a)*d,ux:Math.cos(a+1.6),uz:Math.sin(a+1.6),wall:H_(240+m)<.4,r:.55+.3*H_(260+m),hl:1.2+.8*H_(280+m),ht:1.2+3*H_(300+m)});}
           const top=Math.max(...lumps.map(l=>l.y+l.r*.5),...pads.map(p=>p.y+p.th))+1;
@@ -1261,11 +1276,11 @@
     // crown: round (broadleaf dome), oval (airy birch), cone (spruce), larch (open tiered cone), spire (redwood: a needle
     // point over the trunk), umbrella (flat acacia pads), gnarled (twisted, leaning lakeside tree).
     const SPECIES={
-      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[2.75,2],r:[1.25,.75],trunk:.18},
-      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[4.5,2.75],r:[1.75,.75],trunk:.22},
-      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[3.25,1.75],r:[.75,.4],trunk:.12},
-      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[3.5,1.75],r:[1,.5],trunk:.18,conifer:true},
-      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[3.75,2],r:[1,.5],trunk:.16,conifer:true},
+      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[5.5,3.5],r:[2,.9],trunk:.26},
+      jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[8,4],r:[2.25,.75],trunk:.32},
+      birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[5,3],r:[1.15,.55],trunk:.17},
+      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[6,3.5],r:[1.4,.65],trunk:.25,conifer:true},
+      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[6,3],r:[1.4,.6],trunk:.22,conifer:true},
       redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[7.5,4],r:[1,.5],trunk:.33,conifer:true},
       umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[2.5,1.25],r:[1.75,.75],trunk:.15},
       gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[2.5,1],r:[1.1,.4],trunk:.24},
@@ -1948,16 +1963,19 @@
           for(const r of A.roots){if(x<r.x0||x>r.x1||z<r.z0||z>r.z1)continue;
             for(const p of r.pts){const q=Math.hypot(x-p.x,z-p.z);if(q<p.r){const hh=Math.sqrt(p.r*p.r-q*q);fill(MAT.bark,p.y-hh,p.y+hh,true);}}}
           // Limbs: tapering cylinders sampled as spheres along each branch.
-          for(const l of A.limbs)for(let s2=0;s2<=14;s2++){const t=s2/14,px=l.x0+(l.x1-l.x0)*t,pz=l.z0+(l.z1-l.z0)*t,py=l.y0+(l.y1-l.y0)*Math.sqrt(t),r=l.r0+(l.r1-l.r0)*t,q=Math.hypot(x-px,z-pz);
-            if(q<r){const hh=Math.sqrt(r*r-q*q);fill(MAT.bark,py-hh,py+hh);}}
+          for(const l of A.limbs){
+            if(x<Math.min(l.x0,l.x1)-l.r0||x>Math.max(l.x0,l.x1)+l.r0||z<Math.min(l.z0,l.z1)-l.r0||z>Math.max(l.z0,l.z1)+l.r0)continue;
+            for(let s2=0;s2<=l.steps;s2++){const t=s2/l.steps,px=l.x0+(l.x1-l.x0)*t,pz=l.z0+(l.z1-l.z0)*t,py=l.y0+(l.y1-l.y0)*Math.sqrt(t),r=l.r0+(l.r1-l.r0)*t,q=Math.hypot(x-px,z-pz);
+              if(q<r){const hh=Math.sqrt(r*r-q*q);fill(MAT.bark,py-hh,py+hh);}}
+          }
           // Blossom canopy: lumpy violet domes with white drifts and a little green, strands hanging beneath.
           const drape=hash(Math.floor(x*4),Math.floor(z*4),seed+629);
           for(const l of A.lumps){const r=l.r*(.85+.3*noise(x*.3,z*.3,seed+463)),q=Math.hypot(x-l.x,z-l.z);if(q>=r)continue;const hh=Math.sqrt(r*r-q*q)*.5;
             const a=Math.max(0,Math.floor((l.y-hh*.7-(drape<.14?1+3*drape/.14:0))/cellMetres)),b=Math.min(heightCells,Math.ceil((l.y+hh)/cellMetres));
             for(let y=a;y<b;y++)if(!values[y]){const n=noise(x*1.1+y*cellMetres*.8,z*1.1,seed+631)*.6+noise(x*.15,z*.15,seed+637)*.4;values[y]=n>.7?MAT.blossomWhite:n<.2?MAT.leaf:MAT.blossom;}}
-          // Coral variant: flat umbrella pads with softly domed tops.
+          // Coral variant: overlapping domes with full shaded undersides around the supporting boughs.
           for(const p of A.pads){const r=p.r*(.88+.24*noise(x*.35,z*.35,seed+633)),q=Math.hypot(x-p.x,z-p.z);if(q>=r)continue;
-            fill(MAT.coral,p.y-p.th*.4-(q>r*.86?.3:0),p.y+p.th*Math.sqrt(1-(q/r)**4));}
+            fill(MAT.coral,p.y-p.th*(.45+.55*Math.sqrt(1-(q/r)**2)),p.y+p.th*Math.sqrt(1-(q/r)**4));}
           // Broken pillars and wall stubs among the roots, mossy on top.
           for(const s2 of A.stones){const dx=x-s2.x,dz=z-s2.z,inside=s2.wall?Math.abs(dx*s2.ux+dz*s2.uz)<s2.hl&&Math.abs(dz*s2.ux-dx*s2.uz)<.4:Math.hypot(dx,dz)<s2.r;if(!inside)continue;
             const t=Math.min(heightCells,gTop+Math.max(1,Math.round(s2.ht*(.75+.5*noise(x*.6,z*.6,seed+635))/cellMetres)));for(let y=gTop-1;y<t;y++)values[y]=MAT.stone;values[t-1]=MAT.mossy;written=Math.max(written,t);}
@@ -2118,7 +2136,7 @@
       }
       colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,stalks,fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2135,6 +2153,17 @@
       }
       return {canopy:out};
     }
+    // Giant sequoia crowns as bough skirts, from the hero tree's tier data: one record per tier, in node-local metres:
+    // crown centre x, z, tier top, tier bottom; radius at the bottom, radius at the top (stepped in), seed. Listed by the
+    // node holding the trunk, at every level (the giant is visible from afar).
+    function sequoiaSkirts(L,nx,nz){
+      const m=NODE*cellMetres*2**L,x0=nx*m,z0=nz*m,A=landmarksAt0(x0+m/2,z0+m/2);
+      if(!A||A.variant!=='sequoia'||!A.tiers||A.x<x0||A.x>=x0+m||A.z<z0||A.z>=z0+m)return new Float32Array(0);
+      const cx=(A.cx??A.x)-x0,cz=(A.cz??A.z)-z0,out=[];
+      A.tiers.forEach((t,k)=>out.push(cx,cz,t.top,t.bottom,t.r,t.r*(1-(t.step||.35)),k*.137+(A.x%1),0));
+      return Float32Array.from(out);
+    }
+    const landmarksAt0=(x,z)=>infinite?ancientNear(x,z):null;
     // Palm fronds as objects (props mode skips palm crown voxels): one record per frond, in node-local metres: crown top
     // x, y, z, yaw, pitch, droop, length, and 1 for a young upright frond (0 otherwise).
     function frondProps(L,nx,nz){
@@ -2232,8 +2261,10 @@
     const FLOW=8,flows=new Map();
     function flowAt(i,j){
       const k=i*65536+j;let v=flows.get(k);if(v)return v;const x=i*FLOW,z=j*FLOW,g=geography(x,z);v=[0,0];
+      // Open sea has no river current (the generator's river data runs on past the mouth); estuaries flow gently.
+      if(g.sea){flows.set(k,v);return v;}
       // Prefer the generator's own river data (direction and speed stored along each river) when it provides them.
-      if(g.riverDir&&g.riverSpeed!==undefined&&g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){const sp=clamp(g.riverSpeed,0,1);v=[g.riverDir[0]*sp,g.riverDir[1]*sp];}
+      if(g.riverDir&&g.riverSpeed!==undefined&&g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){const sp=g.riverZone==='estuary'?Math.min(.45,g.riverSpeed*.4):clamp(g.riverSpeed,0,1);v=[g.riverDir[0]*sp,g.riverDir[1]*sp];}
       else if(g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){
         const gx=geography(x+2,z).riverDistance-geography(x-2,z).riverDistance,gz=geography(x,z+2).riverDistance-geography(x,z-2).riverDistance,l=Math.hypot(gx,gz);
         if(l>1e-6){let dx=-gz/l,dz=gx/l;const ahead=geography(x+dx*4,z+dz*4).riverLevel,behind=geography(x-dx*4,z-dz*4).riverLevel;if(ahead>behind){dx=-dx;dz=-dz;}

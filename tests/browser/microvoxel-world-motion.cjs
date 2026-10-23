@@ -43,10 +43,14 @@ async function exercise(p,url){
   await p.keyboard.down('ArrowLeft');await frames(p,3);await p.locator('#info').click();assert.equal((await state(p)).moving,false,'modal focus stops held-key motion');await p.keyboard.up('ArrowLeft');await p.locator('#closeNotes').click();await ready(p);
   await holdMesh(p);await p.mouse.up();await p.locator('#info').click();await p.locator('#seed').fill('39');await p.locator('#seedForm button').click();
   const stale=await p.evaluate(()=>{window.__holdMeshes=false;window.__heldMeshes.shift().deliver();return MicroWorldLab.snapshot();});
-  assert.equal(stale.seed,39);assert.equal(stale.completed,0,'old-seed mesh cannot enter regenerated world');assert.equal(stale.failed,false);await ready(p);
+  assert.equal(stale.seed,39);assert.equal(stale.completed,0,'old-seed mesh cannot enter regenerated world');assert.equal(stale.failed,false);
+  // Replies from the new world that arrived before holding was switched off are held too; release them so the workers'
+  // jobs complete (as after the drag check above).
+  await p.evaluate(()=>{for(const d of window.__heldMeshes.splice(0))d.deliver();});await ready(p);
   await holdMesh(p);await p.mouse.up();await p.evaluate(()=>{const b=document.getElementById('settings'),p=document.getElementById('settingsPanel');if(b&&p&&p.hidden)b.click();});await p.locator('#densityBase').click();
   const staleError=await p.evaluate(()=>{window.__holdMeshes=false;const held=window.__heldMeshes.shift();held.data.error='obsolete fine-density failure';held.deliver();return MicroWorldLab.snapshot();});
-  assert.equal(staleError.cellMetres,.25);assert.equal(staleError.completed,0);assert.equal(staleError.failed,false,'obsolete-world errors cannot fail the replacement world');await ready(p);assert.deepEqual(errors,[]);
+  assert.equal(staleError.cellMetres,.25);assert.equal(staleError.completed,0);assert.equal(staleError.failed,false,'obsolete-world errors cannot fail the replacement world');
+  await p.evaluate(()=>{for(const d of window.__heldMeshes.splice(0))d.deliver();});await ready(p);assert.deepEqual(errors,[]);
 }
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'}),temporary=fs.mkdtempSync(path.join(os.tmpdir(),'spacology-voxel-motion-'));
 try{
