@@ -12,19 +12,24 @@ try{
   p.on('pageerror',e=>errors.push(e.message));
   await p.addInitScript(()=>{
     const names=new WeakMap(),proto=WebGL2RenderingContext.prototype,get=proto.getUniformLocation,uniform=proto.uniform3fv,center=proto.uniform3f;
-    window.__maxPositionUniform=0;
+    // Every GPU position (node and prop origins, view centres) is relative to the explorer in all three
+    // axes, so none grows with distance travelled or altitude climbed.
+    window.__maxPositionUniform=0;window.__maxAltitudeUniform=0;
+    const track=(x,y,z)=>{window.__maxPositionUniform=Math.max(window.__maxPositionUniform,Math.abs(x),Math.abs(z));window.__maxAltitudeUniform=Math.max(window.__maxAltitudeUniform,Math.abs(y));};
     proto.getUniformLocation=function(...args){const result=get.apply(this,args);if(result)names.set(result,args[1]);return result;};
-    proto.uniform3fv=function(location,value){if(names.get(location)==='origin')window.__maxPositionUniform=Math.max(window.__maxPositionUniform,...value.map(Math.abs));return uniform.call(this,location,value);};
-    proto.uniform3f=function(location,x,y,z){if(names.get(location)==='center')window.__maxPositionUniform=Math.max(window.__maxPositionUniform,Math.abs(x),Math.abs(z));return center.call(this,location,x,y,z);};
+    proto.uniform3fv=function(location,value){if(['origin','center'].includes(names.get(location)))track(value[0],value[1],value[2]);return uniform.call(this,location,value);};
+    proto.uniform3f=function(location,x,y,z){if(['origin','center'].includes(names.get(location)))track(x,y,z);return center.call(this,location,x,y,z);};
   });
   await p.goto(BASE+'/prototypes/microvoxel-world.html?extent=infinite&seed=2718&gpuMiB=8');await ready(p);await p.locator('#pause').click();
-  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-17');
+  const original=await state(p);bounded(original);assert.equal(original.extent,'infinite');assert.equal(original.revision,'micro-wilds-18');
   const fixture=M.createWorld(original.seed,original.cellMetres,'infinite');for(const a of original.actors)assert.equal(a.y,fixture.ground(a.x,a.z),'crew stand on exact voxel ground at their task sites');
   const home=await terrainImage(p),samples=[];assert.ok(home.length>10000,'capture contains rendered terrain, not an empty framebuffer');
   for(const [cx,cz] of [[125,0],[-125,-125],[250,250],[200000,-200000],[-200000,200000],[500000,-500000],[-500000,500000],[1000000,-1000000],[-1000000,1000000],[M.MAX_CHUNK-32,-M.MAX_CHUNK+32]]){
     await jump(p,cx,cz);const s=await state(p);bounded(s);assert.equal(s.position.cx,cx);assert.equal(s.position.cz,cz);assert.equal(s.position.x,4);assert.deepEqual(s.actors.map(a=>[a.x,a.z]),original.actors.map(a=>[a.x,a.z]),'paused crew stay at their task sites while the camera travels');assert.ok(await p.locator('#rootMarker').isHidden());samples.push(s);
   }
-  assert.ok(await p.evaluate(()=>window.__maxPositionUniform<256),'actual GPU position uniforms stay small after distant travel');
+  const gpu=await p.evaluate(()=>({xz:window.__maxPositionUniform,y:window.__maxAltitudeUniform}));console.log('max GPU position uniforms',JSON.stringify(gpu));
+  assert.ok(gpu.xz<256,'actual GPU horizontal position uniforms stay small after distant travel');
+  assert.ok(gpu.y<256,'actual GPU heights stay relative to the explorer after distant travel');
   const distant=samples.at(-1).position,distantX=distant.cx*8+distant.x+2,distantZ=distant.cz*8+distant.z+2;
   const target=await p.evaluate(({x,y,z})=>MicroWorldLab.project(x,y,z),{x:distantX,y:fixture.ground(distantX,distantZ),z:distantZ}),canvasRect=await p.locator('#world').boundingBox();
   await p.mouse.click(canvasRect.x+target.x,canvasRect.y+target.y);assert.ok(await p.locator('#inspection').isVisible());assert.match(await p.locator('#inspectPosition').innerText(),/X 134217/);await p.locator('#closeInspection').click();

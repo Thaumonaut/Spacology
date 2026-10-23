@@ -263,7 +263,7 @@
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel;
   uniform highp sampler2DShadow shadowMap;
-  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime, placeholder, xray;
+  uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime, placeholder, xray, yBase;
   uniform vec2 worldOffset;
   uniform vec2 dither;
   uniform sampler2D normalMap, canopyMap, biomeMap, waterMap;
@@ -302,7 +302,7 @@
     // Shadow only removes the sun term, so shade keeps the sky fill: a soft afternoon shadow, never a black one.
     // A coarser tile standing in for finer ones keeps the same lighting (so long-lived fallback coverage never shows a
     // brightness step along tile edges); it only skips sun shadows, which its blocky shapes would cast wrongly.
-    float sunVis=(placeholder>0.?1.:sunlight())*clouds(localPosition),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
+    float sunVis=(placeholder>0.?1.:sunlight())*clouds(localPosition+vec3(0,yBase,0)),sun=sunVis;if(isBladeGrass(mat))sun=.45+.55*sun;
     vec3 light=mix(vec3(.62,.58,.52),vec3(.78,.82,.9),n.y*.5+.5)*.72+vec3(1.,.95,.85)*key*.45*sun;
     // Relief lighting for mountains: rock, and ground in proportion to its steepness, gets a warm strong sun over a cool
     // darker fill, so peaks and slopes read as form (sunward faces bright and warm, shaded faces cool, never black).
@@ -693,17 +693,18 @@
   // Cloud layer for wide views: a plane high above the land shaded from the same noise as the cloud shadows (offset
   // along the sun by its height), so each cloud floats exactly over its shadow. Anime cumulus: white sunlit tops, a soft
   // blue-grey band on the far side, soft rims. Fades in only as the view widens.
-  // Above the tallest possible ground (2048-cell streamed columns: 512 m), so clouds never cut through peaks.
+  // Cloud deck: 620 m over lowland, riding 600 m above the view over high ground (see cloudHeight); the cloud pattern
+  // keeps this fixed reference height so the deck does not slide as it rises.
   const CLOUD_HEIGHT=620;
   const cloudVertex=`#version 300 es
   precision highp float;
   layout(location=0) in vec2 corner;
   uniform vec3 center;
   uniform vec2 halfView, extent, middle;
-  uniform float depth;
+  uniform float depth, cloudY;
   out vec2 at;
   void main(){
-    vec3 p=vec3(middle+corner*extent,${CLOUD_HEIGHT}.).xzy;at=p.xz;
+    vec3 p=vec3(middle+corner*extent,cloudY).xzy;at=p.xz;
     gl_Position=toClip(p);
   }`;
   const cloudFragment=`#version 300 es
@@ -1240,7 +1241,7 @@
   precision highp float;
   uniform vec3 eye,camForward,camRight,camUp,skyHorizon,skyZenith;
   uniform vec2 resolution,worldOffset;
-  uniform float tanFov,cloudTime,cloudFade;
+  uniform float tanFov,cloudTime,cloudFade,cloudY;
   layout(location=0) out vec4 color;
   layout(location=1) out vec4 glow;
   ${MEADOW}
@@ -1251,7 +1252,7 @@
     vec3 sun=normalize(vec3(-.5,1.,.4));float a=max(0.,dot(ray,sun));
     sky+=vec3(1.,.75,.4)*(pow(a,90.)*.3+smoothstep(.9997,.9999,a));
     if(ray.y>.015){
-      vec2 at=eye.xz+ray.xz*max(0.,(${CLOUD_HEIGHT}.-eye.y)/ray.y)+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.;
+      vec2 at=eye.xz+ray.xz*max(0.,(cloudY-eye.y)/ray.y)+worldOffset+vec2(.5,-.4)*${CLOUD_HEIGHT}.;
       float n=cloudField(at),body=smoothstep(.55,.64,n),rim=1.-smoothstep(.6,.7,n);
       vec3 cloud=mix(vec3(.57,.62,.71),vec3(1.,.88,.68),rim*.8);
       sky=mix(sky,cloud,body*cloudFade*smoothstep(.015,.12,ray.y));
@@ -1286,14 +1287,14 @@
     constructor(canvas){
       this.canvas=canvas;const gl=this.gl=canvas.getContext('webgl2',{alpha:false,antialias:false,powerPreference:'low-power'});
       if(!gl)throw new Error('WebGL2 is unavailable. Enable hardware acceleration or try another browser.');
-      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder','xray','peek']));
+      ({program:this.program,u:this.u}=link(gl,vertex(false),fragment,[...DRAW_UNIFORMS,'center','halfView','palette','time','detail','depth','dither','pixelWorld','shadowMap','shadowOn','shadowTexel','cards','grassGrow','cloudTime','worldOffset','placeholder','xray','peek','yBase']));
       ({program:this.casterProgram,u:this.cu}=link(gl,vertex(true),casterFragment,[...DRAW_UNIFORMS,'caster']));
       ({program:this.grassProgram,u:this.gu}=link(gl,grassVertex,grassFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','grassColor','shadowOn','shadowTexel','blockSize','dither','shadowMap','cloudTime','worldOffset','palette']));
       ({program:this.leafProgram,u:this.lu}=link(gl,leafVertex,leafFragment,['origin','scale','patternOrigin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','grow','shadowOn','shadowTexel','blockSize','dither','shadowMap','leafShape','cloudTime','worldOffset','palette','peek','biomeMap','biomeSize']));
       gl.useProgram(this.leafProgram);gl.uniform1i(this.lu.shadowMap,1);gl.uniform1f(this.lu.blockSize,.3);
       // Conifer card outline for comparison (?leaves=round|soft|hard|round+soft|mixed); mixed by default.
       gl.uniform1f(this.lu.leafShape,Math.max(0,['round','soft','hard','round+soft','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('leaves')||'mixed')));
-      ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade']));
+      ({program:this.cloudProgram,u:this.ku}=link(gl,cloudVertex,cloudFragment,['center','halfView','extent','middle','depth','worldOffset','cloudTime','cloudFade','cloudY']));
       this.cloudVao=gl.createVertexArray();
       ({program:this.skirtProgram,u:this.ku2}=link(gl,skirtVertex,skirtFragment,['origin','center','lightAt','lightHalf','lightAxes','halfView','depth','time','palette','shadowOn','shadowTexel','blockSize','shadowMap']));
       this.skirtGeom=makeSkirt();this.skirtBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.skirtBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.skirtGeom,gl.STATIC_DRAW);
@@ -1313,7 +1314,7 @@
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);gl.uniform1i(this.pu.sceneGlow,7);this.postVao=gl.createVertexArray();
       // Outlines on by default; ?outlines=0 turns them off for comparison.
       this.outlines=new URLSearchParams(root.location?.search||'').get('outlines')!=='0';
-      ({program:this.skyProgram,u:this.skyU}=link(gl,postVertex,skyFragment,['resolution','tanFov','worldOffset','cloudTime','cloudFade']));
+      ({program:this.skyProgram,u:this.skyU}=link(gl,postVertex,skyFragment,['resolution','tanFov','worldOffset','cloudTime','cloudFade','cloudY']));
       this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
       gl.useProgram(this.grassProgram);gl.uniform1i(this.gu.shadowMap,1);gl.uniform1f(this.gu.blockSize,.05);gl.uniform3fv(this.gu.grassColor,[1,3,5].map(i=>parseInt(M.COLORS[M.MAT.grass].slice(i,i+2),16)/255));
@@ -1328,10 +1329,40 @@
       canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.lost=true;});
       gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.clearColor(.77,.81,.76,1);
     }
-    upload(mesh){const gl=this.gl,vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.buffer,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.UNSIGNED_SHORT,false,8,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,1,gl.UNSIGNED_BYTE,false,8,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,8,7);
+    // Voxel geometry of one mesh (or one vertical slice of a streamed node): the block mesh, and the smooth-terrain mesh
+    // with its seam skirts when present. top: highest vertex in blocks (local to the mesh).
+    geometry(mesh){const gl=this.gl,vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.buffer,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.UNSIGNED_SHORT,false,8,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,1,gl.UNSIGNED_BYTE,false,8,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,8,7);
       // Highest vertex in blocks, so the sun's shadow box can reach the tallest thing drawn.
       const ys=new Uint16Array(mesh.buffer);let top=0;for(let i=1;i<ys.length;i+=4)top=Math.max(top,ys[i]);
-      const out={vao,buffer,count:mesh.count,bytes:mesh.buffer.byteLength,normalMap:null,normalSize:0,groundBase:0,top};
+      const out={vao,buffer,count:mesh.count,bytes:mesh.buffer.byteLength,top};
+      if(mesh.smooth?.count){
+        // Smooth terrain: float position, signed-byte normal, byte material (16 bytes a vertex).
+        const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);gl.bindBuffer(gl.ARRAY_BUFFER,sbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.smooth.buffer,gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,16,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,16,15);
+        out.smooth={vao:svao,buffer:sbuf,count:mesh.smooth.count};out.bytes+=mesh.smooth.buffer.byteLength;out.top=Math.max(out.top,Math.ceil(mesh.smooth.top));
+        const seams=seamSkirts(mesh.smooth),vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,seams.buffer,gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,16,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,16,15);
+        out.seams={vao,buffer,count:seams.count};out.bytes+=seams.buffer.byteLength;
+      }
+      gl.bindVertexArray(null);return out;
+    }
+    // A streamed node arrives as vertical slices (mesh.slices, each with its origin y in blocks and slice-local vertex y)
+    // plus per-footprint maps and props; other meshes (chunks, the crew cube) are one piece in their own frame.
+    // Prop instances (grass, cards, stalks, flowers in blocks; skirts, fronds, mushrooms in metres) arrive in absolute
+    // height; they are rebased in place on the node's lowest meshed block (mesh.base), which draws add back on the GPU
+    // side relative to the explorer, so no prop vertex or uniform carries kilometres of altitude.
+    rebaseProps(mesh){
+      const rb=mesh.base||0,rm=rb*(mesh.column||0),shift=(a,stride,k,v)=>{if(a?.length&&v)for(let i=k;i<a.length;i+=stride)a[i]-=v;};
+      shift(mesh.grass,4,1,rb);shift(mesh.flowers,4,1,rb);shift(mesh.leaves,8,1,rb);shift(mesh.stalks,8,1,rb);
+      shift(mesh.skirts,8,2,rm);shift(mesh.skirts,8,3,rm);shift(mesh.fronds,8,1,rm);shift(mesh.mushrooms,8,1,rm);
+      return {rb,rm};
+    }
+    upload(mesh){const gl=this.gl;let out;const {rb,rm}=mesh.slices?this.rebaseProps(mesh):{rb:0,rm:0};
+      if(mesh.slices){
+        const slices=mesh.slices.map(sl=>({y:sl.y,...this.geometry(sl)}));
+        out={slices,count:slices.reduce((n,s)=>n+s.count,0),bytes:slices.reduce((n,s)=>n+s.bytes,0),top:slices.reduce((n,s)=>Math.max(n,s.y+s.top),0),bottom:slices.length?Math.min(...slices.map(s=>s.y)):0,normalMap:null,normalSize:0,groundBase:0};
+      }else out={...this.geometry(mesh),normalMap:null,normalSize:0,groundBase:0};
+      out.propBlocks=rb;out.propMetres=rm;
       if(mesh.normals){
         // Per-node hillshade normals, one texel per column, filtered between column centres.
         out.normalMap=gl.createTexture();out.normalSize=mesh.normalSize;out.groundBase=mesh.groundBase;out.bytes+=mesh.normals.byteLength;gl.bindTexture(gl.TEXTURE_2D,out.normalMap);
@@ -1380,7 +1411,7 @@
         gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,0);gl.vertexAttribDivisor(1,1);
         gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(2,1);
         out.skirts={vao:kvao,buffer:kbuf,count:mesh.skirts.length/8};out.bytes+=mesh.skirts.byteLength;
-        let top=0;for(let k=0;k<mesh.skirts.length;k+=8)top=Math.max(top,mesh.skirts[k+2]);out.frondTop=Math.max(out.frondTop||0,top);
+        let top=0;for(let k=0;k<mesh.skirts.length;k+=8)top=Math.max(top,mesh.skirts[k+2]+rm);out.frondTop=Math.max(out.frondTop||0,top);
       }
       if(mesh.fronds?.length){
         const fvao=gl.createVertexArray(),fbuf=gl.createBuffer();gl.bindVertexArray(fvao);
@@ -1389,7 +1420,7 @@
         gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,0);gl.vertexAttribDivisor(1,1);
         gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(2,1);
         out.fronds={vao:fvao,buffer:fbuf,count:mesh.fronds.length/8};out.bytes+=mesh.fronds.byteLength;
-        let top=0;for(let k=0;k<mesh.fronds.length;k+=8)top=Math.max(top,mesh.fronds[k+1]+mesh.fronds[k+6]);out.frondTop=top;
+        let top=0;for(let k=0;k<mesh.fronds.length;k+=8)top=Math.max(top,mesh.fronds[k+1]+mesh.fronds[k+6]+rm);out.frondTop=Math.max(out.frondTop||0,top);
       }
       if(mesh.mushrooms?.length){
         const mvao=gl.createVertexArray(),mbuf=gl.createBuffer();gl.bindVertexArray(mvao);
@@ -1420,17 +1451,8 @@
         gl.bindBuffer(gl.ARRAY_BUFFER,sbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.stalks,gl.STATIC_DRAW);
         gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,32,0);gl.vertexAttribDivisor(1,1);
         gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,4,gl.FLOAT,false,32,16);gl.vertexAttribDivisor(2,1);
-        let top=0;for(let k=0;k<mesh.stalks.length;k+=8)top=Math.max(top,mesh.stalks[k+1]+mesh.stalks[k+4]);
+        let top=0;for(let k=0;k<mesh.stalks.length;k+=8)top=Math.max(top,mesh.stalks[k+1]+mesh.stalks[k+4]+rb);
         out.stalks={vao:svao,buffer:sbuf,count:mesh.stalks.length/8};out.bytes+=mesh.stalks.byteLength;out.top=Math.max(out.top,Math.ceil(top));
-      }
-      if(mesh.smooth?.count){
-        // Smooth terrain: float position, signed-byte normal, byte material (16 bytes a vertex).
-        const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);gl.bindBuffer(gl.ARRAY_BUFFER,sbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.smooth.buffer,gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,16,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,16,15);
-        out.smooth={vao:svao,buffer:sbuf,count:mesh.smooth.count};out.bytes+=mesh.smooth.buffer.byteLength;out.top=Math.max(out.top,Math.ceil(mesh.smooth.top));
-        const seams=seamSkirts(mesh.smooth),vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,seams.buffer,gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,16,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,16,15);
-        out.seams={vao,buffer,count:seams.count};out.bytes+=seams.buffer.byteLength;
       }
       gl.bindVertexArray(null);
       return out;
@@ -1439,20 +1461,26 @@
     // A coarser tile standing in while finer ones stream in: lit as usual but casting and receiving no sun shadows and
     // carrying no ink, so its blocky shapes stay quiet until the real tile arrives.
     placeholder(on){this.flat=on;}
-    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.seams){this.gl.deleteBuffer(mesh.seams.buffer);this.gl.deleteVertexArray(mesh.seams.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
+    disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);gl.deleteVertexArray(g.smooth.vao);}}
+    dispose(mesh){if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     // Biomes around the view (names; repeats weight a biome); the atmosphere eases toward their average.
     setAtmosphere(biomes){
       const t=SKY.base.map(c=>c.map(()=>0));for(const b of biomes)skyFor(b).forEach((c,i)=>c.forEach((v,j)=>t[i][j]+=v/biomes.length));
       this.skyTarget=biomes.length?t:null;
     }
+    // GPU frame: every position uploaded to the GPU is relative to the explorer in all three axes. The stream already
+    // rebases x/z; height is rebased here by yBase (the view height snapped to 64 m), subtracted from every origin, centre,
+    // eye, light box and cloud height at upload. CPU-side frames (queue, project, bounds) stay in absolute height, and
+    // pattern origins stay absolute so shading never moves.
     cameraUniforms(time){
       const now=performance.now(),dt=Math.min(1,(now-(this.skyClock||now))/1000);this.skyClock=now;
       const target=this.skyTarget||SKY.base;this.sky_=this.sky_||target.map(c=>[...c]);
       const k=1-Math.exp(-dt/1.5);this.sky_.forEach((c,i)=>c.forEach((v,j)=>c[j]=v+(target[i][j]-v)*k));
       // Fog: the slider's amount (0..1), and the mist layer's base and thickness. The map's base is the eased ground under the view centre, its thickness growing with the span; Walk's
       // base is just under the walker's feet, a thin mist.
-      const gl=this.gl,v=this.view,c=this.camera,o=this.worldOrigin||{x:0,z:0},P=95*4096,off=[o.x,o.z].map(x=>x-P*Math.round(x/P)),fog=this.fogAmount??.5;
+      const gl=this.gl,yb=this.yBase||0,v={...this.view,eye:[this.view.eye[0],this.view.eye[1]-yb,this.view.eye[2]],viewProj:Float32Array.from(this.view.viewProj)},c=this.camera,o=this.worldOrigin||{x:0,z:0},P=95*4096,off=[o.x,o.z].map(x=>x-P*Math.round(x/P)),fog=this.fogAmount??.5;
+      for(let i=0;i<4;i++)v.viewProj[12+i]+=yb*this.view.viewProj[4+i];
       const layer=v.ortho?[(c.y??8)-4,10]:[(c.eyeY??c.y??8)-2.1,6];
       for(const [program,u] of [[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
@@ -1460,13 +1488,21 @@
       }
     }
     sky(off){
-      const gl=this.gl,u=this.skyU;gl.useProgram(this.skyProgram);gl.uniform2f(u.resolution,this.canvas.width,this.canvas.height);gl.uniform1f(u.tanFov,Math.tan(this.view.fovY/2));gl.uniform2fv(u.worldOffset,off);gl.uniform1f(u.cloudTime,this.time);gl.uniform1f(u.cloudFade,this.cloudOpacity??.85);
+      const gl=this.gl,u=this.skyU;gl.useProgram(this.skyProgram);gl.uniform2f(u.resolution,this.canvas.width,this.canvas.height);gl.uniform1f(u.tanFov,Math.tan(this.view.fovY/2));gl.uniform2fv(u.worldOffset,off);gl.uniform1f(u.cloudTime,this.time);gl.uniform1f(u.cloudFade,this.cloudOpacity??.85);gl.uniform1f(u.cloudY,this.cloudHeight(this.camera)-(this.yBase||0));
       gl.disable(gl.DEPTH_TEST);gl.depthMask(false);gl.bindVertexArray(this.postVao);gl.drawArrays(gl.TRIANGLES,0,3);gl.depthMask(true);gl.enable(gl.DEPTH_TEST);
     }
-    begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.view=cameraView(camera,this.aspect,this.canvas.width);this.cameraUniforms(time);this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
+    // Cloud deck height (m): 620 m over lowland; over high ground it rides 600 m above the view so mountains stay under it.
+    cloudHeight(camera){return Math.max(CLOUD_HEIGHT,(camera.mode==='walk'?camera.eyeY??camera.y??8:camera.y??8)+600);}
+    begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.view=cameraView(camera,this.aspect,this.canvas.width);this.yBase=Math.round((camera.mode==='walk'?camera.eyeY??camera.y??8:camera.y??8)/64)*64;this.cameraUniforms(time);this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform1f(this.u.yBase,this.yBase);gl.uniform3f(this.u.center,camera.x,(camera.y??8)-this.yBase,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){this.queue.push({mesh,origin,scale,material,yaw,pitch,offset,patternOrigin,dither:this.dithering,flat:!!this.flat,caster:this.casting});}
-    replay(u,d){const gl=this.gl,m=d.mesh;gl.uniform3fv(u.origin,d.origin);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.bindVertexArray(m.smooth.vao);gl.drawArrays(gl.TRIANGLES,0,m.smooth.count);if(this.camera.mode==='walk'&&m.seams){gl.bindVertexArray(m.seams.vao);gl.drawArrays(gl.TRIANGLES,0,m.seams.count);}gl.uniform1f(u.smoothMesh,0);}}
+    replay(u,d){const gl=this.gl,m=d.mesh,yb=this.yBase||0;gl.uniform3f(u.origin,d.origin[0],d.origin[1]-yb,d.origin[2]);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}
+      if(!m.slices){this.drawGeometry(u,m);return;}
+      // Vertical slices: each draws at its own origin (y in blocks), with the pattern frame and the hillshade's ground base
+      // moved by the same amount so shading stays in absolute world height.
+      const o=d.origin,p=d.patternOrigin;
+      for(const sl of m.slices){const dy=sl.y*d.scale[1];gl.uniform3f(u.origin,o[0],o[1]+dy-yb,o[2]);gl.uniform3f(u.patternOrigin,p[0],p[1]+dy,p[2]);if(m.normalMap)gl.uniform1f(u.groundBase,m.groundBase-sl.y);this.drawGeometry(u,sl);}}
+    drawGeometry(u,m){const gl=this.gl;gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.bindVertexArray(m.smooth.vao);gl.drawArrays(gl.TRIANGLES,0,m.smooth.count);if(this.camera.mode==='walk'&&m.seams){gl.bindVertexArray(m.seams.vao);gl.drawArrays(gl.TRIANGLES,0,m.seams.count);}gl.uniform1f(u.smoothMesh,0);}}
     shadowTarget(){
       // Allocated on first use and never in Economy, which renders without sun shadows.
       // It lives on texture unit 1 only: unit 0 holds hillshade maps, and a depth texture there breaks every draw.
@@ -1478,9 +1514,9 @@
     }
     // The light box covers the camera footprint from sea floor to `top` (the tallest geometry drawn) plus room for casters
     // beyond its edges, snapped to whole texels so shadows do not crawl while panning.
-    lightBox(camera,size,top=(camera.y??8)+camera.span*.5){
-      const b=camera.mode==='walk'?{minX:camera.x-60,maxX:camera.x+60,minZ:camera.z-60,maxZ:camera.z+60}:this.bounds(camera,top),pad=camera.mode==='walk'?0:camera.span*.3,A=LIGHT_AXES,pts=[];
-      for(const x of [b.minX-pad,b.maxX+pad])for(const z of [b.minZ-pad,b.maxZ+pad])for(const y of [0,top])pts.push([x,y,z]);
+    lightBox(camera,size,top=(camera.y??8)+camera.span*.5,bottom=0){
+      const b=camera.mode==='walk'?{minX:camera.x-60,maxX:camera.x+60,minZ:camera.z-60,maxZ:camera.z+60}:this.bounds(camera,top,bottom),pad=camera.mode==='walk'?0:camera.span*.3,A=LIGHT_AXES,pts=[];
+      for(const x of [b.minX-pad,b.maxX+pad])for(const z of [b.minZ-pad,b.maxZ+pad])for(const y of [bottom,top])pts.push([x,y,z]);
       const along=(p,k)=>p[0]*A[k*3]+p[1]*A[k*3+1]+p[2]*A[k*3+2],lo=[0,1,2].map(k=>Math.min(...pts.map(p=>along(p,k)))),hi=[0,1,2].map(k=>Math.max(...pts.map(p=>along(p,k))));
       const half=Math.max(hi[0]-lo[0],hi[1]-lo[1])/2,texel=2*half/size,c=[0,1].map(k=>Math.round((lo[k]+hi[k])/2/texel)*texel),cz=(lo[2]+hi[2])/2;
       const at=[0,1,2].map(i=>c[0]*A[i]+c[1]*A[3+i]+cz*A[6+i]);
@@ -1525,12 +1561,17 @@
       const CLOUD_PERIOD=95*4096,o=this.worldOrigin||{x:0,z:0},off=[o.x,o.z].map(v=>v-CLOUD_PERIOD*Math.round(v/CLOUD_PERIOD));
       // Sun shadows fade to sub-pixel by about 600 m spans; beyond that the pass is skipped (cloud shadows carry the mood).
       const gl=this.gl,c=this.camera,shadows=c.mode==='walk'||!this.economy&&c.span<600;let top=(c.y??8)+c.span*.5;
-      if(shadows)for(const d of this.queue)top=Math.max(top,d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1],d.mesh.frondTop||0);
-      const box=shadows?this.lightBox(c,this.shadowTarget().size,top):null;
+      // The box spans the drawn content's height range: from the lowest ground any drawn node holds (not sea level, which
+      // can lie kilometres below a mountain view) to the tallest thing drawn.
+      let bottom=Infinity;
+      if(shadows)for(const d of this.queue){top=Math.max(top,d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1],d.mesh.frondTop||0);bottom=Math.min(bottom,d.origin[1]+(d.mesh.normalMap?d.mesh.groundBase:0)*d.scale[1]-2);}
+      const box=shadows?this.lightBox(c,this.shadowTarget().size,top,Math.max(0,Math.min(bottom,(c.y??8)-c.span))):null,yb=this.yBase||0,lightAt=box&&[box.at[0],box.at[1]-yb,box.at[2]],cy=(c.y??8)-yb;
+      // Props whose instance data was rebased at upload (see upload) draw from the node's own height reference.
+      const propOrigin=(d,metres)=>[d.origin[0],d.origin[1]+(metres?d.mesh.propMetres||0:(d.mesh.propBlocks||0)*d.scale[1])-yb,d.origin[2]];
       if(shadows){
         const t=this.shadow;gl.bindFramebuffer(gl.FRAMEBUFFER,t.framebuffer);gl.viewport(0,0,t.size,t.size);gl.clear(gl.DEPTH_BUFFER_BIT);
         // Back faces only: the sun-facing side of a caster never compares against its own depth, so it cannot self-shadow.
-        gl.useProgram(this.casterProgram);gl.uniform3fv(this.cu.lightAt,box.at);gl.uniform3fv(this.cu.lightHalf,box.half);gl.uniformMatrix3fv(this.cu.lightAxes,false,LIGHT_AXES);gl.cullFace(gl.FRONT);
+        gl.useProgram(this.casterProgram);gl.uniform3fv(this.cu.lightAt,lightAt);gl.uniform3fv(this.cu.lightHalf,box.half);gl.uniformMatrix3fv(this.cu.lightAxes,false,LIGHT_AXES);gl.cullFace(gl.FRONT);
         for(const d of this.queue){if(d.flat||d.dither[0]<0||c.mode==='walk'&&(Math.abs(d.origin[0]-c.x)>96+32*d.scale[0]||Math.abs(d.origin[2]-c.z)>96+32*d.scale[0]))continue;gl.uniform1f(this.cu.caster,d.caster?1:0);this.replay(this.cu,d);}
         gl.cullFace(gl.BACK);
       }
@@ -1540,66 +1581,66 @@
       gl.viewport(0,0,this.canvas.width,this.canvas.height);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);if(scene)gl.clearBufferfv(gl.COLOR,1,[0,0,0,0]);if(c.mode==='walk')this.sky(off);gl.useProgram(this.program);gl.uniform1f(this.u.shadowOn,shadows?1:0);
       // Grass and leaf cards are full grown up to ~3 cm per pixel, shrink away by 5 cm, and are skipped further out.
       const pixel=c.mode==='walk'?0:c.span/this.canvas.width,grow=1-Math.min(1,Math.max(0,(pixel-.03)/.02));gl.uniform1f(this.u.cloudTime,this.time);const pk=c.mode!=='walk'&&this.peekAt?[this.peekAt.x*this.pixelRatio,(this.height-this.peekAt.y)*this.pixelRatio,(this.peekRadius||110)*this.pixelRatio]:[0,0,0];gl.uniform3fv(this.u.peek,pk);gl.uniform2f(this.u.worldOffset,...off);
-      if(shadows){gl.uniform3fv(this.u.lightAt,box.at);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
+      if(shadows){gl.uniform3fv(this.u.lightAt,lightAt);gl.uniform3fv(this.u.lightHalf,box.half);gl.uniformMatrix3fv(this.u.lightAxes,false,LIGHT_AXES);gl.uniform1f(this.u.shadowTexel,box.texel);gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,this.shadow.texture);gl.activeTexture(gl.TEXTURE0);}
       // Close-zoom tones apply per tile, only where that tile really carries leaf cards or grass blades: a coarse
       // placeholder shown while finer tiles load keeps the far-zoom colours instead of dark, bladeless grass and boxy crowns.
       for(const d of this.queue){if(c.mode==='walk'&&!this.onScreen(d))continue;gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);gl.uniform2f(this.u.dither,d.dither[0],d.dither[1]);gl.uniform1f(this.u.placeholder,d.flat?1:0);gl.uniform1f(this.u.cards,d.mesh.leaves?grow:0);gl.uniform1f(this.u.grassGrow,d.mesh.grass?grow:0);this.replay(this.u,d);this.draws++;this.triangles+=d.mesh.count/3;}
       if(grow>0&&this.queue.some(d=>d.mesh.grass)){
         const g=this.gu;gl.useProgram(this.grassProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
-        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         // Tuft budget per frame tied to screen size (about one per 40 CSS pixels; Economy a quarter). Wide grassy views draw
         // the same fraction of every tile's shuffled list, so meadows thin evenly instead of costing millions of vertices.
         const shown=this.queue.filter(d=>d.mesh.grass&&this.onScreen(d)),total=shown.reduce((n,d)=>n+d.mesh.grass.count,0),budget=this.width*this.height/(this.economy?160:40),share=Math.min(1,budget/Math.max(1,total));
-        for(const d of shown){const t=d.mesh.grass,count=Math.ceil(t.count*share);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,count);this.draws++;this.triangles+=count*BLADES*3;}
+        for(const d of shown){const t=d.mesh.grass,count=Math.ceil(t.count*share);gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,BLADES*BLADE_VERTS,count);this.draws++;this.triangles+=count*BLADES*3;}
         gl.enable(gl.CULL_FACE);
       }
       if(this.queue.some(d=>d.mesh.skirts)){
         const g=this.ku2;gl.useProgram(this.skirtProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.shadowOn,shadows?1:0);
-        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         const n=this.skirtGeom.length/3;
-        for(const d of this.queue){const t=d.mesh.skirts;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,[d.origin[0],0,d.origin[2]]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
+        for(const d of this.queue){const t=d.mesh.skirts;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d,true));gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
         gl.enable(gl.CULL_FACE);
       }
       if(this.queue.some(d=>d.mesh.fronds)){
         const g=this.ru;gl.useProgram(this.frondProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.shadowOn,shadows?1:0);
-        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
-        for(const d of this.queue){const t=d.mesh.fronds;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,[d.origin[0],0,d.origin[2]]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,FROND_SEGS*6,t.count);this.draws++;this.triangles+=t.count*FROND_SEGS*2;}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        for(const d of this.queue){const t=d.mesh.fronds;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d,true));gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,FROND_SEGS*6,t.count);this.draws++;this.triangles+=t.count*FROND_SEGS*2;}
         gl.enable(gl.CULL_FACE);
       }
       if(this.queue.some(d=>d.mesh.mushrooms)){
         const g=this.mu;gl.useProgram(this.mushroomProgram);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.shadowOn,shadows?1:0);
-        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
         const n=this.mushroomGeom.length/4;
-        for(const d of this.queue){const t=d.mesh.mushrooms;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,[d.origin[0],0,d.origin[2]]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
+        for(const d of this.queue){const t=d.mesh.mushrooms;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d,true));gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
       }
       if(this.queue.some(d=>d.mesh.stalks)){
         const g=this.su;gl.useProgram(this.stalkProgram);gl.disable(gl.CULL_FACE);gl.uniform3fv(g.peek,pk);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
-        for(const d of this.queue){const t=d.mesh.stalks;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
+        for(const d of this.queue){const t=d.mesh.stalks;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.enable(gl.CULL_FACE);
       }
       if(this.queue.some(d=>d.mesh.ferns)){
         const g=this.fe,n=this.fernGeom.length/3;gl.useProgram(this.fernProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);
-        for(const d of this.queue){const t=d.mesh.ferns;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);
+        for(const d of this.queue){const t=d.mesh.ferns;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,n,t.count);this.draws++;this.triangles+=t.count*n/3;}
         gl.enable(gl.CULL_FACE);
       }
       // Flowers draw at every zoom their tiles exist (close views only), never smaller than a few pixels.
       if(this.queue.some(d=>d.mesh.flowers)){
         const g=this.fu;gl.useProgram(this.flowerProgram);gl.disable(gl.CULL_FACE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
-        for(const d of this.queue){const t=d.mesh.flowers;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
+        for(const d of this.queue){const t=d.mesh.flowers;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
         const g=this.lu;gl.useProgram(this.leafProgram);gl.disable(gl.CULL_FACE);gl.uniform3fv(g.peek,pk);gl.enable(gl.SAMPLE_ALPHA_TO_COVERAGE);
-        gl.uniform3f(g.center,c.x,c.y??8,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
-        if(shadows){gl.uniform3fv(g.lightAt,box.at);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
-        for(const d of this.queue){const t=d.mesh.leaves;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,d.origin);gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.grow,grow*grow*(3-2*grow));gl.uniform1f(g.shadowOn,shadows?1:0);
+        if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
+        for(const d of this.queue){const t=d.mesh.leaves;if(!t||!this.onScreen(d))continue;this.bindBiome(g,d.mesh);gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.uniform2f(g.dither,d.dither[0],d.dither[1]);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
       }
       // X-ray pass: crew parts drawn again only where something nearer covers them.
@@ -1627,9 +1668,9 @@
       // show through them).
       const fade=c.mode==='walk'?0:Math.min(1,Math.max(0,(c.span-150)/250));
       if(fade>0&&(this.cloudOpacity??.85)>0){
-        const k=this.ku,b=this.bounds(c,CLOUD_HEIGHT);
+        const k=this.ku,b=this.bounds(c,this.cloudHeight(c));
         gl.useProgram(this.cloudProgram);gl.bindVertexArray(this.cloudVao);gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
-        gl.uniform3f(k.center,c.x,c.y??8,c.z);gl.uniform2f(k.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(k.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
+        gl.uniform3f(k.center,c.x,cy,c.z);gl.uniform1f(k.cloudY,this.cloudHeight(c)-yb);gl.uniform2f(k.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(k.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));
         gl.uniform2f(k.middle,(b.minX+b.maxX)/2,(b.minZ+b.maxZ)/2);gl.uniform2f(k.extent,(b.maxX-b.minX)/2+20,(b.maxZ-b.minZ)/2+20);
         gl.uniform2f(k.worldOffset,...off);
         gl.uniform1f(k.cloudTime,this.time);gl.uniform1f(k.cloudFade,fade*fade*(3-2*fade)*(this.cloudOpacity??.85));
@@ -1657,10 +1698,14 @@
     project(camera,x,y,z){if(camera.mode==='walk'){const v=this.camera===camera&&this.view?this.view:cameraView(camera,this.aspect,this.canvas.width),m=v.viewProj,p=[x,y,z,1],q=[0,1,2,3].map(k=>p.reduce((n,a,i)=>n+a*m[i*4+k],0));return {x:this.width*(.5+q[0]/q[3]*.5),y:this.height*(.5-q[1]/q[3]*.5),depth:q[3]};}const halfY=camera.span/2/this.aspect,dx=x-camera.x,dz=z-camera.z;return {x:this.width*(.5+(dx*CY-dz*SY)/camera.span),y:this.height*(.5-((y-(camera.y??8))*C-(dx*SY+dz*CY)*S)/(2*halfY))};}
     screenDirection(right,down){return {x:right*CY+down*SY,z:-right*SY+down*CY};}
     pan(camera,dx,dy){const horizontal=-dx*camera.span/this.width,forward=-dy*camera.span/(this.width*S);camera.x+=horizontal*CY+forward*SY;camera.z+=-horizontal*SY+forward*CY;}
-    bounds(camera,height){
+    // How far above or below the view centre content can still be on screen in the map view: the orthographic view keeps
+    // a depth slab of +-depth along the view direction, so visible heights lie within halfY*cos + depth*sin of the centre.
+    yReach(camera){if(camera.mode==='walk')return camera.viewDistance||600;const aspect=this.aspect||1,halfY=camera.span/2/aspect,depth=Math.max(600,camera.span*2.5/Math.min(1,aspect));return halfY*C+depth*S;}
+    // Ground-plane footprint of the view for content between heights `low` and `height`.
+    bounds(camera,height,low=0){
       if(camera.mode==='walk'){const d=camera.viewDistance||600;return {minX:camera.x-d,maxX:camera.x+d,minZ:camera.z-d,maxZ:camera.z+d};}
       const points=[];
-      for(const y of [0,height])for(const h of [-camera.span/2,camera.span/2])for(const v of [-camera.span/2/this.aspect,camera.span/2/this.aspect]){const f=((y-(camera.y??8))*C-v)/S;points.push({x:camera.x+h*CY+f*SY,z:camera.z-h*SY+f*CY});}
+      for(const y of [low,height])for(const h of [-camera.span/2,camera.span/2])for(const v of [-camera.span/2/this.aspect,camera.span/2/this.aspect]){const f=((y-(camera.y??8))*C-v)/S;points.push({x:camera.x+h*CY+f*SY,z:camera.z-h*SY+f*CY});}
       return {minX:Math.min(...points.map(p=>p.x)),maxX:Math.max(...points.map(p=>p.x)),minZ:Math.min(...points.map(p=>p.z)),maxZ:Math.max(...points.map(p=>p.z))};
     }
     pick(camera,clientX,clientY,world){
@@ -1675,7 +1720,9 @@
       // March from the camera-facing end, so a cliff cannot select hidden ground behind itself.
       // Coarse 1 m steps find the first hit; 1/16 m steps from just above it place it exactly.
       const at=y=>{const forward=((y-(camera.y??8))*C-vertical)/S,x=camera.x+horizontal*CY+forward*SY,z=camera.z-horizontal*SY+forward*CY,ground=world.ground(x,z);return ground!==null&&y<=ground?{x,z,y:ground}:null;};
-      for(let top=world.heightMetres;top>-1;top--)if(at(Math.max(0,top))){for(let y=Math.min(world.heightMetres,top+1);y>=0;y-=.0625){const hit=at(y);if(hit)return hit;}break;}
+      // Only heights inside the view's depth slab can be hit (see yReach); wide views march in coarser steps.
+      const ceiling=Math.min(world.heightMetres,(camera.y??8)+this.yReach(camera)),step=Math.max(1,camera.span/800);
+      for(let top=ceiling;top>-step;top-=step)if(at(Math.max(0,top))){for(let y=Math.min(ceiling,top+step);y>=0;y-=.0625){const hit=at(y);if(hit)return hit;}break;}
       return {x:-1,y:0,z:-1};
     }
   }

@@ -135,7 +135,8 @@ const chunks=origins.map(([x,z])=>wild.generateChunk(x,z));
 for(const [index,[cx,cz]] of [...origins.entries()].reverse()){
   const chunk=wild.generateChunk(cx,cz);assert.deepEqual(chunk,chunks[index]);assert.deepEqual(chunk,M.createWorld(2718,.25,'infinite').generateChunk(cx,cz));
   const col=wild.column(cx*wild.chunkCells,cz*wild.chunkCells);assert.ok(col.some(v=>v!==0));assert.equal(wild.ground(cx*8+.125,cz*8+.125),wild.geography(cx*8+.125,cz*8+.125).height*.25);
-  for(let y=0;y<chunk.height;y++)assert.equal(M.voxel(chunk,0,y,0),col[y]);
+  // Streamed chunks encode only their band [y0, y0+height): bedrock below, air above.
+  assert.equal(chunk.y0%8,0);for(let y=0;y<chunk.y0+chunk.height+4;y++)assert.equal(M.voxel(chunk,0,y,0),col[y]);
   coverage(M.meshChunk(wild,chunk,4));
 }
 for(const step of [1,2,4,8])coverage(M.meshChunk(wildFine,wildFine.generateChunk(-1,0),step));
@@ -143,7 +144,7 @@ const signedChunk=wild.generateChunk(-1,0),signedMesh=M.meshChunk(wild,signedChu
 for(let byte=0;byte<signedMesh.buffer.byteLength;byte+=48){
   if(signedData.getUint8(byte+6)!==1||signedData.getUint16(byte,true)!==wild.chunkCells)continue;
   const ys=[],zs=[];for(let v=0;v<6;v++){ys.push(signedData.getUint16(byte+v*8+2,true));zs.push(signedData.getUint16(byte+v*8+4,true));}
-  for(let z=Math.min(...zs);z<Math.max(...zs);z++)for(let y=Math.min(...ys);y<Math.max(...ys);y++)assert.equal(M.voxel(neighbour,0,y,z),M.MAT.air,'signed zero boundary has no internal border faces');
+  for(let z=Math.min(...zs);z<Math.max(...zs);z++)for(let y=Math.min(...ys);y<Math.max(...ys);y++)assert.equal(M.voxel(neighbour,0,y+signedMesh.y0,z),M.MAT.air,'signed zero boundary has no internal border faces');
 }
 assert.throws(()=>wild.generateChunk(M.MAX_CHUNK+1,0));
 for(let i=0;i<10000;i++)wild.tree(i,-i);
@@ -158,8 +159,10 @@ assert.equal(new Set(wildFingerprints).size,wildFingerprints.length,'streamed we
 // Unified LOD nodes: deterministic per (seed, level, node), sampled at their own spacing, bounded by nodeBound.
 {const a=M.createWorld(2718,.25,'infinite'),b=M.createWorld(2718,.25,'infinite');
   for(let L=0;L<=a.maxLevel;L++){const n=a.node(L,-1,2),m=b.node(L,-1,2);
-    assert.deepEqual(new Uint8Array(n.buffer),new Uint8Array(m.buffer),`level ${L} node meshes are deterministic`);
-    assert.equal(n.column,.25*2**L);assert.ok(n.quads>0&&n.count===n.quads*6);
+    assert.deepEqual(n.slices.map(s=>[s.y,new Uint8Array(s.buffer)]),m.slices.map(s=>[s.y,new Uint8Array(s.buffer)]),`level ${L} node meshes are deterministic`);
+    assert.equal(n.column,.25*2**L);const quads=n.slices.reduce((q,s)=>q+s.quads,0);assert.ok(quads>0&&n.slices.every(s=>s.count===s.quads*6&&s.count>0));
+    // Slices sit on the level's fixed vertical grid and hold slice-local vertex y.
+    for(const s of n.slices){assert.equal(s.y%a.slice,0);const v=new Uint16Array(s.buffer);for(let i=1;i<v.length;i+=4)assert.ok(v[i]<=a.slice,'slice-local y');}
     assert.ok(n.top*n.column<=a.nodeBound(L,-1,2)+n.column,'node content stays under its view bound');}
   // Level 0 samples every cell: its top surface matches exact ground at each column centre.
   const n=a.node(0,1,1),cols=a.nodeSize;assert.equal(a.nodeMetres(0),8);

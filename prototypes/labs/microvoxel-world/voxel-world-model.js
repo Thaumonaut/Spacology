@@ -1,6 +1,6 @@
 (function(root){
   'use strict';
-  const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=2048,EXTENT=128,REVISION='micro-catchment-1';
+  const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=40000,EXTENT=128,REVISION='micro-catchment-1';
   const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32,
     // Vegetation (appended; never renumber): leaves/needles, barks/culms, then small standing objects.
     birchBark:33,birchLeaf:34,larch:35,bushLeaf:36,bamboo:37,bambooLeaf:38,blossom:39,blossomWhite:40,coral:41,fern:42,tuft:43,mushroom:44,stem:45,glowFlower:46,reed:47,flowerYellow:48,flowerViolet:49,cactus:50,acacia:51,larchGold:52,birchMark:53,bambooNode:54,
@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-17':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-18':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
@@ -1291,9 +1291,9 @@
       oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[2.6,.65],trunk:.6},
       jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[2.6,.65],trunk:.7},
       birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.4,.5],trunk:.3},
-      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[3.4,.85],trunk:1.1,conifer:true},
-      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[30,10],r:[3,.9],trunk:.95,conifer:true},
-      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.needle,h:[40,10],r:[2.8,.9],trunk:1.5,conifer:true},
+      spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[3.4,.85],trunk:1.35,conifer:true},
+      larch:{crown:'larch',bark:MAT.bark,leaf:MAT.larch,h:[30,10],r:[3,.9],trunk:1.15,conifer:true},
+      redwood:{crown:'spire',bark:MAT.redwood,leaf:MAT.redwood,h:[40,10],r:[2.8,.9],trunk:2,conifer:true},
       umbrella:{crown:'umbrella',bark:MAT.bark,leaf:MAT.acacia,h:[5,3],r:[2.4,.6],trunk:.32},
       gnarled:{crown:'gnarled',bark:MAT.bark,leaf:MAT.leaf,h:[5,3],r:[1.3,.4],trunk:.42},
       // Riparian species (corridor planting only). willow: a domed crown whose rim hangs in curtains of strands; alder: a
@@ -1474,7 +1474,9 @@
       if(sp==='larch'&&noise(x*.015,z*.015,seed+741)>.64)t.leaf=MAT.larchGold;
       // Biome canopy colours (autumn gold and rust, blossom pinks) for broadleaf crowns, one per tree.
       else if(S.leaf&&(P.crown==='round'||P.crown==='oval'))t.leaf=S.leaf[Math.floor(hash(gx,gz,seed+743)*S.leaf.length)];
-      let top=g.height+height+Math.ceil(radius*.7)+4*density+1;
+      // Crown-overrun bound: oval crowns reach top+1.3R, round lobes ~0.8R, cones/larches a few cells — t.top must cover
+      // the highest cell any crown writes, or banded columns and t.top users truncate the crown.
+      let top=g.height+height+Math.ceil(radius*1.4)+4*density+1;
       if(P.crown==='umbrella'){const a=hash(gx,gz,seed+97)*Math.PI*2,d=rm*.45;t.pads=[{x,z,y:g.height+height,r:radius},{x:x+Math.cos(a)*d,z:z+Math.sin(a)*d,y:g.height+Math.round(height*.72),r:Math.max(density,Math.round(radius*.6))}];}
       if(P.crown==='gnarled'){
         const a=o.lean??hash(gx,gz,seed+99)*Math.PI*2,L=Math.min(o.maxLean??99,(.9+.8*hash(gx,gz,seed+101))*hm*.5);t.lx=Math.cos(a)*L;t.lz=Math.sin(a)*L;
@@ -1540,7 +1542,7 @@
     let prof=null;const now=()=>performance.now();
     // colTop: one past the highest cell the last column() call can have written, so callers reusing a buffer scan and clear
     // only that far.
-    let colTop=0;
+    let colTop=0,colFloor=0,scratch=null,scratch32=null;
     // colStep: cells between sampled columns (set by node()). Plants and scatter smaller than a sampled column are skipped.
     let colStep=1,propsMode=false;
     // Stamp one plant record into the column at (x,z) whose first air cell is h. Returns one past the highest cell the
@@ -1647,8 +1649,22 @@
           return env*(1-step+step*q**1.6);
         };
         // The trunk stops below the first height where the tiers no longer wrap it in at least a cell of needles, so it never
-        // pokes out of the crown (the tier tops are the narrow points).
-        if(dist<trunk){let trunkTop=low;while(trunkTop<apex&&tierR(trunkTop)-.5>=trunk)trunkTop++;values.fill(bark,t.base,Math.min(heightCells,trunkTop));}
+        // pokes out of the crown (the tier tops are the narrow points). Its foot flares into root buttresses over the
+        // first ~3 m (more on bigger trees), like an old-growth bole.
+        const flareH=Math.min(t.height*.12,Math.round(3/cellMetres));
+        if(dist<trunk*2.6){let trunkTop=low;while(trunkTop<apex&&tierR(trunkTop)-.5>=trunk)trunkTop++;
+          for(let y=t.base;y<Math.min(heightCells,trunkTop);y++){const f=clamp((y-t.base)/flareH,0,1),r=trunk*(1+1.6*(1-f)*(1-f));if(dist<r)values[y]=bark;}}
+        // Short dead branch stubs whisker the clear bole of grown trees (self-pruned limbs break off near the trunk).
+        if(t.cls>=1&&dist<trunk+4*density){
+          const nS=5+Math.floor(hash(id,7,seed+163)*4);
+          for(let i=0;i<nS;i++){
+            const a=hash(i,id,seed+165)*6.2832,len=1.5+2.5*hash(i,id,seed+167),sy=t.base+Math.floor((low-t.base)*(.15+.75*hash(i,id,seed+169)));
+            const ux=Math.cos(a),uz=Math.sin(a),along=(x-t.x)*ux+(z-t.z)*uz;if(along<0||along>=len*cellMetres)continue;
+            const u=along/(len*cellMetres),perp=Math.abs((x-t.x)*uz-(z-t.z)*ux)/cellMetres,r=(1-u)*Math.min(1.2,trunk*.45);
+            if(perp>=r+.4)continue;const py=sy+Math.round(u*len*.25),hh=Math.sqrt(Math.max(0,r*r-perp*perp));
+            for(let y=Math.max(t.base,Math.floor(py-hh));y<Math.min(heightCells,low,Math.ceil(py+hh)+1);y++)values[y]=bark;
+          }
+        }
         for(let y=low;y<Math.min(heightCells,apex);y++){
           if(values[y])continue;
           if(dist<tierR(y)+.5&&(!soft||hash(Math.floor(x*8)+y*131,Math.floor(z*8),seed+123)>.3))values[y]=leaf;
@@ -1924,14 +1940,20 @@
       }
       return ht;
     }
+    // A column is a vertical band: cells [colFloor, colTop) are written into a reused full-height scratch; everything
+    // below colFloor is bedrock (basalt) and is neither written nor read, and everything from colTop up is air. The floor
+    // sits below the deepest thing a column can place under its ground (rough-rock strata tones reach ~3 sampled columns
+    // of riser below the tread, ice up to its thickness, sunk boulders and ruin foundations a few metres), with margin.
+    function bandFloor(h,ice=0){return infinite?Math.max(0,Math.min(h-ice,h-8*density-Math.ceil((3.2*colStep*cellMetres+2)/cellMetres))-64*density)&~7:0;}
     function column(vx,vz,into){
-      const values=into||new Uint8Array(heightCells);colTop=0;
+      const values=into||new Uint8Array(heightCells);colTop=0;colFloor=0;
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
       if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       let t0=prof&&prof.on&&now();
       const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;
       if(prof&&prof.on){const t=now();prof.geography+=t-t0;t0=t;}
-      values.fill(MAT.basalt,0,Math.max(0,h-4*density));
+      colFloor=into?bandFloor(h,g.iceCells):0;
+      values.fill(MAT.basalt,colFloor,Math.max(colFloor,h-4*density));
       values.fill(g.exposed?MAT.basalt:MAT.soil,Math.max(0,h-4*density),h);
       if(infinite){
         // b: this column's surface biome, dithered across biome edges (pickBiome on its 50 cm cell).
@@ -2166,18 +2188,36 @@
       for(let y=Math.max(0,Math.floor(low/cellMetres)),e=Math.min(heightCells,Math.ceil(high/cellMetres));y<e;y++)if(BODY_SOLID.has(v[y]))return true;
       return false;
     }
+    // Run-encoded chunk of CHUNK x CHUNK columns. Finite worlds encode the whole column height; the streamed world encodes
+    // only the chunk's vertical band [y0, y0+height): below y0 is bedrock (basalt), above it air, and run ends are local
+    // to y0, so a 10 km column costs only its occupied band.
     function generateChunk(cx,cz){
       if(![cx,cz].every(n=>Number.isInteger(n)&&(!infinite||Math.abs(n)<=MAX_CHUNK)))throw new Error('Chunk coordinates exceed the supported range');
       const offsets=new Uint16Array(chunkCells*chunkCells+1),ends=[],materials=[];
+      if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
+      const bands=[];let y0=heightCells,y1=0;
       for(let z=0;z<chunkCells;z++)for(let x=0;x<chunkCells;x++){
-        const i=z*chunkCells+x,v=column(cx*chunkCells+x,cz*chunkCells+z);offsets[i]=ends.length;
-        for(let y=0;y<heightCells;){const material=v[y];let end=y+1;while(end<heightCells&&v[end]===material)end++;ends.push(end);materials.push(material);y=end;}
+        const v=infinite?column(cx*chunkCells+x,cz*chunkCells+z,scratch):column(cx*chunkCells+x,cz*chunkCells+z),fl=infinite?colFloor:0,top=infinite?colTop:heightCells;
+        bands.push({fl,v:v.slice(fl,top)});if(infinite)scratch.fill(0,fl,top);y0=Math.min(y0,fl);y1=Math.max(y1,top);
+      }
+      if(!infinite){y0=0;y1=heightCells;}y1=Math.max(y1,y0+1);
+      const height=y1-y0;
+      for(let i=0;i<bands.length;i++){
+        const {fl,v}=bands[i],at=y=>y<fl?MAT.basalt:y-fl<v.length?v[y-fl]:0;offsets[i]=ends.length;
+        for(let y=y0;y<y1;){const material=at(y);let end=y+1;while(end<y1&&at(end)===material)end++;ends.push(end-y0);materials.push(material);y=end;}
       }
       if(ends.length>65535)throw new Error('Column runs exceed the chunk offset format');
       offsets[chunkCells*chunkCells]=ends.length;
-      const chunk={cx,cz,size:chunkCells,height:heightCells,cell:cellMetres,offsets,ends:heightCells>255?Uint16Array.from(ends):Uint8Array.from(ends),materials:Uint8Array.from(materials)};
+      const chunk={cx,cz,size:chunkCells,y0,height,cell:cellMetres,offsets,ends:height>255?Uint16Array.from(ends):Uint8Array.from(ends),materials:Uint8Array.from(materials)};
       chunk.bytes=chunk.offsets.byteLength+chunk.ends.byteLength+chunk.materials.byteLength;
       return chunk;
+    }
+    // A column's occupied band as a copy: {floor, top, values} with values[y-floor] for cells floor..top-1 (bedrock below
+    // floor, air from top up).
+    function columnBand(vx,vz){
+      if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
+      if(!infinite){const v=column(vx,vz);return {floor:0,top:heightCells,values:v};}
+      const v=column(vx,vz,scratch),floor=colFloor,top=colTop,out={floor,top,values:v.slice(floor,top)};scratch.fill(0,floor,top);return out;
     }
     // Streamed LOD nodes: level L samples one world column every 2^L cells, so a node of NODE x NODE columns covers
     // NODE*2^L cells per side. Every level is real voxels (trees, spires, isles included), built at its own spacing
@@ -2198,42 +2238,66 @@
       v=Math.min(v,heightCells*cellMetres);bounds.set(k,v);if(bounds.size>16384)bounds.delete(bounds.keys().next().value);return v;
     }
     const heightBound=(cx,cz)=>nodeBound(Math.log2(CHUNK*density/NODE),cx,cz);
+    // Upper bound on any content in the whole world (m): the macro map's highest ground plus room for crags, erosion,
+    // trees and sky isles. Views and picking scan no higher than this instead of the 10 km world ceiling.
+    let contentCeiling=0;
+    function contentTop(){
+      if(!infinite)return heightCells*cellMetres;
+      if(!contentCeiling){let m=SEA;for(const h of MM.heights)m=Math.max(m,MacroLib.metres(h));contentCeiling=Math.min(heightCells*cellMetres,m*1.25+300);}
+      return contentCeiling;
+    }
+    // Vertical slices (3D chunks): every level splits its columns into slices of SLICE blocks, so slice k of level L holds
+    // blocks [k*SLICE, (k+1)*SLICE) (cells [k*SLICE*2^L, ...)) and slices nest across levels like an octree. A node builds
+    // its footprint once (one sampled column per block column, each kept only as the band from its bedrock top to its
+    // highest cell) and returns only the slices that hold faces: empty air above and solid rock below cost nothing. Slice
+    // mesh y is local to the slice (Uint16 blocks, 0..SLICE); the slice origin is `y` (blocks) on each slice record. The
+    // 2D outputs (hillshade, canopy, biome, water) and the props stay per footprint, in absolute blocks / metres.
+    const SLICE=128;
     function node(L,nx,nz,options={}){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,G=NODE+4,blocks=Math.ceil(heightCells/s),cols=new Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
+      const s=2**L,P=NODE+2,G=NODE+4,cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
       prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;propsMode=!!options.props;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
-      // buffer is reused: only cells below colTop were written, so only those are scanned and cleared.
-      const buf=new Uint8Array(heightCells),buf32=new Uint32Array(buf.buffer),floor=new Int32Array(P*P);
+      // scratch is reused: only the band [colFloor, colTop) was written, so only that is scanned and cleared.
+      if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
+      const buf=scratch,buf32=scratch32,floor=new Int32Array(P*P),BASALT=MAT.basalt;
+      const blockAt=(k,y)=>{const y0=colY0[k];if(y<y0)return BASALT;const b=cols[k];return y-y0<b.length?b[y-y0]:0;};
       for(let j=0;j<P;j++)for(let i=0;i<P;i++){
         prof.on=((i+j)&3)===0;if(prof.on)sampled++;
-        const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,t0=prof.on&&now(),b=new Uint8Array(blocks);let top=0;
-        let hi=lim-1;while(hi>=0&&!c[hi])hi--;
-        // The column's bedrock run (basalt from the bottom up) fills whole blocks with basalt in one go; only the cells above
-        // it are read one by one, so tall mountain columns cost little more than lowland ones.
-        const run=basaltRun(c,buf32,hi+1),full=Math.floor(run/s);if(full){b.fill(MAT.basalt,0,full);top=full;}
-        for(let y=full*s;y<=hi;y++){const m=c[y];if(m){b[(y/s)|0]=m;top=((y/s)|0)+1;}}
-        grounds[(j+1)*G+i+1]=groundBlocks(c,lim,s,run);canopy[(j+1)*G+i+1]=top;water[(j+1)*G+i+1]=waterDepth(c,lim);{const k=(j+1)*G+i+1,m=top>0?b[top-1]&127:0;grassy[k]=BLADE_GRASS.has(m)?1:0;grassMat[k]=grassy[k]?m:0;const gm=grounds[k]>0?b[grounds[k]-1]&127:0;snowy[k]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,0,lim);let f=0;while(f<top&&b[f])f++;
-        cols[j*P+i]=b;tops[j*P+i]=top;floor[j*P+i]=f;if(prof.on)reduce+=now()-t0;
+        const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,fl=colFloor,t0=prof.on&&now();
+        let hi=lim-1;while(hi>=fl&&!c[hi])hi--;
+        // The column's bedrock run (basalt from the band floor up) is whole basalt blocks, kept implicit below y0; only the
+        // cells above it are read one by one, so tall mountain columns cost little more than lowland ones.
+        const run=basaltRun(c,buf32,hi+1,fl),full=Math.floor(run/s),top=hi>=full*s?((hi/s)|0)+1:full,b=new Uint8Array(top-full);
+        for(let y=full*s;y<=hi;y++){const m=c[y];if(m)b[((y/s)|0)-full]=m;}
+        const k=j*P+i;cols[k]=b;colY0[k]=full;
+        const kk=(j+1)*G+i+1;grounds[kk]=groundBlocks(c,lim,s,run);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
+        tops[k]=top;floor[k]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim));let h=lim-1;while(h>=0&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,0,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
       for(let j=0;j<P;j++)for(let i=0;i<P;i++){const k=j*P+i,inside=i>0&&j>0&&i<=NODE&&j<=NODE;limits[k]=Math.min(ny,inside?ny:Math.max(0,Math.min(tops[k],tops[clamp(j,1,NODE)*P+clamp(i,1,NODE)])-2));low=Math.min(low,floor[k],limits[k]);}
       // Below the lowest air in any column every block is solid and has no visible face: mesh from just under it, with a
-      // solid layer beneath so no bottom faces are emitted. Output y is offset back by `base`.
+      // solid layer beneath so no bottom faces are emitted. Dense layer d holds block base-1+d.
       const base=Math.max(0,low-1),span=ny-base,plane=P*(span+2),dense=new Uint8Array(P*plane);
       for(let j=0;j<P;j++)for(let i=0;i<P;i++){
-        const k=j*P+i,b=cols[k],o=j*plane+i;dense[o]=1;
-        for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
+        const k=j*P+i,b=cols[k],y0=colY0[k],o=j*plane+i;dense[o]=1;
+        for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=y<y0?BASALT:b[y-y0];
       }
-      colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0);
+      // Slices: greedy meshing runs per slice over a window of the footprint's dense volume (the rows just above and below
+      // the window take part, so each face between two slices is emitted exactly once); Surface Nets runs once over the
+      // footprint and each quad goes to the slice holding its owned edge, so slice seams close exactly.
+      const SL=options.sliceBlocks||SLICE,voxels=options.smooth?objectsOnly(dense):dense,byK=new Map(),k0=Math.floor(base/SL),k1=Math.floor((ny-1)/SL);
+      for(let k=k0;k<=k1;k++){const a=Math.max(base,k*SL),e=Math.min(ny,(k+1)*SL);if(e<=a)continue;const m=greedy(voxels,NODE,span,NODE,a-k*SL,{y0:a-base+1,h:e-a});if(m.count)byK.set(k,{y:k*SL,...m});}
+      if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
+      const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
+      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2424,7 +2488,10 @@
     // Rock objects (boulders, chips, stone) are smoothed with the ground, so mountains do not mix blobs and cubes.
     const isTerrain=m=>m&&(!ABOVE_GROUND.has(m&127)||ROCKS.has(m&127)||(m&127)===MAT.stone);
     function objectsOnly(dense){const out=new Uint8Array(dense.length);for(let k=0;k<dense.length;k++){const m=dense[k];out[k]=isTerrain(m)?0:m;}return out;}
-    function surfaceNets(cols,tops,grounds,G,P,base){
+    // Returns Map(slice index -> {buffer, count, top}): each quad goes to the slice holding the lower sample of its owned
+    // edge, with y local to that slice's origin (k*SL blocks).
+    function surfaceNets(cols,colY0,tops,grounds,G,P,base,SL){
+      const cell=(k,b)=>{const y0=colY0[k];if(b<y0)return MAT.basalt;const c=cols[k];return b-y0<c.length?c[b-y0]:0;};
       // Height range covers every sampled column, halo included, so a taller neighbour is never cut off at the seam.
       let ny=1;for(let k=0;k<P*P;k++)ny=Math.max(ny,tops[k]);
       // Ground-surface gradient (Sobel over the hillshade's two-ring ground heights): identical on both sides of a seam.
@@ -2435,8 +2502,8 @@
         const l=Math.hypot(x,1,z);return [-x/l,1/l,-z/l];};
       const groundAt=(bx,bz)=>GH(Math.floor(bx)+2,Math.floor(bz)+2);
       // Each column's surface material and height, so a slope shows its grass, snow or rock rather than the soil beneath.
-      const surf=new Uint8Array(P*P),surfY=new Int32Array(P*P);for(let k=0;k<P*P;k++){const c=cols[k];for(let b=ny-1;b>=0;b--)if(isTerrain(c[b])){surf[k]=c[b]&127;surfY[k]=b;break;}}
-      const Y=ny-base+2,at=(i,y,j)=>{if(i<0||j<0||i>=P||j>=P)return 0;const b=y+base-1;if(b<0)return 1;if(b>=ny)return 0;const m=cols[j*P+i][b];return isTerrain(m)?m:0;};
+      const surf=new Uint8Array(P*P),surfY=new Int32Array(P*P);for(let k=0;k<P*P;k++){for(let b=ny-1;b>=0;b--){const m=cell(k,b);if(isTerrain(m)){surf[k]=m&127;surfY[k]=b;break;}}}
+      const Y=ny-base+2,at=(i,y,j)=>{if(i<0||j<0||i>=P||j>=P)return 0;const b=y+base-1;if(b<0)return 1;if(b>=ny)return 0;const m=cell(j*P+i,b);return isTerrain(m)?m:0;};
       const solid=new Uint8Array(P*P*Y);for(let j=0;j<P;j++)for(let y=0;y<Y;y++)for(let i=0;i<P;i++)solid[(j*Y+y)*P+i]=at(i,y,j);
       const S=(i,y,j)=>i<0||j<0||y<0||i>=P||j>=P||y>=Y?(y<0?1:0):solid[(j*Y+y)*P+i];
       // One vertex per cell (cell c spans samples c..c+1 on each axis).
@@ -2464,10 +2531,10 @@
       }
       // Normals from the occupancy gradient over a 4×4×4 block around each cell: smooth and pointing into the air.
       const normal=(i,y,j)=>{let x=0,yy=0,z=0;for(let c=-1;c<=2;c++)for(let b=-1;b<=2;b++)for(let a=-1;a<=2;a++){if(!S(i+a,y+b,j+c))continue;const w=(a<=0?-1:1)*(Math.abs(a-.5)<1?1:.5),wy=(b<=0?-1:1)*(Math.abs(b-.5)<1?1:.5),wz=(c<=0?-1:1)*(Math.abs(c-.5)<1?1:.5);x-=w;yy-=wy;z-=wz;}const l=Math.hypot(x,yy,z)||1;return [x/l,yy/l,z/l];};
-      const out=[];
+      const outs=new Map();let out=null,sliceY=0;
       // Near the ground surface, normals come from the ground gradient (so seams match); elsewhere (isles, overhangs) from
       // the 3D occupancy.
-      const push=(v,i,y,j,m)=>{const X=rx[v]-.5,Yv=ry[v]-1+base+.5,Z=rz[v]-.5,[a,b,c]=Math.abs(Yv-groundAt(X,Z))<2.5?groundNormal(X,Z):normal(i,y,j);out.push(X,Yv,Z,a,b,c,m);};
+      const push=(v,i,y,j,m)=>{const X=rx[v]-.5,Yv=ry[v]-1+base+.5-sliceY,Z=rz[v]-.5,[a,b,c]=Math.abs(Yv+sliceY-groundAt(X,Z))<2.5?groundNormal(X,Z):normal(i,y,j);out.push(X,Yv,Z,a,b,c,m);};
       // Quads across each owned edge with a solid/air change; wound so the front faces the air.
       for(let d=0;d<3;d++)for(let j=1;j<=NODE;j++)for(let y=0;y<CY;y++)for(let i=1;i<=NODE;i++){
         const A=S(i,y,j),B=d===0?S(i+1,y,j):d===1?S(i,y+1,j):S(i,y,j+1);if(!A===!B)continue;
@@ -2476,11 +2543,16 @@
         const ids=cells.map(([a,b,c])=>a<0||b<0||c<0||a>=C||b>=CY||c>=C?-1:vid[(c*CY+b)*C+a]);if(ids.some(v=>v<0))continue;
         // Material: the solid sample's column surface when it lies within three blocks of that surface, else its own.
         const si=d===0&&!A?i+1:i,sj=d===2&&!A?j+1:j,sy2=d===1&&!A?y+1:y,sk=sj*P+si,m=surfY[sk]-(sy2+base-1)<=3?surf[sk]:(A||B),order=A?[0,1,2,0,2,3]:[0,2,1,0,3,2];
+        const sk2=Math.floor((y+base-1)/SL);out=outs.get(sk2);if(!out){out=[];outs.set(sk2,out);}sliceY=sk2*SL;
         for(const k of order){const [a,b,c]=cells[k];push(ids[k],a,b,c,m&127);}
       }
-      const buf=new ArrayBuffer(out.length/7*16),f=new Float32Array(buf),bytes=new Int8Array(buf),u8=new Uint8Array(buf);let top=0;
-      for(let k=0,o=0;k<out.length;k+=7,o+=16){f[o/4]=out[k];f[o/4+1]=out[k+1];f[o/4+2]=out[k+2];top=Math.max(top,out[k+1]);bytes[o+12]=Math.round(out[k+3]*127);bytes[o+13]=Math.round(out[k+4]*127);bytes[o+14]=Math.round(out[k+5]*127);u8[o+15]=out[k+6];}
-      return {buffer:buf,count:out.length/7,top};
+      const result=new Map();
+      for(const [sk,out] of outs){
+        const buf=new ArrayBuffer(out.length/7*16),f=new Float32Array(buf),bytes=new Int8Array(buf),u8=new Uint8Array(buf);let top=0;
+        for(let k=0,o=0;k<out.length;k+=7,o+=16){f[o/4]=out[k];f[o/4+1]=out[k+1];f[o/4+2]=out[k+2];top=Math.max(top,out[k+1]);bytes[o+12]=Math.round(out[k+3]*127);bytes[o+13]=Math.round(out[k+4]*127);bytes[o+14]=Math.round(out[k+5]*127);u8[o+15]=out[k+6];}
+        result.set(sk,{buffer:buf,count:out.length/7,top});
+      }
+      return result;
     }
     // Ground surface of a column in blocks: solid from the bottom up to the first air gap, ignoring trees and spires, so
     // isles, canopies and spires do not tilt the hillshade. Water counts: it is the visible surface.
@@ -2488,7 +2560,8 @@
     function groundBlocks(c,lim,s,from=0){let y=Math.min(from,lim);while(y<lim&&c[y]&&!ABOVE_GROUND.has(c[y]&127))y++;return Math.floor((y-1)/s)+1;}
     // Length of the column's leading basalt run below lim, read four cells at a time (c32: a Uint32 view of c's buffer).
     const BASALT4=MAT.basalt*0x01010101;
-    function basaltRun(c,c32,lim){const n=lim>>2;let k=0;while(k<n&&c32[k]===BASALT4)k++;let y=k<<2;while(y<lim&&c[y]===MAT.basalt)y++;return y;}
+    // from: the band floor (a multiple of 8): everything below it is basalt and is not read.
+    function basaltRun(c,c32,lim,from=0){const n=lim>>2;let k=from>>2;while(k<n&&c32[k]===BASALT4)k++;let y=k<<2;while(y<lim&&c[y]===MAT.basalt)y++;return y;}
     // Smooth surface normals per inside column (RGBA8: x, z, cavity, local ground top) from ground heights with a two-column
     // ring (G=N+4), so distant terraces light as the slope they form instead of alternating tread/riser bands. Blocks are
     // cubic, so the gradient is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
@@ -2510,17 +2583,20 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,streamMouths:(x0,z0,x1,z1)=>infinite?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
-    const {size:CHUNK,height:HEIGHT}=chunk;
-    if(x<0||z<0||y<0||x>=CHUNK||z>=CHUNK||y>=HEIGHT)return MAT.air;
+    const {size:CHUNK,height:HEIGHT}=chunk,y0=chunk.y0||0;
+    if(x<0||z<0||y<0||x>=CHUNK||z>=CHUNK||y>=y0+HEIGHT)return MAT.air;
+    if(y<y0)return MAT.basalt;y-=y0;
     const i=z*CHUNK+x;
     for(let r=chunk.offsets[i];r<chunk.offsets[i+1];r++)if(y<chunk.ends[r])return chunk.materials[r];
     return MAT.air;
   }
+  // Meshes a chunk's band: vertex y is in render blocks above the band floor (mesh.y0, cells; 0 for finite worlds), with
+  // solid bedrock under the band so no bottom faces are emitted there.
   function meshChunk(world,chunk,step=1){
-    const {size:CHUNK,height:HEIGHT}=chunk;
+    const {size:CHUNK,height:HEIGHT}=chunk,y0=chunk.y0||0,b0=y0/step;
     if(chunk.cell!==world.cell)throw new Error('Chunk resolution does not match the world');
     if(![1,2,4,8].includes(step))throw new Error('Render step must be 1, 2, 4 or 8');
     // Mesh only up to the chunk's top occupied cell: tall streamed columns cost nothing where the ground is low.
@@ -2531,19 +2607,22 @@
     for(let z=-1;z<=nx;z++)for(let x=-1;x<=nx;x++){
       const local=x>=0&&z>=0&&x<nx&&z<nx;
       const col=local?null:world.column(chunk.cx*CHUNK+x*step,chunk.cz*CHUNK+z*step);
+      if(y0)dense[(z+1)*halo*(ny+2)+x+1]=MAT.basalt;
       for(let y=0;y<ny;y++){
         let material=0;
         // Preserve the top occupied material when reducing a vertical block (grass must not become soil).
-        for(let dy=step-1;dy>=0&&!material;dy--)material=local?voxel(chunk,x*step,y*step+dy,z*step):col[y*step+dy];
+        for(let dy=step-1;dy>=0&&!material;dy--)material=local?voxel(chunk,x*step,y0+y*step+dy,z*step):col[y0+y*step+dy];
         dense[(z+1)*halo*(ny+2)+(y+1)*halo+x+1]=material;
       }
     }
-    return {...greedy(dense,nx,ny,nx),step,temporaryDenseBytes:dense.byteLength};
+    return {...greedy(dense,nx,ny,nx),step,y0,temporaryDenseBytes:dense.byteLength};
   }
   // Greedy mesher over a dense block grid with a one-block halo on every side: layout (z+1)*halo*(ny+2)+(y+1)*halo+x+1,
   // halo=nx+2. Merges coplanar same-material exposed faces; a face on the halo boundary belongs to the neighbour.
-  function greedy(dense,nx,ny,nz,yOffset=0){
-    const halo=nx+2,stride=[1,halo,halo*(ny+2)],dims=[nx,ny,nz],origin=stride[0]+stride[1]+stride[2];
+  // win {y0, h}: mesh only dense layers y0 .. y0+h-1 (a vertical slice); the layers just outside the window are its
+  // neighbours, and each face between two windows belongs to exactly one of them (same rule as the x/z halo).
+  function greedy(dense,nx,ny,nz,yOffset=0,win=null){
+    const halo=nx+2,stride=[1,halo,halo*(ny+2)],dims=[nx,win?win.h:ny,nz],origin=stride[0]+(win?win.y0:1)*stride[1]+stride[2];
     const mask=new Int16Array(Math.max(nx*ny,nx*nz,ny*nz));
     let output=new ArrayBuffer(16384),view=new DataView(output),used=0,quads=0,exposedFaces=0;
     for(let d=0;d<3;d++){

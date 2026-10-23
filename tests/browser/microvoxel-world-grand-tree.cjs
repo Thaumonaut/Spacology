@@ -22,7 +22,14 @@ try{
   assert.ok(luminance(lighting.top)>luminance(lighting.bottom)+15,'sunlit crown tops are brighter than downward-facing undersides');
   assert.ok(lighting.bark[0]>lighting.bark[1],'high trunks keep brown bark in Walk, not green crown camouflage');
   console.log('canopy lighting',JSON.stringify(lighting));
-  for(const fixture of [{name:'coral',x:-998,z:-1402},{name:'blossom',x:1841,z:-763}]){
+  // World-tree sites move with terrain revisions: search outward from home for one of each variant.
+  const fixtures=await p.evaluate(()=>{const w=MicroWorld.createWorld(2718,.25,'infinite'),out=[];
+    for(const want of ['coral','blossom']){let hit=null;
+      for(let r=0;r<9000&&!hit;r+=110)for(let k=0;k<Math.max(1,Math.floor(r/110))*6&&!hit;k++){const t=k/Math.max(1,Math.floor(r/110)*6)*Math.PI*2,x=Math.round(Math.cos(t)*r),z=Math.round(Math.sin(t)*r),A=w.landmarksAt(x,z).ancient;if(A&&A.variant===want)hit={name:want,x:Math.round(A.x),z:Math.round(A.z)};}
+      if(hit)out.push(hit);}
+    return out;});
+  assert.equal(fixtures.length,2,'a coral and a blossom world tree exist');
+  for(const fixture of fixtures){
     const result=await p.evaluate(q=>{
       document.querySelector('canvas').remove();const canvas=document.createElement('canvas');document.body.append(canvas);
       const w=MicroWorld.createWorld(2718,.25,'infinite'),A=w.landmarksAt(q.x,q.z).ancient,r=new MicroRenderer(canvas),meshes=[],L=2,size=w.nodeMetres(L),nx=Math.floor(A.x/size),nz=Math.floor(A.z/size);
@@ -30,7 +37,7 @@ try{
       const x=A.x+40,z=A.z+48,eyeY=w.ground(x,z)+1.6,camera={mode:'walk',x:x-A.x,z:z-A.z,y:eyeY-1.6,eyeY,yaw:Math.atan2(x-A.cx,z-A.cz),lookPitch:Math.atan2((A.g0+A.top)*.5-eyeY,Math.hypot(x-A.cx,z-A.cz)),span:32,fov:70,viewDistance:600};
       let bytes=0;
       for(let j=nz-2;j<=nz+2;j++)for(let i=nx-2;i<=nx+2;i++){
-        const data=w.node(L,i,j,{smooth:true,props:false});bytes+=data.buffer.byteLength+(data.smooth?.buffer.byteLength||0);
+        const data=w.node(L,i,j,{smooth:true,props:false});for(const sl of data.slices)bytes+=sl.buffer.byteLength+(sl.smooth?.buffer.byteLength||0);
         meshes.push({mesh:r.upload(data),origin:[i*size-A.x,0,j*size-A.z],pattern:[i*size,0,j*size],column:data.column});
       }
       r.begin(camera,0,false);for(const d of meshes)r.draw(d.mesh,d.origin,[d.column,d.column,d.column],0,0,0,[0,0,0],d.pattern);r.end();
