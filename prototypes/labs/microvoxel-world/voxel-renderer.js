@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   const M=root.MicroWorld,ANGLE=50*Math.PI/180,S=Math.sin(ANGLE),C=Math.cos(ANGLE),YAW=35*Math.PI/180,SY=Math.sin(YAW),CY=Math.cos(YAW);
-  const CAMERA_UNIFORMS=['skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','inverseViewProj'];
+  const CAMERA_UNIFORMS=['skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','fogY','inverseViewProj'];
   const dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
   // Biome atmospheres, all at golden hour: sky horizon and zenith, and the sunlit and shaded fog colours. The renderer
   // blends the biomes around the view and eases toward them, so crossing a border shifts the sky over a few seconds.
@@ -755,7 +755,7 @@
   uniform sampler2D sceneColor, sceneGlow;
   uniform highp sampler2D sceneDepth;
   uniform vec2 texel;
-  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime;
+  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime, fogY;
   uniform vec3 skyHorizon, skyZenith, fogLit, fogShade;
   uniform vec2 fogOffset, fogLayer;
   uniform vec3 eye;
@@ -772,7 +772,7 @@
   float bank(vec3 p,out float h){
     h=(p.y-fogLayer.x)/fogLayer.y;
     vec2 w=p.xz+fogOffset-fogTime*vec2(1.1,.45);
-    vec3 q=vec3(w.x/52.,p.y/8.,w.y/52.);
+    vec3 q=vec3(w.x/52.,(p.y+fogY)/8.,w.y/52.);
     // Weather: whole stretches lie under fog while others are clear (~350 m drifts), banks within them.
     float weather=smoothstep(.3,.62,fogNoise(vec3(w/350.,fogTime*.004)));
     float n=fogNoise(q)*.62+fogNoise(q*2.3+vec3(0,fogTime*.025,0))*.38;
@@ -1481,10 +1481,11 @@
       // base is just under the walker's feet, a thin mist.
       const gl=this.gl,yb=this.yBase||0,v={...this.view,eye:[this.view.eye[0],this.view.eye[1]-yb,this.view.eye[2]],viewProj:Float32Array.from(this.view.viewProj)},c=this.camera,o=this.worldOrigin||{x:0,z:0},P=95*4096,off=[o.x,o.z].map(x=>x-P*Math.round(x/P)),fog=this.fogAmount??.5;
       for(let i=0;i<4;i++)v.viewProj[12+i]+=yb*this.view.viewProj[4+i];
-      const layer=v.ortho?[(c.y??8)-4,10]:[(c.eyeY??c.y??8)-2.1,6];
+      // Layer base in the GPU's explorer-relative height (like the eye); the bank noise adds yBase back so it stays put.
+      const layer=v.ortho?[(c.y??8)-4-yb,10]:[(c.eyeY??c.y??8)-2.1-yb,6];
       for(const [program,u] of [[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
-        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
+        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
       }
     }
     sky(off){
