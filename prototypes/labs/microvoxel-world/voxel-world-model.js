@@ -151,13 +151,13 @@
     // Tiers of the home massif rise from just above the home ground (8 m above the sea in the plate world).
     const homeLevel=infinite?plateRelief(0,0).h:SEA+6;
     // Stratovolcanoes come from the macro map's range layer: on the seaward flanks of coastal ranges and now and then alone
-    // on a big landmass, each a smooth cone (its height above the ground there, x2.8 radius) with a summit crater. They are
+    // on a big landmass, each a smooth cone (base radius 3x its height, flanks steepening from gentle at the foot to ~34 degrees near the crater, like Rainier or Fuji) with a summit crater. They are
     // part of plate relief, so rivers route around them and they cast rain shadows; tall cones are capped softly below the
     // column ceiling. One volcano per 700 m lookup cell at most (their bases are narrower than a cell).
     // Volcano lookup: each cone is registered in every VG cell its radius touches (R can be ~5 km now, far more than one
     // cell), so a point anywhere on the flank finds its volcano with a single map hit instead of a fixed ±1-cell scan.
     const VG=700,volcanoCells=new Map();
-    if(infinite)for(const v of MM.volcanoes||[]){const V={x:v.x,z:v.z,H:v.H,R:v.H*1.8};
+    if(infinite)for(const v of MM.volcanoes||[]){const V={x:v.x,z:v.z,H:v.H,R:v.H*3};
       const i0=Math.floor((v.x-V.R)/VG),i1=Math.floor((v.x+V.R)/VG),j0=Math.floor((v.z-V.R)/VG),j1=Math.floor((v.z+V.R)/VG);
       for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const k=i*65536+j;let a=volcanoCells.get(k);if(!a)volcanoCells.set(k,a=[]);a.push(V);}}
     function tectonics(x,z){
@@ -165,7 +165,7 @@
       if(list)for(const V of list){
         const d=Math.hypot(x-V.x,z-V.z);if(d>=V.R)continue;
         // Concave flanks steepening to a summit crater: a bowl inside a sharp rim with a slight raised lip.
-        const crater=V.R*.075,q=d/crater;let c=q<1?V.H*((1-crater/V.R)**1.8-.08*(1-q*q)):V.H*(1-d/V.R)**1.8;c+=V.H*.02*Math.exp(-(((q-1)/.35)**2));
+        const crater=V.R*.075,q=d/crater;let c=q<1?V.H*((1-crater/V.R)**2-.08*(1-q*q)):V.H*(1-d/V.R)**2;c+=V.H*.02*Math.exp(-(((q-1)/.35)**2));
         if(c>cone){cone=c;vx=V.x;vz=V.z;vr=V.R;}
       }
       if(!cone)return t;
@@ -653,13 +653,26 @@
         const a0=1.6*j00-1.2*j10,a1=1.6*j01-1.2*j11;j10=1.2*j00+1.6*j10;j11=1.2*j01+1.6*j11;j00=a0;j01=a1;
       }
       // Volcano cones get only a light share of this landform: their shape comes from the cone and its erosion.
-      const A=Math.max(cragRelief(relief),cone*.3)*.6*m*massif,v=sum/norm*1.5-.15,f=clamp(v,0,1.2),lv=low*1.5-.15,lf=clamp(lv,0,1.2);
+      // Detail height is capped (28 m) well under its wavelength (~90 m): taller mountains get their size from the broad ridge layer
+      // below, not from taller noise, which would stand up as needles.
+      const A=Math.min(28,Math.max(cragRelief(relief),cone*.3)*.6)*m*massif,v=sum/norm*1.5-.15,f=clamp(v,0,1.2),lv=low*1.5-.15,lf=clamp(lv,0,1.2);
       const s=v>0&&v<1.2?A*1.7*f**.7*1.5/norm:0,ls=lv>0&&lv<1.2?A*1.7*lf**.7*1.5:0;
       // Chain rule through the domain warp: d(warped)/d(world) = I + 50 * d(warp noise).
       const Wxx=1+50*.008*wa[1],Wxz=50*.008*wa[2],Wzx=50*.008*wb[1],Wzz=1+50*.008*wb[2];
       cragGx=s*(dx*Wxx+dz*Wzx);cragGz=s*(dx*Wxz+dz*Wzz);
       cragLow=A*lf**1.7;lowGx=ls*(ldx*Wxx+ldz*Wzx);lowGz=ls*(ldx*Wxz+ldz*Wzz);
-      return A*f**1.7;
+      // Broad ridges for big ranges: three gradient-damped octaves at ~350 m, so large relief breaks into sub-peaks,
+      // spurs and wide valleys whose slopes stay walkable (height scales with wavelength, not with relief alone).
+      const Bm=clamp((relief-60)/140,0,1);let big=0;
+      if(Bm>0){
+        const Ab=Math.min(relief*.32,120)*Bm*massif;let bx=x*.0029,bz=z*.0029,bs=0,bgx=0,bgz=0,ba=1,bn=0,bdx=0,bdz=0,J=.0029,K=0,L=0,N=.0029;
+        for(let o=0;o<3;o++){noiseD(bx,bz,seed+381+o,nd);bgx+=nd[1]*ba;bgz+=nd[2]*ba;const k=ba/(1+bgx*bgx+bgz*bgz);bs+=k*nd[0];bn+=ba;
+          bdx+=k*(nd[1]*J+nd[2]*L);bdz+=k*(nd[1]*K+nd[2]*N);ba*=.5;const qx=1.6*bx-1.2*bz,qz=1.2*bx+1.6*bz;bx=qx;bz=qz;
+          const a0=1.6*J-1.2*L,a1=1.6*K-1.2*N;L=1.2*J+1.6*L;N=1.2*K+1.6*N;J=a0;K=a1;}
+        const bv=clamp(bs/bn*1.4-.1,0,1.2),bsl=bv>0&&bv<1.2?Ab*1.5*bv**.5*1.4/bn:0;big=Ab*bv**1.5;
+        cragGx+=bsl*bdx;cragGz+=bsl*bdz;cragLow+=big;lowGx+=bsl*bdx;lowGz+=bsl*bdz;
+      }
+      return A*f**1.7+big;
     }
     // Eroded-terrain filter. Each octave sums 3x3 jittered cells; every cell lays a wave whose phase is the distance across
     // the local downhill direction, so its crests and troughs run downhill. Blending the cells by a smooth falloff makes
@@ -742,7 +755,8 @@
     // aprons, so a range reads as rock massif rather than a uniform bed of spikes. Depth tracks relief (its cap grew with
     // the ranges); a volcano's crater and smooth summit cone stay uneroded.
     const erosionStrength=(t,x,z)=>{const patch=.3+.7*noise(x*.0009,z*.0009,seed+743);
-      return (clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.12*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
+      // Gully depth is capped at 10 m (about an eighth of the first octave's 84 m cell), so gullies stay V-shaped, not needle combs.
+      return Math.min(10,clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.12*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
     function outcropAt(x,z){
@@ -1367,8 +1381,8 @@
     const treeStyle=b=>TREE_STYLE[b]||TREE_STYLE.default;
     // Quarter-metre units times density: identical metre sizes at either cell size, always integer cells.
     const cells=m=>Math.max(1,Math.round(m*4))*density;
-    // Stamped heights stay under nodeBound (ground + 50 m on low relief, +60 m where relief exceeds 15 m); radii fit the
-    // 5x5 tree-cell neighbourhood scanned for stamping.
+    // Stamped heights stay under nodeBound (ground + 50 m on low relief, +60 m where relief exceeds 15 m); crowns fit the
+    // 9x9 tree-cell neighbourhood scanned for stamping (max foliage reach ~10.6 m < 12 m of unscanned-cell distance).
     const MAX_TREE=48,MAX_RADIUS=6.5;
     function pickSpecies(S,g,x,z,gx,gz,edge){
       const mix=S.cold&&g.temperature<S.cold.below?S.cold.mix:S.mix,w={};let total=0;
@@ -2077,7 +2091,7 @@
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
       const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
-      for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
+      for(let dz=-4;dz<=4;dz++)for(let dx=-4;dx<=4;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
         // One squared distance per candidate gates both the litter ring and the stamp call: no crown part of a tree
         // reaches past ~1.6 crown radii plus its gnarled/palm lean offset, so farther trees can be skipped without a
