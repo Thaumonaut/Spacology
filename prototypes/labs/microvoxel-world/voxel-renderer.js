@@ -2069,7 +2069,8 @@
       // Coarse 1 m steps find the first hit; 1/16 m steps from just above it place it exactly.
       const at=y=>{const forward=((y-(camera.y??8))*C-vertical)/S,x=camera.x+horizontal*CY+forward*SY,z=camera.z-horizontal*SY+forward*CY,ground=world.ground(x,z);return ground!==null&&y<=ground?{x,z,y:ground}:null;};
       // Only heights inside the view's depth slab can be hit (see yReach); wide views march in coarser steps.
-      const ceiling=Math.min(world.heightMetres,(camera.y??8)+this.yReach(camera)),step=Math.max(1,camera.span/800);
+      // Through the class, so pick also works on view-like objects (project/pick are called that way).
+      const ceiling=Math.min(world.heightMetres,(camera.y??8)+Renderer.prototype.yReach.call(this,camera)),step=Math.max(1,camera.span/800);
       for(let top=ceiling;top>-step;top-=step)if(at(Math.max(0,top))){for(let y=Math.min(ceiling,top+step);y>=0;y-=.0625){const hit=at(y);if(hit)return hit;}break;}
       return {x:-1,y:0,z:-1};
     }

@@ -55,9 +55,9 @@
         <div class="settings-panel" id="settingsPanel" hidden>
           <div class="setting-row"><span>Voxel size</span><div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div></div>
           <label class="setting-row lod-control" title="Pin the render level of detail instead of choosing it from the zoom"><span>Detail level</span><select id="lod"></select></label>
-          <label class="setting-row lod-control" title="How solid the clouds are in wide views"><span>Clouds</span><input id="clouds" type="range" min="0" max="100" value="85" aria-label="Cloud opacity"></label>
-          <label class="setting-row lod-control" title="How thick the mist over the lowlands is"><span>Fog</span><input id="fog" type="range" min="0" max="100" value="50" aria-label="Ground fog"></label>
-          <label class="setting-row"><span>Walk FOV</span><input id="walkFov" type="range" min="60" max="90" value="70" aria-label="Walk field of view"></label>
+          <label class="setting-row lod-control slider" title="How solid the clouds are in wide views"><span>Clouds</span><input id="clouds" type="range" min="0" max="100" value="85" aria-label="Cloud opacity"></label>
+          <label class="setting-row lod-control slider" title="How thick the mist over the lowlands is"><span>Fog</span><input id="fog" type="range" min="0" max="100" value="50" aria-label="Ground fog"></label>
+          <label class="setting-row slider walk-only"><span>Walk FOV</span><input id="walkFov" type="range" min="60" max="90" value="70" aria-label="Walk field of view"></label>
           <div class="setting-row"><span>Quality</span><button id="economy" aria-pressed="false" title="Voxels only, no extras">Economy</button></div>
           <button id="metrics" aria-haspopup="dialog">Performance</button>
         </div>
