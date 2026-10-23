@@ -673,6 +673,15 @@
         let first=true;for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const o=ancientSite(i+di,j+dj);if(o&&o.p<s.p)first=false;}
         if(first){
           const {x,z,g}=s,H_=n=>hash(n,k,seed+447),g0=g.height*cellMetres;
+          // Giant sequoia: the conifer hero of cool forests. A tall buttressed red trunk on level ground and a narrow
+          // crown of 6-8 drooping bough tiers from ~40% up, counted down from the apex (the renderer's tier shading).
+          if(['redwood','montane','boreal'].includes(g.biome)||g.biome==='forest'&&g.temperature<12){
+            const H=45+15*H_(3),R=2.4+.6*H_(4),base=g0-.5,crownLow=base+H*.4,apex=base+H,tiers=[],nT=6+Math.floor(H_(5)*3),per=(apex-crownLow)/nT,CR=7.5+2.5*H_(6);
+            for(let m=0;m<nT;m++){const yTop=apex-m*per,env=CR*Math.min(1,(m+1)/nT*1.1)*(.86+.14*hash(m,k,seed+451));tiers.push({top:yTop,bottom:yTop-per,r:m===0?env*.55:env,step:.32+.13*hash(m,k,seed+453)});}
+            const roots=[];for(let m=0;m<6;m++){const a=m/6*Math.PI*2+(H_(20+m)-.5)*.6;roots.push({ux:Math.cos(a),uz:Math.sin(a),len:R*(1.8+.8*H_(40+m))});}
+            v={x,z,g0,variant:'sequoia',base,H,R,crownLow,apex,tiers,per,roots,top:apex+1,reach:CR+2,floorR:CR*1.15};
+            ancients.set(k,v);if(ancients.size>4096)ancients.delete(ancients.keys().next().value);return v;
+          }
           const Mr=12+5*H_(1),Mh=2.2+1.6*H_(2),base=g0+Mh-.6,H=20+7*H_(3),R=2.3+.7*H_(4),la=H_(5)*Math.PI*2,lean=3.5+3*H_(6);
           const lx=Math.cos(la)*lean,lz=Math.sin(la)*lean,cx=x+lx,cz=z+lz,cy=base+H,twist=(H_(7)<.5?1:-1)*(.25+.15*H_(8)),variant=H_(9)<.62?'blossom':'coral';
           const mound=d=>g0+Mh*(.5+.5*Math.cos(Math.PI*clamp(d/Mr,0,1)))**1.3;
@@ -1700,6 +1709,20 @@
         const A=ancientNear(x,z);
         if(A&&Math.abs(x-A.x)<A.reach&&Math.abs(z-A.z)<A.reach){
           const d=Math.hypot(x-A.x,z-A.z),blossom=A.variant==='blossom';
+          if(A.variant==='sequoia'){
+            // Podzol and needle litter under the crown, with a noisy edge.
+            const f=d/A.floorR+(noise(x*.3,z*.3,seed+655)-.5)*.35;if(f<1&&TURF.has(values[h-1]))values[h-1]=f<.55?MAT.podzol:MAT.litter;
+            // Trunk: flared buttressed foot with root ridges, tapering to the apex.
+            const ang=Math.atan2(z-A.z,x-A.x);let ridge=0;for(const r of A.roots){const c=Math.cos(ang-Math.atan2(r.uz,r.ux));if(c>ridge)ridge=c;}
+            if(d<A.R*3.4)for(let y=Math.max(0,h-1);y<Math.min(heightCells,Math.ceil(A.apex/cellMetres));y++){
+              const u=y*cellMetres-A.base,flare=Math.max(0,1-u/5)**2,rad=A.R*(1-.82*clamp(u/A.H,0,1))*(1+1.1*flare*(.55+.45*ridge**6));if(d<rad)values[y]=MAT.redwood;}
+            // Crown: stacked drooping tiers; each flares toward its bottom edge, then steps in to the tier above.
+            if(d<A.reach)for(let y=Math.max(0,Math.floor(A.crownLow/cellMetres));y<Math.min(heightCells,Math.ceil(A.apex/cellMetres));y++){
+              const Y=y*cellMetres,m=Math.min(A.tiers.length-1,Math.floor((A.apex-Y)/A.per)),T=A.tiers[m],q=(T.top-Y)/A.per;
+              const rad=m===0?T.r*q**.8:T.r*(1-T.step+T.step*q**1.6),wob=(noise(x*.5+Y*.3,z*.5,seed+657)-.5)*.6;
+              if(d<rad+wob&&!values[y])values[y]=MAT.needle;}
+            written=Math.max(written,Math.ceil(A.top/cellMetres)+1);
+          }else{
           const fill=(m,y0,y1,force)=>{const a=Math.max(0,Math.floor(y0/cellMetres)),b=Math.min(heightCells,Math.ceil(y1/cellMetres));for(let y=a;y<b;y++)if(force||!values[y]||m===MAT.bark)values[y]=m;};
           // Raised grassy mound, mossy near the trunk, strewn with fallen petals under the canopy.
           let gTop=h;
@@ -1731,6 +1754,7 @@
           for(const s2 of A.stones){const dx=x-s2.x,dz=z-s2.z,inside=s2.wall?Math.abs(dx*s2.ux+dz*s2.uz)<s2.hl&&Math.abs(dz*s2.ux-dx*s2.uz)<.4:Math.hypot(dx,dz)<s2.r;if(!inside)continue;
             const t=Math.min(heightCells,gTop+Math.max(1,Math.round(s2.ht*(.75+.5*noise(x*.6,z*.6,seed+635))/cellMetres)));for(let y=gTop-1;y<t;y++)values[y]=MAT.stone;values[t-1]=MAT.mossy;written=Math.max(written,t);}
           written=Math.max(written,gTop,Math.ceil(A.top/cellMetres)+1);
+          }
         }
         // Boulders and tors (blocks under half a sampled column are skipped; none at 4 m+ columns), then loose stones on
         // mountain ground at the two finest levels: one candidate per 1.5 m cell, kept inside its cell.
