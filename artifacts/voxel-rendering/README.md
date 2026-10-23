@@ -41,6 +41,7 @@ Headless captures of `prototypes/microvoxel-world.html?extent=infinite&seed=2718
 | `walk-palm.png`, `walk-mushroom.png`, `walk-water.png` | Isolated eye-level renderer fixtures using real generated nodes at (-386.15, 561.53), (-2036.13, -2231.20) and (-404, 566), seed 2718. Palm/mushroom tests compare visible pixels with and without the prop pass; these small fixtures do not exercise horizon streaming. |
 | `walk-metrics.json` | Full Walk snapshot at a 1280×800 browser viewport (1280×625 canvas), DPR 1, including distance rings, mesh-cache bytes, frame percentiles and GL status. Performance is machine/backend-specific. |
 | `fog-walk-off.png`, `fog-walk-50.png`, `fog-walk-100.png`, `fog-map-300-100.png` | Layered atmosphere (aerial perspective, ground mist, sparse drifting fog banks; post pass) at Fog 0 / 50 / 100 %, home spot seed 2718; Walk and a 300 m map view. Headless software GL, so colours only, no timing. |
+| `walk-grand-tree-coral.png`, `walk-grand-tree-blossom.png` | Eye-level views of the two giant landmark trees (coral and blossom variants), seed 2718 streamed world, captured by `microvoxel-world-grand-tree.cjs`. The reworked giants grow by breadth: a thicker fluted trunk, heavy low boughs carrying their own canopy pads, and a distinct lower storey beneath the main crown; Walk keeps true bark and shades undersides darker. |
 
 The flat dark ring around the giant tree in 2–4 is a different ground material from the terrain generator, so no grass grows there.
 
