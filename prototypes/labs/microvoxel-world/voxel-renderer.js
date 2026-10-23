@@ -29,7 +29,8 @@
     n=vec3(n.x,n.y*cos(pitch)-n.z*sin(pitch),n.y*sin(pitch)+n.z*cos(pitch));
     normal=vec3(n.x*cos(yaw)+n.z*sin(yaw),n.y,-n.x*sin(yaw)+n.z*cos(yaw));
     int raw=int(overrideMaterial>0.?overrideMaterial:material);
-    mat=raw&127;shaded=raw>>7;
+    // Foam voxels stamped on rapids draw as water surface; the water shader paints the white water itself.
+    mat=raw&127;if(mat==${M.MAT.foam})mat=${M.MAT.water};shaded=raw>>7;
     // Sun-view clip space: x/y across the light box, z increasing away from the sun.
     vec3 l=(p-lightAt)*lightAxes/lightHalf;
     lightCoord=l*.5+.5;
@@ -116,6 +117,31 @@
     vec3 PA=vec3(A.x,waveHeight(A,t),A.y),PB=vec3(B.x,waveHeight(B,t),B.y),PD=vec3(D.x,waveHeight(D,t),D.y);
     vec3 n=normalize(cross(PD-PA,PB-PA));return n.y<0.?-n:n;
   }
+  // Flow-aligned patterns rotate positions into along/across the current. World coordinates run to thousands of metres,
+  // where the flow direction's tiny per-pixel wobble would swing the rotated position by metres and turn the pattern to
+  // static, so patterns are evaluated relative to anchors on a 16 m grid (with a per-anchor offset) and the four nearest
+  // anchors are blended bilinearly, which leaves no seams.
+  float currentLines(vec2 q,vec2 dir,float speed,float t){
+    vec2 across=vec2(-dir.y,dir.x);float u=dot(q,dir),v=dot(q,across);
+    return meadowNoise(vec2(u*.35-t*(.6+1.6*speed),v*1.8))*.7+meadowNoise(vec2(u*.9-t*(1.+2.*speed),v*4.1+3.))*.3;
+  }
+  float whiteWater(vec2 q,vec2 dir,float rapids,float t){
+    vec2 across=vec2(-dir.y,dir.x);float u=dot(q,dir),v=dot(q,across);
+    float bend=meadowNoise(vec2(v*.35,u*.12))*2.4,crestWave=sin(u*2.6+bend+sin(t*.7+v*.4)*.25)*.5+.5;
+    float broken=smoothstep(.35,.6,meadowNoise(vec2(v*.55,floor(u*2.6/6.2832)*1.7)));
+    float crest=smoothstep(.78,.9,crestWave)*broken;
+    float trail=smoothstep(.6,.72,meadowNoise(vec2(u*.28-t*1.8*rapids,v*1.1)))*smoothstep(.2,.9,crestWave+.3)*.7;
+    return max(crest,trail);
+  }
+  vec2 flowPatterns(vec2 p,vec2 dir,float speed,float rapids,float t){
+    vec2 g=p/16.-.5,gi=floor(g),gf=fract(g),r=vec2(0);
+    for(int k=0;k<4;k++){
+      vec2 o=vec2(k&1,k>>1),c=(gi+o+.5)*16.;float w=(o.x>.5?gf.x:1.-gf.x)*(o.y>.5?gf.y:1.-gf.y);
+      vec2 q=p-c+fract(sin(dot(gi+o,vec2(127.1,311.7)))*vec2(43758.5,24634.6))*37.;
+      r+=w*vec2(speed>.2?currentLines(q,dir,speed,t):0.,rapids>.01?whiteWater(q,dir,rapids,t):0.);
+    }
+    return r;
+  }
   float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
@@ -185,7 +211,7 @@
       base=isBladeGrass(mat)?mix(mix(field,palette[2],.3)*vec3(1.06,1.,.82),field,g):mix(base,field,g);
     }
     // Vertical water (waterfalls) carries bright streaks running down.
-    if(mat==7&&abs(normal.y)<.5)base+=vec3(.1)*step(.7,fract(worldPosition.y*.8+time*2.4+floor(worldPosition.x*1.7+worldPosition.z*1.3)*.37))*visible(1.2);
+    if(mat==7&&abs(normal.y)<.2)base+=vec3(.1)*step(.7,fract(worldPosition.y*.8+time*2.4+floor(worldPosition.x*1.7+worldPosition.z*1.3)*.37))*visible(1.2);
     // Stylized water on the surface: depth bands from turquoise shallows to deep blue (depth from the biome map's alpha,
     // filtered so it fades toward shores), broken white foam where it meets land, rocks or lily pads, a faint wave line
     // rolling shoreward, and blinking sun glints.
@@ -194,7 +220,7 @@
     // two-phase flow map; a lighter band inside the shore with a thin antialiased white edge.
     vec4 wm=normalSize>0.?texture(waterMap,block.xz/normalSize):vec4(.125,1.,.5,.5);
     float waterM=wm.r*8.,shoreM=wm.g*4.;vec2 flow=wm.ba*2.-1.;
-    if(mat==7&&normal.y>.5){
+    if(mat==7&&normal.y>.2){
       vec2 p=worldPosition.xz;
       // Colour from depth alone: the shore-distance estimate differs between detail levels and drew seams.
       float look=waterM;
@@ -203,28 +229,22 @@
       float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);float rush=smoothstep(.15,1.,speed);
       // Faster water carries its pattern further and quicker; lakes and pools barely drift.
       float ph=time*(.06+.5*rush),w=abs(fract(ph)*2.-1.);
-      float show=visible(.6);
+      // Caustics and current lines give way to white water in rapids (layered fine patterns read as static there).
+      float calmPart=1.-smoothstep(.65,.9,speed),show=visible(.6)*calmPart;
       if(show>.01){
         float reach=1.4+3.*rush;float c=mix(caustic(p-dir*fract(ph)*reach,time),caustic(p-dir*fract(ph+.5)*reach+5.3,time),w);
         base=mix(base,base*1.1+vec3(.1,.14,.13),c*.42*(1.-smoothstep(.8,3.,look)*.6)*show);
       }
       base=mix(base,base*1.08+vec3(.05,.07,.06),smoothstep(.5,.12,shoreM)*.6);
       // Current: soft lighter lines stretched along the flow and drifting downstream, so any river reads as moving.
-      if(speed>.2){
-        vec2 across=vec2(-dir.y,dir.x);float u=dot(p,dir),v=dot(p,across);
-        float lines=meadowNoise(vec2(u*.35-time*(.6+1.6*speed),v*1.8))*.7+meadowNoise(vec2(u*.9-time*(1.+2.*speed),v*4.1+3.))*.3;
-        base=mix(base,base*1.08+vec3(.09,.13,.12),smoothstep(.58,.72,lines)*smoothstep(.2,.5,speed)*.75*visible(.5));
-      }
-      // White water: in fast reaches, aerated turquoise with foam streaks stretched along the current and racing downstream,
-      // breaking into churn where the channel is shallow or tight. Calm reaches stay clear.
       float rapids=smoothstep(.75,1.,speed);
+      vec2 fp=speed>.2?flowPatterns(p,dir,speed,rapids,time):vec2(0);
+      if(speed>.2)base=mix(base,base*1.08+vec3(.09,.13,.12),smoothstep(.58,.72,fp.x)*smoothstep(.2,.5,speed)*.75*visible(.5)*calmPart);
+      // White water, as readable shapes: broken standing-wave crests across the current every couple of metres (they barely
+      // move, as in real rapids) with soft foam trails streaming downstream, over aerated turquoise.
       if(rapids>.01){
-        vec2 across=vec2(-dir.y,dir.x);float u=dot(p,dir),v=dot(p,across);
-        float streak=meadowNoise(vec2(u*.55-time*(2.5+3.*rapids),v*2.6))*.65+meadowNoise(vec2(u*1.4-time*(4.+4.*rapids),v*5.3+7.))*.35;
-        float churn=meadowNoise(p*1.9-dir*time*3.)*(1.-smoothstep(.3,1.4,min(waterM,.3+shoreM)));
-        float white=smoothstep(.62-.12*rapids,.7-.1*rapids,streak+churn*.35);
-        base=mix(base,mix(base,vec3(.62,.9,.92),.45),rapids);
-        base=mix(base,vec3(.95,.99,1.),white*rapids*visible(.4));
+        base=mix(base,mix(base,vec3(.6,.9,.92),.5),rapids);
+        base=mix(base,vec3(.95,.99,1.),fp.y*rapids*visible(1.2));
       }
       float edge=shoreM+(meadowNoise(p*1.8+dir*time*(.4+2.*rush))-.5)*(.04+.08*rapids),aa=max(fwidth(edge)*1.2,.006);
       base=mix(base,vec3(.97,.99,1.),1.-smoothstep(.06,.06+aa,edge));
@@ -241,11 +261,11 @@
     if(shaded>0&&shadowOn<.5)lit*=.6;
     // Water reads flat and bright: shade only gently, then sparkle where the sun catches it.
     float glint=0.;
-    if(mat==7&&normal.y>.5){
+    if(mat==7&&normal.y>.2){
       // Each low-poly facet shades flat: tilted toward the sun a touch brighter, away a touch darker.
       vec3 fn=facetNormal(worldPosition.xz,time);float facet=dot(fn,SUN)-dot(vec3(0,1,0),SUN);
       // Facets turned away from the sun shift toward a deeper, bluer tone rather than going dark.
-      float fv=facet*visible(.35);
+      float fv=facet*visible(.35)*(1.-smoothstep(.75,1.,length(wm.ba*2.-1.))*.8);
       lit=base*mix(.82,1.04,sunVis)*heightShade*(1.+max(fv,0.)*2.2);
       lit=mix(lit,lit*vec3(.8,.92,1.08),clamp(-fv*9.,0.,1.));
       // Sun glints: a small moving wave normal per pixel; where a facet tilts to reflect the sun into the camera, the surface

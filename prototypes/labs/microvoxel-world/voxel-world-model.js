@@ -2063,7 +2063,9 @@
     // Depth of open water at the top of a column, in metres (0 where the surface is land or rock; water under a lily pad counts).
     function waterDepth(c,lim){let y=lim-1;while(y>=0&&!c[y])y--;
       // Lily pads float: the water beneath still counts, so drifts of pads do not ring themselves with foam.
-      while(y>=0&&((c[y]&127)===MAT.lilyPad||(c[y]&127)===MAT.lilyFlower))y--;let n=0;while(y>=0&&(c[y]&127)===MAT.water){n++;y--;}return n*cellMetres;}
+      while(y>=0&&((c[y]&127)===MAT.lilyPad||(c[y]&127)===MAT.lilyFlower))y--;let n=0;
+      // Foam stamped on rapids is water too (the renderer draws the white water itself).
+      while(y>=0&&(c[y]&127)===MAT.foam){n++;y--;}while(y>=0&&(c[y]&127)===MAT.water){n++;y--;}return n*cellMetres;}
     // Water map per inside column (RGBA8): open-water depth (1/32 m, up to 8 m), distance to the nearest shore within two
     // columns (1/64 m, up to 4 m), and the river's flow (x, z; 0.5 = still water; direction downstream, length the speed: calm pools to rapids), smoothed on an 8 m grid.
     const FLOW=8,flows=new Map();
