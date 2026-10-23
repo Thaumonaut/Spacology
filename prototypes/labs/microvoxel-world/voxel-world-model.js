@@ -1861,7 +1861,7 @@
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=b[y];
       }
       colStep=1;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),flowers=flowerProps(L,nx,nz,dense,P,plane,base,span),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
-      if(options.smooth)mesh.smooth=surfaceNets(cols,P,base,ny);
+      if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
       return {...mesh,flowers,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G);return {biome,grass:grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome)};})(),leaves:leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
@@ -1967,7 +1967,16 @@
     // relaxed toward its neighbours. A node owns the edges whose lower sample is inside it, so neighbours never double up.
     const isTerrain=m=>m&&!ABOVE_GROUND.has(m&127);
     function objectsOnly(dense){const out=new Uint8Array(dense.length);for(let k=0;k<dense.length;k++){const m=dense[k];out[k]=isTerrain(m)?0:m;}return out;}
-    function surfaceNets(cols,P,base,ny){
+    function surfaceNets(cols,tops,grounds,G,P,base){
+      // Height range covers every sampled column, halo included, so a taller neighbour is never cut off at the seam.
+      let ny=1;for(let k=0;k<P*P;k++)ny=Math.max(ny,tops[k]);
+      // Ground-surface gradient (Sobel over the hillshade's two-ring ground heights): identical on both sides of a seam.
+      const GH=(i,j)=>grounds[clamp(j,0,G-1)*G+clamp(i,0,G-1)];
+      const groundNormal=(bx,bz)=>{const fx=bx-.5+2,fz=bz-.5+2,i0=Math.floor(fx),j0=Math.floor(fz),u=fx-i0,v=fz-j0;let x=0,z=0;
+        for(const [di,dj,w] of [[0,0,(1-u)*(1-v)],[1,0,u*(1-v)],[0,1,(1-u)*v],[1,1,u*v]]){const i=i0+di,j=j0+dj;
+          x+=w*(GH(i+1,j-1)+2*GH(i+1,j)+GH(i+1,j+1)-GH(i-1,j-1)-2*GH(i-1,j)-GH(i-1,j+1))/8;z+=w*(GH(i-1,j+1)+2*GH(i,j+1)+GH(i+1,j+1)-GH(i-1,j-1)-2*GH(i,j-1)-GH(i+1,j-1))/8;}
+        const l=Math.hypot(x,1,z);return [-x/l,1/l,-z/l];};
+      const groundAt=(bx,bz)=>GH(Math.floor(bx)+2,Math.floor(bz)+2);
       // Each column's surface material and height, so a slope shows its grass, snow or rock rather than the soil beneath.
       const surf=new Uint8Array(P*P),surfY=new Int32Array(P*P);for(let k=0;k<P*P;k++){const c=cols[k];for(let b=ny-1;b>=0;b--)if(isTerrain(c[b])){surf[k]=c[b]&127;surfY[k]=b;break;}}
       const Y=ny-base+2,at=(i,y,j)=>{if(i<0||j<0||i>=P||j>=P)return 0;const b=y+base-1;if(b<0)return 1;if(b>=ny)return 0;const m=cols[j*P+i][b];return isTerrain(m)?m:0;};
@@ -1999,7 +2008,9 @@
       // Normals from the occupancy gradient over a 4×4×4 block around each cell: smooth and pointing into the air.
       const normal=(i,y,j)=>{let x=0,yy=0,z=0;for(let c=-1;c<=2;c++)for(let b=-1;b<=2;b++)for(let a=-1;a<=2;a++){if(!S(i+a,y+b,j+c))continue;const w=(a<=0?-1:1)*(Math.abs(a-.5)<1?1:.5),wy=(b<=0?-1:1)*(Math.abs(b-.5)<1?1:.5),wz=(c<=0?-1:1)*(Math.abs(c-.5)<1?1:.5);x-=w;yy-=wy;z-=wz;}const l=Math.hypot(x,yy,z)||1;return [x/l,yy/l,z/l];};
       const out=[];
-      const push=(v,i,y,j,m)=>{const [a,b,c]=normal(i,y,j);out.push(rx[v]-.5,ry[v]-1+base+.5,rz[v]-.5,a,b,c,m);};
+      // Near the ground surface, normals come from the ground gradient (so seams match); elsewhere (isles, overhangs) from
+      // the 3D occupancy.
+      const push=(v,i,y,j,m)=>{const X=rx[v]-.5,Yv=ry[v]-1+base+.5,Z=rz[v]-.5,[a,b,c]=Math.abs(Yv-groundAt(X,Z))<2.5?groundNormal(X,Z):normal(i,y,j);out.push(X,Yv,Z,a,b,c,m);};
       // Quads across each owned edge with a solid/air change; wound so the front faces the air.
       for(let d=0;d<3;d++)for(let j=1;j<=NODE;j++)for(let y=0;y<CY;y++)for(let i=1;i<=NODE;i++){
         const A=S(i,y,j),B=d===0?S(i+1,y,j):d===1?S(i,y+1,j):S(i,y,j+1);if(!A===!B)continue;
