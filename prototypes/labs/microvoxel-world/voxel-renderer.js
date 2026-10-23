@@ -95,6 +95,12 @@
     float n=meadowNoise(q)*.6+meadowNoise(q*2.2+4.)*.3+meadowNoise(q*5.1+9.)*.1;
     return n*.72+smoothstep(.42,.8,cloudWeather(seaLevel))*.42-.14;
   }
+  // Caustic light cells: bright thin edges between jittered cells, compressed across the flow so they stretch along it.
+  float caustic(vec2 p,vec2 dir){
+    vec2 q=(p-dir*dot(p,dir)*.28)*1.3,cell=floor(q);float d1=9.,d2=9.;
+    for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){vec2 c=cell+vec2(x,y),o=vec2(fract(sin(dot(c,vec2(12.9,78.2)))*43758.5),fract(sin(dot(c,vec2(39.3,11.1)))*24634.6));float e=length(q-c-o);if(e<d1){d2=d1;d1=e;}else if(e<d2)d2=e;}
+    return 1.-smoothstep(.0,.1,d2-d1);
+  }
   float clouds(vec3 p){return 1.-.5*smoothstep(.56,.66,cloudField(p.xz+worldOffset+vec2(.5,-.4)*p.y));}`;
   // Fraction of sunlight reaching this point: five hardware-filtered taps soften the edge. The bias is about one block,
   // or two shadow texels when those are coarser, so a canopy does not shadow its own lit side.
@@ -119,7 +125,7 @@
   uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime, placeholder;
   uniform vec2 worldOffset;
   uniform vec2 dither;
-  uniform sampler2D normalMap, canopyMap, biomeMap;
+  uniform sampler2D normalMap, canopyMap, biomeMap, waterMap;
   out vec4 color;
   const vec3 SUN=normalize(vec3(-.5,1.,.4));
   float hash(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
@@ -167,14 +173,23 @@
     // Stylized water on the surface: depth bands from turquoise shallows to deep blue (depth from the biome map's alpha,
     // filtered so it fades toward shores), broken white foam where it meets land, rocks or lily pads, a faint wave line
     // rolling shoreward, and blinking sun glints.
-    float waterM=normalSize>0.?texture(biomeMap,block.xz/normalSize).a*8.:1.;
+    // Stylized water, after the user's references: clear in the shallows (the bed shows through, deepening to teal-blue),
+    // a thin crisp foam outline right at the shore, and soft caustic light cells stretched along the river's flow and
+    // carried downstream (a two-phase flow map), so the water has a clear direction even in a still frame.
+    vec4 wm=normalSize>0.?texture(waterMap,block.xz/normalSize):vec4(.125,1.,.5,.5);
+    float waterM=wm.r*8.,shoreM=wm.g*4.;vec2 flow=wm.ba*2.-1.;
     if(mat==7&&normal.y>.5){
       vec2 p=worldPosition.xz;
-      base=mix(mix(vec3(.42,.8,.76),vec3(.22,.58,.66),smoothstep(.25,.9,waterM)),vec3(.13,.33,.52),smoothstep(1.4,3.,waterM));
-      float churn=meadowNoise(p*1.6+vec2(time*.35,-time*.2))*.6+meadowNoise(p*4.1-time*.5)*.4;
-      float foam=smoothstep(.34,.18,waterM+(churn-.5)*.22);
-      float wave=smoothstep(.06,0.,abs(fract(waterM*1.6-time*.12)-.5)-.38)*smoothstep(1.,.35,waterM)*step(.45,churn)*.7;
-      base=mix(base,vec3(.95,.98,1.),max(foam,wave*visible(1.2)));
+      // Colour depth also deepens away from the banks, so even an evenly deep river reads as a channel.
+      float look=min(waterM,.25+shoreM*1.6);
+      vec3 bed=vec3(.74,.71,.56),col=mix(mix(vec3(.34,.8,.78),vec3(.14,.6,.72),smoothstep(.2,1.,look)),vec3(.07,.33,.6),smoothstep(1.2,3.5,look));
+      base=mix(bed*vec3(.86,1.,.98),col,.3+.7*smoothstep(.0,.5,look));
+      float speed=length(flow);vec2 dir=speed>.05?flow/speed:vec2(0);
+      float ph=time*.22,w=abs(fract(ph)*2.-1.);
+      float c=mix(caustic(p-dir*fract(ph)*1.8,dir),caustic(p-dir*fract(ph+.5)*1.8+3.7,dir),w);
+      base+=vec3(.85,1.,1.)*c*.2*(1.-smoothstep(.6,2.8,waterM))*visible(.5);
+      float foam=smoothstep(.15,.09,shoreM+(meadowNoise(p*2.6+dir*time*.5)-.5)*.07);
+      base=mix(base,vec3(.97,.99,1.),foam);
     }
     if(mat==7){float ripple=sin(worldPosition.z*3.+worldPosition.x*1.7-time*1.4);base+=vec3(.025,.04,.04)*ripple*visible(1.8);}
     if(mat==1&&normal.y<.5)base+=vec3(.045)*step(.85,fract(worldPosition.y*.7))*visible(1.4);
@@ -624,7 +639,7 @@
   const SUN=(()=>{const l=Math.hypot(.5,1,.4);return [-.5/l,1/l,.4/l];})(),SHADOW_SIZE=2048;
   // Sun-view axes as mat3 columns: right, up, and forward (away from the sun).
   const LIGHT_AXES=(()=>{const f=SUN.map(v=>-v),r=[f[2],0,-f[0]],rl=Math.hypot(...r),R=r.map(v=>v/rl),U=[R[1]*f[2]-R[2]*f[1],R[2]*f[0]-R[0]*f[2],R[0]*f[1]-R[1]*f[0]];return [...R,...U,...f];})();
-  const DRAW_UNIFORMS=['origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
+  const DRAW_UNIFORMS=['origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
   function makeCube(){
     const data=[];
     for(let d=0;d<3;d++)for(let side=0;side<2;side++){
@@ -664,7 +679,7 @@
       const paletteValues=[...M.COLORS].flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255));
       for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
       gl.useProgram(this.program);
-      gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
+      gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform1i(this.u.waterMap,6);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;this.queue=[];this.dithering=[0,0];this.casting=false;this.shadow=null;
       canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.lost=true;});
       gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.clearColor(.77,.81,.76,1);
@@ -677,6 +692,11 @@
         // Per-node hillshade normals, one texel per column, filtered between column centres.
         out.normalMap=gl.createTexture();out.normalSize=mesh.normalSize;out.groundBase=mesh.groundBase;out.bytes+=mesh.normals.byteLength;gl.bindTexture(gl.TEXTURE_2D,out.normalMap);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,mesh.normalSize,mesh.normalSize,0,gl.RGBA,gl.UNSIGNED_BYTE,mesh.normals);
+        for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
+      }
+      if(mesh.waterMap){
+        out.waterTex=gl.createTexture();out.bytes+=mesh.waterMap.byteLength;gl.bindTexture(gl.TEXTURE_2D,out.waterTex);
+        gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,mesh.normalSize,mesh.normalSize,0,gl.RGBA,gl.UNSIGNED_BYTE,mesh.waterMap);
         for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
       }
       if(mesh.biome){
@@ -731,12 +751,12 @@
     // A coarser tile standing in while finer ones stream in: lit as usual but casting and receiving no sun shadows and
     // carrying no ink, so its blocky shapes stay quiet until the real tile arrives.
     placeholder(on){this.flat=on;}
-    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
+    dispose(mesh){this.gl.deleteBuffer(mesh.buffer);this.gl.deleteVertexArray(mesh.vao);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}if(mesh.smooth){this.gl.deleteBuffer(mesh.smooth.buffer);this.gl.deleteVertexArray(mesh.smooth.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     begin(camera,time,economy){const gl=this.gl;this.resize(economy);this.camera=camera;this.economy=economy;this.queue.length=0;gl.useProgram(this.program);gl.uniform3f(this.u.center,camera.x,camera.y??8,camera.z);gl.uniform2f(this.u.halfView,camera.span/2,camera.span/2/this.aspect);gl.uniform1f(this.u.time,time);this.time=time;gl.uniform1f(this.u.detail,economy?.5:1);gl.uniform1f(this.u.pixelWorld,camera.span/this.canvas.width);gl.uniform1f(this.u.depth,Math.max(600,camera.span*2.5/Math.min(1,this.aspect)));this.draws=0;this.triangles=0;}
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){this.queue.push({mesh,origin,scale,material,yaw,pitch,offset,patternOrigin,dither:this.dithering,flat:!!this.flat,caster:this.casting});}
-    replay(u,d){const gl=this.gl,m=d.mesh;gl.uniform3fv(u.origin,d.origin);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}}gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.bindVertexArray(m.smooth.vao);gl.drawArrays(gl.TRIANGLES,0,m.smooth.count);gl.uniform1f(u.smoothMesh,0);}}
+    replay(u,d){const gl=this.gl,m=d.mesh;gl.uniform3fv(u.origin,d.origin);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.bindVertexArray(m.smooth.vao);gl.drawArrays(gl.TRIANGLES,0,m.smooth.count);gl.uniform1f(u.smoothMesh,0);}}
     shadowTarget(){
       // Allocated on first use and never in Economy, which renders without sun shadows.
       // It lives on texture unit 1 only: unit 0 holds hillshade maps, and a depth texture there breaks every draw.

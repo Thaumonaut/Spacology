@@ -1977,7 +1977,7 @@
       }
       colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0),mesh=greedy(options.smooth?objectsOnly(dense):dense,NODE,span,NODE,base);timing.mesh=now()-t1;
       if(options.smooth)mesh.smooth=surfaceNets(cols,tops,grounds,G,P,base);
-      return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {...mesh,flowers,stalks,...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2064,12 +2064,26 @@
     function waterDepth(c,lim){let y=lim-1;while(y>=0&&!c[y])y--;
       // Lily pads float: the water beneath still counts, so drifts of pads do not ring themselves with foam.
       while(y>=0&&((c[y]&127)===MAT.lilyPad||(c[y]&127)===MAT.lilyFlower))y--;let n=0;while(y>=0&&(c[y]&127)===MAT.water){n++;y--;}return n*cellMetres;}
-    // Water depth seen from above: the true depth, but never more than about 0.6 × the distance to the nearest shore (land or
-    // rock within two columns), so every shore gets shallows and a foam band, even against a steep bank.
-    function shoreDepth(water,G,I,J,column){
-      const d=water[J*G+I];if(!d)return 0;let near=Infinity;
-      for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)if(!water[(J+b)*G+I+a])near=Math.min(near,(Math.hypot(a,b)-.5)*column);
-      return Math.min(d,near*.6);
+    // Water map per inside column (RGBA8): open-water depth (1/32 m, up to 8 m), distance to the nearest shore within two
+    // columns (1/64 m, up to 4 m), and the river's flow direction (x, z; 0.5 = still water), smoothed on an 8 m grid.
+    const FLOW=8,flows=new Map();
+    function flowAt(i,j){
+      const k=i*65536+j;let v=flows.get(k);if(v)return v;const x=i*FLOW,z=j*FLOW,g=geography(x,z);v=[0,0];
+      if(g.riverWidth>0&&Math.abs(g.riverDistance)<g.riverWidth*1.5+6){
+        const gx=geography(x+2,z).riverDistance-geography(x-2,z).riverDistance,gz=geography(x,z+2).riverDistance-geography(x,z-2).riverDistance,l=Math.hypot(gx,gz);
+        if(l>1e-6){let dx=-gz/l,dz=gx/l;const ahead=geography(x+dx*4,z+dz*4).riverLevel,behind=geography(x-dx*4,z-dz*4).riverLevel;if(ahead>behind){dx=-dx;dz=-dz;}v=[dx,dz];}
+      }
+      flows.set(k,v);if(flows.size>65536)flows.delete(flows.keys().next().value);return v;
+    }
+    function waterMap(L,nx,nz,water,G){
+      const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
+      for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
+        const I=i+2,J=j+2,d=water[J*G+I],o=(j*NODE+i)*4;let near=2.5*column;
+        if(d)for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)if(!water[(J+b)*G+I+a])near=Math.min(near,Math.max(0,(Math.hypot(a,b)-.5)*column));
+        const x=(x0+(i+.5)*column)/FLOW,z=(z0+(j+.5)*column)/FLOW,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b,f=[0,1].map(c=>(flowAt(a,b)[c]*(1-u)+flowAt(a+1,b)[c]*u)*(1-v)+(flowAt(a,b+1)[c]*(1-u)+flowAt(a+1,b+1)[c]*u)*v);
+        out[o]=Math.min(255,Math.round(d*32));out[o+1]=d?Math.min(255,Math.round(near*64)):0;out[o+2]=Math.round(128+f[0]*127);out[o+3]=Math.round(128+f[1]*127);
+      }
+      return out;
     }
     function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4);
@@ -2079,7 +2093,7 @@
         const wx=x0+(i+.5)*column,wz=z0+(j+.5)*column,dx=(noise(wx*.02,wz*.02,seed+611)-.5)*40,dz=(noise(wx*.02+9.1,wz*.02,seed+613)-.5)*40;
         const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
         let c=0;for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;const o=(j*NODE+i)*4;
-        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=Math.min(255,Math.round(shoreDepth(water,G,i+2,j+2,column)*32));
+        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2);out[o+3]=255;
       }
       return out;
     }
