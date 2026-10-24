@@ -22,6 +22,7 @@
   <label>Seed <input id="seed" type="number" value="1"></label>
   <div class="row"><button id="prev">◀ Prev</button><button id="next">Next ▶</button><button id="rand">Random</button></div>
   <label>Style <select id="style"><option value="">auto</option><option>island</option><option>hill</option><option>cliff</option></select></label>
+  <label>Layout <select id="layout"><option value="">auto</option><option>rings</option><option>spur</option><option>palace</option><option>cluster</option></select></label>
   <label>Roofs <select id="palette"><option value="">auto</option></select></label>
   <label>Scale <input id="scale" type="range" min="0.6" max="2.5" step="0.1" value="1"></label>
   <label>Grid of 9 <input id="grid" type="checkbox"></label>
@@ -38,19 +39,20 @@
   const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search),canvas=$('c');
   const R=new CastleRender.Renderer(canvas);
   CastleGen.PALETTES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;$('palette').appendChild(o);});
-  const state={seed:+(Q.get('seed')||1),style:Q.get('style')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
+  const state={seed:+(Q.get('seed')||1),style:Q.get('style')||'',layout:Q.get('layout')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
   const cam={yaw:+(Q.get('yaw')||0.9),pitch:+(Q.get('pitch')||0.1),dist:+(Q.get('dist')||0),tx:0,ty:0,tz:0,fov:.75};
-  function sync(){$('seed').value=state.seed;$('style').value=state.style;$('palette').value=state.palette;$('scale').value=state.scale;$('grid').checked=state.grid;
-    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');history.replaceState(null,'','?'+q);}
+  function sync(){$('seed').value=state.seed;$('style').value=state.style;$('layout').value=state.layout;$('palette').value=state.palette;$('scale').value=state.scale;$('grid').checked=state.grid;
+    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.layout)q.set('layout',state.layout);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');history.replaceState(null,'','?'+q);}
   function rebuild(){
-    const opts={style:state.style||undefined,palette:state.palette===''?undefined:+state.palette,scale:state.scale},list=[];
+    const opts={style:state.style||undefined,layout:state.layout||undefined,palette:state.palette===''?undefined:+state.palette,scale:state.scale},list=[];
     if(state.grid){for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const s=state.seed+(j+1)*3+(i+1);const castle=CastleGen.generate(s,opts);castle.parts=castle.parts.filter(p=>p.t!=='shore');list.push({castle,ox:i*1300*state.scale,oz:j*1300*state.scale});}}
     else list.push({castle:CastleGen.generate(state.seed,opts),ox:0,oz:0});
     const c=list[Math.floor(list.length/2)].castle,span=state.grid?2000*state.scale:c.radius*2.4;
     const mesh=CastleRender.build(list);state.castle=c;state.collider=state.grid?null:new CastleWalk.Collider(mesh);if(walker)startWalk();
     R.setMesh(mesh,{cx:0,cz:0,r:state.grid?2200*state.scale:Math.max(c.radius*2.2,700*state.scale),h:c.height});
-    if(!Q.get('dist')||state._moved)cam.dist=state.grid?span*1.45:Math.max(c.radius*3,c.height*2.3);cam.ty=state.grid?0:c.height*.45;
-    $('info').textContent=state.grid?`Seeds ${state.seed}–${state.seed+8}`:`Seed ${c.seed} · ${c.style} · ${c.palette.name} · ${Math.round(c.radius*2)} m across · ${Math.round(c.height)} m tall · ${c.parts.length} parts`;
+    // Frame the castle itself (above its seat), not the hill or island under it.
+    const rise=c.height-c.top;if(!Q.get('dist')||state._moved)cam.dist=state.grid?span*1.45:Math.max(c.radius*2.6,rise*2.4);cam.ty=state.grid?0:c.top+rise*.35;
+    $('info').textContent=state.grid?`Seeds ${state.seed}–${state.seed+8}`:`Seed ${c.seed} · ${c.layout} · ${c.style} · ${c.palette.name} · ${Math.round(c.radius*2)} m across · ${Math.round(c.height)} m tall · ${c.parts.length} parts`;
     sync();draw();}
   function draw(){const dpr=Math.min(2,devicePixelRatio||1);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;R.draw(cam);window.CastleDrafts.frames++;}
   // ---- Walk: first person against the castle mesh; pointer lock for mouse look.
@@ -69,7 +71,7 @@
     place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});cam.fp=walker.camera();draw();},walker:()=>walker};
   const set=(k,v)=>{state[k]=v;state._moved=true;rebuild();};
   $('seed').onchange=e=>set('seed',+e.target.value);$('prev').onclick=()=>set('seed',state.seed-(state.grid?9:1));$('next').onclick=()=>set('seed',state.seed+(state.grid?9:1));
-  $('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);
+  $('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('layout').onchange=e=>set('layout',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);
   $('scale').oninput=e=>set('scale',+e.target.value);$('grid').onchange=e=>set('grid',e.target.checked);
   addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||walker)return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click();});
   let drag=null;canvas.onpointerdown=e=>{if(walker){canvas.requestPointerLock();return;}drag=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);};

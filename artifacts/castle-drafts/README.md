@@ -25,3 +25,11 @@ Collision is the castle mesh itself (rays against a grid of triangles), so whate
 | walk-hill-1-walked | After running 12 s up the (now conical, ~20-25 degree) hill to the outer wall |
 | walk-hill-2-keep | Inside the keep's grand hall: columns, lit windows, the stairwell ramp |
 | walk-hill-3-tower | Top of a wall tower's spiral stair, at the wall-walk (climb verified 170 -> 202 m) |
+
+## Layouts (v5)
+
+| File | What to look at |
+| --- | --- |
+| v5-spur | Spur: a chain of walled baileys stepping up a long ridge to a square donjon with hanging turrets and a spire tower |
+| v5-palace | Palace: domed main block, wings and pavilions on an upper terrace, grand stair, gardens, outer ring wall |
+| v5-cluster | Cluster: a tight pile of halls of many heights on a narrow crag, turrets, one tallest tower |
