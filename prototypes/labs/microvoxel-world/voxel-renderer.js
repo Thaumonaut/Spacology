@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   const M=root.MicroWorld,ANGLE=50*Math.PI/180,S=Math.sin(ANGLE),C=Math.cos(ANGLE),YAW=35*Math.PI/180,SY=Math.sin(YAW),CY=Math.cos(YAW);
-  const CAMERA_UNIFORMS=['fogReach','skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','fogY','inverseViewProj'];
+  const CAMERA_UNIFORMS=['fogLow','fogReach','skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','fogY','inverseViewProj'];
   const dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
   // Biome atmospheres, all at golden hour: sky horizon and zenith, and the sunlit and shaded fog colours. The renderer
   // blends the biomes around the view and eases toward them, so crossing a border shifts the sky over a few seconds.
@@ -771,7 +771,7 @@
   uniform sampler2D sceneColor, sceneGlow;
   uniform highp sampler2D sceneDepth;
   uniform vec2 texel;
-  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime, fogY, fogReach;
+  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime, fogY, fogReach, fogLow;
   uniform vec3 skyHorizon, skyZenith, fogLit, fogShade;
   uniform vec2 fogOffset, fogLayer;
   uniform vec3 eye;
@@ -800,7 +800,7 @@
     if(abs(r.y)>1e-4){float a=(top-eye.y)/r.y,b=(bottom-eye.y)/r.y;t0=max(t0,min(a,b));t1=min(t1,max(a,b));}else if(eye.y>top||eye.y<bottom)return vec3(0);
     float L=length(r);t1=min(t1,t0+(walkView>.5?1600.:600.)/L);
     if(t0>=t1)return vec3(0);
-    float seg=(t1-t0)*L/10.,jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))),k=fogAmount*(walkView>.5?.05:.16);
+    float seg=(t1-t0)*L/10.,jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))),k=fogAmount*(walkView>.5?.05*mix(.5,2.,fogLow):.16);
     vec3 sun=normalize(vec3(-.5,1.,.4)),dir=r/L,acc=vec3(0);float glow=pow(max(0.,dot(dir,sun)),4.);
     for(int i=0;i<10;i++){
       vec3 p=eye+r*mix(t0,t1,(float(i)+jitter)/10.);float h,d=bank(p,h)*k;if(d<=0.)continue;
@@ -845,7 +845,10 @@
           vec3 sky=mix(skyHorizon,skyZenith,smoothstep(0.,.85,dir.y));
           // Cool blue at middle distance, becoming exactly the sky behind it toward the far edge (no band at the horizon).
           vec3 air=mix(mix(skyHorizon,skyZenith,.42)*1.06,sky,smoothstep(fogReach*.45,fogReach*.9,d))+vec3(.12,.07,.02)*pow(max(0.,dot(dir,sun)),6.);
-          float aerial=pow(smoothstep(fogReach*.3,fogReach*.95,d),1.4)*mix(.3,.65,fogAmount);
+          // Down in the haze it builds within ~2 km, layering each row of trees and hills; from high ground it only gathers
+          // toward the far edge.
+          float far=pow(smoothstep(fogReach*.3,fogReach*.95,d),1.4)*mix(.3,.65,fogAmount),low=fogLow*(1.-exp(-max(0.,d-12.)/190.))*mix(.5,.85,fogAmount);
+          float aerial=min(.85,max(far,low));
           scene=mix(scene,air,aerial);
           // Ground mist: a 2.5 m layer around the feet (mean density from three points along the ray), so grazing views
           // thicken while views down into a valley or up a slope stay clear.
@@ -1851,7 +1854,7 @@ tintBase=palette[mat];crownKey=vec4(0);
       const valley=Math.min(this.fogFloor??Infinity,(c.eyeY??c.y??8)-2.1),layer=v.ortho?[(c.y??8)-4-yb,10]:[valley-yb,14];
       for(const [program,u] of [[this.pondProgram,this.pu2],[this.tubeProgram,this.tu],[this.lobeProgram,this.lou],[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
-        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogReach,Math.max(80,Math.min(v.far,this.fogReach??v.far)));gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
+        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogLow,v.ortho?0:1-Math.min(1,Math.max(0,((c.eyeY??c.y??8)-(this.fogFloor??(c.eyeY??8))-15)/400)));gl.uniform1f(u.fogReach,Math.max(80,Math.min(v.far,this.fogReach??v.far)));gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
       }
     }
     sky(off){
