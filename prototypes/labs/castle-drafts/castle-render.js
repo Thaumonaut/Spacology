@@ -230,19 +230,20 @@
       o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
     if(gF>1.5){nrm.a=.75;o=vec4(mix(gC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
     vec3 base=gQ.w>0.?voxTex(gC,dist):pattern(gC,n,dist);
-    // Painted shading (anime background style): a soft wrapped key light, one broad painted shadow tone (cool, light
-    // and transparent: the colour shows through) blended over a wide band, a sky fill from above, and a watercolour
-    // drift in the base colour so flat walls never read as one swatch.
-    base*=1.+.07*(vn(gP.xz*.05+gP.y*.03)-.5)+.05*(vn(gP.xz*.21-gP.y*.11)-.5);
-    float ndl=dot(n,SUN),sh=shadow(),wrap=clamp((ndl+.25)/1.25,0.,1.),lit=wrap*sh;
-    // Feathered cel edge: one clear light/shadow boundary with a soft feather (stylised games: hard edge, light feather).
-    float tone=smoothstep(.22,.42,lit);
-    vec3 cool=base*mix(vec3(.56,.62,.9),vec3(.54,.52,.86),GOLD)+mix(vec3(.02,.03,.08),vec3(.04,.02,.08),GOLD),warm=base*mix(vec3(1.06,1.02,.94),vec3(1.2,1.04,.84),GOLD);
-    vec3 col=mix(cool,warm,tone);
-    col+=base*.12*(n.y*.5+.5)*vec3(.75,.85,1.);
-    // Bounce: shadowed walls pick up a little warm light from the sunlit ground.
-    col+=base*vec3(1.,.8,.6)*.07*(1.-tone)*clamp(-n.y*.5+.5,0.,1.)*(1.-abs(n.y));
-    col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.1*sh*max(dot(-V,SUN)+.3,0.);
+    // Cel shading after Genshin / HSR / WuWa: a ramp instead of smooth light. The key light (wrapped N.L times the cast
+    // shadow) crosses one threshold with a narrow feather into a shadow colour that is the base pushed more saturated
+    // and cooler (not just darker), with a second faint step deeper in; a hard specular highlight on glossy-ish faces
+    // (up-facing roofs and glass), and a thin bright rim on the lit side. Sky fill and bounce stay small and flat.
+    base*=1.+.05*(vn(gP.xz*.05+gP.y*.03)-.5);
+    float ndl=dot(n,SUN),sh=shadow(),lit=clamp(ndl*.5+.5,0.,1.)*mix(.25,1.,sh);
+    float ramp=smoothstep(.47,.53,lit),deep=smoothstep(.2,.26,lit);
+    float lum=dot(base,vec3(.3,.59,.11));vec3 sat=clamp(mix(vec3(lum),base,1.35),0.,1.);
+    vec3 shadowCol=sat*mix(vec3(.62,.66,.92),vec3(.6,.56,.86),GOLD)*mix(.8,1.,deep);
+    vec3 litCol=base*mix(vec3(1.05,1.02,.97),vec3(1.16,1.03,.86),GOLD);
+    vec3 col=mix(shadowCol,litCol,ramp);
+    col+=base*.06*(n.y*.5+.5);
+    vec3 H=normalize(SUN+V);float spec=smoothstep(.93,.95,pow(max(dot(n,H),0.),4.))*ramp*(n.y>.3?.18:.06);col+=vec3(1.,.97,.9)*spec;
+    float rim=smoothstep(.72,.78,1.-max(dot(n,V),0.))*ramp*clamp(dot(-V,SUN)*.5+.6,0.,1.);col+=litCol*rim*.22;
     // Layered haze: a soft light haze that pools low and thickens with distance (so roofscapes read in layers, like
     // painted backdrops), warm toward the sun, then aerial perspective toward the horizon sky.
     vec3 vd=normalize(gP-EYE),hz=mix(mix(vec3(.7,.8,.95),vec3(.72,.7,.9),GOLD),mix(vec3(1.,.93,.82),vec3(1.,.8,.62),GOLD),.45*pow(max(dot(vd,SUN),0.),4.));
