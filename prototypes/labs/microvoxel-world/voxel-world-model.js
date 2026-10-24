@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-23':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-24':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -1166,12 +1166,12 @@
         // fade out beside channels and break open into ramps (about a third of the ground, in ~50 m patches), so every face
         // has a walkable way up between its walls. cliff: 0-1 on a riser (bare rock); talus: the foot of a riser (scree).
         let cliff=0,talus=false;
-        const cs=t.relief>15?clamp((slope-.62)/.45,0,1)*clamp((t.relief-15)/30,0,1)*clamp((riverDistance-3)/6,0,1)*clamp((noise(x*.02,z*.02,seed+949)-.36)/.12,0,1):0;
+        const cs=t.relief>15?clamp((slope-.95)/.5,0,1)*clamp((t.relief-15)/30,0,1)*clamp((riverDistance-3)/6,0,1)*clamp((noise(x*.02,z*.02,seed+949)-.36)/.12,0,1):0;
         // The band period is constant: a period that varied over the map would be multiplied by the band count (h/band, ~400
         // at 1.5 km), sliding the steps sideways a whole band per few metres and shredding faces into comb teeth. Riser
         // height varies instead through the step's sharpness.
-        if(cs>0){const band=4,sharp=2+2.5*noise(x*.013,z*.013,seed+941),wq=(noise(x*.035,z*.035,seed+943)-.5)*band*1.6+(noise(x*.11,z*.11,seed+945)-.5)*1.2,u=h+wq,k=Math.floor(u/band),f=u/band-k;
-          h+=((k+f**sharp)*band-wq-h)*cs*.9;if(f>.55)cliff=cs*clamp((f-.55)/.2,0,1);else if(f<.2&&cs>.5)talus=true;}
+        if(cs>0){const band=4,sharp=1.6+1.2*noise(x*.013,z*.013,seed+941),wq=(noise(x*.035,z*.035,seed+943)-.5)*band*1.6+(noise(x*.11,z*.11,seed+945)-.5)*1.2,u=h+wq,k=Math.floor(u/band),f=u/band-k;
+          h+=((k+f**sharp)*band-wq-h)*cs*.7;if(f>.55)cliff=cs*clamp((f-.55)/.2,0,1);else if(f<.2&&cs>.5)talus=true;}
         if(t.relief>15&&spur>.55&&slope>.45){const b=noise(x*.3,z*.3,seed+947)*.7+noise(x*.75,z*.75,seed+948)*.3;h+=(b-.5)*1.6*clamp((spur-.55)/.4,0,1)*clamp((slope-.45)/.4,0,1);}
         // Mesa and butte walls are cliffs too.
         if(t.wall>.3)cliff=Math.max(cliff,t.wall);
