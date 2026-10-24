@@ -34,8 +34,10 @@
     // ---- Castle on its hill, out along one avenue on the side away from the river.
     const radials=[];for(let i=0;i<nA;i++)radials.push(a0+i/nA*TAU+r(-.08,.08));
     const cA=radials.reduce((b,a)=>Math.cos(a)*-side>Math.cos(b)*-side?a:b,radials[0]),cD=Rw*r(.42,.55),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
-    const castle=CastleGen.generate(seed*7+3,{style:'hill',flare:2.1,layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:r(.3,.38)*S,palette:CastleGen.PALETTES.indexOf(pal)});
-    castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=castle.radius*2.15;markDisk(cx,cz,hillR);
+    // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
+    const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=2.4;
+    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:G,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.3,.38):r(.26,.32))*S,palette:CastleGen.PALETTES.indexOf(pal)});
+    castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);
     // ---- Streets: radial avenues from the plaza to the gates, ring streets, and lanes splitting long blocks.
     const rings=[];for(let rr=plazaR+gap*.8;rr<Rw-45;rr+=gap*r(.85,1.15))rings.push(rr);
     for(const a of radials){if(a===cA){street(Math.cos(a)*plazaR,Math.sin(a)*plazaR,Math.cos(a)*(cD-hillR*.9),Math.sin(a)*(cD-hillR*.9),16,'avenue');continue;}
@@ -126,7 +128,7 @@
     const bed=(u,v,y)=>{prop(u,v,2,1.1,.45,y,WOOD);prop(u-.65,v,.6,.9,.15,y+.45,[.92,.9,.86]);prop(u+.2,v,1.3,1.05,.12,y+.45,CLOTH);};
     // A partition across the house on each floor, with a doorway, leaving the stairwell end open.
     const part=(u,y,h)=>{const [x,z]=W(u,0);add('gatewall',{x,y,z,w:id,h,d:.3,rot:b.rot+Math.PI/2,gap:1.2,gateH:2.4},'plaster');};
-    const stairU=iw/2-Math.min(iw-4,3.6/Math.tan(.62));
+    const stairU=iw/2-1.5-Math.min(iw-5,3.6/Math.tan(.62));
     if(type==='house'||type==='shop'||type==='inn'||type==='towerhouse'||type==='barracks'){
       b.storeys.forEach((sy,i)=>{const y=F(sy),hh=(i+1<b.storeys.length?b.storeys[i+1]:b.H)-sy-.6;
         if(i===0){if(type==='shop'){prop(0,b.doorSide*-(id/2-1.6),iw*.5,.7,1,y,WOOD);for(let k=0;k<3;k++)prop(-iw/2+1.6+k*2.4,-b.doorSide*(id/2-.35),2,.5,2.2,y,WOOD);}

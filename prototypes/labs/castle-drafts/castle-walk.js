@@ -5,17 +5,17 @@
   'use strict';
   const CELL=8,BIG=400;
   function Collider(mesh){
-    const P=mesh.p,K=mesh.k;this.tris=[];this.grid=new Map();this.big=[];
-    for(let v=0;v<P.length/3;v+=3){if(!K[v/3])continue;const t=[P[v*3],P[v*3+1],P[v*3+2],P[v*3+3],P[v*3+4],P[v*3+5],P[v*3+6],P[v*3+7],P[v*3+8]],id=this.tris.length;this.tris.push(t);
+    const P=mesh.p,K=mesh.k,I=mesh.id||[];this.tris=[];this.pid=[];this.grid=new Map();this.big=[];
+    for(let v=0;v<P.length/3;v+=3){if(!K[v/3])continue;const t=[P[v*3],P[v*3+1],P[v*3+2],P[v*3+3],P[v*3+4],P[v*3+5],P[v*3+6],P[v*3+7],P[v*3+8]],id=this.tris.length;this.tris.push(t);this.pid.push(I[v/3]??-1);
       const x0=Math.min(t[0],t[3],t[6]),x1=Math.max(t[0],t[3],t[6]),z0=Math.min(t[2],t[5],t[8]),z1=Math.max(t[2],t[5],t[8]);
       if(x1-x0>BIG||z1-z0>BIG){this.big.push(id);continue;}
       for(let i=Math.floor(x0/CELL);i<=Math.floor(x1/CELL);i++)for(let j=Math.floor(z0/CELL);j<=Math.floor(z1/CELL);j++){const k=i*65536+j;let a=this.grid.get(k);if(!a)this.grid.set(k,a=[]);a.push(id);}}
   }
   // Nearest hit distance along a ray (Möller–Trumbore) among triangles in the cells the segment touches.
-  Collider.prototype.ray=function(o,d,max){
+  Collider.prototype.ray=function(o,d,max,ignore=-2){
     const seen=new Set(),ids=[...this.big],ex=o[0]+d[0]*max,ez=o[2]+d[2]*max;
     for(let i=Math.floor(Math.min(o[0],ex)/CELL);i<=Math.floor(Math.max(o[0],ex)/CELL);i++)for(let j=Math.floor(Math.min(o[2],ez)/CELL);j<=Math.floor(Math.max(o[2],ez)/CELL);j++){const a=this.grid.get(i*65536+j);if(a)for(const id of a)if(!seen.has(id)){seen.add(id);ids.push(id);}}
-    let best=max;for(const id of ids){const t=this.tris[id],e1=[t[3]-t[0],t[4]-t[1],t[5]-t[2]],e2=[t[6]-t[0],t[7]-t[1],t[8]-t[2]];
+    let best=max;for(const id of ids){if(this.pid[id]===ignore)continue;const t=this.tris[id],e1=[t[3]-t[0],t[4]-t[1],t[5]-t[2]],e2=[t[6]-t[0],t[7]-t[1],t[8]-t[2]];
       const p=[d[1]*e2[2]-d[2]*e2[1],d[2]*e2[0]-d[0]*e2[2],d[0]*e2[1]-d[1]*e2[0]],det=e1[0]*p[0]+e1[1]*p[1]+e1[2]*p[2];if(Math.abs(det)<1e-9)continue;
       const inv=1/det,s=[o[0]-t[0],o[1]-t[1],o[2]-t[2]],u=(s[0]*p[0]+s[1]*p[1]+s[2]*p[2])*inv;if(u<0||u>1)continue;
       const q=[s[1]*e1[2]-s[2]*e1[1],s[2]*e1[0]-s[0]*e1[2],s[0]*e1[1]-s[1]*e1[0]],v=(d[0]*q[0]+d[1]*q[1]+d[2]*q[2])*inv;if(v<0||u+v>1)continue;

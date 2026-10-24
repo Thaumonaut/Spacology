@@ -30,17 +30,17 @@
     {name:'amber',roof:[.84,.5,.26],roof2:[.62,.32,.3],stone:[.94,.88,.76],stone2:[.86,.78,.66]},
   ];
   function generate(seed,opts={}){
-    const R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1,style=opts.style||pick(['island','hill','cliff']),layout=opts.layout||pick(['rings','spur','palace','cluster']);
+    const R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1,style=opts.style||pick(['island','hill','cliff']),ground=opts.ground||0,layout=opts.layout||pick(['rings','spur','palace','cluster']);
     const pal=opts.palette!=null?PALETTES[opts.palette%PALETTES.length]:pick(PALETTES),parts=[],sky=[];
     const add=(t,o,mat)=>{parts.push({t,mat,...o});return parts[parts.length-1];};
     // ---- The seat: what the castle stands on.
     //   island: a sheer crag rising from a broad low island (meadow, woods) in a lake or the sea;
     //   hill:   a great grassy hill on the mainland, the castle crowning it in rings;
     //   cliff:  a sheer crag in a gorge lake, a high bridge leaping to the mainland cliff across the water.
-    const big=style==='island'?1:r(1.25,1.6),top=(style==='hill'?r(150,240):style==='cliff'?r(140,230):r(120,200))*S*(layout==='cluster'?1.3:1),Rc=(style==='island'?r(170,250):r(260,380)*(style==='hill'?1:.85))*S*(layout==='cluster'?.6:layout==='palace'?1.05:1),lobes=[];
+    const big=style==='island'?1:r(1.25,1.6),top=style==='flat'?ground:(style==='hill'?r(150,240):style==='cliff'?r(140,230):r(120,200))*S*(layout==='cluster'?1.3:1),Rc=(style==='island'?r(170,250):r(260,380)*(style==='hill'?1:.85))*S*(layout==='cluster'?.6:layout==='palace'?1.05:1),lobes=[];
     for(let k=0;k<4;k++)lobes.push([1+Math.floor(R()*4)+k,R()*TAU,r(.04,.14)/(k+1)*(layout==='rings'?1:.5)]);
     // Outline stretch: spur castles run along a ridge from the gate end (toward the bridge) to the keep end.
-    const ga=R()*TAU,gx=Math.cos(ga),gz=Math.sin(ga),bridgeLen=r(260,480)*S,ax=ga+Math.PI,[EA,EB]=layout==='spur'?[1.7,.6]:layout==='palace'?[1.15,.95]:[1,1];
+    const ga=opts.gate!=null?opts.gate:R()*TAU,gx=Math.cos(ga),gz=Math.sin(ga),bridgeLen=r(260,480)*S,ax=ga+Math.PI,[EA,EB]=layout==='spur'?[1.7,.6]:layout==='palace'?[1.15,.95]:[1,1];
     const rad=a=>Rc*(1+lobes.reduce((s,[f,p,m])=>s+m*Math.sin(f*a+p),0))/Math.sqrt((Math.cos(a-ax)/EA)**2+(Math.sin(a-ax)/EB)**2);
     const ex=Math.cos(ax),ez=Math.sin(ax),L=(u,v)=>[u*ex-v*ez,u*ez+v*ex];
     const N=128,pts=[];for(let i=0;i<N;i++){const a=i/N*TAU;pts.push([a,rad(a)]);}
@@ -55,10 +55,17 @@
       add('shore',{x:gx*(from+bridgeLen+1400*S),z:gz*(from+bridgeLen+1400*S),r:1400*S,h:ih},'grass');
       // A road climbs the crag face to the gate tower: the gate sits low on the cliff.
       bridge.gateY=Math.min(top*.5,r(40,70)*S);bridge.gateFrom=ih;
+    }else if(style==='flat'){
+      // Level ground (inside a city): no seat at all, the castle stands on the ground.
     }else if(style==='hill'){
       add('land',{y:2*S},'grass');
       // A near-conical profile keeps the flanks ~20-25 degrees all the way to the walls, so the hill can be walked up.
-      add('crag',{pts,top,base:0,flare:opts.flare||r(2.6,3.4),skin:'grass',profile:1.05},'grass');
+      const hf=opts.flare||r(2.6,3.4);add('crag',{pts,top,base:0,flare:hf,skin:'grass',profile:1.05},'grass');
+      // A road winds once round the hill from its foot up to the gate: ramps laid on the slope (surface + 0.3 m),
+      // solid down into the hill so no gaps show, low parapets along both edges.
+      {const turns=1,n=Math.ceil(turns*TAU*Rc*(1+hf)/2/(8*S)),surf=f=>top*Math.max(0,1-(f-1)/(hf-1)*.98);let prev=null;
+        for(let i=0;i<=n;i++){const q=i/n,a=ga-(1-q)*turns*TAU,f=hf*.98-(hf*.98-1.04)*q,d=rad(a)*f,y=surf(f)+.3,pt=[Math.cos(a)*d,y,Math.sin(a)*d];
+          if(prev)add('ramp',{x0:prev[0],z0:prev[2],y0:prev[1],x1:pt[0],z1:pt[2],y1:pt[1],w:9*S,base:Math.min(prev[1],pt[1])-6*S},'stone2');prev=pt;}}
       for(let i=0;i<180;i++){const a=R()*TAU,f=r(1.2,2.8),d=rad(a)*f,yy=top*Math.max(0,1-(f-1)/2.3),s2=r(8,18)*S;add('blob',{x:Math.cos(a)*d,y:yy+s2*.4,z:Math.sin(a)*d,rx:s2,ry:s2*1.1,rz:s2},'green');}
     }else{
       add('crag',{pts,top,base:-6,flare:1.16},'rock');
@@ -67,7 +74,7 @@
       bridge={from:rad(ga)*.97,to:rad(ga)+bridgeLen+40*S,y0:top+2*S,y1:mt+2*S,gate:true};
     }
     // Outer wall height and its ring (fraction of the outline) for the gate works below; set by each layout.
-    let outerH=20*S,outerK=.94;
+    let outerH=20*S,outerK=.94;const foot=[];
     if(layout==='rings'){
     // ---- Tiers: the castle climbs in rings, each a terrace with its own wall and towers.
     const tiers=[];let y=top,scale=.94;
@@ -78,7 +85,8 @@
       // Terrace body for inner tiers: a raised stone platform with the wall around it.
       if(t>0)add('ring',{cx:0,cz:0,pts:pts.map(([a,d])=>[a,d*k]),y:y-tiers[t-1].wallH*.0,h:0,top:y},'stone2');
       // Wall ring with towers at evenly spread outline points; the gate faces the bridge.
-      const ang=[];for(let i=0;i<nTow;i++)ang.push(ga+(i+.5+(t?R()*.4-.2:0))/nTow*TAU);
+      // The two towers flanking the gate keep their even spacing so the gate sits on the bridge/ramp line.
+      const ang=[];for(let i=0;i<nTow;i++)ang.push(ga+(i+.5+(t&&i>0&&i<nTow-1?R()*.4-.2:0))/nTow*TAU);
       // Tower radii first: wall stretches stop at the tower walls (not their centres), so tower interiors stay open.
       const trs=ang.map(()=>towerR*r(.85,1.2));
       for(let i=0;i<nTow;i++){
@@ -102,25 +110,30 @@
       for(let i=0;i<n;i++){const a0=ga+sg*(span*(1-i/n)+.04),a1=ga+sg*(span*(1-(i+1)/n)+.04),q0=ring(a0),q1=ring(a1);
         add('ramp',{x0:Math.cos(a0)*q0,z0:Math.sin(a0)*q0,y0:A.y+rise*i/n,x1:Math.cos(a1)*q1,z1:Math.sin(a1)*q1,y1:A.y+rise*(i+1)/n,w:8*S,base:A.y-1},'stone2');}
       {const a=ga+sg*.04,q=ring(a),qi=rad(ga)*B.k-6*S;add('ramp',{x0:Math.cos(a)*q,z0:Math.sin(a)*q,y0:B.y,x1:Math.cos(ga)*qi,z1:Math.sin(ga)*qi,y1:B.y,w:10*S,base:A.y-1},'stone2');}}
-    // ---- Halls on each terrace: pitched-roof buildings in a loose ring inside the wall.
-    tiers.forEach((T,t)=>{const inner=t+1<tiers.length?tiers[t+1].k:0,n=Math.round(r(4,9)*(t===0?1.5:1)*big*big);
-      const clear=a=>{const off=x=>Math.abs(Math.atan2(Math.sin(x),Math.cos(x)));if(off(a-ga)<.35)return false;if(T.ramp){const [r0,r1]=T.ramp,m=(r0+r1)/2,h2=Math.abs(r1-r0)/2+.25;if(off(a-m)<h2)return false;}return true;};
-      for(let i=0;i<n;i++){const a=ga+R()*TAU;if(!clear(a))continue;const dd=(inner+(T.k-inner)*r(.35,.7)),d=rad(a)*dd,hx=Math.cos(a)*d,hz=Math.sin(a)*d,w=r(18,34)*S,dp=r(11,16)*S,h=r(12,22)*S,rot=a+Math.PI/2;
-        add('shell',{x:hx,y:T.y-2*S,z:hz,w,h:h+2*S,d:dp,rot,th:1*S,floor:T.y,storeys:h>15*S?[0,h*.5]:[0],door:{side:1,u:r(-.2,.2)*w,wid:3*S,hgt:4.2*S}},'stone2');add('gable',{x:hx,y:T.y+h,z:hz,w,d:dp+1.5*S,h:dp*r(.7,1.1),rot},'roof2');
-        if(R()<.5)tower(hx+Math.cos(rot)*w/2,T.y,hz+Math.sin(rot)*w/2,r(3,4.5)*S,h+r(6,14)*S,'cone',false);}});
     // ---- The palace keep on the top tier: a tall block with a steep roof, corner turrets, dormers and a spire tower.
-    const K=tiers[tiers.length-1],ky=K.y,kw=r(50,80)*S*big,kd=r(34,52)*S*big,kh=r(70,120)*S*Math.sqrt(big),kr=ga+Math.PI/2+r(-.3,.3),cs=Math.cos(kr),sn=Math.sin(kr);
-    const kp=(u,w)=>[u*cs-w*sn,u*sn+w*cs];
+    // The keep must fit inside the top terrace's wall: its half-diagonal stays within the terrace's narrowest radius less
+    // a 10 m yard, shrinking both sides together when it would not.
+    const K=tiers[tiers.length-1],ky=K.y,kMin=Math.min(...pts.map(([a,d])=>d))*K.k-10*S,kw0=r(50,80)*S*big,kd0=r(34,52)*S*big,kf=Math.min(1,kMin/(Math.hypot(kw0,kd0)/2)),kw=kw0*kf,kd=kd0*kf,kh=r(70,120)*S*Math.sqrt(big),kr=ga+Math.PI/2+r(-.3,.3),cs=Math.cos(kr),sn=Math.sin(kr);
+    const kp=(u,w)=>[u*cs-w*sn,u*sn+w*cs];foot.push({x:0,z:0,r:Math.hypot(kw,kd)/2+3*S});
     {const st=[0];let sy=16*S;while(sy<kh-6*S){st.push(sy);sy+=9*S;}
       add('shell',{x:0,y:ky-4*S,z:0,w:kw,h:kh+4*S,d:kd,rot:kr,th:2.5*S,floor:ky,storeys:st,door:{side:-1,u:0,wid:6*S,hgt:9*S},grand:true},'stone');
       // Columns down the grand hall.
       for(let i=1;i<6;i++)for(const sw of [-1,1]){const [px,pz]=kp(-kw/2+i*kw/6,sw*kd*.22);add('cyl',{x:px,y:ky,z:pz,r:1.1*S,h:16*S},'trim');}}
     add('gable',{x:0,y:ky+kh,z:0,w:kw,d:kd+2*S,h:kd*r(.8,1.2),rot:kr},'roof');
-    for(const su of [-1,1])for(const sw of [-1,1]){const [px,pz]=kp(su*kw/2,sw*kd/2),tr=r(5,7)*S;tower(px,ky+kh*r(.45,.65),pz,tr,kh*r(.5,.7)+r(8,20)*S,'cone',true,true);}
+    // Corner turrets cling outside the corners (centre pushed out diagonally), so they never reach into the rooms.
+    for(const su of [-1,1])for(const sw of [-1,1]){const tr=r(5,7)*S,[px,pz]=kp(su*(kw/2+tr*.75),sw*(kd/2+tr*.75));tower(px,ky+kh*r(.45,.65),pz,tr,kh*r(.5,.7)+r(8,20)*S,'cone',true,true);}
     for(let i=0;i<Math.round(r(2,4));i++){const u=(i/(3)-.4)*kw*.8;for(const sw of [-1,1]){const [px,pz]=kp(u,sw*(kd/2+1)),dw=r(7,10)*S;add('box',{x:px,y:ky+kh-2*S,z:pz,w:dw,h:dw*.9,d:6*S,rot:kr},'stone');add('gable',{x:px,y:ky+kh-2*S+dw*.9,z:pz,w:6*S,d:dw+1*S,h:dw*.8,rot:kr+Math.PI/2},'roof');}}
     // Great spire tower behind the keep and a few lesser ones of very different heights.
-    {const [px,pz]=kp(-kw*.35,-kd*.65),tr=r(10,14)*S;tower(px,ky-4*S,pz,tr,kh+r(80,130)*S,'cone',true,false,true);}
-    for(let i=0;i<Math.round(r(4,8));i++){const a=R()*TAU,d=r(.55,1.1)*Math.max(kw,kd)*.8,tr=r(5,10)*S;tower(Math.cos(a)*d,ky-4*S,Math.sin(a)*d,tr,kh*r(.5,1.5),R()<.15?'dome':'cone',R()<.6);}
+    {const [px,pz]=kp(-kw*.35,-kd*.65),tr=r(10,14)*S;foot.push({x:px,z:pz,r:tr+2*S});tower(px,ky-4*S,pz,tr,kh+r(80,130)*S,'cone',true,false,true);}
+    for(let i=0;i<Math.round(r(4,8));i++){const a=R()*TAU,tr=r(5,10)*S,d=Math.hypot(kw,kd)/2+tr+r(2,14)*S;foot.push({x:Math.cos(a)*d,z:Math.sin(a)*d,r:tr+2*S});tower(Math.cos(a)*d,ky-4*S,Math.sin(a)*d,tr,kh*r(.5,1.5),R()<.15?'dome':'cone',R()<.6);}
+    // ---- Halls on each terrace: pitched-roof buildings in a loose ring inside the wall.
+    tiers.forEach((T,t)=>{const inner=t+1<tiers.length?tiers[t+1].k:0,n=Math.round(r(4,9)*(t===0?1.5:1)*big*big);
+      const clear=a=>{const off=x=>Math.abs(Math.atan2(Math.sin(x),Math.cos(x)));if(off(a-ga)<.35)return false;if(T.ramp){const [r0,r1]=T.ramp,m=(r0+r1)/2,h2=Math.abs(r1-r0)/2+.25;if(off(a-m)<h2)return false;}return true;};
+      for(let i=0;i<n;i++){const a=ga+R()*TAU;if(!clear(a))continue;const dd=(inner+(T.k-inner)*r(.35,.7)),d=rad(a)*dd,hx=Math.cos(a)*d,hz=Math.sin(a)*d,w=r(18,34)*S,dp=r(11,16)*S,h=r(12,22)*S,rot=a+Math.PI/2;
+        // Halls never overlap the keep, its towers or each other (footprints as circles), and keep 6 m from the next terrace wall.
+        const hr=Math.hypot(w,dp)/2;if(foot.some(f=>Math.hypot(f.x-hx,f.z-hz)<f.r+hr)||(t+1<tiers.length&&d-hr<rad(a)*tiers[t+1].k+12*S))continue;foot.push({x:hx,z:hz,r:hr+2*S});
+        add('shell',{x:hx,y:T.y-2*S,z:hz,w,h:h+2*S,d:dp,rot,th:1*S,floor:T.y,storeys:h>15*S?[0,h*.5]:[0],door:{side:1,u:r(-.2,.2)*w,wid:3*S,hgt:4.2*S}},'stone2');add('gable',{x:hx,y:T.y+h,z:hz,w,d:dp+1.5*S,h:dp*r(.7,1.1),rot},'roof2');
+        if(R()<.5){const tr=r(3,4.5)*S;tower(hx+Math.cos(rot)*(w/2+tr+.4*S),T.y,hz+Math.sin(rot)*(w/2+tr+.4*S),tr,h+r(6,14)*S,'cone',false);}}});
       outerH=tiers[0].wallH;outerK=tiers[0].k;
     }else if(layout==='spur')spur();else if(layout==='palace')palace();else cluster();
     // ---- Bridge: tall round arches from the castle's landing to the mainland, the deck easing between the two heights.
@@ -132,7 +145,7 @@
       if(bridge.gateY!=null){const tx=gx*rad(ga)*1.02,tz=gz*rad(ga)*1.02;tower(tx,bridge.gateFrom-2*S,tz,r(12,16)*S,top-bridge.gateFrom+outerH+r(18,30)*S,'cone',true,false,false,
         {floor:bridge.gateFrom,walk:top+1.5*S,doors:[{a:ga,y0:bridge.gateFrom,y1:bridge.gateFrom+4.5*S},{a:ga+Math.PI,y0:top+1.5*S,y1:top+6*S}]});}}
     else{// Hill castles: a gatehouse pair on the outer wall facing the approach.
-      for(const sg of [-1,1]){const a=ga+sg*.05,d=rad(a)*outerK;tower(Math.cos(a)*d,top-4*S,Math.sin(a)*d,r(9,12)*S,outerH+r(16,24)*S,'cone',true);}}
+      for(const sg of [-1,1]){const tr=r(9,12)*S,a=ga+sg*(5*S+tr+1.5*S)/(rad(ga)*outerK),d=rad(a)*outerK;tower(Math.cos(a)*d,top-4*S,Math.sin(a)*d,tr,outerH+r(16,24)*S,'cone',true);}}
     // ---- Greenery: clumps hugging ledges and the cliff foot, trees on the shore.
     for(let i=0;i<70;i++){const a=R()*TAU,d=rad(a),hgt=R()<.5?r(2,top*.3):top*r(.75,1.0),f=hgt>top*.6?1.0:1.2;const s=r(6,16)*S;
       add('blob',{x:Math.cos(a)*d*f,y:hgt,z:Math.sin(a)*d*f,rx:s*1.4,ry:s*.8,rz:s*1.4},'green');}
@@ -167,7 +180,7 @@
       // The keep: a tall square donjon with a steep roof and hanging corner turrets, a palace hall beside it.
       const kw=r(24,32)*S*big,kh=r(80,120)*S*Math.sqrt(big),[kx,kz]=L(A-kw*.9,0),st=[0];let sy=12*S;while(sy<kh-6*S){st.push(sy);sy+=8*S;}
       add('shell',{x:kx,y:yb-2*S,z:kz,w:kw,h:kh+2*S,d:kw,rot:ax,th:2*S,floor:yb,storeys:st,door:{side:-1,u:0,wid:4*S,hgt:6*S}},'stone');add('gable',{x:kx,y:yb+kh,z:kz,w:kw,d:kw+2*S,h:kw*1.1,rot:ax},'roof');
-      for(const su of [-1,1])for(const sv of [-1,1]){const [px,pz]=L(A-kw*.9+su*kw/2,sv*kw/2);tower(px,yb+kh*.6,pz,r(4.5,6)*S,kh*.4+r(10,20)*S,'cone',true,true);}
+      for(const su of [-1,1])for(const sv of [-1,1]){const tr=r(4.5,6)*S,[px,pz]=L(A-kw*.9+su*(kw/2+tr*.75),sv*(kw/2+tr*.75));tower(px,yb+kh*.6,pz,tr,kh*.4+r(10,20)*S,'cone',true,true);}
       hall(A-kw*2.2,0,kw*1.4,r(18,24)*S,r(26,36)*S,Math.PI/2,yb,'stone','roof',1);
       {const [px,pz]=L(A-kw*.2,hw(A)*.5);tower(px,yb-4*S,pz,r(8,11)*S,kh+r(30,60)*S,'cone',true,false,true);}}
     // ---- Palace: a formal palace on a broad terrace: a main block with a central dome, wings framing a court toward
@@ -192,16 +205,16 @@
       outerK=.95;}
     // ---- Cluster: a tight pile of halls of many heights on a narrow crag, a forest of slender towers, one tallest.
     function cluster(){ringWall(.95,top,r(12,18)*S,r(55,75)*S);const placed=[];
+      {const x=r(-.1,.1)*Rc,z=r(-.1,.1)*Rc,tr=r(10,13)*S;placed.push({x,z,r:tr+2*S});tower(x,top-2*S,z,tr,r(140,200)*S,'cone',true,false,true);}
       for(let i=0;i<60&&placed.length<Math.round(r(8,13));i++){const a=R()*TAU,d=Math.sqrt(R())*Rc*.62,x=Math.cos(a)*d,z=Math.sin(a)*d,w=r(16,32)*S,dp=r(12,20)*S,rr=Math.hypot(w,dp)/2;
         if(placed.some(q=>Math.hypot(q.x-x,q.z-z)<q.r+rr+3*S))continue;if(Math.abs(Math.atan2(Math.sin(a-ga),Math.cos(a-ga)))<.3&&d>Rc*.3)continue;
         const h=r(18,55)*S*(1-d/Rc*.6),rot=ax+pick([0,Math.PI/2])+r(-.15,.15),st=[0];let sy=8*S;while(sy<h-6*S){st.push(sy);sy+=7*S;}
         add('shell',{x,y:top-2*S,z,w,h:h+2*S,d:dp,rot,th:1.2*S,floor:top,storeys:st,door:{side:pick([-1,1]),u:0,wid:3.2*S,hgt:4.5*S}},'stone');add('gable',{x,y:top+h,z,w,d:dp+1.5*S,h:dp*r(.8,1.2),rot},R()<.6?'roof':'roof2');
         placed.push({x,z,r:rr});
         // Turrets clinging to a corner high up, and sometimes a slender tower rising from beside the hall.
-        if(R()<.7){const c=Math.cos(rot),s2=Math.sin(rot),su=pick([-1,1]),sv=pick([-1,1]);tower(x+su*w/2*c-sv*dp/2*s2,top+h*r(.5,.8),z+su*w/2*s2+sv*dp/2*c,r(3.5,5)*S,h*r(.3,.6)+r(8,16)*S,'cone',true,true);}
-        if(R()<.6){const c=Math.cos(rot),s2=Math.sin(rot);tower(x-w/2*c*1.05,top-2*S,z-w/2*s2*1.05,r(5,8)*S,h+r(15,45)*S,R()<.15?'dome':'cone',R()<.6);}}
-      // The tallest tower near the middle.
-      tower(r(-.1,.1)*Rc,top-2*S,r(-.1,.1)*Rc,r(10,13)*S,r(140,200)*S,'cone',true,false,true);}
+        if(R()<.7){const c=Math.cos(rot),s2=Math.sin(rot),su=pick([-1,1]),sv=pick([-1,1]),tr=r(3.5,5)*S,ou=w/2+tr*.75,ov=dp/2+tr*.75;tower(x+su*ou*c-sv*ov*s2,top+h*r(.5,.8),z+su*ou*s2+sv*ov*c,tr,h*r(.3,.6)+r(8,16)*S,'cone',true,true);}
+        if(R()<.6){const c=Math.cos(rot),s2=Math.sin(rot),tr=r(5,8)*S,ou=w/2+tr+.5*S;if(!placed.some(q=>Math.hypot(q.x-(x-ou*c),q.z-(z-ou*s2))<q.r+tr))tower(x-ou*c,top-2*S,z-ou*s2,tr,h+r(15,45)*S,R()<.15?'dome':'cone',R()<.6);}}
+    }
     function tower(x,y,z,tr,th,roof,corbel,hang=false,main=false,inside=null){
       const base=hang?tr*.3:tr;
       if(hang){add('cone',{x,y:y-tr*1.6,z,r:tr*.98,h:tr*1.6,inv:true},'stone2');}

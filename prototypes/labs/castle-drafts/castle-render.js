@@ -5,10 +5,10 @@
   'use strict';
   const TAU=Math.PI*2;
   // ---- Mesh building: positions, normals, colours and a material flag (1 = water) per vertex.
-  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.k=[];this.solid=1;}
+  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;}
   Mesh.prototype.tri=function(a,b,c,col,na,nb,nc,flag=0){
     if(!na){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const l=Math.hypot(...n)||1;n=n.map(x=>x/l);na=nb=nc=n;}
-    for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(flag);}this.k.push(flag?0:this.solid);
+    for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(flag);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
   };
   Mesh.prototype.quad=function(a,b,c,d,col,ns){if(ns){this.tri(a,b,c,col,ns[0],ns[1],ns[2]);this.tri(a,c,d,col,ns[0],ns[2],ns[3]);}else{this.tri(a,b,c,col);this.tri(a,c,d,col);}};
   const shade=(c,k)=>c.map(v=>Math.min(1,v*k));
@@ -54,7 +54,7 @@
     for(let l=0;l<L;l++)for(let i=0;i<N;i++){const j=(i+1)%N,t=l/L,k=.86+.16*Math.sin(l*1.7+i*.3)*Math.sin(i*.9);
       const rocky=skin!=='grass'||Math.sin(i*.7+l*.4)*Math.sin(i*.23+1.3)>.55,col=shade(rocky?cols.rock:cols.grass,k*(rocky&&t<.12?.85:1));m.quad(V[l][i],V[l+1][i],V[l+1][j],V[l][j],col);}
     // A rim of turf spilling over the cliff edge, then the meadow top.
-    const T=V[L],C=[cx,top+1.5,cz];for(let i=0;i<N;i++){const j=(i+1)%N;m.tri(C,T[j],T[i],cols.grass,[0,1,0],[0,1,0],[0,1,0]);}}
+    const T=V[L],C=[cx,top,cz];for(let i=0;i<N;i++){const j=(i+1)%N;m.tri(C,T[j],T[i],cols.grass,[0,1,0],[0,1,0],[0,1,0]);}}
   function prism(m,o,col){const {pts,y,top,cx=0,cz=0}=o,N=pts.length,P=([a,d],yy)=>[cx+Math.cos(a)*d,yy,cz+Math.sin(a)*d];
     for(let i=0;i<N;i++){const j=(i+1)%N;m.quad(P(pts[i],y-40),P(pts[i],top),P(pts[j],top),P(pts[j],y-40),col);m.tri([cx,top,cz],P(pts[j],top),P(pts[i],top),shade(col,1.02),[0,1,0],[0,1,0],[0,1,0]);}}
   function blob(m,o,col){const {x,y,z,rx,ry,rz}=o,la=5,lo=8,P=(i,j)=>{const t=-Math.PI/2+i/la*Math.PI,a=j/lo*TAU;return [Math.cos(t)*Math.cos(a),Math.sin(t),Math.cos(t)*Math.sin(a)];};
@@ -76,14 +76,16 @@
     for(const side of [-1,1]){const F=frame(o,0),u=side*(w/2-th/2),op=wins(d-2*th,9);if(door&&door.end===side)op.push({u0:door.u-door.wid/2,u1:door.u+door.wid/2,y0:floor-.1,y1:floor+door.hgt});
       // End walls run along local v: reuse the panel with a frame rotated by 90 degrees.
       const G={box:(m,v,len,ya,yb,tt,cc)=>F.boxZ(m,v,len,ya,yb,tt,cc,u)};panel(m,G,-(d/2-th),d-2*th,y,top,th,op,col);}
-    // Floors and stairwells: each upper floor leaves a well along the +u end wall on the +v side; a ramp in the well rises
-    // toward -u from the floor below and lands on the floor's edge.
-    const iw=w-2*th,id=d-2*th,sw=Math.min(3.2,id*.35);
-    for(let i=1;i<storeys.length;i++){const fy=floor+storeys[i],rise=storeys[i]-storeys[i-1],run=Math.min(iw-4,rise/Math.tan(.62)),uE=iw/2,uS=uE-run;
-      const F=frame(o,0);F.box(m,0,iw,fy-.6,fy,id-sw,flo,-sw/2);F.box(m,(-iw/2+uS)/2,uS+iw/2,fy-.6,fy,sw,flo,id/2-sw/2);
-      const P=(u,v)=>[o.x+u*F.c-v*F.s,o.z+u*F.s+v*F.c],[ax,az]=P(uE-.2,id/2-sw/2),[bx,bz]=P(uS,id/2-sw/2);ramp(m,{x0:ax,z0:az,y0:floor+storeys[i-1],x1:bx,z1:bz,y1:fy,w:sw-.1,base:floor+storeys[i-1]-.6},flo);}
+    // Floors and stairwells, as switchbacks: storey i's ramp runs along one long wall (side s alternating each storey)
+    // between uS and uE, with a 1.5 m landing between uE and the end wall. Odd storeys climb toward -u (from the landing),
+    // even storeys toward +u (onto the landing), so each ramp starts on solid floor where the last one arrived. Floor i
+    // is solid except over its own ramp.
+    const iw=w-2*th,id=d-2*th,sw=Math.min(3.2,id*.35),F=frame(o,0),uE=iw/2-1.5;
+    for(let i=1;i<storeys.length;i++){const fy=floor+storeys[i],y0=floor+storeys[i-1],rise=storeys[i]-storeys[i-1],run=Math.min(iw-5,rise/Math.tan(.62)),uS=uE-run,sd=i%2?1:-1,vs=sd*(id/2-sw/2);
+      F.box(m,0,iw,fy-.6,fy,id-sw,flo,-sd*sw/2);F.box(m,(-iw/2+uS)/2,uS+iw/2,fy-.6,fy,sw,flo,vs);F.box(m,(uE+iw/2)/2,iw/2-uE,fy-.6,fy,sw,flo,vs);
+      const P=(u,v)=>[o.x+u*F.c-v*F.s,o.z+u*F.s+v*F.c],[ax,az]=P(i%2?uE:uS,vs),[bx,bz]=P(i%2?uS:uE,vs);ramp(m,{x0:ax,z0:az,y0,x1:bx,z1:bz,y1:fy,w:sw-.1,base:y0-.6},flo);}
     // A ceiling under the roof seals the top; a boarded ground floor covers the terrain inside.
-    frame(o,0).box(m,0,iw,top-.8,top,id,flo,0);frame(o,0).box(m,0,iw,floor-.4,floor+.04,id,o.floorCol||[.62,.48,.34],0);}
+    F.box(m,0,iw,top-.8,top,id,flo,0);F.box(m,0,iw,floor-.4,floor+.04,id,o.floorCol||[.62,.48,.34],0);}
   function tube(m,o,col){const {x,y,z,r,h,th,doors=[]}=o,seg=Math.max(18,Math.min(48,Math.round(r*3.2)));
     for(let i=0;i<seg;i++){const a=(i+.5)/seg*TAU,len=TAU*(r-th/2)/seg*1.04,ca=Math.cos(a),sa=Math.sin(a),F={box:(m,u,l,ya,yb,tt,cc)=>box(m,{x:x+ca*(r-th/2),y:ya,z:z+sa*(r-th/2),w:l,h:yb-ya,d:tt,rot:a+Math.PI/2},cc)};
       const holes=doors.filter(dd=>Math.abs(Math.atan2(Math.sin(a-dd.a),Math.cos(a-dd.a)))<1.3/r+.5*TAU/seg).map(dd=>({u0:-1,u1:1,y0:dd.y0,y1:dd.y1}));
@@ -103,7 +105,7 @@
   function gatewall(m,o,col){const F=frame(o,0),g=o.gap/2;panel(m,F,-o.w/2,o.w,o.y,o.y+o.h,o.d,[{u0:-g,u1:g,y0:o.y-1,y1:o.y+o.gateH}],col);crenels(m,o,col);}
   // Parts to triangles. `p.col` overrides the palette colour (city buildings carry their own plaster and roof colours).
   function meshParts(parts,pal,ox=0,oz=0,m=new Mesh()){const cols=colours(pal);
-    for(const p0 of parts){const p={...p0};if(p.x!=null){p.x+=ox;p.z+=oz;}if(p.cx!=null){p.cx+=ox;p.cz+=oz;}if(p.x0!=null){p.x0+=ox;p.z0+=oz;p.x1+=ox;p.z1+=oz;}
+    for(let pi=0;pi<parts.length;pi++){const p0=parts[pi],p={...p0};m.pid=pi;if(p.x!=null){p.x+=ox;p.z+=oz;}if(p.cx!=null||p.t==='crag'||p.t==='ring'){p.cx=(p.cx||0)+ox;p.cz=(p.cz||0)+oz;}if(p.x0!=null){p.x0+=ox;p.z0+=oz;p.x1+=ox;p.z1+=oz;}
       const col=jit(p.col||cols[p.mat]||[1,0,1],(p.x||p.x0||0)*.37+(p.z||p.z0||0)*.11+(p.y||0));
       m.solid=p.t==='blob'||p.nocol?0:1;
       if(p.t==='box'){box(m,p,col);if(p.crenel)crenels(m,p,col);}
