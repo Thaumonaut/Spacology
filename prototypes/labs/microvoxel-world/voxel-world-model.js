@@ -2080,7 +2080,13 @@
       }
       // Forced contact shadow (x, ground y, z, radius in metres): a painted dark pool where the plant meets the ground.
       const M0=cellMetres,contact=t.kind==='bush'?[t.x,t.base*M0,t.z,Math.max(...t.lumps.map(l=>Math.hypot(l.x-t.x,l.z-t.z)+l.r))*1.15]:[t.x,t.base*M0,t.z,(t.trunk||1)*M0*3.2+.4];
-      P={segs,lobes,tiers,crown:proxy,clumps,loose,contact,sprays};partsCache.set(t,P);return P;
+      // Willow curtains: hanging strands of small clusters from the dome's rim nearly to the ground, instead of a solid
+      // skirt shell; each strand sways as a chain of clusters lit with the crown.
+      let noShell=false;
+      if(crown==='willow'&&tiers.length){noShell=true;const [cx,cz,top,hem,O]=tiers,wid=Math.floor(t.x*4)*131+Math.floor(t.z*4),ns=14+Math.round(O*7);
+        for(let k=0;k<ns;k++){const a=(k+hash(k,wid,seed+981)*.7)/ns*6.2832,rad=O*(.86+.18*hash(k,wid,seed+983)),len=(top-hem)*(.55+.45*hash(k,wid,seed+985)),m=Math.max(3,Math.round(len/.45));
+          for(let j=0;j<m;j++){const f=j/m;clumps.push(cx+Math.cos(a)*rad*(1+.04*f),top-len*f,cz+Math.sin(a)*rad*(1+.04*f),.42*(1-.35*f),leaf,hash(j,wid+k,seed+987));}}}
+      P={segs,lobes,tiers,crown:proxy,clumps,loose,contact,sprays,noShell};partsCache.set(t,P);return P;
     }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
     function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
@@ -2641,7 +2647,7 @@
         if(own&&P.sprays.length){const keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
           for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%keep)continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
         if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
-        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own&&!P.sprays.length)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own&&!P.sprays.length&&!P.noShell)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }
