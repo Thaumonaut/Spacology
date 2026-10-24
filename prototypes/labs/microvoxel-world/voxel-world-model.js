@@ -1958,15 +1958,18 @@
       }else if(crown==='spire'||crown==='cone'||crown==='larch'){
         const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
         const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
-        const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
+        // Object conifers: many thin, overlapping drooping branch layers (one per ~2 m) in a narrow spire, as painted
+        // spruce and fir are, rather than five wide lampshade tiers.
+        const nT=clamp(Math.round(span*M/2.1),7,18),period=span/nT,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
         const flareH=Math.min(t.height*.12,Math.round(3/M));
         seg(t.x,t.base,t.z,trunk*1.6,t.x,t.base+flareH,t.z,trunk*1.05,bark,1);
         seg(t.x,t.base+flareH,t.z,trunk*1.05,t.x,apex-period*.8,t.z,trunk*.5);
         for(let k=0;;k++){
           const tierTop=apex-k*period,tierBottom=apex-(k+1)*period;if(tierTop<=low)break;
-          const h1=hash(k,id,seed+131),h2=hash(k,id,seed+137),env=R*Math.pow(Math.min(1,(k+1)/5.5),.55)*(.86+.14*h1);
-          const step=soft?.3+.12*h2:.45+.18*h2,rTop=k===0?0:env*(1-step);
-          tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
+          const h1=hash(k,id,seed+131),h2=hash(k,id,seed+137),env=R*.82*Math.pow(Math.min(1,(k+1)/nT),.85)*(.8+.3*h1);
+          const step=soft?.45+.15*h2:.55+.2*h2,rTop=k===0?0:env*(1-step);
+          // Each layer hangs a little below the next one's top, so layers overlap like boughs.
+          tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom-period*.5,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
         }
       }else if(crown==='oval'){
         seg(t.x,t.base,t.z,trunk*1.05,t.x,top-R*.9,t.z,trunk*.45);

@@ -11,7 +11,7 @@
     pinkgrass:[[.93,.82,.84],[.5,.6,.86],[1,.9,.9],[.74,.68,.84]],
     heath:[[.9,.79,.82],[.45,.55,.8],[.98,.9,.92],[.7,.66,.8]],
     autumn:[[.96,.78,.58],[.46,.6,.8],[1,.86,.68],[.72,.62,.62]],
-    redwood:[[.8,.84,.74],[.42,.62,.72],[.92,.94,.84],[.56,.68,.64]],
+    redwood:[[.72,.82,.78],[.4,.6,.7],[.86,.93,.86],[.46,.62,.62]],
     rainforest:[[.78,.86,.78],[.38,.64,.72],[.9,.96,.88],[.56,.72,.68]],
     bamboo:[[.82,.88,.76],[.42,.66,.74],[.94,.97,.86],[.58,.72,.64]],
     fen:[[.8,.84,.78],[.44,.6,.7],[.9,.93,.86],[.58,.68,.68]],
@@ -21,11 +21,11 @@
     savanna:[[.96,.84,.62],[.44,.63,.85],[1,.91,.74],[.78,.7,.6]],
     golden:[[.97,.84,.6],[.45,.62,.84],[1,.9,.7],[.78,.68,.58]],
     steppe:[[.92,.84,.68],[.42,.62,.84],[.98,.92,.78],[.72,.7,.66]],
-    boreal:[[.82,.85,.86],[.34,.56,.82],[.94,.96,.97],[.6,.7,.82]],
+    boreal:[[.76,.84,.84],[.34,.56,.8],[.88,.94,.92],[.48,.64,.68]],
     tundra:[[.84,.87,.9],[.34,.56,.86],[.96,.97,1],[.64,.72,.86]],
     snow:[[.86,.89,.94],[.32,.54,.88],[.97,.98,1],[.66,.74,.9]],
     glacier:[[.84,.9,.95],[.3,.56,.88],[.96,.99,1],[.62,.76,.9]],
-    montane:[[.84,.84,.82],[.36,.58,.84],[.96,.95,.92],[.6,.7,.8]],
+    montane:[[.78,.84,.84],[.36,.58,.82],[.9,.94,.92],[.5,.64,.7]],
     beach:[[.88,.86,.78],[.34,.64,.88],[1,.95,.86],[.66,.76,.84]],
     sea:[[.84,.86,.82],[.32,.62,.88],[.98,.96,.9],[.62,.74,.86]]};
   const skyFor=b=>SKY[b]||SKY.base;
@@ -1173,7 +1173,8 @@
     // grid: angle 0..1, row 0..1 down the skirt (1..1.25 = lip), side (0 top, 1 underside). a: cx, cz, top, bottom; b: r, rTop,
     // seed, needle material (0: the plain needle).
     float ang=grid.x*6.2832,u=grid.y,h=a.z-a.w;seed=b.z;under=grid.z;tierMat=b.w>0.?int(b.w):${M.MAT.needle};innerShell=fract(b.w)>.25?1.:0.;
-    float jag=1.+.06*sin(ang*7.+seed*20.)+.04*sin(ang*13.+seed*7.);
+    float tips=fract(grid.x*11.+seed*5.),tipLen=fract(sin(floor(grid.x*11.+seed*5.)*91.3+seed*17.)*437.5);
+    float jag=1.+.06*sin(ang*7.+seed*20.)+.04*sin(ang*13.+seed*7.)+(u>.6?.22*tipLen*(1.-abs(tips-.5)*2.)*smoothstep(.6,1.,u):0.);
     float r,y;
     if(grid.z<.5){
       float k=min(u,1.);r=mix(b.y,b.x*1.08,pow(k,.75))*jag;y=a.z-h*k;
@@ -1217,7 +1218,7 @@
     glowOut=vec4(0);
     if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
     // Needle fringe: the lip breaks into drooping spikes.
-    if(innerShell<.5&&under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
+    if(under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
     vec3 n=normalize(nrm);float sun=sunlight();
     float clumps=meadowNoise(vec2(uvs.x*48.,uvs.y*5.+seed*11.))-.5;
     float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y))-innerShell*.4;
