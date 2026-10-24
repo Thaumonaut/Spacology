@@ -45,7 +45,7 @@
     let detail=true;
     function setDetail(on){if(detail===on)return;detail=on;if(world)setWorld(world);}
     function setWorld(next){
-      world=next;pressure=bias=0;requested=-1;targetKeys=new Set();cache.clear();inflight.clear();fades.clear();outgoing.clear();lit.clear();targets=[];drawList=[];drawKeys=new Set();drawDirty=true;epoch++;
+      arrived.length=0;world=next;pressure=bias=0;requested=-1;targetKeys=new Set();cache.clear();inflight.clear();fades.clear();outgoing.clear();lit.clear();targets=[];drawList=[];drawKeys=new Set();drawDirty=true;epoch++;
       for(const k of Object.keys(stats))stats[k]=0;for(const k of Object.keys(times))times[k].length=0;
       for(const s of workers)s.job=null;
       if(world.infinite)while(workers.length<count)spawn();
@@ -149,6 +149,7 @@
     }
     function draw(now){
       if(!world?.infinite)return;
+      frameUpload=0;
       if(drawDirty)resolve(now);
       const t0=performance.now(),gl=renderer.gl;stats.maxOrigin=0;renderer.worldOrigin=origin;
       if(gpu&&!gpu.active){const q=gl.createQuery();gl.beginQuery(gpu.ext.TIME_ELAPSED_EXT,q);gpu.active=q;}
@@ -192,10 +193,27 @@
         s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail,treeObjects:TREE_OBJECTS},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map,gallery:world.gallery||false});
       }
     }
+    // Finished nodes wait here and are uploaded a few per frame (see land), so a burst of arrivals never stalls a frame;
+    // the worker is freed at once to start its next node. Their keys stay in inflight until uploaded.
+    const arrived=[];let frameUpload=0;
     function receive(slot,data){
-      const job=slot.job;slot.job=null;if(job)inflight.delete(job.key);
-      if(data.error){if(data.dataId===world.dataId)onFail(`World generation failed: ${data.error}`);pump();return;}
-      if(data.dataId!==world.dataId||!job||data.key!==job.key){pump();return;}
+      const job=slot.job;slot.job=null;
+      if(data.error){if(job)inflight.delete(job.key);if(data.dataId===world.dataId)onFail(`World generation failed: ${data.error}`);pump();return;}
+      if(data.dataId!==world.dataId||!job||data.key!==job.key){if(job)inflight.delete(job.key);pump();return;}
+      // Within this frame's upload budget a node goes straight in; past it, it waits for the next frames.
+      if(!arrived.length&&frameUpload<5){const t=performance.now();inflight.delete(job.key);upload(job,data);frameUpload+=performance.now()-t;if(pressure&&lastView)update(lastView);else pump();return;}
+      inflight.set(job.key,'landing');arrived.push({job,data});schedule();pump();
+    }
+    // Landing runs on its own animation frames too, so queued nodes arrive even when the app skips redraws.
+    let landing=false;
+    function schedule(){if(landing||!arrived.length)return;landing=true;(root.requestAnimationFrame||setTimeout)(()=>{landing=false;land();schedule();});}
+    // Upload arrivals for up to ~5 ms a frame (always at least one), nearest-needed first.
+    function land(){
+      frameUpload=0;if(!arrived.length)return;const t0=performance.now();
+      do{const {job,data}=arrived.shift();inflight.delete(job.key);if(data.dataId===world.dataId)upload(job,data);}while(arrived.length&&performance.now()-t0<5);frameUpload=performance.now()-t0;
+      if(pressure&&lastView)update(lastView);else pump();
+    }
+    function upload(job,data){
       // lo/hi: the node's exact content heights (m), from its lowest slice origin to its top, for later view tests.
       const t0=performance.now(),mesh=renderer.upload(data);Object.assign(mesh,{key:data.key,column:data.column,level:data.level,quads:data.slices.reduce((n,s)=>n+s.quads,0),lo:(mesh.bottom||0)*data.column,hi:data.top*data.column});
       // Eviction order (oldest first): spent stand-ins and fading nodes before anything the view needs, and built targets
@@ -204,7 +222,7 @@
       cache.set(data.key,mesh,[...outgoing.keys(),...drawKeys,...targets.filter(t=>ready(t.key)).map(t=>t.key)]);
       push(times.upload,performance.now()-t0);stats.completed++;stats.uploads++;if(job.coarse)stats.coarse++;if(job.epoch!==epoch)stats.retained++;stats.vegetation=data.vegetationEntries||stats.vegetation;
       push(times.node,data.generateMs);for(const k of ['geography','trees','features','reduce','mesh'])push(times[k],data.timing?.[k]||0);
-      drawDirty=true;if(pressure&&lastView)update(lastView);else pump();
+      drawDirty=true;
     }
     function snapshot(){
       // Covered: ready, or something drawable over it (a ready ancestor within three levels, or all finer nodes cached).
@@ -220,7 +238,7 @@
     function loadedRadius(){if(camera?.mode!=='walk')return Infinity;let r=camera.viewDistance||600;for(const t of targets)if(!ready(t.key)){const m=world.nodeMetres(t.L);r=Math.min(r,Math.max(0,t.distance-m*.71));}return r;}
     const complete=()=>targets.length>0&&targets.every(t=>ready(t.key));
     function dispose(){for(const s of workers)s.w.terminate();workers.length=0;cache.clear();}
-    return {setWorld,setDetail,setBudget,update,draw,pump,snapshot,dispose,complete,loadedRadius,cache,get pending(){return inflight.size>0||drawDirty;}};
+    return {setWorld,setDetail,setBudget,update,draw,pump,snapshot,dispose,complete,loadedRadius,cache,get pending(){return inflight.size>0||arrived.length>0||drawDirty;}};
   }
   root.MicroLOD={create,deviceBudgetMiB};
 })(globalThis);
