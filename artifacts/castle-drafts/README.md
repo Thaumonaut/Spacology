@@ -138,3 +138,13 @@ instancing the window/shutter/flower pieces.
 
 Cost at street level: 0.4-1.25M triangles (+0.85-1.4M shadow). Too heavy for phones; the fix is instancing the repeated
 pieces (window, shutter, flower box, beam, pot) and dropping detail pieces from the shadow pass beyond ~60 m.
+
+## Small voxels (v18)
+
+| File | What to look at |
+| --- | --- |
+| v18-shop / v18-lane / v18-inn / v18-plaza | Buildings and props near the walker as 25 cm voxel models (each in its own rotated grid), greedy-meshed; per-voxel texture in the shader (tone, stone courses, roof tile rows, plank grain, plaster grime, faint voxel edges) |
+
+Cost: ~2.8k triangles per building (fewer than the mesh version), ~11 ms per building to voxelise and mesh on the main
+thread, so a 3x3 tile ring takes a few seconds the first time. Next: a Web Worker for voxelising, then the castle in
+chunked voxels. Voxel size selector: 12.5 / 25 / 50 cm or off.

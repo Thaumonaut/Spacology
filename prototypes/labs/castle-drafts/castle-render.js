@@ -5,10 +5,10 @@
   'use strict';
   const TAU=Math.PI*2;
   // ---- Mesh building: positions, normals, colours and a material flag (1 = water) per vertex.
-  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.t=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;this.pat=0;this.glow=0;}
+  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.t=[];this.q=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;this.pat=0;this.glow=0;}
   Mesh.prototype.tri=function(a,b,c,col,na,nb,nc,flag=0){
     if(!na){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const l=Math.hypot(...n)||1;n=n.map(x=>x/l);na=nb=nc=n;}
-    const fl=flag||(this.glow?2:0);for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(fl);this.t.push(this.pat);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
+    const fl=flag||(this.glow?2:0);for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(fl);this.t.push(this.pat);const w=this.wq;if(w)this.q.push(p[0]/w-n[0]*.02,p[1]/w-n[1]*.02,p[2]/w-n[2]*.02,w);else this.q.push(0,0,0,0);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
   };
   Mesh.prototype.quad=function(a,b,c,d,col,ns){if(ns){this.tri(a,b,c,col,ns[0],ns[1],ns[2]);this.tri(a,c,d,col,ns[0],ns[2],ns[3]);}else{this.tri(a,b,c,col);this.tri(a,c,d,col);}};
   const shade=(c,k)=>c.map(v=>Math.min(1,v*k));
@@ -120,6 +120,8 @@
     for(let pi=0;pi<parts.length;pi++){const p0=parts[pi],p={...p0};m.pid=pi;if(p.x!=null){p.x+=ox;p.z+=oz;}if(p.cx!=null||p.t==='crag'||p.t==='ring'){p.cx=(p.cx||0)+ox;p.cz=(p.cz||0)+oz;}if(p.x0!=null){p.x0+=ox;p.z0+=oz;p.x1+=ox;p.z1+=oz;}
       const col=jit(p.col||cols[p.mat]||[1,0,1],(p.x||p.x0||0)*.37+(p.z||p.z0||0)*.11+(p.y||0));
       m.solid=p.t==='blob'||p.nocol?0:1;m.glow=p.glow?1:0;m.pat=p.pat!=null?p.pat:PAT[p.mat]||0;
+      // Ground, streets and paving take the voxel texture on a world grid when voxels are on.
+      m.wq=GROUND.vs&&(p.t==='field'||m.pat===3||m.pat===7)?GROUND.vs:0;
       if(p.t==='box'){box(m,p,col);if(p.crenel)crenels(m,p,col);}
       else if(p.t==='shell')shell(m,p,col);else if(p.t==='tube')tube(m,p,col);else if(p.t==='spiral')spiral(m,p,col);else if(p.t==='disk')disk(m,p,col);
       else if(p.t==='ramp')ramp(m,p,col);else if(p.t==='gatewall')gatewall(m,p,col);
@@ -142,14 +144,17 @@
       else if(p.t==='quad'){const {x0,z0,x1,z1,y}=p,N=[0,1,0];m.quad([x0,y,z0],[x0,y,z1],[x1,y,z1],[x1,y,z0],col,[N,N,N,N]);}
       else if(p.t==='shore'){cyl(m,{x:p.x,y:-4,z:p.z,r:p.r,h:p.h+4,r2:p.r*.985},cols.grass,96);}}
     return m;}
+  // Colour and pattern of a part as the mesher would use them (for the voxeliser).
+  const GROUND={vs:0};
+  const colourOf=pal=>p=>p.col||colours(pal)[p.mat]||[1,0,1],patOf=p=>p.pat!=null?p.pat:PAT[p.mat]||0;
   function waterMesh(m=new Mesh()){m.pat=0;m.glow=0;const W=30000;for(const [a,b,c] of [[[-W,0,-W],[-W,0,W],[W,0,W]],[[-W,0,-W],[W,0,W],[W,0,-W]]])m.tri(a,b,c,[.2,.5,.62],[0,1,0],[0,1,0],[0,1,0],1);return m;}
   function build(castles){const m=new Mesh();for(const {castle,ox,oz} of castles)meshParts(castle.parts,castle.palette,ox,oz,m);return waterMesh(m);}
   // ---- GL
   const VS=`#version 300 es
-  in vec3 P;in vec3 N;in vec3 C;in float F;in float T;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;
-  void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
+  in vec3 P;in vec3 N;in vec3 C;in float F;in float T;in vec4 Q;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;out vec4 vQ;
+  void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vQ=Q;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
   const FS=`#version 300 es
-  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
+  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;in vec4 vQ;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
   vec3 skyCol(vec3 d){float t=clamp(d.y,0.,1.);return mix(mix(vec3(.82,.9,.98),vec3(1.,.82,.62),GOLD),mix(vec3(.28,.52,.9),vec3(.36,.5,.86),GOLD),pow(t,.6));}
   float shadow(){vec3 c=vL.xyz/vL.w*.5+.5;if(any(lessThan(c,vec3(0)))||any(greaterThan(c,vec3(1))))return 1.;float s=0.;
     for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)s+=texture(SH,vec3(c.xy+vec2(i,j)*TX,c.z-.0012));return s/9.;}
@@ -174,6 +179,20 @@
       if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     return mix(c,o,fade);}
+  float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
+  // Voxel texture: from the voxel cell (vQ.xyz, in the model's own grid; vQ.w the voxel size) - a per-voxel tone, the
+  // material's courses (stone blocks of 3x2 voxels with mortar, roof tile rows, wood planks, plaster with grime at the
+  // foot, cobbles), and faint dark voxel edges that fade out with distance.
+  vec3 voxTex(vec3 c,float dist){vec3 cell=floor(vQ.xyz),f=fract(vQ.xyz);int t=int(vT+.5);float k=.86+.24*h3(cell);
+    if(t==4||t==3){vec3 b=cell;b.x=floor((b.x+floor(b.y/2.)*1.5)/3.);b.z=floor((b.z+floor(b.y/2.)*1.5)/3.);b.y=floor(b.y/2.);k=.84+.22*h3(b)+.05*h3(cell);
+      if(mod(cell.y,2.)<1.)k*=.93;}
+    else if(t==2){k=(.86+.2*h3(vec3(floor(cell.x/2.),cell.y,floor(cell.z/2.))))*(mod(cell.y,2.)<1.?.9:1.);}
+    else if(t==6){k=.84+.24*h3(vec3(cell.y,0,0))+.05*h3(cell);}
+    else if(t==5){k=.9+.12*h3(cell)+.05*h3(floor(cell/3.));}
+    else if(t==1){k=.9+.12*h3(cell);}
+    else if(t==7){k=.82+.28*h3(cell);}
+    float e=min(min(min(f.x,1.-f.x),min(f.y,1.-f.y)),min(f.z,1.-f.z)),grid=1.-.06*(1.-smoothstep(.0,.08,e))*(1.-smoothstep(15.,60.,dist));
+    return c*k*grid;}
   void main(){vec3 V=normalize(EYE-vP),n=normalize(vN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-vP);nrm=vec4(n*.5+.5,vF>.5&&vF<1.5?0.:1.);
     // Closed solids only show faces turned to the eye, so a normal facing away is a winding slip: flip it.
     if(vF>.5&&vF<1.5){
@@ -183,7 +202,7 @@
       col+=vec3(1.,.95,.8)*pow(max(dot(R,SUN),0.),180.)*1.5*shadow();col*=mix(.8,1.,shadow());
       o=vec4(mix(col,skyCol(normalize(vP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
     if(vF>1.5){o=vec4(mix(vC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
-    vec3 base=pattern(vC,n,dist);
+    vec3 base=vQ.w>0.?voxTex(vC,dist):pattern(vC,n,dist);
     float ndl=dot(n,SUN),sh=shadow(),lit=max(ndl,0.)*sh;
     // Soft cel: a shadow tone, a mid tone and a lit tone with short smooth steps between them.
     float tone=smoothstep(.02,.16,lit)*.62+smoothstep(.45,.62,lit)*.38;
@@ -250,7 +269,7 @@
   // Meshes are uploaded once per key and kept; setMeshes picks which keys draw. Water (flag 1) never casts.
   Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:m.p.length/3,bufs:[]};
     const buf=(data,loc,size,vao,prog)=>{gl.bindVertexArray(vao);const b=gl.createBuffer();g.bufs.push(b);gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);const l=gl.getAttribLocation(prog,loc);if(l>=0){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,size,gl.FLOAT,false,0,0);}};
-    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1],[m.t,'T',1]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;
+    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1],[m.t,'T',1],[m.q,'Q',4]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;
     // Bounding sphere for culling (the water plane is never culled).
     let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];for(let i=0;i<m.p.length;i+=3)for(let a=0;a<3;a++){const v=m.p[i+a];if(v<lo[a])lo[a]=v;if(v>hi[a])hi[a]=v;}
     g.c=lo.map((v,a)=>(v+hi[a])/2);g.r=g.casts?Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2:1e9;this.cache.set(key,g);return g;};
@@ -291,5 +310,5 @@
     [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
     gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
   // The beam part needs these helpers outside the GL section.
-  window.CastleRender={build,meshParts,waterMesh,Mesh,Renderer};
+  window.CastleRender={GROUND,colourOf,patOf,build,meshParts,waterMesh,Mesh,Renderer};
 })();
