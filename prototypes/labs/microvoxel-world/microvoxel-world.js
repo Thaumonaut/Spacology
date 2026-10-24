@@ -379,7 +379,7 @@
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       atmosphere();
       // Fog reach follows what has loaded: it closes in at once to cover unbuilt ground and eases back out as it fills.
-      if(stream&&camera.mode==='walk'){const want=Math.max(150,stream.loadedRadius()),cur=renderer.fogReach??want;renderer.fogReach=want<cur?want:cur+(want-cur)*Math.min(1,delta/1500);}else if(renderer)renderer.fogReach=undefined;
+      if(stream&&camera.mode==='walk'){const want=Math.max(150,stream.loadedRadius()),cur=renderer.fogReach??want;renderer.fogReach=cur+(want-cur)*Math.min(1,delta/(want<cur?250:1500));}else if(renderer)renderer.fogReach=undefined;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       if(world.infinite)stream.draw(now);
       for(const v of visible){

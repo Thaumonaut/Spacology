@@ -224,18 +224,21 @@
       push(times.node,data.generateMs);for(const k of ['geography','trees','features','reduce','mesh'])push(times[k],data.timing?.[k]||0);
       drawDirty=true;
     }
+    // Covered: ready, or something drawable over it (a ready ancestor within three levels, or all finer nodes cached).
+    const isCovered=t=>{if(ready(t.key))return true;for(let k=t.L+1;k<=Math.min(world.maxLevel,t.L+3);k++){const a=ancestor(t,k);if(ready(K(a.L,a.nx,a.nz)))return true;}if(t.L===0)return false;const f=[];for(let j=0;j<2;j++)for(let i=0;i<2;i++)f.push(K(t.L-1,t.nx*2+i,t.nz*2+j));return f.every(ready);};
     function snapshot(){
       // Covered: ready, or something drawable over it (a ready ancestor within three levels, or all finer nodes cached).
-      const covered=targets.filter(t=>{if(ready(t.key))return true;for(let k=t.L+1;k<=Math.min(world.maxLevel,t.L+3);k++){const a=ancestor(t,k);if(ready(K(a.L,a.nx,a.nz)))return true;}if(t.L===0)return false;const f=[];for(let j=0;j<2;j++)for(let i=0;i<2;i++)f.push(K(t.L-1,t.nx*2+i,t.nz*2+j));return f.every(ready);}).length;
+      const covered=targets.filter(isCovered).length;
       const readyCount=targets.filter(t=>ready(t.key)).length,levels={};
       for(const m of cache.items.values())levels[m.level]=(levels[m.level]||0)+1;
       return {rings:camera?.mode==='walk'?Object.fromEntries([...new Set(targets.map(t=>t.L))].map(L=>[L,targets.filter(t=>t.L===L).length])):null,level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,bias,requested,loadedRadius:loadedRadius(),fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
         entries:cache.items.size,bytes:cache.bytes,budget:cache.maxBytes,levels,...stats,gpuTimer:!!gpu,
         timing:Object.fromEntries(Object.entries(times).map(([k,v])=>[k,{p50:percentile(v,.5),p95:percentile(v,.95),n:v.length}]))};
     }
-    // Walk: distance (m) to the nearest target that is not yet built (the far view distance when all are), for the fog
+    // Walk: distance (m) to the nearest target with nothing drawable over it yet (finer detail still arriving over
+    // ground already shown does not count) (the far view distance when all are), for the fog
     // that hides loading.
-    function loadedRadius(){if(camera?.mode!=='walk')return Infinity;let r=camera.viewDistance||600;for(const t of targets)if(!ready(t.key)){const m=world.nodeMetres(t.L);r=Math.min(r,Math.max(0,t.distance-m*.71));}return r;}
+    function loadedRadius(){if(camera?.mode!=='walk')return Infinity;let r=camera.viewDistance||600;for(const t of targets)if(!isCovered(t)){const m=world.nodeMetres(t.L);r=Math.min(r,Math.max(0,t.distance-m*.71));}return r;}
     const complete=()=>targets.length>0&&targets.every(t=>ready(t.key));
     function dispose(){for(const s of workers)s.w.terminate();workers.length=0;cache.clear();}
     return {setWorld,setDetail,setBudget,update,draw,pump,snapshot,dispose,complete,loadedRadius,cache,get pending(){return inflight.size>0||arrived.length>0||drawDirty;}};
