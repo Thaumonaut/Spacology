@@ -30,7 +30,7 @@
     {name:'amber',roof:[.84,.5,.26],roof2:[.62,.32,.3],stone:[.94,.88,.76],stone2:[.86,.78,.66]},
   ];
   function generate(seed,opts={}){
-    const R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1,style=opts.style||pick(['island','hill','cliff']),ground=opts.ground||0,layout=opts.layout||pick(['rings','rings','linked']);
+    const TALL=opts.tall||1,R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1,style=opts.style||pick(['island','hill','cliff']),ground=opts.ground||0,layout=opts.layout||pick(['rings','rings','linked']);
     const pal=opts.palette!=null?PALETTES[opts.palette%PALETTES.length]:pick(PALETTES),parts=[],sky=[];
     const add=(t,o,mat)=>{parts.push({t,mat,...o});return parts[parts.length-1];};
     // ---- The seat: what the castle stands on.
@@ -113,7 +113,7 @@
     // ---- The palace keep on the top tier: a tall block with a steep roof, corner turrets, dormers and a spire tower.
     // The keep must fit inside the top terrace's wall: its half-diagonal stays within the terrace's narrowest radius less
     // a 10 m yard, shrinking both sides together when it would not.
-    const K=tiers[tiers.length-1],ky=K.y,kMin=Math.min(...pts.map(([a,d])=>d))*K.k-10*S,kw0=r(50,80)*S*big,kd0=r(34,52)*S*big,kf=Math.min(1,kMin/(Math.hypot(kw0,kd0)/2)),kw=kw0*kf,kd=kd0*kf,kh=r(70,120)*S*Math.sqrt(big),kr=ga+Math.PI/2+r(-.3,.3),cs=Math.cos(kr),sn=Math.sin(kr);
+    const K=tiers[tiers.length-1],ky=K.y,kMin=Math.min(...pts.map(([a,d])=>d))*K.k-10*S,kw0=r(50,80)*S*big,kd0=r(34,52)*S*big,kf=Math.min(1,kMin/(Math.hypot(kw0,kd0)/2)),kw=kw0*kf,kd=kd0*kf,kh=r(70,120)*S*Math.sqrt(big)*TALL,kr=ga+Math.PI/2+r(-.3,.3),cs=Math.cos(kr),sn=Math.sin(kr);
     const kp=(u,w)=>[u*cs-w*sn,u*sn+w*cs];foot.push({x:0,z:0,r:Math.hypot(kw,kd)/2+3*S});
     {const st=[0];let sy=16*S;while(sy<kh-6*S){st.push(sy);sy+=9*S;}
       add('shell',{x:0,y:ky-4*S,z:0,w:kw,h:kh+4*S,d:kd,rot:kr,th:2.5*S,floor:ky,storeys:st,door:{side:-1,u:0,wid:6*S,hgt:9*S},grand:true},'stone');
@@ -230,7 +230,8 @@
         const y0=top+outerH*.5,y1=ts+2*S,from=rad(a)*outerK,to=d-rs*.9,len=to-from,bays=Math.max(3,Math.round(len/r(22,32)/S)),bl=len/bays;
         for(let i=0;i<bays;i++){const f=(i+.5)/bays,dd=from+f*len,deck=y0+(y1-y0)*f;add('arch',{x:Math.cos(a)*dd,y:base,z:Math.sin(a)*dd,w:bl+.2*S,h:deck-base,d:8*S,rot:a,span:bl*.7},'stone2');}
         for(const sg of [-1,1]){const dd=to-4*S;tower(Math.cos(a)*dd-Math.sin(a)*sg*7*S,y1-2*S,Math.sin(a)*dd+Math.cos(a)*sg*7*S,r(3.5,5)*S,r(14,22)*S,'cone',true);}}}
-    function tower(x,y,z,tr,th,roof,corbel,hang=false,main=false,inside=null){
+    // opts.tall stretches towers (and the keep) upward: a capital's castle must dominate its skyline.
+    function tower(x,y,z,tr,th,roof,corbel,hang=false,main=false,inside=null){th*=TALL;
       const base=hang?tr*.3:tr;
       if(hang){add('cone',{x,y:y-tr*1.6,z,r:tr*.98,h:tr*1.6,inv:true},'stone2');}
       if(inside&&tr>=4.5*S){

@@ -204,7 +204,7 @@
       float fr=pow(1.-max(dot(wn,V),0.),4.);vec3 R=reflect(-V,wn);vec3 col=mix(vec3(.12,.42,.55),skyCol(R),.25+.65*fr);
       col+=vec3(1.,.95,.8)*pow(max(dot(R,SUN),0.),180.)*1.5*shadow();col*=mix(.8,1.,shadow());
       o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
-    if(gF>1.5){o=vec4(mix(gC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
+    if(gF>1.5){nrm.a=.75;o=vec4(mix(gC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
     vec3 base=gQ.w>0.?voxTex(gC,dist):pattern(gC,n,dist);
     float ndl=dot(n,SUN),sh=shadow(),lit=max(ndl,0.)*sh;
     // Soft cel: a shadow tone, a mid tone and a lit tone with short smooth steps between them.
@@ -214,8 +214,11 @@
     vec3 col=mix(cool,warm,tone);
     col+=base*.1*(n.y*.5+.5)*vec3(.7,.85,1.);
     col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.18*sh*max(dot(-V,SUN)+.3,0.);
-    // Aerial perspective toward the horizon sky.
-    o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,.3,1)),1.-exp(-dist/7000.)),1.);}`;
+    // Layered haze: a soft light haze that pools low and thickens with distance (so roofscapes read in layers, like
+    // painted backdrops), warm toward the sun, then aerial perspective toward the horizon sky.
+    vec3 vd=normalize(gP-EYE),hz=mix(mix(vec3(.7,.8,.95),vec3(.72,.7,.9),GOLD),mix(vec3(1.,.93,.82),vec3(1.,.8,.62),GOLD),.45*pow(max(dot(vd,SUN),0.),4.));
+    float fog=(1.-exp(-dist/520.))*mix(.72,.38,clamp((gP.y-6.)/110.,0.,1.))*smoothstep(25.,140.,dist);col=mix(col,hz,fog);
+    o=vec4(mix(col,skyCol(vd*vec3(1,.3,1)),1.-exp(-dist/7000.)),1.);}`;
   const FS=`#version 300 es
   precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;in vec4 vQ;
   ${SHADE}
@@ -284,14 +287,28 @@
   // Ink pass: edges where depth jumps (silhouettes) or normals turn (creases) become soft dark lines tinted from the
   // surface colour, fading with distance; then a gentle saturation lift for the painted look.
   const POSTF=`#version 300 es
-  precision highp float;in vec2 uv;uniform sampler2D COL,NRM,DEP;uniform vec2 PX;uniform float NEAR,FAR,INK;out vec4 o;
+  precision highp float;in vec2 uv;uniform sampler2D COL,NRM,DEP,BLOOM,SHAFT;uniform vec2 PX;uniform float NEAR,FAR,INK,GLOWK;uniform vec3 SUNCOL;out vec4 o;
   float lin(vec2 q){float d=texture(DEP,q).r*2.-1.;return 2.*NEAR*FAR/(FAR+NEAR-d*(FAR-NEAR));}
   void main(){vec2 q=uv*.5+.5;vec3 c=texture(COL,q).rgb;vec4 nc=texture(NRM,q);float zc=lin(q),e=0.;
     if(INK>0.&&nc.a>.5){vec2 o4[4]=vec2[4](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1));
       for(int i=0;i<4;i++){vec2 p=q+o4[i]*PX*1.2;float z=lin(p);vec4 nn=texture(NRM,p);
         e=max(e,smoothstep(.025,.06,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.72,.5,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.85);else e=max(e,1.);}
       e*=INK*(1.-smoothstep(250.,1600.,zc)*.8);}
-    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.12);c=mix(c,c*vec3(.28,.22,.3),e*.8);o=vec4(c,1.);}`;
+    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.12);c=mix(c,c*vec3(.28,.22,.3),e*.8);
+    // Glow and sun shafts over the ink (screen blend, so they never clip to white).
+    vec3 add=texture(BLOOM,q).rgb*GLOWK+texture(SHAFT,q).r*SUNCOL;c=1.-(1.-c)*(1.-clamp(add,0.,1.));o=vec4(c,1.);}`;
+  // Bright pass (half resolution): glowing surfaces (normal alpha .75) fully, other pixels above a threshold; the sky
+  // near the sun into the shaft mask (r) with occluders black.
+  const BRIGHTF=`#version 300 es
+  precision highp float;in vec2 uv;uniform sampler2D COL,NRM,DEP;uniform vec2 SUNUV;uniform float SUNON;layout(location=0) out vec4 o;
+  void main(){vec2 q=uv*.5+.5;vec3 c=texture(COL,q).rgb;float a=texture(NRM,q).a,d=texture(DEP,q).r;
+    vec3 g=abs(a-.75)<.1?c:max(c-vec3(.86),0.)*2.5;float sky=d>.99999?1.:0.;float near=sky*SUNON*smoothstep(.55,0.,length((q-SUNUV)*vec2(1.6,1.)));o=vec4(g,1.);o.a=near;}`;
+  const BLURF=`#version 300 es
+  precision highp float;in vec2 uv;uniform sampler2D SRC;uniform vec2 DIR;out vec4 o;
+  void main(){vec2 q=uv*.5+.5;vec3 s=vec3(0);float W=0.;for(int i=-6;i<=6;i++){float w=exp(-float(i*i)/14.);s+=texture(SRC,q+DIR*float(i)).rgb*w;W+=w;}o=vec4(s/W,1.);}`;
+  const SHAFTF=`#version 300 es
+  precision highp float;in vec2 uv;uniform sampler2D SRC;uniform vec2 SUNUV;out vec4 o;
+  void main(){vec2 q=uv*.5+.5,d=(SUNUV-q)/48.;float s=0.,w=1.;vec2 p=q;for(int i=0;i<48;i++){s+=texture(SRC,p).a*w;w*=.965;p+=d;}o=vec4(s/48.*1.6,0,0,1);}`;
   function prog(gl,v,f){const p=gl.createProgram();for(const [t,s] of [[gl.VERTEX_SHADER,v],[gl.FRAGMENT_SHADER,f]]){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh));gl.attachShader(p,sh);}gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
   // ---- Matrices (column-major).
   const mul=(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;};
@@ -315,7 +332,7 @@
     const S=4096;this.SM=S;this.depth=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT32F,S,S);
     for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
     this.cache=new Map();this.list=[];this.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depth,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
-    this.post=prog(gl,SKYV,POSTF);this.ray=prog(gl,RAYV,RAYF);this.rayS=prog(gl,RAYV,RAYSF);this.rays=new Map();this.rayList=[];
+    this.post=prog(gl,SKYV,POSTF);this.brightP=prog(gl,SKYV,BRIGHTF);this.blurP=prog(gl,SKYV,BLURF);this.shaftP=prog(gl,SKYV,SHAFTF);this.ray=prog(gl,RAYV,RAYF);this.rayS=prog(gl,RAYV,RAYSF);this.rays=new Map();this.rayList=[];
     // Unit box (outward-wound), shared by every ray model; the ray shaders draw its back faces.
     {const V=[],Q=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]],F=[[0,3,2,1],[4,5,6,7],[0,1,5,4],[3,7,6,2],[0,4,7,3],[1,2,6,5]];for(const f of F)for(const k of [0,1,2,0,2,3])V.push(...Q[f[k]]);
       this.boxV=gl.createVertexArray();gl.bindVertexArray(this.boxV);const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(V),gl.STATIC_DRAW);
@@ -339,6 +356,10 @@
       for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);return t;};
     if(this.ofb){gl.deleteFramebuffer(this.ofb);[this.tc,this.tn,this.td].forEach(t=>gl.deleteTexture(t));}
     this.tc=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.tn=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.td=mk(gl.DEPTH_COMPONENT,gl.DEPTH_COMPONENT24,gl.UNSIGNED_INT);
+    // Half-resolution targets: bright (rgb glow, a shaft mask), two blur buffers, shafts.
+    const hw=Math.max(1,w>>1),hh=Math.max(1,h>>1),half=()=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,hw,hh,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+      for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);const f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);return {t,f};};
+    this.hw=hw;this.hh=hh;this.hB=half();this.hX=half();this.hY=half();this.hS=half();
     this.ofb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,this.tc,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT1,gl.TEXTURE_2D,this.tn,0);
     gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.td,0);gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);gl.bindFramebuffer(gl.FRAMEBUFFER,null);};
   // Ray models: upload a sparse voxel model (CastleVox.voxelizeSparse output) under a key; setRays picks which draw.
@@ -380,7 +401,17 @@
     const rayDrawn=this.drawRays(this.ray,vp,VPl,U=>{gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);gl.uniform1f(U('GOLD'),this.gold);
       gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);});
     this.stats={rays:rayDrawn,rayMB:Math.round([...this.rays.values()].reduce((a,g)=>a+g.bytes,0)/1e6),meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};
+    // ---- Glow and sun shafts at half resolution.
+    gl.disable(gl.DEPTH_TEST);gl.bindVertexArray(null);const sp=mul(vp,[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]),sw=[eye[0]+this.sun[0]*1e4,eye[1]+this.sun[1]*1e4,eye[2]+this.sun[2]*1e4],
+      cw=[0,1,2,3].map(r=>vp[r]*sw[0]+vp[4+r]*sw[1]+vp[8+r]*sw[2]+vp[12+r]),sunOn=cw[3]>0?1:0,suv=[cw[0]/cw[3]*.5+.5,cw[1]/cw[3]*.5+.5];
+    const pass=(pr,fbo,tex,set)=>{gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.viewport(0,0,this.hw,this.hh);gl.useProgram(pr);const Q=n=>gl.getUniformLocation(pr,n);tex.forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(Q(n),1+i);});set(Q);gl.drawArrays(gl.TRIANGLES,0,3);};
+    pass(this.brightP,this.hB.f,[[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']],Q=>{gl.uniform2fv(Q('SUNUV'),suv);gl.uniform1f(Q('SUNON'),sunOn);});
+    pass(this.blurP,this.hX.f,[[this.hB.t,'SRC']],Q=>gl.uniform2f(Q('DIR'),2/this.hw,0));pass(this.blurP,this.hY.f,[[this.hX.t,'SRC']],Q=>gl.uniform2f(Q('DIR'),0,2/this.hh));
+    pass(this.blurP,this.hX.f,[[this.hY.t,'SRC']],Q=>gl.uniform2f(Q('DIR'),4/this.hw,0));pass(this.blurP,this.hY.f,[[this.hX.t,'SRC']],Q=>gl.uniform2f(Q('DIR'),0,4/this.hh));
+    pass(this.shaftP,this.hS.f,[[this.hB.t,'SRC']],Q=>gl.uniform2fv(Q('SUNUV'),suv));
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.disable(gl.DEPTH_TEST);gl.useProgram(this.post);const P=n=>gl.getUniformLocation(this.post,n);
+    [[this.hY.t,'BLOOM'],[this.hS.t,'SHAFT']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE4+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),4+i);});
+    gl.uniform1f(P('GLOWK'),.85);gl.uniform3fv(P('SUNCOL'),this.gold?[1,.78,.5]:[1,.95,.82]);
     [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
     gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
   // The beam part needs these helpers outside the GL section.
