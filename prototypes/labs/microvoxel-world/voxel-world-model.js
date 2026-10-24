@@ -1475,8 +1475,9 @@
         let sp=pickSpecies(S,g,x,z,gx,gz,edge);
         // Near the line broadleaf gives way to conifers; trees shrink toward krummholz size.
         if(tline<1&&!(SPECIES[sp]||{}).conifer&&hash(gx,gz,seed+753)>tline*1.6-.3)sp=S.mix.larch&&hash(gx,gz,seed+755)<.4?'larch':'spruce';
-        // Conifers carry wide skirts: only ~30% of cells keep one, so a stand has room to walk between the trunks.
-        if((SPECIES[sp]||{}).conifer&&hash(gx,gz,seed+969)>.3)return null;
+        // Conifers stand on a lattice (every 2nd tree cell, every 3rd for redwoods; 80% filled), so their trunk bases never
+        // overlap and a stand has room to walk between them.
+        if((SPECIES[sp]||{}).conifer){const lat=(SPECIES[sp].trunk||1)>2?3:2;if(((gx%lat)+lat)%lat||((gz%lat)+lat)%lat||hash(gx,gz,seed+969)>.8)return null;}
         return growTree(sp,S,g,gx,gz,x,z,{scale:.4+.6*tline});
       }
       // Cells without a tree: extras by biome. Bushes and shrubs gather at forest edges and in open ground.
@@ -1963,7 +1964,7 @@
         const nT=clamp(Math.round(span*M/2.1),7,18),period=span/nT,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
         const flareH=Math.min(t.height*.12,Math.round(3/M));
         seg(t.x,t.base,t.z,trunk*1.6,t.x,t.base+flareH,t.z,trunk*1.05,bark,1);
-        seg(t.x,t.base+flareH,t.z,trunk*1.05,t.x,apex-period*.8,t.z,trunk*.5);
+        seg(t.x,t.base+flareH,t.z,trunk*1.05,t.x,t.base+(apex-t.base)*.6,t.z,trunk*.6);seg(t.x,t.base+(apex-t.base)*.6,t.z,trunk*.6,t.x,apex,t.z,trunk*.04);
         for(let k=0;;k++){
           const tierTop=apex-k*period,tierBottom=apex-(k+1)*period;if(tierTop<=low)break;
           const h1=hash(k,id,seed+131),h2=hash(k,id,seed+137),env=R*.82*Math.pow(Math.min(1,(k+1)/nT),.85)*(.8+.3*h1);
@@ -2632,9 +2633,9 @@
           // Loose leaves only where a single leaf can be seen (the two finest levels); kind 1 in the lobe record.
           if(L<=1)for(let i=0;i<P.loose.length;i+=6){const [x,y,z,sz,mat,sdc]=P.loose.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz,1,mat,sdc,1,C[0]-x0,C[1],C[2]-z0,C[3]);}}
         if(own&&P.sprays.length){const keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
-          for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%keep)continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
+          for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%(keep*3))continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
         if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
-        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4]*(inner?.94:1),T[5]*(inner?.94:1),T[6],T[7]+(inner?.5:0));}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }

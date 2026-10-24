@@ -1221,7 +1221,8 @@
     if(under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
     vec3 n=normalize(nrm);float sun=sunlight();
     float clumps=meadowNoise(vec2(uvs.x*48.,uvs.y*5.+seed*11.))-.5;
-    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y))-innerShell*.4;
+    // Calm anime shading: one smooth light across the layer, a soft lift toward its top, its underside a gentle shade.
+    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.08+(under>.5?-.22:.1*(1.-uvs.y))-innerShell*.4;
     vec3 shadow,mid,high;crownBands(tierMat,palette[tierMat],shadow,mid,high);
     vec3 c=mix(mix(shadow,mid,smoothstep(.33,.39,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     color=vec4(c,1.);
@@ -1429,7 +1430,8 @@
     // keeping a little of the blob's own roundness so clumps still separate.
     vec3 k=(centre-crown.xyz)/vec3(crown.w,crown.w*.78,crown.w);float inner=length(k);
     vec3 nc=normalize(k+vec3(0,.12,0)),N=nc;
-    if(kind>1.5){float shade=(kind-2.)/.9;N=normalize(crown.xyz);nc=N;inner=1.-shade*.5;k=N*inner;}
+    // Conifer sprigs are highlights: lit by their layer's normal, kept on the bright side.
+    if(kind>1.5){N=normalize(crown.xyz);nc=N;inner=1.;k=N;}
     float sun=sunlight(),wrap=dot(N,SUN)*.5+.5;
     // Fake occlusion: the crown darkens toward its core and its underside.
     float occl=(1.-smoothstep(.35,.95,inner))*.18+(1.-smoothstep(-.7,.1,nc.y))*.2;
