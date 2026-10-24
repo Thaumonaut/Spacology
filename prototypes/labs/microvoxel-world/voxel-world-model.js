@@ -22,14 +22,20 @@
     //   ABOVE_GROUND: boulder 91, boulderPale 92 (boulders, tors and loose stones)
     rockDark:86,rockPale:87,rockWarm:88,lichen:89,lichenOrange:90,boulder:91,boulderPale:92,
     // ---- Ruin materials (appended; never renumber). ABOVE_GROUND: masonry 93 (dressed stone of ruin walls and rubble).
-    masonry:93});
+    masonry:93,
+    // ---- Anime ruin materials (appended; never renumber). ABOVE_GROUND and BODY_SOLID like masonry: masonryWarm 94
+    // (cream sandstone, the default ruin stone), masonryDark 95 (weathered blue-grey stone for some sites and buildings).
+    // Ground (no set): paving 96 (plaza and street slabs; it replaces the turf cell, so it neither casts nor blocks).
+    masonryWarm:94,masonryDark:95,paving:96});
   const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
     '#e9e4d8','#a3c86a','#a9b552','#5c9a52','#b6c46a','#78b24c','#b88ae6','#f6eefa','#f28b6e','#4e8d45','#98b862','#d9473b','#f1e6cc','#71dcff','#a3a45c','#f4d04e','#a483e6','#5e9a5a','#8aa24c','#e0a93c','#45403c','#7d8f3e',
     '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd','#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#bf6a43','#dda067','#e2c27f','#4f7f3f',
     // Riparian (75-85): willow, vine, palm frond, alder, palm bark, rush, cattail head, lily pad, lily flower, floodgrass, cobble.
     '#9fc65a','#3d7a3c','#5fae4a','#4a8048','#a07d55','#6f9f45','#7b4a2b','#5b9e4c','#f7c4dc','#5fb35a','#8f938e',
     // Mountain rock (86-92): dark, pale and warm strata, grey-green and rust lichen, boulder, pale boulder.
-    '#5f6a7c','#8a919d','#83776b','#8a9470','#a8845e','#8b8a88','#a4a29c','#aba595']);
+    '#5f6a7c','#8a919d','#83776b','#8a9470','#a8845e','#8b8a88','#a4a29c','#aba595',
+    // Anime ruins (94-96): cream sandstone, blue-grey stone, pale paving. The renderer's palette uniform must hold 97+.
+    '#e6d5b0','#8e9aac','#d9cfb6']);
   // Display names for streamed biome ids (atlas hexes, ground inspection). 'Desert' is matched by coop-session.js.
   const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
     flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
@@ -49,11 +55,11 @@
   // vine strands.
   const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft,MAT.vine]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.floodgrass,MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
-  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.masonry,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
+  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.masonry,MAT.masonryWarm,MAT.masonryDark,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
   // What a walking body can't pass through: trunks and limbs, giant mushroom stems, boulders, rock
   // crags and sea stacks, crystals and ruin masonry. Every terrain rock lives below the capsule's low
   // bound, so the whole ROCKS family is safe to include. Foliage, water and thin plants stay passable.
-  const BODY_SOLID=Object.freeze(new Set([...BARKS,...ROCKS,MAT.stem,MAT.mossy,MAT.masonry,MAT.crystal,MAT.cactus]));
+  const BODY_SOLID=Object.freeze(new Set([...BARKS,...ROCKS,MAT.stem,MAT.mossy,MAT.masonry,MAT.masonryWarm,MAT.masonryDark,MAT.crystal,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
@@ -75,7 +81,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-27':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-28':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -898,11 +904,88 @@
       ancients.set(k,v);if(ancients.size>4096)ancients.delete(ancients.keys().next().value);return v;
     }
     const ancientNear=(x,z)=>ancientCell(Math.floor(x/AG),Math.floor(z/AG));
-    // Ruins of grand structures, one candidate per 150 m cell: a castle on raised ground (curtain wall with battlements,
-    // a gate and breaches, round corner towers, a hollow keep), an old town (roofless gabled house shells along a street,
-    // a chapel with a bell tower, a well), or a temple (stepped platform, colonnade with fallen columns and lintels).
-    // All are crumbling: wall tops are broken by noise. Primitives: oriented boxes and (hollow) rings.
-    const STG=150,ruins=new Map();
+    // ---- Ruins: an anime-ruin kit (after the user's references: warm cream sandstone in big dressed blocks, square
+    // stacked pillars with plinth and capital, arches, colonnades and arcaded facades, tops broken off block by block,
+    // fallen and tilted blocks in the grass, paving with grass in the joints, vines in patches).
+    // Parts, all in world metres with an orientation (ux,uz) along their long axis u:
+    //   box     a wall or block (hl,hw half extents, H height above its base). Optional: courses (ch course height, bl
+    //           block length, dec decay: the top breaks off in whole blocks), op (openings: doors, windows, arcades with
+    //           round or flat arches, several storeys), gable, crenel, steps (a stair rising along +u), line (a wall that
+    //           widens to half a column at coarse LODs so it still reads as a line), minS/maxS (column-size range drawn).
+    //   ring    a round tower, well or drum (r radius, th wall thickness or 0 for solid).
+    //   pillar  a square pillar: plinth, a shaft of stacked blocks each nudged a little, a capital; broken ones stop
+    //           short, some lean.
+    //   fallen  a block lying tilted on the ground (an oriented box with two tilts, resting on its lowest corner).
+    //   pave    paving (rect or disk): slabs with grass in the joints, missing slabs with decay; a bridge deck over water.
+    // Heights: a part's base is the column's own ground (so long walls follow the land) unless `y0` gives an absolute
+    // base (temple podiums, pillars on them, lintels).
+    const STG=150,ruins=new Map(),IB=16;
+    // The site style: material (cream sandstone or, for some sites, weathered blue-grey stone), course height (whole
+    // cells, so every broken step is a real block step) and block length.
+    function ruinStyle(key,dec,dark=.25){const r=hash(key,3,seed+541);return {mat:r<dark?MAT.masonryDark:MAT.masonryWarm,ch:hash(key,5,seed+543)<.6?.5:.75,bl:1+.8*hash(key,7,seed+545),dec,key};}
+    // Course height of a ruin style in 5 cm steps (the renderer's per-column block-size byte).
+    const courseCode=S=>Math.round(S.ch/.05);
+    function kit(ox,oz,a,parts,S){
+      const ca=Math.cos(a),sa=Math.sin(a),at=(u,w)=>[ox+u*ca-w*sa,oz+u*sa+w*ca],R=n=>hash(n,S.key,seed+471);
+      const K={at,R,S,parts,a,
+        sub:(u,w,ang,S2=S)=>{const [x,z]=at(u,w);return kit(x,z,a+ang,parts,S2);},
+        box(u,w,ang,hl,hw,H,o={}){const [cx,cz]=at(u,w),A=a+ang;const q={t:'box',cx,cz,ux:Math.cos(A),uz:Math.sin(A),hl,hw,H,mat:S.mat,ch:S.ch,bl:S.bl,dec:S.dec,k:S.key*64+parts.length,...o};parts.push(q);return q;},
+        wall:(u0,u1,w,th,H,o={})=>K.box((u0+u1)/2,w,0,(u1-u0)/2,th/2,H,{line:true,...o}),
+        wallZ:(w0,w1,u,th,H,o={})=>K.box(u,(w0+w1)/2,Math.PI/2,(w1-w0)/2,th/2,H,{line:true,...o}),
+        ring(u,w,r,th,H,o={}){const [cx,cz]=at(u,w);const q={t:'ring',cx,cz,ux:1,uz:0,r,th,H,mat:S.mat,ch:S.ch,bl:S.bl,dec:S.dec,k:S.key*64+parts.length,...o};parts.push(q);return q;},
+        // A square pillar of n blocks (bh tall, sw half width) on a plinth, with a capital when unbroken. lean: metres of
+        // drift per metre of height. o.y0: absolute base (on a podium).
+        pillar(u,w,ang,sw,n,o={}){const [cx,cz]=at(u,w),A=a+ang,k=S.key*64+parts.length,bh=o.bh||S.ch*2,jit=[];
+          for(let i=0;i<n;i++)jit.push(i?(hash(i,k,seed+547)-.5)*.22:0,i?(hash(i,k,seed+549)-.5)*.22:0);
+          const lean=o.lean||0,la=hash(k,1,seed+551)*Math.PI*2,lx=Math.cos(la)*lean,lz=Math.sin(la)*lean,pw=sw+(o.plinth??.35),ph=o.ph||S.ch,cap=o.cap!==false,cw=sw+.3,cht=S.ch;
+          const tall=ph+n*bh+(cap?cht:0),reach=Math.max(pw,cw)+Math.hypot(lx,lz)*tall+.3;
+          const q={t:'pillar',cx,cz,ux:Math.cos(A),uz:Math.sin(A),sw,n,bh,jit,lx,lz,pw,ph,cap,cw,cht,hl:reach,hw:reach,H:tall,mat:o.mat||S.mat,k,...o};parts.push(q);return q;},
+        // A fallen block: half extents (a along u, b up, c across), two tilts, resting on its lowest corner, sunk 10 cm.
+        fallen(u,w,ha,hb,hc,o={}){const [cx,cz]=at(u,w),k=S.key*64+parts.length,yaw=hash(k,2,seed+553)*Math.PI*2,t1=(hash(k,3,seed+555)-.5)*(o.tilt??.9),t2=(hash(k,4,seed+557)-.5)*(o.tilt??.9);
+          // Axes of the block in world space: yaw about y, then tilt t1 about the block's u axis and t2 about its w axis.
+          const c1=Math.cos(t1),s1=Math.sin(t1),c2=Math.cos(t2),s2=Math.sin(t2),cy=Math.cos(yaw),sy=Math.sin(yaw);
+          const loc=[[c2,s2,0],[-s2*c1,c2*c1,s1],[s2*s1,-c2*s1,c1]],A=loc.map(([p,y,r])=>[p*cy-r*sy,y,p*sy+r*cy]);
+          const h=[ha,hb,hc],lift=A.reduce((s,v,i)=>s+Math.abs(v[1])*h[i],0)-.1,reach=Math.hypot(ha,hb,hc);
+          const q={t:'fallen',cx,cz,ux:1,uz:0,A,h,lift,hl:reach,hw:reach,H:2*lift,mat:o.mat||S.mat,k,...o};parts.push(q);return q;},
+        pave(u,w,ang,hl,hw,o={}){const [cx,cz]=at(u,w),A=a+ang;const q={t:'pave',cx,cz,ux:Math.cos(A),uz:Math.sin(A),hl,hw,sl:o.sl||1+.4*R(parts.length+900),H:0,dec:S.dec,k:S.key*64+parts.length,...o};parts.push(q);return q;},
+        // Scatter n fallen blocks within radius r of (u,w), sizes scaled by s.
+        scatter(u,w,r,n,s=1,o={}){for(let i=0;i<n;i++){const b=R(3000+parts.length*3)*Math.PI*2,d=r*Math.sqrt(R(3001+parts.length*3)),z=R(3002+parts.length*3);
+          K.fallen(u+Math.cos(b)*d,w+Math.sin(b)*d,s*(.35+.5*z),s*(.25+.25*R(3003+i)),s*(.3+.35*R(3004+i)),o);}},
+        // A house shell: storeys of arched windows, an arched door facing -w, gable ends on the short sides. Each
+        // building takes its own decay around the site's (`dec`), and a coarse mass stands in for it at 16 m columns.
+        house(u,w,ang,hl,hw,storeys,o={}){const H2=K.sub(u,w,ang,{...S,dec:o.dec??S.dec,mat:o.mat||S.mat}),sh=S.ch*Math.round(3.2/S.ch),H=storeys*sh,th=o.th||.6,lin=S.ch;
+          const win={p:2.6,c:1.3,w:.45,n:storeys,sh,sill:1,lin,round:true},door={p:0,c:(R(parts.length+700)-.5)*hl*.6,w:.75,n:1,sh:2.6+lin,sill:0,lin,round:R(parts.length+701)<.7};
+          const wo={maxS:16,rubble:true};
+          H2.wall(-hl,hl,-hw,th,H,{...wo,op:[win,door]});H2.wall(-hl,hl,hw,th,H,{...wo,op:[win]});
+          const gable=o.gable??Math.min(hw*.8,2.6);
+          H2.wallZ(-hw,hw,-hl,th,H,{...wo,gable,op:storeys>1?[{...win,c:0,p:0}]:[]});H2.wallZ(-hw,hw,hl,th,H,{...wo,gable});
+          H2.box(0,0,0,hl,hw,H*(1-.6*H2.S.dec),{minS:16,mat:H2.S.mat,dec:0});
+          return H;},
+      };
+      return K;
+    }
+    // A part's world bounding rectangle (oriented half extents projected on x and z).
+    function partRect(q){
+      if(q.t==='ring'){const r=q.r+(q.th?q.th/2:0);return [q.cx-r,q.cz-r,q.cx+r,q.cz+r];}
+      const ex=Math.abs(q.ux)*q.hl+Math.abs(q.uz)*q.hw,ez=Math.abs(q.uz)*q.hl+Math.abs(q.ux)*q.hw;return [q.cx-ex,q.cz-ez,q.cx+ex,q.cz+ez];
+    }
+    // Part index: parts bucketed into 16 m world cells (with a 2 m margin for ivy strips, rubble and tufts), so a column
+    // tests only the few parts that can touch it instead of every part of the site.
+    function indexParts(parts,into=new Map()){
+      for(const q of parts){const b=partRect(q),i0=Math.floor((b[0]-2)/IB),i1=Math.floor((b[2]+2)/IB),j0=Math.floor((b[1]-2)/IB),j1=Math.floor((b[3]+2)/IB);
+        for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const key=i*65536+j;let l=into.get(key);if(!l)into.set(key,l=[]);l.push(q);}}
+      return into;
+    }
+    // Kind of a small ruin cell from its own roll; a castle needs raised ground (or a rare roll). The gallery uses the
+    // same rule on its flat pads.
+    const ruinRoll=(i,j)=>hash(1,i*65536+j,seed+471);
+    const ruinKindOf=(r,raised)=>raised>1.2&&r<.75||r<.18?'castle':r<.52?'town':r<.78?'temple':'monoliths';
+    // Ruins of grand structures, one candidate per 150 m cell: a castle on raised ground (curtain wall with crenels and an
+    // arched gate, square corner towers, a keep with arched windows), a ruined hamlet (house shells with arched doors and
+    // windows along a paved street, a chapel with a belfry, a well on a little plaza), a temple (a stepped podium, a
+    // peristyle of square pillars with lintels, an arched cella door, drums fallen in the grass) or a field of standing
+    // monoliths (tall stacked pillars, some leaning or broken, a trilithon gate, a paved path). Every site has a decay
+    // (0.5-0.9 here: these are all ruins) that sets how far walls have broken down, and its own stone and course height.
     function ruinCell(i,j){
       const k=i*65536+j;if(ruins.has(k))return ruins.get(k);let v=null;const p=hash(i,j,seed+461);
       if(p<.45){
@@ -911,52 +994,78 @@
         // The whole footprint (out to 50 m) must be dry ground: no sea, lake, river or stream anywhere under a ruin.
         const dry=()=>{for(let r=5;r<=50;r+=5)for(let q=0;q<16;q++){const A=q/10*Math.PI*2,G2=geography(x+Math.cos(A)*r,z+Math.sin(A)*r);if(G2.sea||G2.water>G2.height||G2.riverDistance<4)return false;}return true;};
         if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&dry()){
-          const R=n=>hash(n,k,seed+471),a=hash(i,j,seed+467)*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a),g0=g.height*cellMetres;
-          const parts=[],at=(u,w)=>[x+u*ca-w*sa,z+u*sa+w*ca];let n=0;
-          // box(u,w): centre in the site frame; ang: extra rotation; walls stand on each column's own ground.
-          const box=(u,w,ang,hl,hw,y0,y1,o={})=>{const [cx,cz]=at(u,w),A=a+ang;parts.push({t:'box',cx,cz,ux:Math.cos(A),uz:Math.sin(A),hl,hw,y0,y1,seat:true,rough:0,crenel:false,gable:0,k:n++,...o});};
-          const ring=(u,w,r,th,y0,y1,o={})=>{const [cx,cz]=at(u,w);parts.push({t:'ring',cx,cz,r,th,y0,y1,rough:0,crenel:false,door:null,k:n++,...o});};
-          // A wall along u from u0 to u1 at w, optionally with gaps [g0,g1] (gate or breach).
-          const wall=(u0,u1,w,th,H,gaps=[],o={})=>{let cuts=[u0,...gaps.flat(),u1];for(let c=0;c<cuts.length;c+=2)if(cuts[c+1]-cuts[c]>.4)box((cuts[c]+cuts[c+1])/2,w,0,(cuts[c+1]-cuts[c])/2,th/2,g0-1,g0+H,o);};
-          const wallZ=(w0,w1,u,th,H,gaps=[],o={})=>{let cuts=[w0,...gaps.flat(),w1];for(let c=0;c<cuts.length;c+=2)if(cuts[c+1]-cuts[c]>.4)box(u,(cuts[c]+cuts[c+1])/2,Math.PI/2,(cuts[c+1]-cuts[c])/2,th/2,g0-1,g0+H,o);};
-          let kind,reach;
-          if(raised>1.2&&R(1)<.75||R(1)<.25){
-            kind='castle';const L=12+5*R(2),H=6+2*R(3),T=1.3,wo={rough:2.5,crenel:true};
-            const breach=()=>{const c=(R(n+40)-.5)*L;return R(n+41)<.35?[[c-2,c+2]]:[];};
-            wall(-L,L,-L,T,H,[[-2.2,2.2]],wo);wall(-L,L,L,T,H,breach(),wo);wallZ(-L,L,-L,T,H,breach(),wo);wallZ(-L,L,L,T,H,breach(),wo);
-            for(const [u,w] of [[-L,-L],[L,-L],[-L,L],[L,L]])ring(u,w,3.2,1,g0-1,g0+H+3+2*R(n),{rough:3,crenel:true});
-            box(-2.6,-L,0,1,1.4,g0-1,g0+H+2,{rough:1.5});box(2.6,-L,0,1,1.4,g0-1,g0+H+2,{rough:1.5});
-            const K=4+1.5*R(4),KH=13+6*R(5),ko={rough:5,crenel:true};
-            wall(-K,K,-K,1.2,KH,[[-1,1]],ko);wall(-K,K,K,1.2,KH,[],ko);wallZ(-K,K,-K,1.2,KH,[],ko);wallZ(-K,K,K,1.2,KH,[],ko);
-            reach=L+5;
-          }else if(R(1)<.7){
-            kind='town';const lot=11,houses=[];
-            for(let gu=-2;gu<=2;gu++)for(const side of [-1,1]){const hk=100+gu*20+side*7;if(R(hk)<.15)continue;
-              const u=gu*lot+(R(hk+1)-.5)*2,w=side*(7+2*R(hk+2)),hl=2.5+1.2*R(hk+3),hw=3+1.5*R(hk+4),H=R(hk+5)<.25?1.6:3.6+2*R(hk+6),th=.5,o={rough:1.6};
-              // Front wall faces the street (w toward 0) with a door; gable ends rise on the short sides.
-              const front=w-side*hw,back=w+side*hw;
-              wall(u-hl,u+hl,front,th,H,[[u-.6,u+.6]],o);wall(u-hl,u+hl,back,th,H,R(hk+7)<.5?[[u+.5,u+1.5]]:[],o);
-              wallZ(Math.min(front,back),Math.max(front,back),u-hl,th,H,[],{...o,gable:H>2?2.2:0});wallZ(Math.min(front,back),Math.max(front,back),u+hl,th,H,[],{...o,gable:H>2?2.2:0});
-            }
-            // Chapel at the end of the street, with a bell tower, and a well in the square.
-            const cu=3*lot+3;wall(cu-6,cu+6,-4,.8,7,[],{rough:2});wall(cu-6,cu+6,4,.8,7,[],{rough:2});wallZ(-4,4,cu-6,.8,7,[[-1,1]],{rough:1,gable:4});wallZ(-4,4,cu+6,.8,7,[],{rough:2,gable:4});
-            box(cu+8.5,0,0,2,2,g0-1,g0+14+4*R(n+70),{rough:3});ring(0,0,1.2,.45,g0-1,g0+1);
-            // Cobbled street from the town's edge to the chapel door, worn away in patches.
-            {const [cx,cz]=at(lot*.5,0);parts.push({t:'path',cx,cz,ux:ca,uz:sa,hl:3*lot+2.5,hw:1.8,k:n++});}
-            reach=3*lot+14;
-          }else{
-            kind='temple';const L=10+3*R(2),W=6+2*R(3),P=1.4,top=g0+P,colH=7+2*R(4);
-            box(0,0,0,L,W,g0-1,top,{});for(let s2=1;s2<=3;s2++)box(-L-s2*.8,0,0,.4,W*.8,g0-1,top-s2*P/4,{});
-            const cols=[];for(let c=0;c<=6;c++)for(const side of [-1,1]){const u=-L+1.3+c*(2*L-2.6)/6,w=side*(W-1.2),r=R(n+80);
-              if(r<.2){box(u,w-side*3,Math.PI/2,3,.55,top,top+1.1,{seat:false});cols.push(null);}
-              else{const ch=r<.45?2+3*R(n+81):colH;const [cx,cz]=at(u,w);parts.push({t:'ring',cx,cz,r:.6,th:0,y0:top-.2,y1:top+ch,rough:0,crenel:false,door:null,k:n++});cols.push({u,w,full:ch===colH});}}
-            for(let c=0;c<12;c+=2){const A2=cols[c],B2=cols[c+2];if(A2&&B2&&A2.full&&B2.full)box((A2.u+B2.u)/2,A2.w,0,(B2.u-A2.u)/2+.7,.6,top+colH,top+colH+1,{seat:false});}
-            reach=L+5;
-          }
-          v={x,z,kind,parts,top:Math.max(...parts.filter(q=>q.t!=='path').map(q=>q.y1+(q.gable||0))),reach};
+          const dec=.5+.4*hash(k,9,seed+469),S=ruinStyle(k,dec),a=hash(i,j,seed+467)*Math.PI*2,g0=g.height*cellMetres,parts=[],K=kit(x,z,a,parts,S),R=K.R;
+          const kind=ruinKindOf(ruinRoll(i,j),raised);let reach;
+          if(kind==='castle')reach=castleRuin(K,g0);
+          else if(kind==='town')reach=hamletRuin(K);
+          else if(kind==='temple')reach=templeRuin(K,g0);
+          else reach=monolithField(K);
+          v={x,z,kind,decay:dec,course:courseCode(S),mat:S.mat,parts,grid:indexParts(parts),top:g0+Math.max(...parts.map(q=>(q.y0!=null?q.y0-g0:0)+q.H+(q.gable||0))),reach,size:2*reach};
         }
       }
       ruins.set(k,v);if(ruins.size>4096)ruins.delete(ruins.keys().next().value);return v;
+    }
+    // Castle: a square curtain wall with crenels, an arched gate between two gate towers, breaches where decay is
+    // high, square corner towers standing taller, a keep with arched windows in three storeys, a paved bailey and blocks
+    // fallen from the walls.
+    function castleRuin(K,g0){
+      const {R,S}=K,L=12+5*R(2),H=S.ch*Math.round((6.5+2*R(3))/S.ch),T=1.5,wo={crenel:true,rubble:true};
+      K.wall(-L,L,-L,T,H,{...wo,op:[{p:0,c:0,w:1.8,n:1,sh:H,sill:0,lin:H-4.5,round:true}]});K.wall(-L,L,L,T,H,wo);K.wallZ(-L,L,-L,T,H,wo);K.wallZ(-L,L,L,T,H,wo);
+      for(const [u,w] of [[-L,-L],[L,-L],[-L,L],[L,L]])K.box(u,w,0,2.6,2.6,H+S.ch*Math.round((3+2*R(u*7+w))/S.ch),{crenel:true,rubble:true});
+      K.box(-3.2,-L,0,1.2,1.8,H+2,{crenel:true});K.box(3.2,-L,0,1.2,1.8,H+2,{crenel:true});
+      const Kp=4+1.5*R(4),KH=S.ch*Math.round((12+5*R(5))/S.ch),sh=KH/3,win={p:2.4,c:1.2,w:.5,n:3,sh,sill:sh*.4,lin:S.ch,round:true,s0:1};
+      K.wall(-Kp,Kp,-Kp,1.2,KH,{crenel:true,rubble:true,op:[win,{p:0,c:0,w:.8,n:1,sh:3.2,sill:0,lin:S.ch,round:true}]});K.wall(-Kp,Kp,Kp,1.2,KH,{crenel:true,op:[win]});
+      K.wallZ(-Kp,Kp,-Kp,1.2,KH,{crenel:true,op:[win]});K.wallZ(-Kp,Kp,Kp,1.2,KH,{crenel:true,op:[win]});
+      K.pave(0,-L*.5,0,2.2,L*.5-1,{sl:1.2});K.pave(0,0,0,Kp+2,Kp+2,{sl:1.2});
+      K.scatter(0,0,L+3,8+Math.round(10*S.dec));
+      return L+6;
+    }
+    // Ruined hamlet: house shells along a paved street, a chapel with arched windows and a belfry at its end, a well
+    // on a small paved plaza, blocks fallen into the street.
+    function hamletRuin(K){
+      const {R,S}=K,lot=11;
+      for(let gu=-2;gu<=2;gu++)for(const side of [-1,1]){const hk=100+gu*20+side*7;if(R(hk)<.15||gu===0&&side<0)continue;
+        const u=gu*lot+(R(hk+1)-.5)*2,w=side*(7+2*R(hk+2)),hl=2.5+1.2*R(hk+3),hw=3+1.5*R(hk+4);
+        K.house(u,w,side<0?0:Math.PI,hl,hw,R(hk+5)<.35?2:1,{dec:clamp(S.dec+(R(hk+6)-.5)*.5,.1,.95),mat:R(hk+8)<.15?(S.mat===MAT.masonryWarm?MAT.masonryDark:MAT.masonryWarm):S.mat});}
+      const cu=3*lot+3,ch=K.sub(cu,0,0),CH=S.ch*Math.round(7/S.ch),tall={p:3,c:1.5,w:.6,n:1,sh:CH,sill:2,lin:S.ch*2,round:true};
+      ch.wall(-6,6,-4,.9,CH,{op:[tall],rubble:true});ch.wall(-6,6,4,.9,CH,{op:[tall],rubble:true});
+      ch.wallZ(-4,4,-6,.9,CH,{gable:3.5,op:[{p:0,c:0,w:1.2,n:1,sh:4.5,sill:0,lin:S.ch,round:true},{p:0,c:0,w:.6,n:1,sh:CH+2.5,sill:CH-.5,lin:S.ch,round:true}]});ch.wallZ(-4,4,6,.9,CH,{gable:3.5,rubble:true});
+      const BT=S.ch*Math.round((14+4*R(70))/S.ch);ch.box(8.6,0,0,2.1,2.1,BT,{op:[{p:0,c:0,w:.7,n:1,sh:BT,sill:BT-3.6,lin:S.ch,round:true}]});
+      ch.box(-6.7,0,0,.6,2.2,S.ch*3,{steps:{tread:.45,rise:S.ch/2},rubble:false,dec:0});
+      K.pave(lot*.5,0,0,3*lot+2.5,1.8,{});K.pave(0,-5,0,4.5,4.5,{});K.ring(0,-5,1.2,.45,1,{dec:0});
+      K.scatter(lot*.5,0,3*lot,10+Math.round(10*S.dec),.9);
+      return 3*lot+14;
+    }
+    // Temple: a stepped podium (level, on an absolute base), a peristyle of square pillars with plinths and capitals,
+    // lintels spanning standing pairs, a cella with an arched door, and toppled pillars lying as rows of drums.
+    function templeRuin(K,g0){
+      const {R,S}=K,L=10+3*R(2),W=6+2*R(3),P=S.ch*3,base=g0-.5,top=base+P,bh=S.ch*2,nb=Math.round((6.5+2*R(4))/bh);
+      K.box(0,0,0,L,W,P,{y0:base,dec:0});K.box(-L-1.5,0,0,1.5,W*.6,P,{y0:base,steps:{tread:.5,rise:S.ch/2},dec:0});
+      const cols=[];
+      for(let c=0;c<=6;c++)for(const side of [-1,1]){const u=-L+1.3+c*(2*L-2.6)/6,w=side*(W-1.2),r=R(80+c*2+(side>0)),hk=c*2+(side>0);
+        if(r<.18){// Toppled: its drums lie in a row on the ground beside the podium.
+          for(let d=0;d<4;d++)K.fallen(u+(d-1.5)*bh*1.1,w+side*(3+d*.15),bh*.5,.5,.5,{tilt:.3});cols.push(null);continue;}
+        const n=r<.45?Math.max(1,Math.round(nb*(.25+.5*R(81+hk)))):nb;K.pillar(u,w,0,.5,n,{y0:top,bh,cap:n===nb,lean:r>.92?.05:0});cols.push({u,w,full:n===nb});}
+      for(let c=0;c<12;c+=2)for(const s of [0,1]){const A2=cols[c+s],B2=cols[c+2+s];if(A2&&B2&&A2.full&&B2.full&&R(90+c+s)>.3)K.box((A2.u+B2.u)/2,A2.w,0,(B2.u-A2.u)/2+.8,.7,S.ch,{y0:top+S.ch+nb*bh+S.ch,seat:false,dec:0});}
+      const cl=L*.45,cw=W*.55,CH=S.ch*Math.round(6/S.ch);
+      K.wall(-cl,cl,-cw,.8,CH,{y0:top});K.wall(-cl,cl,cw,.8,CH,{y0:top});K.wallZ(-cw,cw,cl,.8,CH,{y0:top});K.wallZ(-cw,cw,-cl,.8,CH,{y0:top,op:[{p:0,c:0,w:1.1,n:1,sh:4.2,sill:0,lin:S.ch,round:true}]});
+      K.pave(-L-8,0,0,5,1.6,{});K.scatter(0,0,L+5,6+Math.round(8*S.dec));
+      return L+10;
+    }
+    // Standing monoliths (ref: a sunny field of stacked stone pillars): 6-11 tall square pillars on plinths, chunky
+    // capitals on the whole ones, several leaning or broken; a trilithon gate; a small arch; a paved path winding
+    // through; many fallen blocks in the grass.
+    function monolithField(K){
+      const {R,S}=K,n=6+Math.floor(R(2)*6),bh=S.ch*2,ring=18+8*R(3);
+      for(let m=0;m<n;m++){const b=m/n*Math.PI*2+(R(10+m)-.5)*.5,d=ring*(.55+.45*R(20+m)),u=Math.cos(b)*d,w=Math.sin(b)*d,full=Math.round((5+4*R(30+m))/bh),r=R(40+m);
+        K.pillar(u,w,R(50+m)*.5,.65+.35*R(60+m),r<.35?Math.max(1,Math.round(full*(.3+.4*R(70+m)))):full,{bh,cap:r>=.35,lean:r>.75?.04+.05*R(80+m):0,plinth:.45,ph:S.ch*(1+(R(90+m)<.5))});
+        if(r<.35)K.scatter(u,w,3,2+Math.round(2*R(95+m)),1.1);}
+      // Trilithon gate: two pillars and a lintel across them.
+      {const G=K.sub(0,-ring*.25,R(5)*Math.PI),gn=Math.round(5/bh);G.pillar(-2.2,0,0,.6,gn,{bh,cap:false});G.pillar(2.2,0,0,.6,gn,{bh,cap:false});G.box(0,0,0,3.2,.75,S.ch*2,{y0:null,rel:S.ch+gn*bh,seat:false,dec:0});}
+      {const A=K.sub(ring*.3,ring*.35,R(6)*Math.PI);A.wall(-2.5,2.5,0,1,S.ch*Math.round(5/S.ch),{op:[{p:0,c:0,w:1.3,n:1,sh:5,sill:0,lin:S.ch*2,round:true}]});}
+      for(let s=0;s<6;s++){const t=(s-2.5)/2.5,u=t*ring*.9,w=Math.sin(t*2.2+R(7)*3)*ring*.25;K.pave(u,w,Math.cos(t*2.2)*.5,ring*.2,1.4,{sl:1.1});}
+      K.scatter(0,0,ring+4,10+Math.round(14*S.dec),1.1);
+      return ring+10;
     }
     const ruinNear=(x,z)=>ruinCell(Math.floor(x/STG),Math.floor(z/STG));
     // Rock landforms, one candidate per 130 m cell: in desert and dry badlands a sandstone arch or a cluster of hoodoos
@@ -1134,11 +1243,127 @@
     // Regular trees keep clear of giant crowns, ruins and rock landforms.
     // Ruins mask trees tightly: only trunks within 0.6 m of a wall (or on the street) are removed, so forest grows into
     // courtyards and right against the walls.
-    function ruinBlocks(R,x,z,m){
-      for(const q of R.parts){
-        if(q.t==='box'||q.t==='path'){const dx=x-q.cx,dz=z-q.cz;if(Math.abs(dx*q.ux+dz*q.uz)<q.hl+m&&Math.abs(-dx*q.uz+dz*q.ux)<q.hw+(q.t==='path'?.3:m))return true;}
-        else{const d=Math.hypot(x-q.cx,z-q.cz);if(q.th?Math.abs(d-q.r)<q.th/2+m:d<q.r+m)return true;}
+    // Ruin stamping for one column (see the kit above). S: metres between sampled columns; fine detail (ivy, tufts,
+    // rubble, moss specks, paving joints) only where a column is 50 cm or less. Walls flagged `line` and paving widen to
+    // half a column on coarse levels so walls and streets still read as lines from far away; house shells give way to a
+    // coarse mass at 16 m columns. Returns the highest cell written (or 0).
+    let ruinStamp=0;const ruinHits=[];
+    function ruinParts(site,x,z,S){
+      // Parts from the 16 m buckets around the column: one bucket, or as many as the widening can reach.
+      const pad=S>2?Math.ceil(S/2/IB):0,i=Math.floor(x/IB),j=Math.floor(z/IB);
+      if(!pad)return site.grid.get(i*65536+j)||null;
+      ruinStamp++;ruinHits.length=0;
+      for(let b=-pad;b<=pad;b++)for(let a=-pad;a<=pad;a++){const l=site.grid.get((i+a)*65536+j+b);if(l)for(const q of l)if(q.stamp!==ruinStamp){q.stamp=ruinStamp;ruinHits.push(q);}}
+      return ruinHits;
+    }
+    // Courses left standing at u along a broken wall: the full count where decay is 0, dropping in whole courses with a
+    // slow noise along the wall (high decay leaves stubs), never below the foundation course.
+    function standing(q,u,nC){
+      if(!q.dec)return nC;const n=noise(u*.22+q.k*7.1,q.k*.37,seed+493);
+      return Math.max(1,nC-Math.round(nC*clamp((q.dec-.3)*(.3+1.6*n),0,1)));
+    }
+    function stampRuin(site,x,z,g,h,values){
+      const S=colStep*cellMetres,fine=S<=.51,list=ruinParts(site,x,z,S);if(!list||!list.length)return 0;
+      const gb=h*cellMetres,dry=g.water<=h;let written=0;
+      const put=(m,y0,y1)=>{const a=Math.max(0,Math.floor(y0/cellMetres+1e-6)),b=Math.min(heightCells,Math.ceil(y1/cellMetres-1e-6));if(b>a){values.fill(m,a,b);if(b>written)written=b;}return b;};
+      const clear=(m,y0,y1)=>{for(let y=Math.max(0,Math.ceil(y0/cellMetres-1e-6)),e=Math.min(heightCells,Math.ceil(y1/cellMetres-1e-6));y<e;y++)if(values[y]===m)values[y]=0;};
+      for(const q of list){
+        if(q.minS&&S<q.minS||q.maxS&&S>=q.maxS)continue;
+        const dx=x-q.cx,dz=z-q.cz,u=dx*q.ux+dz*q.uz,v=-dx*q.uz+dz*q.ux;
+        if(q.t==='pave'){
+          const wide=q.line===false?0:Math.max(0,S/2-q.hw),inside=q.r?Math.hypot(dx,dz)<q.r+S/2*(S>1):Math.abs(u)<q.hl+(S>1?S/2:0)&&Math.abs(v)<q.hw+wide;if(!inside)continue;
+          if(!dry){// Streets cross water on a stone deck 1.2 m above it.
+            if(q.bridge){const w=g.water*cellMetres;put(q.mat||site.mat,w+.5,w+1.1);put(MAT.paving,w+1.1,w+1.1+cellMetres);}continue;}
+          if(values[h])continue;
+          // Slabs in staggered rows; joints (one cell wide) and missing slabs keep the turf, so grass grows through.
+          const row=Math.floor(v/q.sl),su=u/q.sl+hash(row,q.k,seed+561),b=Math.floor(su);
+          if(hash(b,row*131+q.k,seed+563)<q.dec*.45)continue;
+          if(fine&&((su-b)*q.sl<cellMetres*.9||(v/q.sl-row)*q.sl<cellMetres*.9))continue;
+          if(TURF.has(values[h-1])||values[h-1]===MAT.dirt||values[h-1]===MAT.gravel||values[h-1]===MAT.litter||values[h-1]===MAT.sand){values[h-1]=MAT.paving;if(h>written)written=h;}
+          continue;
+        }
+        if(!dry)continue;
+        if(Math.abs(u)>q.hl+S||Math.abs(v)>q.hw+S)continue;
+        if(q.t==='fallen'){
+          // The vertical line through the column against the block's three slabs; filled from the ground to its top.
+          let lo=-1e9,hi=1e9;
+          for(let a=0;a<3;a++){const A=q.A[a],o=A[0]*dx+A[2]*dz,hh=q.h[a];
+            if(Math.abs(A[1])<1e-6){if(Math.abs(o)>hh){hi=-1e9;break;}continue;}
+            const t0=(-hh-o)/A[1],t1=(hh-o)/A[1];lo=Math.max(lo,Math.min(t0,t1));hi=Math.min(hi,Math.max(t0,t1));}
+          if(hi<=lo)continue;const t=put(q.mat,gb-cellMetres,gb+q.lift+hi);
+          if(fine&&t>h&&noise(x*.7+q.k,z*.7,seed+501)>.45)values[t-1]=MAT.mossy;
+          continue;
+        }
+        if(q.t==='pillar'){
+          const base=q.y0!=null?q.y0:gb;let y=base+q.ph,top=0;
+          if(Math.abs(u)<q.pw&&Math.abs(v)<q.pw)top=put(q.mat,Math.min(base,gb)-cellMetres,y);
+          for(let i=0;i<q.n;i++,y+=q.bh){const ou=q.jit[2*i]+q.lx*(y-base),ov=q.jit[2*i+1]+q.lz*(y-base),grow=S>1&&S<=4?S/2:0;
+            if(Math.abs(u-ou)<q.sw+grow&&Math.abs(v-ov)<q.sw+grow)top=put(q.mat,i&&top?y:Math.min(y,gb-cellMetres),y+q.bh);}
+          if(q.cap){const ou=q.lx*(y-base),ov=q.lz*(y-base);if(Math.abs(u-ou)<q.cw&&Math.abs(v-ov)<q.cw)top=put(q.mat,y,y+q.cht);}
+          if(top&&fine&&noise(x*.6+q.k,z*.6,seed+501)>.35&&values[top-1]===q.mat)values[top-1]=MAT.mossy;
+          continue;
+        }
+        // Box and ring: inside the solid, or in the 0.3 m strip just outside a face where ivy hangs and tufts grow.
+        let inside,side=false,uu=u,out;
+        const grow=q.line&&S>1?Math.max(0,S/2-q.hw):0;
+        if(q.t==='box'){const av=Math.abs(v)-q.hw-grow;inside=Math.abs(u)<q.hl+(grow?S/2:0)&&av<0;side=!inside&&Math.abs(u)<q.hl&&av<.3;out=av;}
+        else{const d=Math.hypot(dx,dz);out=q.th?Math.abs(d-q.r)-q.th/2:d-q.r;inside=out<0;side=!inside&&out<.3;uu=Math.atan2(dz,dx)*q.r;}
+        if(!inside&&!fine)continue;
+        if(!inside&&!side){
+          // Rubble heaped against the foot of broken stretches, out to 1.6 m from the face.
+          if(q.rubble&&q.dec&&out>.3&&out<1.6&&!values[h]){const n=noise(uu*.3+q.k*7.1,q.k*.37,seed+493),broken=clamp((q.dec-.3)*(.3+1.6*n)-.2,0,1);
+            if(broken>0){const cells=Math.round(broken*(1-out/1.6)*(.4+.8*noise(x*1.6+q.k,z*1.6,seed+519))/cellMetres);if(cells>0)put(q.mat,gb,gb+cells*cellMetres);}}
+          continue;
+        }
+        const base=q.y0!=null?q.y0:gb+(q.rel||0),bottom=q.seat===false?base:Math.min(base,gb)-cellMetres,ch=q.ch||.5;
+        // Height at u: gable ends rise toward the middle, stairs step up along +u.
+        const Hat=w=>q.steps?Math.min(q.H,q.steps.rise*(1+Math.floor((w+q.hl)/q.steps.tread))):q.H+(q.gable?q.gable*(1-Math.abs(w)/q.hl):0);
+        const nAt=w=>Math.max(1,Math.round(Hat(w)/ch));
+        let top;
+        if(!q.dec||q.steps){top=base+Hat(uu);if(q.crenel&&Math.floor((uu+q.hl)/.8)%2)top-=ch;if(!side)top=put(q.mat,bottom,top)*cellMetres;}
+        else{
+          // Whole blocks: each course has its own block length and offset; a block stands if its course is below the
+          // standing count at the block's centre, so broken tops step down block by block (a top block may overhang).
+          const P0=standing(q,uu,nAt(uu)),full=Math.max(0,P0-2);top=base+full*ch;if(!side)put(q.mat,bottom,top);
+          for(let c=full;c<P0+2;c++){const bl=q.bl*(.7+.6*hash(c,q.k,seed+531)),o=hash(c,q.k+1,seed+533)*bl,b=Math.floor((uu+o)/bl),ub=(b+.5)*bl-o,Pc=standing(q,ub,nAt(ub));
+            if(c>=Pc||c===Pc-1&&c>0&&hash(b,c*977+q.k,seed+535)<.22*q.dec)continue;
+            if(q.crenel&&c===nAt(ub)-1&&b%2)continue;
+            if(!side)put(q.mat,base+c*ch,base+(c+1)*ch);top=Math.max(top,base+(c+1)*ch);}
+        }
+        if(side){
+          if(!fine)continue;
+          // Ivy in patches (not curtains): hanging strands from the top in some stretches, climbing ivy from the foot in
+          // others; more of it on more decayed walls. Grass tufts crowd the wall foot.
+          const from=Math.max(0,Math.floor(bottom/cellMetres)),to=Math.min(heightCells,Math.ceil(top/cellMetres));if(to<=from)continue;
+          const ivy=noise(uu*.16+q.k*3.3,.5,seed+497),climb=noise(uu*.2+q.k*1.7,2.5,seed+507),strand=hash(Math.floor(uu*4),q.k,seed+521),lim=.78-.18*(q.dec||0);
+          if(ivy>=lim&&strand>.25){const len=(to-from)*(.2+.5*strand*noise(uu*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=MAT.vine;}
+          if(climb>=lim+.04&&strand<.8){const up=Math.max(h,from)+Math.round((to-from)*(.1+.5*strand*noise(uu*1.6+q.k,3.5,seed+511)));for(let y=Math.max(h,from);y<Math.min(to,up);y++)if(!values[y])values[y]=MAT.vine;}
+          if(!values[h]&&hash(Math.floor(x*4),Math.floor(z*4),seed+523)<.45){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+525)*.25/cellMetres);for(let y=h;y<Math.min(heightCells,h+n);y++)if(!values[y])values[y]=MAT.tuft;}
+          written=Math.max(written,to);continue;
+        }
+        // Openings: doors, windows and arcades cut through the wall (round arches spring one radius below the lintel).
+        if(q.op&&q.t==='box')for(const O of q.op){let d;
+          if(O.p){const r=Math.round((uu-O.c)/O.p),oc=r*O.p+O.c;if(Math.abs(oc)+O.w>q.hl-.45)continue;d=uu-oc;}else d=uu-O.c;
+          if(Math.abs(d)>=O.w)continue;
+          for(let s=O.s0||0;s<O.n;s++){let hi=base+(s+1)*O.sh-O.lin;if(O.round)hi-=O.w-Math.sqrt(O.w*O.w-d*d);clear(q.mat,base+s*O.sh+O.sill,hi);}}
+        const to=Math.ceil(top/cellMetres-1e-6);if(to<=h)continue;
+        if(!fine)continue;
+        // Moss on level tops and in damp patches, creeping up the wall foot; tufts root in the cracks of broken tops.
+        if(values[to-1]===q.mat&&noise(x*.35+q.k,z*.35,seed+501)>.62-.2*(q.dec||0))values[to-1]=MAT.mossy;
+        if(q.dec&&to<heightCells-2&&!values[to]&&hash(Math.floor(x*4),to*31+Math.floor(z*4),seed+527)<.25*q.dec){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+529)*.3/cellMetres);for(let y=to;y<to+n;y++)values[y]=MAT.tuft;written=Math.max(written,to+n);}
+        const from=Math.max(0,Math.floor(bottom/cellMetres));
+        for(let y=from;y<to-1;y++)if(values[y]===q.mat&&hash(Math.floor(x*4),y*7919+Math.floor(z*4),seed+503)<.12*clamp((noise(x*.4,z*.4+y*.05,seed+505)-.35)*3,0,1))values[y]=MAT.mossy;
+        {const band=h+Math.round((.2+.9*noise(x*.5+q.k,z*.5,seed+513))/cellMetres);for(let y=Math.max(from,h-1);y<Math.min(to-1,band);y++)if(values[y]===q.mat&&hash(Math.floor(x*4),y*131+Math.floor(z*4),seed+515)<.6)values[y]=MAT.mossy;}
       }
+      return written;
+    }
+    // Trees keep off walls (within m), pillars, fallen blocks and paving; they grow in courtyards and against the walls.
+    function ruinBlocks(site,x,z,m){
+      const l=site.grid.get(Math.floor(x/IB)*65536+Math.floor(z/IB));if(!l)return false;
+      for(const q of l){if(q.minS)continue;
+        if(q.t==='ring'){const d=Math.hypot(x-q.cx,z-q.cz);if(q.th?Math.abs(d-q.r)<q.th/2+m:d<q.r+m)return true;continue;}
+        if(q.t==='pave'&&q.r){if(Math.hypot(x-q.cx,z-q.cz)<q.r+.3)return true;continue;}
+        const dx=x-q.cx,dz=z-q.cz,mm=q.t==='pave'?.3:m;if(Math.abs(dx*q.ux+dz*q.uz)<q.hl+mm&&Math.abs(-dx*q.uz+dz*q.ux)<q.hw+mm)return true;}
       return false;
     }
     const landmarkNear=(x,z)=>{const A=ancientNear(x,z),R=ruinNear(x,z),K=rockNear(x,z);return !!A&&Math.hypot(x-A.x,z-A.z)<A.reach+1||!!R&&Math.hypot(x-R.x,z-R.z)<R.reach&&ruinBlocks(R,x,z,.6)||!!K&&Math.hypot(x-K.x,z-K.z)<K.reach+2;};
@@ -1435,7 +1660,7 @@
       // copses instead of stopping at a line.
       if(g.blend>0&&g.biome2&&g.biome2!==g.biome){const dens=bb=>{const s2=treeStyle(bb);return s2.density??TREES[bb]??(TREELESS.has(bb)?0:.25);},w=clamp(g.blend+(noise(x*.07,z*.07,seed+967)-.5)*.7,0,1);base=dens(g.biome)*(1-w)+dens(g.biome2)*w;}
       // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
-      const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
+      const RU=ruinNear(x,z);if(RU&&RU.kind!=='monoliths'&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
       // Treeline: forest thins and shrinks over the last ~4 degrees C (about 25 m) below the line, broadleaf dropping out
       // before conifers. The line is ~1 C (it follows the climate's temperature and lapse rate), lower on steep, exposed
       // ground. Just above it, only rare stunted krummholz conifers. Applies on any ground, snow included.
@@ -1618,9 +1843,9 @@
       pad(x+42,-14,x+54,-4,{open:true,biome:'desert'});
       put(x+48,-9,{kind:'cactus',ht:2.4,r:.24,arms:[{ux:1,uz:0,at:1,up:.7},{ux:0,uz:1,at:1.5,up:.9}]},'prop','cactus');
       put(x+62,-9,{kind:'bamboo',culms:[{x:x+62,z:-9,lx:.02,lz:0,h:9,tr:.55},{x:x+63,z:-8.5,lx:0,lz:.02,h:7.5,tr:.45},{x:x+61.3,z:-8,lx:-.02,lz:0,h:8,tr:.5}],top:GAL_H+cells(10)+2},'prop','bamboo');
-      // One castle, one town and one temple ruin — the cells picked are ones whose own rolls make that kind.
-      const ruinKind=(i,j)=>hash(i,j,seed+461)<.45?(hash(1,i*65536+j,seed+471)<.25?'castle':hash(1,i*65536+j,seed+471)<.7?'town':'temple'):null;
-      for(const kind of ['castle','town','temple']){const f=scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});}}}
+      // One ruin of each kind — the cells picked are ones whose own rolls make that kind (the pads are flat: not raised).
+      const ruinKind=(i,j)=>hash(i,j,seed+461)<.45?ruinKindOf(ruinRoll(i,j),0):null;
+      for(const kind of ['castle','town','temple','monoliths']){const f=scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});}}}
       // Sandstone arch and hoodoos on desert pads; a spire cluster; a boulder meadow.
       const rockKind=(i,j)=>hash(i,j,seed+501)<.4?(hash(i,j,seed+507)<.45?'arch':'hoodoos'):null;
       for(const kind of ['arch','hoodoos']){const f=scan(KG,700,-80,(i,j)=>rockKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],KG,503,505);if(Math.hypot(rx,rz)>60){pad(f[0]*KG,f[1]*KG,(f[0]+1)*KG,(f[1]+1)*KG,{open:true,biome:'desert'});GAL_SPOTS.push({kind:'rock',label:kind,x:rx,z:rz});}}}
@@ -2406,56 +2631,9 @@
             written=Math.max(written,Math.ceil((q.base+q.h+1.2)/cellMetres));
           }
         }
-        const R=ruinNear(x,z);
-        // Ruins never stand in water: a column under a pond or stream keeps its water.
-        if(R&&g.water<=h&&Math.abs(x-R.x)<R.reach&&Math.abs(z-R.z)<R.reach){
-          const ground=h*cellMetres-.25;
-          for(const q of R.parts){
-            let u,inside,side=false;
-            if(q.t==='path'){const dx=x-q.cx,dz=z-q.cz;if(Math.abs(dx*q.ux+dz*q.uz)<q.hl&&Math.abs(-dx*q.uz+dz*q.ux)<q.hw&&noise(x*.5,z*.5,seed+495)>.3&&values[h]===0)values[h-1]=MAT.stone;continue;}
-            // `side`: the 0.3 m strip just outside a wall face, where ivy hangs.
-            if(q.t==='box'){const dx=x-q.cx,dz=z-q.cz,v=Math.abs(-dx*q.uz+dz*q.ux);u=dx*q.ux+dz*q.uz;inside=Math.abs(u)<q.hl&&v<q.hw;side=!inside&&Math.abs(u)<q.hl&&v<q.hw+.3;}
-            else{const d=Math.hypot(x-q.cx,z-q.cz),o=q.th?Math.abs(d-q.r)-q.th/2:d-q.r;inside=o<0;side=!inside&&o<.3;u=Math.atan2(z-q.cz,x-q.cx)*q.r;}
-            // Rubble: fallen stones heaped against the foot of broken stretches, out to 1.6 m from the face.
-            const broken=q.rough?clamp((noise(x*.3+q.k*7.1,z*.3,seed+493)-.35)*2.2,0,1):0;
-            if(!inside&&broken>.25&&q.seat!==false){
-              const out=q.t==='box'?Math.abs(-(x-q.cx)*q.uz+(z-q.cz)*q.ux)-q.hw:(q.th?Math.abs(Math.hypot(x-q.cx,z-q.cz)-q.r)-q.th/2:Math.hypot(x-q.cx,z-q.cz)-q.r);
-              const along=q.t==='box'?(x-q.cx)*q.ux+(z-q.cz)*q.uz:u;
-              if(out>.3&&out<1.6&&(q.t!=='box'||Math.abs(along)<q.hl+.5)){
-                const pile=broken*(1-out/1.6)*(.25+.6*noise(x*1.6+q.k,z*1.6,seed+519)),cells=Math.round(pile/cellMetres);
-                if(cells>0&&!values[h]){values.fill(MAT.masonry,h,Math.min(heightCells,h+cells));written=Math.max(written,h+cells);}
-              }
-            }
-            if(!inside&&!side)continue;
-            let top=q.y1+(q.gable?q.gable*(1-Math.abs(u)/q.hl):0);
-            // Crumbling: broken stretches drop by up to `rough`, in whole stone courses (0.45 m), with single stones missing
-            // here and there along the top; intact stretches keep battlements (alternate 0.8 m merlons).
-            top-=q.rough*broken;
-            if(broken>0){top=Math.floor(top/.45)*.45;if(hash(Math.floor(u/.8+Math.floor(top/.45)*.5),q.k,seed+517)<.3)top-=.45;}
-            if(q.crenel&&broken<.05&&Math.floor(u/.8)%2)top-=.8;
-            const from=Math.max(0,Math.floor((q.seat===false?q.y0:Math.min(q.y0,ground))/cellMetres)),to=Math.min(heightCells,Math.ceil(top/cellMetres));
-            if(to<=from)continue;
-            if(side){
-              // Ivy curtains hang from the wall top down a stretch of the face, in patches along the wall.
-              // Climbing ivy creeps up from the foot of the wall in other patches.
-              // Each 25 cm strand has its own length and some are missing, so curtains read as hanging strands, not stripes.
-              const ivy=noise(u*.45+q.k*3.3,.5,seed+497),climb=noise(u*.5+q.k*1.7,2.5,seed+507),strand=hash(Math.floor(u*4),q.k,seed+521);
-              if(ivy>=.48&&strand>.2){const len=(to-from)*(.35+.65*strand*noise(u*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=MAT.vine;}
-              if(climb>=.5&&strand<.8){const up=Math.max(h,from)+Math.round((to-from)*(.1+.7*strand*noise(u*1.6+q.k,3.5,seed+511)));for(let y=Math.max(h,from);y<Math.min(to,up);y++)if(!values[y])values[y]=MAT.vine;}
-              // Grass tufts crowd the corner where the wall meets the ground.
-              if(!values[h]&&hash(Math.floor(x*4),Math.floor(z*4),seed+523)<.45){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+525)*.25/cellMetres);for(let y=h;y<Math.min(heightCells,h+n);y++)if(!values[y])values[y]=MAT.tuft;}
-              written=Math.max(written,to);continue;
-            }
-            values.fill(MAT.masonry,from,to);written=Math.max(written,to);
-            // Moss: on the wall top where it is level enough to hold soil, and in damp patches lower down. Grass tufts take
-            // root in the cracks of crumbled tops.
-            if(noise(x*.6+q.k,z*.6,seed+501)>.3)values[to-1]=MAT.mossy;
-            if(broken>.1&&to<heightCells-2&&!values[to]&&hash(Math.floor(x*4),to*31+Math.floor(z*4),seed+527)<.35){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+529)*.3/cellMetres);for(let y=to;y<to+n;y++)values[y]=MAT.tuft;written=Math.max(written,to+n);}
-            for(let y=from;y<to-1;y++)if(hash(Math.floor(x*4),y*7919+Math.floor(z*4),seed+503)<.12*clamp((noise(x*.4,z*.4+y*.05,seed+505)-.35)*3,0,1))values[y]=MAT.mossy;
-            // Damp moss creeps up the foot of the wall from the ground.
-            {const band=h+Math.round((.2+.9*noise(x*.5+q.k,z*.5,seed+513))/cellMetres);for(let y=Math.max(from,h-1);y<Math.min(to-1,band);y++)if(hash(Math.floor(x*4),y*131+Math.floor(z*4),seed+515)<.6)values[y]=MAT.mossy;}
-          }
-        }
+        const R=ruinNear(x,z),RS=colStep*cellMetres/2;
+        // Ruins never stand in water; only their paved streets cross it, on a deck.
+        if(R&&Math.abs(x-R.x)<R.reach+RS&&Math.abs(z-R.z)<R.reach+RS)written=Math.max(written,stampRuin(R,x,z,g,h,values));
       }
       if(prof&&prof.on)prof.features+=now()-t0;
       if(!infinite){if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);}
@@ -2720,9 +2898,10 @@
       }
       return Float32Array.from(out);
     }
-    // Biome tint per inside column (RGBA8: the biome's grass tone (deep forest green vs bright meadow), and in alpha the open
-    // water depth (1/32 m steps, up to 8 m); snow cover in the 5×5 around it, the local blade-grass material): how much the local forest is conifer rather
-    // than broadleaf, from the same biome and temperature rule as the trees. Sampled on a fixed 16 m world grid and
+    // Biome tint per inside column (RGBA8: R the biome's grass tone (deep forest green vs bright meadow), G snow cover in the
+    // 5×5 around it, B the local blade-grass material, A the ruin course height under the column in 5 cm steps (10 = 0.5 m,
+    // 15 = 0.75 m; 0 where no ruin stands), so the masonry shader can draw each site's own block size). The tone is how
+    // much the local forest is conifer rather than broadleaf, from the same biome and temperature rule as the trees. Sampled on a fixed 16 m world grid and
     // interpolated, so neighbouring nodes agree and forests blend over tens of metres. Grass and ground take their tone
     // from it: deep blue-green among conifers, bright warm green among broadleaf trees.
     const TINT=16,tints=new Map();
@@ -2780,6 +2959,8 @@
       }
       return out;
     }
+    // Course height code (5 cm steps) of the ruin site whose footprint holds (x, z), else 0.
+    function ruinCourse(x,z){const R=ruinNear(x,z);return R&&Math.abs(x-R.x)<R.reach&&Math.abs(z-R.z)<R.reach?R.course:0;}
     function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4),dominant=dominantGrass(grassMat);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
@@ -2789,7 +2970,7 @@
         const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
         // Columns as wide as the tint grid already average over it: one sample.
         let c=0;if(column>=TINT&&tones)c=tones[(j+2)*G+i+2];else{for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;}const o=(j*NODE+i)*4;
-        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2,dominant);out[o+3]=255;
+        out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2,dominant);out[o+3]=ruinCourse(wx,wz);
       }
       return out;
     }
