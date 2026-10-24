@@ -65,11 +65,12 @@
   // Meshes and colliders are built per tile on demand and cached; a tile's shell mesh is rebuilt when a door opens.
   const TILE=160,PROPS_NEAR=380;let city=null;const tileCache=new Map(),opened=new Map();
   const tkey=(x,z)=>Math.floor(x/TILE)+','+Math.floor(z/TILE);
-  function cached(id,make){if(!tileCache.has(id)){const m=make();tileCache.set(id,{key:'city'+city.seed+':'+id,mesh:m,col:new CastleWalk.Collider(m)});}return tileCache.get(id);}
+  const buildCost={};
+  function cached(id,make){if(!tileCache.has(id)){const t0=performance.now(),m=make(),t1=performance.now();tileCache.set(id,{key:'city'+city.seed+':'+id,mesh:m,col:new CastleWalk.Collider(m)});const kind=id.split(':')[0],e=buildCost[kind]||(buildCost[kind]={n:0,mesh:0,col:0});e.n++;e.mesh+=t1-t0;e.col+=performance.now()-t1;}return tileCache.get(id);}
   // Buildings drawn by ray marching leave their tile's shell mesh (like opened ones); they keep a collider of their shell.
-  const out=b=>opened.has(b.id)||rayShown.has(b.id)||kitShown.has(b.id);
+  const out=b=>opened.has(b.id)||rayShown.has(b.id);
   function shells(k){const T=city.tiles.get(k),ver=T.b.filter(out).map(b=>b.id).join('.');
-    return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!out(b)){const f=m.p.length/3;CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);if(b.type!=='cathedral'&&!b.hero)CastleRender.wonk(m,f,b);}return m;});}
+    return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!out(b)){const f=m.p.length/3;m.bid=b.id+1;CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);if(b.type!=='cathedral'&&!b.hero)CastleRender.wonk(m,f,b);}return m;});}
   // Street-level detail for the tiles round the walker (or round the view's focus when zoomed in close).
   function shellsNear(k){const T=city.tiles.get(k),ver=T.b.filter(out).map(b=>b.id).join('.');
     return cached('near:'+k+':'+ver+':'+state.vox+':'+state.bkit,()=>{const m=new CastleRender.Mesh(),vs=+state.vox,t0=performance.now();
@@ -83,17 +84,44 @@
   // floor datum) is built by TownKit.building in its local frame (front +Z) and placed by the plot's frame; a door on
   // the -v side turns the model half round. City types map to kit variants by a per-plot hash. Ground pads
   // (surfacePatch) are left to the city's own ground. Heroes and civic buildings keep the draft models.
-  // Kit buildings within KIT_R of the walker (or the view's focus when zoomed in) replace their shells; the set is
-  // refreshed as the walker moves (every 12 m), each building's kit mesh cached once built.
-  const KIT_R=75,kitShown=new Set();
-  function updateKit(){kitShown.clear();if(!city||state.bkit!=='kit')return;const f=walker?{x:walker.x,z:walker.z}:cam.dist<500?{x:cam.tx,z:cam.tz}:null;if(!f)return;
-    for(const b of city.buildings)if(KIT_MAP[b.type]&&!b.hero&&Math.hypot(b.x-f.x,b.z-f.z)<KIT_R)kitShown.add(b.id);}
+  // ---- Kit streaming. Kit buildings are built per 40 m cell by a worker pool, never on the main thread. A cell is
+  // wanted when any of its buildings is within KIT_IN of the walker (or the view's focus when zoomed in) and kept
+  // until all are beyond KIT_OUT (hysteresis, so cells do not churn at the edge). A built, wanted cell is drawn and its
+  // buildings are hidden in the shared shell meshes on the GPU (Renderer.setHidden): no shell mesh is rebuilt. Built
+  // cells stay cached (up to KIT_KEEP), so walking back is free.
+  const KIT_IN=75,KIT_OUT=110,KIT_CELL=40,KIT_KEEP=30,kitCells=new Map(),kitWant=new Set(),kitQueue=[],kitJobs=new Set(),kitPool=[];let kitIds=null;
+  const kcell=b=>Math.floor(b.x/KIT_CELL)+','+Math.floor(b.z/KIT_CELL);
+  // ---- City workers: each generates the same city and builds tile and kit-cell meshes on request (city-worker.js),
+  // returning packed vertex buffers and collision triangles. The main thread only uploads. Requests are queued nearest
+  // first; results land in gpuTiles and trigger a (throttled) refresh. Colliders are made lazily, for near tiles only.
+  const cityPool=[],gpuTiles=new Map(),gpuPending=new Map(),gpuQueue=[],kitStats={n:0,ms:0};let gpuSeq=0,poolSeed=null;
+  if(window.Worker)for(let i=0;i<Math.max(2,Math.min(4,(navigator.hardwareConcurrency||4)-2));i++){const w=new Worker('city-worker.js');w.busy=true;w.ready=false;
+    w.onmessage=e=>{const d=e.data;if(d.ready){w.ready=true;w.busy=false;w.seed=d.seed;gpuPump();return;}w.busy=false;const id=d.kind+':'+d.key;gpuPending.delete(id);
+      if(city&&d.seed===city.seed&&d.seed===poolSeed){gpuTiles.set(id,{key:'gpu'+city.seed+':'+id,mesh:{packed:d.packed},tris:d.tris,col:null,used:performance.now()});if(d.kind==='kit'){kitStats.n++;kitStats.ms+=d.ms;}scheduleRefresh();}gpuPump();};cityPool.push(w);}
+  function poolInit(){poolSeed=city.seed;gpuTiles.forEach(v=>R.drop(v.key));gpuTiles.clear();gpuPending.clear();gpuQueue.length=0;for(const w of cityPool){w.ready=false;w.busy=true;w.postMessage({init:true,seed:city.seed,opts:city.genOpts});}}
+  const UPLOAD_BUDGET=6e6;
+  const useGpu=()=>cityPool.length&&state.bkit==='kit'&&state.vox==='0'&&!opened.size&&!rayShown.size;
+  function gpuGet(kind,key,prio){const id=kind+':'+key,t=gpuTiles.get(id);if(t){t.used=performance.now();return t;}if(!gpuPending.has(id)){gpuPending.set(id,prio);gpuQueue.push({id,kind,key,prio});}else gpuPending.set(id,Math.min(gpuPending.get(id),prio));return null;}
+  function gpuPump(){gpuQueue.sort((a,b)=>(gpuPending.get(a.id)??a.prio)-(gpuPending.get(b.id)??b.prio));for(const w of cityPool){if(w.busy||!w.ready||w.seed!==poolSeed||!gpuQueue.length)continue;const q=gpuQueue.shift();w.busy=true;w.postMessage({id:++gpuSeq,kind:q.kind,key:q.key});}}
+  const gpuCol=t=>t.col||(t.col=new CastleWalk.Collider({p:t.tris,k:new Uint8Array(t.tris.length/9).fill(1),id:[]}));
+  function kitPump(){}
+  function updateKit(){if(!city||state.bkit!=='kit'){kitWant.clear();return;}if(!city.kitByCell){city.kitByCell=new Map();for(const b of city.buildings)if(KIT_MAP[b.type]&&!b.hero){const k=kcell(b);if(!city.kitByCell.has(k))city.kitByCell.set(k,[]);city.kitByCell.get(k).push(b.id);}}
+    const f=walker?{x:walker.x,z:walker.z}:cam.dist<500?{x:cam.tx,z:cam.tz}:null,next=new Set();
+    if(f)for(const [key,ids] of city.kitByCell){let dmin=1e9;for(const id of ids){const b=city.buildings[id];dmin=Math.min(dmin,Math.hypot(b.x-f.x,b.z-f.z));}if(dmin<KIT_IN||(kitWant.has(key)&&dmin<KIT_OUT))next.add(key);}
+    kitWant.clear();for(const k of next)kitWant.add(k);
+    // Kit cells come from the city workers, nearest first (ahead of tiles further out).
+    for(const k of kitWant){const [i,j]=k.split(',').map(Number);gpuGet('kit',k,Math.hypot((i+.5)*KIT_CELL-f.x,(j+.5)*KIT_CELL-f.z)*.5);}gpuPump();
+    // Evict the least recently wanted cells beyond the cache size.
+    {const kits=[...gpuTiles].filter(([k])=>k.startsWith('kit:')&&!kitWant.has(k.slice(4)));if(kits.length>KIT_KEEP){kits.sort((a,b)=>a[1].used-b[1].used);for(const [k,v] of kits.slice(0,kits.length-KIT_KEEP)){R.drop(v.key);gpuTiles.delete(k);}}}}
+  function kitVariant(b){const pool=KIT_MAP[b.type],list=pool==='HOME'?TownKit.HOME_KINDS.filter(v=>!TownKit.COMPOUND_KINDS.includes(v)):pool==='STORE'?TownKit.STORE_KINDS:pool==='SLUM'?TownKit.SLUM_KINDS:pool;return list[b.seed%list.length];}
   const KIT_MAP={house:'HOME',shop:'STORE',inn:['inn'],smithy:['smithy'],warehouse:['warehouse'],towerhouse:['towerhouse'],shack:'SLUM',barracks:['house'],chapel:['chapel'],bath:['house']};
   const KIT_ROOFS=[[.34,.4,.4],[.43,.29,.24],[.31,.4,.33],[.29,.34,.43],[.62,.3,.24]];
   function kitParts(b){const pool=KIT_MAP[b.type];if(!pool||b.hero)return null;const list=pool==='HOME'?TownKit.HOME_KINDS.filter(v=>!TownKit.COMPOUND_KINDS.includes(v)):pool==='STORE'?TownKit.STORE_KINDS:pool==='SLUM'?TownKit.SLUM_KINDS:pool;
     const variant=list[b.seed%list.length],T=TownKit.TYPES[variant]||{},rot=b.rot+(b.doorSide<0?Math.PI:0),c=Math.cos(rot),sn=Math.sin(rot);
-    const ground=(lx,lz)=>city.gy(b.x+lx*c-lz*sn,b.z+lx*sn+lz*c);
-    let k;try{k=TownKit.building({...T,id:'c'+b.id,variant,x:0,z:0,w:b.w,d:Math.min(b.d,T.d?Math.max(T.d,b.d*.8):b.d),storeys:Math.max(T.storeys||2,Math.min(4,b.storeys.length)),floor:b.floor,ground,roofCol:KIT_ROOFS[b.seed%KIT_ROOFS.length]});}catch(e){return null;}
+    const ground=(lx,lz)=>city.gy(b.x+lx*c-lz*sn,b.z+lx*sn+lz*c);// local frame of the lot (front +Z)
+    const dk=Math.min(b.d,T.d?Math.max(T.d,b.d*.8):b.d),sh=(b.d-dk)/2;
+    // A kit model shallower than its lot keeps its front on the lot's front line (the street), not the lot's centre.
+    let k;try{k=TownKit.building({...T,id:'c'+b.id,variant,x:0,z:sh,w:b.w,d:dk,storeys:Math.max(T.storeys||2,Math.min(4,b.storeys.length)),floor:b.floor,ground,roofCol:KIT_ROOFS[b.seed%KIT_ROOFS.length]});}catch(e){return null;}
     return TownKit.transform(k.parts.filter(p=>p.t!=='surfacePatch'),b.x,0,b.z,rot);}
   // Trees from the voxel world: a {t:'tree'} placeholder grows that species with the world's own generator (trunk and
   // branch tubes, crown lobes, conifer bough tiers), turned into parts here. One world instance, made on first use.
@@ -113,13 +141,25 @@
   const interiorOf=b=>cached('int:'+b.id,()=>CastleRender.meshParts(CityGen.buildingParts(b,true),city.palette));
   function cityList(focus){const list=[city.water,city.castleMesh],cols=[city.castleMesh.col],tw=walker?[Math.floor(walker.x/TILE),Math.floor(walker.z/TILE)]:null,
       dt=walker?tw:cam.dist<700?[Math.floor(cam.tx/TILE),Math.floor(cam.tz/TILE)]:null;
+    if(useGpu()){const hide=[],cand=[];
+      // Upload budget: meshes already on the GPU always draw; new ones go up nearest first, at most UPLOAD_BUDGET bytes
+      // per refresh, and a follow-up refresh takes the rest, so arrivals never land on one frame together.
+      const ready=t=>R.cache.has(t.key);
+      for(const [k,T] of city.tiles){const [i,j]=k.split(',').map(Number),near=tw&&Math.abs(i-tw[0])<=1&&Math.abs(j-tw[1])<=1,cx=(i+.5)*TILE,cz=(j+.5)*TILE,dd=Math.hypot(cx-focus.x,cz-focus.z);
+        for(const [kind,has,want] of [['static',T.s.length,true],['ext',T.b.length,true],['props',T.p.length,dd<PROPS_NEAR]]){if(!has||!want)continue;const t=gpuGet(kind,k,dd+(kind==='props'?40:0));if(t)cand.push({t,dd,near});}}
+      for(const k of kitWant){const t=gpuTiles.get('kit:'+k);if(t){const [i,j]=k.split(',').map(Number);t.used=performance.now();cand.push({t,dd:Math.hypot((i+.5)*KIT_CELL-focus.x,(j+.5)*KIT_CELL-focus.z)*.5,kit:k});}}
+      cand.sort((a,b)=>(ready(b.t)-ready(a.t))||a.dd-b.dd);let budget=UPLOAD_BUDGET,held=false;
+      for(const c of cand){if(!ready(c.t)){if(budget<=0){held=true;continue;}budget-=c.t.mesh.packed.buf.byteLength;}list.push(c.t);if(c.near)cols.push(gpuCol(c.t));if(c.kit)hide.push(...city.kitByCell.get(c.kit));}
+      if(held)setTimeout(scheduleRefresh,0);
+      const hk=hide.join(',');if(hk!==kitIds){kitIds=hk;R.setHidden(hide);}gpuPump();return {list,collider:new CastleWalk.Multi(cols)};}
     for(const [k,T] of city.tiles){const [i,j]=k.split(',').map(Number),near=tw&&Math.abs(i-tw[0])<=1&&Math.abs(j-tw[1])<=1,cx=(i+.5)*TILE,cz=(j+.5)*TILE;
       if(T.s.length){const t=staticOf(k);list.push(t);if(near)cols.push(t.col);}
       const detail=dt&&Math.abs(i-dt[0])<=1&&Math.abs(j-dt[1])<=1;
-      if(T.b.length){const t=detail&&state.vox!=='ray'?shellsNear(k):shells(k);list.push(t);if(near)cols.push(t.col);}
+      if(T.b.length){const t=detail&&state.vox!=='ray'&&state.bkit!=='kit'?shellsNear(k):shells(k);list.push(t);if(near)cols.push(t.col);}
       if(T.p.length&&Math.hypot(cx-focus.x,cz-focus.z)<PROPS_NEAR){const t=detail?propsNear(k):propsOf(k);list.push(t);if(near)cols.push(t.col);}}
     for(const b of opened.values()){const t=interiorOf(b);list.push(t);cols.push(t.col);}
-    for(const id of kitShown){const b=city.buildings[id],t=cached('kit:'+id,()=>CastleRender.meshParts(kitParts(b)||[],city.palette));list.push(t);cols.push(t.col);}
+    // Built, wanted kit cells draw; their buildings are hidden in the shells.
+    if(kitIds!==''){kitIds='';R.setHidden([]);}
     for(const id of rayShown){const b=city.buildings[id];cols.push(cached('rcol:'+id,()=>CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette)).col);}
     return {list,collider:new CastleWalk.Multi(cols)};}
   // ---- Ray-marched buildings: those within RAY_R of the walker (or the view's focus when zoomed in) are voxelised at
@@ -140,7 +180,9 @@
     if(dropped){R.setRays([...rayShown].map(id=>'ray:'+city.seed+':'+id));refreshCity();}
     queue.sort((a,b)=>{const A=city.buildings[a],B=city.buildings[b];return Math.hypot(A.x-f.x,A.z-f.z)-Math.hypot(B.x-f.x,B.z-f.z);});pump();}
   const DETAILED_RAY=new Set(['house','shop','inn','towerhouse','smithy','warehouse','barracks','chapel','guildhall','market','bath','shack']);
-  function refreshCity(){updateKit();const f=walker?{x:walker.x,z:walker.z}:{x:cam.tx,z:cam.tz},{list,collider}=cityList(f);R.setMeshes(list);if(walker)walker.col=collider;state.collider=collider;}
+  const refreshCost={kit:0,list:0,upload:0,n:0,worst:0};
+  function refreshCity(){const t0=performance.now();updateKit();const t1=performance.now(),f=walker?{x:walker.x,z:walker.z}:{x:cam.tx,z:cam.tz},{list,collider}=cityList(f);const t2=performance.now();R.setMeshes(list);const t3=performance.now();if(walker)walker.col=collider;state.collider=collider;
+    refreshCost.kit+=t1-t0;refreshCost.list+=t2-t1;refreshCost.upload+=t3-t2;refreshCost.n++;refreshCost.worst=Math.max(refreshCost.worst,t3-t0);}
   // Doors: the outside door point of a building, and the nearest one within reach of the walker.
   function doorPoint(b){const c=Math.cos(b.rot),s=Math.sin(b.rot),v=b.doorSide*(b.d/2+.8),u=b.doorU||0;return [b.x+u*c-v*s,b.z+u*s+v*c];}
   function nearestDoor(){let best=null;const k=[Math.floor(walker.x/TILE),Math.floor(walker.z/TILE)];
@@ -148,8 +190,9 @@
   // Interiors are parked while the city's scale and layout are worked out (?interiors=1 turns doors back on).
   function toggleDoor(){if(!walker||state.mode!=='city'||Q.get('interiors')!=='1')return;const b=nearestDoor();if(!b)return;if(opened.has(b.id))opened.delete(b.id);else opened.set(b.id,b);refreshCity();}
   function closeFar(){let changed=false;for(const [id,b] of opened)if(Math.hypot(b.x-walker.x,b.z-walker.z)>80){opened.delete(id);changed=true;}return changed;}
-  function buildCity(){tileCache.clear();opened.clear();for(const id of rayShown)R.dropRay('ray:'+(city&&city.seed)+':'+id);rayShown.clear();rayWant.clear();queue.length=0;R.setRays([]);lastRayAt=null;for(const k of [...R.cache.keys()])R.drop(k);
-    city=CityGen.generate(state.seed,{scale:state.scale,terrain:state.terrain||undefined,river:state.river||undefined,castleLayout:state.layout||undefined});city.tiles=new Map();const T=k=>{if(!city.tiles.has(k))city.tiles.set(k,{b:[],p:[],s:[]});return city.tiles.get(k);};
+  function buildCity(){kitWant.clear();kitQueue.length=0;kitIds=null;R.setHidden([]);tileCache.clear();opened.clear();for(const id of rayShown)R.dropRay('ray:'+(city&&city.seed)+':'+id);rayShown.clear();rayWant.clear();queue.length=0;R.setRays([]);lastRayAt=null;for(const k of [...R.cache.keys()])R.drop(k);
+    {const genOpts={scale:state.scale,terrain:state.terrain||undefined,river:state.river||undefined,castleLayout:state.layout||undefined};city=CityGen.generate(state.seed,genOpts);city.genOpts=JSON.parse(JSON.stringify(genOpts));}
+    if(cityPool.length)poolInit();city.tiles=new Map();const T=k=>{if(!city.tiles.has(k))city.tiles.set(k,{b:[],p:[],s:[]});return city.tiles.get(k);};
     for(const b of city.buildings)T(tkey(b.x,b.z)).b.push(b);for(const p of city.props)T(tkey(p.x,p.z)).p.push(p);
     for(const p of city.parts){const x=p.x??p.x0??p.cx??0,z=p.z??p.z0??p.cz??0;T(tkey(x,z)).s.push(p);}
     const cm=CastleRender.meshParts(city.castle.parts,city.castle.palette,city.castleAt.x,city.castleAt.z);
@@ -195,7 +238,10 @@
   window.CastleDrafts={frames:0,state,cam,rebuild,draw,
     // Headless helpers: start Walk, step it, or place the walker.
     walk:()=>startWalk(),step:(keys,seconds)=>{Object.assign(walker.keys,keys);for(let i=0;i<seconds*30;i++){walker.update(1/30);follow();}walker.keys={};shadowNear();cam.fp=walker.camera();draw();return {x:walker.x,y:walker.y,z:walker.z};},
-    place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});follow();shadowNear();cam.fp=walker.camera();draw();},city:()=>city,openDoor:id=>{const b=city.buildings[id];opened.set(b.id,b);refreshCity();draw();},stats:()=>({...R.stats,rayJobs:jobs.size+queue.length,rayAvgMs:rayStats.n?Math.round(rayStats.ms/rayStats.n):0,voxMs:Math.round(voxStats.ms),voxTiles:voxStats.tiles}),doorPoint:b=>doorPoint(b),walker:()=>walker};
+    // Streaming only (no draw), for timing the main thread's share of a walk.
+    dbg:()=>({list:R.list.length,kitInList:[...R.cache.keys()].filter(k=>k.includes(':kit:')).length,hidden:(kitIds||'').split(',').length,want:kitWant.size,useGpu:!!useGpu(),walker:walker&&[walker.x|0,walker.z|0]}),
+    stream:(x,z)=>{walker.x=x;walker.z=z;follow();},
+    place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});follow();shadowNear();cam.fp=walker.camera();draw();},city:()=>city,openDoor:id=>{const b=city.buildings[id];opened.set(b.id,b);refreshCity();draw();},stats:()=>({...R.stats,gpuBytes:[...gpuTiles].reduce((o,[k,v])=>{const t=k.split(':')[0];o[t]=(o[t]||0)+Math.round(v.mesh.packed.buf.byteLength/1e6);return o;},{}),gpuTiles:gpuTiles.size,gpuQueue:gpuQueue.length,up:R.upStats,buildCost,refreshCost,kitCells:[...kitWant].filter(k=>gpuTiles.has('kit:'+k)).length+'/'+kitWant.size,kitAvgMs:kitStats.n?Math.round(kitStats.ms/kitStats.n):0,rayJobs:jobs.size+queue.length,rayAvgMs:rayStats.n?Math.round(rayStats.ms/rayStats.n):0,voxMs:Math.round(voxStats.ms),voxTiles:voxStats.tiles}),doorPoint:b=>doorPoint(b),walker:()=>walker};
   const set=(k,v)=>{state[k]=v;state._moved=true;rebuild();};
   $('seed').onchange=e=>set('seed',+e.target.value);$('prev').onclick=()=>set('seed',state.seed-(state.grid?9:1));$('next').onclick=()=>set('seed',state.seed+(state.grid?9:1));
   $('mode').onchange=e=>set('mode',e.target.value);$('bkit').onchange=e=>{state.bkit=e.target.value;state._moved=true;sync();rebuild();};$('vox').onchange=e=>{state.vox=e.target.value;state._moved=true;sync();rebuild();};$('light').onchange=e=>{state.light=e.target.value;sync();draw();};$('ink').onchange=e=>{state.ink=e.target.checked;sync();draw();};$('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('layout').onchange=e=>set('layout',e.target.value);$('terrain').onchange=e=>set('terrain',e.target.value);$('river').onchange=e=>set('river',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);

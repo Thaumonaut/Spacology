@@ -244,24 +244,38 @@
         prop(x,z,L);}}
     for(let k=0;k<16;k++){const a=k/16*TAU;lantern(Math.cos(a)*(plazaR-3),Math.sin(a)*(plazaR-3));}
     for(let k=0;k<10;k++){const a=(k+.5)/10*TAU,d=plazaR*r(.45,.75);stall(Math.cos(a)*d,Math.sin(a)*d,a+Math.PI/2);}
-    for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),nx=-Math.sin(rot),nz=Math.cos(rot);
-      // Inner streets are terraced: narrow houses wall to wall; the outer town has small gaps and gardens.
-      for(const sd of [-1,1]){let t=r(0,4);while(t<L){const px0=s.x0+(s.x1-s.x0)*t/L,pz0=s.z0+(s.z1-s.z0)*t/L,zone=zoneAt(px0,pz0,s.kind),inner=Math.hypot(px0,pz0)<Rw*.58&&zone!=='slum';let type=pickType(zone);const T=TYPES[type],w=r(T.w[0],T.w[1])*(inner&&(type==='house'||type==='shop')?.75:1),d=r(T.d[0],T.d[1]);
-        const ut=t+w/2,px=s.x0+(s.x1-s.x0)*ut/L,pz=s.z0+(s.z1-s.z0)*ut/L,off=s.w/2+1.2+d/2,x=px+nx*sd*off,z=pz+nz*sd*off;
-        // Square buildings (tower houses, baths) stand any way; the rest keep their long side to the street.
-        if(ut+w/2<=L&&fits(x,z,w,d,rot)){place(type,x,z,w,d,rot,-sd);t+=w+(inner?r(0,.15):r(.6,3));}else t+=r(1.5,3);}}}
+    // ---- Frontage solver. Street segments chain into road polylines (consecutive pieces of one road meet end to end);
+    // lots are laid along each side of a polyline by arc length, each lot's front the chord between the road points at
+    // its two ends (so rows follow curves and kinks without zigzag or wedge gaps), set back by the road's half width
+    // and a footway, door to the road. Lots stop short of other roads at corners (fits() keeps them off reserved
+    // ground), and a lot that does not fit is skipped a little rather than abandoning the row.
+    function chains(list){const out=[];let cur=null;for(const s of list){if(cur&&cur.kind===s.kind&&Math.hypot(cur.pts.at(-1)[0]-s.x0,cur.pts.at(-1)[1]-s.z0)<.05){cur.pts.push([s.x1,s.z1]);continue;}
+        cur={kind:s.kind,w:s.w,pts:[[s.x0,s.z0],[s.x1,s.z1]]};out.push(cur);}
+      for(const c of out){c.cum=[0];for(let i=1;i<c.pts.length;i++)c.cum.push(c.cum[i-1]+Math.hypot(c.pts[i][0]-c.pts[i-1][0],c.pts[i][1]-c.pts[i-1][1]));c.L=c.cum.at(-1);}return out;}
+    const at=(c,t)=>{t=Math.max(0,Math.min(c.L,t));let i=1;while(i<c.cum.length-1&&c.cum[i]<t)i++;const f=(t-c.cum[i-1])/((c.cum[i]-c.cum[i-1])||1),a=c.pts[i-1],b=c.pts[i];return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f];};
+    function frontage(c,sd,pickLot,src){let t=r(1,4);while(t<c.L-2){const zoneP=at(c,t),lot=pickLot(zoneP,c);if(!lot){t+=3;continue;}const {type,w,d,gapAfter}=lot;
+        const A=at(c,t),B=at(c,t+w),cl=Math.hypot(B[0]-A[0],B[1]-A[1]);if(t+w>c.L||cl<w*.85){t+=2;continue;}
+        const ux=(B[0]-A[0])/cl,uz=(B[1]-A[1])/cl,nx=-uz,nz=ux,off=c.w/2+(c.w>=7?1.6:.6)+d/2,x=(A[0]+B[0])/2+nx*sd*off,z=(A[1]+B[1])/2+nz*sd*off,rot=Math.atan2(uz,ux);
+        if(fits(x,z,w,d,rot)){const b=place(type,x,z,w,d,rot,-sd);b.src=src;b.road=c.kind;t+=w+gapAfter;}else t+=r(1.2,2.4);}}
+    const roadChains=chains(streets.filter(s=>s.kind!=='alley'&&!inRiver((s.x0+s.x1)/2,(s.z0+s.z1)/2,2)));
+    for(const c of roadChains)for(const sd of [-1,1])frontage(c,sd,(P)=>{const zone=zoneAt(P[0],P[1],c.kind),inner=Math.hypot(P[0],P[1])<Rw*.58&&zone!=='slum',type=pickType(zone),T=TYPES[type];
+      // Inner streets are terraced (narrow houses wall to wall); the outer town has small gaps and gardens.
+      return {type,w:r(T.w[0],T.w[1])*(inner&&(type==='house'||type==='shop')?.75:1),d:r(T.d[0],T.d[1]),gapAfter:inner?r(0,.15):r(.6,3)};},'front');
     // ---- Back lots: clusters of homes round small courtyards behind the street fronts, each reached by an alley from
     // the nearest street (the alley is laid first, so the cluster is never walled in). Slum clusters are shacks.
+    const courts=[];
     const nearestStreet=(x,z)=>{let best=null;for(const st of streets){const dx=st.x1-st.x0,dz=st.z1-st.z0,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-st.x0)*dx+(z-st.z0)*dz)/L2)),qx=st.x0+dx*t,qz=st.z0+dz*t,d=Math.hypot(x-qx,z-qz);if(!best||d<best.d)best={d,qx,qz,st};}return best;};
     for(let tries=0;tries<7000;tries++){const a=R()*TAU,dd=Math.sqrt(R())*(Rw-25),x=Math.cos(a)*dd,z=Math.sin(a)*dd,slum=inSlum(x,z),cr=slum?r(3.5,5):r(5,8);
       if(isOcc(x,z)||inRiver(x,z,cr+6)||Math.hypot(x-cx,z-cz)<hillR+10)continue;let open=true;for(let q=0;q<8;q++){const b=q/8*TAU;if(isOcc(x+Math.cos(b)*cr,z+Math.sin(b)*cr))open=false;}if(!open)continue;
       const ns=nearestStreet(x,z);if(!ns||ns.d<cr+6||ns.d>85)continue;
       // The alley must run through open ground (its last metres meet the street's own reserved strip).
       const L=ns.d,ux=(ns.qx-x)/L,uz=(ns.qz-z)/L;let clear=true;for(let t=cr;t<L-ns.st.w/2-2;t+=1.5)if(isOcc(x+ux*t,z+uz*t)||inRiver(x+ux*t,z+uz*t,2))clear=false;if(!clear)continue;
-      street(x+ux*cr*.5,z+uz*cr*.5,ns.qx,ns.qz,slum?2.6:3.2,'alley');markDisk(x,z,cr);
-      const n=Math.round(slum?r(5,9):r(3,6)),aa=Math.atan2(uz,ux);
-      for(let k=0;k<n;k++){const b=aa+(k+.5)/n*TAU*(slum?1:.86)+(slum?0:TAU*.07),type=slum?'shack':R()<.85?'house':pick(['smithy','towerhouse','shop']),T=TYPES[type],w=r(T.w[0],T.w[1])*(slum?1:.85),d=r(T.d[0],T.d[1])*(slum?1:.8),off=cr+d/2+.4;
-        const hx=x+Math.cos(b)*off,hz=z+Math.sin(b)*off,rot=b+Math.PI/2+(slum?r(-.25,.25):0);if(fits(hx,hz,w,d,rot))place(type,hx,hz,w,d,rot,1);}
+      street(x+ux*cr*.5,z+uz*cr*.5,ns.qx,ns.qz,slum?2.6:3.2,'alley');markDisk(x,z,cr);courts.push({x,z,r:cr});
+      // Houses line both sides of the alley, fronting it; the courtyard at its end is closed by a few more facing in.
+      {const ac=chains([streets.at(-1)])[0];for(const sd of [-1,1])frontage(ac,sd,()=>{const type=slum?'shack':R()<.85?'house':pick(['smithy','towerhouse','shop']),T=TYPES[type];return {type,w:r(T.w[0],T.w[1])*(slum?1:.85),d:r(T.d[0],T.d[1])*(slum?1:.8),gapAfter:slum?r(0,.6):r(0,.3)};},'alley');}
+      const n=Math.round(slum?r(3,5):r(2,4)),aa=Math.atan2(uz,ux);
+      for(let k=0;k<n;k++){const b=aa+Math.PI+(k-(n-1)/2)*(slum?.8:1)*1.1/n*Math.PI,type=slum?'shack':R()<.85?'house':pick(['smithy','towerhouse','shop']),T=TYPES[type],w=r(T.w[0],T.w[1])*(slum?1:.85),d=r(T.d[0],T.d[1])*(slum?1:.8),off=cr+d/2+.4;
+        const hx=x+Math.cos(b)*off,hz=z+Math.sin(b)*off,rot=b+Math.PI/2+(slum?r(-.25,.25):0);if(fits(hx,hz,w,d,rot))place(type,hx,hz,w,d,rot,1).src='court';}
       prop(x,z,[{t:'disk',x,y:gy(x,z)-.5,z,r:cr,mat:'paving',pat:3},...(R()<.45?[{t:'tree',x,y:gy(x,z),z,species:pick(['oak','birch','alder','gnarled']),size:r(.7,1.1)}]:[])]);}
     // ---- The static city: ground, quays, streets, plaza, bridges, walls.
     const span=Rw+340,TL=160;
@@ -308,7 +322,7 @@
         if(gate)add('gatewall',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,gap:12,gateH:wt-wb-7,crenel:true},'stone');else add('box',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,crenel:true},'stone');}
       for(const t of wa){const x=Math.cos(t)*Rw,z=Math.sin(t)*Rw;if(inRiver(x,z,6))continue;const g=gy(x,z);add('cyl',{x,y:g-3,z,r:7,h:31},'stone');add('cone',{x,y:g+26,z,r:8,h:20},'roof');}}
     const plazaA=cA+Math.PI*.5,spawn={x:Math.cos(plazaA)*(plazaR-6),y:gy(0,0)+1,z:Math.sin(plazaA)*(plazaR-6),yaw:Math.atan2(cz-Math.sin(plazaA)*(plazaR-6),cx-Math.cos(plazaA)*(plazaR-6))};
-    return {seed,riverKind,streets,radius:Rw,ground:G,relief,gy,terrainHeight,terraces:flats,palette:pal,parts,buildings,props,plazas,parks,castle,castleAt:{x:cx,z:cz},spawn,river:{inRiver}};
+    return {seed,riverKind,streets,courts,plazaR,radius:Rw,ground:G,relief,gy,terrainHeight,terraces:flats,palette:pal,parts,buildings,props,plazas,parks,castle,castleAt:{x:cx,z:cz},spawn,river:{inRiver}};
   }
   // ---- One building's parts. interior=false: a closed box and roof (far); true: a hollow shell with rooms and props.
   function buildingParts(b,interior){

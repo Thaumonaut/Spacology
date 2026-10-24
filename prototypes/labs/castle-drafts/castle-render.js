@@ -5,10 +5,10 @@
   'use strict';
   const TAU=Math.PI*2;
   // ---- Mesh building: positions, normals, colours and a material flag (1 = water) per vertex.
-  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.t=[];this.q=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;this.pat=0;this.glow=0;}
+  function Mesh(){this.b=[];this.bid=0;this.p=[];this.n=[];this.c=[];this.f=[];this.t=[];this.q=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;this.pat=0;this.glow=0;}
   Mesh.prototype.tri=function(a,b,c,col,na,nb,nc,flag=0){
     if(!na){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const l=Math.hypot(...n)||1;n=n.map(x=>x/l);na=nb=nc=n;}
-    const fl=flag||(this.glow?2:0);for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(fl);this.t.push(this.pat);const w=this.wq;if(w)this.q.push(p[0]/w-n[0]*.02,p[1]/w-n[1]*.02,p[2]/w-n[2]*.02,w);else this.q.push(0,0,0,0);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
+    const fl=flag||(this.glow?2:0);for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(fl);this.t.push(this.pat);this.b.push(this.bid);const w=this.wq;if(w)this.q.push(p[0]/w-n[0]*.02,p[1]/w-n[1]*.02,p[2]/w-n[2]*.02,w);else this.q.push(0,0,0,0);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
   };
   Mesh.prototype.quad=function(a,b,c,d,col,ns){if(ns){this.tri(a,b,c,col,ns[0],ns[1],ns[2]);this.tri(a,c,d,col,ns[0],ns[2],ns[3]);}else{this.tri(a,b,c,col);this.tri(a,c,d,col);}};
   const shade=(c,k)=>c.map(v=>Math.min(1,v*k));
@@ -22,15 +22,17 @@
     m.quad(C[4],C[7],C[6],C[5],col);m.quad(C[3],C[2],C[1],C[0],col);
     // Bake local contact shade into wall vertex colours, independent of sun and camera.
     // Split only architectural infill; the existing geometry still owns silhouettes and collisions.
-    const baked=o.bakeShade&&(h>1||o.shadeTop!=null),levels=baked?[0,.08,.3,.65,.82,.94,1]:[0,1];
+    // Four strips on each face carry the eave and foot shade (linear across each strip is close enough at
+    // these sizes); faces under 1 m wide (panel ends) are one strip.
+    const baked=o.bakeShade&&(h>1||o.shadeTop!=null),broad=baked?[0,.12,.5,.82,1]:[0,1];
     const tint=t=>{const top=o.shadeTop!=null?o.shadeTop-(y+t*h):(1-t)*h,bottom=o.shadeBase!=null?y+t*h-o.shadeBase:t*h;return col.map((v,k)=>v*(1-(baked?(.22*Math.exp(-Math.max(0,top)/.38)+.07*Math.exp(-Math.max(0,bottom)/.3)):0)*[1,.94,.55][k]));};
-    for(let side=0;side<4;side++)for(let j=1;j<levels.length;j++){
+    for(let side=0;side<4;side++){const levels=(side%2===0?o.w:o.d)>=1?broad:[0,1];for(let j=1;j<levels.length;j++){
       const a=side,b=(side+1)%4,lo=levels[j-1],hi=levels[j];
       const at=(i,t)=>C[i].map((v,k)=>v+(C[i+4][k]-v)*t),A=at(a,lo),B=at(b,lo),D=at(a,hi),E=at(b,hi);
       const start=m.c.length;m.quad(A,B,E,D,col);
       const colours=[tint(lo),tint(lo),tint(hi),tint(lo),tint(hi),tint(hi)];
       for(let v=0;v<6;v++)for(let k=0;k<3;k++)m.c[start+v*3+k]=colours[v][k];
-    }
+    }}
   }
   // Battlements: a low parapet with merlons along both edges of the wall top, leaving the walkway between them clear.
   function crenels(m,o,col){const {x,y,z,w,h,d,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),step=2.6,n=Math.floor(w/step),pw=Math.min(.8,d*.2);
@@ -183,8 +185,11 @@
   function build(castles){const m=new Mesh();for(const {castle,ox,oz} of castles)meshParts(castle.parts,castle.palette,ox,oz,m);return waterMesh(m);}
   // ---- GL
   const VS=`#version 300 es
-  in vec3 P;in vec3 N;in vec3 C;in float F;in float T;in vec4 Q;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;out vec4 vQ;
-  void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vQ=Q;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
+  in vec3 P;in vec3 N;in vec3 C;in float F;in float T;in vec4 Q;in float B;uniform mat4 VP;uniform mat4 LVP;uniform sampler2D HID;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;out vec4 vQ;
+  // Per-building hiding: B is the vertex's building id + 1 (0: none); HID marks hidden ids (256 per row), so a building
+  // can leave a shared mesh (when its detailed model takes over) without rebuilding the mesh.
+  float hidden(float b){if(b<.5)return 0.;int i=int(b+.5);return texelFetch(HID,ivec2(i%256,i/256),0).r;}
+  void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vQ=Q;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);if(hidden(B)>.5)gl_Position=vec4(2.,2.,2.,1.);}`;
   // Shared lighting (shadeOut) for meshes and ray-marched voxels: both fill gP, gN, gC, gF, gT, gL, gQ, then call it.
   const SHADE=`  precision highp float;precision highp usampler3D;precision highp usampler2D;
   vec3 gP,gN,gC;float gF,gT;vec4 gL,gQ;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
@@ -373,7 +378,11 @@
   ${MARCH}
   void main(){vec3 rd=dirLocal(-LDIR),ro=vLoc-rd*4000.,hp,hn,hq;float hs;uint e=march(ro,rd,true,hp,hn,hq,hs);if(e==0u)discard;vec4 cp=LVP*vec4(toWorld(hp),1.);gl_FragDepth=cp.z/cp.w*.5+.5;o=vec4(1);}`;
   const SVS=`#version 300 es
-  in vec3 P;uniform mat4 LVP;void main(){gl_Position=LVP*vec4(P,1.);}`;
+  in vec3 P;in float B;uniform mat4 LVP;uniform sampler2D HID;
+  // Per-building hiding: B is the vertex's building id + 1 (0: none); HID marks hidden ids (256 per row), so a building
+  // can leave a shared mesh (when its detailed model takes over) without rebuilding the mesh.
+  float hidden(float b){if(b<.5)return 0.;int i=int(b+.5);return texelFetch(HID,ivec2(i%256,i/256),0).r;}
+  void main(){gl_Position=LVP*vec4(P,1.);if(hidden(B)>.5)gl_Position=vec4(2.,2.,2.,1.);}`;
   const SFS=`#version 300 es
   precision mediump float;out vec4 o;void main(){o=vec4(1);}`;
   const SKYV=`#version 300 es
@@ -451,7 +460,7 @@
     this.main=prog(gl,VS,FS);this.shadowProg=prog(gl,SVS,SFS);this.sky=prog(gl,SKYV,SKYF);this.vao=gl.createVertexArray();this.svao=gl.createVertexArray();this.count=0;
     const S=4096;this.SM=S;this.depth=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT32F,S,S);
     for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
-    this.cache=new Map();this.list=[];this.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depth,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    this.cache=new Map();this.list=[];this.hid=gl.createTexture();this.hidData=new Uint8Array(256*64);gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,256,64,0,gl.RED,gl.UNSIGNED_BYTE,this.hidData);for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST]])gl.texParameteri(gl.TEXTURE_2D,k,v);this.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depth,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     this.post=prog(gl,SKYV,POSTF);this.brightP=prog(gl,SKYV,BRIGHTF);this.blurP=prog(gl,SKYV,BLURF);this.shaftP=prog(gl,SKYV,SHAFTF);this.ray=prog(gl,RAYV,RAYF);this.rayS=prog(gl,RAYV,RAYSF);this.rays=new Map();this.rayList=[];
     // Unit box (outward-wound), shared by every ray model; the ray shaders draw its back faces.
     {const V=[],Q=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]],F=[[0,3,2,1],[4,5,6,7],[0,1,5,4],[3,7,6,2],[0,4,7,3],[1,2,6,5]];for(const f of F)for(const k of [0,1,2,0,2,3])V.push(...Q[f[k]]);
@@ -459,12 +468,25 @@
       for(const pr of [this.ray,this.rayS]){const l=gl.getAttribLocation(pr,'P');if(l>=0){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,0,0);}}gl.bindVertexArray(null);}this.ink=1;this.setLight('noon');
   }
   // Meshes are uploaded once per key and kept; setMeshes picks which keys draw. Water (flag 1) never casts.
-  Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:m.p.length/3,bufs:[]};
-    const buf=(data,loc,size,vao,prog)=>{gl.bindVertexArray(vao);const b=gl.createBuffer();g.bufs.push(b);gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);const l=gl.getAttribLocation(prog,loc);if(l>=0){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,size,gl.FLOAT,false,0,0);}};
-    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1],[m.t,'T',1],[m.q,'Q',4]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;
-    // Bounding sphere for culling (the water plane is never culled).
-    let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];for(let i=0;i<m.p.length;i+=3)for(let a=0;a<3;a++){const v=m.p[i+a];if(v<lo[a])lo[a]=v;if(v>hi[a])hi[a]=v;}
-    g.c=lo.map((v,a)=>(v+hi[a])/2);g.r=g.casts?Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2:1e9;this.cache.set(key,g);return g;};
+  // Packed vertex format, 40 bytes: P float32x3 (0), N int8x3 normalised (12), C uint8x3 normalised + T pattern uint8
+  // (16), F flag uint8 (20), B building id uint16 (22), Q float32x4 (24, voxel coordinate). One interleaved buffer per
+  // mesh, shared by the colour and shadow passes. pack() runs wherever the mesh was built (workers included), so the
+  // main thread only hands a finished ArrayBuffer to the GPU; it also returns the bounding sphere and whether it casts.
+  const STRIDE=40;
+  function pack(m){const n=m.p.length/3,buf=new ArrayBuffer(n*STRIDE),f=new Float32Array(buf),i8=new Int8Array(buf),u8=new Uint8Array(buf),u16=new Uint16Array(buf);
+    let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];
+    for(let v=0;v<n;v++){const o=v*STRIDE,fo=o>>2;for(let a=0;a<3;a++){const x=m.p[v*3+a];f[fo+a]=x;if(x<lo[a])lo[a]=x;if(x>hi[a])hi[a]=x;}
+      for(let a=0;a<3;a++){i8[o+12+a]=Math.max(-127,Math.min(127,Math.round(m.n[v*3+a]*127)));u8[o+16+a]=Math.max(0,Math.min(255,Math.round(m.c[v*3+a]*255)));}
+      u8[o+19]=m.t[v]||0;u8[o+20]=m.f[v]||0;u16[(o+22)>>1]=m.b?m.b[v]||0:0;if(m.q&&m.q[v*4+3]){for(let a=0;a<4;a++)f[fo+6+a]=m.q[v*4+a];}}
+    const casts=!n||m.f[0]!==1;return {buf,count:n,c:lo.map((v,a)=>(v+hi[a])/2),r:casts?Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2:1e9,casts};}
+  Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const P=m.packed||pack(m);
+    const up=this.upStats||(this.upStats={n:0,verts:0,bytes:0});up.n++;up.verts+=P.count;up.bytes+=P.buf.byteLength;
+    const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:P.count,bufs:[],c:P.c,r:P.r,casts:P.casts,bytes:P.buf.byteLength},b=gl.createBuffer();g.bufs.push(b);
+    gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,P.buf,gl.STATIC_DRAW);
+    const attr=(vao,prog,name,size,type,norm,off)=>{gl.bindVertexArray(vao);const l=gl.getAttribLocation(prog,name);if(l<0)return;gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,size,type,norm,STRIDE,off);};
+    for(const [n,sz,t,nm,off] of [['P',3,gl.FLOAT,false,0],['N',3,gl.BYTE,true,12],['C',3,gl.UNSIGNED_BYTE,true,16],['T',1,gl.UNSIGNED_BYTE,false,19],['F',1,gl.UNSIGNED_BYTE,false,20],['B',1,gl.UNSIGNED_SHORT,false,22],['Q',4,gl.FLOAT,false,24]])attr(g.vao,this.main,n,sz,t,nm,off);
+    attr(g.svao,this.shadowProg,'P',3,gl.FLOAT,false,0);attr(g.svao,this.shadowProg,'B',1,gl.UNSIGNED_SHORT,false,22);gl.bindVertexArray(null);
+    this.cache.set(key,g);return g;};
   // Handmade wonk for one building's vertices [from, end) in m: the whole house leans a little its own way (sheared with
   // height above its base), and its roof (tile pattern) sags toward the middle of the ridge. Normals are left alone: at
   // these angles the change only shows in the outlines, which is the point.
@@ -507,6 +529,8 @@
     for(const g of this.rayList){if(!visible(P,g))continue;gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_3D,g.co);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,g.br);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,g.pal);
       gl.uniform4f(U('FRM'),g.F.x,g.F.z,Math.cos(g.F.rot),Math.sin(g.F.rot));gl.uniform3fv(U('ORG'),g.o);gl.uniform3fv(U('DIM'),g.dim);gl.uniform1f(U('CS'),g.cvs);gl.uniform3i(U('NC'),...g.n);gl.drawArrays(gl.TRIANGLES,0,36);n++;}
     gl.cullFace(gl.BACK);gl.disable(gl.CULL_FACE);gl.activeTexture(gl.TEXTURE0);return n;};
+  // Hide buildings by id (ids >= 0) in every mesh drawn after this; ids beyond 16383 are not hideable.
+  Renderer.prototype.setHidden=function(ids){const gl=this.gl;this.hidData.fill(0);for(const id of ids)if(id+1<this.hidData.length)this.hidData[id+1]=255;gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,64,gl.RED,gl.UNSIGNED_BYTE,this.hidData);};
   Renderer.prototype.setMeshes=function(list,bounds){this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
   Renderer.prototype.setMesh=function(m,bounds){for(const k of [...this.cache.keys()])this.drop(k);this.setMeshes([{key:'main'+(this.n=(this.n||0)+1),mesh:m}],bounds);};
   // Shadows cover a sun-aligned box: the scene bounds, or a focus (Walk) so nearby shadows stay sharp.
@@ -516,7 +540,7 @@
     gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.viewport(0,0,this.SM,this.SM);gl.clear(gl.DEPTH_BUFFER_BIT);gl.disable(gl.CULL_FACE);gl.useProgram(this.shadowProg);
     this.lvp=this.lightFor(cam.shadowFocus||this.bounds);
     const LP=planes(this.lvp);let st=0;
-    gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);for(const g of this.list)if(g.casts&&visible(LP,g)){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);st+=g.count/3;}
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.uniform1i(gl.getUniformLocation(this.shadowProg,'HID'),8);for(const g of this.list)if(g.casts&&visible(LP,g)){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);st+=g.count/3;}
     this.drawRays(this.rayS,this.lvp,LP,U=>{gl.uniform3fv(U('LDIR'),this.sun);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);});
     this.targets(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     // Orbit camera, or first person (cam.fp: eye, yaw, pitch) for Walk.
@@ -526,7 +550,7 @@
     gl.disable(gl.DEPTH_TEST);gl.useProgram(this.sky);gl.uniformMatrix4fv(gl.getUniformLocation(this.sky,'IVP'),false,invert(vp));gl.uniform3fv(gl.getUniformLocation(this.sky,'SUN'),this.sun);gl.uniform1f(gl.getUniformLocation(this.sky,'GOLD'),this.gold);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.useProgram(this.main);const U=n=>gl.getUniformLocation(this.main,n);
     gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);gl.uniform1f(U('GOLD'),this.gold);
-    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);const VPl=planes(vp);let tris=0,drawn=0;for(const g of this.list){if(!visible(VPl,g))continue;gl.bindVertexArray(g.vao);gl.drawArrays(gl.TRIANGLES,0,g.count);tris+=g.count/3;drawn++;}
+    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.uniform1i(U('HID'),8);gl.activeTexture(gl.TEXTURE0);gl.uniform1i(U('SH'),0);const VPl=planes(vp);let tris=0,drawn=0;for(const g of this.list){if(!visible(VPl,g))continue;gl.bindVertexArray(g.vao);gl.drawArrays(gl.TRIANGLES,0,g.count);tris+=g.count/3;drawn++;}
     const rayDrawn=this.drawRays(this.ray,vp,VPl,U=>{gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);gl.uniform1f(U('GOLD'),this.gold);
       gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);});
     this.stats={rays:rayDrawn,rayMB:Math.round([...this.rays.values()].reduce((a,g)=>a+g.bytes,0)/1e6),meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};
@@ -544,5 +568,5 @@
     [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
     gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
   // The beam part needs these helpers outside the GL section.
-  window.CastleRender={wonk,GROUND,colourOf,patOf,build,meshParts,waterMesh,Mesh,Renderer};
+  window.CastleRender={pack,STRIDE,wonk,GROUND,colourOf,patOf,build,meshParts,waterMesh,Mesh,Renderer};
 })();

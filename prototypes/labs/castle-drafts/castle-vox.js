@@ -82,7 +82,7 @@
           const nl=[0,0,0];nl[d]=sg;const nwx=nl[0]*c-nl[2]*s,nwy=nl[1],nwz=nl[0]*s+nl[2]*c,off=sg>0?-.5:.5,glow=pe.glow?2:0,col=pe.col;
           const cu=[0,w,w,0],cv=[0,0,h,h],order=sg>0?ORD_P:ORD_N;
           for(let oi=0;oi<6;oi++){const kq=order[oi],L=[P[0],P[1],P[2]];L[u]+=cu[kq];L[v]+=cv[kq];const lx=o[0]+L[0]*vs,ly=o[1]+L[1]*vs,lz=o[2]+L[2]*vs;
-            m.p.push(F.x+lx*c-lz*s,ly,F.z+lx*s+lz*c);m.n.push(nwx,nwy,nwz);m.c.push(col[0],col[1],col[2]);m.f.push(glow);m.t.push(pe.pat);L[d]+=off;m.q.push(L[0],L[1],L[2],vs);}
+            m.p.push(F.x+lx*c-lz*s,ly,F.z+lx*s+lz*c);m.b.push(m.bid||0);m.n.push(nwx,nwy,nwz);m.c.push(col[0],col[1],col[2]);m.f.push(glow);m.t.push(pe.pat);L[d]+=off;m.q.push(L[0],L[1],L[2],vs);}
           m.k.push(m.solid,m.solid);m.id.push(-1,-1);
           for(let l=0;l<h;l++)for(let k=0;k<w;k++)mask[p+k+l*n[u]]=0;i+=w;p+=w;}}}
     return m;}
