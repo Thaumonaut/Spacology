@@ -31,13 +31,15 @@
     const f=col.floor(spawn.x,spawn.y+40,spawn.z,0);this.y=isFinite(f)?f:spawn.y;}
   Walker.prototype.blocked=function(x,y,z,dx,dz){const L=Math.hypot(dx,dz);if(L<1e-6)return false;const d=[dx/L,0,dz/L];
     for(const h of [.75,1.3,1.75])if(this.col.ray([x,y+h,z],d,L+.35)<L+.35)return true;return false;};
-  Walker.prototype.update=function(dt){const k=this.keys,sp=(k.shift?14:5)*(this.fly?4:1),f=(k.w?1:0)-(k.s?1:0),r=(k.d?1:0)-(k.a?1:0);
+  Walker.prototype.update=function(dt){const k=this.keys,sp=(k.shift?8.5:4.2)*(this.fly?5:1),f=(k.w?1:0)-(k.s?1:0),r=(k.d?1:0)-(k.a?1:0);
     const fx=Math.cos(this.yaw),fz=Math.sin(this.yaw),dx=(fx*f-fz*r)*sp*dt,dz=(fz*f+fx*r)*sp*dt;
     if(this.fly){this.x+=dx;this.z+=dz;this.y+=((k.space?1:0)-(k.c?1:0))*sp*dt;return;}
     // One axis at a time, so a wall stops only the part of the move that runs into it.
     if(!this.blocked(this.x,this.y,this.z,dx,0))this.x+=dx;if(!this.blocked(this.x,this.y,this.z,0,dz))this.z+=dz;
     const g=this.col.floor(this.x,this.y,this.z);this.vy-=22*dt;this.y+=this.vy*dt;
-    if(this.y<=g){this.y=g;this.vy=k.space?7:0;}if(this.y<-30){const s=this.spawn0;if(s){this.x=s.x;this.z=s.z;this.y=s.y;this.vy=0;}}};
-  Walker.prototype.camera=function(){return {eye:[this.x,this.y+1.65,this.z],yaw:this.yaw,pitch:this.pitch};};
+    if(this.y<=g){this.y=g;this.vy=k.space?6:0;}
+    // Head bob while walking on the ground: a gentle step rhythm that makes speed readable.
+    const moving=(f||r)&&this.y-g<.05;this.bob=(this.bob||0)+(moving?dt*sp*1.9:0);this.bobAmp=(this.bobAmp||0)+((moving?1:0)-(this.bobAmp||0))*Math.min(1,dt*8);if(this.y<-30){const s=this.spawn0;if(s){this.x=s.x;this.z=s.z;this.y=s.y;this.vy=0;}}};
+  Walker.prototype.camera=function(){return {eye:[this.x,this.y+1.65+Math.sin(this.bob||0)*.045*(this.bobAmp||0),this.z],yaw:this.yaw,pitch:this.pitch};};
   window.CastleWalk={Collider,Multi,Walker};
 })();

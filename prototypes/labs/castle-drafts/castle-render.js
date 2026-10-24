@@ -102,6 +102,11 @@
     const T=[[x0-nx,y0,z0-nz],[x0+nx,y0,z0+nz],[x1+nx,y1,z1+nz],[x1-nx,y1,z1-nz]],B=[[x0-nx,b0,z0-nz],[x0+nx,b0,z0+nz],[x1+nx,b1,z1+nz],[x1-nx,b1,z1-nz]];
     m.quad(T[0],T[1],T[2],T[3],col);m.quad(B[0],T[0],T[3],B[3],shade(col,.92));m.quad(B[1],B[2],T[2],T[1],shade(col,.92));m.quad(B[0],B[1],T[1],T[0],shade(col,.9));m.quad(B[3],T[3],T[2],B[2],shade(col,.9));
     for(const e of [-1,1]){const ex=nx*e*.94,ez=nz*e*.94;const a=[x0+ex,y0,z0+ez],b=[x1+ex,y1,z1+ez],a2=[a[0],y0+1.1,a[2]],b2=[b[0],y1+1.1,b[2]];m.quad(a,b,b2,a2,shade(col,.95));}}
+  // A person, 1.6-1.85 m: legs, a coat (tapered), arms, head and a hat or hair. For scale; no collision.
+  function figure(m,o){const {x,y,z,rot=0,h=1.75,col=[.5,.3,.3]}=o,k=h/1.75,c=Math.cos(rot),s=Math.sin(rot),P=(u,v)=>[x+u*c-v*s,z+u*s+v*c],skin=[.92,.74,.6],leg=[.3,.28,.3];
+    for(const v of [-.1,.1]){const [lx,lz]=P(0,v*k);box(m,{x:lx,y,z:lz,w:.18*k,h:.82*k,d:.16*k,rot},leg);}
+    cyl(m,{x,y:y+.78*k,z,r:.22*k,h:.68*k,r2:.16*k},col,10);for(const v of [-.27,.27]){const [ax,az]=P(0,v*k);box(m,{x:ax,y:y+.8*k,z:az,w:.12*k,h:.6*k,d:.12*k,rot},col);}
+    blob(m,{x,y:y+1.6*k,z,rx:.12*k,ry:.14*k,rz:.12*k},skin);cyl(m,{x,y:y+1.68*k,z,r:.14*k,h:.08*k,r2:.12*k},o.hat||[.3,.22,.16],10);}
   function gatewall(m,o,col){const F=frame(o,0),g=o.gap/2;panel(m,F,-o.w/2,o.w,o.y,o.y+o.h,o.d,[{u0:-g,u1:g,y0:o.y-1,y1:o.y+o.gateH}],col);crenels(m,o,col);}
   // Surface patterns drawn by the shader (no geometry): 1 timber framing, 2 roof tiles, 3 cobbles, 4 stone blocks,
   // 5 plaster, 6 wood planks, 7 grass.
@@ -118,6 +123,7 @@
       else if(p.t==='arch')arch(m,p,col);else if(p.t==='crag')crag(m,p,cols);else if(p.t==='ring')prism(m,p,col);else if(p.t==='blob')blob(m,p,col);
       else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
       else if(p.t==='water'){const seg=32,N=[0,1,0];for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri([p.x,p.y,p.z],[p.x+Math.cos(a1)*p.r,p.y,p.z+Math.sin(a1)*p.r],[p.x+Math.cos(a0)*p.r,p.y,p.z+Math.sin(a0)*p.r],[.2,.5,.62],N,N,N,1);}}
+      else if(p.t==='figure'){figure(m,p);}
       else if(p.t==='quad'){const {x0,z0,x1,z1,y}=p,N=[0,1,0];m.quad([x0,y,z0],[x0,y,z1],[x1,y,z1],[x1,y,z0],col,[N,N,N,N]);}
       else if(p.t==='shore'){cyl(m,{x:p.x,y:-4,z:p.z,r:p.r,h:p.h+4,r2:p.r*.985},cols.grass,96);}}
     return m;}
@@ -145,6 +151,12 @@
     else if(t==5){o=c*(.95+.08*vn(vec2(u,p.y)*.6));if(wall)o*=1.-.18*(1.-smoothstep(6.,7.2,p.y));}
     else if(t==6){o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));}
     else if(t==7){o=c*(.86+.2*vn(p.xz*.12)+.06*vn(p.xz*1.3));}
+    else if(t==8||t==9){
+      // Closed buildings: the plaster or framing, then painted windows on each storey (dark glass, pale frame).
+      if(t==9&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
+      else o=c*(.95+.08*vn(vec2(u,p.y)*.6));
+      if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
+        o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     return mix(c,o,fade);}
   void main(){vec3 V=normalize(EYE-vP),n=normalize(vN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-vP);
     // Closed solids only show faces turned to the eye, so a normal facing away is a winding slip: flip it.
@@ -210,7 +222,14 @@
   // Meshes are uploaded once per key and kept; setMeshes picks which keys draw. Water (flag 1) never casts.
   Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:m.p.length/3,bufs:[]};
     const buf=(data,loc,size,vao,prog)=>{gl.bindVertexArray(vao);const b=gl.createBuffer();g.bufs.push(b);gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);const l=gl.getAttribLocation(prog,loc);if(l>=0){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,size,gl.FLOAT,false,0,0);}};
-    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1],[m.t,'T',1]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;this.cache.set(key,g);return g;};
+    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1],[m.t,'T',1]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;
+    // Bounding sphere for culling (the water plane is never culled).
+    let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];for(let i=0;i<m.p.length;i+=3)for(let a=0;a<3;a++){const v=m.p[i+a];if(v<lo[a])lo[a]=v;if(v>hi[a])hi[a]=v;}
+    g.c=lo.map((v,a)=>(v+hi[a])/2);g.r=g.casts?Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2:1e9;this.cache.set(key,g);return g;};
+  // Frustum planes from a view-projection matrix (column-major), and a sphere test against them.
+  function planes(M){const r=i=>[M[i],M[4+i],M[8+i],M[12+i]],R0=r(0),R1=r(1),R2=r(2),R3=r(3),out=[];
+    for(const [a,sg] of [[R0,1],[R0,-1],[R1,1],[R1,-1],[R2,1],[R2,-1]]){const p=R3.map((v,i)=>v+sg*a[i]),l=Math.hypot(p[0],p[1],p[2]);out.push(p.map(v=>v/l));}return out;}
+  const visible=(P,g)=>{for(const p of P)if(p[0]*g.c[0]+p[1]*g.c[1]+p[2]*g.c[2]+p[3]<-g.r)return false;return true;};
   Renderer.prototype.drop=function(key){const g=this.cache.get(key);if(!g)return;const gl=this.gl;g.bufs.forEach(b=>gl.deleteBuffer(b));gl.deleteVertexArray(g.vao);gl.deleteVertexArray(g.svao);this.cache.delete(key);};
   Renderer.prototype.setMeshes=function(list,bounds){this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
   Renderer.prototype.setMesh=function(m,bounds){for(const k of [...this.cache.keys()])this.drop(k);this.setMeshes([{key:'main'+(this.n=(this.n||0)+1),mesh:m}],bounds);};
@@ -220,7 +239,8 @@
     gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);
     gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.viewport(0,0,this.SM,this.SM);gl.clear(gl.DEPTH_BUFFER_BIT);gl.disable(gl.CULL_FACE);gl.useProgram(this.shadowProg);
     this.lvp=this.lightFor(cam.shadowFocus||this.bounds);
-    gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);for(const g of this.list)if(g.casts){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);}
+    const LP=planes(this.lvp);let st=0;
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);for(const g of this.list)if(g.casts&&visible(LP,g)){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);st+=g.count/3;}
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     // Orbit camera, or first person (cam.fp: eye, yaw, pitch) for Walk.
     let eye,vp;
@@ -229,6 +249,7 @@
     gl.disable(gl.DEPTH_TEST);gl.useProgram(this.sky);gl.uniformMatrix4fv(gl.getUniformLocation(this.sky,'IVP'),false,invert(vp));gl.uniform3fv(gl.getUniformLocation(this.sky,'SUN'),this.sun);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.useProgram(this.main);const U=n=>gl.getUniformLocation(this.main,n);
     gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);
-    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);for(const g of this.list){gl.bindVertexArray(g.vao);gl.drawArrays(gl.TRIANGLES,0,g.count);}};
+    gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);const VPl=planes(vp);let tris=0,drawn=0;for(const g of this.list){if(!visible(VPl,g))continue;gl.bindVertexArray(g.vao);gl.drawArrays(gl.TRIANGLES,0,g.count);tris+=g.count/3;drawn++;}
+    this.stats={meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};};
   window.CastleRender={build,meshParts,waterMesh,Mesh,Renderer};
 })();

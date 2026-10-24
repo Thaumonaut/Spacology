@@ -62,3 +62,14 @@ market hall). Secondary plazas with fountains sit where some avenues cross ring 
 gravel paths and benches; stalls line the avenues near the plaza; lanterns every 26 m along avenues and rings. A slum
 sector against the wall is shacks in tight clusters. Surface patterns (timber framing, roof tiles, cobbles, stone
 courses, plaster grime, planks, grass) are drawn by the shader and fade out with distance.
+
+## Doors, culling and people (v9)
+
+| File | What to look at |
+| --- | --- |
+| v9-city2-plaza | Townsfolk on the plaza and streets for scale; the stats line (meshes drawn, triangles, shadow triangles) |
+| v9-city2-*-door | A closed building: painted windows and a door panel; E opens it (interior loads, shell leaves its tile) |
+
+Plaza in Walk: 123 of 378 tile meshes drawn after frustum culling, 196k triangles (+250k in the shadow pass). Overview:
+340 of 378, 404k. Interiors are no longer built for whole tiles: only for buildings whose door was opened, unloaded at
+80 m. Props (stalls, lanterns, people, park trees) draw within ~380 m. Walk 4.2 m/s, run 8.5 m/s, with a head bob.

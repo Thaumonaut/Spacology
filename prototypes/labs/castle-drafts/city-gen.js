@@ -62,7 +62,7 @@
     function place(type,x,z,w,d,rot,doorSide){const T=TYPES[type],n=Math.round(r(T.st[0],T.st[1])),st=[0];for(let i=1;i<n;i++)st.push(T.g+(i-1)*3.6);
       const H=type==='chapel'?r(11,16):type==='bath'?8:T.g+(n-1)*3.6+.8;
       const tudor=(type==='house'||type==='inn'||type==='shop')&&R()<.45;
-      const b={id:buildings.length,type,x,z,w,d,rot,doorSide,storeys:st,H,tudor,wall:type==='shack'?pick(SHACK):tudor?[.96,.94,.88]:pick(PLASTER),roof:type==='chapel'||type==='guildhall'?pick([[.36,.46,.66],[.34,.58,.54]]):pick(ROOFS),pitch:type==='shack'?r(.25,.45):r(.6,1.05),seed:Math.floor(R()*1e9)};
+      const b={id:buildings.length,type,x,z,w,d,rot,doorSide,storeys:st,H,tudor,wall:type==='shack'?pick(SHACK):tudor?[.96,.94,.88]:pick(PLASTER),roof:type==='chapel'||type==='guildhall'?pick([[.36,.46,.66],[.34,.58,.54]]):pick(ROOFS),pitch:type==='shack'?r(.25,.45):r(.6,1.05),doorU:type==='chapel'?0:r(-.25,.25)*(w-1.2),seed:Math.floor(R()*1e9)};
       buildings.push(b);claim(x,z,w,d,rot);return b;}
     // ---- Hero buildings on the plaza, each along the plaza's edge in the gap between two avenues, door to the plaza:
     // the cathedral opposite the castle, then the guildhall and the grand market hall in the next best gaps. They always
@@ -98,6 +98,14 @@
     for(const st of streets){if(st.kind==='lane')continue;const L=Math.hypot(st.x1-st.x0,st.z1-st.z0),rot=Math.atan2(st.z1-st.z0,st.x1-st.x0),nx=-Math.sin(rot),nz=Math.cos(rot),mid=Math.hypot((st.x0+st.x1)/2,(st.z0+st.z1)/2);
       for(let t=r(0,6);t<L;t+=26){const sd=Math.floor(t/26)%2?1:-1,x=st.x0+(st.x1-st.x0)*t/L+nx*sd*(st.w/2+.55),z=st.z0+(st.z1-st.z0)*t/L+nz*sd*(st.w/2+.55);if(!inRiver(x,z,3)&&mid<Rw-8)lantern(x,z);}
       if(st.kind==='avenue'&&mid<plazaR+gap*1.8&&mid>plazaR+8)for(let t=3;t<L-3;t+=4.5)for(const sd of [-1,1]){if(R()<.3)continue;const x=st.x0+(st.x1-st.x0)*t/L+nx*sd*(st.w/2-1.6),z=st.z0+(st.z1-st.z0)*t/L+nz*sd*(st.w/2-1.6);if(!inRiver(x,z,4))stall(x,z,rot);}}
+    // Townsfolk for scale: crowds on the plazas and at the stalls, a few on every street, strollers in parks.
+    const CLOTH2=[[.55,.28,.25],[.3,.38,.55],[.42,.5,.32],[.6,.52,.36],[.38,.32,.42],[.72,.66,.58],[.25,.3,.3]],HAT=[[.3,.22,.16],[.5,.4,.25],[.2,.2,.24],[.62,.3,.2]];
+    const person=(x,z)=>prop(x,z,[{t:'figure',x,y:G,z,rot:R()*TAU,h:r(1.55,1.88),col:pick(CLOTH2),hat:pick(HAT),nocol:true}]);
+    for(let k=0;k<70;k++){const a=R()*TAU,d=Math.sqrt(R())*(plazaR-4);person(Math.cos(a)*d,Math.sin(a)*d);}
+    for(const pz of plazas)for(let k=0;k<10;k++){const a=R()*TAU,d=r(pz.r*.3,pz.r*.9);person(pz.x+Math.cos(a)*d,pz.z+Math.sin(a)*d);}
+    for(const pk of parks)for(let k=0;k<14;k++){const a=R()*TAU,d=Math.sqrt(R())*pk.r*.9;person(pk.x+Math.cos(a)*d,pk.z+Math.sin(a)*d);}
+    for(const st of streets){const L=Math.hypot(st.x1-st.x0,st.z1-st.z0),rot=Math.atan2(st.z1-st.z0,st.x1-st.x0),nx=-Math.sin(rot),nz=Math.cos(rot),dens=st.kind==='avenue'?1/14:st.kind==='ring'?1/30:1/60;
+      for(let t=R()/dens;t<L;t+=r(.5,1.5)/dens){const o=r(-.4,.4)*st.w,x=st.x0+(st.x1-st.x0)*t/L+nx*o,z=st.z0+(st.z1-st.z0)*t/L+nz*o;if(!inRiver(x,z,2)&&Math.hypot(x,z)<Rw-8)person(x,z);}}
     for(let k=0;k<16;k++){const a=k/16*TAU;lantern(Math.cos(a)*(plazaR-3),Math.sin(a)*(plazaR-3));}
     for(let k=0;k<10;k++){const a=(k+.5)/10*TAU,d=plazaR*r(.45,.75);stall(Math.cos(a)*d,Math.sin(a)*d,a+Math.PI/2);}
     for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),nx=-Math.sin(rot),nz=Math.cos(rot);
@@ -146,7 +154,8 @@
     const WOOD=[.56,.4,.27],DARK=[.28,.25,.25],CLOTH=[.72,.34,.3],STONE=[.85,.82,.76],y0=G,top=G+b.H,th=.6,iw=b.w-2*th,id=b.d-2*th;
     const roofH=b.d*b.pitch*.5,type=b.type;
     // Exterior bodies and roofs by type.
-    const pat=b.tudor?1:type==='shack'?6:5;
+    // Closed shells carry painted windows (patterns 8 and 9); open interiors have real ones.
+    const pat=type==='shack'?6:interior?(b.tudor?1:5):(b.tudor?9:8);
     const body=(o,mat)=>interior?add('shell',{...o,pat},mat):add('box',{x:o.x,y:o.y,z:o.z,w:o.w,h:o.h,d:o.d,rot:o.rot,col:o.col,pat},mat);
     if(type==='market'){
       // Open arcade below, a closed hall above reached by an outside stair.
@@ -155,7 +164,7 @@
       prop(0,0,b.w,b.d,.6,up-.6,STONE);body({x:b.x,y:up,z:b.z,w:b.w,h:b.H-5,d:b.d,rot:b.rot,th,floor:up,storeys:[0],door:{side:b.doorSide,u:b.w/2-2.5,wid:2,hgt:3},col:b.wall},'plaster');
       if(interior){for(let i=0;i<6;i++)prop(r(-b.w/3,b.w/3),r(-b.d/3,b.d/3),2.4,1.4,1,y0,[CLOTH,WOOD,[.4,.56,.7]][i%3]);const [ax,az]=W(b.w/2-2.5,b.doorSide*(b.d/2+3)),[bx,bz]=W(b.w/2-2.5-12,b.doorSide*(b.d/2+3));add('ramp',{x0:bx,z0:bz,y0:y0,x1:ax,z1:az,y1:up,w:2.4,base:y0},'stone2');}
       add('gable',{x:b.x,y:top,z:b.z,w:b.w,d:b.d+1.2,h:roofH,rot:b.rot,col:b.roof},'roof');return out;}
-    const doorU=type==='cathedral'?0:r(-.25,.25)*iw,doorW=type==='smithy'||type==='warehouse'?4:type==='cathedral'?5:1.6,doorH=type==='cathedral'?8:type==='smithy'||type==='warehouse'?4:2.6;
+    const doorU=type==='cathedral'||b.hero?0:b.doorU,doorW=type==='smithy'||type==='warehouse'?4:type==='cathedral'?5:1.6,doorH=type==='cathedral'?8:type==='smithy'||type==='warehouse'?4:2.6;
     const door=type==='cathedral'?{side:1,u:0,wid:6,hgt:9}:{side:b.doorSide,u:doorU,wid:doorW,hgt:doorH};
     body({x:b.x,y:y0-1,z:b.z,w:b.w,h:b.H+1,d:b.d,rot:b.rot,th:type==='cathedral'?1.6:th,floor:y0,storeys:b.storeys,door,col:b.wall,grand:type==='cathedral'||type==='guildhall'},'plaster');
     if(type==='bath'){const [x,z]=W(0,0);add('cyl',{x,y:top,z,r:Math.min(b.w,b.d)*.42,h:2},'stone');add('dome',{x,y:top+2,z,r:Math.min(b.w,b.d)*.44,col:[.34,.58,.54]},'roof');}
@@ -176,7 +185,8 @@
       for(const su of [-1,1]){const [fx,fz]=W(su*(b.w/2-1),b.doorSide*(b.d/2-1));add('cyl',{x:fx,y:top,z:fz,r:.08,h:7,mat:'dark',nocol:true},'dark');add('box',{x:fx+.9,y:top+5,z:fz,w:1.8,h:1.1,d:.05,rot:0,col:R()<.5?[.7,.2,.2]:[.2,.3,.6],nocol:true},"cloth");}}
     if(type==='towerhouse'){const [x,z]=W(0,0);add('box',{x,y:top,z,w:b.w,h:1.2,d:b.d,rot:b.rot,crenel:true},'stone');}
     if(type==='smithy'){const [x,z]=W(-b.w/2+2,0);add('cyl',{x,y:y0,z,r:.9,h:b.H+roofH+3,nocol:true},'stone');}
-    if(!interior)return out;
+    // Closed: a door panel in the doorway, so doors read from the street (E opens it in Walk).
+    if(!interior){if(door.side){const [x,z]=W(door.u,door.side*(b.d/2+.04));add('box',{x,y:y0,z,w:door.wid,h:door.hgt,d:.12,rot:b.rot,col:[.42,.28,.18],pat:6},'wood');}return out;}
     // ---- Rooms and furniture.
     const F=(sy)=>y0+sy;
     const hearth=(u,v,y)=>{prop(u,v,2.2,.9,1.6,y,DARK);prop(u,v,2.6,1.1,.3,y+1.6,STONE);};
