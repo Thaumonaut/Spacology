@@ -377,6 +377,11 @@
       // End walls get corner posts and plates too.
       for(const su of [-1,1]){const u=su*(b.w/2+.07);beam(P(u,vo-dd/2,yy+.08),P(u,vo+dd/2,yy+.08),TIM,.2);beam(P(u,vo-dd/2,yy+sH-.1),P(u,vo+dd/2,yy+sH-.1),TIM,.2);beam(P(u,vo,yy),P(u,vo,yy+sH),TIM,.15);}}
     const topY=y0+gH+(n-1)*sH,dTop=depthAt(n-1),vTop=offAt(n-1),front=b.w<9.5||b.type==='towerhouse';
+    // Painted shadow bands: under each jetty and under the eaves, the wall below carries a soft darker band (two steps,
+    // dark then lighter), as background painters fake the overhang's shade on a façade.
+    {const band=(i,yTop)=>{const v=face(i)+F*.025,wc=i===0?STONE:b.wall;box(0,v,b.w-.05,.03,yTop-.72,.42,wc.map((x,k)=>x*[.6,.58,.72][k]));box(0,v,b.w-.05,.03,yTop-1.25,.53,wc.map((x,k)=>x*[.8,.79,.88][k]));};
+      // Storey i's wall top sits under the next jetty (or the eaves on the top storey); the ground floor under the first.
+      for(let i=0;i<n;i++)band(i,i===0?y0+gH:y0+gH+i*sH);}
     // ---- Roof: deep eaves, fascia boards, barge boards up the gable edges, a ridge cap; gable ends get framing and a
     // small window; long roofs get dormers.
     {const ov=.75;if(front){const h=b.w*r(.85,1.1),ww=b.w+ov*2,[x,z]=W(0,vTop);out.push({t:'gable',x,y:topY,z,w:dTop+ov*2,d:ww,h,rot:b.rot+Math.PI/2,col:b.roof,pat:2});
@@ -398,6 +403,9 @@
     // Windows are hand-set: each a little off in place and size; a few are boarded up with crossed planks.
     const windowAt=(u0,v,yy0,ww0,wh0,ground)=>{const u=u0+r(-.14,.14),yy=yy0+r(-.1,.1),ww=ww0*r(.86,1.1),wh=wh0*r(.88,1.08);
       if(!ground&&R()<.05){box(u,v+F*.04,ww+.2,.1,yy-.1,wh+.2,[.2,.17,.15]);for(const e of [-1,1])beam(P(u-ww/2,v+F*.12,yy+(e>0?0:wh)),P(u+ww/2,v+F*.12,yy+(e>0?wh:0)),[.5,.36,.24],.14);beam(P(u-ww/2,v+F*.15,yy+wh*.5),P(u+ww/2,v+F*.15,yy+wh*.55),[.46,.33,.22],.16);return;}
+      // Fake depth, painted: a darker reveal round the frame (the window seems set into the wall), the top of the reveal
+      // darkest (the head casts down), and a soft shadow strip under the sill.
+      const wallC=b.wall,dk=k=>wallC.map(v=>v*k);box(u,v+F*.02,ww+.7,.04,yy-.32,wh+.62,dk(.82));box(u,v+F*.025,ww+.7,.04,yy+wh+.12,.18,dk(.68));box(u,v+F*.022,ww+.4,.04,yy-.62,.3,dk(.86));
       const lit=R()<.2;box(u,v+F*.04,ww+.32,.12,yy-.16,wh+.32,TIM);box(u,v+F*.09,ww,.06,yy,wh,lit?WARM:GLASS,{glow:lit});
       box(u,v+F*.13,.08,.05,yy,wh,TIM);box(u,v+F*.13,ww,.05,yy+wh*.58,.08,TIM);box(u,v+F*.14,ww+.5,.24,yy-.26,.12,SILL);
       if(!ground&&R()<.45)for(const e of [-1,1])box(u+e*(ww/2+.32),v+F*.08,.48,.08,yy-.05,wh+.1,SHUT);

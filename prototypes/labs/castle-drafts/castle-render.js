@@ -344,9 +344,18 @@
   void main(){vec2 q=uv*.5+.5;vec3 c=texture(COL,q).rgb;vec4 nc=texture(NRM,q);float zc=lin(q),e=0.;
     // Painted contact shading: a screen-space occlusion (12 depth samples in a ring scaled to ~0.8 m), multiplied in
     // as a cool violet tint, so corners, eaves and wall feet darken softly the way painters shade them.
-    if(nc.a>.5&&zc<900.){float ao=0.;float rad=clamp(40./zc,1.5,26.);for(int i=0;i<12;i++){float a=float(i)*2.399+fract(sin(dot(q,vec2(91.3,47.7)))*43758.5)*6.28,rr=rad*(.35+.65*fract(float(i)*.618));
-        float z=lin(q+vec2(cos(a),sin(a))*rr*PX),dz=zc-z;ao+=smoothstep(.05,.6,dz)*(1.-smoothstep(1.5,4.,dz));}
-      ao=clamp(ao/12.*1.6,0.,1.)*(1.-smoothstep(300.,900.,zc));c*=mix(vec3(1.),vec3(.66,.66,.82),ao*.55);}
+    // Fake-3D painting, as background artists do it (no real lighting): (1) soft painted shadow bands hanging under
+    // anything that overhangs (eaves, jetties, sills, awnings): occlusion sampled mostly above the pixel, so the band
+    // falls downward like a drop shadow; (2) a softer all-round contact darkening in corners and reveals; (3) a thin
+    // light bevel line on convex edges facing up or toward the sun; (4) value layering: far planes lighter and cooler.
+    if(nc.a>.5&&zc<900.){vec3 nn0=nc.xyz*2.-1.;float rad=clamp(55./zc,2.,34.),rnd=fract(sin(dot(q,vec2(91.3,47.7)))*43758.5),drop=0.,ao=0.;
+      for(int i=0;i<10;i++){float f=(float(i)+rnd)/10.;vec2 off=vec2((fract(float(i)*.618+rnd)-.5)*.5,f)*rad*1.6;float z=lin(q+off*PX),dz=zc-z;drop+=smoothstep(.08,.5,dz)*(1.-smoothstep(2.,6.,dz))*(1.-f*.6);}
+      for(int i=0;i<8;i++){float a=float(i)*2.399+rnd*6.28,rr=rad*(.3+.7*fract(float(i)*.618));float z=lin(q+vec2(cos(a),sin(a))*rr*PX),dz=zc-z;ao+=smoothstep(.05,.5,dz)*(1.-smoothstep(1.5,4.,dz));}
+      float far=1.-smoothstep(250.,900.,zc);drop=clamp(drop/10.*3.,0.,1.)*far;ao=clamp(ao/8.*1.4,0.,1.)*far;
+      c*=mix(vec3(1.),vec3(.5,.48,.68),drop*.95);c*=mix(vec3(1.),vec3(.74,.72,.86),ao*.45);
+      float bev=0.;for(int i=0;i<4;i++){vec2 o2=vec2(i==0?1.:i==1?-1.:0.,i==2?1.:i==3?-1.:0.)*PX*1.5;vec4 nb=texture(NRM,q+o2);if(nb.a<.5)continue;vec3 n2=nb.xyz*2.-1.;float zz=lin(q+o2);
+        if(dot(nn0,n2)<.75&&abs(zz-zc)<zc*.02&&(nn0.y>n2.y+.2))bev=1.;}
+      c=mix(c,c*1.18+vec3(.05,.045,.03),bev*.6*(1.-smoothstep(30.,160.,zc)));}
     if(INK>0.&&nc.a>.5){vec2 o4[4]=vec2[4](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1));
       for(int i=0;i<4;i++){vec2 p=q+o4[i]*PX*1.2;float z=lin(p);vec4 nn=texture(NRM,p);
         e=max(e,smoothstep(.04,.1,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.55,.3,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.35);}
