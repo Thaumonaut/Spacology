@@ -1511,16 +1511,15 @@
     // A tree record. Heights and radii are integer cells (quarter-metre quantized, so both cell sizes agree).
     function growTree(sp,S,g,gx,gz,x,z,o={}){
       const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:o.cls??-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
-      // Per-tree girth: most trunks sit near the species norm but the range runs from skinny poles (~0.5x) to real
-      // veterans (~1.85x), so a stand mixes whip-thin boles with chonky ones. Big-class trees are floored fat.
-      const girth=C.cls===2?1+1.2*hash(gx,gz,seed+13):.4+Math.pow(hash(gx,gz,seed+13),1.6)*1.8;
-      // Broadleaf crowns spread with the trunk: a thick old oak carries a huge, wide canopy (up to the 6.5 m radius the
-      // column search reaches), a pole a small one.
-      const spread=P.crown==='round'?clamp(.7+.45*girth,.85,1.55):1;
-      const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1)*spread);
-      // Trunk girth scales with the tree's own height (allometry: a given species keeps its proportions at its mean
-      // height, so a young 12 m spruce is a pole while a 40 m veteran is chonky) rather than varying free of height.
-      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,hm*(P.trunk/P.h[0])*girth*(P.conifer?.7:1)/cellMetres)};
+      // One size drives the whole tree (allometry): a tree's maturity sets its trunk, and the trunk sets its height and
+      // crown, so a thick trunk always carries a tall tree with a big crown and a pole a small one. Height grows a little
+      // slower than the trunk (s^0.8) and crowns slower still for conifers; small per-tree jitter keeps stands varied.
+      // Big-class trees are floored mature. Capped trees shrink as a whole, never trunk alone.
+      const mature=C.cls===2?1.15+.75*hash(gx,gz,seed+13):.5+Math.pow(hash(gx,gz,seed+13),1.4)*1.3;
+      const hB=P.h[0]+P.h[1]*.5,rB=(P.r[0]+P.r[1]*.5)*(o.k?1.3:1),hJ=.9+.2*hash(gx,gz,seed+4),rJ=.9+.2*hash(gx,gz,seed+5),rE=P.conifer?.7:.95;
+      const sCap=Math.min(Math.pow(MAX_TREE/(hB*hJ),1/.8),Math.pow(MAX_RADIUS/(rB*rJ),1/rE)),size=Math.min(k*mature,sCap);
+      const hm=hB*hJ*Math.pow(size,.8),rm=rB*rJ*Math.pow(size,rE),trunkM=P.trunk*(hB/P.h[0])*size*(P.conifer?.7:1);
+      const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,trunkM/cellMetres)};
       // Larches turn autumn gold in patches.
       if(sp==='larch'&&noise(x*.015,z*.015,seed+741)>.64)t.leaf=MAT.larchGold;
       // Biome canopy colours (autumn gold and rust, blossom pinks) for broadleaf crowns, one per tree.
@@ -1971,6 +1970,10 @@
           const step=soft?.45+.15*h2:.55+.2*h2,rTop=k===0?0:env*(1-step);
           // Each layer hangs a little below the next one's top, so layers overlap like boughs.
           tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom-period*.5,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
+          // Branches under each layer: limbs from the trunk out and down to the layer's rim, so its clusters hang from
+          // something (built at the finest levels only, flag 2).
+          {const nb=2+Math.floor(h1*2.5),yt=tierTop-period*.55,rr=env*.92;for(let b=0;b<nb;b++){const a=(b+hash(b,id+k,seed+971)*.6)/nb*6.2832+k*.9;
+            seg(t.x,yt,t.z,Math.max(.6*density,trunk*.14),t.x+Math.cos(a)*rr*M,yt-period*.7,t.z+Math.sin(a)*rr*M,Math.max(.3*density,trunk*.04),bark,2);}}
         }
       }else if(crown==='oval'){
         seg(t.x,t.base,t.z,trunk*1.05,t.x,top-R*.9,t.z,trunk*.45);
@@ -2024,19 +2027,25 @@
       // normal x, y, z, shade.
       const sprays=[];
       if(crown==='spire'||crown==='cone'||crown==='larch'){
-        const sid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
+        // Cluster size follows the trunk, as on the oaks: thick old trunks carry bigger clusters.
+        const sid=Math.floor(t.x*4)*7919+Math.floor(t.z*4),girthScale=clamp((t.trunk||1)*cellMetres/.7,.75,1.9);
+        // The crown's cone normal: outward and up by its overall height-to-radius slope.
+        const cH=Math.max(1,(tiers[2]||1)-(tiers[tiers.length-5]||0)),cR=Math.max(...Array.from({length:tiers.length/8},(_,q)=>tiers[q*8+4])),cl=Math.hypot(cH,cR*1.4),coneN=[cH/cl,cR*1.4/cl];
         for(let i=0,k=0;i<tiers.length;i+=8,k++){
-          const cx=tiers[i],cz=tiers[i+1],top=tiers[i+2],bottom=tiers[i+3],r=tiers[i+4],rTop=tiers[i+5],h=top-bottom,size=Math.max(.24,r*.14),n=16+Math.round(r*r*3.2+r*9);
+          const cx=tiers[i],cz=tiers[i+1],top=tiers[i+2],bottom=tiers[i+3],r=tiers[i+4],rTop=tiers[i+5],h=top-bottom,size=Math.max(.45,r*.3)*girthScale,n=10+Math.round(r*r*1.8+r*5.5);
           for(let j=0;j<n;j++){
             const h1=hash(j,sid+k*97,seed+941),h2=hash(j,sid+k*97,seed+943),h3=hash(j,sid+k*97,seed+945);
             // u: down the tier (rim-heavy); a: around; sit on the cone's surface, a little inside for depth.
-            const u=Math.pow(h1,.75),a=h2*6.2832,rad=(rTop+(r*1.06-rTop)*Math.pow(u,.75))*(.9+.14*h3),droop=u>.8?(u-.8)*h*.6:0;
+            const u=Math.pow(h1,.6),a=h2*6.2832,rad=(rTop+(r*1.06-rTop)*Math.pow(u,.75))*(.9+.14*h3),droop=u>.8?(u-.8)*h*.6:0;
             const y=top-h*u-droop,ny=r*1.06-rTop+h*.25,nl=Math.hypot(h,ny);
-            sprays.push(cx+Math.cos(a)*rad,y,cz+Math.sin(a)*rad,size*(.8+.45*hash(j,sid,seed+947)),leaf,hash(j,sid+k,seed+949),Math.cos(a)*h/nl,ny/nl,Math.sin(a)*h/nl,(1-h3)*.5+(1-u)*.25);
+            sprays.push(cx+Math.cos(a)*rad,y,cz+Math.sin(a)*rad,size*(.8+.45*hash(j,sid,seed+947)),leaf,hash(j,sid+k,seed+949),Math.cos(a)*coneN[0],coneN[1],Math.sin(a)*coneN[0],(1-u)*.2+(1-h3)*.08);
           }
+          // Inner mass: a few big dark clusters around the trunk inside each layer, so the crown has no see-through gaps.
+          for(let j=0;j<4+Math.round(r*1.2);j++){const a=hash(j,sid+k*53,seed+957)*6.2832,rad=r*(.15+.3*hash(j,sid+k*53,seed+959));
+            sprays.push(cx+Math.cos(a)*rad,top-h*(.3+.5*hash(j,sid+k*53,seed+961)),cz+Math.sin(a)*rad,Math.max(.7,r*.62)*girthScale,leaf,hash(j,sid+k*53,seed+963),Math.cos(a)*coneN[0],coneN[1],Math.sin(a)*coneN[0],.6);}
           // Underside: a ring of darker sprays hanging under the rim.
           for(let j=0;j<Math.round(n*.25);j++){const a=hash(j,sid+k*31,seed+951)*6.2832,rad=r*(.7+.3*hash(j,sid+k*31,seed+953));
-            sprays.push(cx+Math.cos(a)*rad,bottom-h*.05,cz+Math.sin(a)*rad,size*.9,leaf,hash(j,sid+k*31,seed+955),Math.cos(a)*.3,-.9,Math.sin(a)*.3,.8);}
+            sprays.push(cx+Math.cos(a)*rad,bottom-h*.05,cz+Math.sin(a)*rad,size*.9,leaf,hash(j,sid+k*31,seed+955),Math.cos(a)*coneN[0],coneN[1]-.5,Math.sin(a)*coneN[0],.5);}
         }
       }
       // Crown proxy (x, y, z, radius): one ellipsoid around all the lobes. The renderer lights every lobe mostly by this
@@ -2625,9 +2634,9 @@
           // Loose leaves only where a single leaf can be seen (the two finest levels); kind 1 in the lobe record.
           if(L<=1)for(let i=0;i<P.loose.length;i+=6){const [x,y,z,sz,mat,sdc]=P.loose.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz,1,mat,sdc,1,C[0]-x0,C[1],C[2]-z0,C[3]);}}
         if(own&&P.sprays.length){const keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
-          for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%(keep*3))continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
+          for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%keep)continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
         if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
-        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own&&!P.sprays.length)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }

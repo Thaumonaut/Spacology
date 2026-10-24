@@ -1341,7 +1341,7 @@
     if(mat==${M.MAT.bushLeaf})mat=${M.MAT.leaf};
     if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     float sway=sin(time*1.1+b.z*37.+a.x*.3)*.03*a.w;
-    centre=origin+a.xyz+vec3(sway,0,sway*.6);
+    centre=origin+a.xyz;
     #ifdef SHADOW
     ax=lightAxes[0];ay=lightAxes[1];az=-lightAxes[2];
     #else
@@ -1350,7 +1350,7 @@
     // The squashed blob's extent along the quad's up axis.
     float sy=sqrt(ay.x*ay.x+ay.z*ay.z+b.x*b.x*ay.y*ay.y);
     q=corner*vec2(1.18,1.18*sy);
-    vec3 p=centre+(ax*q.x+ay*q.y)*a.w;
+    vec3 p=centre+(ax*q.x+ay*q.y)*a.w+ax*sway;
     #ifdef SHADOW
     vec3 l=(p-lightAt)*lightAxes/lightHalf;gl_Position=vec4(l,1.);
     #else
@@ -1374,16 +1374,17 @@
       if(f>v){second=v;v=f;leaf=fi;side=clamp(across/(L*.6),-1.,1.);}else second=max(second,f);}
     gap=v-second;return v;
   }
-  // A conifer sprig, as painted fir boughs are: a thin twig running down the card with short needles combed out on both
-  // sides, angled toward the tip and shortening along it. leaf: the needle index, side: which side of the twig.
+  // A conifer bough, as painted fir and spruce are: a fan widening from the twig at the top to a drooping, ragged needle
+  // edge at the tip, with a darker branch line down its middle and a few needle notches cut into its sides. leaf: which
+  // notch band; side: which side of the branch line (lit one way, shaded the other).
   float sprayLeaf(vec2 q,float seed,out float leaf,out float gap,out float side){
-    float t=(.6-q.y)/1.3;side=sign(q.x);gap=1.;leaf=-1.;
-    if(t<0.||t>1.)return -1.;
-    float ax=abs(q.x),wob=.04*sin(t*5.+seed*20.),bx=abs(q.x-wob),len=.38*(1.-t*.65)*(.85+.3*fract(seed*7.1));
-    if(bx<.022*(1.-t*.5))return 1.;
-    float yk=q.y+bx*.55,P=.075,f=fract(yk/P);leaf=floor(yk/P);
-    float w=.016*(1.-bx/len)+.004;
-    float v=min(w-abs(f-.5)*P,len-bx);gap=w-abs(f-.5)*P;return v;
+    float t=(.75-q.y)/1.5;side=sign(q.x);leaf=floor(t*6.);gap=1.;
+    if(t<0.)return -1.;
+    float w=.1+.62*smoothstep(0.,1.,t),h=fract(seed*13.7);
+    float notch=.07*abs(sin(t*19.+h*9.+side*1.3))*smoothstep(.15,.5,t);
+    float hem=1.-.14*abs(sin(q.x*21.+h*7.))-.06*h;
+    float v=min(w-abs(q.x)-notch,hem-t);
+    gap=abs(q.x)-.025;return v;
   }
   float lobeInside(vec2 q,float seed){float a,b,c;return lobeLeaf(q,seed,a,b,c);}
   float lobeEdge(vec2 q,float seed){return lobeInside(q,seed)>0.?9.:0.;}`;
@@ -1417,11 +1418,17 @@
     glowOut=vec4(0);
     if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
     float leaf,leafGap,leafSide,d=length(q),e=1.,inside;
-    if(kind>.5){
+    if(kind>1.5){
+      // A conifer cluster: the oak cluster's blob, flattened along its bough and drooping, its rim broken into fine
+      // needle points instead of leaf tips.
+      vec2 qr=vec2(-sprayDir.y*q.x+sprayDir.x*q.y,-sprayDir.x*q.x-sprayDir.y*q.y)*vec2(1.,1.35);
+      inside=lobeLeaf(qr,seed,leaf,leafGap,leafSide);float a=atan(qr.y,qr.x);
+      inside-=.035*abs(sin(a*23.+seed*31.))*smoothstep(.25,.6,length(qr));leafGap=max(leafGap,.03);
+    }else if(kind>.5){
       // A loose leaf: one pointed leaf at a hashed angle, split into a lit and a shaded half.
       float b=seed*6.2832;vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x);float al=dot(q,u),ac=dot(q,w);
       inside=.85*(1.-al*al)-abs(ac)*2.4-.12;leaf=floor(seed*8.);leafGap=1.;leafSide=clamp(ac*3.,-1.,1.);
-    }else if(kind>1.5){vec2 qr=vec2(-sprayDir.y*q.x+sprayDir.x*q.y,-sprayDir.x*q.x-sprayDir.y*q.y);inside=sprayLeaf(qr,seed,leaf,leafGap,leafSide);}
+    }
     else inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);
     float edgeAA=clamp(inside/max(fwidth(inside),1e-4)+.5,0.,1.);if(edgeAA<.02)discard;d=min(d,.99);
     // The rounded surface behind this point of the quad, and its depth.
@@ -1436,7 +1443,7 @@
     vec3 k=(centre-crown.xyz)/vec3(crown.w,crown.w*.78,crown.w);float inner=length(k);
     vec3 nc=normalize(k+vec3(0,.12,0)),N=nc;
     // Conifer sprigs are highlights: lit by their layer's normal, kept on the bright side.
-    if(kind>1.5){N=normalize(crown.xyz);nc=N;inner=1.;k=N;}
+    if(kind>1.5){float shade=(kind-2.)/.9;N=normalize(crown.xyz);nc=N;inner=1.-shade*.6;k=N*inner;}
     float sun=sunlight(),wrap=dot(N,SUN)*.5+.5;
     // Fake occlusion: the crown darkens toward its core and its underside.
     float occl=(1.-smoothstep(.35,.95,inner))*.18+(1.-smoothstep(-.7,.1,nc.y))*.2;
@@ -1471,7 +1478,7 @@
   flat in int mat;
   ${LOBE_SHAPE}
   flat in float kind;
-  void main(){float a,b,c;if((kind>1.5?sprayLeaf(q,seed,a,b,c):kind>.5?.85*(1.-q.x*q.x)-abs(q.y)*2.4-.12:lobeInside(q,seed))<=0.)discard;}`;
+  void main(){float a,b,c;if((kind>1.5?lobeInside(q*vec2(1.,1.35),seed):kind>.5?.85*(1.-q.x*q.x)-abs(q.y)*2.4-.12:lobeInside(q,seed))<=0.)discard;}`;
   // Forced contact shadows: a flat, scalloped dark pool under each plant (a.xyz ground centre, a.w radius), multiplied
   // over what is already drawn, darkest at the stem and softening to its painted edge.
   const pondVertex=`#version 300 es
