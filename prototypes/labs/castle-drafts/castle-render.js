@@ -128,6 +128,10 @@
       else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
       else if(p.t==='water'){const seg=32,N=[0,1,0];for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri([p.x,p.y,p.z],[p.x+Math.cos(a1)*p.r,p.y,p.z+Math.sin(a1)*p.r],[p.x+Math.cos(a0)*p.r,p.y,p.z+Math.sin(a0)*p.r],[.2,.5,.62],N,N,N,1);}}
       else if(p.t==='figure'){figure(m,p);}
+      else if(p.t==='vdisk'){// A round panel standing upright, facing along rot (rose windows, clock faces): rim ring and spoked tracery.
+        const seg=24,c=Math.cos(p.rot),sn=Math.sin(p.rot),P=(a,rr,o=0)=>[p.x+c*o-sn*Math.cos(a)*rr,p.y+Math.sin(a)*rr,p.z+sn*o+c*Math.cos(a)*rr],N=[c,0,sn];
+        for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri(P(0,0,.02),P(a0,p.r*.82,.02),P(a1,p.r*.82,.02),p.col2||[.18,.17,.24],N,N,N);m.quad(P(a0,p.r*.82,.05),P(a0,p.r,.05),P(a1,p.r,.05),P(a1,p.r*.82,.05),col,[N,N,N,N]);
+          if(i%3===0)m.quad(P(a0-.04,0,.06),P(a0-.04,p.r*.82,.06),P(a0+.04,p.r*.82,.06),P(a0+.04,0,.06),col,[N,N,N,N]);}}
       else if(p.t==='field'){// Heightfield ground: smooth normals from the neighbouring heights; skipped cells stay open.
         const {x0,z0,n,C,h,skip}=p,H=(i,j)=>h[Math.max(0,Math.min(n,j))*(n+1)+Math.max(0,Math.min(n,i))],P=(i,j)=>[x0+i*C,H(i,j),z0+j*C],N=(i,j)=>{const v=[H(i-1,j)-H(i+1,j),2*C,H(i,j-1)-H(i,j+1)],l=Math.hypot(...v);return v.map(t=>t/l);};
         for(let j=0;j<n;j++)for(let i=0;i<n;i++){if(skip[j*n+i])continue;m.quad(P(i,j),P(i,j+1),P(i+1,j+1),P(i+1,j),col,[N(i,j),N(i,j+1),N(i+1,j+1),N(i+1,j)]);}}

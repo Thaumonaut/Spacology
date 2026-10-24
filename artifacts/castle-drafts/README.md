@@ -91,3 +91,14 @@ with a plinth to the lowest (up to ~6 m on hilly ground). Interiors are parked (
 | --- | --- |
 | v11-2-plaza | A human-scale plaza (~130 m) framed by 4-5 storey terraced houses, stalls, lanterns, people |
 | v11-1-low | ~4,000 buildings: terraced inner streets, taller toward the centre, chimneys, hipped and gable-front roofs, bending avenues and wobbling rings |
+
+## Cathedral and street plan (v12)
+
+| File | What to look at |
+| --- | --- |
+| v12-cathedral-front | West front from the plaza: spire-crowned piers, five pointed portals, tall windows, rose window, stepped gable with spirelets, statues |
+| v12-cathedral-three-quarter | Nave over aisles with flying buttresses and pinnacles, transept, crossing spire with gilded statue, the through road and stalls |
+
+Streets are no longer a uniform hub: one main road runs gate to gate through the plaza, one road leads to the castle,
+2-3 short streets reach the first ring, and ring bands have their own staggered connectors. Only the 2-3 avenue
+crossings nearest the plaza get bridges, each square to the river; other streets stop at the quay.

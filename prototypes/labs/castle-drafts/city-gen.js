@@ -41,31 +41,60 @@
     // ---- Occupancy (3 m cells): streets, plaza, river, walls and the castle hill are reserved before any building.
     const OC=3,occ=new Set(),key=(i,j)=>i*100003+j,mark=(x,z)=>occ.add(key(Math.floor(x/OC),Math.floor(z/OC))),isOcc=(x,z)=>occ.has(key(Math.floor(x/OC),Math.floor(z/OC)));
     const markDisk=(x,z,rad)=>{for(let i=Math.floor((x-rad)/OC);i<=Math.floor((x+rad)/OC);i++)for(let j=Math.floor((z-rad)/OC);j<=Math.floor((z+rad)/OC);j++){if(Math.hypot((i+.5)*OC-x,(j+.5)*OC-z)<rad)occ.add(key(i,j));}};
-    const streets=[];
-    const street=(x0,z0,x1,z1,w,kind)=>{streets.push({x0,z0,x1,z1,w,kind});const L=Math.hypot(x1-x0,z1-z0),n=Math.ceil(L/1.5);for(let k=0;k<=n;k++){const t=k/n;markDisk(x0+(x1-x0)*t,z0+(z1-z0)*t,w/2+1);}};
+    const streets=[],heroZones=[];
+    const street=(x0,z0,x1,z1,w,kind,id=-1)=>{if(heroZones.some(h=>h.inside((x0+x1)/2,(z0+z1)/2)))return;streets.push({x0,z0,x1,z1,w,kind,id});const L=Math.hypot(x1-x0,z1-z0),n=Math.ceil(L/1.5);for(let k=0;k<=n;k++){const t=k/n;markDisk(x0+(x1-x0)*t,z0+(z1-z0)*t,w/2+1);}};
     markDisk(0,0,plazaR+2);
     // ---- Castle on its hill, out along one avenue on the side away from the river.
-    const radials=[];for(let i=0;i<nA;i++)radials.push(a0+i/nA*TAU+r(-.08,.08));
-    const cA=radials.reduce((b,a)=>Math.cos(a)*-side>Math.cos(b)*-side?a:b,radials[0]),cD=Rw*r(.6,.68),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
+    // Plaza spokes. Not a uniform hub: one main road runs right through the city (two spokes, gate to gate), one road
+    // leads to the castle, and two or three short streets reach only the first ring. The castle sits on the side away
+    // from the river; the main road crosses roughly square to the castle road.
+    const cA=(side>0?Math.PI:0)-ang+r(-.5,.5),mA=cA+Math.PI/2+r(-.35,.35),mB=mA+Math.PI+r(-.3,.3),cD=Rw*r(.6,.68),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
+    const radials=[mA,mB,cA],MAIN=new Set([mA,mB]);
+    {const free=[];for(let q=0;q<48;q++){const a=q/48*TAU;if(radials.every(b=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))>.75))free.push(a);}
+      for(let k=Math.round(r(2,3));k>0&&free.length;k--){const a=free.splice(Math.floor(R()*free.length),1)[0];radials.push(a);for(let q=free.length-1;q>=0;q--)if(Math.abs(Math.atan2(Math.sin(free[q]-a),Math.cos(free[q]-a)))<.75)free.splice(q,1);}}
     // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
     const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=1.9,cLevel=gy(cx,cz);
     const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.28,.34):r(.26,.32))*S,palette:CastleGen.PALETTES.indexOf(pal)});
     castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR,fall:50,level:cLevel});
+    // ---- Plaza gaps between avenues, best first (wide, and on the side opposite the castle). The cathedral takes the best:
+    // it stands end-on to the plaza, its west front on the plaza and its nave running outward, and streets that would
+    // cross its site are not laid (the ring street parts round it).
+    const gaps=[];{const srt=[...radials].sort((p,q)=>p-q),opp=cA+Math.PI;for(let i=0;i<srt.length;i++){const lo=srt[i],hi=i+1<srt.length?srt[i+1]:srt[0]+TAU;gaps.push({lo,hi,m:(lo+hi)/2});}
+      gaps.sort((g1,g2)=>(g2.hi-g2.lo)*(1.6+Math.cos(g2.m-opp))-(g1.hi-g1.lo)*(1.6+Math.cos(g1.m-opp)));}
+    const cath=(()=>{const g=gaps[0],L=r(100,130)*S,Wd=Math.min(r(42,52)*S,2*(plazaR+10)*Math.sin((g.hi-g.lo)/2)-24),d=plazaR+6+L/2,a=g.m,x=Math.cos(a)*d,z=Math.sin(a)*d,c=Math.cos(a),s2=Math.sin(a);
+      heroZones.push({inside:(px,pz)=>{const u=(px-x)*c+(pz-z)*s2,v=-(px-x)*s2+(pz-z)*c;return Math.abs(u)<L/2+8&&Math.abs(v)<Wd/2+14;}});return {x,z,L,Wd,a};})();
     // ---- Streets: radial avenues from the plaza to the gates, ring streets, and lanes splitting long blocks.
     const rings=[];for(let rr=plazaR+gap*.8;rr<Rw-45;rr+=gap*r(.85,1.15))rings.push(rr);
     // Avenues bend gently on their way out (as old roads do); ring streets wobble round the city; the avenue toward the
     // castle stops at its grounds. bendAt(a,d): the avenue's angle at distance d.
     const bends=radials.map(()=>[R()*TAU,r(.03,.07)]),bendAt=(i,d)=>radials[i]+bends[i][1]*Math.sin(d/260+bends[i][0])-bends[i][1]*Math.sin(plazaR/260+bends[i][0]);
-    radials.forEach((a,i)=>{const end=a===cA?cD-hillR*.9:Rw+60,n=Math.ceil((end-plazaR)/40);for(let k=0;k<n;k++){const d0=plazaR+(end-plazaR)*k/n,d1=plazaR+(end-plazaR)*(k+1)/n,a0=bendAt(i,d0),a1=bendAt(i,d1);
-      street(Math.cos(a0)*d0,Math.sin(a0)*d0,Math.cos(a1)*d1,Math.sin(a1)*d1,a===cA?16:14,'avenue');}});
+    radials.forEach((a,i)=>{const end=MAIN.has(a)?Rw+60:a===cA?cD-hillR*.9:rings[0]+1,n=Math.ceil((end-plazaR)/40);for(let k=0;k<n;k++){const d0=plazaR+(end-plazaR)*k/n,d1=plazaR+(end-plazaR)*(k+1)/n,a0=bendAt(i,d0),a1=bendAt(i,d1);
+      street(Math.cos(a0)*d0,Math.sin(a0)*d0,Math.cos(a1)*d1,Math.sin(a1)*d1,MAIN.has(a)?16:a===cA?14:9,MAIN.has(a)||a===cA?'avenue':'street',i);}});
     const wob=rings.map(()=>[R()*TAU,R()*TAU,r(.02,.05),r(.01,.03)]),ringR=(k,t)=>rings[k]*(1+wob[k][2]*Math.sin(3*t+wob[k][0])+wob[k][3]*Math.sin(5*t+wob[k][1]));
     const ringSeg=(k,w,kind)=>{const rr=rings[k],n=Math.max(8,Math.ceil(rr*TAU/16));for(let q=0;q<n;q++){const t0=TAU*q/n,t1=TAU*(q+1)/n;street(Math.cos(t0)*ringR(k,t0),Math.sin(t0)*ringR(k,t0),Math.cos(t1)*ringR(k,t1),Math.sin(t1)*ringR(k,t1),w,kind);}};
     rings.forEach((_,k)=>ringSeg(k,8,'ring'));
-    const sorted=[...radials].sort((a,b)=>a-b);
-    for(let k=0;k+1<rings.length;k++)for(let i=0;i<sorted.length;i++){const s0=sorted[i],s1=i+1<sorted.length?sorted[i+1]:sorted[0]+TAU,mid=(rings[k]+rings[k+1])/2,n=Math.floor(mid*(s1-s0)/r(110,150));
-      // Lanes cross the band with a kink in the middle, so blocks are not all wedges.
-      for(let q=1;q<=n;q++){const a=s0+(s1-s0)*q/(n+1),am=a+r(-.04,.04),r0=ringR(k,a),r1=ringR(k+1,a),rm=(r0+r1)/2;
-        street(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(am)*rm,Math.sin(am)*rm,5,'lane');street(Math.cos(am)*rm,Math.sin(am)*rm,Math.cos(a)*r1,Math.sin(a)*r1,5,'lane');}}
+    // Connectors between ring streets: each band gets its own, staggered (never lined up with the band inside), a few wide
+    // streets and the rest lanes, each with a kink so blocks are not all wedges. The outermost ring also reaches the wall.
+    for(let k=0;k+1<rings.length;k++){const mid=(rings[k]+rings[k+1])/2,n=Math.max(4,Math.round(mid*TAU/r(95,140))),off=R()*TAU;
+      for(let q=0;q<n;q++){const a=off+(q+r(.25,.75))/n*TAU;if([mA,mB].some(b=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))<.06))continue;
+        const am=a+r(-.05,.05),r0=ringR(k,a),r1=ringR(k+1,a),rm=(r0+r1)/2,wide=R()<.35,w=wide?7:5,kind=wide?'street':'lane';
+        street(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(am)*rm,Math.sin(am)*rm,w,kind);street(Math.cos(am)*rm,Math.sin(am)*rm,Math.cos(a)*r1,Math.sin(a)*r1,w,kind);}}
+    // ---- Bridges are costly: only the avenues nearest the plaza (two or three) cross the river; every other street that
+    // reaches it stops at the quay.
+    {const crossing=[...new Set(streets.filter(st=>st.kind==='avenue'&&st.id>=0&&inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)).map(st=>st.id))];
+      const dist=id=>Math.min(...streets.filter(st=>st.id===id&&inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)).map(st=>Math.hypot(st.x0,st.z0)));
+      const keep=new Set(crossing.sort((a,b)=>dist(a)-dist(b)).slice(0,Math.round(r(2,3))));
+      for(let i=streets.length-1;i>=0;i--){const st=streets[i];if(inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)&&!(st.kind==='avenue'&&keep.has(st.id)))streets.splice(i,1);}
+      // A kept avenue crosses on the shortest span: its segments near the water give way to a bridge square to the river
+      // (along the local normal of the centreline) and two short connectors from the avenue's ends on each bank.
+      for(const id of keep){const segs=streets.filter(st=>st.id===id),wet=st=>inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,9),i0=segs.findIndex(wet),i1=segs.length-1-[...segs].reverse().findIndex(wet);if(i0<1||i1>=segs.length-1)continue;
+        const mid=segs[(i0+i1)>>1],[,vm]=toR((mid.x0+mid.x1)/2,(mid.z0+mid.z1)/2),k=rA/rL*Math.cos(vm/rL+rP),uc=xr0+rA*Math.sin(vm/rL+rP),nl=Math.hypot(1,k),nu=1/nl,nv=-k/nl,half=rW/2+5;
+        const W=(u,v)=>[u*ca-v*sa,u*sa+v*ca],A=W(uc-nu*half,vm-nv*half),B=W(uc+nu*half,vm+nv*half),before=segs[i0-1],after=segs[i1+1],w=before.w;
+        for(let i=i0;i<=i1;i++)streets.splice(streets.indexOf(segs[i]),1);
+        const [P,Q2]=Math.hypot(A[0]-before.x1,A[1]-before.z1)<Math.hypot(B[0]-before.x1,B[1]-before.z1)?[A,B]:[B,A];
+        street(before.x1,before.z1,P[0],P[1],w,'avenue',id);street(P[0],P[1],Q2[0],Q2[1],w,'avenue',id);street(Q2[0],Q2[1],after.x0,after.z0,w,'avenue',id);}
+      // An avenue without a bridge ends at the quay: drop its segments beyond the river too.
+      for(const id of crossing)if(!keep.has(id)){const segs=streets.filter(st=>st.id===id);let past=false;for(const st of segs){if(past)streets.splice(streets.indexOf(st),1);else if(inRiver(st.x1,st.z1,4))past=true;}}}
     // River banks are kept clear (quays), and the wall band.
     const hasRiver=(x,z)=>inRiver(x,z,5);
     // ---- Buildings along every street, both sides, front door to the street.
@@ -84,13 +113,11 @@
     // ---- Hero buildings on the plaza, each along the plaza's edge in the gap between two avenues, door to the plaza:
     // the cathedral opposite the castle, then the guildhall and the grand market hall in the next best gaps. They always
     // spawn: a gap too short shortens the building rather than dropping it.
-    {const opp=cA+Math.PI,srt=[...radials].sort((p,q)=>p-q),gaps=[];
-      for(let i=0;i<srt.length;i++){const lo=srt[i],hi=i+1<srt.length?srt[i+1]:srt[0]+TAU;gaps.push({lo,hi,m:(lo+hi)/2});}
-      gaps.sort((g1,g2)=>(g2.hi-g2.lo)*(1.6+Math.cos(g2.m-opp))-(g1.hi-g1.lo)*(1.6+Math.cos(g1.m-opp)));
-      [['cathedral',r(26,32),r(64,84)],['guildhall',r(24,30),r(40,52)],['market',r(22,28),r(38,50)]].forEach(([type,cw,want],i)=>{const g=gaps[i];if(!g)return;
+    {const b=place('chapel',cath.x,cath.z,cath.L,cath.Wd,cath.a,-1);b.type='cathedral';b.hero=true;b.H=r(32,40);b.storeys=[0];b.roof=[.56,.6,.66];b.wall=[.96,.88,.84];
+      [null,['guildhall',r(24,30),r(40,52)],['market',r(22,28),r(38,50)]].forEach((e,i)=>{if(!e)return;const [type,cw,want]=e,g=gaps[i];if(!g)return;
         const dd=plazaR+cw/2+5,arc=2*dd*Math.sin((g.hi-g.lo)/2)-26,cl=Math.max(30,Math.min(want,arc)),a=g.m,x=Math.cos(a)*dd,z=Math.sin(a)*dd,rot=a+Math.PI/2;
-        const b=place(type==='cathedral'?'chapel':type,x,z,cl,cw,rot,1);b.type=type;b.hero=true;
-        if(type==='cathedral'){b.H=r(30,38);b.storeys=[0];}else if(type==='guildhall'){b.storeys=[0,8,13];b.H=18.8;}else{b.storeys=[0];b.H=r(13,16);}});}
+        const b=place(type,x,z,cl,cw,rot,1);b.type=type;b.hero=true;
+        if(type==='guildhall'){b.storeys=[0,8,13];b.H=18.8;}else{b.storeys=[0];b.H=r(13,16);}});}
     // ---- Secondary plazas with fountains where some avenues cross ring streets; parks between them.
     const plazas=[],parks=[];
     const fountain=(x,z,rr)=>{const g=gy(x,z),L=[{t:'cyl',x,y:g,z,r:rr,h:.9,mat:'stone'},{t:'water',x,y:g+.75,z,r:rr-.5},{t:'cyl',x,y:g,z,r:.8,h:3.2,mat:'stone'},{t:'cyl',x,y:g+3.2,z,r:1.8,h:.5,mat:'stone'},{t:'water',x,y:g+3.6,z,r:1.4},{t:'cone',x,y:g+3.7,z,r:.5,h:1.4,mat:'gold'}];prop(x,z,L);};
@@ -165,7 +192,7 @@
       for(let i=0;i<n;i++){const t0=wa[i],t1=i+1<n?wa[i+1]:TAU,p0=[Math.cos(t0)*Rw,Math.sin(t0)*Rw],p1=[Math.cos(t1)*Rw,Math.sin(t1)*Rw],mx=(p0[0]+p1[0])/2,mz=(p0[1]+p1[1])/2,len=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]),rot=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]);
         if(inRiver(mx,mz,4)){add('arch',{x:mx,y:-3,z:mz,w:len,h:Q+18,d:6,rot,span:len*.6},'stone');continue;}
         const ga0=gy(...p0),ga1=gy(...p1),wb=Math.min(ga0,ga1)-2,wt=Math.max(ga0,ga1)+16;
-        const gate=radials.some(a=>a!==cA&&Math.abs(Math.atan2(Math.sin(a-(t0+t1)/2),Math.cos(a-(t0+t1)/2)))<(t1-t0)/2);
+        const gate=[mA,mB].map((a,i)=>bendAt(i,Rw)).some(a=>Math.abs(Math.atan2(Math.sin(a-(t0+t1)/2),Math.cos(a-(t0+t1)/2)))<(t1-t0)/2);
         if(gate)add('gatewall',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,gap:12,gateH:wt-wb-7,crenel:true},'stone');else add('box',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,crenel:true},'stone');}
       for(const t of wa){const x=Math.cos(t)*Rw,z=Math.sin(t)*Rw;if(inRiver(x,z,6))continue;const g=gy(x,z);add('cyl',{x,y:g-3,z,r:7,h:31},'stone');add('cone',{x,y:g+26,z,r:8,h:20},'roof');}}
     const plazaA=cA+Math.PI*.5,spawn={x:Math.cos(plazaA)*(plazaR-6),y:gy(0,0)+1,z:Math.sin(plazaA)*(plazaR-6),yaw:Math.atan2(cz-Math.sin(plazaA)*(plazaR-6),cx-Math.cos(plazaA)*(plazaR-6))};
@@ -174,6 +201,7 @@
   // ---- One building's parts. interior=false: a closed box and roof (far); true: a hollow shell with rooms and props.
   function buildingParts(b,interior){
     if(b.type==='prop')return b.parts;
+    if(b.type==='cathedral')return cathedralParts(b);
     const out=[],R=rng(b.seed),r=(a,c)=>a+(c-a)*R(),c=Math.cos(b.rot),s=Math.sin(b.rot),W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c];
     const add=(t,o,mat)=>{out.push({t,mat,...o});};
     const prop=(u,v,w,d,h,y,col,rot=0)=>{const [x,z]=W(u,v);add('box',{x,y,z,w,h,d,rot:b.rot+rot,col});};
@@ -240,6 +268,55 @@
     else if(type==='bath'){prop(0,0,iw*.6,id*.6,.5,y0,[.3,.6,.7]);}
     else if(type==='chapel'||type==='cathedral'){const n=Math.floor(iw/2.2)-3;for(let k=0;k<n;k++)for(const sv of [-1,1])prop(-iw/2+4+k*2.2,sv*id*.22,.5,id*.3,.5,y0,WOOD);prop(iw/2-2.5,0,1.6,3,1.1,y0,[.92,.88,.8]);
       if(type==='cathedral')for(let k=1;k<10;k++)for(const sv of [-1,1]){const [x,z]=W(-iw/2+k*iw/10,sv*id*.36);add('cyl',{x,y:y0,z,r:1,h:b.H-1},'stone');}}
+    return out;
+  }
+  // ---- The cathedral, after Milan's Duomo: a west front on the plaza (buttress piers crowned by tall spires, five
+  // pointed portals, tall pointed windows, a rose window, a stepped gable, balustrades), a high nave over lower aisles,
+  // flying buttresses with pinnacles, rows of pinnacles along every roof edge, a transept, a crossing lantern with a
+  // very tall spire and a gilded statue, and a rounded apse. Pale pink marble, grey lead roofs. Local frame: u runs
+  // from the west front (u = -L/2, toward the plaza) to the apse; v across.
+  function cathedralParts(b){
+    const out=[],R=rng(b.seed),r=(a,c)=>a+(c-a)*R(),c=Math.cos(b.rot),s=Math.sin(b.rot),W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c];
+    const M=[.96,.88,.84],M2=[.9,.81,.77],LEAD=[.56,.6,.66],DARK=[.17,.15,.2],GOLD=[.96,.78,.34],y0=b.floor,base=b.base,L=b.w,D=b.d,Hn=b.H,Ha=Hn*.55,nv=D*.4,aw=(D-nv)/2;
+    const box=(u,v,w,d,y,h,col,rot=0,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot+rot,col,pat:4,...o});};
+    const spire=(u,v,y,rr,h,gold)=>{const [x,z]=W(u,v);out.push({t:'cyl',x,y,z,r:rr*1.15,h:rr*1.4,col:M2},{t:'cone',x,y:y+rr*1.4,z,r:rr,h,col:M},{t:'cone',x,y:y+rr*1.4+h*.96,z,r:rr*.22,h:rr*1.6,col:gold?GOLD:M});};
+    const gableAt=(u,v,w,d,y,h,col,rot=0)=>{const [x,z]=W(u,v);out.push({t:'gable',x,y,z,w,d,h,rot:b.rot+rot,col});};
+    const u0=-L/2+3,uA=L/2-D*.28,uT=L*.12;
+    // Nave over its aisles, lead roofs; a plinth to the lowest ground.
+    box((u0+uA)/2,0,uA-u0,D,base,y0-base+.2,M2);
+    box((u0+uA)/2,0,uA-u0,nv,y0,Hn,M);gableAt((u0+uA)/2,0,uA-u0,nv+1,y0+Hn,nv*.42,LEAD);
+    for(const sv of [-1,1]){box((u0+uA)/2,sv*(nv/2+aw/2),uA-u0,aw,y0,Ha,M);gableAt((u0+uA)/2,sv*(nv/2+aw/2),uA-u0,aw+.6,y0+Ha,aw*.22,LEAD);
+      // Buttress piers along the aisle, each with a pinnacle and a flyer to the nave wall; pinnacles along the nave edge.
+      for(let u=u0+8;u<uA-4;u+=8){if(Math.abs(u-uT)<14)continue;box(u,sv*(D/2-.6),1.8,1.8,y0,Ha+6,M2);spire(u,sv*(D/2-.6),y0+Ha+6,.75,7,false);
+        const [ax,az]=W(u,sv*(D/2-1.4)),[bx,bz]=W(u,sv*(nv/2+.2));out.push({t:'ramp',x0:ax,z0:az,y0:y0+Ha+5,x1:bx,z1:bz,y1:y0+Hn-3,w:.9,base:y0+Ha+3.5,col:M2,nocol:true});
+        spire(u,sv*(nv/2),y0+Hn,.45,4.5,false);}
+      // Tall pointed clerestory windows between the piers.
+      for(let u=u0+12;u<uA-6;u+=8){if(Math.abs(u-uT)<14)continue;box(u,sv*(nv/2+.08),2,.2,y0+Ha+3,Hn-Ha-7,DARK);gableAt(u,sv*(nv/2+.08),.2,2,y0+Hn-4,1.4,DARK,Math.PI/2);}}
+    // Transept across the nave, gabled ends with rose windows and pinnacles.
+    {const tw=22,td=D+18;box(uT,0,tw,td,y0,Hn,M);gableAt(uT,0,td+1,tw,y0+Hn,tw*.42,LEAD,Math.PI/2);
+      for(const sv of [-1,1]){const [x,z]=W(uT,sv*(td/2+.1));out.push({t:'vdisk',x,y:y0+Hn-6,z,r:4.2,rot:b.rot+sv*Math.PI/2,col:M2});for(const su of [-1,1])spire(uT+su*(tw/2-.8),sv*(td/2-.8),y0+Hn,1,12,false);}}
+    // Crossing: an octagonal drum, an open lantern and the great spire, a gilded statue on top.
+    {const [x,z]=W(uT,0),hs=r(48,62);out.push({t:'cyl',x,y:y0+Hn,z,r:9,h:12,col:M},{t:'cyl',x,y:y0+Hn+12,z,r:6.5,h:9,col:M2},{t:'cone',x,y:y0+Hn+21,z,r:4.2,h:hs,col:M},
+      {t:'cyl',x,y:y0+Hn+21+hs-2,z,r:.5,h:3,col:GOLD},{t:'figure',x,y:y0+Hn+21+hs+1,z,h:3.2,col:GOLD,hat:GOLD,nocol:true});
+      for(let k=0;k<8;k++){const a=k/8*TAU,[px,pz]=[x+Math.cos(a)*9.4,z+Math.sin(a)*9.4];out.push({t:'cone',x:px,y:y0+Hn+12,z:pz,r:.7,h:9,col:M});}}
+    // Apse: a rounded east end with a lower ambulatory, ringed with pinnacles.
+    {const [x,z]=W(uA,0),ra=nv*.72;out.push({t:'cyl',x,y:base,z,r:D*.47,h:y0+Ha-base,col:M,pat:4},{t:'cone',x,y:y0+Ha,z,r:D*.5,h:5,col:LEAD},{t:'cyl',x,y:y0+Ha,z,r:ra,h:Hn-Ha,col:M,pat:4},{t:'cone',x,y:y0+Hn,z,r:ra+.6,h:ra*.9,col:LEAD});
+      for(let k=0;k<12;k++){const a=k/12*TAU;out.push({t:'cone',x:x+Math.cos(a)*D*.47,y:y0+Ha,z:z+Math.sin(a)*D*.47,r:.6,h:6,col:M});}}
+    // West front on the plaza: a slab with a stepped gable, six buttress piers crowned by spires, portals, windows, rose.
+    {const fu=-L/2+1.5,FW=D+3,Hf=Hn+6,np=6,pv=k=>-FW/2+k*FW/(np-1);
+      box(fu,0,3,FW,base,Hf-(base-y0),M);gableAt(fu,0,3,FW*.62,y0+Hf,FW*.3,M);
+      for(let k=0;k<np;k++){const v=pv(k),mid=Math.min(k,np-1-k),hp=Hf+[-4,4,10][Math.min(2,mid)];box(fu-1.4,v,4.2,2.6,base,hp-(base-y0),M2);spire(fu-1.4,v,y0+hp,1.25,[13,16,20][Math.min(2,mid)],true);
+        for(let lv=0;lv<3;lv++)out.push({t:'figure',x:W(fu-3.6,v)[0],y:y0+9+lv*9,z:W(fu-3.6,v)[1],rot:b.rot+Math.PI,h:2.2,col:[.93,.86,.82],hat:[.93,.86,.82],nocol:true});}
+      for(let k=0;k<np-1;k++){const v=(pv(k)+pv(k+1))/2,gw=FW/(np-1)-2.8,big=k===2,dw=gw*(big?.62:.5),dh=big?12:8.5;
+        box(fu-1.62,v,.3,dw+1.6,y0,dh+1,M2);gableAt(fu-1.62,v,.3,dw+1.6,y0+dh+1,dw*.7,M2);box(fu-1.68,v,.3,dw,y0,dh,DARK);gableAt(fu-1.68,v,.3,dw,y0+dh,dw*.55,DARK);
+        // Tall pointed windows above each portal; a balustrade across the front.
+        const ww=gw*.32;box(fu-1.62,v,.3,ww,y0+dh+dw*.8+3,10,DARK);gableAt(fu-1.62,v,.3,ww,y0+dh+dw*.8+13,ww*.7,DARK);}
+      for(const yb of [y0+16,y0+Hn-8])box(fu-2.4,0,.8,FW,yb,.9,M2);
+      // The Duomo's bristle: spirelets climbing the gable slopes and the top edge, and in tiers up every pier.
+      {const gw=FW*.31,gh=FW*.3;for(let v=-gw;v<=gw+.01;v+=gw/5){const [x,z]=W(fu-.6,v);out.push({t:'cone',x,y:y0+Hf+gh*(1-Math.abs(v)/gw)-.6,z,r:.42,h:4.2,col:M});}
+        for(let v=-FW/2+1;v<=FW/2-1;v+=3.2){const [x,z]=W(fu-.6,v);out.push({t:'cone',x,y:y0+Hf,z,r:.38,h:3.2,col:M});}
+        for(let k=0;k<np;k++)for(const yy of [.38,.6,.82])for(const sv of [-1,1]){const [x,z]=W(fu-3.4,pv(k)+sv*1.2);out.push({t:'cone',x,y:y0+Hf*yy,z,r:.32,h:3,col:M2});}}
+      {const [x,z]=W(fu-1.6,0);out.push({t:'vdisk',x,y:y0+Hn-1,z,r:5,rot:b.rot+Math.PI,col:M2});}}
     return out;
   }
   return {generate,buildingParts,TYPES};
