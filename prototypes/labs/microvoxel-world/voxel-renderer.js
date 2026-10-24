@@ -1168,10 +1168,11 @@
   out vec2 uvs;
   out float under, seed;
   flat out int tierMat;
+  flat out float innerShell;
   void main(){
     // grid: angle 0..1, row 0..1 down the skirt (1..1.25 = lip), side (0 top, 1 underside). a: cx, cz, top, bottom; b: r, rTop,
     // seed, needle material (0: the plain needle).
-    float ang=grid.x*6.2832,u=grid.y,h=a.z-a.w;seed=b.z;under=grid.z;tierMat=b.w>0.?int(b.w):${M.MAT.needle};
+    float ang=grid.x*6.2832,u=grid.y,h=a.z-a.w;seed=b.z;under=grid.z;tierMat=b.w>0.?int(b.w):${M.MAT.needle};innerShell=fract(b.w)>.25?1.:0.;
     float jag=1.+.06*sin(ang*7.+seed*20.)+.04*sin(ang*13.+seed*7.);
     float r,y;
     if(grid.z<.5){
@@ -1199,6 +1200,7 @@
   in vec2 uvs;
   in float under, seed;
   flat in int tierMat;
+  flat in float innerShell;
   uniform vec3 palette[96], lightHalf;
   uniform vec2 dither;
   uniform float shadowOn, shadowTexel, blockSize;
@@ -1215,10 +1217,10 @@
     glowOut=vec4(0);
     if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
     // Needle fringe: the lip breaks into drooping spikes.
-    if(under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
+    if(innerShell<.5&&under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
     vec3 n=normalize(nrm);float sun=sunlight();
     float clumps=meadowNoise(vec2(uvs.x*48.,uvs.y*5.+seed*11.))-.5;
-    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y));
+    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y))-innerShell*.32;
     vec3 shadow,mid,high;crownBands(tierMat,palette[tierMat],shadow,mid,high);
     vec3 c=mix(mix(shadow,mid,smoothstep(.33,.39,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     color=vec4(c,1.);
@@ -1318,6 +1320,7 @@
   flat out vec3 tintBase;
   flat out vec4 crownKey;
   flat out float kind;
+  flat out vec2 sprayDir;
   ${BIOME_TINT}
   void main(){
     // kind: 0 leaf cluster, 1 loose leaf (crown proxy in crownIn); 2..2.9 conifer needle spray, its tier normal in crownIn.xyz
@@ -1325,7 +1328,9 @@
     mat=int(b.y);seed=b.z;rad=a.w;kind=b.w;crown=kind>1.5?vec4(crownIn.xyz,crownIn.w):vec4(origin+crownIn.xyz,crownIn.w);
     // Biome colours: bushes share the plain leaf greens of the crowns around them, and plain green crowns and bushes
     // follow rose and violet biomes, one tone per plant (keyed by the crown's centre).
-    vec2 blk=(kind>1.5?a.xz:crownIn.xz)/max(blockScale,.001);tintBase=palette[mat];crownKey=vec4(0);
+    vec2 blk=(kind>1.5?a.xz:crownIn.xz)/max(blockScale,.001);
+    // A spray's bough runs out along the tier and droops: its direction on the card, so the needles fan that way.
+    sprayDir=vec2(0,-1);if(kind>1.5){vec3 bough=normalize(vec3(crownIn.x,0.,crownIn.z)+vec3(0,-.6,0));vec2 d=vec2(dot(bough,camRight),dot(bough,camUp));if(dot(d,d)>1e-4)sprayDir=normalize(d);}tintBase=palette[mat];crownKey=vec4(0);
     if(mat==${M.MAT.bushLeaf})mat=${M.MAT.leaf};
     if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     float sway=sin(time*1.1+b.z*37.+a.x*.3)*.03*a.w;
@@ -1384,6 +1389,7 @@
   flat in vec3 tintBase;
   flat in vec4 crownKey;
   flat in float kind;
+  flat in vec2 sprayDir;
   uniform vec3 palette[96], lightHalf, lightAt;
   uniform mat3 lightAxes;
   uniform mat4 viewProj;
@@ -1407,7 +1413,7 @@
       // A loose leaf: one pointed leaf at a hashed angle, split into a lit and a shaded half.
       float b=seed*6.2832;vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x);float al=dot(q,u),ac=dot(q,w);
       inside=.85*(1.-al*al)-abs(ac)*2.4-.12;leaf=floor(seed*8.);leafGap=1.;leafSide=clamp(ac*3.,-1.,1.);
-    }else if(kind>1.5)inside=sprayLeaf(q,seed,leaf,leafGap,leafSide);
+    }else if(kind>1.5){vec2 qr=vec2(-sprayDir.y*q.x+sprayDir.x*q.y,-sprayDir.x*q.x-sprayDir.y*q.y);inside=sprayLeaf(qr,seed,leaf,leafGap,leafSide);}
     else inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);
     if(inside<=0.)discard;d=min(d,.99);
     // The rounded surface behind this point of the quad, and its depth.

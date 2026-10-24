@@ -2022,11 +2022,11 @@
       if(crown==='spire'||crown==='cone'||crown==='larch'){
         const sid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
         for(let i=0,k=0;i<tiers.length;i+=8,k++){
-          const cx=tiers[i],cz=tiers[i+1],top=tiers[i+2],bottom=tiers[i+3],r=tiers[i+4],rTop=tiers[i+5],h=top-bottom,size=Math.max(.32,r*.2),n=8+Math.round(r*r*1.6+r*5);
+          const cx=tiers[i],cz=tiers[i+1],top=tiers[i+2],bottom=tiers[i+3],r=tiers[i+4],rTop=tiers[i+5],h=top-bottom,size=Math.max(.42,r*.27),n=12+Math.round(r*r*2.4+r*7);
           for(let j=0;j<n;j++){
             const h1=hash(j,sid+k*97,seed+941),h2=hash(j,sid+k*97,seed+943),h3=hash(j,sid+k*97,seed+945);
             // u: down the tier (rim-heavy); a: around; sit on the cone's surface, a little inside for depth.
-            const u=Math.pow(h1,.6),a=h2*6.2832,rad=(rTop+(r*1.06-rTop)*Math.pow(u,.75))*(.82+.2*h3),droop=u>.8?(u-.8)*h*.6:0;
+            const u=Math.pow(h1,.5),a=h2*6.2832,rad=(rTop+(r*1.06-rTop)*Math.pow(u,.75))*(.9+.14*h3),droop=u>.8?(u-.8)*h*.6:0;
             const y=top-h*u-droop,ny=r*1.06-rTop+h*.25,nl=Math.hypot(h,ny);
             sprays.push(cx+Math.cos(a)*rad,y,cz+Math.sin(a)*rad,size*(.8+.45*hash(j,sid,seed+947)),leaf,hash(j,sid+k,seed+949),Math.cos(a)*h/nl,ny/nl,Math.sin(a)*h/nl,(1-h3)*.5+(1-u)*.25);
           }
@@ -2631,7 +2631,7 @@
         if(own&&P.sprays.length){const keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
           for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%keep)continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
         if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
-        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own&&!P.sprays.length)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4]*(inner?.86:1),T[5]*(inner?.86:1),T[6],T[7]+(inner?.5:0));}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }
