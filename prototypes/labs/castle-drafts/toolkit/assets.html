@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kit assets · Spacology</title>
+<style>*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#c9d9df;font:14px/1.45 system-ui,sans-serif;color:#e8e8db}canvas{display:block;width:100vw;height:100vh;cursor:grab}
+#panel{position:fixed;top:16px;left:16px;width:270px;background:rgba(32,48,48,.92);border-radius:14px;padding:16px;display:grid;gap:10px}#panel h1{margin:0;font:600 20px Georgia,serif}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px}select,button{background:#2f4545;color:#eee;border:1px solid #5a7070;border-radius:8px;padding:6px 8px}
+#list{max-height:40vh;overflow:auto;margin:0;padding-left:18px;font-size:12px;color:#c8d0c8}#list li{cursor:pointer}#list li:hover{color:#fff}#status{font-size:12px;color:#b8c4bc}</style></head><body>
+<canvas id="c"></canvas><div id="panel"><h1>Kit assets</h1>
+<label>Show <select id="view"><option value="all">All families</option><option value="castle">Castle</option><option value="road">Roads</option><option value="vendor">Vendors</option><option value="clutter">Clutter</option>
+<option value="scene:castleGate">Scene · castle gate</option><option value="scene:market">Scene · market square</option></select></label>
+<label>Lighting <select id="light"><option value="noon">Daylight</option><option value="golden">Golden hour</option></select></label>
+<div id="status"></div><ol id="list"></ol><a href="./" style="color:#d8c88c;font-size:12px">← Town building kit</a></div>
+<script src="../castle-gen.js"></script><script src="../castle-render.js"></script><script src="props-kit.js"></script>
+<script>
+(function(){'use strict';const $=id=>document.getElementById(id),canvas=$('c'),R=new CastleRender.Renderer(canvas),Q=new URLSearchParams(location.search);R.ink=0;
+const cam={yaw:1.1,pitch:.32,dist:40,tx:0,ty:3,tz:0,fov:.75};let items=[];
+function draw(){const d=Math.min(2,devicePixelRatio||1);canvas.width=innerWidth*d;canvas.height=innerHeight*d;R.draw(cam);window.KitAssets.frames++;}
+function build(){const v=$('view').value;let parts,span;
+  if(v.startsWith('scene:')){parts=PropsKit.scene(v.slice(6)).parts;items=[];span=70;}else{const g=PropsKit.gallery(v==='all'?null:v);parts=g.parts;items=g.items;span=g.width;}
+  R.setMesh(CastleRender.meshParts([{t:'quad',x0:-span/2-30,z0:-60,x1:span/2+30,z1:60,y:-.36,col:[.42,.62,.32],pat:7},...parts],CastleGen.PALETTES[0]),{cx:0,cz:0,r:Math.max(40,span/2+10),h:20});
+  Object.assign(cam,{tx:0,tz:0,ty:3,dist:Math.min(260,Math.max(28,span*.62)),pitch:v.startsWith('scene:')?.5:.32});
+  $('list').innerHTML=items.map((it,i)=>`<li data-i="${i}">${it.label}</li>`).join('');$('status').textContent=v.startsWith('scene:')?'Combination scene':items.length+' assets · click one to focus';
+  history.replaceState(null,'','?view='+encodeURIComponent(v));draw();}
+$('list').onclick=e=>{const it=items[+e.target.dataset.i];if(!it)return;Object.assign(cam,{tx:it.x,tz:0,ty:2.5,dist:14,pitch:.3});draw();};
+$('view').onchange=build;$('light').onchange=()=>{R.setLight($('light').value);draw();};R.setLight('noon');
+let drag=null;canvas.onpointerdown=e=>{drag=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);};canvas.onpointerup=()=>drag=null;
+canvas.onpointermove=e=>{if(!drag)return;cam.yaw+=(e.clientX-drag[0])*.006;cam.pitch=Math.max(.03,Math.min(1.45,cam.pitch+(e.clientY-drag[1])*.005));drag=[e.clientX,e.clientY];draw();};
+canvas.onwheel=e=>{e.preventDefault();cam.dist*=Math.exp(e.deltaY*.001);draw();};addEventListener('resize',draw);
+window.KitAssets={frames:0,cam,draw,focus:i=>{const it=items[i];Object.assign(cam,{tx:it.x,tz:0,ty:2.5,dist:14,pitch:.3});draw();},items:()=>items};
+if(Q.get('view'))$('view').value=Q.get('view');build();})();
+</script></body></html>
