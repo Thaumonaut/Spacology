@@ -74,7 +74,10 @@
         const size=world.nodeMetres(L),x=nx*size,z=nz*size;
         const distance=Math.hypot(Math.max(x-px,0,px-x-size),Math.max(z-pz,0,pz-z-size));
         if(distance>far)return;
-        const ring=Math.min(world.maxLevel,Math.max(0,Math.ceil(Math.log2(Math.max(40,distance)/40))+bias));
+        // Hysteresis: where this node's four children are already on screen, they stay until the walker is 20% past the
+        // ring boundary, so walking along a boundary never swaps finished detail back and forth (the coarse flashes).
+        const shown=L>0&&[0,1,2,3].every(q=>drawKeys.has(K(L-1,nx*2+(q&1),nz*2+(q>>1))));
+        const ring=Math.min(world.maxLevel,Math.max(0,Math.ceil(Math.log2(Math.max(40,shown?distance/1.2:distance)/40))+bias));
         if(L>ring){for(let j=0;j<2;j++)for(let i=0;i<2;i++)visit(L-1,nx*2+i,nz*2+j);}
         else out.push({L,nx,nz,key:K(L,nx,nz),distance:Math.hypot(x+size/2-px,z+size/2-pz)});
       };
@@ -85,12 +88,17 @@
     // A pinned level never changes; the caller narrows the view instead when overBudget is reported.
     function update(view){
       const t0=performance.now();lastView=view;camera=view.camera;origin=view.origin;coarseFirst=!view.pinned;
-      const avg=cache.items.size>16?cache.bytes/cache.items.size:40*1024,fits=list=>{
+      // Missing nodes are estimated from the average size of resident nodes of their own level (coarse nodes are much
+      // larger than fine ones, so one average across levels over-estimates a fine view and coarsened it needlessly).
+      const avg=cache.items.size>16?cache.bytes/cache.items.size:40*1024,byLevel=new Map();
+      for(const m of cache.items.values()){const e=byLevel.get(m.level)||{n:0,b:0};e.n++;e.b+=m.bytes;byLevel.set(m.level,e);}
+      const guess=L=>{const e=byLevel.get(L);return e&&e.n>=4?e.b/e.n:avg;};
+      const fits=list=>{
         if(list.length>cache.maxEntries*.5)return false;
         // Count real bytes for targets already resident and estimate only the misses, so a temporary average spike in a
         // mostly-built view does not coarsen the whole view; the .6 margin leaves churn room under the hard cap.
-        let known=0,misses=0;for(const t of list){const m=cache.items.get(t.key);if(m)known+=m.bytes;else misses++;}
-        return known+misses*avg<=cache.maxBytes*.6;};
+        let known=0,est=0;for(const t of list){const m=cache.items.get(t.key);if(m)known+=m.bytes;else est+=guess(t.L);}
+        return known+est<=cache.maxBytes*.6;};
       if(view.level!==requested||view.fresh){requested=view.level;bias=0;}
       if(pressure&&!view.pinned){bias++;pressure=0;}
       const walking=camera.mode==='walk';let L=clamp(view.level+bias,0,world.maxLevel),list=walking?walkTargets(L):compute(L);
@@ -202,7 +210,7 @@
       const covered=targets.filter(t=>{if(ready(t.key))return true;for(let k=t.L+1;k<=Math.min(world.maxLevel,t.L+3);k++){const a=ancestor(t,k);if(ready(K(a.L,a.nx,a.nz)))return true;}if(t.L===0)return false;const f=[];for(let j=0;j<2;j++)for(let i=0;i<2;i++)f.push(K(t.L-1,t.nx*2+i,t.nz*2+j));return f.every(ready);}).length;
       const readyCount=targets.filter(t=>ready(t.key)).length,levels={};
       for(const m of cache.items.values())levels[m.level]=(levels[m.level]||0)+1;
-      return {rings:camera?.mode==='walk'?Object.fromEntries([...new Set(targets.map(t=>t.L))].map(L=>[L,targets.filter(t=>t.L===L).length])):null,level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
+      return {rings:camera?.mode==='walk'?Object.fromEntries([...new Set(targets.map(t=>t.L))].map(L=>[L,targets.filter(t=>t.L===L).length])):null,level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,bias,requested,fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
         entries:cache.items.size,bytes:cache.bytes,budget:cache.maxBytes,levels,...stats,gpuTimer:!!gpu,
         timing:Object.fromEntries(Object.entries(times).map(([k,v])=>[k,{p50:percentile(v,.5),p95:percentile(v,.95),n:v.length}]))};
     }
