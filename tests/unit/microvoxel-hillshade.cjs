@@ -50,4 +50,22 @@ for(const L of [3,5]){
   }
   assert.ok(seam/seams<=1.5*inside/insides,`L${L} seam step ${(seam/seams).toFixed(3)} vs inside ${(inside/insides).toFixed(3)}`);
 }
+// Rock detail (close nodes on bare rock): (2N)² RGBA8, empty at L>=3, and seamless across node borders:
+// the normal step across a seam is no harsher than between neighbouring texels inside a node.
+{
+  const D=2*N,dec=(r,a,b)=>{const o=(b*D+a)*4,x=r[o]/127.5-1,z=r[o+1]/127.5-1;return {x,z,y:Math.sqrt(Math.max(0,1-x*x-z*z))};};
+  const L=1,s=2**L,nz=Math.floor(-960/(N*M.CELL*s)),nx0=Math.floor(14448/(N*M.CELL*s));
+  assert.equal(w.node(3,Math.floor(14448/(N*M.CELL*8)),Math.floor(-960/(N*M.CELL*8))).rockDetail.length,0,'no rock detail at L3+');
+  let seam=0,seams=0,inside=0,insides=0,rock=0;
+  for(let nx=nx0;nx<nx0+3;nx++){
+    const a=w.node(L,nx,nz).rockDetail,b=w.node(L,nx+1,nz).rockDetail;assert.equal(a.length,D*D*4,'mountain nodes carry rock detail');
+    for(let j=0;j<D;j++){
+      if(a[(j*D+D-1)*4+3]<200||b[(j*D)*4+3]<200)continue;rock++;
+      seam+=Math.abs(key(dec(a,D-1,j))-key(dec(b,0,j)));seams++;
+      for(let i=0;i<D-1;i++){inside+=Math.abs(key(dec(a,i,j))-key(dec(a,i+1,j)));insides++;}
+    }
+  }
+  assert.ok(rock>20,`rock seams to check (${rock})`);
+  assert.ok(seam/seams<=1.5*inside/insides,`rock detail seam step ${(seam/seams).toFixed(3)} vs inside ${(inside/insides).toFixed(3)}`);
+}
 console.log('microvoxel hillshade: PASS');

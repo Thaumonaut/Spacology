@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-24':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-26':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -2175,7 +2175,7 @@
     // highest cell written (lips included).
     let rockTop=0;
     const STRATA=1.1,stratum=k=>(k+.5*hash(k,7,seed+815))*STRATA;
-    function rockTone(k,region){const t=hash(k,11,seed+825)+(region-.5)*.5;return t<.2?MAT.rockDark:t>.85?MAT.rockPale:t>.7&&region>.5?MAT.rockWarm:MAT.basalt;}
+    function rockTone(k,region){const t=hash(k,11,seed+825)+(region-.5)*.5;return t<.2?MAT.rockDark:t>.85?MAT.rockPale:t>.78&&region>.68?MAT.rockWarm:MAT.basalt;}
     function roughRock(g,x,z,values,h,scree=false){
       // Crag walls (gorge walls, cliff bands, mesa walls) count as steep whatever the smooth slope says.
       const s=Math.min(Math.max(g.slope,(g.cliff||0)*2.2),3),r=.35+.65*clamp((s-.2)/.8,0,1),Hm=h*cellMetres,step=colStep*cellMetres;
@@ -2185,7 +2185,7 @@
       const Hs=Math.min(g.surface,Hm+cellMetres),warp=(noise(x*.06,z*.06,seed+811)-.5)*3+(noise(x*.19,z*.19,seed+813)-.5)*.8,u=Hs+warp;
       let k=Math.floor(u/STRATA);if(u<stratum(k))k--;
       const depth=u-stratum(k),soft=hash(k,9,seed+817);
-      const ht=clamp(Math.floor((Hs-(talus?0:r*(.4+.5*soft)*depth)+chip*(talus?.6:1))/cellMetres),Math.max(1,h-8*density),heightCells-8*density);
+      const ht=clamp(Math.floor((Hs-(talus?0:r*(.2+.3*soft)*depth)+chip*(talus?.6:1))/cellMetres),Math.max(1,h-8*density),heightCells-8*density);
       if(ht<h)values.fill(0,ht,h);else if(ht>h)values.fill(MAT.basalt,h,ht);
       rockTop=ht;
       if(talus){const c=hash(Math.floor(x*2),Math.floor(z*2),seed+837);values[ht-1]=c<.3?MAT.stone:c<.4?MAT.boulder:MAT.gravel;if(ht>h)values.fill(MAT.gravel,h,ht-1);return ht;}
@@ -2193,15 +2193,7 @@
       const region=noise(x*.035,z*.035,seed+823),D=Math.min(ht,Math.ceil((s*step+1.8)/cellMetres));
       let kk=k+1;for(let y=ht-1;y>=ht-D;y--){const uy=(y+.5)*cellMetres+warp;while(kk>-1e9&&uy<stratum(kk))kk--;values[y]=rockTone(kk,region);}
       // Lichen on treads: grey-green in patches, rust in drier regions.
-      if(s<1.7&&noise(x*.4,z*.4,seed+827)>.7&&hash(Math.floor(x*4),Math.floor(z*4),seed+829)<.6)values[ht-1]=noise(x*.07,z*.07,seed+831)>.72&&hash(Math.floor(x*4),Math.floor(z*4),seed+853)<.5?MAT.lichenOrange:MAT.lichen;
-      // Lip: within reach of the riser of the next stratum up, a hard layer overhangs this ledge (solid over air).
-      if(step<.51&&s>.6){
-        const bn=stratum(k+1),d=(bn-u)/s,reach=.45+.4*noise(x*.5,z*.5,seed+833);
-        if(d<reach&&bn-u<.6*(stratum(k+2)-bn)&&hash(k+1,13,seed+835)>.35){
-          const top=bn-warp+chip,hi=Math.min(heightCells,Math.floor(top/cellMetres)),lo=Math.max(ht,Math.floor((top-.5-.25*hash(k+1,15,seed+839))/cellMetres));
-          if(hi>ht+1&&hi>lo){values.fill(rockTone(k+1,region),lo-ht<2?ht:lo,hi);rockTop=hi;}
-        }
-      }
+      if(s<1.7&&noise(x*.4,z*.4,seed+827)>.7&&hash(Math.floor(x*4),Math.floor(z*4),seed+829)<.6)values[ht-1]=noise(x*.07,z*.07,seed+831)>.84&&hash(Math.floor(x*4),Math.floor(z*4),seed+853)<.4?MAT.lichenOrange:MAT.lichen;
       return ht;
     }
     // A column is a vertical band: cells [colFloor, colTop) are written into a reused full-height scratch; everything
@@ -2592,7 +2584,7 @@
       if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,fine,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
       const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
       const objects=objectTrees?treeObjectsIn(L,nx,nz,canopy,grounds,G):null;
-      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),rockDetail:L<=2?rockDetail(fine,G,rockColumns(cols,colY0,grounds,P,G),P,L,nx,nz):new Uint8Array(0),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2899,6 +2891,44 @@
     // cubic, so the gradient is unitless. Sobel, then a 3×3 blur, widens the kernel enough to hide single-block steps.
     // Alpha is the highest ground in the 3×3 around the column, in blocks above groundBase (255: out of range); the shader
     // keeps block-face lighting for anything above it (isles, canopies).
+    // Bare-rock ground materials that take the rock detail map (scree, cobble and boulders keep their own look).
+    const DETAIL_ROCK=new Set([MAT.basalt,MAT.stone,MAT.rockDark,MAT.rockPale,MAT.rockWarm,MAT.lichen,MAT.lichenOrange]);
+    // 1 where a column's ground top (P grid, halo included) is bare rock.
+    function rockColumns(cols,colY0,grounds,P,G){
+      const out=new Uint8Array(P*P);
+      for(let j=0;j<P;j++)for(let i=0;i<P;i++){const k=j*P+i,g=grounds[(j+1)*G+i+1]-1,y0=colY0[k],c=cols[k];if(g<0)continue;
+        const m=g<y0?MAT.basalt:g-y0<c.length?c[g-y0]&127:0;out[k]=DETAIL_ROCK.has(m)?1:0;}
+      return out;
+    }
+    // Mountain rock detail for close nodes (L<=2), as lighting only, so faces read rugged while the walkable surface stays
+    // smooth. RGBA8 at twice the column resolution over the inside columns ((2N)², row-major from the node's -x,-z corner):
+    // R,G the detail normal's x,z (encoded like hillshade normals), B crack occlusion (0 none, 255 deepest), A the rock
+    // mask (0 not rock). The normal is the exact ground's gradient (the hillshade's Sobel, interpolated) plus an analytic
+    // detail height: strata ledges on roughRock's warped contours (flat treads, steep risers), cracks and chips. Everything
+    // is a function of world position and the exact ground, so neighbouring nodes match at the seam. Empty when the node
+    // has no bare rock.
+    function rockDetail(fine,G,rocky,P,L,nx,nz){
+      if(!rocky.some(v=>v))return new Uint8Array(0);
+      const N=NODE*2,W=N+2,bs=2**L*cellMetres,e=bs/2,x0=nx*NODE*bs,z0=nz*NODE*bs,D=new Float32Array(W*W),C=new Float32Array(W*W),out=new Uint8Array(N*N*4);
+      const FH=(i,j)=>fine[clamp(j,0,G-1)*G+clamp(i,0,G-1)],lerp2=(f,fx,fz)=>{const i=Math.floor(fx),j=Math.floor(fz),u=fx-i,v=fz-j;return (f(i,j)*(1-u)+f(i+1,j)*u)*(1-v)+(f(i,j+1)*(1-u)+f(i+1,j+1)*u)*v;};
+      const SX=(i,j)=>(FH(i+1,j-1)+2*FH(i+1,j)+FH(i+1,j+1)-FH(i-1,j-1)-2*FH(i-1,j)-FH(i-1,j+1))/8,SZ=(i,j)=>(FH(i-1,j+1)+2*FH(i,j+1)+FH(i+1,j+1)-FH(i-1,j-1)-2*FH(i,j-1)-FH(i+1,j-1))/8;
+      const RK=(i,j)=>rocky[clamp(j,0,P-1)*P+clamp(i,0,P-1)];
+      // Texel a (-1..N) sits at inside column (a+.5)/2-.5: fine-grid index +2, P-grid index +1.
+      const col=a=>(a+.5)/2-.5;
+      for(let b=-1;b<=N;b++)for(let a=-1;a<=N;a++){
+        const x=x0+(a+.5)*e,z=z0+(b+.5)*e,Hm=lerp2(FH,col(a)+2,col(b)+2)*bs;
+        const warp=(noise(x*.06,z*.06,seed+811)-.5)*3+(noise(x*.19,z*.19,seed+813)-.5)*.8,u=(Hm+warp)/STRATA,f=u-Math.floor(u);
+        const ledge=(f*f*(3-2*f)-f)*STRATA*.8,c=Math.abs(noise(x*.45+warp*.15,z*.45,seed+861)-.5)*2,crack=clamp(1-c/.1,0,1);
+        const chips=(noise(x*1.7,z*1.7,seed+863)-.5)*.12+(noise(x*3.9,z*3.9,seed+864)-.5)*.05;
+        const k=(b+1)*W+a+1;D[k]=ledge+chips-.1*crack;C[k]=crack;
+      }
+      for(let b=0;b<N;b++)for(let a=0;a<N;a++){
+        const k=(b+1)*W+a+1,fx=col(a)+2,fz=col(b)+2,o=(b*N+a)*4;
+        const gx=lerp2(SX,fx,fz)+(D[k+1]-D[k-1])/(2*e),gz=lerp2(SZ,fx,fz)+(D[k+W]-D[k-W])/(2*e),l=Math.hypot(gx,1,gz);
+        out[o]=Math.round(128-127*gx/l);out[o+1]=Math.round(128-127*gz/l);out[o+2]=Math.round(C[k]*255);out[o+3]=Math.round(clamp(lerp2(RK,col(a)+1,col(b)+1),0,1)*255);
+      }
+      return out;
+    }
     function hillshade(grounds,fine,G){
       const N=G-4,M=N+2,T=(i,j)=>fine[j*G+i],gx=new Float32Array(M*M),gz=new Float32Array(M*M),out=new Uint8Array(N*N*4);
       for(let j=0;j<M;j++)for(let i=0;i<M;i++){

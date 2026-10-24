@@ -24,3 +24,9 @@ Walkability on the eight highest-relief mountain sites (25 cm moves rising more 
 screenshot). Bands still cut a near-vertical riser every ~3 m on any slope over ~32°, which the 50 cm mesh drew as rows of
 dark comb teeth. Bands now start at ~44° and full strength near 55°, pull 70% (was 90%) of the way to the step, and their
 risers are softer (step exponent 1.6-2.8, was 2-4.5). Blocked 25 cm moves on the highest mountains: 1.6% -> 0.5%.
+
+## Rock without dangling teeth (micro-wilds-25)
+
+`after-rock-0-span32`: roughRock no longer builds overhanging lips under each 1.1 m stratum (the smooth mesh drew them
+as hanging teeth), cuts ledges about half as deep, and uses the warm stratum tone and orange lichen much more rarely.
+Close-up rock is now smooth and walkable but plain; fine rock detail is planned as a normal map rather than geometry.
