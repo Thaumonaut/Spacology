@@ -173,3 +173,12 @@ where the surface passes; big walls snap to the coarse grid so only sloped roofs
 Drawn as one box each; the fragment shader steps coarse cells then brick voxels and shades with the shared lighting
 (shadows via a coarse-only march in the shadow pass). A pool of workers voxelises (~0.3 s per building) and models swap
 in when ready. Street views: ~0.32M triangles (was 1.25M at 25 cm meshes), 30 ray models, ~120 MB of voxel textures.
+
+## Character, composition, light, texture (v21-v24)
+
+| File | What to look at |
+| --- | --- |
+| v21-massing | Building massing: end bays, cross gables, corner towers, jetties, dormers, chimneys |
+| v23-approach | One axis from the main gate through the plaza to the castle on the summit; lilac distance haze layering the roofscape |
+| v23-avenue | From the plaza: the castle rising behind the statue on the axis |
+| v24-shop / v24-inn | Painterly textures: sett cobbles, mottled and streaked plaster, coursed stone with mortar and moss, tiled roofs with moss; bloom on lit windows |

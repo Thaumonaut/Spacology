@@ -164,21 +164,37 @@
   float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y);}
   // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
-  vec3 pattern(vec3 c,vec3 n,float dist){int t=int(gT+.5);if(t==0)return c;float fade=1.-smoothstep(40.,260.,dist);if(fade<=0.)return c;
+  vec3 pattern(vec3 c,vec3 n,float dist){int t=int(gT+.5);if(t==0)return c;float fade=1.-smoothstep(60.,420.,dist);if(fade<=0.)return c;
     vec3 p=gP;bool wall=abs(n.y)<.5;vec2 tg=normalize(vec2(-n.z,n.x)+1e-5);float u=dot(p.xz,tg);vec3 o=c;
     if(t==1&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;
       float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(hh(vec2(cell,3.))<.45)beam+=step(abs(fu-fy),.05);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
-    else if(t==2){float y=p.y*2.4,row=floor(y);float j=step(fract(y),.12)+step(fract(u*1.4+row*.5),.07);o=c*(1.-.16*clamp(j,0.,1.))*(.93+.12*hh(vec2(floor(u*1.4+row*.5),row)));}
-    else if(t==3&&!wall){vec2 q=p.xz*1.6,cl=floor(q+vec2(0,floor(q.x)*.5)),f=fract(q+vec2(0,floor(q.x)*.5));float e=min(min(f.x,1.-f.x),min(f.y,1.-f.y));o=c*(.86+.18*hh(cl))*(1.-.22*(1.-smoothstep(.04,.1,e)));}
-    else if(t==4){vec2 q=wall?vec2(u/1.15,p.y/.55):p.xz/vec2(1.15,.8);q.x+=floor(q.y)*.5;vec2 f=fract(q);float e=min(min(f.x,1.-f.x)*1.15,min(f.y,1.-f.y)*.55);o=c*(.88+.16*hh(floor(q)))*(1.-.18*(1.-smoothstep(.02,.06,e)));}
-    else if(t==5){o=c*(.95+.08*vn(vec2(u,p.y)*.6));if(wall)o*=1.-.18*(1.-smoothstep(6.,7.2,p.y));}
+    else if(t==2){
+      // Roof tiles: staggered rows, each tile its own shade and a little hue drift, a shadowed lower lip, moss in patches.
+      float y=p.y*2.6,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
+      vec3 tc=c*(.84+.24*hh(vec2(cell,row)))*vec3(1.+.06*(hh(vec2(row,cell))-.5),1.,1.-.05*(hh(vec2(cell+3.,row))-.5));
+      o=tc*mix(.68,1.,lip)*mix(.8,1.,gap);float moss=smoothstep(.62,.8,vn(p.xz*.35+u*.1)+.25*hh(vec2(cell,row)));o=mix(o,vec3(.42,.52,.3)*(.8+.3*hh(vec2(cell,row))),moss*.55);}
+    else if(t==3&&!wall){
+      // Cobbles: rounded stones in offset rows with dark joints, sparse grass in the joints, a worn paler path.
+      vec2 q=p.xz*vec2(2.4,3.);q.x+=floor(q.y)*.5;vec2 cl=floor(q),f=abs(fract(q)-.5);float r=length(max(f-vec2(.3,.28),0.))+min(max(f.x-.3,f.y-.28),0.),stone=1.-smoothstep(.1,.17,r+.12);
+      vec3 sc=c*(.8+.28*hh(cl))*(1.08-.18*length(fract(q)-.5));o=mix(c*.6,sc,stone);o=mix(o,vec3(.42,.52,.32),(1.-stone)*smoothstep(.7,.85,vn(p.xz*.6))*.6);o*=1.+.07*smoothstep(.4,.8,vn(p.xz*.05));}
+    else if(t==4){
+      // Coursed stone: blocks of varied length and tone, recessed mortar, moss creeping up the lowest courses.
+      vec2 q=wall?vec2(u/1.05,p.y/.5):p.xz/vec2(1.05,.8);float row=floor(q.y);q.x+=row*.37+.5*hh(vec2(row,9.));q.x/=.8+.5*hh(vec2(row,floor(q.x)));vec2 f=fract(q);
+      float e=min(min(f.x,1.-f.x)*1.2,min(f.y,1.-f.y)*.6);vec3 bc=c*(.8+.3*hh(floor(q)+row*13.))*vec3(1.+.05*(hh(floor(q))-.5),1.,1.);o=mix(c*.55,bc,smoothstep(.015,.05,e));
+      if(wall){float m=smoothstep(.55,.85,vn(vec2(u,p.y)*.6))*(1.-smoothstep(0.,2.5,fract(p.y/40.)*40.-5.));o=mix(o,vec3(.4,.5,.3),m*.4);}}
+    else if(t==5){
+      // Plaster: soft mottling with warm/cool drift, stains and rain streaks running down, grime at the foot.
+      float mot=vn(vec2(u,p.y)*.5)*.6+vn(vec2(u,p.y)*2.1)*.4;o=c*(.9+.16*mot)*vec3(1.+.03*(vn(vec2(u,p.y)*.17)-.5),1.,1.-.03*(vn(vec2(u,p.y)*.13)-.5));
+      if(wall){float streak=smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;o*=1.-streak-.2*(1.-smoothstep(6.,7.4,p.y));}}
     else if(t==6){o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));}
-    else if(t==7){o=c*(.86+.2*vn(p.xz*.12)+.06*vn(p.xz*1.3));}
+    else if(t==7){
+      // Grass: broad light/dark drifts, tuft speckle and the odd white or yellow flower.
+      float tf=hh(floor(p.xz*6.));o=c*(.8+.22*vn(p.xz*.09)+.1*vn(p.xz*.8)+.1*(tf-.5));float fl=step(.985,hh(floor(p.xz*5.)+7.));o=mix(o,hh(floor(p.xz*5.)+3.)<.5?vec3(.98,.96,.88):vec3(.98,.85,.3),fl*(1.-smoothstep(10.,40.,dist)));}
     else if(t==10){o=mix(c,vec3(.97,.95,.9),step(.5,fract(dot(p.xz,vec2(.7071))*1.6)));}
     else if(t==8||t==9){
       // Closed buildings: the plaster or framing, then painted windows on each storey (dark glass, pale frame).
       if(t==9&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
-      else o=c*(.95+.08*vn(vec2(u,p.y)*.6));
+      else{float mot=vn(vec2(u,p.y)*.5)*.6+vn(vec2(u,p.y)*2.1)*.4;o=c*(.9+.16*mot);o*=1.-smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;}
       if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     return mix(c,o,fade);}
