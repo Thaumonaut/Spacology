@@ -46,15 +46,15 @@
     markDisk(0,0,plazaR+2);
     // ---- Castle on its hill, out along one avenue on the side away from the river.
     // Plaza spokes. Not a uniform hub: one main road runs right through the city (two spokes, gate to gate), one road
-    // leads to the castle, and two or three short streets reach only the first ring. The castle sits on the side away
-    // from the river; the main road crosses roughly square to the castle road.
-    const cA=(side>0?Math.PI:0)-ang+r(-.5,.5),mA=cA+Math.PI/2+r(-.35,.35),mB=mA+Math.PI+r(-.3,.3),cD=Rw*r(.6,.68),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
+    // leads to the castle, and two or three short streets reach only the first ring. The main road runs across the river
+    // (along its normal, so it always bridges it); the castle stands off to one side of it, away from the water.
+    const mA=Math.atan2(sa,ca)+(side>0?0:Math.PI)+r(-.2,.2),mB=mA+Math.PI+r(-.25,.25),cA=mA+(R()<.5?1:-1)*Math.PI/2+r(-.3,.3)+(side>0?0:0),cD=Rw*r(.5,.58),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
     const radials=[mA,mB,cA],MAIN=new Set([mA,mB]);
     {const free=[];for(let q=0;q<48;q++){const a=q/48*TAU;if(radials.every(b=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))>.75))free.push(a);}
       for(let k=Math.round(r(2,3));k>0&&free.length;k--){const a=free.splice(Math.floor(R()*free.length),1)[0];radials.push(a);for(let q=free.length-1;q>=0;q--)if(Math.abs(Math.atan2(Math.sin(free[q]-a),Math.cos(free[q]-a)))<.75)free.splice(q,1);}}
     // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
-    const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=1.9,cLevel=gy(cx,cz);
-    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.28,.34):r(.26,.32))*S,palette:CastleGen.PALETTES.indexOf(pal)});
+    const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=1.55,cLevel=gy(cx,cz);
+    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.6,.72):r(.65,.8))*S,palette:CastleGen.PALETTES.indexOf(pal)});
     castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR,fall:50,level:cLevel});
     // ---- Plaza gaps between avenues, best first (wide, and on the side opposite the castle). The cathedral takes the best:
     // it stands end-on to the plaza, its west front on the plaza and its nave running outward, and streets that would
@@ -83,7 +83,7 @@
     // reaches it stops at the quay.
     {const crossing=[...new Set(streets.filter(st=>st.kind==='avenue'&&st.id>=0&&inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)).map(st=>st.id))];
       const dist=id=>Math.min(...streets.filter(st=>st.id===id&&inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)).map(st=>Math.hypot(st.x0,st.z0)));
-      const keep=new Set(crossing.sort((a,b)=>dist(a)-dist(b)).slice(0,Math.round(r(2,3))));
+      const keep=new Set([...crossing.filter(id=>id<2),...crossing.filter(id=>id>=2).sort((a,b)=>dist(a)-dist(b))].slice(0,Math.round(r(1,2))));
       for(let i=streets.length-1;i>=0;i--){const st=streets[i];if(inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)&&!(st.kind==='avenue'&&keep.has(st.id)))streets.splice(i,1);}
       // A kept avenue crosses on the shortest span: its segments near the water give way to a bridge square to the river
       // (along the local normal of the centreline) and two short connectors from the avenue's ends on each bank.

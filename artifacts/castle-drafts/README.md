@@ -102,3 +102,10 @@ with a plinth to the lowest (up to ~6 m on hilly ground). Interiors are parked (
 Streets are no longer a uniform hub: one main road runs gate to gate through the plaza, one road leads to the castle,
 2-3 short streets reach the first ring, and ring bands have their own staggered connectors. Only the 2-3 avenue
 crossings nearest the plaza get bridges, each square to the river; other streets stop at the quay.
+
+## Crossings and castle scale (v13)
+
+| File | What to look at |
+| --- | --- |
+| v13-city2 | Top-down: the main road bridges the river square to it; the castle (~360 m, palace layout) dwarfs the cathedral |
+| v13-city6 | Oblique: main road gate to gate across the river bridge; castle grounds ~520 m |
