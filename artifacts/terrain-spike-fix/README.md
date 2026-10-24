@@ -30,3 +30,9 @@ risers are softer (step exponent 1.6-2.8, was 2-4.5). Blocked 25 cm moves on the
 `after-rock-0-span32`: roughRock no longer builds overhanging lips under each 1.1 m stratum (the smooth mesh drew them
 as hanging teeth), cuts ledges about half as deep, and uses the warm stratum tone and orange lichen much more rarely.
 Close-up rock is now smooth and walkable but plain; fine rock detail is planned as a normal map rather than geometry.
+
+## Rock detail map, lit (micro-wilds-27)
+
+`rockdetail-before/after-span32`: rendered with voxel-polish's shader (ff361ad), which lights rock from `rockDetail`.
+The first amplitudes barely showed; ledges are now 1.5x stronger, cracks wider and deeper, and 0.3-2 m lumps replace the
+fine chips, so faces read rugged while the walkable surface stays smooth.

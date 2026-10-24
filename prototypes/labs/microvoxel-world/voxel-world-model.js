@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-26':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-27':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -2703,7 +2703,7 @@
     // smooth. RGBA8 at twice the column resolution over the inside columns ((2N)², row-major from the node's -x,-z corner):
     // R,G the detail normal's x,z (encoded like hillshade normals), B crack occlusion (0 none, 255 deepest), A the rock
     // mask (0 not rock). The normal is the exact ground's gradient (the hillshade's Sobel, interpolated) plus an analytic
-    // detail height: strata ledges on roughRock's warped contours (flat treads, steep risers), cracks and chips. Everything
+    // detail height: strata ledges on roughRock's warped contours (flat treads, steep risers), cracks and 0.3-2 m lumps. Everything
     // is a function of world position and the exact ground, so neighbouring nodes match at the seam. Empty when the node
     // has no bare rock.
     function rockDetail(fine,G,rocky,P,L,nx,nz){
@@ -2717,9 +2717,9 @@
       for(let b=-1;b<=N;b++)for(let a=-1;a<=N;a++){
         const x=x0+(a+.5)*e,z=z0+(b+.5)*e,Hm=lerp2(FH,col(a)+2,col(b)+2)*bs;
         const warp=(noise(x*.06,z*.06,seed+811)-.5)*3+(noise(x*.19,z*.19,seed+813)-.5)*.8,u=(Hm+warp)/STRATA,f=u-Math.floor(u);
-        const ledge=(f*f*(3-2*f)-f)*STRATA*.8,c=Math.abs(noise(x*.45+warp*.15,z*.45,seed+861)-.5)*2,crack=clamp(1-c/.1,0,1);
-        const chips=(noise(x*1.7,z*1.7,seed+863)-.5)*.12+(noise(x*3.9,z*3.9,seed+864)-.5)*.05;
-        const k=(b+1)*W+a+1;D[k]=ledge+chips-.1*crack;C[k]=crack;
+        const ledge=(f*f*(3-2*f)-f)*STRATA*1.2,c=Math.abs(noise(x*.45+warp*.15,z*.45,seed+861)-.5)*2,crack=clamp(1-c/.16,0,1);
+        const lumps=(noise(x*.55,z*.55,seed+865)-.5)*.45+(noise(x*1.3,z*1.3,seed+863)-.5)*.22+(noise(x*3.4,z*3.4,seed+864)-.5)*.08;
+        const k=(b+1)*W+a+1;D[k]=ledge+lumps-.22*crack*crack;C[k]=crack;
       }
       for(let b=0;b<N;b++)for(let a=0;a<N;a++){
         const k=(b+1)*W+a+1,fx=col(a)+2,fz=col(b)+2,o=(b*N+a)*4;
