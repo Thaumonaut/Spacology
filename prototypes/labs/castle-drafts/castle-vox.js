@@ -86,5 +86,45 @@
           m.k.push(m.solid,m.solid);m.id.push(-1,-1);
           for(let l=0;l<h;l++)for(let k=0;k<w;k++)mask[p+k+l*n[u]]=0;i+=w;p+=w;}}}
     return m;}
-  return {voxelize,meshVox};
+  // ---- Sparse voxels for ray marching. A coarse grid (cvs, e.g. 25 cm) whose cells are 0 (empty), 1..255 (solid, one
+  // palette entry) or 256+b (brick b: SUB^3 fine voxels of cvs/SUB, e.g. 6.25 cm, each 0 or a palette entry). Parts are
+  // applied in order: a cell a part fully covers (all nine samples: centre and corners) becomes solid; a cell it only
+  // partly covers, or any cell a thin part's bounds touch, gets a brick and is sampled voxel by voxel. Bricks are laid out
+  // for a 2D texture 1024 wide: brick b at x = (b%64)*16 + z*4 + x, y = floor(b/64)*4 + y (SUB = 4).
+  function voxelizeSparse(parts,F,cvs,colourOf,patOf){const SUB=4;let fvs;
+    const loc=[],rest=[];for(const p of parts){if(VOXEL.has(p.t)&&!(p.t==='ramp'&&p.rail!==false))loc.push(toLocal(p,F));else rest.push(p);}
+    if(!loc.length)return {rest};
+    let b=[1e9,1e9,1e9,-1e9,-1e9,-1e9];const bb=loc.map(bounds);for(const q of bb)for(let a=0;a<3;a++){b[a]=Math.min(b[a],q[a]);b[a+3]=Math.max(b[a+3],q[a+3]);}
+    // Huge models (the cathedral) get a coarser grid, so no model exceeds ~1.5 M coarse cells.
+    cvs=Math.max(cvs,Math.cbrt((b[3]-b[0])*(b[4]-b[1])*(b[5]-b[2])/1.5e6));const SUBV=4;
+    const o=[Math.floor(b[0]/cvs)*cvs-cvs,Math.floor(b[1]/cvs)*cvs-cvs,Math.floor(b[2]/cvs)*cvs-cvs],n=[0,1,2].map(a=>Math.min(1024,Math.ceil((b[a+3]-o[a])/cvs)+2));
+    const coarse=new Uint16Array(n[0]*n[1]*n[2]);let bricks=new Uint8Array(64*4096),nb=0;
+    const pal=[],key=new Map(),entry=(col,pat,glow)=>{const k=col.map(v=>Math.round(v*255)).join(',')+'|'+pat+'|'+(glow?1:0);let e=key.get(k);if(e==null&&pal.length<255){e=pal.length;key.set(k,e);pal.push({col,pat,glow});}return e??0;};
+    const newBrick=fill=>{if(nb>=65279)return -1;if((nb+1)*64>bricks.length){const nbuf=new Uint8Array(bricks.length*2);nbuf.set(bricks);bricks=nbuf;}if(fill)bricks.fill(fill,nb*64,nb*64+64);return nb++;};
+    fvs=cvs/SUB;
+    // Big axis-aligned boxes (walls, floors, plinths >= 1 m) snap to the coarse grid: they become whole solid cells and
+    // need no bricks; their faces still sit within a cell of the design. Detail parts keep fine voxels.
+    for(const p of loc)if(p.t==='box'&&Math.min(p.w,p.d,p.h)>=1){const r=((p.rot||0)%(Math.PI/2)+Math.PI/2)%(Math.PI/2);if(r>1e-4&&Math.PI/2-r>1e-4)continue;const sw=Math.abs(Math.sin(p.rot||0))>.5;
+      const hw=sw?p.d/2:p.w/2,hd=sw?p.w/2:p.d/2,sn=v=>Math.round((v-o[0])/cvs)*cvs+o[0],snz=v=>Math.round((v-o[2])/cvs)*cvs+o[2],sny=v=>Math.round((v-o[1])/cvs)*cvs+o[1];
+      const x0=sn(p.x-hw),x1=sn(p.x+hw),z0=snz(p.z-hd),z1=snz(p.z+hd),y0=sny(p.y),y1=sny(p.y+p.h);Object.assign(p,{x:(x0+x1)/2,z:(z0+z1)/2,w:sw?z1-z0:x1-x0,d:sw?x1-x0:z1-z0,y:y0,h:y1-y0,snapped:true});}
+    const C9=[[.5,.5,.5],[.02,.02,.02],[.98,.02,.02],[.02,.98,.02],[.98,.98,.02],[.02,.02,.98],[.98,.02,.98],[.02,.98,.98],[.98,.98,.98]];
+    loc.forEach((p,pi)=>{const q=bb[pi],e1=entry(colourOf(p),patOf(p),!!p.glow)+1,e2=p.t==='vdisk'?entry(p.col2||[.18,.17,.24],0,false)+1:e1;
+      const ext=[q[3]-q[0],q[4]-q[1],q[5]-q[2]],thin=Math.min(...ext)<cvs*3||p.t==='beam'||p.t==='vdisk';
+      const i0=Math.max(0,Math.floor((q[0]-o[0])/cvs)),i1=Math.min(n[0]-1,Math.floor((q[3]-o[0])/cvs)),j0=Math.max(0,Math.floor((q[1]-o[1])/cvs)),j1=Math.min(n[1]-1,Math.floor((q[4]-o[1])/cvs)),k0=Math.max(0,Math.floor((q[2]-o[2])/cvs)),k1=Math.min(n[2]-1,Math.floor((q[5]-o[2])/cvs));
+      for(let k=k0;k<=k1;k++)for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const X=o[0]+i*cvs,Y=o[1]+j*cvs,Z=o[2]+k*cvs,ci=(k*n[1]+j)*n[0]+i;let cnt=0,first=0;
+        for(const [a,bq,c] of C9){const r=inside(p,X+a*cvs,Y+bq*cvs,Z+c*cvs,fvs);if(r){cnt++;if(!first)first=r;}}
+        if(cnt===9&&p.t!=='vdisk'){coarse[ci]=e1;continue;}
+        // Thin parts: skip cells the part does not come near (its centre test with the part thickened to the cell).
+        if(cnt===0&&(!thin||!inside(p,X+cvs*.5,Y+cvs*.5,Z+cvs*.5,cvs*2.2)))continue;
+        let cv=coarse[ci],br;if(cv>=256)br=cv-256;else{br=newBrick(cv);if(br<0){if(cnt)coarse[ci]=e1;continue;}coarse[ci]=256+br;}
+        const base=br*64;for(let fz=0;fz<4;fz++)for(let fy=0;fy<4;fy++)for(let fx=0;fx<4;fx++){const r=inside(p,X+(fx+.5)*fvs,Y+(fy+.5)*fvs,Z+(fz+.5)*fvs,fvs);if(r)bricks[base+(fz*4+fy)*4+fx]=r===2?e2:e1;}}});
+    // Tidy: bricks that came out empty or all one entry go back to plain cells.
+    for(let ci=0;ci<coarse.length;ci++){const cv=coarse[ci];if(cv<256)continue;const base=(cv-256)*64,v0=bricks[base];let same=true;for(let t=1;t<64;t++)if(bricks[base+t]!==v0){same=false;break;}if(same)coarse[ci]=v0;}
+    // Compact: renumber the bricks still in use, then lay them out for the texture.
+    const remap=new Int32Array(nb).fill(-1);let used=0;for(let ci=0;ci<coarse.length;ci++){const cv=coarse[ci];if(cv<256)continue;const ob=cv-256;if(remap[ob]<0)remap[ob]=used++;coarse[ci]=256+remap[ob];}
+    const rows=Math.max(1,Math.ceil(used/64))*4,tex=new Uint8Array(1024*rows);
+    for(let ob=0;ob<nb;ob++){const bi=remap[ob];if(bi<0)continue;const bx=(bi%64)*16,by=Math.floor(bi/64)*4,base=ob*64;for(let fz=0;fz<4;fz++)for(let fy=0;fy<4;fy++)for(let fx=0;fx<4;fx++)tex[(by+fy)*1024+bx+fz*4+fx]=bricks[base+(fz*4+fy)*4+fx];}
+    const palTex=new Uint8Array(256*4);pal.forEach((e,i)=>{palTex[i*4]=Math.round(e.col[0]*255);palTex[i*4+1]=Math.round(e.col[1]*255);palTex[i*4+2]=Math.round(e.col[2]*255);palTex[i*4+3]=(e.pat&63)|(e.glow?128:0);});
+    return {coarse,n,o,cvs,sub:SUB,bricks:tex,brickRows:rows,nb:used,pal:palTex,rest};}
+  return {voxelize,meshVox,voxelizeSparse};
 });

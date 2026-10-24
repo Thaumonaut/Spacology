@@ -29,7 +29,7 @@
   <label>Layout <select id="layout"><option value="">auto</option><option>rings</option><option>linked</option><option>spur</option><option>palace</option><option>cluster</option></select></label>
   <label>Light <select id="light"><option value="golden">golden hour</option><option value="noon">noon</option></select></label>
   <label>Ink outlines <input id="ink" type="checkbox" checked></label>
-  <label>Voxels <select id="vox"><option value="0.25">25 cm</option><option value="0.125">12.5 cm</option><option value="0.5">50 cm</option><option value="0">off (mesh)</option></select></label>
+  <label>Voxels <select id="vox"><option value="ray">6.25 cm (ray-marched)</option><option value="0.25">25 cm</option><option value="0.125">12.5 cm</option><option value="0.5">50 cm</option><option value="0">off (mesh)</option></select></label>
   <label>Roofs <select id="palette"><option value="">auto</option></select></label>
   <label>Scale <input id="scale" type="range" min="0.6" max="2.5" step="0.1" value="1"></label>
   <label>Grid of 9 <input id="grid" type="checkbox"></label>
@@ -51,10 +51,10 @@
   const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search),canvas=$('c');
   const R=new CastleRender.Renderer(canvas);
   CastleGen.PALETTES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;$('palette').appendChild(o);});
-  const state={vox:Q.get('vox')||'0.25',light:Q.get('light')||'golden',ink:Q.get('ink')!=='0',mode:Q.get('mode')||'castle',seed:+(Q.get('seed')||1),style:Q.get('style')||'',layout:Q.get('layout')||'',terrain:Q.get('terrain')||'',river:Q.get('river')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
+  const state={vox:Q.get('vox')||'ray',light:Q.get('light')||'golden',ink:Q.get('ink')!=='0',mode:Q.get('mode')||'castle',seed:+(Q.get('seed')||1),style:Q.get('style')||'',layout:Q.get('layout')||'',terrain:Q.get('terrain')||'',river:Q.get('river')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
   const cam={yaw:+(Q.get('yaw')||0.9),pitch:+(Q.get('pitch')||0.1),dist:+(Q.get('dist')||0),tx:0,ty:0,tz:0,fov:.75};
   function sync(){$('vox').value=state.vox;CastleRender.GROUND.vs=+state.vox;$('light').value=state.light;$('ink').checked=state.ink;R.setLight(state.light);R.ink=state.ink?1:0;$('mode').value=state.mode;$('seed').value=state.seed;$('style').value=state.style;$('layout').value=state.layout;$('terrain').value=state.terrain;$('river').value=state.river;$('palette').value=state.palette;$('scale').value=state.scale;$('grid').checked=state.grid;
-    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.layout)q.set('layout',state.layout);if(state.terrain)q.set('terrain',state.terrain);if(state.river)q.set('river',state.river);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');if(state.mode!=='castle')q.set('mode',state.mode);if(state.light!=='golden')q.set('light',state.light);if(state.vox!=='0.25')q.set('vox',state.vox);if(!state.ink)q.set('ink','0');history.replaceState(null,'','?'+q);}
+    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.layout)q.set('layout',state.layout);if(state.terrain)q.set('terrain',state.terrain);if(state.river)q.set('river',state.river);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');if(state.mode!=='castle')q.set('mode',state.mode);if(state.light!=='golden')q.set('light',state.light);if(state.vox!=='ray')q.set('vox',state.vox);if(!state.ink)q.set('ink','0');history.replaceState(null,'','?'+q);}
   // ---- City mode. Everything is filed into 160 m tiles: static ground/streets/walls, closed building shells (painted
   // windows and a door) and props. Props draw only within ~380 m. Interiors load per building when its door is opened
   // (E in Walk) and unload once the walker is 80 m away; that building's shell leaves its tile while it is open.
@@ -62,8 +62,10 @@
   const TILE=160,PROPS_NEAR=380;let city=null;const tileCache=new Map(),opened=new Map();
   const tkey=(x,z)=>Math.floor(x/TILE)+','+Math.floor(z/TILE);
   function cached(id,make){if(!tileCache.has(id)){const m=make();tileCache.set(id,{key:'city'+city.seed+':'+id,mesh:m,col:new CastleWalk.Collider(m)});}return tileCache.get(id);}
-  function shells(k){const T=city.tiles.get(k),ver=T.b.filter(b=>opened.has(b.id)).map(b=>b.id).join('.');
-    return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!opened.has(b.id))CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);return m;});}
+  // Buildings drawn by ray marching leave their tile's shell mesh (like opened ones); they keep a collider of their shell.
+  const out=b=>opened.has(b.id)||rayShown.has(b.id);
+  function shells(k){const T=city.tiles.get(k),ver=T.b.filter(out).map(b=>b.id).join('.');
+    return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!out(b))CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);return m;});}
   // Street-level detail for the tiles round the walker (or round the view's focus when zoomed in close).
   function shellsNear(k){const T=city.tiles.get(k),ver=T.b.filter(b=>opened.has(b.id)).map(b=>b.id).join('.');
     return cached('near:'+k+':'+ver+':'+state.vox,()=>{const m=new CastleRender.Mesh(),vs=+state.vox,t0=performance.now();
@@ -94,10 +96,29 @@
     for(const [k,T] of city.tiles){const [i,j]=k.split(',').map(Number),near=tw&&Math.abs(i-tw[0])<=1&&Math.abs(j-tw[1])<=1,cx=(i+.5)*TILE,cz=(j+.5)*TILE;
       if(T.s.length){const t=staticOf(k);list.push(t);if(near)cols.push(t.col);}
       const detail=dt&&Math.abs(i-dt[0])<=1&&Math.abs(j-dt[1])<=1;
-      if(T.b.length){const t=detail?shellsNear(k):shells(k);list.push(t);if(near)cols.push(t.col);}
+      if(T.b.length){const t=detail&&state.vox!=='ray'?shellsNear(k):shells(k);list.push(t);if(near)cols.push(t.col);}
       if(T.p.length&&Math.hypot(cx-focus.x,cz-focus.z)<PROPS_NEAR){const t=detail?propsNear(k):propsOf(k);list.push(t);if(near)cols.push(t.col);}}
     for(const b of opened.values()){const t=interiorOf(b);list.push(t);cols.push(t.col);}
+    for(const id of rayShown){const b=city.buildings[id];cols.push(cached('rcol:'+id,()=>CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette)).col);}
     return {list,collider:new CastleWalk.Multi(cols)};}
+  // ---- Ray-marched buildings: those within RAY_R of the walker (or the view's focus when zoomed in) are voxelised at
+  // 6.25 cm by a pool of workers and swap in when ready (the plain shell shows until then); models beyond 1.4x the radius
+  // are released. Colours and patterns are resolved here, so the workers need only castle-vox.js.
+  const RAY_R=95,pool=[],jobs=new Map(),rayShown=new Set(),rayWant=new Set();let rayStats={ms:0,n:0};
+  if(window.Worker)for(let i=0;i<Math.max(2,Math.min(6,(navigator.hardwareConcurrency||4)-1));i++){const w=new Worker('castle-vox-worker.js');w.busy=false;
+    w.onmessage=e=>{w.busy=false;const d=e.data,j=jobs.get(d.id);jobs.delete(d.id);rayStats.ms+=d.ms;rayStats.n++;
+      if(city&&j&&j.seed===city.seed&&!d.empty&&rayWant.has(d.id)){R.uploadRay('ray:'+city.seed+':'+d.id,d,j.F);rayShown.add(d.id);R.setRays([...rayShown].map(id=>'ray:'+city.seed+':'+id));scheduleRefresh();}pump();};pool.push(w);}
+  const queue=[];function pump(){for(const w of pool){if(w.busy||!queue.length)continue;const id=queue.shift();if(!rayWant.has(id)||jobs.has(id))continue;const b=city.buildings[id],F={x:b.x,z:b.z,rot:b.rot};
+      const parts=CityGen.buildingParts(b,'near').map(p=>({...p,col:CastleRender.colourOf(city.palette)(p),pat:CastleRender.patOf(p)}));jobs.set(id,{seed:city.seed,F});w.busy=true;w.postMessage({id,parts,frame:F,cvs:.25});}}
+  let refreshPending=false;function scheduleRefresh(){if(refreshPending)return;refreshPending=true;setTimeout(()=>{refreshPending=false;refreshCity();draw();},120);}
+  function updateRays(){if(!city||state.vox!=='ray'||!pool.length){if(rayShown.size){for(const id of rayShown)R.dropRay('ray:'+city.seed+':'+id);rayShown.clear();rayWant.clear();R.setRays([]);}return;}
+    const f=walker?{x:walker.x,z:walker.z}:cam.dist<500?{x:cam.tx,z:cam.tz}:null;rayWant.clear();
+    if(f){const near=city.buildings.filter(b=>DETAILED_RAY.has(b.type)&&Math.hypot(b.x-f.x,b.z-f.z)<RAY_R).sort((a,b)=>Math.hypot(a.x-f.x,a.z-f.z)-Math.hypot(b.x-f.x,b.z-f.z));
+      for(const b of near){rayWant.add(b.id);if(!rayShown.has(b.id)&&!jobs.has(b.id)&&!queue.includes(b.id))queue.push(b.id);}}
+    let dropped=false;for(const id of [...rayShown]){const b=city.buildings[id];if(!f||Math.hypot(b.x-f.x,b.z-f.z)>RAY_R*1.4){R.dropRay('ray:'+city.seed+':'+id);rayShown.delete(id);dropped=true;}}
+    if(dropped){R.setRays([...rayShown].map(id=>'ray:'+city.seed+':'+id));refreshCity();}
+    queue.sort((a,b)=>{const A=city.buildings[a],B=city.buildings[b];return Math.hypot(A.x-f.x,A.z-f.z)-Math.hypot(B.x-f.x,B.z-f.z);});pump();}
+  const DETAILED_RAY=new Set(['house','shop','inn','towerhouse','smithy','warehouse','barracks','chapel','guildhall','market','bath','shack']);
   function refreshCity(){const f=walker?{x:walker.x,z:walker.z}:{x:cam.tx,z:cam.tz},{list,collider}=cityList(f);R.setMeshes(list);if(walker)walker.col=collider;state.collider=collider;}
   // Doors: the outside door point of a building, and the nearest one within reach of the walker.
   function doorPoint(b){const c=Math.cos(b.rot),s=Math.sin(b.rot),v=b.doorSide*(b.d/2+.8),u=b.doorU||0;return [b.x+u*c-v*s,b.z+u*s+v*c];}
@@ -106,7 +127,7 @@
   // Interiors are parked while the city's scale and layout are worked out (?interiors=1 turns doors back on).
   function toggleDoor(){if(!walker||state.mode!=='city'||Q.get('interiors')!=='1')return;const b=nearestDoor();if(!b)return;if(opened.has(b.id))opened.delete(b.id);else opened.set(b.id,b);refreshCity();}
   function closeFar(){let changed=false;for(const [id,b] of opened)if(Math.hypot(b.x-walker.x,b.z-walker.z)>80){opened.delete(id);changed=true;}return changed;}
-  function buildCity(){tileCache.clear();opened.clear();for(const k of [...R.cache.keys()])R.drop(k);
+  function buildCity(){tileCache.clear();opened.clear();for(const id of rayShown)R.dropRay('ray:'+(city&&city.seed)+':'+id);rayShown.clear();rayWant.clear();queue.length=0;R.setRays([]);lastRayAt=null;for(const k of [...R.cache.keys()])R.drop(k);
     city=CityGen.generate(state.seed,{scale:state.scale,terrain:state.terrain||undefined,river:state.river||undefined,castleLayout:state.layout||undefined});city.tiles=new Map();const T=k=>{if(!city.tiles.has(k))city.tiles.set(k,{b:[],p:[],s:[]});return city.tiles.get(k);};
     for(const b of city.buildings)T(tkey(b.x,b.z)).b.push(b);for(const p of city.props)T(tkey(p.x,p.z)).p.push(p);
     for(const p of city.parts){const x=p.x??p.x0??p.cx??0,z=p.z??p.z0??p.cz??0;T(tkey(x,z)).s.push(p);}
@@ -139,7 +160,7 @@
     panel(false);walker=new CastleWalk.Walker(state.collider,state.castle.spawn);follow();shadowNear();walker.spawn0={...state.castle.spawn,y:walker.y};cam.fp=walker.camera();$('walk').textContent='Exit walk (Esc)';requestAnimationFrame(tick);}
   function stopWalk(){walker=null;cam.fp=null;cam.shadowFocus=null;if(state.mode==='city'&&city){opened.clear();refreshCity();}$('walk').textContent='Walk (WASD · mouse · Shift run · Space jump · F fly · Esc)';if(document.pointerLockElement)document.exitPointerLock();draw();}
   // In the city, the interior ring follows the walker tile by tile.
-  let walkTile='';function follow(){if(state.mode!=='city'||!walker)return;const k=tkey(walker.x,walker.z),far=closeFar();if(k===walkTile&&!far)return;walkTile=k;refreshCity();}
+  let walkTile='',lastRayAt=null;function follow(){if(state.mode!=='city'||!walker)return;if(!lastRayAt||Math.hypot(walker.x-lastRayAt[0],walker.z-lastRayAt[1])>12){lastRayAt=[walker.x,walker.z];updateRays();}const k=tkey(walker.x,walker.z),far=closeFar();if(k===walkTile&&!far)return;walkTile=k;refreshCity();}
   function shadowNear(){cam.shadowFocus=walker&&state.mode==='city'?{cx:walker.x,cz:walker.z,r:260,h:(walker.y+20)/.3}:null;}
   function tick(t){if(!walker)return;const dt=Math.min(.05,(t-(last||t))/1000);last=t;walker.update(dt);follow();shadowNear();cam.fp=walker.camera();draw();requestAnimationFrame(tick);}
   $('walk').onclick=()=>walker?stopWalk():startWalk();
@@ -153,7 +174,7 @@
   window.CastleDrafts={frames:0,state,cam,rebuild,draw,
     // Headless helpers: start Walk, step it, or place the walker.
     walk:()=>startWalk(),step:(keys,seconds)=>{Object.assign(walker.keys,keys);for(let i=0;i<seconds*30;i++){walker.update(1/30);follow();}walker.keys={};shadowNear();cam.fp=walker.camera();draw();return {x:walker.x,y:walker.y,z:walker.z};},
-    place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});follow();shadowNear();cam.fp=walker.camera();draw();},city:()=>city,openDoor:id=>{const b=city.buildings[id];opened.set(b.id,b);refreshCity();draw();},stats:()=>({...R.stats,voxMs:Math.round(voxStats.ms),voxTiles:voxStats.tiles}),doorPoint:b=>doorPoint(b),walker:()=>walker};
+    place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});follow();shadowNear();cam.fp=walker.camera();draw();},city:()=>city,openDoor:id=>{const b=city.buildings[id];opened.set(b.id,b);refreshCity();draw();},stats:()=>({...R.stats,rayJobs:jobs.size+queue.length,rayAvgMs:rayStats.n?Math.round(rayStats.ms/rayStats.n):0,voxMs:Math.round(voxStats.ms),voxTiles:voxStats.tiles}),doorPoint:b=>doorPoint(b),walker:()=>walker};
   const set=(k,v)=>{state[k]=v;state._moved=true;rebuild();};
   $('seed').onchange=e=>set('seed',+e.target.value);$('prev').onclick=()=>set('seed',state.seed-(state.grid?9:1));$('next').onclick=()=>set('seed',state.seed+(state.grid?9:1));
   $('mode').onchange=e=>set('mode',e.target.value);$('vox').onchange=e=>{state.vox=e.target.value;state._moved=true;sync();rebuild();};$('light').onchange=e=>{state.light=e.target.value;sync();draw();};$('ink').onchange=e=>{state.ink=e.target.checked;sync();draw();};$('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('layout').onchange=e=>set('layout',e.target.value);$('terrain').onchange=e=>set('terrain',e.target.value);$('river').onchange=e=>set('river',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);

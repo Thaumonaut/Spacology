@@ -160,3 +160,16 @@ Bridges: decks are flush with the quays and gates are cut wherever a road meets 
 bridge on seeds 2, 3, 6 and 7 (was blocked by a 1.3 m step and by walls where re-routed roads met them). The panel folds
 away (H, the X, or entering Walk) to a small button. Houses on sloping ground get a cellar door in the plinth; others
 sometimes a slanted cellar hatch.
+
+## 6.25 cm ray-marched voxels (v20)
+
+| File | What to look at |
+| --- | --- |
+| v20-shop / v20-lane | Buildings within 95 m ray-marched at 6.25 cm: smooth-stepped roofs, fine frames, sills, flowers |
+| v20-close | Close up: the arched door top and leaves at 6.25 cm |
+
+Each building is a sparse model: a 25 cm coarse grid (empty / solid / brick) with 4x4x4 bricks of 6.25 cm voxels only
+where the surface passes; big walls snap to the coarse grid so only sloped roofs, round parts and detail need bricks.
+Drawn as one box each; the fragment shader steps coarse cells then brick voxels and shades with the shared lighting
+(shadows via a coarse-only march in the shadow pass). A pool of workers voxelises (~0.3 s per building) and models swap
+in when ready. Street views: ~0.32M triangles (was 1.25M at 25 cm meshes), 30 ray models, ~120 MB of voxel textures.

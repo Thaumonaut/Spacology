@@ -155,16 +155,17 @@
   const VS=`#version 300 es
   in vec3 P;in vec3 N;in vec3 C;in float F;in float T;in vec4 Q;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;out vec4 vQ;
   void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vQ=Q;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
-  const FS=`#version 300 es
-  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;in vec4 vQ;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
+  // Shared lighting (shadeOut) for meshes and ray-marched voxels: both fill gP, gN, gC, gF, gT, gL, gQ, then call it.
+  const SHADE=`  precision highp float;precision highp usampler3D;precision highp usampler2D;
+  vec3 gP,gN,gC;float gF,gT;vec4 gL,gQ;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
   vec3 skyCol(vec3 d){float t=clamp(d.y,0.,1.);return mix(mix(vec3(.82,.9,.98),vec3(1.,.82,.62),GOLD),mix(vec3(.28,.52,.9),vec3(.36,.5,.86),GOLD),pow(t,.6));}
-  float shadow(){vec3 c=vL.xyz/vL.w*.5+.5;if(any(lessThan(c,vec3(0)))||any(greaterThan(c,vec3(1))))return 1.;float s=0.;
+  float shadow(){vec3 c=gL.xyz/gL.w*.5+.5;if(any(lessThan(c,vec3(0)))||any(greaterThan(c,vec3(1))))return 1.;float s=0.;
     for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)s+=texture(SH,vec3(c.xy+vec2(i,j)*TX,c.z-.0012));return s/9.;}
   float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y);}
   // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
-  vec3 pattern(vec3 c,vec3 n,float dist){int t=int(vT+.5);if(t==0)return c;float fade=1.-smoothstep(40.,260.,dist);if(fade<=0.)return c;
-    vec3 p=vP;bool wall=abs(n.y)<.5;vec2 tg=normalize(vec2(-n.z,n.x)+1e-5);float u=dot(p.xz,tg);vec3 o=c;
+  vec3 pattern(vec3 c,vec3 n,float dist){int t=int(gT+.5);if(t==0)return c;float fade=1.-smoothstep(40.,260.,dist);if(fade<=0.)return c;
+    vec3 p=gP;bool wall=abs(n.y)<.5;vec2 tg=normalize(vec2(-n.z,n.x)+1e-5);float u=dot(p.xz,tg);vec3 o=c;
     if(t==1&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;
       float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(hh(vec2(cell,3.))<.45)beam+=step(abs(fu-fy),.05);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
     else if(t==2){float y=p.y*2.4,row=floor(y);float j=step(fract(y),.12)+step(fract(u*1.4+row*.5),.07);o=c*(1.-.16*clamp(j,0.,1.))*(.93+.12*hh(vec2(floor(u*1.4+row*.5),row)));}
@@ -182,10 +183,10 @@
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     return mix(c,o,fade);}
   float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
-  // Voxel texture: from the voxel cell (vQ.xyz, in the model's own grid; vQ.w the voxel size) - a per-voxel tone, the
+  // Voxel texture: from the voxel cell (gQ.xyz, in the model's own grid; gQ.w the voxel size) - a per-voxel tone, the
   // material's courses (stone blocks of 3x2 voxels with mortar, roof tile rows, wood planks, plaster with grime at the
   // foot, cobbles), and faint dark voxel edges that fade out with distance.
-  vec3 voxTex(vec3 c,float dist){vec3 cell=floor(vQ.xyz),f=fract(vQ.xyz);int t=int(vT+.5);float k=.86+.24*h3(cell);
+  vec3 voxTex(vec3 c,float dist){vec3 cell=floor(gQ.xyz),f=fract(gQ.xyz);int t=int(gT+.5);float k=.86+.24*h3(cell);
     if(t==4||t==3){vec3 b=cell;b.x=floor((b.x+floor(b.y/2.)*1.5)/3.);b.z=floor((b.z+floor(b.y/2.)*1.5)/3.);b.y=floor(b.y/2.);k=.84+.22*h3(b)+.05*h3(cell);
       if(mod(cell.y,2.)<1.)k*=.93;}
     else if(t==2){k=(.86+.2*h3(vec3(floor(cell.x/2.),cell.y,floor(cell.z/2.))))*(mod(cell.y,2.)<1.?.9:1.);}
@@ -195,16 +196,16 @@
     else if(t==7){k=.82+.28*h3(cell);}
     float e=min(min(min(f.x,1.-f.x),min(f.y,1.-f.y)),min(f.z,1.-f.z)),grid=1.-.06*(1.-smoothstep(.0,.08,e))*(1.-smoothstep(15.,60.,dist));
     return c*k*grid;}
-  void main(){vec3 V=normalize(EYE-vP),n=normalize(vN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-vP);nrm=vec4(n*.5+.5,vF>.5&&vF<1.5?0.:1.);
+  void shadeOut(){vec3 V=normalize(EYE-gP),n=normalize(gN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-gP);nrm=vec4(n*.5+.5,gF>.5&&gF<1.5?0.:1.);
     // Closed solids only show faces turned to the eye, so a normal facing away is a winding slip: flip it.
-    if(vF>.5&&vF<1.5){
+    if(gF>.5&&gF<1.5){
       // Water: deep teal to sky by fresnel, with a sun glint path and gentle ripple shading.
-      vec2 q=vP.xz*.02;float rip=sin(q.x*3.1+sin(q.y*2.3))*.5+sin(q.y*4.7+q.x*1.3)*.5;vec3 wn=normalize(vec3(rip*.02,1.,rip*.015)*mix(1.,.2,clamp(dist/3000.,0.,1.))+vec3(0,1,0)*0.);
+      vec2 q=gP.xz*.02;float rip=sin(q.x*3.1+sin(q.y*2.3))*.5+sin(q.y*4.7+q.x*1.3)*.5;vec3 wn=normalize(vec3(rip*.02,1.,rip*.015)*mix(1.,.2,clamp(dist/3000.,0.,1.))+vec3(0,1,0)*0.);
       float fr=pow(1.-max(dot(wn,V),0.),4.);vec3 R=reflect(-V,wn);vec3 col=mix(vec3(.12,.42,.55),skyCol(R),.25+.65*fr);
       col+=vec3(1.,.95,.8)*pow(max(dot(R,SUN),0.),180.)*1.5*shadow();col*=mix(.8,1.,shadow());
-      o=vec4(mix(col,skyCol(normalize(vP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
-    if(vF>1.5){o=vec4(mix(vC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
-    vec3 base=vQ.w>0.?voxTex(vC,dist):pattern(vC,n,dist);
+      o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
+    if(gF>1.5){o=vec4(mix(gC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
+    vec3 base=gQ.w>0.?voxTex(gC,dist):pattern(gC,n,dist);
     float ndl=dot(n,SUN),sh=shadow(),lit=max(ndl,0.)*sh;
     // Soft cel: a shadow tone, a mid tone and a lit tone with short smooth steps between them.
     float tone=smoothstep(.02,.16,lit)*.62+smoothstep(.45,.62,lit)*.38;
@@ -214,7 +215,55 @@
     col+=base*.1*(n.y*.5+.5)*vec3(.7,.85,1.);
     col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.18*sh*max(dot(-V,SUN)+.3,0.);
     // Aerial perspective toward the horizon sky.
-    o=vec4(mix(col,skyCol(normalize(vP-EYE)*vec3(1,.3,1)),1.-exp(-dist/7000.)),1.);}`;
+    o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,.3,1)),1.-exp(-dist/7000.)),1.);}`;
+  const FS=`#version 300 es
+  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;in vec4 vQ;
+  ${SHADE}
+  void main(){gP=vP;gN=vN;gC=vC;gF=vF;gT=vT;gL=vL;gQ=vQ;shadeOut();}`;
+  // ---- Ray-marched voxel models. Each model draws its bounding box (back faces, so the camera may be inside it); the
+  // fragment walks the coarse grid (CO: 0 empty, 1..255 solid palette entry, 256+b brick) and, in brick cells, the 4^3
+  // fine voxels (BR, 1024 wide, see CastleVox.voxelizeSparse). Model frame: FRM = (x, z, cos, sin) of its rotation;
+  // ORG the grid origin in model-local metres; CS the coarse cell size; NC the grid size.
+  const RAYV=`#version 300 es
+  in vec3 P;uniform mat4 M;uniform vec4 FRM;uniform vec3 ORG;uniform vec3 DIM;out vec3 vLoc;
+  void main(){vLoc=ORG+P*DIM;vec3 w=vec3(FRM.x+vLoc.x*FRM.z-vLoc.z*FRM.w,vLoc.y,FRM.y+vLoc.x*FRM.w+vLoc.z*FRM.z);gl_Position=M*vec4(w,1.);}`;
+  const MARCH=`
+  uniform highp usampler3D CO;uniform highp usampler2D BR;uniform vec4 FRM;uniform vec3 ORG;uniform float CS;uniform ivec3 NC;
+  vec3 toLocal(vec3 w){vec3 d=w-vec3(FRM.x,0.,FRM.y);return vec3(d.x*FRM.z+d.z*FRM.w,w.y,-d.x*FRM.w+d.z*FRM.z);}
+  vec3 dirLocal(vec3 d){return vec3(d.x*FRM.z+d.z*FRM.w,d.y,-d.x*FRM.w+d.z*FRM.z);}
+  vec3 toWorld(vec3 l){return vec3(FRM.x+l.x*FRM.z-l.z*FRM.w,l.y,FRM.y+l.x*FRM.w+l.z*FRM.z);}
+  vec3 nWorld(vec3 n){return vec3(n.x*FRM.z-n.z*FRM.w,n.y,n.x*FRM.w+n.z*FRM.z);}
+  uint fine(uint b,ivec3 f){return texelFetch(BR,ivec2(int(b%64u)*16+f.z*4+f.x,int(b/64u)*4+f.y),0).r;}
+  // March from ro along rd (local metres). Returns the palette entry hit (0: none); hit point (local), normal (local axis)
+  // and the fine voxel coordinate (for texturing). coarseOnly treats bricks as solid (shadows).
+  uint march(vec3 ro,vec3 rd,bool coarseOnly,out vec3 hp,out vec3 hn,out vec3 hq,out float hs){
+    vec3 g0=(ro-ORG)/CS,N=vec3(NC);rd=rd/CS;vec3 inv=1./rd;vec3 t0=(vec3(0)-g0)*inv,t1=(N-g0)*inv,tmn=min(t0,t1),tmx=max(t0,t1);
+    float ta=max(max(tmn.x,tmn.y),max(tmn.z,0.)),tb=min(min(tmx.x,tmx.y),tmx.z);if(ta>=tb)return 0u;
+    vec3 p=g0+rd*(ta+1e-4);ivec3 c=clamp(ivec3(floor(p)),ivec3(0),NC-1);vec3 st=sign(rd),tD=abs(inv),tM=((vec3(c)+max(st,0.))-g0)*inv;
+    vec3 nrm=ta>0.?-st*step(tmn.yzx,tmn)*step(tmn.zxy,tmn):vec3(0,1,0);float t=ta;
+    for(int i=0;i<640;i++){uint v=texelFetch(CO,c,0).r;
+      if(v>0u){if(v<256u||coarseOnly){hp=ORG+(g0+rd*t)*CS;hn=nrm;hs=CS;hq=(g0+rd*t)*4.-nrm*1e-3;return v<256u?v:255u;}
+        // Fine DDA inside the brick, from the point the ray entered this cell.
+        uint b=v-256u;vec3 q=(g0+rd*(t+1e-4)-vec3(c))*4.;ivec3 f=clamp(ivec3(floor(q)),ivec3(0),ivec3(3));vec3 fM=((vec3(f)+max(st,0.))-q)*inv,fD=tD;float ft=0.;vec3 fn=nrm;
+        for(int k=0;k<12;k++){uint e=fine(b,f);if(e>0u){float tt=t+ft/4.;hp=ORG+(g0+rd*tt)*CS;hn=fn;hs=CS*.25;hq=(vec3(c)*4.+q+rd*ft)-fn*1e-3;return e;}
+          if(fM.x<fM.y&&fM.x<fM.z){ft=fM.x;fM.x+=fD.x;f.x+=int(st.x);fn=vec3(-st.x,0,0);}else if(fM.y<fM.z){ft=fM.y;fM.y+=fD.y;f.y+=int(st.y);fn=vec3(0,-st.y,0);}else{ft=fM.z;fM.z+=fD.z;f.z+=int(st.z);fn=vec3(0,0,-st.z);}
+          if(any(lessThan(f,ivec3(0)))||any(greaterThan(f,ivec3(3))))break;}}
+      if(tM.x<tM.y&&tM.x<tM.z){t=tM.x;tM.x+=tD.x;c.x+=int(st.x);nrm=vec3(-st.x,0,0);}else if(tM.y<tM.z){t=tM.y;tM.y+=tD.y;c.y+=int(st.y);nrm=vec3(0,-st.y,0);}else{t=tM.z;tM.z+=tD.z;c.z+=int(st.z);nrm=vec3(0,0,-st.z);}
+      if(any(lessThan(c,ivec3(0)))||any(greaterThanEqual(c,NC)))break;}
+    return 0u;}`;
+  const RAYF=`#version 300 es
+  precision highp float;precision highp usampler3D;precision highp usampler2D;in vec3 vLoc;uniform mat4 VP;uniform mat4 LVP;uniform sampler2D PAL;
+  ${SHADE}
+  ${MARCH}
+  void main(){vec3 ro=toLocal(EYE),rd=normalize(vLoc-ro),hp,hn,hq;float hs;uint e=march(ro,rd,false,hp,hn,hq,hs);if(e==0u)discard;
+    vec4 pe=texelFetch(PAL,ivec2(int(e)-1,0),0);gP=toWorld(hp);gN=nWorld(hn);gC=pe.rgb;int a=int(pe.a*255.+.5);gF=a>=128?2.:0.;gT=float(a&63);gL=LVP*vec4(gP,1.);
+    // Texture coordinates in fine-voxel units (6.25 cm), as the greedy voxel meshes carry them.
+    gQ=vec4(hq,CS*.25);
+    vec4 cp=VP*vec4(gP,1.);gl_FragDepth=cp.z/cp.w*.5+.5;shadeOut();}`;
+  const RAYSF=`#version 300 es
+  precision highp float;precision highp usampler3D;precision highp usampler2D;in vec3 vLoc;uniform vec3 LDIR;uniform mat4 LVP;out vec4 o;
+  ${MARCH}
+  void main(){vec3 rd=dirLocal(-LDIR),ro=vLoc-rd*4000.,hp,hn,hq;float hs;uint e=march(ro,rd,true,hp,hn,hq,hs);if(e==0u)discard;vec4 cp=LVP*vec4(toWorld(hp),1.);gl_FragDepth=cp.z/cp.w*.5+.5;o=vec4(1);}`;
   const SVS=`#version 300 es
   in vec3 P;uniform mat4 LVP;void main(){gl_Position=LVP*vec4(P,1.);}`;
   const SFS=`#version 300 es
@@ -266,7 +315,11 @@
     const S=4096;this.SM=S;this.depth=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT32F,S,S);
     for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
     this.cache=new Map();this.list=[];this.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depth,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
-    this.post=prog(gl,SKYV,POSTF);this.ink=1;this.setLight('noon');
+    this.post=prog(gl,SKYV,POSTF);this.ray=prog(gl,RAYV,RAYF);this.rayS=prog(gl,RAYV,RAYSF);this.rays=new Map();this.rayList=[];
+    // Unit box (outward-wound), shared by every ray model; the ray shaders draw its back faces.
+    {const V=[],Q=[[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]],F=[[0,3,2,1],[4,5,6,7],[0,1,5,4],[3,7,6,2],[0,4,7,3],[1,2,6,5]];for(const f of F)for(const k of [0,1,2,0,2,3])V.push(...Q[f[k]]);
+      this.boxV=gl.createVertexArray();gl.bindVertexArray(this.boxV);const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(V),gl.STATIC_DRAW);
+      for(const pr of [this.ray,this.rayS]){const l=gl.getAttribLocation(pr,'P');if(l>=0){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,3,gl.FLOAT,false,0,0);}}gl.bindVertexArray(null);}this.ink=1;this.setLight('noon');
   }
   // Meshes are uploaded once per key and kept; setMeshes picks which keys draw. Water (flag 1) never casts.
   Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:m.p.length/3,bufs:[]};
@@ -288,6 +341,22 @@
     this.tc=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.tn=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.td=mk(gl.DEPTH_COMPONENT,gl.DEPTH_COMPONENT24,gl.UNSIGNED_INT);
     this.ofb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,this.tc,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT1,gl.TEXTURE_2D,this.tn,0);
     gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.td,0);gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);gl.bindFramebuffer(gl.FRAMEBUFFER,null);};
+  // Ray models: upload a sparse voxel model (CastleVox.voxelizeSparse output) under a key; setRays picks which draw.
+  Renderer.prototype.uploadRay=function(key,V,F){const gl=this.gl;if(this.rays.has(key))return this.rays.get(key);gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
+    const tex=(target,fn)=>{const t=gl.createTexture();gl.bindTexture(target,t);fn(t);for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST]])gl.texParameteri(target,k,v);return t;};
+    const co=tex(gl.TEXTURE_3D,()=>gl.texImage3D(gl.TEXTURE_3D,0,gl.R16UI,V.n[0],V.n[1],V.n[2],0,gl.RED_INTEGER,gl.UNSIGNED_SHORT,V.coarse));
+    const br=tex(gl.TEXTURE_2D,()=>gl.texImage2D(gl.TEXTURE_2D,0,gl.R8UI,1024,V.brickRows,0,gl.RED_INTEGER,gl.UNSIGNED_BYTE,V.bricks));
+    const pal=tex(gl.TEXTURE_2D,()=>gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,V.pal));
+    const dim=V.n.map(v=>v*V.cvs),c=Math.cos(F.rot),sn=Math.sin(F.rot),mid=V.o.map((v,i)=>v+dim[i]/2);
+    const g={co,br,pal,F,o:V.o,cvs:V.cvs,n:V.n,dim,bytes:V.coarse.byteLength+V.bricks.byteLength,c:[F.x+mid[0]*c-mid[2]*sn,mid[1],F.z+mid[0]*sn+mid[2]*c],r:Math.hypot(...dim)/2};this.rays.set(key,g);return g;};
+  Renderer.prototype.dropRay=function(key){const g=this.rays.get(key);if(!g)return;const gl=this.gl;[g.co,g.br,g.pal].forEach(t=>gl.deleteTexture(t));this.rays.delete(key);};
+  Renderer.prototype.setRays=function(keys){this.rayList=keys.map(k=>this.rays.get(k)).filter(Boolean);};
+  Renderer.prototype.drawRays=function(prog,M,P,extra){const gl=this.gl;if(!this.rayList.length)return 0;gl.useProgram(prog);gl.bindVertexArray(this.boxV);gl.enable(gl.CULL_FACE);gl.cullFace(gl.FRONT);
+    const U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('M'),false,M);extra(U);let n=0;
+    gl.uniform1i(U('CO'),5);gl.uniform1i(U('BR'),6);gl.uniform1i(U('PAL'),7);
+    for(const g of this.rayList){if(!visible(P,g))continue;gl.activeTexture(gl.TEXTURE5);gl.bindTexture(gl.TEXTURE_3D,g.co);gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,g.br);gl.activeTexture(gl.TEXTURE7);gl.bindTexture(gl.TEXTURE_2D,g.pal);
+      gl.uniform4f(U('FRM'),g.F.x,g.F.z,Math.cos(g.F.rot),Math.sin(g.F.rot));gl.uniform3fv(U('ORG'),g.o);gl.uniform3fv(U('DIM'),g.dim);gl.uniform1f(U('CS'),g.cvs);gl.uniform3i(U('NC'),...g.n);gl.drawArrays(gl.TRIANGLES,0,36);n++;}
+    gl.cullFace(gl.BACK);gl.disable(gl.CULL_FACE);gl.activeTexture(gl.TEXTURE0);return n;};
   Renderer.prototype.setMeshes=function(list,bounds){this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
   Renderer.prototype.setMesh=function(m,bounds){for(const k of [...this.cache.keys()])this.drop(k);this.setMeshes([{key:'main'+(this.n=(this.n||0)+1),mesh:m}],bounds);};
   // Shadows cover a sun-aligned box: the scene bounds, or a focus (Walk) so nearby shadows stay sharp.
@@ -298,6 +367,7 @@
     this.lvp=this.lightFor(cam.shadowFocus||this.bounds);
     const LP=planes(this.lvp);let st=0;
     gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);for(const g of this.list)if(g.casts&&visible(LP,g)){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);st+=g.count/3;}
+    this.drawRays(this.rayS,this.lvp,LP,U=>{gl.uniform3fv(U('LDIR'),this.sun);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);});
     this.targets(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     // Orbit camera, or first person (cam.fp: eye, yaw, pitch) for Walk.
     let eye,vp;
@@ -307,7 +377,9 @@
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.useProgram(this.main);const U=n=>gl.getUniformLocation(this.main,n);
     gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);gl.uniform1f(U('GOLD'),this.gold);
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);const VPl=planes(vp);let tris=0,drawn=0;for(const g of this.list){if(!visible(VPl,g))continue;gl.bindVertexArray(g.vao);gl.drawArrays(gl.TRIANGLES,0,g.count);tris+=g.count/3;drawn++;}
-    this.stats={meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};
+    const rayDrawn=this.drawRays(this.ray,vp,VPl,U=>{gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);gl.uniform1f(U('GOLD'),this.gold);
+      gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);});
+    this.stats={rays:rayDrawn,rayMB:Math.round([...this.rays.values()].reduce((a,g)=>a+g.bytes,0)/1e6),meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.disable(gl.DEPTH_TEST);gl.useProgram(this.post);const P=n=>gl.getUniformLocation(this.post,n);
     [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
     gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
