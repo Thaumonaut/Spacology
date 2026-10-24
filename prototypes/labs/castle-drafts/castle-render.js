@@ -235,8 +235,9 @@
     // drift in the base colour so flat walls never read as one swatch.
     base*=1.+.07*(vn(gP.xz*.05+gP.y*.03)-.5)+.05*(vn(gP.xz*.21-gP.y*.11)-.5);
     float ndl=dot(n,SUN),sh=shadow(),wrap=clamp((ndl+.25)/1.25,0.,1.),lit=wrap*sh;
-    float tone=smoothstep(.08,.55,lit);
-    vec3 cool=base*mix(vec3(.66,.72,.95),vec3(.62,.6,.9),GOLD)+mix(vec3(.03,.04,.09),vec3(.05,.03,.09),GOLD),warm=base*mix(vec3(1.06,1.02,.94),vec3(1.2,1.04,.84),GOLD);
+    // Feathered cel edge: one clear light/shadow boundary with a soft feather (stylised games: hard edge, light feather).
+    float tone=smoothstep(.22,.42,lit);
+    vec3 cool=base*mix(vec3(.56,.62,.9),vec3(.54,.52,.86),GOLD)+mix(vec3(.02,.03,.08),vec3(.04,.02,.08),GOLD),warm=base*mix(vec3(1.06,1.02,.94),vec3(1.2,1.04,.84),GOLD);
     vec3 col=mix(cool,warm,tone);
     col+=base*.12*(n.y*.5+.5)*vec3(.75,.85,1.);
     // Bounce: shadowed walls pick up a little warm light from the sunlit ground.
@@ -322,7 +323,7 @@
     // as a cool violet tint, so corners, eaves and wall feet darken softly the way painters shade them.
     if(nc.a>.5&&zc<900.){float ao=0.;float rad=clamp(40./zc,1.5,26.);for(int i=0;i<12;i++){float a=float(i)*2.399+fract(sin(dot(q,vec2(91.3,47.7)))*43758.5)*6.28,rr=rad*(.35+.65*fract(float(i)*.618));
         float z=lin(q+vec2(cos(a),sin(a))*rr*PX),dz=zc-z;ao+=smoothstep(.05,.6,dz)*(1.-smoothstep(1.5,4.,dz));}
-      ao=clamp(ao/12.*1.6,0.,1.)*(1.-smoothstep(300.,900.,zc));c*=mix(vec3(1.),vec3(.62,.6,.78),ao*.75);}
+      ao=clamp(ao/12.*1.6,0.,1.)*(1.-smoothstep(300.,900.,zc));c*=mix(vec3(1.),vec3(.66,.66,.82),ao*.55);}
     if(INK>0.&&nc.a>.5){vec2 o4[4]=vec2[4](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1));
       for(int i=0;i<4;i++){vec2 p=q+o4[i]*PX*1.2;float z=lin(p);vec4 nn=texture(NRM,p);
         e=max(e,smoothstep(.04,.1,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.55,.3,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.35);}
