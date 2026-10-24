@@ -13,7 +13,7 @@ async function phase(p,want){for(let i=0;i<3&&(await coop(p)).phase!==want;i++){
 (async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
 try{
   const p=await browser.newPage({viewport:{width:1280,height:800}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto(URL);await ready(p);
-  assert.equal((await p.evaluate(()=>MicroWorldLab.snapshot())).revision,'micro-wilds-23');
+  assert.equal((await p.evaluate(()=>MicroWorldLab.snapshot())).revision,'micro-wilds-24');
   await p.locator('[data-role="explore"]').click();await p.locator('#coopSolo').click();await until(p,()=>MicroWorldLab.coop.snapshot().role==='explore');
   const W=M.createWorld(2718,.25,'infinite'),A=createAtlas(W),hd=(a,b)=>(Math.abs(a.q-b.q)+Math.abs(a.r-b.r)+Math.abs(a.q+a.r-b.q-b.r))/2;let wall=null;
   for(let n=1;n<=6&&!wall;n++)for(let dq=-n;dq<=n&&!wall;dq++)for(let dr=Math.max(-n,-dq-n);dr<=Math.min(n,-dq+n);dr++){const h=A.summary(A.rootHex.q+dq,A.rootHex.r+dr);if(h.barrier&&hd(h,A.rootHex)===n){wall=h;break;}}

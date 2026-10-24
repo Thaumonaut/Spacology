@@ -17,3 +17,10 @@ slope; spur-crest blocks are smooth knuckles instead of per-metre hash. Lighting
 
 Walkability on the eight highest-relief mountain sites (25 cm moves rising more than the walker's 0.55 m step):
 8.5% blocked before, 1.6% after.
+
+## Softer cliff bands (micro-wilds-24)
+
+`before-bands-user-spot-span142` / `after-bands-user-spot-0-span142`: the alpine slope at chunk -115, -57 (from a user
+screenshot). Bands still cut a near-vertical riser every ~3 m on any slope over ~32°, which the 50 cm mesh drew as rows of
+dark comb teeth. Bands now start at ~44° and full strength near 55°, pull 70% (was 90%) of the way to the step, and their
+risers are softer (step exponent 1.6-2.8, was 2-4.5). Blocked 25 cm moves on the highest mountains: 1.6% -> 0.5%.
