@@ -555,8 +555,36 @@ Range 6-8 40-50 5-95 10-90`};
     }
     return {ranges,volcanoes,land:{ocean,t,comp}};
   }
-  // Volcano cone (m) at distance d from a volcano of height Hv: concave flanks to a summit (the world adds the crater).
-  const coneAt=(Hv,d)=>{const R=Hv*1.8;return d<R?Hv*(1-d/R)**1.8:0;};
+  // Stratovolcano cone, shared by the macro map (its hydrology) and the world (tectonics), so rivers route around the
+  // same mountain the world draws (a narrower macro cone once let sea-level rivers cut pits into the world's flanks).
+  // Base radius 3x the height, concave flanks steepening from gentle at the foot to ~34 degrees under the summit.
+  // crater: a bowl inside a sharp rim with a slight raised lip. The world draws crater and ribs; the macro map leaves
+  // both out (its 200 m cells would alias the ribs into closed hollows, and its depression fill would flood them and the
+  // crater into lakes), so its hydrology sees the smooth cone.
+  // Radial ribs (Rainier / Fuji): 10-18 major ridges per volcano with deep V gullies between, readable at km scale. The
+  // angle is warped a little with distance so ribs meander; spacing widens downslope with the circumference, and on the
+  // lower flanks a second set splits each ridge with a new gully (ribs branch as they spread). Rib strength varies per
+  // rib. Ribs are absent within ~1.3 crater radii, peak mid-flank and fade out over the apron, never deeper than the cone.
+  // Writes out.cone (m, ribs included), out.rib (-1 gully floor .. +1 ridge crest) and out.frac (smooth cone height as a
+  // share of the summit, 0 at the foot .. 1 at the rim; crater 1). Pure function of (Hv, dx, dz).
+  const TAU=Math.PI*2,RIB_ASIN=Math.asin(.92);
+  function volcanoCone(Hv,dx,dz,out,crater=true,ribs=true){
+    const R=Hv*3,d=Math.hypot(dx,dz);out.cone=0;out.rib=0;out.frac=0;if(d>=R)return out;
+    const q=d/R,rc=.075,qc=q/rc,top=(1-rc)**2;let c;
+    if(crater&&qc<1){c=Hv*(top-.08*(1-qc*qc));out.frac=1;}else{c=Hv*(1-q)**2;out.frac=Math.min(1,(1-q)**2/top);}
+    if(crater)c+=Hv*.02*Math.exp(-(((qc-1)/.35)**2));
+    const ramp=clamp((q-.1)/.2,0,1),fade=clamp((1-q)/.45,0,1),A=Math.min(Hv*.06*ramp*ramp*(3-2*ramp)*fade*fade*(3-2*fade),c*.7);
+    if(A>0&&ribs){
+      const k=Math.floor(Hv*7919),N=10+Math.floor(hash(k,1,0)*9),p1=hash(k,2,0)*TAU,p2=hash(k,3,0)*TAU,a=Math.atan2(dz,dx);
+      const w=a+.1*Math.sin(3*a+p1+d/900)+.05*Math.sin(5*a+p2-d/430),u=w/TAU*N,i=Math.floor(u),f=u-i,sf=f*f*(3-2*f);
+      const s=.65+.7*(hash(((i%N)+N)%N,k,4)*(1-sf)+hash((((i+1)%N)+N)%N,k,4)*sf);
+      const tri=Math.asin(.92*Math.cos(TAU*u))/RIB_ASIN,o1=A*s*(((1+tri)/2)**.6-.61);
+      const A2=A*.4*clamp((q-.4)/.3,0,1),tri2=Math.asin(.92*Math.cos(TAU*(2*u+.5)))/RIB_ASIN,o2=A2*(((1+tri2)/2)**.6-.61);
+      c+=o1+o2;out.rib=clamp((o1+o2)/(.39*(A*s+A2)),-1,1);
+    }
+    out.cone=Math.max(0,c);return out;
+  }
+  const coneTmp={cone:0,rib:0,frac:0},coneAt=(Hv,dx,dz)=>volcanoCone(Hv,dx,dz,coneTmp,false,false).cone;
 
   function generate(seed,template){
     const t0=Date.now?Date.now():0,start=typeof performance!=='undefined'?performance.now():t0;
@@ -574,8 +602,12 @@ Range 6-8 40-50 5-95 10-90`};
     // Ranges are laid on the template's continents (the home start picked on them), folded into the heights, and the
     // hydrology runs again on the result: rivers rise in the ranges and route around them, basins between them hold lakes.
     const RL=buildRanges(G,h,seed,home),hc=new Float32Array(G.n),core=new Float32Array(G.n),q={};
-    for(let k=0;k<G.n;k++){if(h[k]<SEA_H){hc[k]=h[k];continue;}rangeField(RL.ranges,G.px[k],G.py[k],seed,q);
-      let cone=0;for(const v of RL.volcanoes)cone=Math.max(cone,coneAt(v.H,Math.hypot(G.px[k]-v.x,G.py[k]-v.y)));
+    // A cone standing in the sea builds land out of it: the sea floor under it is raised to just under the sea (fully
+    // once the cone stands 40 m, as the world does in tectonics), so the coast and the river mouths sit where the world's
+    // cone meets the water, not inside its flanks.
+    for(let k=0;k<G.n;k++){let cone=0;for(const v of RL.volcanoes)cone=Math.max(cone,coneAt(v.H,G.px[k]-v.x,G.py[k]-v.y));
+      if(h[k]<SEA_H){const m=metres(h[k]);hc[k]=cone>0?invMetres((m<SEA-1.5?m+(SEA-1.5-m)*clamp(cone/40,0,1):m)+cone):h[k];continue;}
+      rangeField(RL.ranges,G.px[k],G.py[k],seed,q);
       const f=rangeMask(RL.land.t[k]*G.s);core[k]=q.core*f;hc[k]=invMetres(upland(metres(h[k]))+(q.core+q.apron)*f+cone);}
     const ground=hc;
     const hp=hc.map(v=>v<=60?v:60+(v-60)*.35);
@@ -790,6 +822,6 @@ Range 6-8 40-50 5-95 10-90`};
     if(home)plot(0,0,3,[220,30,30]);
     return rgba;
   }
-  const api={get,generate,image,metres,invMetres,cooling,LAPSE,TEMPLATES,WEIGHTS,WIDTH:W,HEIGHT:H,SEA_H,SEA,hash,noise};
+  const api={get,generate,image,volcanoCone,metres,invMetres,cooling,LAPSE,TEMPLATES,WEIGHTS,WIDTH:W,HEIGHT:H,SEA_H,SEA,hash,noise};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MacroMap=api;
 })(typeof globalThis==='object'?globalThis:this);

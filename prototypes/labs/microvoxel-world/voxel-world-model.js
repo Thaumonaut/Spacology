@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-27':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-28':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -160,17 +160,21 @@
     if(infinite)for(const v of MM.volcanoes||[]){const V={x:v.x,z:v.z,H:v.H,R:v.H*3};
       const i0=Math.floor((v.x-V.R)/VG),i1=Math.floor((v.x+V.R)/VG),j0=Math.floor((v.z-V.R)/VG),j1=Math.floor((v.z+V.R)/VG);
       for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const k=i*65536+j;let a=volcanoCells.get(k);if(!a)volcanoCells.set(k,a=[]);a.push(V);}}
+    // The cone itself (shape, crater, radial ribs) is MacroLib.volcanoCone, shared with the macro map's hydrology. Under a
+    // coastal cone the sea floor is raised to just under the sea first (fully once the cone stands 40 m), so the cone
+    // never dips into pockets of sea on its own flanks. t.rib: -1 gully floor .. +1 rib crest; t.coneFrac: the smooth
+    // cone's height as a share of the summit; t.vh: the volcano's height.
+    const vc={cone:0,rib:0,frac:0};
     function tectonics(x,z){
-      const t=plateRelief(x,z),list=volcanoCells.get(Math.floor(x/VG)*65536+Math.floor(z/VG));let cone=0,vx=0,vz=0,vr=0;
+      const t=plateRelief(x,z),list=volcanoCells.get(Math.floor(x/VG)*65536+Math.floor(z/VG));let cone=0,vx=0,vz=0,vr=0,vh=0,rib=0,frac=0;
       if(list)for(const V of list){
-        const d=Math.hypot(x-V.x,z-V.z);if(d>=V.R)continue;
-        // Concave flanks steepening to a summit crater: a bowl inside a sharp rim with a slight raised lip.
-        const crater=V.R*.075,q=d/crater;let c=q<1?V.H*((1-crater/V.R)**2-.08*(1-q*q)):V.H*(1-d/V.R)**2;c+=V.H*.02*Math.exp(-(((q-1)/.35)**2));
-        if(c>cone){cone=c;vx=V.x;vz=V.z;vr=V.R;}
+        if(Math.abs(x-V.x)>=V.R||Math.abs(z-V.z)>=V.R)continue;
+        MacroLib.volcanoCone(V.H,x-V.x,z-V.z,vc);
+        if(vc.cone>cone){cone=vc.cone;vx=V.x;vz=V.z;vr=V.R;vh=V.H;rib=vc.rib;frac=vc.frac;}
       }
       if(!cone)return t;
-      let h=t.h+cone;if(h>3200)h=3200+(h-3200)*.3;
-      return {...t,h,cone:h-t.h,vx,vz,vr};
+      let h=(t.h<SEA-1.5?t.h+(SEA-1.5-t.h)*clamp(cone/40,0,1):t.h)+cone;if(h>3200)h=3200+(h-3200)*.3;
+      return {...t,h,cone:h-t.h,vx,vz,vr,vh,rib,coneFrac:frac};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
     // Latitude runs north-south across the macro map (400 m per degree, folding at the poles far out at sea), the same
@@ -224,6 +228,8 @@
     // R: lowland region values for the column (see region()): V/U pick among same-climate biomes, A is aridity (desert and
     // badlands only inside the few large arid basins), j* are small per-column jitters so lowland borders are ragged, not contours.
     const zone={slope:0,crease:0,hollow:0,spur:0,x:0,z:0};
+    // Cold mountain biomes a volcano's flanks below its snowline turn into rock, meadow and scree (geography).
+    const COLD_CONE=new Set(['snow','glacier','alpine','tundra','meadow','subalpine','heath']);
     function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,R=null){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
@@ -759,7 +765,8 @@
     // the ranges); a volcano's crater and smooth summit cone stay uneroded.
     const erosionStrength=(t,x,z)=>{const patch=.3+.7*noise(x*.0009,z*.0009,seed+743);
       // Gully depth is capped at 10 m (about an eighth of the first octave's 84 m cell), so gullies stay V-shaped, not needle combs.
-      return Math.min(10,clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.12*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
+      // On volcanoes the radial ribs (volcanoCone) are the landform; this finer erosion is only a light texture on their sides.
+      return Math.min(10,clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.04*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
     function outcropAt(x,z){
@@ -1186,7 +1193,11 @@
         // hollow (m): depth of the ground below that broad surface: positive in cirques, gullies and cols, negative on peaks,
         // ridge crests and spurs that stand out of it. Snow gathers by it (biomeOf).
         const hollow=iceTop+1-h;
-        let ice=0;if((t.relief>15||t.cone>20)&&!crater&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1);
+        // Volcano zonation: snow and ice only on the upper cone (above ~72% of its height), the line ragged and following
+        // the ribs (lower in gullies where snow lingers, higher on bare ridge crests). Below it, whatever the climate:
+        // bare rock mid-slope, alpine meadow on the lower flanks, gravel scree and boulders down the gullies (see below).
+        const onCone=t.cone>20&&t.cone>t.relief&&t.vh>0,coneSnow=!onCone||t.coneFrac>.72+.07*t.rib+(noise(x*.012,z*.012,seed+709)-.5)*.08;
+        let ice=0;if((t.relief>15||t.cone>20)&&!crater&&coneSnow&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
         // smooth landform (not small bumps), so the valley edge, where massif tiers end, stays a clean line. Big rivers open
@@ -1235,8 +1246,9 @@
         if(riverDistance<999&&!underLake&&h>=SEA-.4){const before=h;
           if(edge<0){const sh=Math.max(1.2,RV.w*.45),q=clamp(-edge/sh,0,1),depth=.8+Math.min(1.6,RV.w*.12);h=Math.min(before,Ws-.12-depth*q*q*(3-2*q));}
           else{if(bank<1)h=Math.min(h,floor+(h-floor)*bank);h=Math.max(h,Math.min(before,Ws+.25+edge*(RV.size>=.6?.18:.3)));}
-          // A gravel bar breaks the surface of a confluence pool, just downstream of the join on the tributary's side.
-          if(RV.pool&&edge<0){const b=barAt(x,z,RV.pool,RV.dir[0],RV.dir[1]);if(b>.05){h=Math.max(h,Ws+.06+.3*b);bar=true;}}}
+          // A gravel bar breaks the surface of a confluence pool, just downstream of the join on the tributary's side. Its
+          // flanks shelve down into the bed, so its thin tips are low mounds, not one-cell pillars standing out of the pool.
+          if(RV.pool&&edge<0){const b=barAt(x,z,RV.pool,RV.dir[0],RV.dir[1]);if(b>.05){const k=clamp((b-.05)/.35,0,1);h=Math.max(h,h+(Ws+.06+.3*b-h)*k*k*(3-2*k));bar=true;}}}
         if(gd<rimEdge+1.4){const F=Math.max(SEA+1,t.base-7);
           if(gorge){const ta=clamp((gd-half+1.3)/1.3,0,1);h=F+ta*ta*1.3+blk*.25;talus=ta>.25;}
           else if(gd<rimEdge){const n=2+Math.floor(noise(x*.02,z*.02,seed+251)*2.99),k=Math.floor((gd-half)/wallW*n+(noise(x*.12,z*.12,seed+253)-.5)*.5),lv=clamp(k/n,0,1);
@@ -1247,7 +1259,13 @@
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-(cool(metres)-cool(t.h)),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
         zone.slope=slope;zone.crease=crease;zone.hollow=hollow;zone.spur=spur;zone.x=x;zone.z=z;
         const BW=biomeWarp(x,z),bang=BW.a,breach=BW.D,CW=climateD(BW.x,BW.z),RG=region(C,x,z,CW),mountain=t.relief>15||t.cone>20;
-        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,sea?metres:Math.max(metres,SEA),wet,steep,slope>1.4,mountain,slope>1.8,RG);
+        const glacier=!gorge&&!sea&&iceCells>=2;let biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,sea?metres:Math.max(metres,SEA),wet,steep,slope>1.4,mountain,slope>1.8,RG);
+        if(onCone&&!gorge&&!sea&&!glacier&&!lakeWater){
+          const fr=t.coneFrac,rib=t.rib,j=(noise(x*.03,z*.03,seed+711)-.5)*.3,cold=COLD_CONE.has(biome);
+          if(coneSnow){if((biome==='snow'||biome==='alpine')&&fr<.92)biome=rib>.7+j?'alpine':'snow';}
+          else if(cold&&fr>.5+j*.2){if(rib<-.45+j){biome='meadow';talus=true;}else biome='alpine';}
+          else{if(cold)biome=rib>.75+j&&fr>.28?'alpine':'meadow';if(rib<-.7+j&&fr>.12)talus=true;}
+        }
         const water=sea?Math.round(SEA/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):edge<0&&!gorge&&Ws/cellMetres>height?Math.floor((RV.lake>floor+1&&RV.lake<floor+1.25?RV.lake:floor+1)/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
@@ -2532,7 +2550,7 @@
       // Ground plus the most crag, erosion, bump and ice could add there, trees on top, and a margin for relief peaking
       // between the samples.
       for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n),A=Math.max(cragRelief(t.relief),t.cone*.3)*.6;
-        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0?Math.min(m*.15,30):0));}
+        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0||t.cone>0?Math.min(m*.15,30):0));}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       for(let j=Math.floor((z0-16)/AG);j<=Math.floor((z0+m+16)/AG);j++)for(let i=Math.floor((x0-16)/AG);i<=Math.floor((x0+m+16)/AG);i++){const A=ancientCell(i,j);if(A)v=Math.max(v,A.top+2);}
       if(gallery)v=Math.max(v,GAL_BOUND);
