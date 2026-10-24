@@ -9,3 +9,4 @@ generator will later voxelize; CastleRender draws them with a soft anime cel loo
 | v1-seed1 | First pass: crag too wide and low, castle flat |
 | v2-seed1 | Taller sheer crag, castle stacked in tiers up to a spired keep (~400 m across, ~500 m tall) |
 | v2-grid | Seeds 1-9 side by side (grid mode, shores hidden) |
+| v3-island / v3-hill / v3-cliff | Seed 4 in each seat: a big wooded island around the crag; a mainland hill castle (~540 m); a gorge crag with a high viaduct to the mainland cliff |

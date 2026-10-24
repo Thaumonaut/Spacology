@@ -46,7 +46,10 @@
     for(let l=0;l<=L;l++){const t=l/L,yy=base+(top-base)*t,row=[];
       for(let i=0;i<N;i++){const [a,d]=pts[i],jag=1+.05*Math.sin(a*37+1.3)*Math.sin(a*11)+.03*Math.sin(a*83+t*3),f=(1+(flare-1)*Math.pow(1-t,2.6))*jag*(1-.04*Math.sin(t*9+a*5));
         row.push([cx+Math.cos(a)*d*f,yy,cz+Math.sin(a)*d*f]);}V.push(row);}
-    for(let l=0;l<L;l++)for(let i=0;i<N;i++){const j=(i+1)%N,t=l/L,k=.86+.16*Math.sin(l*1.7+i*.3)*Math.sin(i*.9),col=shade(cols.rock,k*(t<.12?.85:1));m.quad(V[l][i],V[l+1][i],V[l+1][j],V[l][j],col);}
+    // Skins: rock (strata bands), grass (rock showing through in streaks) or cap (rock sides, the top kept rock-grey edge).
+    const skin=o.skin||'rock';
+    for(let l=0;l<L;l++)for(let i=0;i<N;i++){const j=(i+1)%N,t=l/L,k=.86+.16*Math.sin(l*1.7+i*.3)*Math.sin(i*.9);
+      const rocky=skin!=='grass'||Math.sin(i*.7+l*.4)*Math.sin(i*.23+1.3)>.55,col=shade(rocky?cols.rock:cols.grass,k*(rocky&&t<.12?.85:1));m.quad(V[l][i],V[l+1][i],V[l+1][j],V[l][j],col);}
     // A rim of turf spilling over the cliff edge, then the meadow top.
     const T=V[L],C=[cx,top+1.5,cz];for(let i=0;i<N;i++){const j=(i+1)%N;m.tri(C,T[j],T[i],cols.grass,[0,1,0],[0,1,0],[0,1,0]);}}
   function prism(m,o,col){const {pts,y,top,cx=0,cz=0}=o,N=pts.length,P=([a,d],yy)=>[cx+Math.cos(a)*d,yy,cz+Math.sin(a)*d];
@@ -61,6 +64,7 @@
         if(p.t==='box'){box(m,p,col);if(p.crenel)crenels(m,p,col);}
         else if(p.t==='cyl')cyl(m,p,col);else if(p.t==='cone')cone(m,p,col);else if(p.t==='dome')dome(m,p,col);else if(p.t==='gable')gable(m,p,col);
         else if(p.t==='arch')arch(m,p,col);else if(p.t==='crag')crag(m,p,cols);else if(p.t==='ring')prism(m,p,col);else if(p.t==='blob')blob(m,p,col);
+        else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
         else if(p.t==='shore'){cyl(m,{x:p.x,y:-4,z:p.z,r:p.r,h:p.h+4,r2:p.r*.985},cols.grass,96);}}}
     // Water: a big plane at y=0.
     const W=30000,f=1;for(const [a,b,c] of [[[-W,0,-W],[-W,0,W],[W,0,W]],[[-W,0,-W],[W,0,W],[W,0,-W]]])m.tri(a,b,c,[.2,.5,.62],[0,1,0],[0,1,0],[0,1,0],f);
