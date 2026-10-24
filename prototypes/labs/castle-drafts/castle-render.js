@@ -166,13 +166,15 @@
   float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y);}
   // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
-  vec3 pattern(vec3 c,vec3 n,float dist){int t=int(gT+.5);if(t==0)return c;float fade=1.-smoothstep(60.,420.,dist);if(fade<=0.)return c;
+  // gBump: the pattern's relief (0 deep joint .. 1 face) in metres-ish units scaled by gBumpK, for normal perturbation.
+  float gBump=0.,gBumpK=0.;
+  vec3 pattern(vec3 c,vec3 n,float dist){gBump=0.;gBumpK=0.;int t=int(gT+.5);if(t==0)return c;float fade=1.-smoothstep(60.,420.,dist);if(fade<=0.)return c;
     vec3 p=gP;bool wall=abs(n.y)<.5;vec2 tg=normalize(vec2(-n.z,n.x)+1e-5);float u=dot(p.xz,tg);vec3 o=c;
     if(t==1&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;
       float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(hh(vec2(cell,3.))<.45)beam+=step(abs(fu-fy),.05);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
     else if(t==2){
       // Roof tiles: staggered rows, each tile its own shade and a little hue drift, a shadowed lower lip, moss in patches.
-      float y=p.y*2.6,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
+      float y=p.y*2.6,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);gBump=fy*.8+.2*smoothstep(0.,.08,fract(tu))*smoothstep(1.,.92,fract(tu));gBumpK=.05;float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
       vec3 tc=c*(.84+.24*hh(vec2(cell,row)))*vec3(1.+.06*(hh(vec2(row,cell))-.5),1.,1.-.05*(hh(vec2(cell+3.,row))-.5));
       // Patched in places with tiles of another batch (a different colour), as old roofs are.
       if(hh(vec2(floor(tu/3.),floor(row/2.)))>.93)tc*=vec3(.8,.85,1.05)*(.9+.2*hh(vec2(cell,row+5.)));
@@ -180,12 +182,12 @@
     else if(t==3&&!wall){
       // Worn setts: irregular rounded stones of uneven size (a warped grid), close-set in dark joints, toned in a few
       // greys and browns, the odd tuft of grass in a joint.
-      vec2 w=p.xz*vec2(1.9,2.4)+vec2(vn(p.xz*.9),vn(p.xz*.9+5.))*.55;w.x+=floor(w.y)*.47;vec2 cl=floor(w),f=fract(w)-.5;float r=max(abs(f.x)*1.05,abs(f.y))+.08*(hh(cl)-.5),stone=1.-smoothstep(.36,.44,r);
+      vec2 w=p.xz*vec2(1.9,2.4)+vec2(vn(p.xz*.9),vn(p.xz*.9+5.))*.55;w.x+=floor(w.y)*.47;vec2 cl=floor(w),f=fract(w)-.5;float r=max(abs(f.x)*1.05,abs(f.y))+.08*(hh(cl)-.5),stone=1.-smoothstep(.36,.44,r);gBump=stone*(1.-r*r*2.);gBumpK=.06;
       vec3 sc=c*mix(vec3(.82,.8,.78),vec3(.95,.88,.8),hh(cl+3.))*(.78+.3*hh(cl))*(1.06-.25*r);o=mix(c*.42,sc,stone);o=mix(o,vec3(.4,.5,.3),(1.-stone)*smoothstep(.72,.86,vn(p.xz*.6))*.7);}
     else if(t==4){
       // Coursed stone: blocks of varied length and tone, recessed mortar, moss creeping up the lowest courses.
       vec2 q=wall?vec2(u/1.05,p.y/.5):p.xz/vec2(1.05,.8);float row=floor(q.y);q.x+=row*.37+.5*hh(vec2(row,9.));q.x/=.8+.5*hh(vec2(row,floor(q.x)));vec2 f=fract(q);
-      float e=min(min(f.x,1.-f.x)*1.2,min(f.y,1.-f.y)*.6);vec3 bc=c*(.8+.3*hh(floor(q)+row*13.))*vec3(1.+.05*(hh(floor(q))-.5),1.,1.);o=mix(c*.55,bc,smoothstep(.015,.05,e));
+      float e=min(min(f.x,1.-f.x)*1.2,min(f.y,1.-f.y)*.6);vec3 bc=c*(.8+.3*hh(floor(q)+row*13.))*vec3(1.+.05*(hh(floor(q))-.5),1.,1.);o=mix(c*.55,bc,smoothstep(.015,.05,e));gBump=smoothstep(0.,.07,e)+.15*vn(q*3.);gBumpK=.035;
       if(wall){float m=smoothstep(.55,.85,vn(vec2(u,p.y)*.6))*(1.-smoothstep(0.,2.5,fract(p.y/40.)*40.-5.));o=mix(o,vec3(.4,.5,.3),m*.4);}}
     else if(t==5){
       // Plaster: soft mottling with warm/cool drift, stains and rain streaks running down, grime at the foot.
@@ -194,7 +196,7 @@
         // Plaster fallen away in patches, showing brick courses beneath with a ragged pale edge.
         float pf=vn(vec2(u,p.y)*.45+31.)+.35*vn(vec2(u,p.y)*1.7);if(pf>1.02){vec2 bq=vec2(u/.24,p.y/.08);bq.x+=floor(bq.y)*.5;vec2 bf=fract(bq);float m2=min(bf.x*.3,min(bf.y,1.-bf.y));
           vec3 brick=vec3(.66,.38,.3)*(.8+.3*hh(floor(bq)))*mix(.6,1.,smoothstep(.03,.12,m2));o=mix(o*1.06,brick,smoothstep(1.04,1.07,pf));}}}
-    else if(t==6){o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));}
+    else if(t==6){float pl=fract((wall?p.y:p.x)*4.);o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));gBump=smoothstep(0.,.12,pl)*smoothstep(1.,.88,pl);gBumpK=.02;}
     else if(t==7){
       // Grass: broad light/dark drifts, tuft speckle and the odd white or yellow flower.
       float tf=hh(floor(p.xz*6.));o=c*(.8+.22*vn(p.xz*.09)+.1*vn(p.xz*.8)+.1*(tf-.5));float fl=step(.985,hh(floor(p.xz*5.)+7.));o=mix(o,hh(floor(p.xz*5.)+3.)<.5?vec3(.98,.96,.88):vec3(.98,.85,.3),fl*(1.-smoothstep(10.,40.,dist)));}
@@ -205,7 +207,7 @@
       else{float mot=vn(vec2(u,p.y)*.5)*.6+vn(vec2(u,p.y)*2.1)*.4;o=c*(.9+.16*mot);o*=1.-smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;}
       if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
-    return mix(c,o,fade);}
+    gBumpK*=fade;return mix(c,o,fade);}
   float h3(vec3 p){return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5453);}
   // Voxel texture: from the voxel cell (gQ.xyz, in the model's own grid; gQ.w the voxel size) - a per-voxel tone, the
   // material's courses (stone blocks of 3x2 voxels with mortar, roof tile rows, wood planks, plaster with grime at the
@@ -230,6 +232,14 @@
       o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
     if(gF>1.5){nrm.a=.75;o=vec4(mix(gC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
     vec3 base=gQ.w>0.?voxTex(gC,dist):pattern(gC,n,dist);
+    // Bump from the pattern's relief (surface-gradient method on screen derivatives), so the cel ramp catches every
+    // joint, tile lip and cobble: lit edges and shadowed grooves painted by the light itself.
+    if(gBumpK>0.){vec3 dpx=dFdx(gP),dpy=dFdy(gP);float bx=dFdx(gBump)*gBumpK,by=dFdy(gBump)*gBumpK;vec3 r1=cross(dpy,n),r2=cross(n,dpx);float det=dot(dpx,r1);
+      if(abs(det)>1e-8){vec3 g=sign(det)*(bx*r1+by*r2);n=normalize(abs(det)*n-g);}}
+    // Painted depth: groove darkening from the same relief, and walls that darken toward their feet and brighten toward
+    // the eaves (the way background painters shade a façade), fading with distance.
+    if(gBumpK>0.)base*=mix(.78,1.,smoothstep(0.,.5,gBump));
+    if(abs(n.y)<.5){float hgt=clamp((gP.y-floor(gP.y/40.)*40.-5.)/12.,0.,1.);base*=mix(.86,1.04,hgt);}
     // Cel shading after Genshin / HSR / WuWa: a ramp instead of smooth light. The key light (wrapped N.L times the cast
     // shadow) crosses one threshold with a narrow feather into a shadow colour that is the base pushed more saturated
     // and cooler (not just darker), with a second faint step deeper in; a hard specular highlight on glossy-ish faces
