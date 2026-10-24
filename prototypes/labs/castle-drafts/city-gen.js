@@ -118,7 +118,7 @@
     function place(type,x,z,w,d,rot,doorSide){const T=TYPES[type],dc=Math.hypot(x,z)/Rw,tall=type==='house'||type==='shop'||type==='inn'?Math.round(Math.max(0,1.8-dc*2.6)):0,n=Math.round(r(T.st[0],T.st[1]))+tall,st=[0];for(let i=1;i<n;i++)st.push(T.g+(i-1)*3.6);
       const H=type==='chapel'?r(11,16):type==='bath'?8:T.g+(n-1)*3.6+.8;
       const tudor=(type==='house'||type==='inn'||type==='shop')&&R()<.45;
-      const b={id:buildings.length,type,x,z,w,d,rot,doorSide,storeys:st,H,tudor,wall:type==='shack'?pick(SHACK):tudor?[.96,.94,.88]:pick(PLASTER),roof:type==='chapel'||type==='guildhall'?pick([[.36,.46,.66],[.34,.58,.54]]):pick(ROOFS),pitch:type==='shack'?r(.25,.45):r(.6,1.05),doorU:type==='chapel'?0:r(-.25,.25)*(w-1.2),roofStyle:type==='shack'?'gable':w<8.5&&d>w*1.1&&R()<.55?'front':R()<.32?'hip':'gable',chimney:(type==='house'||type==='inn'||type==='smithy')&&R()<.65,seed:Math.floor(R()*1e9)};
+      const b={id:buildings.length,type,x,z,w,d,rot,doorSide,storeys:st,H,tudor,wall:type==='shack'?pick(SHACK):tudor?[.96,.94,.88]:pick(PLASTER),roof:type==='chapel'||type==='guildhall'?pick([[.36,.46,.66],[.34,.58,.54]]):pick(ROOFS),pitch:type==='shack'?r(.25,.45):r(.6,1.05),doorU:type==='chapel'?0:r(-.25,.25)*(w-1.2),mass:['house','shop','inn','towerhouse'].includes(type)?(w<8.5?(R()<.12?'tower':R()<.5?'jetty':'plain'):(R()<.32?'endbay':R()<.62?'cross':R()<.75?'tower':'plain')):'plain',roofStyle:type==='shack'?'gable':w<8.5&&d>w*1.1&&R()<.55?'front':R()<.32?'hip':'gable',chimney:(type==='house'||type==='inn'||type==='smithy')&&R()<.65,seed:Math.floor(R()*1e9)};
       // Floor on the highest ground under the footprint; a plinth reaches down to the lowest, so nothing floats.
       {const c=Math.cos(rot),s2=Math.sin(rot),hs=[];for(const [u,v] of [[-1,-1],[1,-1],[1,1],[-1,1],[0,0]])hs.push(gy(x+u*w/2*c-v*d/2*s2,z+u*w/2*s2+v*d/2*c));b.floor=Math.max(...hs)+.15;b.base=Math.min(...hs)-.8;}
       buildings.push(b);claim(x,z,w,d,rot);return b;}
@@ -241,6 +241,7 @@
     // Exterior bodies and roofs by type.
     // Closed shells carry painted windows (patterns 8 and 9); open interiors have real ones.
     const pat=type==='shack'?6:interior?(b.tudor?1:5):(b.tudor?9:8);
+    if(!interior&&MASSED.has(type)&&!b.hero)return closedMass(b);
     const body=(o,mat)=>interior?add('shell',{...o,pat},mat):add('box',{x:o.x,y:o.y,z:o.z,w:o.w,h:o.h,d:o.d,rot:o.rot,col:o.col,pat},mat);
     if(type==='market'){
       // The street half of the ground floor is an open arcade (arched stone piers) full of stalls; the back half is a
@@ -309,6 +310,34 @@
   // dormers and chimneys, real windows (frames, shutters, flower boxes, some lit warm), a door with a step and a wall
   // lantern, and for shops and inns a striped awning, a hanging sign, crates and barrels. Local frame: u along the
   // street, v toward it on the door side (F = doorSide).
+  // ---- Massing with character, shared by the closed shells (most of the city) and the near detail: a stone ground
+  // floor, jettied upper storeys, a steep roof with deep eaves (gable along the street, gable end to it, or hipped), and
+  // per building one feature: an end bay rising a storey higher under its own street-facing gable, a cross gable from
+  // the middle of a long roof, or a round corner tower with a cone; dormers on long roofs, one or two chimneys.
+  const MASSED=new Set(['house','shop','inn','towerhouse','smithy','warehouse','barracks']);
+  function massExtras(b,top,roofH,frontRoof){const out=[],R=rng((b.seed^0x77aa)>>>0),r=(a,c)=>a+(c-a)*R(),c=Math.cos(b.rot),s=Math.sin(b.rot),F=b.doorSide||1,W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c];
+    const box=(u,v,w,d,y,h,col,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot,col,...o});},gab=(u,v,w,d,y,h,turn=0)=>{const [x,z]=W(u,v);out.push({t:'gable',x,y,z,w,d,h,rot:b.rot+turn,col:b.roof,pat:2});};
+    const wpat=b.tudor?9:8;
+    if(b.mass==='endbay'){const ww=Math.min(b.w*.42,5.5),su=R()<.5?-1:1,u=su*(b.w/2-ww/2),bay=r(2.8,3.6),gh=ww*r(.75,1);box(u,0,ww,b.d,top-1,bay+1,b.wall,{pat:wpat});gab(u,0,b.d+1.4,ww+.8,top+bay,gh,Math.PI/2);}
+    else if(b.mass==='cross'&&!frontRoof){const cw=Math.min(b.w*.38,5),gh=cw*r(.8,1.05),v=F*(b.d/4);box(0,v+F*.01,cw,b.d/2+.02,top-1,roofH*.55+1,b.wall,{pat:wpat});gab(0,v+F*.3,b.d/2+.9,cw+.8,top+roofH*.55,gh,Math.PI/2);}
+    else if(b.mass==='tower'){const tr=r(1.5,2.1),su=R()<.5?-1:1,[x,z]=W(su*(b.w/2-tr*.5),F*(b.d/2-tr*.5)),th=top+r(3,7);out.push({t:'cyl',x,y:b.base??b.floor-1,z,r:tr,h:th-(b.base??b.floor-1),col:b.wall,pat:wpat},{t:'cone',x,y:th,z,r:tr*1.25,h:tr*3.4,col:b.roof,pat:2});}
+    // Dormers on the street slope of long roofs.
+    if(!frontRoof&&b.w>=7&&b.mass!=='cross'){const nd=Math.max(1,Math.floor(b.w/5));for(let q=0;q<nd;q++){if(R()<.35)continue;const u=-b.w/2+(q+.5)*b.w/nd;if(b.mass==='endbay'&&Math.abs(u)>b.w*.25)continue;const v=F*b.d*.2,yb=top+roofH*.18,dh=roofH*.4+.9;
+      box(u,v,1.7,1.6,yb,dh,b.wall,{pat:5});gab(u,v+F*.1,1.9,2.2,yb+dh,1,Math.PI/2);box(u,v+F*.82,.8,.06,yb+dh-1.3,.95,[.22,.28,.38],{nocol:true});}}
+    {const n=R()<.35?2:1;for(let k=0;k<n;k++){const u=(k?-1:1)*r(.15,.4)*b.w,v=-F*b.d*r(.05,.25),h=(frontRoof?b.w*b.pitch*.6:roofH)+r(1,2);box(u,v,.9,.9,top,h,[.62,.42,.34],{pat:4,nocol:true});box(u,v,1.15,1.15,top+h,.22,[.45,.33,.28],{nocol:true});}}
+    return out;}
+  function closedMass(b){const out=[],c=Math.cos(b.rot),s=Math.sin(b.rot),F=b.doorSide||1,W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c],y0=b.floor??G,base=b.base??y0-1,top=y0+b.H;
+    const box=(u,v,w,d,y,h,col,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot,col,...o});};
+    const STONE=[[.74,.7,.64],[.68,.65,.6],[.82,.74,.64]][b.seed%3],gH=b.type==='warehouse'||b.type==='smithy'?4.4:3.6,J=b.type==='warehouse'||b.type==='smithy'?0:(b.tudor||b.mass==='jetty'?.55:.25);
+    box(0,0,b.w,b.d,base,y0+gH-base,STONE,{pat:4});if(top>y0+gH+.5)box(0,F*J/2,b.w,b.d+J,y0+gH,top-y0-gH,b.wall,{pat:b.tudor?9:8});
+    // Eaves overhang everything; narrow houses turn the gable to the street.
+    const front=b.roofStyle==='front'||b.mass==='jetty'&&b.w<8.5,dd=b.d+J,roofH=front?b.w*b.pitch*.6:dd*b.pitch*.5,[rx,rz]=W(0,F*J/2);
+    if(front)out.push({t:'gable',x:rx,y:top,z:rz,w:dd+1.6,d:b.w+1,h:roofH,rot:b.rot+Math.PI/2,col:b.roof,pat:2});
+    else if(b.roofStyle==='hip')out.push({t:'hip',x:rx,y:top,z:rz,w:b.w+1.2,d:dd+1.6,h:roofH,rot:b.rot,col:b.roof,pat:2});
+    else out.push({t:'gable',x:rx,y:top,z:rz,w:b.w+.9,d:dd+1.6,h:roofH,rot:b.rot,col:b.roof,pat:2});
+    out.push(...massExtras(b,top,roofH,front));
+    {const [x,z]=W(b.doorU||0,F*(b.d/2+.04));out.push({t:'box',x,y:y0,z,w:1.3,h:2.5,d:.12,rot:b.rot,col:[.42,.28,.18],pat:6,nocol:true});}
+    return out;}
   const DETAILED=new Set(['house','shop','inn','towerhouse','smithy','warehouse','barracks']);
   function detailedParts(b){
     const out=[],R=rng((b.seed^0x5bd1)>>>0),r=(a,c)=>a+(c-a)*R(),pk=a=>a[Math.floor(R()*a.length)],c=Math.cos(b.rot),s=Math.sin(b.rot),F=b.doorSide||1;
@@ -385,6 +414,7 @@
         const [sx,sz]=W(-b.w/2+.8,v+F*1.05);out.push({t:'box',x:sx,y:y0+gH+.3,z:sz,w:.08,h:.08,d:1.6,rot:b.rot,col:[.2,.18,.18],nocol:true},{t:'vdisk',x:sx,y:y0+gH-.4,z:sz,r:.5,rot:b.rot,col:[.25,.2,.18],col2:pk([[.85,.7,.3],[.7,.3,.25],[.3,.5,.6]]),nocol:true});
         for(let k=0;k<Math.round(r(3,6));k++){const u=r(-b.w/2+.8,b.w/2-.8);if(Math.abs(u-doorU)<1.3)continue;const vv=v+F*r(.6,1.6);if(R()<.5){const sz2=r(.5,.8),[x,z]=W(u,vv);out.push({t:'box',x,y:y0,z,w:sz2,h:sz2,d:sz2,rot:b.rot+r(-.3,.3),col:[.55,.4,.25],pat:6,nocol:true});if(R()<.6)for(let f=0;f<3;f++)out.push({t:'blob',x:x+r(-.15,.15),y:y0+sz2+.1,z:z+r(-.15,.15),rx:.14,ry:.12,rz:.14,col:pk([[.85,.25,.2],[.95,.6,.2],[.5,.7,.25],[.9,.8,.3]]),nocol:true});}
           else{const [x,z]=W(u,vv);out.push({t:'cyl',x,y:y0,z,r:.32,h:.9,r2:.3,col:[.48,.33,.2],nocol:true},{t:'cyl',x,y:y0+.2,z,r:.335,h:.06,col:[.25,.24,.26],nocol:true},{t:'cyl',x,y:y0+.65,z,r:.33,h:.06,col:[.25,.24,.26],nocol:true});}}}}
+    out.push(...massExtras(b,topY,front?b.w*.95:dTop*.67,front));
     // ---- A way down to the cellar: where the plinth stands tall (sloping ground), a low arched door in it on the street
     // side; elsewhere, on some houses, a slanted wooden cellar hatch against the front wall.
     {const v=face(0),hi=y0-base;if(hi>1.9){const u=doorU+(R()<.5?-1:1)*Math.min(b.w/2-1.2,2.4),[x,z]=W(u,F*(b.d/2+.05));box(u,F*(b.d/2+.03),1.6,.14,base+.8,1.9,QUOIN,{pat:4});
