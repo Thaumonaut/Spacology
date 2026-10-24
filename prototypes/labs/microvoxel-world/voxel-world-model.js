@@ -1976,8 +1976,13 @@
             seg(t.x,yt,t.z,Math.max(.6*density,trunk*.14),t.x+Math.cos(a)*rr*M,yt-period*.7,t.z+Math.sin(a)*rr*M,Math.max(.3*density,trunk*.04),bark,2);}}
         }
       }else if(crown==='oval'){
-        seg(t.x,t.base,t.z,trunk*1.05,t.x,top-R*.9,t.z,trunk*.45);
-        lobe(t.x,top-R*.3,t.z,R,1.6);
+        // Birch/aspen: a slender trunk running almost to the top, tapering to a point, a few rising branches, and an airy
+        // oval crown of three stacked masses around its upper half.
+        const bid=Math.floor(t.x*4)*31+Math.floor(t.z*4),H=t.height;
+        seg(t.x,t.base,t.z,trunk*1.05,t.x,t.base+H*.55,t.z,trunk*.7);seg(t.x,t.base+H*.55,t.z,trunk*.7,t.x,top+R*.15,t.z,trunk*.08);
+        for(let i=0;i<3;i++){const f=.5+.14*i,a=hash(i,bid,seed+211)*6.2832,w=R*(.55-.12*i)*M,y=t.base+H*f;
+          lobe(t.x+Math.cos(a)*w*.35,y+R*.35,t.z+Math.sin(a)*w*.35,R*(.78-.1*i),1.05);
+          seg(t.x,y,t.z,Math.max(.4*density,trunk*.3),t.x+Math.cos(a)*w,y+R*.5,t.z+Math.sin(a)*w,Math.max(.3*density,trunk*.08),bark,2);}
       }else if(crown==='umbrella'){
         seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.8);
         const P2=t.pads[1],y0=t.base+Math.round(t.height*.45);seg(t.x,y0,t.z,trunk*.8,P2.x,P2.y,P2.z,trunk*.5);
