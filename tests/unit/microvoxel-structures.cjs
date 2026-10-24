@@ -11,7 +11,7 @@ for(const R of list){
   assert.ok(R.decay>=.5&&R.decay<=.9,`${R.kind} decay ${R.decay} is a ruin's`);
   assert.ok([10,15].includes(R.course),'course height is 0.5 or 0.75 m (10 or 15 in 5 cm steps)');
   assert.ok([M.MAT.masonryWarm,M.MAT.masonryDark].includes(R.mat),'site stone is warm or dark masonry');
-  for(const q of R.parts)assert.ok(['box','ring','pillar','fallen','pave'].includes(q.t),`known part ${q.t}`);
+  for(const q of R.parts)assert.ok(['box','ring','pillar','fallen','pave','roof','cone','dome'].includes(q.t),`known part ${q.t}`);
 }
 assert.ok(list.filter(R=>R.mat===M.MAT.masonryWarm).length>list.length/2,'cream sandstone is the common ruin stone');
 // The part index: every part whose footprint (plus the 2 m strip margin) holds a point is in that point's bucket.
@@ -30,7 +30,8 @@ for(const R of list.slice(0,8))for(let n=0;n<300;n++){
 }
 for(const m of ['masonryWarm','paving'])assert.ok(seen.has(M.MAT[m]),`${m} appears in ruin columns`);
 assert.ok(M.ABOVE_GROUND.has(M.MAT.masonryWarm)&&M.ABOVE_GROUND.has(M.MAT.masonryDark)&&!M.ABOVE_GROUND.has(M.MAT.paving),'ruin stone stands on the ground; paving is ground');
-assert.equal(M.COLORS.length,M.MAT.paving+1,'every material has a colour');
+assert.equal(M.COLORS.length,M.MAT.plaster+1,'every material has a colour');
+for(const m of ['roofSlate','roofRed','roofGreen','roofGold','plaster'])assert.ok(M.ABOVE_GROUND.has(M.MAT[m])&&M.BODY_SOLID.has(M.MAT[m]),`${m} stands and blocks like masonry`);
 // Decay: the same walled sites intact (0) stand far taller than buried (0.9); temple pillars stand whole when intact.
 const stone=new Set([M.MAT.masonryWarm,M.MAT.masonryDark,M.MAT.mossy]);
 const intact=M.createWorld(2718,.25,'infinite',{ruinDecay:0}),buried=M.createWorld(2718,.25,'infinite',{ruinDecay:.9});
@@ -43,6 +44,9 @@ for(const R of [...list.filter(R=>R.kind==='town').slice(0,2),...list.filter(R=>
   assert.equal(intact.landmarksAt(R.x,R.z).ruin.decay,0);assert.equal(buried.landmarksAt(R.x,R.z).ruin.decay,.9);
 }
 {const T=list.find(R=>R.kind==='temple'),whole=W=>W.landmarksAt(T.x,T.z).ruin.parts.filter(q=>q.t==='pillar'&&q.cap).length;assert.ok(whole(intact)>whole(buried),'more whole temple pillars when intact');}
+// Intact hamlets keep their tiled roofs (and the roof material shows in their columns); buried ones have none.
+{const T=list.find(R=>R.kind==='town'),roofs=W=>W.landmarksAt(T.x,T.z).ruin.parts.filter(q=>q.t==='roof').length;assert.ok(roofs(intact)>4&&roofs(buried)===0,'roofs on intact houses only');
+  const R=intact.landmarksAt(T.x,T.z).ruin,q=R.parts.find(q=>q.t==='roof'),col=intact.column(Math.floor(q.cx/.25),Math.floor(q.cz/.25));assert.ok(col.includes(q.mat),'a roof column holds its tiles');}
 // Per-building decay varies around the site's: a hamlet's houses do not all share one value.
 {const T=list.find(R=>R.kind==='town'),decs=new Set(T.parts.filter(q=>q.t==='box'&&q.maxS).map(q=>q.dec.toFixed(3)));assert.ok(decs.size>3,'houses carry their own decay');}
 console.log(`microvoxel structures: PASS (${list.length} ruins, kinds ${[...kinds].join(', ')}, ${probes} index probes)`);

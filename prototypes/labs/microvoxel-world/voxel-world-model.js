@@ -26,7 +26,11 @@
     // ---- Anime ruin materials (appended; never renumber). ABOVE_GROUND and BODY_SOLID like masonry: masonryWarm 94
     // (cream sandstone, the default ruin stone), masonryDark 95 (weathered blue-grey stone for some sites and buildings).
     // Ground (no set): paving 96 (plaza and street slabs; it replaces the turf cell, so it neither casts nor blocks).
-    masonryWarm:94,masonryDark:95,paving:96});
+    masonryWarm:94,masonryDark:95,paving:96,
+    // ---- Castle and city materials (appended; never renumber). ABOVE_GROUND and BODY_SOLID like masonry: roofSlate 97
+    // (blue-grey slate of castle cones and palace roofs), roofRed 98 (terracotta house roofs), roofGreen 99 (verdigris
+    // copper spires and domes), roofGold 100 (gilded domes and finials), plaster 101 (pale lime-washed house walls).
+    roofSlate:97,roofRed:98,roofGreen:99,roofGold:100,plaster:101});
   const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
     '#e9e4d8','#a3c86a','#a9b552','#5c9a52','#b6c46a','#78b24c','#b88ae6','#f6eefa','#f28b6e','#4e8d45','#98b862','#d9473b','#f1e6cc','#71dcff','#a3a45c','#f4d04e','#a483e6','#5e9a5a','#8aa24c','#e0a93c','#45403c','#7d8f3e',
     '#6fa456','#9dbd63','#ecc94e','#b08ad6','#b0a84a','#cf8a3c','#e3a238','#cf6e34','#f1c3d6','#d9a4dd','#d8a3bc','#a4b84c','#9c7aa0','#adb86c','#bdb75a','#d6b254','#bf6a43','#dda067','#e2c27f','#4f7f3f',
@@ -34,8 +38,10 @@
     '#9fc65a','#3d7a3c','#5fae4a','#4a8048','#a07d55','#6f9f45','#7b4a2b','#5b9e4c','#f7c4dc','#5fb35a','#8f938e',
     // Mountain rock (86-92): dark, pale and warm strata, grey-green and rust lichen, boulder, pale boulder.
     '#5f6a7c','#8a919d','#83776b','#8a9470','#a8845e','#8b8a88','#a4a29c','#aba595',
-    // Anime ruins (94-96): cream sandstone, blue-grey stone, pale paving. The renderer's palette uniform must hold 97+.
-    '#e6d5b0','#8e9aac','#d9cfb6']);
+    // Anime ruins (94-96): cream sandstone, blue-grey stone, pale paving.
+    '#e6d5b0','#8e9aac','#d9cfb6',
+    // Castles and cities (97-101): slate, terracotta, verdigris, gold, plaster. The renderer's palette uniform must hold 102.
+    '#5d7594','#c4603c','#4f9c88','#e2b54a','#efe7d6']);
   // Display names for streamed biome ids (atlas hexes, ground inspection). 'Desert' is matched by coop-session.js.
   const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
     flowers:'Wildflower meadow',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',heath:'Heather moor',golden:'Golden savanna',bamboo:'Bamboo grove',badlands:'Badlands',pinkgrass:'Rosegrass prairie'});
@@ -55,11 +61,11 @@
   // vine strands.
   const STALKS=Object.freeze(new Set([MAT.bamboo,MAT.bambooNode,MAT.reed,MAT.rush,MAT.cattail,MAT.fern,MAT.tuft,MAT.vine]));
   const BLADE_GRASS=Object.freeze(new Set([MAT.floodgrass,MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.steppegrass,MAT.savgrass,MAT.goldgrass]));
-  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.masonry,MAT.masonryWarm,MAT.masonryDark,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
+  const ABOVE_GROUND=Object.freeze(new Set([...LEAVES,...NEEDLES,...BARKS,MAT.flower,MAT.crystal,MAT.stone,MAT.masonry,MAT.masonryWarm,MAT.masonryDark,MAT.roofSlate,MAT.roofRed,MAT.roofGreen,MAT.roofGold,MAT.plaster,MAT.sandstone,MAT.fern,MAT.tuft,MAT.mushroom,MAT.stem,MAT.glowFlower,MAT.reed,MAT.flowerYellow,MAT.flowerViolet,MAT.cactus,MAT.rush,MAT.cattail,MAT.lilyPad,MAT.lilyFlower,MAT.boulder,MAT.boulderPale]));
   // What a walking body can't pass through: trunks and limbs, giant mushroom stems, boulders, rock
   // crags and sea stacks, crystals and ruin masonry. Every terrain rock lives below the capsule's low
   // bound, so the whole ROCKS family is safe to include. Foliage, water and thin plants stay passable.
-  const BODY_SOLID=Object.freeze(new Set([...BARKS,...ROCKS,MAT.stem,MAT.mossy,MAT.masonry,MAT.masonryWarm,MAT.masonryDark,MAT.crystal,MAT.cactus]));
+  const BODY_SOLID=Object.freeze(new Set([...BARKS,...ROCKS,MAT.stem,MAT.mossy,MAT.masonry,MAT.masonryWarm,MAT.masonryDark,MAT.roofSlate,MAT.roofRed,MAT.roofGreen,MAT.roofGold,MAT.plaster,MAT.crystal,MAT.cactus]));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
   const riverX=z=>78+9*Math.sin(z*.046)+3*Math.sin(z*.11);
@@ -81,7 +87,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-28':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-29':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -924,7 +930,7 @@
     const STG=150,ruins=new Map(),IB=16;
     // The site style: material (cream sandstone or, for some sites, weathered blue-grey stone), course height (whole
     // cells, so every broken step is a real block step) and block length.
-    function ruinStyle(key,dec,dark=.25){const r=hash(key,3,seed+541);return {mat:r<dark?MAT.masonryDark:MAT.masonryWarm,ch:hash(key,5,seed+543)<.6?.5:.75,bl:1+.8*hash(key,7,seed+545),dec,key};}
+    function ruinStyle(key,dec,dark=.25){const r=hash(key,3,seed+541),q=hash(key,11,seed+547);return {mat:r<dark?MAT.masonryDark:MAT.masonryWarm,ch:hash(key,5,seed+543)<.6?.5:.75,bl:1+.8*hash(key,7,seed+545),dec,key,roof:q<.6?MAT.roofRed:q<.9?MAT.roofSlate:MAT.roofGreen,dome:q<.5?MAT.roofGold:MAT.roofGreen};}
     // Course height of a ruin style in 5 cm steps (the renderer's per-column block-size byte).
     const courseCode=S=>Math.round(S.ch/.05);
     // A building's own decay: the site's with noise (spread ~±0.25), so one ruin keeps a standing tower and another is
@@ -956,15 +962,29 @@
         // Scatter n fallen blocks within radius r of (u,w), sizes scaled by s.
         scatter(u,w,r,n,s=1,o={}){for(let i=0;i<n;i++){const b=R(3000+parts.length*3)*Math.PI*2,d=r*Math.sqrt(R(3001+parts.length*3)),z=R(3002+parts.length*3);
           K.fallen(u+Math.cos(b)*d,w+Math.sin(b)*d,s*(.35+.5*z),s*(.25+.25*R(3003+i)),s*(.3+.35*R(3004+i)),o);}},
-        // A house shell: storeys of arched windows, an arched door facing -w, gable ends on the short sides. Each
-        // building takes its own decay around the site's (`dec`), and a coarse mass stands in for it at 16 m columns.
-        house(u,w,ang,hl,hw,storeys,o={}){const H2=K.sub(u,w,ang,{...S,dec:o.dec??S.dec,mat:o.mat||S.mat}),sh=S.ch*Math.round(3.2/S.ch),H=storeys*sh,th=o.th||.6,lin=S.ch;
+        // A pitched roof over walls of half extents (hl,hw) topping out H above the base: ridge along u, eaves `eave` out
+        // past the walls, `pitch` metres of rise per metre; hip: hipped ends instead of gables. Tiles drop out in patches
+        // as decay rises and the roof is gone past 0.45 (roofs belong to intact and lightly weathered buildings).
+        roof(u,w,ang,hl,hw,H,o={}){if((o.dec??S.dec)>.45)return null;const [cx,cz]=at(u,w),A=a+ang,e=o.eave??.4,p=o.pitch??.75;
+          const q={t:'roof',cx,cz,ux:Math.cos(A),uz:Math.sin(A),hl:hl+(o.hip?e:e*.6),hw:hw+e,wl:hl,ww:hw,eh:H,p,hip:!!o.hip,H:H+(hw+e)*p,mat:S.roof||MAT.roofRed,dec:S.dec,k:S.key*64+parts.length,...o};parts.push(q);return q;},
+        // Caps for round towers: a cone roof (with a finial spire tip), an inverted cone (`inv`: the corbel under a turret
+        // hung out from a wall) or a dome with a lantern. r: radius at the eaves; wr: the wall radius under it (outside it
+        // the cone is only a 0.4 m skin, so eaves overhang); H: height of the cap.
+        cone(u,w,r,H,o={}){if(!o.inv&&(o.dec??S.dec)>.45)return null;const [cx,cz]=at(u,w);const q={t:'cone',cx,cz,ux:1,uz:0,r,wr:o.wr??r,hl:r,hw:r,H:o.inv?0:H+(o.tip||0),ch:H,mat:o.inv?S.mat:S.roof||MAT.roofSlate,dec:S.dec,k:S.key*64+parts.length,...o};parts.push(q);return q;},
+        dome(u,w,r,H,o={}){if((o.dec??S.dec)>.45)return null;const [cx,cz]=at(u,w);const q={t:'dome',cx,cz,ux:1,uz:0,r,hl:r,hw:r,H:H+r*.7,ch:H,mat:S.dome||MAT.roofGold,trim:S.mat,dec:S.dec,k:S.key*64+parts.length,...o};parts.push(q);return q;},
+        // Ground height (m) under a kit point, for buildings that stand level on one base (y0) and step their foundations
+        // down the slope instead of following it.
+        ground:(u,w)=>{const [x,z]=at(u,w);return S.gy?S.gy(x,z):geography(x,z).height*cellMetres;},
+        // A house shell: storeys of arched windows, an arched door facing -w, gable ends on the short sides, and a tiled
+        // roof while it is still lightly weathered. It stands level on the ground at its centre. Each building takes its
+        // own decay around the site's (`dec`), and a coarse mass stands in for the walls at 16 m columns.
+        house(u,w,ang,hl,hw,storeys,o={}){const H2=K.sub(u,w,ang,{...S,dec:o.dec??S.dec,mat:o.mat||S.mat,roof:o.roof||S.roof}),sh=S.ch*Math.round(3.2/S.ch),H=storeys*sh,th=o.th||.6,lin=S.ch,y0=K.ground(u,w)-.1;
           const win={p:2.6,c:1.3,w:.45,n:storeys,sh,sill:1,lin,round:true},door={p:0,c:(R(parts.length+700)-.5)*hl*.6,w:.75,n:1,sh:2.6+lin,sill:0,lin,round:R(parts.length+701)<.7};
-          const wo={maxS:16,rubble:true};
+          const wo={maxS:16,rubble:true,y0};
           H2.wall(-hl,hl,-hw,th,H,{...wo,op:[win,door]});H2.wall(-hl,hl,hw,th,H,{...wo,op:[win]});
-          const gable=o.gable??Math.min(hw*.8,2.6);
+          const gable=o.gable??Math.min(hw*.8,2.6),roofed=!!H2.roof(0,0,0,hl,hw,H,{y0,pitch:gable/hw});
           H2.wallZ(-hw,hw,-hl,th,H,{...wo,gable,op:storeys>1?[{...win,c:0,p:0}]:[]});H2.wallZ(-hw,hw,hl,th,H,{...wo,gable});
-          H2.box(0,0,0,hl,hw,H*(1-.6*H2.S.dec),{minS:16,mat:H2.S.mat,dec:0});
+          H2.box(0,0,0,hl,hw,roofed?H:H*(1-.6*H2.S.dec),{minS:16,mat:H2.S.mat,dec:0,y0});
           return H;},
       };
       return K;
@@ -1016,11 +1036,11 @@
     function castleRuin(K,g0){
       const {R,S}=K,L=12+5*R(2),H=S.ch*Math.round((6.5+2*R(3))/S.ch),T=1.5,wo={crenel:true,rubble:true};
       K.wall(-L,L,-L,T,H,{...wo,op:[{p:0,c:0,w:1.8,n:1,sh:H,sill:0,lin:H-4.5,round:true}]});K.wall(-L,L,L,T,H,wo);K.wallZ(-L,L,-L,T,H,wo);K.wallZ(-L,L,L,T,H,wo);
-      for(const [c,[u,w]] of [[-L,-L],[L,-L],[-L,L],[L,L]].entries())K.box(u,w,0,2.6,2.6,H+S.ch*Math.round((3+2*R(10+c))/S.ch),{crenel:true,rubble:true,dec:buildingDecay(S,10+c,.7)});
+      for(const [c,[u,w]] of [[-L,-L],[L,-L],[-L,L],[L,L]].entries()){const TH=H+S.ch*Math.round((3+2*R(10+c))/S.ch),td=buildingDecay(S,10+c,.7);K.box(u,w,0,2.6,2.6,TH,{crenel:true,rubble:true,dec:td});K.roof(u,w,0,2.6,2.6,TH,{hip:true,pitch:1.5,dec:td,mat:MAT.roofSlate});}
       K.box(-3.2,-L,0,1.2,1.8,H+2,{crenel:true});K.box(3.2,-L,0,1.2,1.8,H+2,{crenel:true});
       const Kp=4+1.5*R(4),KH=S.ch*Math.round((12+5*R(5))/S.ch),sh=KH/3,win={p:2.4,c:1.2,w:.5,n:3,sh,sill:sh*.4,lin:S.ch,round:true,s0:1},kd=buildingDecay(S,20,.7);
       K.wall(-Kp,Kp,-Kp,1.2,KH,{crenel:true,rubble:true,dec:kd,op:[win,{p:0,c:0,w:.8,n:1,sh:3.2,sill:0,lin:S.ch,round:true}]});K.wall(-Kp,Kp,Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});
-      K.wallZ(-Kp,Kp,-Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});K.wallZ(-Kp,Kp,Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});
+      K.wallZ(-Kp,Kp,-Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});K.wallZ(-Kp,Kp,Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});K.roof(0,0,0,Kp,Kp,KH,{hip:true,pitch:1.1,dec:kd,mat:MAT.roofSlate});
       K.pave(0,-L*.5,0,2.2,L*.5-1,{sl:1.2});K.pave(0,0,0,Kp+2,Kp+2,{sl:1.2});
       K.scatter(0,0,L+3,8+Math.round(10*S.dec));
       return L+6;
@@ -1034,8 +1054,8 @@
         K.house(u,w,side<0?0:Math.PI,hl,hw,R(hk+5)<.35?2:1,{dec:buildingDecay(S,hk),mat:R(hk+8)<.15?(S.mat===MAT.masonryWarm?MAT.masonryDark:MAT.masonryWarm):S.mat});}
       const cu=3*lot+3,ch=K.sub(cu,0,0,{...S,dec:buildingDecay(S,60)}),CH=S.ch*Math.round(7/S.ch),tall={p:3,c:1.5,w:.6,n:1,sh:CH,sill:2,lin:S.ch*2,round:true};
       ch.wall(-6,6,-4,.9,CH,{op:[tall],rubble:true});ch.wall(-6,6,4,.9,CH,{op:[tall],rubble:true});
-      ch.wallZ(-4,4,-6,.9,CH,{gable:3.5,op:[{p:0,c:0,w:1.2,n:1,sh:4.5,sill:0,lin:S.ch,round:true},{p:0,c:0,w:.6,n:1,sh:CH+2.5,sill:CH-.5,lin:S.ch,round:true}]});ch.wallZ(-4,4,6,.9,CH,{gable:3.5,rubble:true});
-      const BT=S.ch*Math.round((14+4*R(70))/S.ch);ch.box(8.6,0,0,2.1,2.1,BT,{op:[{p:0,c:0,w:.7,n:1,sh:BT,sill:BT-3.6,lin:S.ch,round:true}]});
+      ch.wallZ(-4,4,-6,.9,CH,{gable:3.5,op:[{p:0,c:0,w:1.2,n:1,sh:4.5,sill:0,lin:S.ch,round:true},{p:0,c:0,w:.6,n:1,sh:CH+2.5,sill:CH-.5,lin:S.ch,round:true}]});ch.wallZ(-4,4,6,.9,CH,{gable:3.5,rubble:true});ch.roof(0,0,0,6,4,CH,{pitch:3.5/4});
+      const BT=S.ch*Math.round((14+4*R(70))/S.ch);ch.box(8.6,0,0,2.1,2.1,BT,{op:[{p:0,c:0,w:.7,n:1,sh:BT,sill:BT-3.6,lin:S.ch,round:true}]});ch.roof(8.6,0,0,2.1,2.1,BT,{hip:true,pitch:2.2,eave:.3});
       ch.box(-6.7,0,0,.6,2.2,S.ch*3,{steps:{tread:.45,rise:S.ch/2},rubble:false,dec:0});
       K.pave(lot*.5,0,0,3*lot+2.5,1.8,{});K.pave(0,-5,0,4.5,4.5,{});K.ring(0,-5,1.2,.45,1,{dec:0});
       K.scatter(lot*.5,0,3*lot,10+Math.round(10*S.dec),.9);
@@ -1287,8 +1307,28 @@
           if(TURF.has(values[h-1])||values[h-1]===MAT.dirt||values[h-1]===MAT.gravel||values[h-1]===MAT.litter||values[h-1]===MAT.sand){values[h-1]=MAT.paving;if(h>written)written=h;}
           continue;
         }
-        if(!dry)continue;
+        // Only `wet` parts (harbour moles, bridge piers) stand in water; they fill down to the bed.
+        if(!dry&&!q.wet)continue;
         if(Math.abs(u)>q.hl+S||Math.abs(v)>q.hw+S)continue;
+        if(q.t==='roof'){
+          // Gable (or hipped) roof: a solid wedge from the wall tops up to the slopes; past the walls only a 0.4 m skin,
+          // the eaves. Weathered roofs lose tiles in 1.2 m patches.
+          const au=Math.abs(u),av=Math.abs(v);if(au>=q.hl||av>=q.hw)continue;
+          if(q.dec>.12&&hash(Math.floor(u/1.2),Math.floor(v/1.2)*977+q.k,seed+571)<(q.dec-.12)*2.2)continue;
+          const base=(q.y0!=null?q.y0:gb+(q.rel||0))+q.eh;let top=base+q.p*(q.hw-av);if(q.hip)top=Math.min(top,base+q.p*(q.hl-au));
+          put(q.mat,au>q.wl||av>q.ww?Math.max(base,top-.4):base,top);continue;
+        }
+        if(q.t==='cone'||q.t==='dome'){
+          const d=Math.hypot(dx,dz),r=q.r+(S>1&&S<=4?S/2:0);if(d>=r)continue;const base=q.y0!=null?q.y0:gb+(q.rel||0);
+          if(q.t==='dome'){// Dome with a little stone lantern and a gilded finial.
+            const top=base+q.ch*Math.sqrt(Math.max(0,1-(d/r)**2));put(q.mat,base,top);
+            if(d<q.r*.16+(S>.5?S/2:0)){put(q.trim,top,base+q.ch+q.r*.3);put(MAT.roofGold,base+q.ch+q.r*.3,base+q.ch+q.r*.7);}continue;}
+          if(q.inv){put(q.mat,base-q.ch*(1-d/r),base);continue;}
+          const top=base+q.ch*(1-d/r);put(q.mat,d>q.wr?Math.max(base,top-.4):base,top);
+          // A finial spire tip on the point, so the slender cones end in a needle.
+          if(q.tip&&d<.2+(S>.25?S/2:0))put(q.tipMat||MAT.masonryDark,top,base+q.ch+q.tip);
+          continue;
+        }
         if(q.t==='fallen'){
           // The vertical line through the column against the block's three slabs; filled from the ground to its top.
           let lo=-1e9,hi=1e9;
@@ -1325,7 +1365,7 @@
         const Hat=w=>q.steps?Math.min(q.H,q.steps.rise*(1+Math.floor((w+q.hl)/q.steps.tread))):q.H+(q.gable?q.gable*(1-Math.abs(w)/q.hl):0);
         const nAt=w=>Math.max(1,Math.round(Hat(w)/ch));
         let top;
-        if(!q.dec||q.steps){top=base+Hat(uu);if(q.crenel&&Math.floor((uu+q.hl)/.8)%2)top-=ch;if(!side)top=put(q.mat,bottom,top)*cellMetres;}
+        if(!q.dec||q.steps){top=base+Hat(uu);if(q.crenel&&Math.floor((uu+(q.hl||0))/.8)%2)top-=ch;if(!side)top=put(q.mat,bottom,top)*cellMetres;}
         else{
           // Whole blocks: each course has its own block length and offset; a block stands if its course is below the
           // standing count at the block's centre, so broken tops step down block by block (a top block may overhang).
@@ -1340,7 +1380,7 @@
           // Ivy in patches (not curtains): hanging strands from the top in some stretches, climbing ivy from the foot in
           // others; more of it on more decayed walls. Grass tufts crowd the wall foot.
           const from=Math.max(0,Math.floor(bottom/cellMetres)),to=Math.min(heightCells,Math.ceil(top/cellMetres));if(to<=from)continue;
-          const ivy=noise(uu*.16+q.k*3.3,.5,seed+497),climb=noise(uu*.2+q.k*1.7,2.5,seed+507),strand=hash(Math.floor(uu*4),q.k,seed+521),lim=.78-.18*(q.dec||0);
+          const ivy=noise(uu*.16+q.k*3.3,.5,seed+497),climb=noise(uu*.2+q.k*1.7,2.5,seed+507),strand=hash(Math.floor(uu*4),q.k,seed+521),lim=.86-.3*(q.dec||0);
           if(ivy>=lim&&strand>.25){const len=(to-from)*(.2+.5*strand*noise(uu*1.3+q.k,1.5,seed+499));for(let y=Math.max(from,Math.floor(to-len));y<to;y++)if(!values[y])values[y]=MAT.vine;}
           if(climb>=lim+.04&&strand<.8){const up=Math.max(h,from)+Math.round((to-from)*(.1+.5*strand*noise(uu*1.6+q.k,3.5,seed+511)));for(let y=Math.max(h,from);y<Math.min(to,up);y++)if(!values[y])values[y]=MAT.vine;}
           if(!values[h]&&hash(Math.floor(x*4),Math.floor(z*4),seed+523)<.45){const n=1+Math.round(hash(Math.floor(x*4),Math.floor(z*4),seed+525)*.25/cellMetres);for(let y=h;y<Math.min(heightCells,h+n);y++)if(!values[y])values[y]=MAT.tuft;}
@@ -3214,6 +3254,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={STALKS,FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={STALKS,FLOWERS,ABOVE_GROUND,BODY_SOLID,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);
