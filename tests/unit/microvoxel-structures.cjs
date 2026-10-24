@@ -50,3 +50,27 @@ for(const R of [...list.filter(R=>R.kind==='town').slice(0,2),...list.filter(R=>
 // Per-building decay varies around the site's: a hamlet's houses do not all share one value.
 {const T=list.find(R=>R.kind==='town'),decs=new Set(T.parts.filter(q=>q.t==='box'&&q.maxS).map(q=>q.dec.toFixed(3)));assert.ok(decs.size>3,'houses carry their own decay');}
 console.log(`microvoxel structures: PASS (${list.length} ruins, kinds ${[...kinds].join(', ')}, ${probes} index probes)`);
+// Crag castles: a few within 6 km of the start, intact, on a raised crag with a walkable bridge deck down to the land;
+// cone-roofed towers, a palace roof; their footprint keeps small ruins out, node bounds cover their spires, and a
+// castle is the same whichever way its cell is first reached.
+{
+  const castles=w.sitesIn(-6000,-3000,6000,3000).filter(S=>S.kind==='castle');
+  assert.ok(castles.length>=2,`castles near the start (${castles.length})`);
+  for(const C of castles){
+    assert.ok(C.decay<=.25,'castles are mostly intact');
+    const kinds=new Set(C.parts.map(q=>q.t));for(const t of ['cone','roof','ring','bridge'])assert.ok(kinds.has(t),`castle has ${t} parts`);
+    assert.ok(Math.abs(w.ground(C.crag.cx,C.crag.cz)-C.crag.T)<1,'crag top at its level');
+    assert.ok(C.top>C.crag.T+30,'towers rise well over the crag');
+    const B=C.bridge;let prev=null,rise=0;
+    for(let u=0;u<=B.len;u+=.25){const g=w.ground(B.x0+B.ux*u,B.z0+B.uz*u);if(prev!=null)rise=Math.max(rise,Math.abs(g-prev));prev=g;}
+    assert.ok(rise<=.55,`bridge deck is walkable (largest 25 cm step ${rise.toFixed(2)} m)`);
+    const L=Math.floor(Math.log2(64/.25))-2,m=w.nodeMetres(L);assert.ok(w.nodeBound(L,Math.floor(C.x/m),Math.floor(C.z/m))>=C.top,'node bound covers the spires');
+    for(let n=0;n<40;n++){const a=n/40*Math.PI*2,R=w.landmarksAt(C.x+Math.cos(a)*C.reach*.8,C.z+Math.sin(a)*C.reach*.8).ruin;if(R)assert.ok(Math.hypot(R.x-C.x,R.z-C.z)>R.reach+C.reach*.5||!R,'no small ruin inside a castle');}
+  }
+  // Island castles: water stays under the bridge arches.
+  const I=castles.find(C=>C.setting==='island');
+  if(I){const B=I.bridge;let wet=0;for(let u=B.flat+4;u<B.len;u+=1){const c=w.column(Math.floor((B.x0+B.ux*u)/.25),Math.floor((B.z0+B.uz*u)/.25));if(c.includes(M.MAT.water))wet++;}assert.ok(wet>3,'water flows under an island castle bridge');}
+  const C=castles[0],fresh=M.createWorld(2718,.25,'infinite');fresh.column(Math.floor(C.x/.25),Math.floor(C.z/.25));
+  const D=fresh.landmarksAt(C.x,C.z).site;assert.ok(D&&D.parts.length===C.parts.length&&D.crag.T===C.crag.T,'castle independent of first touch');
+  console.log(`crag castles: PASS (${castles.length} within 6 km: ${castles.map(C=>`${C.setting} ${C.x.toFixed(0)},${C.z.toFixed(0)}`).join('; ')})`);
+}

@@ -87,7 +87,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-29':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-30':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -1018,7 +1018,7 @@
         const raised=g.height*cellMetres-[[30,0],[-30,0],[0,30],[0,-30]].reduce((m,[u,w])=>m+geography(x+u,z+w).height*cellMetres,0)/4;
         // The whole footprint (out to 50 m) must be dry ground: no sea, lake, river or stream anywhere under a ruin.
         const dry=()=>{for(let r=5;r<=50;r+=5)for(let q=0;q<16;q++){const A=q/10*Math.PI*2,G2=geography(x+Math.cos(A)*r,z+Math.sin(A)*r);if(G2.sea||G2.water>G2.height||G2.riverDistance<4)return false;}return true;};
-        if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&dry()){
+        if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&!bigAt(x,z,70)&&dry()){
           const dec=decayFix??.5+.4*hash(k,9,seed+469),S=ruinStyle(k,dec),a=hash(i,j,seed+467)*Math.PI*2,g0=g.height*cellMetres,parts=[],K=kit(x,z,a,parts,S),R=K.R;
           const kind=ruinKindOf(ruinRoll(i,j),raised);let reach;
           if(kind==='castle')reach=castleRuin(K,g0);
@@ -1093,6 +1093,144 @@
       return ring+10;
     }
     const ruinNear=(x,z)=>ruinCell(Math.floor(x/STG),Math.floor(z/STG));
+    // ---- Landmark sites (after the user's castle and city references): fairy-tale castles on rock crags beside water;
+    // castle towns and cities share this machinery. Each kind has its own grid with one candidate per cell, placed in the
+    // cell's interior so a site never reaches past its cell and every lookup is a single cell. They are mostly intact
+    // (decay 0-0.25): roofs on, light weathering. Their crags and bridge decks are part of the ground (geography), so
+    // the walker climbs them and water stays where it was; site selection samples the ground too, so while any site is
+    // being built `siteRaw` is raised and geography returns the bare land. Selection therefore depends only on the bare
+    // land and on higher-ranked kinds (cities, then towns, then castles), whatever order cells are first touched in.
+    let siteRaw=0;const bigCells=new Map();
+    const BIG_GRID={castle:3000,town:6000,city:12000},BIG_RANK={city:0,town:1,castle:2};
+    function bigCell(kind,i,j){
+      const k=(BIG_RANK[kind]*8192+i+4096)*8192+j+4096;if(bigCells.has(k))return bigCells.get(k);
+      let v=null;siteRaw++;try{if(infinite&&!gallery&&kind==='castle')v=castleSite(i,j);}finally{siteRaw--;}
+      bigCells.set(k,v);if(bigCells.size>2048)bigCells.delete(bigCells.keys().next().value);return v;
+    }
+    const bigNear=(kind,x,z)=>{const G=BIG_GRID[kind];return bigCell(kind,Math.floor(x/G),Math.floor(z/G));};
+    const within=(S,x,z,m=0)=>!!S&&Math.abs(x-S.x)<S.reach+m&&Math.abs(z-S.z)<S.reach+m;
+    // The big site whose footprint (plus m) holds (x,z), if any.
+    const bigAt=(x,z,m=0)=>{const C=bigNear('castle',x,z);return within(C,x,z,m)?C:null;};
+    const rawGeo=(x,z)=>{siteRaw++;try{return geography(x,z);}finally{siteRaw--;}};
+    // Every big site whose cell overlaps the rectangle (for bounds, listings and checks).
+    function sitesIn(x0,z0,x1,z1){const out=[];if(!infinite||gallery)return out;for(const kind of Object.keys(BIG_GRID)){const G=BIG_GRID[kind];
+      for(let j=Math.floor(z0/G);j<=Math.floor(z1/G);j++)for(let i=Math.floor(x0/G);i<=Math.floor(x1/G);i++){const C=bigCell(kind,i,j);if(C)out.push(C);}}return out;}
+    const lakeOrSea=g=>g.sea||!!g.lake&&Math.abs(g.water*cellMetres-g.lake)<.6;
+    // The crag: a plateau of radius R (its rim wobbling ±16%) whose flat top stands at T (m, absolute), breaking down in
+    // rock steps (3.5-5 m risers, 1.3 m ledges, most of them bare) to the land or lake bed. Returns the crag's height
+    // (m) at (x,z), or -Infinity off it; cragRiser: that ground is a bare riser.
+    const cragRim=(P,a)=>P.R*(1+.32*(noise(P.k*.37+Math.cos(a)*1.4,Math.sin(a)*1.4,seed+611)-.5));
+    let cragRiser=false;
+    function cragHeight(P,x,z){
+      const dx=x-P.cx,dz=z-P.cz,d2=dx*dx+dz*dz,lim=P.R*1.18+P.drop*.45+3;cragRiser=false;if(d2>lim*lim)return -Infinity;
+      const d=Math.sqrt(d2),a=Math.atan2(dz,dx),e=d-cragRim(P,a)+(noise(x*.3,z*.3,seed+613)-.5)*1.4;
+      if(e<=0)return P.T+(noise(x*.05,z*.05,seed+615)-.5)*.5;
+      const n=Math.ceil(e/1.3);cragRiser=hash(n,Math.floor(a*P.R/5),seed+617)<.65||e/1.3-n+1>.7;
+      return P.T-n*(3.5+1.5*noise(x*.2,z*.2,seed+619));
+    }
+    // The bridge deck: a strip hw wide from inside the crag out along (ux,uz), level for `flat` metres then falling at
+    // `s` (m per m) to the far end, where it meets the ground.
+    function deckHeight(B,x,z){const dx=x-B.x0,dz=z-B.z0,u=dx*B.ux+dz*B.uz;if(u<0||u>B.len)return -Infinity;const v=-dx*B.uz+dz*B.ux;return Math.abs(v)>B.hw?-Infinity:B.T-Math.max(0,u-B.flat)*B.s;}
+    // Ground (m) the sites add at (x,z): the crag or the bridge deck, whichever is higher; -Infinity where none.
+    let siteRiser=false;
+    function siteGround(x,z){
+      siteRiser=false;const C=bigNear('castle',x,z);if(!within(C,x,z))return -Infinity;
+      let p=cragHeight(C.crag,x,z);siteRiser=cragRiser;const b=deckHeight(C.bridge,x,z);if(b>p){p=b;siteRiser=false;}return p;
+    }
+    // Fit a bridge from the crag (rim at distance rim along angle a) down to land: march out 2 m at a time over the bare
+    // land; the deck ends at the first dry point at least 22 m past the rim that a deck falling at most 0.42 m per m from
+    // T reaches. Null if land rises above the deck first or none is found within 220 m.
+    function bridgeFit(cx,cz,rim,a,T){
+      const ux=Math.cos(a),uz=Math.sin(a);let water=false;
+      for(let u=rim+3;u<rim+220;u+=3){const g=geography(cx+ux*u,cz+uz*u),gh=g.height*cellMetres;if(g.water>g.height){water=true;continue;}
+        if(gh>T-2)return null;const s=(T-gh)/(u-rim-1);if(u>=rim+22&&s<=.42)return {len:u,s,water};}
+      return null;
+    }
+    // Castle cell: half the 3 km cells try, at up to 14 spots in the cell's interior. Each spot is first read
+    // off the macro map alone (cheap): beside a macro river, on a lake or sea shore, or just off it in the water, with the
+    // direction to the water. Only then is the ground checked: the crag's footprint must hold no river water, some of
+    // its rim must stand in water (or, for an island castle, its centre does), and a bridge must fit: islands bridge to
+    // the nearest shore, river castles across the river where they can, shore castles inland.
+    function castleSite(i,j){
+      if(hash(i,j,seed+601)>=.5)return null;const G=BIG_GRID.castle,mr={},m2={};let tried=0;
+      // Ground checks touch new terrain (river and climate tiles cost tens of ms cold), so at most four spots get them.
+      for(let c=0;c<14&&tried<4;c++){
+        const x=(i+.15+.7*hash(i*31+c,j,seed+603))*G,z=(j+.15+.7*hash(i,j*31+c,seed+605))*G;if(Math.hypot(x,z)<700)continue;
+        const R=30+22*hash(i,j*7+c,seed+607),lift=15+9*hash(i*7+c,j,seed+609);
+        MM.at(x,z,mac);const coast=mac.distToCoast,lk=mac.lake>=0?mac.lakeD:0;let wa=null,setting=null;
+        if(MM.riverNear(x,z,mr)&&mr.dist-mr.hw>R+6&&mr.dist-mr.hw<R+30){wa=Math.atan2(mr.z-z,mr.x-x);setting='river';}
+        else if(lk>.03||Math.abs(coast)<R+140){
+          // Toward the water: up the lake field, or down the distance to the coast.
+          MM.at(x+25,z,m2);const gx=lk>.03?(m2.lake>=0?m2.lakeD:0)-lk:coast-m2.distToCoast;MM.at(x,z+25,m2);const gz=lk>.03?(m2.lake>=0?m2.lakeD:0)-lk:coast-m2.distToCoast;
+          if(Math.hypot(gx,gz)<1e-6)continue;wa=Math.atan2(gz,gx);setting=lk>.55||coast<-R-10?'island':'shore';}
+        if(!setting||mac.m-mac.ra>SEA+90)continue;
+        tried++;const g=geography(x,z),wet=g.water>g.height;if(g.gorge||g.glacier||g.highland||g.biome==='snow'||g.biome==='alpine'||g.relief>60)continue;
+        if(setting==='island'?!wet||!lakeOrSea(g):wet)continue;
+        // Footprint: no river water, nothing higher than the crag's top, and (on shores) water at the foot of the rim.
+        let hi=wet?g.water*cellMetres:g.height*cellMetres,lo=hi,ok=true,foot=0;
+        for(let n=0;n<24&&ok;n++){const a=n/(n<16?16:8)*Math.PI*2,r=n<16?R*1.08:R*.5,q=geography(x+Math.cos(a)*r,z+Math.sin(a)*r),qh=q.height*cellMetres;
+          if(q.water>q.height){if(!lakeOrSea(q))ok=false;else if(n<16)foot++;}if(q.gorge)ok=false;hi=Math.max(hi,qh);lo=Math.min(lo,qh);}
+        // Shore and river castles: water close under the rim (a ring 20 m out), not just somewhere on the macro map.
+        if(ok&&!wet)for(let n=0;n<12;n++){const a=n/12*Math.PI*2,q=geography(x+Math.cos(a)*(R+20),z+Math.sin(a)*(R+20));if(q.water>q.height)foot++;}
+        if(!ok||!wet&&foot<2)continue;
+        const base=wet?g.water*cellMetres:g.height*cellMetres,T=Math.max(base+lift,hi+8),P={cx:x,cz:z,R,T,drop:T-lo+2,k:i*977+j*131+c};
+        const tries=setting==='island'?[wa+Math.PI,wa+Math.PI-.6,wa+Math.PI+.6]:setting==='river'?[wa,wa+Math.PI,wa+Math.PI-.7,wa+Math.PI+.7]:[wa+Math.PI,wa+Math.PI-.7,wa+Math.PI+.7];
+        let fit=null,fa=0;for(const a of tries){fit=bridgeFit(x,z,cragRim(P,a),a,T);if(fit){fa=a;break;}}
+        if(!fit)continue;
+        return buildCastle(P,fa,fit,i*65536+j,setting);
+      }
+      return null;
+    }
+    // A hall: four walls (arched windows in storeys, a door) with steep gables on the short ends, a tall pitched roof
+    // and a coarse mass for far columns. Base y0 absolute.
+    function hall(K,u,w,ang,hl,hw,H,y0,o={}){const H2=K.sub(u,w,ang),S=K.S,sh=S.ch*Math.round(4/S.ch),n=Math.max(1,Math.floor(H/sh)),th=o.th||1;
+      const win={p:2.8,c:1.4,w:.55,n,sh,sill:1.2,lin:S.ch*2,round:true,s0:o.s0||0},pitch=o.pitch||1.2;
+      H2.wall(-hl,hl,-hw,th,H,{y0,op:[win,...(o.door?[{p:0,c:0,w:1.2,n:1,sh:4,sill:0,lin:S.ch,round:true}]:[])],maxS:16});H2.wall(-hl,hl,hw,th,H,{y0,op:[win],maxS:16});
+      H2.wallZ(-hw,hw,-hl,th,H,{y0,gable:hw*pitch,op:[{...win,c:0,p:0}],maxS:16});H2.wallZ(-hw,hw,hl,th,H,{y0,gable:hw*pitch,op:[{...win,c:0,p:0}],maxS:16});
+      H2.box(0,0,0,hl,hw,H,{y0,minS:16,dec:0});H2.roof(0,0,0,hl,hw,H,{y0,pitch,eave:.5,mat:o.roof||S.roof});return H;}
+    // A round tower: solid shaft with a corbelled parapet band near the top, then a cone roof with a spire tip (or a dome).
+    // y0: base (absolute); H: shaft height.
+    function tower(K,u,w,r,H,y0,o={}){K.ring(u,w,r,0,H,{y0,line:false});K.ring(u,w,r+.45,.9,1.4,{y0:y0+H-1.4,dec:0,crenel:!!o.crenel});
+      if(o.dome)K.dome(u,w,r+.3,r*1.1,{y0:y0+H,mat:o.dome});else K.cone(u,w,r+.75,(r+.75)*(o.steep||2.6),{y0:y0+H,wr:r+.45,tip:o.tip??Math.max(1,r*.5),mat:o.roof||K.S.roof});}
+    // A turret hung out from a wall or keep corner: a corbel (inverted cone) under a short shaft and a cone roof.
+    function turret(K,u,w,r,y0,H,o={}){K.cone(u,w,r,Math.max(1.5,r*1.6),{inv:true,y0});K.ring(u,w,r,0,H,{y0});K.cone(u,w,r+.45,(r+.45)*2.8,{y0:y0+H,wr:r,tip:.9,mat:o.roof||K.S.roof});}
+    // Fairy-tale castle (refs: pale towers crowding a crag over a lake): a curtain wall around the crag's rim with round
+    // towers at its corners, some hung out as corbelled turrets; a gatehouse between two towers where the bridge lands;
+    // a tall palace of two crossing halls with steep slate gables; one great round tower and a cluster of slender towers
+    // of very different heights, all with tall cone roofs and spire tips; turrets on the hall corners; a paved court;
+    // and the multi-arch bridge down to the land. Kit u runs from the crag centre toward the bridge.
+    function buildCastle(P,a,fit,key,setting){
+      const dec=decayFix??.25*hash(key,9,seed+621),rq=hash(key,13,seed+623),S=ruinStyle(key,dec,.12),parts=[],K=kit(P.cx,P.cz,a,parts,S),R=K.R,T=P.T;
+      S.roof=rq<.55?MAT.roofSlate:rq<.8?MAT.roofRed:MAT.roofGreen;S.ch=.5;S.gy=(x,z)=>Math.max(geography(x,z).height*cellMetres,cragHeight(P,x,z));
+      const rimAt=b=>cragRim(P,a+b),Hw=S.ch*Math.round((7+3*R(2))/S.ch),gap=5/P.R,n=Math.max(6,Math.round(P.R*2*Math.PI/21)),pts=[];
+      // Curtain wall: from one side of the gate around to the other, 2.2 m inside the rim.
+      for(let v=0;v<=n;v++){const b=gap+(2*Math.PI-2*gap)*v/n,r=rimAt(b)-2.6;pts.push([Math.cos(b)*r,Math.sin(b)*r,b]);}
+      for(let v=0;v<n;v++){const [u0,w0]=pts[v],[u1,w1]=pts[v+1],L=Math.hypot(u1-u0,w1-w0);K.box((u0+u1)/2,(w0+w1)/2,Math.atan2(w1-w0,u1-u0),L/2+.9,.85,Hw,{y0:T,crenel:true,line:true});}
+      for(let v=0;v<=n;v++){const [u,w]=pts[v],hk=40+v,end=v===0||v===n;
+        if(!end&&R(hk)<.35)turret(K,u,w,1.4+.5*R(hk+1),T+Hw-1.5,3+3*R(hk+2));
+        else tower(K,u,w,end?3.2:2+1.4*R(hk+1),Hw+(end?5:2+12*R(hk+2)**2),T,{steep:2.2+1.4*R(hk+3)});}
+      // Gatehouse across the gap, its arch on the bridge's line.
+      const rg=rimAt(0)-2.6,GH=Hw+3;K.box(rg,0,Math.PI/2,Math.sin(gap)*rg+.6,1.8,GH,{y0:T,crenel:true,op:[{p:0,c:0,w:2,n:1,sh:GH,sill:0,lin:GH-4.8,round:true}]});
+      // Palace: a main hall behind the court and a cross wing, with steep gables.
+      const pu=-P.R*.25,hl=Math.min(P.R*.5,10+6*R(4)),hw=7+3*R(5),PH=S.ch*Math.round((18+8*R(6))/S.ch),side=R(7)<.5?-1:1;
+      hall(K,pu,0,Math.PI/2,hl,hw,PH,T,{door:true,pitch:1.25});
+      hall(K,pu-hw-3,side*(hl*.45),0,hw+4,4.5,PH-4,T,{pitch:1.3});
+      // Great tower at one corner of the hall, a slender cluster around it, turrets on the hall corners.
+      const gr=3.8+1.5*R(8);tower(K,pu-hw*.2,-side*(hl+gr*.6),gr,S.ch*Math.round((30+12*R(9))/S.ch),T,{steep:3,tip:3});
+      const nt=4+Math.floor(3*R(10));
+      for(let t=0;t<nt;t++){const b=(t+.5)/nt*Math.PI*2+R(20+t)*.6,d=hl*(.75+.5*R(30+t)),r=1.8+1.3*R(40+t),u=pu+Math.cos(b)*d*.8,w=Math.sin(b)*d;
+        if(Math.hypot(u-rg,w)<8)continue;tower(K,u,w,r,S.ch*Math.round((16+20*R(50+t))/S.ch),T,{steep:2.6+1.2*R(60+t),dome:R(70+t)<.12?S.dome:0,tip:1+r*.4});}
+      for(const [cu,cw] of [[-1,-1],[-1,1],[1,-1],[1,1]]){const [x,z]=[pu+cu*(hw+.4),cw*(hl+.4)];if(R(80+cu*3+cw)<.7)turret(K,x,z,1.3,T+PH-2.5,3.5+2*R(85+cu+cw));}
+      // Court and path from the gate.
+      K.pave((rg+pu+hw)/2,0,0,(rg-pu-hw)/2,2.2,{sl:1.3});K.pave(pu+hw+8,0,0,7,7,{sl:1.3});
+      // The bridge: deck from 8 m inside the rim to the land, with arches (span 9-12 m) on piers and parapets.
+      const r0=rimAt(0),ux=Math.cos(a),uz=Math.sin(a),x0=P.cx+ux*(r0-8),z0=P.cz+uz*(r0-8),len=fit.len-(r0-8),span=9+3*hash(key,15,seed+625);
+      const B={x0,z0,ux,uz,len,flat:9,s:fit.s,hw:2.9,T,span};
+      parts.push({t:'bridge',cx:x0+ux*len/2,cz:z0+uz*len/2,ux,uz,hl:len/2,hw:B.hw,H:0,mat:S.mat,dec:0,k:key*64+parts.length,B});
+      const reach=Math.max(P.R*1.2+P.drop*.45+4,r0+len-8+4);
+      let top=T;for(const q of parts)top=Math.max(top,(q.y0!=null?q.y0:T)+(q.H||0)+(q.gable||0));
+      return {x:P.cx,z:P.cz,kind:'castle',setting,decay:dec,course:courseCode(S),mat:S.mat,roof:S.roof,parts,grid:indexParts(parts),top,reach,size:2*reach,crag:P,bridge:B};
+    }
     // Rock landforms, one candidate per 130 m cell: in desert and dry badlands a sandstone arch or a cluster of hoodoos
     // (spires pinched in the middle under a dark caprock); off rocky coasts a sea stack or a sea arch standing in shallows.
     const KG=130,rocks=new Map();
@@ -1295,6 +1433,21 @@
       for(const q of list){
         if(q.minS&&S<q.minS||q.maxS&&S>=q.maxS)continue;
         const dx=x-q.cx,dz=z-q.cz,u=dx*q.ux+dz*q.uz,v=-dx*q.uz+dz*q.ux;
+        if(q.t==='bridge'){
+          // The deck is the ground here (geography raised it); below it the column is rebuilt down to the bare land: stone
+          // above round arches (span q.B.span on 2 m piers, springing 1.2 m + one radius under the deck), air or the
+          // water that was there beneath them, paving on top and a 1 m parapet along each edge.
+          const B=q.B,av=Math.abs(v);if(Math.abs(u)>=q.hl||av>=B.hw)continue;
+          const deck=h*cellMetres,G=rawGeo(x,z),nat=Math.max(G.height*cellMetres,cragHeight(site.crag,x,z)),wat=G.water>G.height?G.water*cellMetres:-1;
+          if(av<B.hw-.45&&(TURF.has(values[h-1])||values[h-1]===MAT.soil||values[h-1]===MAT.basalt))values[h-1]=MAT.paving;
+          if(av>=B.hw-.45&&Math.floor((u+q.hl)/.9)%3)put(q.mat,deck-cellMetres,deck+1);else if(av>=B.hw-.45)put(q.mat,deck-cellMetres,deck+.6);
+          if(deck<nat+.6)continue;
+          const sp=u+q.hl-B.flat-1,a=B.span/2-1,c=sp-(Math.floor(sp/B.span)+.5)*B.span,soffit=sp<0||Math.abs(c)>=a?-1e9:deck-1.2-a+Math.sqrt(a*a-c*c);
+          const n0=Math.max(0,Math.floor(nat/cellMetres));
+          for(let y=n0;y<h-1;y++){const Y=(y+.5)*cellMetres;values[y]=Y>=soffit?q.mat:wat>Y?MAT.water:0;}
+          if(n0>0&&values[n0]!==q.mat&&wat<0&&!G.exposed)values[n0-1]=MAT.grass;
+          continue;
+        }
         if(q.t==='pave'){
           const wide=q.line===false?0:Math.max(0,S/2-q.hw),inside=q.r?Math.hypot(dx,dz)<q.r+S/2*(S>1):Math.abs(u)<q.hl+(S>1?S/2:0)&&Math.abs(v)<q.hw+wide;if(!inside)continue;
           if(!dry){// Streets cross water on a stone deck 1.2 m above it.
@@ -1411,7 +1564,7 @@
         const dx=x-q.cx,dz=z-q.cz,mm=q.t==='pave'?.3:m;if(Math.abs(dx*q.ux+dz*q.uz)<q.hl+mm&&Math.abs(-dx*q.uz+dz*q.ux)<q.hw+mm)return true;}
       return false;
     }
-    const landmarkNear=(x,z)=>{const A=ancientNear(x,z),R=ruinNear(x,z),K=rockNear(x,z);return !!A&&Math.hypot(x-A.x,z-A.z)<A.reach+1||!!R&&Math.hypot(x-R.x,z-R.z)<R.reach&&ruinBlocks(R,x,z,.6)||!!K&&Math.hypot(x-K.x,z-K.z)<K.reach+2;};
+    const landmarkNear=(x,z)=>{const A=ancientNear(x,z),R=ruinNear(x,z),K=rockNear(x,z),C=bigAt(x,z);return !!A&&Math.hypot(x-A.x,z-A.z)<A.reach+1||!!R&&Math.hypot(x-R.x,z-R.z)<R.reach&&ruinBlocks(R,x,z,.6)||!!K&&Math.hypot(x-K.x,z-K.z)<K.reach+2||!!C&&(ruinBlocks(C,x,z,1.2)||C.crag&&Math.hypot(x-C.crag.cx,z-C.crag.cz)<cragRim(C.crag,Math.atan2(z-C.crag.cz,x-C.crag.cx))-1);};
     const spireNear=(x,z,margin)=>{const S=spiresNear(x,z);return !!S&&S.list.some(p=>Math.hypot(x-p.x,z-p.z)<p.r+margin);};
     function geography(x,z){
       if(infinite){
@@ -1513,6 +1666,9 @@
             if(h>F)h=Math.min(h,F+(h-F)*(.15+.85*lv));cliff=1;}
           else if(blk<.3&&h>F+3)h-=.4+.8*blk/.3;}
         iceBase=Math.min(iceBase,h);
+        // Castle crags and bridge decks raise the ground last (after every river, lake and gorge carve), so they only ever
+        // lift land or lake bed out of the water and never move a water surface.
+        if(!siteRaw){const p=siteGround(x,z);if(p>h){iceBase+=p-h;h=p;if(siteRiser)cliff=1;}}
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA&&!underLake&&!(edge<0&&Ws>SEA+.1&&riverDistance<999),steep=slope>.9;
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-(cool(metres)-cool(t.h)),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
         zone.slope=slope;zone.crease=crease;zone.hollow=hollow;zone.spur=spur;zone.x=x;zone.z=z;
@@ -2679,6 +2835,7 @@
         const R=ruinNear(x,z),RS=colStep*cellMetres/2;
         // Ruins never stand in water; only their paved streets cross it, on a deck.
         if(R&&Math.abs(x-R.x)<R.reach+RS&&Math.abs(z-R.z)<R.reach+RS)written=Math.max(written,stampRuin(R,x,z,g,h,values));
+        const C=bigAt(x,z,RS);if(C)written=Math.max(written,stampRuin(C,x,z,g,h,values));
       }
       if(prof&&prof.on)prof.features+=now()-t0;
       if(!infinite){if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);}
@@ -2747,6 +2904,13 @@
         v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0?Math.min(m*.15,30):0));}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       for(let j=Math.floor((z0-16)/AG);j<=Math.floor((z0+m+16)/AG);j++)for(let i=Math.floor((x0-16)/AG);i<=Math.floor((x0+m+16)/AG);i++){const A=ancientCell(i,j);if(A)v=Math.max(v,A.top+2);}
+      // Castles: their crags and towers stand far above the ground the margins above allow for. A site already built
+      // gives its exact top; an unbuilt cell that may hold one adds 40 m (crag lift <= 24 m over the highest ground it
+      // covers, towers <= 60 m: within 84 m of that ground, and v already allows 50) rather than building it here: this
+      // runs on the page's thread, where a site build's cold terrain sampling would stall frames.
+      {const vt=v;for(const kind of ['castle']){const G=BIG_GRID[kind];for(let j=Math.floor(z0/G);j<=Math.floor((z0+m)/G);j++)for(let i=Math.floor(x0/G);i<=Math.floor((x0+m)/G);i++){
+        const key=(BIG_RANK[kind]*8192+i+4096)*8192+j+4096;if(!bigCells.has(key)){if(hash(i,j,seed+601)<.5)v=Math.max(v,vt+40);continue;}
+        const C=bigCells.get(key);if(C&&C.x+C.reach>x0&&C.x-C.reach<x0+m&&C.z+C.reach>z0&&C.z-C.reach<z0+m)v=Math.max(v,C.top+3);}}}
       if(gallery)v=Math.max(v,GAL_BOUND);
       v=Math.min(v,heightCells*cellMetres);bounds.set(k,v);if(bounds.size>16384)bounds.delete(bounds.keys().next().value);return v;
     }
@@ -3005,7 +3169,7 @@
       return out;
     }
     // Course height code (5 cm steps) of the ruin site whose footprint holds (x, z), else 0.
-    function ruinCourse(x,z){const R=ruinNear(x,z);return R&&Math.abs(x-R.x)<R.reach&&Math.abs(z-R.z)<R.reach?R.course:0;}
+    function ruinCourse(x,z){const C=bigAt(x,z);if(C)return C.course;const R=ruinNear(x,z);return R&&Math.abs(x-R.x)<R.reach&&Math.abs(z-R.z)<R.reach?R.course:0;}
     function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4),dominant=dominantGrass(grassMat);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
@@ -3180,7 +3344,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite&&!gallery?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,gallery,gallerySpots:gallery?Object.freeze(GAL_SPOTS.slice()):null,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z),site:bigAt(x,z)}:{ancient:null,ruin:null,rock:null,site:null},sitesIn,nodeBound,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite&&!gallery?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,gallery,gallerySpots:gallery?Object.freeze(GAL_SPOTS.slice()):null,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk,y0=chunk.y0||0;
