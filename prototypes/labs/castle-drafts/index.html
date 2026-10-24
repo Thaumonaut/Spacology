@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Castle drafts · Spacology</title>
+<style>
+  html,body{margin:0;height:100%;background:#cfe3f5;font:13px/1.4 system-ui,sans-serif;color:#18303a;overflow:hidden}
+  canvas{display:block;width:100vw;height:100vh;cursor:grab}
+  #panel{position:fixed;top:12px;left:12px;background:rgba(255,255,255,.86);border-radius:10px;padding:10px 12px;box-shadow:0 2px 10px rgba(0,0,0,.15);display:grid;gap:6px;min-width:220px}
+  #panel label{display:flex;justify-content:space-between;gap:8px;align-items:center}
+  #panel .row{display:flex;gap:6px}
+  #panel button{flex:1;padding:4px 6px;border:1px solid #9bb;border-radius:6px;background:#fff;cursor:pointer}
+  #info{font-size:12px;color:#456}
+  #panel input[type=number]{width:90px}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="panel">
+  <strong>Castle drafts</strong>
+  <label>Seed <input id="seed" type="number" value="1"></label>
+  <div class="row"><button id="prev">◀ Prev</button><button id="next">Next ▶</button><button id="rand">Random</button></div>
+  <label>Style <select id="style"><option value="">auto</option><option>island</option><option>cliff</option></select></label>
+  <label>Roofs <select id="palette"><option value="">auto</option></select></label>
+  <label>Scale <input id="scale" type="range" min="0.6" max="2.5" step="0.1" value="1"></label>
+  <label>Grid of 9 <input id="grid" type="checkbox"></label>
+  <div id="info"></div>
+  <div id="info2" style="font-size:11px;color:#678">Drag to orbit · wheel to zoom · ←/→ seed</div>
+</div>
+<script src="castle-gen.js"></script>
+<script src="castle-render.js"></script>
+<script>
+(function(){
+  'use strict';
+  const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search),canvas=$('c');
+  const R=new CastleRender.Renderer(canvas);
+  CastleGen.PALETTES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;$('palette').appendChild(o);});
+  const state={seed:+(Q.get('seed')||1),style:Q.get('style')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
+  const cam={yaw:+(Q.get('yaw')||0.9),pitch:+(Q.get('pitch')||0.1),dist:+(Q.get('dist')||0),tx:0,ty:0,tz:0,fov:.75};
+  function sync(){$('seed').value=state.seed;$('style').value=state.style;$('palette').value=state.palette;$('scale').value=state.scale;$('grid').checked=state.grid;
+    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');history.replaceState(null,'','?'+q);}
+  function rebuild(){
+    const opts={style:state.style||undefined,palette:state.palette===''?undefined:+state.palette,scale:state.scale},list=[];
+    if(state.grid){for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const s=state.seed+(j+1)*3+(i+1);const castle=CastleGen.generate(s,opts);castle.parts=castle.parts.filter(p=>p.t!=='shore');list.push({castle,ox:i*1300*state.scale,oz:j*1300*state.scale});}}
+    else list.push({castle:CastleGen.generate(state.seed,opts),ox:0,oz:0});
+    const c=list[Math.floor(list.length/2)].castle,span=state.grid?2000*state.scale:c.radius*2.4;
+    R.setMesh(CastleRender.build(list),{cx:0,cz:0,r:state.grid?2200*state.scale:Math.max(c.radius*2.2,700*state.scale),h:c.height});
+    if(!Q.get('dist')||state._moved)cam.dist=state.grid?span*1.45:Math.max(c.radius*3,c.height*2.3);cam.ty=state.grid?0:c.height*.45;
+    $('info').textContent=state.grid?`Seeds ${state.seed}–${state.seed+8}`:`Seed ${c.seed} · ${c.style} · ${c.palette.name} · ${Math.round(c.radius*2)} m across · ${Math.round(c.height)} m tall · ${c.parts.length} parts`;
+    sync();draw();}
+  function draw(){const dpr=Math.min(2,devicePixelRatio||1);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;R.draw(cam);window.CastleDrafts.frames++;}
+  window.CastleDrafts={frames:0,state,cam,rebuild,draw};
+  const set=(k,v)=>{state[k]=v;state._moved=true;rebuild();};
+  $('seed').onchange=e=>set('seed',+e.target.value);$('prev').onclick=()=>set('seed',state.seed-(state.grid?9:1));$('next').onclick=()=>set('seed',state.seed+(state.grid?9:1));
+  $('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);
+  $('scale').oninput=e=>set('scale',+e.target.value);$('grid').onchange=e=>set('grid',e.target.checked);
+  addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click();});
+  let drag=null;canvas.onpointerdown=e=>{drag=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);};
+  canvas.onpointermove=e=>{if(!drag)return;cam.yaw+=(e.clientX-drag[0])*.006;cam.pitch=Math.max(.02,Math.min(1.45,cam.pitch+(e.clientY-drag[1])*.005));drag=[e.clientX,e.clientY];draw();};
+  canvas.onpointerup=()=>drag=null;canvas.onwheel=e=>{e.preventDefault();cam.dist*=Math.exp(e.deltaY*.001);draw();};
+  addEventListener('resize',draw);
+  rebuild();
+})();
+</script>
+</body>
+</html>
