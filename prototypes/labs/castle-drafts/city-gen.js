@@ -46,7 +46,9 @@
     // ---- Ground: rolling or hilly (or flat), the river in a valley down to stone quays, plazas and the castle grounds
     // levelled. flats: discs eased to a level over `fall` metres.
     const relief=opts.terrain==='flat'?0:opts.terrain==='hilly'?r(20,30):opts.terrain==='rolling'?r(8,12):pick([r(8,12),r(18,28)]),ns=Math.floor(R()*1e6),flats=[];
-    const raw=(x,z)=>G+relief*((vnoise(x/520,z/520,ns)-.5)*1.6+(vnoise(x/190,z/190,ns+1)-.5)*.5);
+    // climb: the whole city rises toward the castle (set once the castle is placed), so the castle crowns the town.
+    const climb={dx:0,dz:0,h:0,d0:0,d1:1};const sm=t=>{t=Math.min(1,Math.max(0,t));return t*t*(3-2*t);};
+    const raw=(x,z)=>G+relief*((vnoise(x/520,z/520,ns)-.5)*1.6+(vnoise(x/190,z/190,ns+1)-.5)*.5)+climb.h*sm(((x*climb.dx+z*climb.dz)-climb.d0)/(climb.d1-climb.d0));
     const gy=(x,z)=>{const off=Math.abs(riverOff(x,z));if(off<rW/2)return -3;let h=raw(x,z);const t=Math.min(1,Math.max(0,(off-rW/2-7)/90));h=Q+(h-Q)*t*t*(3-2*t);
       for(const f of flats){const d=Math.hypot(x-f.x,z-f.z);if(d<f.r+f.fall){const k=d<f.r?1:1-(d-f.r)/f.fall,e=k*k*(3-2*k);h=h+(f.level-h)*e*(off>rW/2+7?1:0);}}return Math.max(Q,h);};
     flats.push({x:0,z:0,r:plazaR+18,fall:60,level:raw(0,0)});
@@ -60,13 +62,16 @@
     // Plaza spokes. Not a uniform hub: one main road runs right through the city (two spokes, gate to gate), one road
     // leads to the castle, and two or three short streets reach only the first ring. The main road runs across the river
     // (along its normal, so it always bridges it); the castle stands off to one side of it, away from the water.
-    const mA=Math.atan2(sa,ca)+(side>0?0:Math.PI)+r(-.2,.2),mB=mA+Math.PI+r(-.25,.25),cA=mA+(R()<.5?1:-1)*Math.PI/2+r(-.3,.3)+(side>0?0:0),cD=Rw*r(.5,.58),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
-    const radials=[mA,mB,cA],MAIN=new Set([mA,mB]);
+    // One axis: the main gate (toward the river, so the main road bridges it), the plaza, and straight on up to the castle
+    // on the far side; the castle road is the processional avenue.
+    const mA=Math.atan2(sa,ca)+(side>0?0:Math.PI)+r(-.2,.2),mB=mA+Math.PI,cA=mB+r(-.12,.12),cD=Rw*r(.56,.64),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
+    const radials=[mA,cA],MAIN=new Set([mA]);
     {const free=[];for(let q=0;q<48;q++){const a=q/48*TAU;if(radials.every(b=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))>.75))free.push(a);}
       for(let k=Math.round(r(2,3));k>0&&free.length;k--){const a=free.splice(Math.floor(R()*free.length),1)[0];radials.push(a);for(let q=free.length-1;q>=0;q--)if(Math.abs(Math.atan2(Math.sin(free[q]-a),Math.cos(free[q]-a)))<.75)free.splice(q,1);}}
     // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
-    const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=1.55,cLevel=gy(cx,cz);
-    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','rings','linked']),scale:(onHill?r(.6,.72):r(.65,.8))*S,palette:CastleGen.PALETTES.indexOf(pal)});
+    const onHill=opts.castleSeat==='hill',flare=1.55;
+    Object.assign(climb,{dx:Math.cos(cA),dz:Math.sin(cA),h:opts.terrain==='flat'?0:r(26,40),d0:-plazaR,d1:cD-30});flats[0].level=raw(0,0);const cLevel=raw(cx,cz);
+    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','rings','linked']),scale:(onHill?r(.6,.72):r(.72,.85))*S,palette:CastleGen.PALETTES.indexOf(pal)});
     castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR,fall:50,level:cLevel});
     // ---- Plaza gaps between avenues, best first (wide, and on the side opposite the castle). The cathedral takes the best:
     // it stands end-on to the plaza, its west front on the plaza and its nave running outward, and streets that would
@@ -79,9 +84,9 @@
     const rings=[];for(let rr=plazaR+gap*.8;rr<Rw-45;rr+=gap*r(.85,1.15))rings.push(rr);
     // Avenues bend gently on their way out (as old roads do); ring streets wobble round the city; the avenue toward the
     // castle stops at its grounds. bendAt(a,d): the avenue's angle at distance d.
-    const bends=radials.map(()=>[R()*TAU,r(.03,.07)]),bendAt=(i,d)=>radials[i]+bends[i][1]*Math.sin(d/260+bends[i][0])-bends[i][1]*Math.sin(plazaR/260+bends[i][0]);
+    const bends=radials.map((a,i)=>[R()*TAU,i===1?0:i===0?r(.01,.025):r(.03,.07)]),bendAt=(i,d)=>radials[i]+bends[i][1]*Math.sin(d/260+bends[i][0])-bends[i][1]*Math.sin(plazaR/260+bends[i][0]);
     radials.forEach((a,i)=>{const end=MAIN.has(a)?Rw+(riverKind==='moat'?rW+110:60):a===cA?cD-hillR*.9:rings[0]+1,n=Math.ceil((end-plazaR)/40);for(let k=0;k<n;k++){const d0=plazaR+(end-plazaR)*k/n,d1=plazaR+(end-plazaR)*(k+1)/n,a0=bendAt(i,d0),a1=bendAt(i,d1);
-      street(Math.cos(a0)*d0,Math.sin(a0)*d0,Math.cos(a1)*d1,Math.sin(a1)*d1,MAIN.has(a)?16:a===cA?14:9,MAIN.has(a)||a===cA?'avenue':'street',i);}});
+      street(Math.cos(a0)*d0,Math.sin(a0)*d0,Math.cos(a1)*d1,Math.sin(a1)*d1,MAIN.has(a)?16:a===cA?20:9,MAIN.has(a)||a===cA?'avenue':'street',i);}});
     const wob=rings.map(()=>[R()*TAU,R()*TAU,r(.02,.05),r(.01,.03)]),ringR=(k,t)=>rings[k]*(1+wob[k][2]*Math.sin(3*t+wob[k][0])+wob[k][3]*Math.sin(5*t+wob[k][1]));
     const ringSeg=(k,w,kind)=>{const rr=rings[k],n=Math.max(8,Math.ceil(rr*TAU/16));for(let q=0;q<n;q++){const t0=TAU*q/n,t1=TAU*(q+1)/n;street(Math.cos(t0)*ringR(k,t0),Math.sin(t0)*ringR(k,t0),Math.cos(t1)*ringR(k,t1),Math.sin(t1)*ringR(k,t1),w,kind);}};
     rings.forEach((_,k)=>ringSeg(k,8,'ring'));
@@ -187,7 +192,7 @@
     // ---- Back lots: clusters of homes round small courtyards behind the street fronts, each reached by an alley from
     // the nearest street (the alley is laid first, so the cluster is never walled in). Slum clusters are shacks.
     const nearestStreet=(x,z)=>{let best=null;for(const st of streets){const dx=st.x1-st.x0,dz=st.z1-st.z0,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-st.x0)*dx+(z-st.z0)*dz)/L2)),qx=st.x0+dx*t,qz=st.z0+dz*t,d=Math.hypot(x-qx,z-qz);if(!best||d<best.d)best={d,qx,qz,st};}return best;};
-    for(let tries=0;tries<2600;tries++){const a=R()*TAU,dd=Math.sqrt(R())*(Rw-25),x=Math.cos(a)*dd,z=Math.sin(a)*dd,slum=inSlum(x,z),cr=slum?r(3.5,5):r(5,8);
+    for(let tries=0;tries<7000;tries++){const a=R()*TAU,dd=Math.sqrt(R())*(Rw-25),x=Math.cos(a)*dd,z=Math.sin(a)*dd,slum=inSlum(x,z),cr=slum?r(3.5,5):r(5,8);
       if(isOcc(x,z)||inRiver(x,z,cr+6)||Math.hypot(x-cx,z-cz)<hillR+10)continue;let open=true;for(let q=0;q<8;q++){const b=q/8*TAU;if(isOcc(x+Math.cos(b)*cr,z+Math.sin(b)*cr))open=false;}if(!open)continue;
       const ns=nearestStreet(x,z);if(!ns||ns.d<cr+6||ns.d>85)continue;
       // The alley must run through open ground (its last metres meet the street's own reserved strip).
