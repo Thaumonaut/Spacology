@@ -73,3 +73,14 @@ courses, plaster grime, planks, grass) are drawn by the shader and fade out with
 Plaza in Walk: 123 of 378 tile meshes drawn after frustum culling, 196k triangles (+250k in the shadow pass). Overview:
 340 of 378, 404k. Interiors are no longer built for whole tiles: only for buildings whose door was opened, unloaded at
 80 m. Props (stalls, lanterns, people, park trees) draw within ~380 m. Walk 4.2 m/s, run 8.5 m/s, with a head bob.
+
+## Terrain and river (v10)
+
+| File | What to look at |
+| --- | --- |
+| v10-hilly | Seed 2, hilly: the walls and roofs follow the ground; the river leaves through a water gate between stone quays |
+| v10h-1-low | Low over a hilly city: the castle hill with its road, streets laid on the slopes |
+
+Terrain: flat, rolling (~10 m relief) or hilly (~25 m). The river sits in a valley that eases down to quays at 4.5 m
+(water at 0); plazas, ponds and a level castle are flattened into the ground. Buildings stand on their highest corner
+with a plinth to the lowest (up to ~6 m on hilly ground). Interiors are parked (?interiors=1 re-enables doors).

@@ -124,6 +124,9 @@
       else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
       else if(p.t==='water'){const seg=32,N=[0,1,0];for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri([p.x,p.y,p.z],[p.x+Math.cos(a1)*p.r,p.y,p.z+Math.sin(a1)*p.r],[p.x+Math.cos(a0)*p.r,p.y,p.z+Math.sin(a0)*p.r],[.2,.5,.62],N,N,N,1);}}
       else if(p.t==='figure'){figure(m,p);}
+      else if(p.t==='field'){// Heightfield ground: smooth normals from the neighbouring heights; skipped cells stay open.
+        const {x0,z0,n,C,h,skip}=p,H=(i,j)=>h[Math.max(0,Math.min(n,j))*(n+1)+Math.max(0,Math.min(n,i))],P=(i,j)=>[x0+i*C,H(i,j),z0+j*C],N=(i,j)=>{const v=[H(i-1,j)-H(i+1,j),2*C,H(i,j-1)-H(i,j+1)],l=Math.hypot(...v);return v.map(t=>t/l);};
+        for(let j=0;j<n;j++)for(let i=0;i<n;i++){if(skip[j*n+i])continue;m.quad(P(i,j),P(i,j+1),P(i+1,j+1),P(i+1,j),col,[N(i,j),N(i,j+1),N(i+1,j+1),N(i+1,j)]);}}
       else if(p.t==='quad'){const {x0,z0,x1,z1,y}=p,N=[0,1,0];m.quad([x0,y,z0],[x0,y,z1],[x1,y,z1],[x1,y,z0],col,[N,N,N,N]);}
       else if(p.t==='shore'){cyl(m,{x:p.x,y:-4,z:p.z,r:p.r,h:p.h+4,r2:p.r*.985},cols.grass,96);}}
     return m;}
