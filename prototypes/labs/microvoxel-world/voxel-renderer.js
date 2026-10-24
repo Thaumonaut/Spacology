@@ -1337,7 +1337,7 @@
     // follow rose and violet biomes, one tone per plant (keyed by the crown's centre).
     vec2 blk=(kind>1.5?a.xz:crownIn.xz)/max(blockScale,.001);
     // A spray's bough runs out along the tier and droops: its direction on the card, so the needles fan that way.
-    sprayDir=vec2(0,-1);if(kind>1.5){vec3 bough=normalize(vec3(crownIn.x,0.,crownIn.z)+vec3(0,-.6,0));vec2 d=vec2(dot(bough,camRight),dot(bough,camUp));if(dot(d,d)>1e-4)sprayDir=normalize(d);}tintBase=palette[mat];crownKey=vec4(0);
+tintBase=palette[mat];crownKey=vec4(0);
     if(mat==${M.MAT.bushLeaf})mat=${M.MAT.leaf};
     if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     float sway=sin(time*1.1+b.z*37.+a.x*.3)*.03*a.w;
@@ -1345,8 +1345,10 @@
     #ifdef SHADOW
     ax=lightAxes[0];ay=lightAxes[1];az=-lightAxes[2];
     #else
-    ax=camRight;ay=camUp;az=-camForward;
+    if(walkView>.5){az=normalize(eye-centre);vec3 r=cross(vec3(0,1,0),az);ax=dot(r,r)>1e-4?normalize(r):camRight;ay=cross(az,ax);}
+    else{ax=camRight;ay=camUp;az=-camForward;}
     #endif
+    sprayDir=vec2(0,-1);if(kind>1.5){vec3 bough=normalize(vec3(crownIn.x,0.,crownIn.z)+vec3(0,-.6,0));vec2 d=vec2(dot(bough,ax),dot(bough,ay));if(dot(d,d)>1e-4)sprayDir=normalize(d);}
     // The squashed blob's extent along the quad's up axis.
     float sy=sqrt(ay.x*ay.x+ay.z*ay.z+b.x*b.x*ay.y*ay.y);
     q=corner*vec2(1.18,1.18*sy);
