@@ -140,7 +140,7 @@
       if(!free||Math.hypot(x-cx,z-cz)<hillR+pr)continue;markDisk(x,z,pr);parks.push({x,z,r:pr});
       // A pond off-centre, crossing gravel paths, trees round the edge and in clumps, benches by the paths.
       const L=[],px=x+r(-.25,.25)*pr,pz=z+r(-.25,.25)*pr,prr=pr*r(.2,.3),pg=gy(px,pz);flats.push({x:px,z:pz,r:prr+2,fall:12,level:pg});L.push({t:'cyl',x:px,y:pg-.6,z:pz,r:prr+.6,h:.7,mat:'stone'},{t:'water',x:px,y:pg+.02,z:pz,r:prr});
-      for(const b of [R()*TAU,R()*TAU]){const c2=Math.cos(b),s2=Math.sin(b);{const ax=x-c2*pr,az=z-s2*pr,bx=x+c2*pr,bz=z+s2*pr;L.push({t:'ramp',x0:ax,z0:az,y0:gy(ax,az)+.06,x1:bx,z1:bz,y1:gy(bx,bz)+.06,w:3,base:Math.min(gy(ax,az),gy(bx,bz))-1,mat:'sand',pat:3});}}
+      for(const b of [R()*TAU,R()*TAU]){const c2=Math.cos(b),s2=Math.sin(b);{const ax=x-c2*pr,az=z-s2*pr,bx=x+c2*pr,bz=z+s2*pr;L.push({t:'ramp',x0:ax,z0:az,y0:gy(ax,az)+.06,x1:bx,z1:bz,y1:gy(bx,bz)+.06,w:3,base:Math.min(gy(ax,az),gy(bx,bz))-1,mat:'sand',pat:3,rail:false});}}
       for(let q=0;q<Math.round(pr*.9);q++){const b=R()*TAU,f=Math.sqrt(R())*.92,tx=x+Math.cos(b)*pr*f,tz=z+Math.sin(b)*pr*f;if(Math.hypot(tx-px,tz-pz)<prr+3)continue;const th=r(5,9);const tg=gy(tx,tz);L.push({t:'cyl',x:tx,y:tg-.3,z:tz,r:.3,h:th*.55+.3,mat:'wood'},{t:'blob',x:tx,y:tg+th*.65,z:tz,rx:th*.38,ry:th*.34,rz:th*.38,mat:'green'});}
       for(let q=0;q<6;q++){const b=R()*TAU,bx=x+Math.cos(b)*pr*.5,bz=z+Math.sin(b)*pr*.5;const bg=gy(bx,bz);L.push({t:'box',x:bx,y:bg+.4,z:bz,w:1.8,h:.1,d:.5,rot:b,mat:'wood'},{t:'box',x:bx,y:bg-.2,z:bz,w:1.6,h:.6,d:.3,rot:b,mat:'dark'});}
       prop(x,z,L);}
@@ -162,6 +162,18 @@
     for(const pk of parks)for(let k=0;k<14;k++){const a=R()*TAU,d=Math.sqrt(R())*pk.r*.9;person(pk.x+Math.cos(a)*d,pk.z+Math.sin(a)*d);}
     for(const st of streets){const L=Math.hypot(st.x1-st.x0,st.z1-st.z0),rot=Math.atan2(st.z1-st.z0,st.x1-st.x0),nx=-Math.sin(rot),nz=Math.cos(rot),dens=st.kind==='avenue'?1/14:st.kind==='ring'?1/30:1/60;
       for(let t=R()/dens;t<L;t+=r(.5,1.5)/dens){const o=r(-.4,.4)*st.w,x=st.x0+(st.x1-st.x0)*t/L+nx*o,z=st.z0+(st.z1-st.z0)*t/L+nz*o;if(!inRiver(x,z,2)&&Math.hypot(x,z)<Rw-8)person(x,z);}}
+    // Bunting: strings of little flags across the narrower inner streets, sagging between the house fronts.
+    for(const st of streets){if(st.kind==='avenue'||st.kind==='alley')continue;const L=Math.hypot(st.x1-st.x0,st.z1-st.z0),mx=(st.x0+st.x1)/2,mz=(st.z0+st.z1)/2;if(Math.hypot(mx,mz)>Rw*.6||R()>.45||inRiver(mx,mz,6))continue;
+      const nx=-(st.z1-st.z0)/L,nz=(st.x1-st.x0)/L,half=st.w/2+1.5,g=gy(mx,mz)+r(6,8),list=[],cols=[pick(CLOTHS),pick(CLOTHS),pick(CLOTHS)],nf=Math.round(half*2/.7);
+      list.push({t:'box',x:mx,y:g+.02,z:mz,w:.03,h:.03,d:half*2,rot:Math.atan2(nz,nx)+Math.PI/2,col:[.3,.25,.2],nocol:true});
+      for(let f=0;f<=nf;f++){const t=f/nf*2-1,x=mx+nx*t*half,z=mz+nz*t*half,y=g-(1-t*t)*1.1;list.push({t:'cone',x,y:y-.42,z,r:.17,h:.42,inv:true,col:cols[f%3],nocol:true});}
+      prop(mx,mz,list);}
+    // The main plaza: a tiered fountain round the statue, benches and flower planters in a ring.
+    {const g0=gy(0,0);prop(0,0,[{t:'cyl',x:0,y:g0,z:0,r:12,h:.8,mat:'stone'},{t:'water',x:0,y:g0+.7,z:0,r:11.4},{t:'cyl',x:0,y:g0+.7,z:0,r:5,h:1.4,mat:'stone'},{t:'water',x:0,y:g0+2.05,z:0,r:4.5}]);
+      for(let k=0;k<12;k++){const a=(k+.5)/12*TAU,x=Math.cos(a)*17,z=Math.sin(a)*17,L=[];
+        if(k%2){L.push({t:'box',x,y:g0,z,w:1.6,h:.6,d:1.6,rot:a,mat:'stone'});for(let f=0;f<4;f++)L.push({t:'blob',x:x+r(-.5,.5),y:g0+.8,z:z+r(-.5,.5),rx:.35,ry:.3,rz:.35,col:pick([[.9,.2,.22],[.95,.55,.2],[.92,.85,.3],[.85,.4,.7]]),nocol:true});}
+        else L.push({t:'box',x,y:g0+.42,z,w:1.9,h:.1,d:.55,rot:a+Math.PI/2,col:[.62,.44,.26]},{t:'box',x:x+Math.cos(a)*.3,y:g0+.5,z:z+Math.sin(a)*.3,w:1.9,h:.5,d:.08,rot:a+Math.PI/2,col:[.62,.44,.26]},{t:'box',x,y:g0,z,w:1.6,h:.42,d:.3,rot:a+Math.PI/2,col:[.25,.22,.22]});
+        prop(x,z,L);}}
     for(let k=0;k<16;k++){const a=k/16*TAU;lantern(Math.cos(a)*(plazaR-3),Math.sin(a)*(plazaR-3));}
     for(let k=0;k<10;k++){const a=(k+.5)/10*TAU,d=plazaR*r(.45,.75);stall(Math.cos(a)*d,Math.sin(a)*d,a+Math.PI/2);}
     for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),nx=-Math.sin(rot),nz=Math.cos(rot);
@@ -196,7 +208,9 @@
       for(let k=0;k<n;k++){const t0=k/n,t1=(k+1)/n,ax=s.x0+(s.x1-s.x0)*t0,az=s.z0+(s.z1-s.z0)*t0,bx=s.x0+(s.x1-s.x0)*t1,bz=s.z0+(s.z1-s.z0)*t1,x=(ax+bx)/2,z=(az+bz)/2;
         // Over the river: a bridge bay at quay level (+1.2 m); elsewhere the street is laid on the ground as a gentle ramp.
         if(inRiver(x,z,2))add('arch',{x,y:-3,z,w:L/n+.3,h:Q+4.4,d:s.w+1,rot,span:L/n*.75},'stone2');
-        else{const ya=inRiver(ax,az,2)?Q+1.4:gy(ax,az)+.12,yb=inRiver(bx,bz,2)?Q+1.4:gy(bx,bz)+.12;add('ramp',{x0:ax,z0:az,y0:ya,x1:bx,z1:bz,y1:yb,w:s.w,base:Math.min(ya,yb)-1.2,pat:3,x,z},s.kind==='alley'?'paving':'stone2');}}}
+        else{const ya=inRiver(ax,az,2)?Q+1.4:gy(ax,az)+.12,yb=inRiver(bx,bz,2)?Q+1.4:gy(bx,bz)+.12;add('ramp',{x0:ax,z0:az,y0:ya,x1:bx,z1:bz,y1:yb,w:s.w,base:Math.min(ya,yb)-1.2,pat:3,x,z,rail:false},s.kind==='alley'?'paving':'stone2');
+          // Raised kerbed footways along the wider streets.
+          if(s.w>=7){const nx=-(bz-az)/(L/n),nz=(bx-ax)/(L/n);for(const e of [-1,1]){const o=e*(s.w/2-.75);add('ramp',{x0:ax+nx*o,z0:az+nz*o,y0:ya+.16,x1:bx+nx*o,z1:bz+nz*o,y1:yb+.16,w:1.5,base:Math.min(ya,yb)-.2,pat:4,rail:false,x:x+nx*o,z:z+nz*o},'stone');}}}}}
     // Plaza: paving disk, a fountain and a statue column.
     {const g0=gy(0,0);add('disk',{x:0,y:g0-.45,z:0,r:plazaR,pat:3},'stone2');add('cyl',{x:0,y:g0,z:0,r:9,h:1.2},'stone');add('cyl',{x:0,y:g0,z:0,r:1.6,h:9},'stone');add('cone',{x:0,y:g0+9,z:0,r:2.6,h:4},'gold');}
     // Outer wall: towers every ~70 m, gatehouses where avenues leave, water gates over the river.
@@ -214,6 +228,7 @@
   function buildingParts(b,interior){
     if(b.type==='prop')return b.parts;
     if(b.type==='cathedral')return cathedralParts(b);
+    if(interior==='near'){if(DETAILED.has(b.type)&&!b.hero)return detailedParts(b);interior=false;}
     const out=[],R=rng(b.seed),r=(a,c)=>a+(c-a)*R(),c=Math.cos(b.rot),s=Math.sin(b.rot),W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c];
     const add=(t,o,mat)=>{out.push({t,mat,...o});};
     const prop=(u,v,w,d,h,y,col,rot=0)=>{const [x,z]=W(u,v);add('box',{x,y,z,w,h,d,rot:b.rot+rot,col});};
@@ -280,6 +295,43 @@
     else if(type==='bath'){prop(0,0,iw*.6,id*.6,.5,y0,[.3,.6,.7]);}
     else if(type==='chapel'||type==='cathedral'){const n=Math.floor(iw/2.2)-3;for(let k=0;k<n;k++)for(const sv of [-1,1])prop(-iw/2+4+k*2.2,sv*id*.22,.5,id*.3,.5,y0,WOOD);prop(iw/2-2.5,0,1.6,3,1.1,y0,[.92,.88,.8]);
       if(type==='cathedral')for(let k=1;k<10;k++)for(const sv of [-1,1]){const [x,z]=W(-iw/2+k*iw/10,sv*id*.36);add('cyl',{x,y:y0,z,r:1,h:b.H-1},'stone');}}
+    return out;
+  }
+  // ---- Street-level detail (near tiles only): jettied half-timbered storeys over a stone ground floor, steep roofs with
+  // dormers and chimneys, real windows (frames, shutters, flower boxes, some lit warm), a door with a step and a wall
+  // lantern, and for shops and inns a striped awning, a hanging sign, crates and barrels. Local frame: u along the
+  // street, v toward it on the door side (F = doorSide).
+  const DETAILED=new Set(['house','shop','inn','towerhouse','smithy','warehouse','barracks']);
+  function detailedParts(b){
+    const out=[],R=rng((b.seed^0x5bd1)>>>0),r=(a,c)=>a+(c-a)*R(),pk=a=>a[Math.floor(R()*a.length)],c=Math.cos(b.rot),s=Math.sin(b.rot),F=b.doorSide||1;
+    const W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c],box=(u,v,w,d,y,h,col,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot,col,nocol:o.nocol,...o});};
+    const blob=(u,v,y,rr,col)=>{const [x,z]=W(u,v);out.push({t:'blob',x,y,z,rx:rr,ry:rr*.8,rz:rr,col});};
+    const STONE=pk([[.74,.7,.64],[.68,.65,.6],[.8,.74,.66]]),TIM=pk([[.32,.22,.15],[.4,.27,.17],[.27,.2,.17]]),SHUT=pk([[.24,.42,.36],[.3,.4,.58],[.6,.26,.22],[.36,.48,.3]]);
+    const WARM=[1,.8,.46],GLASS=[.2,.26,.36],FLOW=[[.9,.2,.22],[.95,.55,.2],[.92,.85,.3],[.85,.4,.7],[.95,.95,.9]];
+    const y0=b.floor,base=b.base,n=Math.max(1,b.storeys.length),gH=b.type==='warehouse'||b.type==='smithy'?4.4:3.4,sH=3.1,J=b.type==='warehouse'?0:b.tudor||R()<.5?r(.35,.55):0;
+    // Bodies: the stone ground floor, then each upper storey pushed out toward the street by the jetty.
+    box(0,0,b.w,b.d,base,y0+gH-base,STONE,{pat:4});
+    for(let i=1;i<n;i++){const yy=y0+gH+(i-1)*sH,dd=b.d+J*i;box(0,F*J*i/2,b.w,dd,yy,sH,b.wall,{pat:b.tudor?1:5});if(J)box(0,F*(J*i/2+dd/2-.15),b.w+.12,.3,yy-.28,.3,TIM);}
+    const topY=y0+gH+(n-1)*sH,dTop=b.d+J*(n-1),vTop=F*J*(n-1)/2,front=b.w<9.5||b.type==='towerhouse';
+    // Roof: a steep gable end to the street on narrow houses, else a long gable with dormers on the street side.
+    {const [x,z]=W(0,vTop);if(front)out.push({t:'gable',x,y:topY,z,w:dTop+1.4,d:b.w+.9,h:b.w*r(.8,1.05),rot:b.rot+Math.PI/2,col:b.roof,pat:2});
+      else{const h=dTop*r(.55,.7);out.push({t:'gable',x,y:topY,z,w:b.w+.9,d:dTop+1.6,h,rot:b.rot,col:b.roof,pat:2});
+        const nd=Math.max(1,Math.floor(b.w/5.5));for(let q=0;q<nd;q++){if(R()<.3)continue;const u=-b.w/2+(q+.5)*b.w/nd,v=vTop+F*dTop*.2,yb=topY+h*.25;box(u,v,1.8,1.6,yb,h*.45+1.2,b.wall,{pat:5});
+          const [dx,dz]=W(u,v);out.push({t:'gable',x:dx,y:yb+h*.45+1.2,z:dz,w:1.6+.6,d:2.2,h:1.1,rot:b.rot+Math.PI/2,col:b.roof,pat:2});box(u,v+F*.82,.9,.08,yb+h*.45-.2,1.1,R()<.4?WARM:GLASS,{glow:false});}}
+      if(b.type!=='warehouse'&&R()<.75){box(r(-.3,.3)*b.w,vTop-F*dTop*.2,.9,.9,topY,(front?b.w*.9:dTop*.6)+1.4,[.6,.42,.34],{pat:4});}}
+    // Windows on every storey of the street front.
+    const face=i=>F*(J*i/2+(b.d+J*i)/2),nw=Math.max(1,Math.floor(b.w/2.6)),doorU=b.doorU||0,shop=b.type==='shop'||b.type==='inn';
+    for(let i=0;i<n;i++){const yy=i===0?y0:y0+gH+(i-1)*sH,v=face(i);
+      for(let q=0;q<nw;q++){const u=-b.w/2+(q+.5)*b.w/nw;if(i===0&&Math.abs(u-doorU)<1.6)continue;const big=i===0&&shop,ww=big?1.9:.95,wh=big?1.8:1.3,wy=yy+(big?.7:1);
+        box(u,v+F*.03,ww+.3,.1,wy-.15,wh+.3,TIM,{nocol:true});{const lit=R()<.22;box(u,v+F*.07,ww,.08,wy,wh,lit?WARM:GLASS,{glow:lit,nocol:true});}
+        if(!big&&R()<.45)for(const e of [-1,1])box(u+e*(ww/2+.3),v+F*.06,.45,.08,wy-.05,wh+.1,SHUT,{nocol:true});
+        if(i>0&&R()<.5){box(u,v+F*.24,ww+.2,.34,wy-.32,.3,[.45,.3,.2],{nocol:true});for(let f=0;f<3;f++)blob(u+(f-1)*ww*.33,v+F*.26,wy+.05,.22,pk(FLOW));}}}
+    // Door, step, wall lantern; shops and inns get an awning, a hanging sign, crates and barrels.
+    {const v=face(0);box(doorU,v+F*.03,1.5,.12,y0,2.55,TIM,{nocol:true});box(doorU,v+F*.08,1.15,.1,y0,2.3,pk([[.45,.28,.18],[.3,.38,.32],[.5,.24,.2]]),{nocol:true,pat:6});
+      box(doorU,v+F*.5,1.8,.9,y0-.5,.5,STONE,{pat:4});box(doorU+1.15,v+F*.2,.12,.3,y0+2.4,.12,[.2,.18,.18],{nocol:true});box(doorU+1.15,v+F*.32,.28,.28,y0+2.05,.36,WARM,{glow:true,nocol:true});
+      if(shop){const ew=b.w*.85,[ax,az]=W(0,v+F*.05),[bx,bz]=W(0,v+F*1.9);out.push({t:'ramp',x0:ax,z0:az,y0:y0+gH-.35,x1:bx,z1:bz,y1:y0+gH-1.05,w:ew,base:y0+gH-1.15,rail:false,pat:10,col:pk([[.8,.25,.22],[.25,.45,.7],[.3,.6,.4],[.85,.6,.2]]),nocol:true});
+        const [sx,sz]=W(-b.w/2+.8,v+F*.9);out.push({t:'box',x:sx,y:y0+gH+.4,z:sz,w:.08,h:.08,d:1.4,rot:b.rot,col:[.2,.18,.18],nocol:true},{t:'box',x:sx,y:y0+gH-.6,z:sz,w:.1,h:.8,d:.9,rot:b.rot,col:pk([[.7,.55,.3],[.5,.3,.2]]),nocol:true});
+        for(let k=0;k<Math.round(r(2,4));k++){const u=r(-b.w/2+.8,b.w/2-.8);if(Math.abs(u-doorU)<1.2)continue;const vv=v+F*r(.5,1.2);if(R()<.5){const sz2=r(.5,.8);box(u,vv,sz2,sz2,y0,sz2,[.55,.4,.25],{pat:6});}else{const [x,z]=W(u,vv);out.push({t:'cyl',x,y:y0,z,r:.32,h:.85,r2:.3,col:[.48,.33,.2]});}}}}
     return out;
   }
   // ---- The cathedral, after Milan's Duomo: a west front on the plaza (buttress piers crowned by tall spires, five

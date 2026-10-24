@@ -105,7 +105,7 @@
   function ramp(m,o,col){const {x0,z0,y0,x1,z1,y1,w,base}=o,dx=x1-x0,dz=z1-z0,L=Math.hypot(dx,dz)||1,nx=-dz/L*w/2,nz=dx/L*w/2,b0=base!=null?base:y0-.6,b1=base!=null?base:y1-.6;
     const T=[[x0-nx,y0,z0-nz],[x0+nx,y0,z0+nz],[x1+nx,y1,z1+nz],[x1-nx,y1,z1-nz]],B=[[x0-nx,b0,z0-nz],[x0+nx,b0,z0+nz],[x1+nx,b1,z1+nz],[x1-nx,b1,z1-nz]];
     m.quad(T[0],T[1],T[2],T[3],col);m.quad(B[0],T[0],T[3],B[3],shade(col,.92));m.quad(B[1],B[2],T[2],T[1],shade(col,.92));m.quad(B[0],B[1],T[1],T[0],shade(col,.9));m.quad(B[3],T[3],T[2],B[2],shade(col,.9));
-    for(const e of [-1,1]){const ex=nx*e*.94,ez=nz*e*.94;const a=[x0+ex,y0,z0+ez],b=[x1+ex,y1,z1+ez],a2=[a[0],y0+1.1,a[2]],b2=[b[0],y1+1.1,b[2]];m.quad(a,b,b2,a2,shade(col,.95));}}
+    if(o.rail!==false)for(const e of [-1,1]){const ex=nx*e*.94,ez=nz*e*.94;const a=[x0+ex,y0,z0+ez],b=[x1+ex,y1,z1+ez],a2=[a[0],y0+1.1,a[2]],b2=[b[0],y1+1.1,b[2]];m.quad(a,b,b2,a2,shade(col,.95));}}
   // A person, 1.6-1.85 m: legs, a coat (tapered), arms, head and a hat or hair. For scale; no collision.
   function figure(m,o){const {x,y,z,rot=0,h=1.75,col=[.5,.3,.3]}=o,k=h/1.75,c=Math.cos(rot),s=Math.sin(rot),P=(u,v)=>[x+u*c-v*s,z+u*s+v*c],skin=[.92,.74,.6],leg=[.3,.28,.3];
     for(const v of [-.1,.1]){const [lx,lz]=P(0,v*k);box(m,{x:lx,y,z:lz,w:.18*k,h:.82*k,d:.16*k,rot},leg);}
@@ -162,6 +162,7 @@
     else if(t==5){o=c*(.95+.08*vn(vec2(u,p.y)*.6));if(wall)o*=1.-.18*(1.-smoothstep(6.,7.2,p.y));}
     else if(t==6){o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));}
     else if(t==7){o=c*(.86+.2*vn(p.xz*.12)+.06*vn(p.xz*1.3));}
+    else if(t==10){o=mix(c,vec3(.97,.95,.9),step(.5,fract(dot(p.xz,vec2(.7071))*1.6)));}
     else if(t==8||t==9){
       // Closed buildings: the plaster or framing, then painted windows on each storey (dark glass, pale frame).
       if(t==9&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}

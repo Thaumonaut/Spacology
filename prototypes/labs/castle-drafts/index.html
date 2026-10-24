@@ -57,13 +57,18 @@
   function cached(id,make){if(!tileCache.has(id)){const m=make();tileCache.set(id,{key:'city'+city.seed+':'+id,mesh:m,col:new CastleWalk.Collider(m)});}return tileCache.get(id);}
   function shells(k){const T=city.tiles.get(k),ver=T.b.filter(b=>opened.has(b.id)).map(b=>b.id).join('.');
     return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!opened.has(b.id))CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);return m;});}
+  // Street-level detail for the tiles round the walker (or round the view's focus when zoomed in close).
+  function shellsNear(k){const T=city.tiles.get(k),ver=T.b.filter(b=>opened.has(b.id)).map(b=>b.id).join('.');
+    return cached('near:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!opened.has(b.id))CastleRender.meshParts(CityGen.buildingParts(b,'near'),city.palette,0,0,m);return m;});}
   const propsOf=k=>cached('props:'+k,()=>{const m=new CastleRender.Mesh();for(const b of city.tiles.get(k).p)CastleRender.meshParts(b.parts,city.palette,0,0,m);return m;});
   const staticOf=k=>cached('static:'+k,()=>CastleRender.meshParts(city.tiles.get(k).s,city.palette));
   const interiorOf=b=>cached('int:'+b.id,()=>CastleRender.meshParts(CityGen.buildingParts(b,true),city.palette));
-  function cityList(focus){const list=[city.water,city.castleMesh],cols=[city.castleMesh.col],tw=walker?[Math.floor(walker.x/TILE),Math.floor(walker.z/TILE)]:null;
+  function cityList(focus){const list=[city.water,city.castleMesh],cols=[city.castleMesh.col],tw=walker?[Math.floor(walker.x/TILE),Math.floor(walker.z/TILE)]:null,
+      dt=walker?tw:cam.dist<700?[Math.floor(cam.tx/TILE),Math.floor(cam.tz/TILE)]:null;
     for(const [k,T] of city.tiles){const [i,j]=k.split(',').map(Number),near=tw&&Math.abs(i-tw[0])<=1&&Math.abs(j-tw[1])<=1,cx=(i+.5)*TILE,cz=(j+.5)*TILE;
       if(T.s.length){const t=staticOf(k);list.push(t);if(near)cols.push(t.col);}
-      if(T.b.length){const t=shells(k);list.push(t);if(near)cols.push(t.col);}
+      const detail=dt&&Math.abs(i-dt[0])<=1&&Math.abs(j-dt[1])<=1;
+      if(T.b.length){const t=detail?shellsNear(k):shells(k);list.push(t);if(near)cols.push(t.col);}
       if(T.p.length&&Math.hypot(cx-focus.x,cz-focus.z)<PROPS_NEAR){const t=propsOf(k);list.push(t);if(near)cols.push(t.col);}}
     for(const b of opened.values()){const t=interiorOf(b);list.push(t);cols.push(t.col);}
     return {list,collider:new CastleWalk.Multi(cols)};}

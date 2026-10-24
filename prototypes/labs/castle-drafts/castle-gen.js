@@ -66,7 +66,7 @@
       {const turns=1,n=Math.ceil(turns*TAU*Rc*(1+hf)/2/(8*S)),surf=f=>top*Math.max(0,1-(f-1)/(hf-1)*.98);let prev=null;
         for(let i=0;i<=n;i++){const q=i/n,a=ga-(1-q)*turns*TAU,f=hf*.98-(hf*.98-1.04)*q,d=rad(a)*f,y=surf(f)+.3,pt=[Math.cos(a)*d,y,Math.sin(a)*d];
           if(prev)add('ramp',{x0:prev[0],z0:prev[2],y0:prev[1],x1:pt[0],z1:pt[2],y1:pt[1],w:9*S,base:Math.min(prev[1],pt[1])-6*S},'stone2');prev=pt;}}
-      for(let i=0;i<180;i++){const a=R()*TAU,f=r(1.2,2.8),d=rad(a)*f,yy=top*Math.max(0,1-(f-1)/2.3),s2=r(8,18)*S;add('blob',{x:Math.cos(a)*d,y:yy+s2*.4,z:Math.sin(a)*d,rx:s2,ry:s2*1.1,rz:s2},'green');}
+      for(let i=0;i<180;i++){const a=R()*TAU,f=r(1.2,hf),d=rad(a)*f,yy=top*Math.max(0,1-(f-1)/(hf-1)),s2=r(8,18)*S;add('blob',{x:Math.cos(a)*d,y:yy+s2*.4,z:Math.sin(a)*d,rx:s2,ry:s2*1.1,rz:s2},'green');}
     }else{
       add('crag',{pts,top,base:-6,flare:1.16},'rock');
       // The mainland cliff across the gorge, nearly level with the crag top.
@@ -148,7 +148,7 @@
     else{// Hill castles: a gatehouse pair on the outer wall facing the approach.
       for(const sg of [-1,1]){const tr=r(9,12)*S,a=ga+sg*(5*S+tr+1.5*S)/(rad(ga)*outerK),d=rad(a)*outerK;tower(Math.cos(a)*d,top-4*S,Math.sin(a)*d,tr,outerH+r(16,24)*S,'cone',true);}}
     // ---- Greenery: clumps hugging ledges and the cliff foot, trees on the shore.
-    for(let i=0;i<70;i++){const a=R()*TAU,d=rad(a),hgt=R()<.5?r(2,top*.3):top*r(.75,1.0),f=hgt>top*.6?1.0:1.2;const s=r(6,16)*S;
+    if(style==='island'||style==='cliff')for(let i=0;i<70;i++){const a=R()*TAU,d=rad(a),hgt=R()<.5?r(2,top*.3):top*r(.75,1.0),f=hgt>top*.6?1.0:1.2;const s=r(6,16)*S;
       add('blob',{x:Math.cos(a)*d*f,y:hgt,z:Math.sin(a)*d*f,rx:s*1.4,ry:s*.8,rz:s*1.4},'green');}
     // Shared pieces for the layouts below. Local frame: u along the axis (gate end -> keep end), v across it.
     // An outline-following outer wall with hollow towers, gate toward the bridge; returns nothing (adds parts).

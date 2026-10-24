@@ -116,3 +116,16 @@ crossings nearest the plaza get bridges, each square to the river; other streets
 | --- | --- |
 | v14-linked-* | Linked castles: satellite crags with keeps and spire towers joined to the ring castle by high viaducts |
 | v15-moat3 / v15-moat6 | Moat cities: the river sweeps round two thirds of the walls; gate roads bridge it |
+
+## Street-level town (v16)
+
+| File | What to look at |
+| --- | --- |
+| v16-shop | Market street: jettied half-timbered storeys over stone ground floors, steep roofs, shutters and flower boxes, awnings, stalls, kerbs |
+| v16-lane | Residential street: dormers, chimneys, door steps and wall lanterns, raised footways |
+| v16-inn | Inn frontage: striped awnings, crates and barrels, hanging signs |
+| v16-plaza | Plaza from the walker: guildhall arcade, tiered fountain off-frame, the castle hill without floating trees |
+
+Detailed buildings only build for the 3x3 tiles round the walker (or the view when zoomed in); farther tiles keep simple
+shells. Street views run 330k-750k triangles (+600-850k in the shadow pass) under SwiftShader; next step for speed is
+instancing the window/shutter/flower pieces.
