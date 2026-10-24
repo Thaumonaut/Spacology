@@ -1431,6 +1431,9 @@
       const rip=g.riparian||0,cor=rip>0&&!TREELESS.has(b)?g.corridor:null,CS=cor&&CORRIDOR[cor];
       const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),edge=1-patch,roll=hash(gx,gz,seed+23),roll2=hash(gx,gz,seed+29),barren=TREELESS.has(b)||(b==='desert'||b==='badlands')&&!(cor&&rip>.12);
       let base=S.density??TREES[b]??(TREELESS.has(b)?0:.25);
+      // Forest edges thin out across the biome blend (with ~15 m noise clumps), so a forest frays into scattered trees and
+      // copses instead of stopping at a line.
+      if(g.blend>0&&g.biome2&&g.biome2!==g.biome){const dens=bb=>{const s2=treeStyle(bb);return s2.density??TREES[bb]??(TREELESS.has(bb)?0:.25);},w=clamp(g.blend+(noise(x*.07,z*.07,seed+967)-.5)*.7,0,1);base=dens(g.biome)*(1-w)+dens(g.biome2)*w;}
       // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
       const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
       // Treeline: forest thins and shrinks over the last ~4 degrees C (about 25 m) below the line, broadleaf dropping out
@@ -1472,6 +1475,8 @@
         let sp=pickSpecies(S,g,x,z,gx,gz,edge);
         // Near the line broadleaf gives way to conifers; trees shrink toward krummholz size.
         if(tline<1&&!(SPECIES[sp]||{}).conifer&&hash(gx,gz,seed+753)>tline*1.6-.3)sp=S.mix.larch&&hash(gx,gz,seed+755)<.4?'larch':'spruce';
+        // Conifers carry wide skirts: only ~42% of cells keep one, so a stand has room to walk between the trunks.
+        if((SPECIES[sp]||{}).conifer&&hash(gx,gz,seed+969)>.42)return null;
         return growTree(sp,S,g,gx,gz,x,z,{scale:.4+.6*tline});
       }
       // Cells without a tree: extras by biome. Bushes and shrubs gather at forest edges and in open ground.
@@ -1507,7 +1512,7 @@
       const P=SPECIES[sp]||SPECIES.oak,C=o.k?{cls:o.cls??-1,k:o.k}:sizeClass(x,z,gx,gz),k=C.k*(S.size||1)*(o.scale||1);
       // Per-tree girth: most trunks sit near the species norm but the range runs from skinny poles (~0.5x) to real
       // veterans (~1.85x), so a stand mixes whip-thin boles with chonky ones. Big-class trees are floored fat.
-      const girth=C.cls===2?1.1+.8*hash(gx,gz,seed+13):.5+Math.pow(hash(gx,gz,seed+13),1.35)*1.35;
+      const girth=C.cls===2?1+1.2*hash(gx,gz,seed+13):.4+Math.pow(hash(gx,gz,seed+13),1.6)*1.8;
       // Broadleaf crowns spread with the trunk: a thick old oak carries a huge, wide canopy (up to the 6.5 m radius the
       // column search reaches), a pole a small one.
       const spread=P.crown==='round'?clamp(.7+.45*girth,.85,1.55):1;
@@ -2009,6 +2014,27 @@
         // Lobes droop below their centres (the voxel dome spans y-0.8h..y+0.6h) and never hang below the canopy floor.
         for(const l of L){const ys=.7,cy=Math.max(l.y-l.r*.1,t.base+clear+l.r*ys);lobe(l.x,cy,l.z,l.r,ys);}
       }
+      // Conifer needle sprays: each bough tier is clothed in small sprays laid over its drooping cone, densest at the rim,
+      // each carrying the tier's surface normal (lit tops, shaded undersides) and a depth shade (dark toward the trunk), so
+      // the tiers read as painted layers of needles rather than solid shells. Records: x, y, z, size, material, seed,
+      // normal x, y, z, shade.
+      const sprays=[];
+      if(crown==='spire'||crown==='cone'||crown==='larch'){
+        const sid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
+        for(let i=0,k=0;i<tiers.length;i+=8,k++){
+          const cx=tiers[i],cz=tiers[i+1],top=tiers[i+2],bottom=tiers[i+3],r=tiers[i+4],rTop=tiers[i+5],h=top-bottom,size=Math.max(.32,r*.2),n=8+Math.round(r*r*1.6+r*5);
+          for(let j=0;j<n;j++){
+            const h1=hash(j,sid+k*97,seed+941),h2=hash(j,sid+k*97,seed+943),h3=hash(j,sid+k*97,seed+945);
+            // u: down the tier (rim-heavy); a: around; sit on the cone's surface, a little inside for depth.
+            const u=Math.pow(h1,.6),a=h2*6.2832,rad=(rTop+(r*1.06-rTop)*Math.pow(u,.75))*(.82+.2*h3),droop=u>.8?(u-.8)*h*.6:0;
+            const y=top-h*u-droop,ny=r*1.06-rTop+h*.25,nl=Math.hypot(h,ny);
+            sprays.push(cx+Math.cos(a)*rad,y,cz+Math.sin(a)*rad,size*(.8+.45*hash(j,sid,seed+947)),leaf,hash(j,sid+k,seed+949),Math.cos(a)*h/nl,ny/nl,Math.sin(a)*h/nl,(1-h3)*.5+(1-u)*.25);
+          }
+          // Underside: a ring of darker sprays hanging under the rim.
+          for(let j=0;j<Math.round(n*.25);j++){const a=hash(j,sid+k*31,seed+951)*6.2832,rad=r*(.7+.3*hash(j,sid+k*31,seed+953));
+            sprays.push(cx+Math.cos(a)*rad,bottom-h*.05,cz+Math.sin(a)*rad,size*.9,leaf,hash(j,sid+k*31,seed+955),Math.cos(a)*.3,-.9,Math.sin(a)*.3,.8);}
+        }
+      }
       // Crown proxy (x, y, z, radius): one ellipsoid around all the lobes. The renderer lights every lobe mostly by this
       // shape's normal (the anime-tree normal transfer), so a crown shades as one soft mass, not a cluster of balls.
       let proxy=null;
@@ -2036,7 +2062,7 @@
       }
       // Forced contact shadow (x, ground y, z, radius in metres): a painted dark pool where the plant meets the ground.
       const M0=cellMetres,contact=t.kind==='bush'?[t.x,t.base*M0,t.z,Math.max(...t.lumps.map(l=>Math.hypot(l.x-t.x,l.z-t.z)+l.r))*1.15]:[t.x,t.base*M0,t.z,(t.trunk||1)*M0*3.2+.4];
-      P={segs,lobes,tiers,crown:proxy,clumps,loose,contact};partsCache.set(t,P);return P;
+      P={segs,lobes,tiers,crown:proxy,clumps,loose,contact,sprays};partsCache.set(t,P);return P;
     }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
     function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
@@ -2602,8 +2628,10 @@
           for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}
           // Loose leaves only where a single leaf can be seen (the two finest levels); kind 1 in the lobe record.
           if(L<=1)for(let i=0;i<P.loose.length;i+=6){const [x,y,z,sz,mat,sdc]=P.loose.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz,1,mat,sdc,1,C[0]-x0,C[1],C[2]-z0,C[3]);}}
+        if(own&&P.sprays.length){const keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
+          for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%keep)continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
         if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
-        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own&&!P.sprays.length)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
         if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }

@@ -1280,10 +1280,15 @@
   void main(){
     glowOut=vec4(0);
     if(dither.x!=0.){float dn=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?dn>=dither.y:dn<dither.y)discard;}
-    vec3 n=normalize(nrm);float tone=max(0.,dot(n,SUN))*mix(.35,1.,sunlight())+.12*n.y;
-    float ridge=sin(around*6.2832*7.+along*.7+sin(along*2.3+around*9.)*.6)*.5+.5;
-    vec3 base=palette[mat],c=base*mix(.6,1.06,smoothstep(.22,.34,tone))*(.88+.16*ridge);
+    vec3 n=normalize(nrm);float lit=max(0.,dot(n,SUN))*mix(.35,1.,sunlight()),tone=lit+.12*n.y;
+    // Painted bark: long vertical plates of uneven width (wobbling a little up the trunk), dark cracks between them, a
+    // few lighter streaks, and a warm highlight running down the lit edge.
+    float wob=sin(along*.9+around*11.)*.04+sin(along*2.7)*.015,col=(around+wob)*14.,plate=fract(col),pid=floor(col);
+    float crack=1.-smoothstep(.0,.09+.05*fract(sin(pid*12.9)*437.5),min(plate,1.-plate));
+    float streak=step(.82,fract(sin(pid*7.7+floor(along*.6)*3.1)*437.5))*smoothstep(.3,.5,plate)*smoothstep(.7,.5,plate);
+    vec3 base=palette[mat],c=base*mix(.6,1.06,smoothstep(.22,.34,tone))*(1.-crack*.32+streak*.14+(fract(sin(pid*3.3)*91.7)-.5)*.08);
     c=mix(c*vec3(.86,.9,1.04),c,smoothstep(.2,.4,tone));
+    c+=vec3(.16,.11,.06)*smoothstep(.55,.85,lit)*(1.-crack);
     if(mat==${M.MAT.birchBark}){float band=fract(along*2.3+sin(around*11.+along*.7)*.12),w=.05+.06*fract(sin(floor(along*2.3)*17.1)*437.5),m=(1.-smoothstep(w*.6,w,abs(band-.5)))*step(.35,fract(around*2.2+floor(along*2.3)*.37))*step(.2,fract(around*5.1+along*1.3));c=mix(c,palette[${M.MAT.birchMark}],m*.85);}
     color=vec4(c,1.);
   }`;
@@ -1315,10 +1320,12 @@
   flat out float kind;
   ${BIOME_TINT}
   void main(){
-    mat=int(b.y);seed=b.z;rad=a.w;kind=b.w;crown=vec4(origin+crownIn.xyz,crownIn.w);
+    // kind: 0 leaf cluster, 1 loose leaf (crown proxy in crownIn); 2..2.9 conifer needle spray, its tier normal in crownIn.xyz
+    // and its depth shade in the fraction.
+    mat=int(b.y);seed=b.z;rad=a.w;kind=b.w;crown=kind>1.5?vec4(crownIn.xyz,crownIn.w):vec4(origin+crownIn.xyz,crownIn.w);
     // Biome colours: bushes share the plain leaf greens of the crowns around them, and plain green crowns and bushes
     // follow rose and violet biomes, one tone per plant (keyed by the crown's centre).
-    vec2 blk=crownIn.xz/max(blockScale,.001);tintBase=palette[mat];crownKey=vec4(0);
+    vec2 blk=(kind>1.5?a.xz:crownIn.xz)/max(blockScale,.001);tintBase=palette[mat];crownKey=vec4(0);
     if(mat==${M.MAT.bushLeaf})mat=${M.MAT.leaf};
     if(mat==${M.MAT.leaf}||mat==${M.MAT.needle}){vec4 key=biomeKey(biomeMap,biomeSize,blk,plantSeed(blk*.5));if(key.a>0.)crownKey=vec4(key.rgb,.8*key.a);}
     float sway=sin(time*1.1+b.z*37.+a.x*.3)*.03*a.w;
@@ -1353,6 +1360,16 @@
       vec2 c=vec2(cos(b),sin(b))*(.48+.18*h),d=q-c;vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x);float along=dot(d,u),across=dot(d,w),t=atan(d.y,d.x)-b;
       float f=L*(1.-.2*abs(sin(t*3.+h*9.)))-length(vec2(along,across*1.7));
       if(f>v){second=v;v=f;leaf=fi;side=clamp(across/(L*.6),-1.,1.);}else second=max(second,f);}
+    gap=v-second;return v;
+  }
+  // A conifer needle spray: nine tapered needles fanning down and out from a twig at the top, each its own length.
+  float sprayLeaf(vec2 q,float seed,out float leaf,out float gap,out float side){
+    vec2 o=vec2(0,.55);float v=-9.,second=-9.;leaf=-1.;side=0.;
+    float twig=.035-abs(q.x+(q.y-.55)*.1)-max(0.,abs(q.y-.2)-.35)*2.;if(twig>v){v=twig;leaf=9.;}
+    for(int i=0;i<9;i++){float fi=float(i),h=fract(sin(seed*71.3+fi*9.7)*4375.5),b=-1.5708+(fi-4.)*.3+(h-.5)*.18,L=.75+.35*h;
+      vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x),d=q-o;float al=dot(d,u),ac=dot(d,w),t=clamp(al/L,0.,1.);
+      float f=(.07*(1.-t)+.012)-abs(ac)-max(0.,-al)*2.-max(0.,al-L)*2.;
+      if(f>v){second=v;v=f;leaf=fi;side=clamp(ac/.07,-1.,1.);}else second=max(second,f);}
     gap=v-second;return v;
   }
   float lobeInside(vec2 q,float seed){float a,b,c;return lobeLeaf(q,seed,a,b,c);}
@@ -1390,7 +1407,8 @@
       // A loose leaf: one pointed leaf at a hashed angle, split into a lit and a shaded half.
       float b=seed*6.2832;vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x);float al=dot(q,u),ac=dot(q,w);
       inside=.85*(1.-al*al)-abs(ac)*2.4-.12;leaf=floor(seed*8.);leafGap=1.;leafSide=clamp(ac*3.,-1.,1.);
-    }else inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);
+    }else if(kind>1.5)inside=sprayLeaf(q,seed,leaf,leafGap,leafSide);
+    else inside=lobeLeaf(q,seed,leaf,leafGap,leafSide);
     if(inside<=0.)discard;d=min(d,.99);
     // The rounded surface behind this point of the quad, and its depth.
     float z=sqrt(max(0.,1.-(d*d)/(e*e)));vec3 nv=normalize(vec3(q.x,q.y,z*.9));
@@ -1403,6 +1421,7 @@
     // keeping a little of the blob's own roundness so clumps still separate.
     vec3 k=(centre-crown.xyz)/vec3(crown.w,crown.w*.78,crown.w);float inner=length(k);
     vec3 nc=normalize(k+vec3(0,.12,0)),N=nc;
+    if(kind>1.5){float shade=(kind-2.)/.9;N=normalize(crown.xyz);nc=N;inner=1.-shade*.8;k=N*inner;}
     float sun=sunlight(),wrap=dot(N,SUN)*.5+.5;
     // Fake occlusion: the crown darkens toward its core and its underside.
     float occl=(1.-smoothstep(.35,.95,inner))*.18+(1.-smoothstep(-.7,.1,nc.y))*.2;
@@ -1436,7 +1455,8 @@
   in float rad, seed;
   flat in int mat;
   ${LOBE_SHAPE}
-  void main(){if(length(q)>lobeEdge(q,seed))discard;}`;
+  flat in float kind;
+  void main(){float a,b,c;if((kind>1.5?sprayLeaf(q,seed,a,b,c):kind>.5?.85*(1.-q.x*q.x)-abs(q.y)*2.4-.12:lobeInside(q,seed))<=0.)discard;}`;
   // Forced contact shadows: a flat, scalloped dark pool under each plant (a.xyz ground centre, a.w radius), multiplied
   // over what is already drawn, darkest at the stem and softening to its painted edge.
   const pondVertex=`#version 300 es
@@ -1636,7 +1656,7 @@
       const rb=mesh.base||0,rm=rb*(mesh.column||0),shift=(a,stride,k,v)=>{if(a?.length&&v)for(let i=k;i<a.length;i+=stride)a[i]-=v;};
       shift(mesh.grass,4,1,rb);shift(mesh.flowers,4,1,rb);shift(mesh.leaves,8,1,rb);shift(mesh.stalks,8,1,rb);
       shift(mesh.skirts,8,2,rm);shift(mesh.skirts,8,3,rm);shift(mesh.fronds,8,1,rm);shift(mesh.mushrooms,8,1,rm);
-      shift(mesh.treeSegs,12,1,rm);shift(mesh.treeSegs,12,5,rm);shift(mesh.treeLobes,12,1,rm);shift(mesh.treeLobes,12,9,rm);shift(mesh.treeTiers,8,2,rm);shift(mesh.treeTiers,8,3,rm);shift(mesh.treeShadows,4,1,rm);
+      shift(mesh.treeSegs,12,1,rm);shift(mesh.treeSegs,12,5,rm);shift(mesh.treeLobes,12,1,rm);if(mesh.treeLobes&&rm)for(let i=0;i<mesh.treeLobes.length;i+=12)if(mesh.treeLobes[i+7]<1.5)mesh.treeLobes[i+9]-=rm;shift(mesh.treeTiers,8,2,rm);shift(mesh.treeTiers,8,3,rm);shift(mesh.treeShadows,4,1,rm);
       return {rb,rm};
     }
     upload(mesh){const gl=this.gl;let out;const {rb,rm}=mesh.slices?this.rebaseProps(mesh):{rb:0,rm:0};
