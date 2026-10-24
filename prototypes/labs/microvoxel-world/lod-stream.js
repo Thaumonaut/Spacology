@@ -4,7 +4,7 @@
   // A view requests one target level. Until a target node is ready, the screen shows the lowest ready ancestor that covers
   // its whole group (or finer nodes still cached), so old detail never disappears before new detail covers it. New nodes
   // dissolve in over the ones they replace; node borders carry skirts (in the mesher) to hide level seams.
-  const M=root.MicroWorld,FADE=250,SAMPLES=240;
+  const M=root.MicroWorld,FADE=450,SAMPLES=240;
   // Smooth terrain (Surface Nets for the ground, standing objects stay blocky) is the default; ?mesh=blocky compares.
   const SMOOTH=new URLSearchParams(root.location?.search||'').get('mesh')!=='blocky';
   // ?trees=objects draws nearby trees as instanced objects instead of voxels (under evaluation).
@@ -12,14 +12,14 @@
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const percentile=(list,p)=>{if(!list.length)return 0;const s=[...list].sort((a,b)=>a-b);return s[Math.floor((s.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>SAMPLES)list.shift();};
-  // GPU budget: WebGL cannot report device memory, so classify the device. Desktop 384 MiB; phones/tablets 256 MiB with
+  // GPU budget: WebGL cannot report device memory, so classify the device. Desktop 640 MiB (a 10 km Walk view uses ~200-250 MiB); phones/tablets 256 MiB with
   // >= 6 GB reported RAM, else 192 MiB. `?gpuMiB=` overrides; Economy uses 128 MiB.
   function deviceBudgetMiB(params){
     const forced=Number(params.get('gpuMiB'));if(Number.isFinite(forced)&&forced>=2)return forced;
     const mobile=matchMedia('(pointer: coarse)').matches&&navigator.maxTouchPoints>0;
     // A cache of tiles already seen; a full close view needs roughly 50 MiB, so these leave room to pan back without
     // holding a whole session's worth of terrain.
-    return mobile?(navigator.deviceMemory>=6?256:192):384;
+    return mobile?(navigator.deviceMemory>=6?256:192):640;
   }
   function create({renderer,canvas,createWorker,onFail}){
     const count=clamp((navigator.hardwareConcurrency||4)-1,1,4),workers=[];
@@ -98,7 +98,8 @@
         // Count real bytes for targets already resident and estimate only the misses, so a temporary average spike in a
         // mostly-built view does not coarsen the whole view; the .6 margin leaves churn room under the hard cap.
         let known=0,est=0;for(const t of list){const m=cache.items.get(t.key);if(m)known+=m.bytes;else est+=guess(t.L);}
-        return known+est<=cache.maxBytes*.6;};
+        // Walk plans its whole ring set at once and does not churn like a panning map, so it may use more of the budget.
+        return known+est<=cache.maxBytes*(camera.mode==='walk'?.8:.6);};
       if(view.level!==requested||view.fresh){requested=view.level;bias=0;}
       if(pressure&&!view.pinned){bias++;pressure=0;}
       const walking=camera.mode==='walk';let L=clamp(view.level+bias,0,world.maxLevel),list=walking?walkTargets(L):compute(L);
@@ -210,13 +211,16 @@
       const covered=targets.filter(t=>{if(ready(t.key))return true;for(let k=t.L+1;k<=Math.min(world.maxLevel,t.L+3);k++){const a=ancestor(t,k);if(ready(K(a.L,a.nx,a.nz)))return true;}if(t.L===0)return false;const f=[];for(let j=0;j<2;j++)for(let i=0;i<2;i++)f.push(K(t.L-1,t.nx*2+i,t.nz*2+j));return f.every(ready);}).length;
       const readyCount=targets.filter(t=>ready(t.key)).length,levels={};
       for(const m of cache.items.values())levels[m.level]=(levels[m.level]||0)+1;
-      return {rings:camera?.mode==='walk'?Object.fromEntries([...new Set(targets.map(t=>t.L))].map(L=>[L,targets.filter(t=>t.L===L).length])):null,level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,bias,requested,fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
+      return {rings:camera?.mode==='walk'?Object.fromEntries([...new Set(targets.map(t=>t.L))].map(L=>[L,targets.filter(t=>t.L===L).length])):null,level,column:world?world.nodeMetres(level)/world.nodeSize:0,visible:targets.length,ready:readyCount,covered,drawn:drawList.length,bias,requested,loadedRadius:loadedRadius(),fading:fades.size+outgoing.size,inflight:inflight.size,workers:workers.length,
         entries:cache.items.size,bytes:cache.bytes,budget:cache.maxBytes,levels,...stats,gpuTimer:!!gpu,
         timing:Object.fromEntries(Object.entries(times).map(([k,v])=>[k,{p50:percentile(v,.5),p95:percentile(v,.95),n:v.length}]))};
     }
+    // Walk: distance (m) to the nearest target that is not yet built (the far view distance when all are), for the fog
+    // that hides loading.
+    function loadedRadius(){if(camera?.mode!=='walk')return Infinity;let r=camera.viewDistance||600;for(const t of targets)if(!ready(t.key)){const m=world.nodeMetres(t.L);r=Math.min(r,Math.max(0,t.distance-m*.71));}return r;}
     const complete=()=>targets.length>0&&targets.every(t=>ready(t.key));
     function dispose(){for(const s of workers)s.w.terminate();workers.length=0;cache.clear();}
-    return {setWorld,setDetail,setBudget,update,draw,pump,snapshot,dispose,complete,cache,get pending(){return inflight.size>0||drawDirty;}};
+    return {setWorld,setDetail,setBudget,update,draw,pump,snapshot,dispose,complete,loadedRadius,cache,get pending(){return inflight.size>0||drawDirty;}};
   }
   root.MicroLOD={create,deviceBudgetMiB};
 })(globalThis);
