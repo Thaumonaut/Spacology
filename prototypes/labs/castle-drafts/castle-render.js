@@ -5,10 +5,10 @@
   'use strict';
   const TAU=Math.PI*2;
   // ---- Mesh building: positions, normals, colours and a material flag (1 = water) per vertex.
-  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];}
+  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.k=[];this.solid=1;}
   Mesh.prototype.tri=function(a,b,c,col,na,nb,nc,flag=0){
     if(!na){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const l=Math.hypot(...n)||1;n=n.map(x=>x/l);na=nb=nc=n;}
-    for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(flag);}
+    for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(flag);}this.k.push(flag?0:this.solid);
   };
   Mesh.prototype.quad=function(a,b,c,d,col,ns){if(ns){this.tri(a,b,c,col,ns[0],ns[1],ns[2]);this.tri(a,c,d,col,ns[0],ns[2],ns[3]);}else{this.tri(a,b,c,col);this.tri(a,c,d,col);}};
   const shade=(c,k)=>c.map(v=>Math.min(1,v*k));
@@ -20,8 +20,10 @@
     const u=w/2,q=d/2,v0=0,v1=h,C=[P(-u,v0,-q),P(u,v0,-q),P(u,v0,q),P(-u,v0,q),P(-u,v1,-q),P(u,v1,-q),P(u,v1,q),P(-u,v1,q)];
     m.quad(C[4],C[7],C[6],C[5],col);m.quad(C[0],C[1],C[5],C[4],col);m.quad(C[1],C[2],C[6],C[5],col);m.quad(C[2],C[3],C[7],C[6],col);m.quad(C[3],C[0],C[4],C[7],col);
   }
-  function crenels(m,o,col){const {x,y,z,w,h,d,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),step=2.6,n=Math.floor(w/step);
-    for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*step+(w-n*step)/2;box(m,{x:x+u*c,y:y+h,z:z+u*s,w:step*.9,h:1.6,d,rot},col);}}
+  // Battlements: a low parapet with merlons along both edges of the wall top, leaving the walkway between them clear.
+  function crenels(m,o,col){const {x,y,z,w,h,d,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),step=2.6,n=Math.floor(w/step),pw=Math.min(.8,d*.2);
+    for(const e of [-1,1]){const ox=-s*e*(d/2-pw/2),oz=c*e*(d/2-pw/2);box(m,{x:x+ox,y:y+h,z:z+oz,w,h:1.1,d:pw,rot},col);
+      for(let i=0;i<n;i+=2){const u=-w/2+(i+.5)*step+(w-n*step)/2;box(m,{x:x+u*c+ox,y:y+h+1.1,z:z+u*s+oz,w:step*.9,h:1.2,d:pw,rot},col);}}}
   function cyl(m,o,col,seg){const {x,y,z,r,h,r2=r}=o;seg=seg||Math.max(12,Math.min(36,Math.round(r*2.4)));const sl=(r-r2)/h;
     for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU,n0=[Math.cos(a0),sl,Math.sin(a0)],n1=[Math.cos(a1),sl,Math.sin(a1)];
       const A=[x+Math.cos(a0)*r,y,z+Math.sin(a0)*r],B=[x+Math.cos(a1)*r,y,z+Math.sin(a1)*r],C=[x+Math.cos(a1)*r2,y+h,z+Math.sin(a1)*r2],D=[x+Math.cos(a0)*r2,y+h,z+Math.sin(a0)*r2];
@@ -44,7 +46,7 @@
   // The crag: rings from the water up the cliff, flared at the foot, streaked by vertical jags, meadow on top.
   function crag(m,o,cols){const {pts,top,base,flare,cx=0,cz=0}=o,N=pts.length,L=18,V=[];
     for(let l=0;l<=L;l++){const t=l/L,yy=base+(top-base)*t,row=[];
-      for(let i=0;i<N;i++){const [a,d]=pts[i],jag=1+.05*Math.sin(a*37+1.3)*Math.sin(a*11)+.03*Math.sin(a*83+t*3),f=(1+(flare-1)*Math.pow(1-t,2.6))*jag*(1-.04*Math.sin(t*9+a*5));
+      for(let i=0;i<N;i++){const [a,d]=pts[i],jag=1+.05*Math.sin(a*37+1.3)*Math.sin(a*11)+.03*Math.sin(a*83+t*3),f=(1+(flare-1)*Math.pow(1-t,o.profile||2.6))*jag*(1-.04*Math.sin(t*9+a*5));
         row.push([cx+Math.cos(a)*d*f,yy,cz+Math.sin(a)*d*f]);}V.push(row);}
     // Skins: rock (strata bands), grass (rock showing through in streaks) or cap (rock sides, the top kept rock-grey edge).
     const skin=o.skin||'rock';
@@ -56,12 +58,57 @@
     for(let i=0;i<N;i++){const j=(i+1)%N;m.quad(P(pts[i],y-40),P(pts[i],top),P(pts[j],top),P(pts[j],y-40),col);m.tri([cx,top,cz],P(pts[j],top),P(pts[i],top),shade(col,1.02),[0,1,0],[0,1,0],[0,1,0]);}}
   function blob(m,o,col){const {x,y,z,rx,ry,rz}=o,la=5,lo=8,P=(i,j)=>{const t=-Math.PI/2+i/la*Math.PI,a=j/lo*TAU;return [Math.cos(t)*Math.cos(a),Math.sin(t),Math.cos(t)*Math.sin(a)];};
     for(let i=0;i<la;i++)for(let j=0;j<lo;j++){const n=[P(i,j),P(i+1,j),P(i+1,j+1),P(i,j+1)],v=n.map(q=>[x+q[0]*rx,y+q[1]*ry,z+q[2]*rz]);m.quad(v[0],v[3],v[2],v[1],col,[n[0],n[3],n[2],n[1]]);}}
+  // A wall panel along local u (length L, from u0) in a frame, with rectangular openings cut out: split the length at
+  // every opening edge, and in each strip keep the heights no opening covers.
+  function panel(m,F,u0,L,y0,y1,th,openings,col){const cuts=[u0,u0+L];for(const o of openings){cuts.push(Math.max(u0,Math.min(u0+L,o.u0)),Math.max(u0,Math.min(u0+L,o.u1)));}
+    const us=[...new Set(cuts)].sort((a,b)=>a-b);
+    for(let i=0;i+1<us.length;i++){const a=us[i],b=us[i+1];if(b-a<1e-3)continue;const mid=(a+b)/2,holes=openings.filter(o=>o.u0<=mid&&o.u1>=mid).map(o=>[o.y0,o.y1]).sort((p,q)=>p[0]-q[0]);
+      let yy=y0;for(const [h0,h1] of [...holes,[y1,y1]]){if(h0>yy+1e-3)F.box(m,mid,b-a,yy,Math.min(h0,y1),th,col);yy=Math.max(yy,h1);}}}
+  // Frame helper: local (u along w, v along d) to world for a rotated rectangle.
+  function frame(o,off){const c=Math.cos(o.rot||0),s=Math.sin(o.rot||0);return {c,s,
+    box:(m,u,len,ya,yb,th,col,v=off)=>box(m,{x:o.x+u*c-v*s,y:ya,z:o.z+u*s+v*c,w:len,h:yb-ya,d:th,rot:o.rot||0},col),
+    boxZ:(m,v,len,ya,yb,th,col,u=off)=>box(m,{x:o.x+u*c-v*s,y:ya,z:o.z+u*s+v*c,w:th,h:yb-ya,d:len,rot:o.rot||0},col)};}
+  function shell(m,o,col){const {w,h,d,th,floor,storeys,door,y}=o,top=y+h,flo=shade(col,.9);
+    // Windows: one every ~5 m on every storey, tall arched-height slots; the ground hall of a grand keep gets taller ones.
+    const wins=(L,side)=>{const out=[];storeys.forEach((sy,i)=>{const hh=i===0&&o.grand?9:2.4,y0=floor+sy+(i===0&&o.grand?3.5:1.2),n=Math.floor(L/5);for(let k=0;k<n;k++){const u=-L/2+(k+.5)*L/n;if(door&&side===door.side&&Math.abs(u-door.u)<door.wid+1)continue;out.push({u0:u-.8,u1:u+.8,y0,y1:Math.min(y0+hh,top-1)});}});return out;};
+    for(const side of [-1,1]){const F=frame(o,side*(d/2-th/2)),op=wins(w,side);if(door&&door.side===side)op.push({u0:door.u-door.wid/2,u1:door.u+door.wid/2,y0:floor-.1,y1:floor+door.hgt});panel(m,F,-w/2,w,y,top,th,op,col);}
+    for(const side of [-1,1]){const F=frame(o,0),u=side*(w/2-th/2),op=wins(d-2*th,9);
+      // End walls run along local v: reuse the panel with a frame rotated by 90 degrees.
+      const G={box:(m,v,len,ya,yb,tt,cc)=>F.boxZ(m,v,len,ya,yb,tt,cc,u)};panel(m,G,-(d/2-th),d-2*th,y,top,th,op,col);}
+    // Floors and stairwells: each upper floor leaves a well along the +u end wall on the +v side; a ramp in the well rises
+    // toward -u from the floor below and lands on the floor's edge.
+    const iw=w-2*th,id=d-2*th,sw=Math.min(3.2,id*.35);
+    for(let i=1;i<storeys.length;i++){const fy=floor+storeys[i],rise=storeys[i]-storeys[i-1],run=Math.min(iw-4,rise/Math.tan(.62)),uE=iw/2,uS=uE-run;
+      const F=frame(o,0);F.box(m,0,iw,fy-.6,fy,id-sw,flo,-sw/2);F.box(m,(-iw/2+uS)/2,uS+iw/2,fy-.6,fy,sw,flo,id/2-sw/2);
+      const P=(u,v)=>[o.x+u*F.c-v*F.s,o.z+u*F.s+v*F.c],[ax,az]=P(uE-.2,id/2-sw/2),[bx,bz]=P(uS,id/2-sw/2);ramp(m,{x0:ax,z0:az,y0:floor+storeys[i-1],x1:bx,z1:bz,y1:fy,w:sw-.1,base:floor+storeys[i-1]-.6},flo);}
+    // A ceiling under the roof seals the top.
+    frame(o,0).box(m,0,iw,top-.8,top,id,flo,0);}
+  function tube(m,o,col){const {x,y,z,r,h,th,doors=[]}=o,seg=Math.max(18,Math.min(48,Math.round(r*3.2)));
+    for(let i=0;i<seg;i++){const a=(i+.5)/seg*TAU,len=TAU*(r-th/2)/seg*1.04,ca=Math.cos(a),sa=Math.sin(a),F={box:(m,u,l,ya,yb,tt,cc)=>box(m,{x:x+ca*(r-th/2),y:ya,z:z+sa*(r-th/2),w:l,h:yb-ya,d:tt,rot:a+Math.PI/2},cc)};
+      const holes=doors.filter(dd=>Math.abs(Math.atan2(Math.sin(a-dd.a),Math.cos(a-dd.a)))<1.3/r+.5*TAU/seg).map(dd=>({u0:-1,u1:1,y0:dd.y0,y1:dd.y1}));
+      panel(m,F,-len/2,len,y,y+h,th,holes.map(q=>({...q,u0:-len,u1:len})),col);}}
+  function spiral(m,o,col){const {x,z,r,y0,y1,a0}=o,rm=r*.55+.6,newel=.7,step=.45,da=1.05/rm,n=Math.ceil((y1-y0)/step);
+    cyl(m,{x,y:y0-.5,z,r:newel,h:y1-y0+.5},shade(col,.95));
+    for(let i=0;i<n;i++){const a=a0+i*da,yt=Math.min(y1,y0+(i+1)*step),cr=(r+newel)/2;box(m,{x:x+Math.cos(a)*cr,y:yt-.9,z:z+Math.sin(a)*cr,w:r-newel+.1,h:.9,d:1.25,rot:a},col);}}
+  function disk(m,o,col){const {x,y,z,r,hole}=o,seg=40;for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU,am=(a0+a1)/2;
+      if(hole){const off=Math.atan2(Math.sin(am-(hole[0]+hole[1])/2),Math.cos(am-(hole[0]+hole[1])/2));if(Math.abs(off)<(hole[1]-hole[0])/2)continue;}
+      const A=[x+Math.cos(a0)*r,y+.6,z+Math.sin(a0)*r],B=[x+Math.cos(a1)*r,y+.6,z+Math.sin(a1)*r],C=[x,y+.6,z];m.tri(C,B,A,col,[0,1,0],[0,1,0],[0,1,0]);
+      m.tri([x,y,z],[A[0],y,A[2]],[B[0],y,B[2]],col,[0,-1,0],[0,-1,0],[0,-1,0]);}}
+  // A sloped way between two points, solid down to `base` (or a 0.6 m slab), with low parapets along both sides.
+  function ramp(m,o,col){const {x0,z0,y0,x1,z1,y1,w,base}=o,dx=x1-x0,dz=z1-z0,L=Math.hypot(dx,dz)||1,nx=-dz/L*w/2,nz=dx/L*w/2,b0=base!=null?base:y0-.6,b1=base!=null?base:y1-.6;
+    const T=[[x0-nx,y0,z0-nz],[x0+nx,y0,z0+nz],[x1+nx,y1,z1+nz],[x1-nx,y1,z1-nz]],B=[[x0-nx,b0,z0-nz],[x0+nx,b0,z0+nz],[x1+nx,b1,z1+nz],[x1-nx,b1,z1-nz]];
+    m.quad(T[0],T[1],T[2],T[3],col);m.quad(B[0],T[0],T[3],B[3],shade(col,.92));m.quad(B[1],B[2],T[2],T[1],shade(col,.92));m.quad(B[0],B[1],T[1],T[0],shade(col,.9));m.quad(B[3],T[3],T[2],B[2],shade(col,.9));
+    for(const e of [-1,1]){const ex=nx*e*.94,ez=nz*e*.94;const a=[x0+ex,y0,z0+ez],b=[x1+ex,y1,z1+ez],a2=[a[0],y0+1.1,a[2]],b2=[b[0],y1+1.1,b[2]];m.quad(a,b,b2,a2,shade(col,.95));}}
+  function gatewall(m,o,col){const F=frame(o,0),g=o.gap/2;panel(m,F,-o.w/2,o.w,o.y,o.y+o.h,o.d,[{u0:-g,u1:g,y0:o.y-1,y1:o.y+o.gateH}],col);crenels(m,o,col);}
   function build(castles){
     const m=new Mesh();
     for(const {castle,ox,oz} of castles){const cols=colours(castle.palette);
       for(const p0 of castle.parts){const p={...p0};if(p.x!=null){p.x+=ox;p.z+=oz;}if(p.cx!=null){p.cx+=ox;p.cz+=oz;}
         const col=jit(cols[p.mat]||[1,0,1],(p.x||0)*.37+(p.z||0)*.11+(p.y||0));
+        m.solid=p.t==='blob'?0:1;
         if(p.t==='box'){box(m,p,col);if(p.crenel)crenels(m,p,col);}
+        else if(p.t==='shell')shell(m,p,col);else if(p.t==='tube')tube(m,p,col);else if(p.t==='spiral')spiral(m,p,col);else if(p.t==='disk')disk(m,p,col);
+        else if(p.t==='ramp')ramp(m,p,col);else if(p.t==='gatewall')gatewall(m,p,col);
         else if(p.t==='cyl')cyl(m,p,col);else if(p.t==='cone')cone(m,p,col);else if(p.t==='dome')dome(m,p,col);else if(p.t==='gable')gable(m,p,col);
         else if(p.t==='arch')arch(m,p,col);else if(p.t==='crag')crag(m,p,cols);else if(p.t==='ring')prism(m,p,col);else if(p.t==='blob')blob(m,p,col);
         else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
@@ -149,8 +196,10 @@
     gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.viewport(0,0,this.SM,this.SM);gl.clear(gl.DEPTH_BUFFER_BIT);gl.disable(gl.CULL_FACE);gl.useProgram(this.shadowProg);
     gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);gl.bindVertexArray(this.svao);gl.drawArrays(gl.TRIANGLES,0,this.count-6);
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-    const eye=[cam.tx+Math.cos(cam.pitch)*Math.cos(cam.yaw)*cam.dist,cam.ty+Math.sin(cam.pitch)*cam.dist,cam.tz+Math.cos(cam.pitch)*Math.sin(cam.yaw)*cam.dist];
-    const vp=mul(persp(cam.fov||.75,w/h,2,60000),look(eye,[cam.tx,cam.ty,cam.tz],[0,1,0]));
+    // Orbit camera, or first person (cam.fp: eye, yaw, pitch) for Walk.
+    let eye,vp;
+    if(cam.fp){eye=cam.fp.eye;const {yaw,pitch}=cam.fp,dir=[Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),Math.cos(pitch)*Math.sin(yaw)];vp=mul(persp(1.15,w/h,.15,30000),look(eye,eye.map((v,i)=>v+dir[i]),[0,1,0]));}
+    else{eye=[cam.tx+Math.cos(cam.pitch)*Math.cos(cam.yaw)*cam.dist,cam.ty+Math.sin(cam.pitch)*cam.dist,cam.tz+Math.cos(cam.pitch)*Math.sin(cam.yaw)*cam.dist];vp=mul(persp(cam.fov||.75,w/h,2,60000),look(eye,[cam.tx,cam.ty,cam.tz],[0,1,0]));}
     gl.disable(gl.DEPTH_TEST);gl.useProgram(this.sky);gl.uniformMatrix4fv(gl.getUniformLocation(this.sky,'IVP'),false,invert(vp));gl.uniform3fv(gl.getUniformLocation(this.sky,'SUN'),this.sun);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.useProgram(this.main);const U=n=>gl.getUniformLocation(this.main,n);
     gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);
