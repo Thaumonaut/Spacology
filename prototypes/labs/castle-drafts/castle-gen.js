@@ -30,7 +30,8 @@
     {name:'amber',roof:[.84,.5,.26],roof2:[.62,.32,.3],stone:[.94,.88,.76],stone2:[.86,.78,.66]},
   ];
   function generate(seed,opts={}){
-    const TALL=opts.tall||1,R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1,style=opts.style||pick(['island','hill','cliff']),ground=opts.ground||0,layout=opts.layout||pick(['rings','rings','linked']);
+    const CITY=opts.profile==='city',TALL=opts.tall||1,R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1,style=opts.style||pick(['island','hill','cliff']),ground=opts.ground||0,layout=opts.layout||pick(['rings','rings','linked']);
+    let entry=null;
     const pal=opts.palette!=null?PALETTES[opts.palette%PALETTES.length]:pick(PALETTES),parts=[],sky=[];
     const add=(t,o,mat)=>{parts.push({t,mat,...o});return parts[parts.length-1];};
     // ---- The seat: what the castle stands on.
@@ -78,12 +79,12 @@
     if(layout==='rings'||layout==='linked'){
     // ---- Tiers: the castle climbs in rings, each a terrace with its own wall and towers.
     const tiers=[];let y=top,scale=.94;
-    const nT=style==='island'?pick([2,3,3]):pick([3,4,4]);
+    const nT=CITY?3:style==='island'?pick([2,3,3]):pick([3,4,4]);
     for(let t=0;t<nT;t++){
       const k=scale,wallH=(t===0?r(16,24):r(14,22))*S*big,towerR=(t===0?r(7,10):r(6,9))*S*Math.sqrt(big),nTow=Math.max(5,Math.round(Rc*k*TAU/(t===0?r(55,75):r(60,90))/S));
       tiers.push({y,k,wallH,towerR,nTow});
       // Terrace body for inner tiers: a raised stone platform with the wall around it.
-      if(t>0)add('ring',{cx:0,cz:0,pts:pts.map(([a,d])=>[a,d*k]),y:y-tiers[t-1].wallH*.0,h:0,top:y},'stone2');
+      if(t>0)add('ring',{cx:0,cz:0,pts:pts.map(([a,d])=>[a,d*k]),y:tiers[t-1].y-1*S,h:y-tiers[t-1].y+1*S,top:y},'stone2');
       // Wall ring with towers at evenly spread outline points; the gate faces the bridge.
       // The two towers flanking the gate keep their even spacing so the gate sits on the bridge/ramp line.
       const ang=[];for(let i=0;i<nTow;i++)ang.push(ga+(i+.5+(t&&i>0&&i<nTow-1?R()*.4-.2:0))/nTow*TAU);
@@ -94,6 +95,7 @@
         const cl=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]),ux=(c1[0]-c0[0])/cl,uz=(c1[1]-c0[1])/cl,e0=trs[i]-.6*S,e1=trs[(i+1)%nTow]-.6*S;
         const p0=[c0[0]+ux*e0,c0[1]+uz*e0],p1=[c1[0]-ux*e1,c1[1]-uz*e1],mx=(p0[0]+p1[0])/2,mz=(p0[1]+p1[1])/2,len=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]);
         const wr=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]);
+        if(t===0&&i===nTow-1)entry={x:mx,z:mz,y,angle:ga};
         if(i===nTow-1)add('gatewall',{x:mx,y:y-4*S,z:mz,w:len,h:wallH+4*S,d:5*S,rot:wr,gap:10*S,gateH:4*S+Math.min(wallH*.7,13*S),crenel:true},'stone');
         else add('box',{x:mx,y:y-4*S,z:mz,w:len,h:wallH+4*S,d:5*S,rot:wr,crenel:true},'stone');
       }
@@ -101,7 +103,7 @@
         const a=ang[i],d=rad(a)*k,tx=Math.cos(a)*d,tz=Math.sin(a)*d,tr=trs[i],th=wallH+r(10,26)*S*(1+t*.25);
         tower(tx,y-6*S,tz,tr,th+6*S,R()<.15?'flat':'cone',t===0&&R()<.5,false,false,{floor:y,walk:y+wallH,doors:[{a:a+Math.PI,y0:y,y1:y+3.6*S},{a:a+Math.PI/2,y0:y+wallH,y1:y+wallH+3.2*S},{a:a-Math.PI/2,y0:y+wallH,y1:y+wallH+3.2*S}]});
       }
-      scale*=t===0?r(.62,.72):r(.58,.7);y+=r(30,55)*S*(style==='hill'?.8:1);
+      scale*=CITY?(t===0?.70:.66):t===0?r(.62,.72):r(.58,.7);y+=(CITY?r(20,28):r(30,55))*S*(style==='hill'?.8:1);
     }
     // ---- Ramps between tiers: each climbs along the face of the next terrace, outside its wall, to that tier's gate
     // (facing the bridge), with a landing turning in through the gate. About 20 degrees, so it walks easily.
@@ -113,7 +115,7 @@
     // ---- The palace keep on the top tier: a tall block with a steep roof, corner turrets, dormers and a spire tower.
     // The keep must fit inside the top terrace's wall: its half-diagonal stays within the terrace's narrowest radius less
     // a 10 m yard, shrinking both sides together when it would not.
-    const K=tiers[tiers.length-1],ky=K.y,kMin=Math.min(...pts.map(([a,d])=>d))*K.k-10*S,kw0=r(50,80)*S*big,kd0=r(34,52)*S*big,kf=Math.min(1,kMin/(Math.hypot(kw0,kd0)/2)),kw=kw0*kf,kd=kd0*kf,kh=r(70,120)*S*Math.sqrt(big)*TALL,kr=ga+Math.PI/2+r(-.3,.3),cs=Math.cos(kr),sn=Math.sin(kr);
+    const K=tiers[tiers.length-1],ky=K.y,kMin=Math.min(...pts.map(([a,d])=>d))*K.k-10*S,kw0=r(50,80)*S*big,kd0=r(34,52)*S*big,kf=Math.min(1,kMin/(Math.hypot(kw0,kd0)/2)),kw=kw0*kf,kd=kd0*kf,kh=(CITY?r(38,54):r(70,120))*S*Math.sqrt(big)*TALL,kr=ga+Math.PI/2+r(-.3,.3),cs=Math.cos(kr),sn=Math.sin(kr);
     const kp=(u,w)=>[u*cs-w*sn,u*sn+w*cs];foot.push({x:0,z:0,r:Math.hypot(kw,kd)/2+3*S});
     {const st=[0];let sy=16*S;while(sy<kh-6*S){st.push(sy);sy+=9*S;}
       add('shell',{x:0,y:ky-4*S,z:0,w:kw,h:kh+4*S,d:kd,rot:kr,th:2.5*S,floor:ky,storeys:st,door:{side:-1,u:0,wid:6*S,hgt:9*S},grand:true},'stone');
@@ -124,8 +126,8 @@
     for(const su of [-1,1])for(const sw of [-1,1]){const tr=r(5,7)*S,[px,pz]=kp(su*(kw/2+tr*.75),sw*(kd/2+tr*.75));tower(px,ky+kh*r(.45,.65),pz,tr,kh*r(.5,.7)+r(8,20)*S,'cone',true,true);}
     for(let i=0;i<Math.round(r(2,4));i++){const u=(i/(3)-.4)*kw*.8;for(const sw of [-1,1]){const [px,pz]=kp(u,sw*(kd/2+1)),dw=r(7,10)*S;add('box',{x:px,y:ky+kh-2*S,z:pz,w:dw,h:dw*.9,d:6*S,rot:kr},'stone');add('gable',{x:px,y:ky+kh-2*S+dw*.9,z:pz,w:6*S,d:dw+1*S,h:dw*.8,rot:kr+Math.PI/2},'roof');}}
     // Great spire tower behind the keep and a few lesser ones of very different heights.
-    {const [px,pz]=kp(-kw*.35,-kd*.65),tr=r(10,14)*S;foot.push({x:px,z:pz,r:tr+2*S});tower(px,ky-4*S,pz,tr,kh+r(80,130)*S,'cone',true,false,true);}
-    for(let i=0;i<Math.round(r(4,8));i++){const a=R()*TAU,tr=r(5,10)*S,d=Math.hypot(kw,kd)/2+tr+r(2,14)*S;foot.push({x:Math.cos(a)*d,z:Math.sin(a)*d,r:tr+2*S});tower(Math.cos(a)*d,ky-4*S,Math.sin(a)*d,tr,kh*r(.5,1.5),R()<.15?'dome':'cone',R()<.6);}
+    {const [px,pz]=kp(-kw*.35,-kd*.65),tr=(CITY?r(14,18):r(10,14))*S;foot.push({x:px,z:pz,r:tr+2*S});tower(px,ky-4*S,pz,tr,kh+(CITY?r(38,58):r(80,130))*S,'cone',true,false,true);}
+    for(let i=0;i<Math.round(CITY?r(3,5):r(4,8));i++){const a=R()*TAU,tr=r(5,10)*S,d=Math.hypot(kw,kd)/2+tr+r(2,14)*S;foot.push({x:Math.cos(a)*d,z:Math.sin(a)*d,r:tr+2*S});tower(Math.cos(a)*d,ky-4*S,Math.sin(a)*d,tr,kh*r(.5,1.5),R()<.15?'dome':'cone',R()<.6);}
     // ---- Halls on each terrace: pitched-roof buildings in a loose ring inside the wall.
     tiers.forEach((T,t)=>{const inner=t+1<tiers.length?tiers[t+1].k:0,n=Math.round(r(4,9)*(t===0?1.5:1)*big*big);
       const clear=a=>{const off=x=>Math.abs(Math.atan2(Math.sin(x),Math.cos(x)));if(off(a-ga)<.35)return false;if(T.ramp){const [r0,r1]=T.ramp,m=(r0+r1)/2,h2=Math.abs(r1-r0)/2+.25;if(off(a-m)<h2)return false;}return true;};
@@ -252,7 +254,7 @@
     }
     // Where Walk starts: the far end of the bridge, or on the hillside below the gate, facing the castle.
     const sd=bridge?bridge.to-4*S:rad(ga)*1.5,sy=bridge?bridge.y1+2*S:top*.55,spawn={x:gx*sd,y:sy,z:gz*sd,yaw:Math.atan2(-gz,-gx)};
-    return {seed,style,layout,palette:pal,parts,top,radius:Rc,spawn,height:Math.max(...parts.map(p=>(p.y||0)+(p.h||0))),skyline:sky};
+    return {seed,style,layout,entry,palette:pal,parts,top,radius:Rc,spawn,height:Math.max(...parts.map(p=>(p.y||0)+(p.h||0))),skyline:sky};
   }
   return {generate,PALETTES};
 });

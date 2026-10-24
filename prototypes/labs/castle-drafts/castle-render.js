@@ -19,7 +19,18 @@
   function box(m,o,col){
     const {x,y,z,w,h,d,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),P=(u,v,wv)=>[x+u*c-wv*s,y+v,z+u*s+wv*c];
     const u=w/2,q=d/2,v0=0,v1=h,C=[P(-u,v0,-q),P(u,v0,-q),P(u,v0,q),P(-u,v0,q),P(-u,v1,-q),P(u,v1,-q),P(u,v1,q),P(-u,v1,q)];
-    m.quad(C[4],C[7],C[6],C[5],col);m.quad(C[0],C[1],C[5],C[4],col);m.quad(C[1],C[2],C[6],C[5],col);m.quad(C[2],C[3],C[7],C[6],col);m.quad(C[3],C[0],C[4],C[7],col);
+    m.quad(C[4],C[7],C[6],C[5],col);m.quad(C[3],C[2],C[1],C[0],col);
+    // Bake local contact shade into wall vertex colours, independent of sun and camera.
+    // Split only architectural infill; the existing geometry still owns silhouettes and collisions.
+    const baked=o.bakeShade&&(h>1||o.shadeTop!=null),levels=baked?[0,.08,.3,.65,.82,.94,1]:[0,1];
+    const tint=t=>{const top=o.shadeTop!=null?o.shadeTop-(y+t*h):(1-t)*h,bottom=o.shadeBase!=null?y+t*h-o.shadeBase:t*h;return col.map((v,k)=>v*(1-(baked?(.22*Math.exp(-Math.max(0,top)/.38)+.07*Math.exp(-Math.max(0,bottom)/.3)):0)*[1,.94,.55][k]));};
+    for(let side=0;side<4;side++)for(let j=1;j<levels.length;j++){
+      const a=side,b=(side+1)%4,lo=levels[j-1],hi=levels[j];
+      const at=(i,t)=>C[i].map((v,k)=>v+(C[i+4][k]-v)*t),A=at(a,lo),B=at(b,lo),D=at(a,hi),E=at(b,hi);
+      const start=m.c.length;m.quad(A,B,E,D,col);
+      const colours=[tint(lo),tint(lo),tint(hi),tint(lo),tint(hi),tint(hi)];
+      for(let v=0;v<6;v++)for(let k=0;k<3;k++)m.c[start+v*3+k]=colours[v][k];
+    }
   }
   // Battlements: a low parapet with merlons along both edges of the wall top, leaving the walkway between them clear.
   function crenels(m,o,col){const {x,y,z,w,h,d,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),step=2.6,n=Math.floor(w/step),pw=Math.min(.8,d*.2);
@@ -38,11 +49,21 @@
   // Hipped roof: the ridge stops short of both ends, which slope back to it (a pyramid when the plan is square).
   function hip(m,o,col){const {x,y,z,w,d,h,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),P=(u,v,wv)=>[x+u*c-wv*s,y+v,z+u*s+wv*c],u=w/2,q=d/2,rl=Math.max(0,u-q);
     const a=P(-u,0,-q),b=P(u,0,-q),cc=P(u,0,q),dd=P(-u,0,q),r0=P(-rl,h,0),r1=P(rl,h,0);
-    m.quad(a,r0,r1,b,col);m.quad(cc,r1,r0,dd,col);m.tri(a,dd,r0,shade(col,.92));m.tri(b,r1,cc,shade(col,.92));}
+    m.quad(a,r0,r1,b,col);m.quad(cc,r1,r0,dd,col);m.tri(a,dd,r0,shade(col,.92));m.tri(b,r1,cc,shade(col,.92));
+    if(o.roofThickness>0){const t=o.roofThickness,D=v=>[v[0],v[1]-t,v[2]],old=m.pat;m.pat=6;const dark=shade(col,.65);
+      m.quad(D(a),D(b),D(r1),D(r0),dark);m.quad(D(cc),D(dd),D(r0),D(r1),dark);m.tri(D(a),D(r0),D(dd),dark);m.tri(D(b),D(cc),D(r1),dark);
+      for(const [v0,v1] of [[a,b],[b,cc],[cc,dd],[dd,a]])m.quad(v0,v1,D(v1),D(v0),dark);m.pat=old;
+    }}
   function gable(m,o,col){const {x,y,z,w,d,h,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),P=(u,v,wv)=>[x+u*c-wv*s,y+v,z+u*s+wv*c],u=w/2,q=d/2;
     // The slopes are split along the ridge (one strip per ~2 m), so a later sag or wobble can bend them.
-    const n=Math.max(1,Math.min(8,Math.round(w/2)));for(let i=0;i<n;i++){const u0=-u+w*i/n,u1=-u+w*(i+1)/n;m.quad(P(u0,0,-q),P(u0,h,0),P(u1,h,0),P(u1,0,-q),col);m.quad(P(u1,0,q),P(u1,h,0),P(u0,h,0),P(u0,0,q),col);}
-    m.tri(P(-u,0,-q),P(-u,0,q),P(-u,h,0),shade(col,.9));m.tri(P(u,0,-q),P(u,h,0),P(u,0,q),shade(col,.9));}
+    const n=Math.max(1,Math.min(8,Math.round(w/2)));if(!o.wallOnly)for(let i=0;i<n;i++){const u0=-u+w*i/n,u1=-u+w*(i+1)/n;m.quad(P(u0,0,-q),P(u0,h,0),P(u1,h,0),P(u1,0,-q),col);m.quad(P(u1,0,q),P(u1,h,0),P(u0,h,0),P(u0,0,q),col);}
+    if(o.roofThickness>0&&!o.wallOnly){const thickness=o.roofThickness,oldPat=m.pat,U=(a,b,c)=>P(a,b-thickness,c);m.pat=6;
+      // A solid roof shell: dark soffits and closed eave/barge edges, not zero-thickness sheets.
+      for(const side of [-1,1]){m.quad(U(-u,0,side*q),U(u,0,side*q),U(u,h,0),U(-u,h,0),shade(col,.65));
+        m.quad(P(-u,0,side*q),P(u,0,side*q),U(u,0,side*q),U(-u,0,side*q),shade(col,.65));
+        for(const end of [-1,1])m.quad(P(end*u,0,side*q),P(end*u,h,0),U(end*u,h,0),U(end*u,0,side*q),shade(col,.8));}
+      m.pat=oldPat;}
+    if(!o.openEnds){m.tri(P(-u,0,-q),P(-u,0,q),P(-u,h,0),shade(col,.9));m.tri(P(u,0,-q),P(u,h,0),P(u,0,q),shade(col,.9));}}
   // A bridge bay: two piers, a round arch, and the deck band above (the spandrel as thin columns along the curve).
   // The deck's walking surface is at y+h (so a bridge meets the road it carries), with knee-high parapets on both edges.
   function arch(m,o,col){const {x,y,z,w,d,rot,span}=o,h=o.h-1.4,c=Math.cos(rot),s=Math.sin(rot),pier=(w-span)/2,R=span/2,spring=Math.max(2,h-R-3);
@@ -105,9 +126,11 @@
       const A=[x+Math.cos(a0)*r,y+.6,z+Math.sin(a0)*r],B=[x+Math.cos(a1)*r,y+.6,z+Math.sin(a1)*r],C=[x,y+.6,z];m.tri(C,B,A,col,[0,1,0],[0,1,0],[0,1,0]);
       m.tri([x,y,z],[A[0],y,A[2]],[B[0],y,B[2]],col,[0,-1,0],[0,-1,0],[0,-1,0]);}}
   // A sloped way between two points, solid down to `base` (or a 0.6 m slab), with low parapets along both sides.
-  function ramp(m,o,col){const {x0,z0,y0,x1,z1,y1,w,base}=o,dx=x1-x0,dz=z1-z0,L=Math.hypot(dx,dz)||1,nx=-dz/L*w/2,nz=dx/L*w/2,b0=base!=null?base:y0-.6,b1=base!=null?base:y1-.6;
+  function ramp(m,o,col){const {x0,z0,y0,x1,z1,y1,w,base}=o,dx=x1-x0,dz=z1-z0,L=Math.hypot(dx,dz)||1,nx=-dz/L*w/2,nz=dx/L*w/2,b0=o.thickness!=null?y0-o.thickness:base!=null?base:y0-.6,b1=o.thickness!=null?y1-o.thickness:base!=null?base:y1-.6;
     const T=[[x0-nx,y0,z0-nz],[x0+nx,y0,z0+nz],[x1+nx,y1,z1+nz],[x1-nx,y1,z1-nz]],B=[[x0-nx,b0,z0-nz],[x0+nx,b0,z0+nz],[x1+nx,b1,z1+nz],[x1-nx,b1,z1-nz]];
-    m.quad(T[0],T[1],T[2],T[3],col);m.quad(B[0],T[0],T[3],B[3],shade(col,.92));m.quad(B[1],B[2],T[2],T[1],shade(col,.92));m.quad(B[0],B[1],T[1],T[0],shade(col,.9));m.quad(B[3],T[3],T[2],B[2],shade(col,.9));
+    m.quad(T[0],T[1],T[2],T[3],col);const topPat=m.pat;if(o.sidePat!=null)m.pat=o.sidePat;m.quad(B[0],T[0],T[3],B[3],shade(col,.92));m.quad(B[1],B[2],T[2],T[1],shade(col,.92));m.quad(B[0],B[1],T[1],T[0],shade(col,.9));m.quad(B[3],T[3],T[2],B[2],shade(col,.9));
+    if(o.closedBottom)m.quad(B[0],B[3],B[2],B[1],shade(col,.65));
+    m.pat=topPat;
     if(o.rail!==false)for(const e of [-1,1]){const ex=nx*e*.94,ez=nz*e*.94;const a=[x0+ex,y0,z0+ez],b=[x1+ex,y1,z1+ez],a2=[a[0],y0+1.1,a[2]],b2=[b[0],y1+1.1,b[2]];m.quad(a,b,b2,a2,shade(col,.95));}}
   // A person, 1.6-1.85 m: legs, a coat (tapered), arms, head and a hat or hair. For scale; no collision.
   function figure(m,o){const {x,y,z,rot=0,h=1.75,col=[.5,.3,.3]}=o,k=h/1.75,c=Math.cos(rot),s=Math.sin(rot),P=(u,v)=>[x+u*c-v*s,z+u*s+v*c],skin=[.92,.74,.6],leg=[.3,.28,.3];
@@ -116,17 +139,23 @@
     blob(m,{x,y:y+1.6*k,z,rx:.12*k,ry:.14*k,rz:.12*k},skin);cyl(m,{x,y:y+1.68*k,z,r:.14*k,h:.08*k,r2:.12*k},o.hat||[.3,.22,.16],10);}
   function gatewall(m,o,col){const F=frame(o,0),g=o.gap/2;panel(m,F,-o.w/2,o.w,o.y,o.y+o.h,o.d,[{u0:-g,u1:g,y0:o.y-1,y1:o.y+o.gateH}],col);crenels(m,o,col);}
   // Surface patterns drawn by the shader (no geometry): 1 timber framing, 2 roof tiles, 3 cobbles, 4 stone blocks,
-  // 5 plaster, 6 wood planks, 7 grass.
+  // 5 weathered plaster, 6 wood planks, 7 grass, 11 clean authored plaster.
   const PAT={roof:2,roof2:2,gold:0,paving:3,stone:4,stone2:4,trim:4,plaster:5,wood:6,grass:7,green:0};
   // Parts to triangles. `p.col` overrides the palette colour (city buildings carry their own plaster and roof colours).
   function meshParts(parts,pal,ox=0,oz=0,m=new Mesh()){const cols=colours(pal);
     for(let pi=0;pi<parts.length;pi++){const p0=parts[pi],p={...p0};m.pid=pi;if(p.x!=null){p.x+=ox;p.z+=oz;}if(p.cx!=null||p.t==='crag'||p.t==='ring'){p.cx=(p.cx||0)+ox;p.cz=(p.cz||0)+oz;}if(p.x0!=null){p.x0+=ox;p.z0+=oz;p.x1+=ox;p.z1+=oz;}
-      const col=jit(p.col||cols[p.mat]||[1,0,1],(p.x||p.x0||0)*.37+(p.z||p.z0||0)*.11+(p.y||0));
+      const col=p.pat===11||p.noJitter?(p.col||cols[p.mat]):jit(p.col||cols[p.mat]||[1,0,1],(p.x||p.x0||0)*.37+(p.z||p.z0||0)*.11+(p.y||0));
       m.solid=p.t==='blob'||p.nocol?0:1;m.glow=p.glow?1:0;m.pat=p.pat!=null?p.pat:PAT[p.mat]||0;
       // Ground, streets and paving take the voxel texture on a world grid when voxels are on.
       m.wq=GROUND.vs&&(p.t==='field'||m.pat===3||m.pat===7)?GROUND.vs:0;
       if(p.t==='box'){box(m,p,col);if(p.crenel)crenels(m,p,col);}
       else if(p.t==='shell')shell(m,p,col);else if(p.t==='tube')tube(m,p,col);else if(p.t==='spiral')spiral(m,p,col);else if(p.t==='disk')disk(m,p,col);
+      else if(p.t==='surfacePatch'){
+        const T=[[p.x0,p.heights[0],p.z0],[p.x0,p.heights[1],p.z1],[p.x1,p.heights[2],p.z1],[p.x1,p.heights[3],p.z0]];
+        m.quad(...T,col);const topPat=m.pat;m.pat=p.sidePat??4;
+        for(const s of p.skirts){const A=T[s.edge],B=T[(s.edge+1)%4],at=t=>A.map((v,i)=>v+(B[i]-v)*t),a=at(s.t0),b=at(s.t1);m.quad(b,a,[a[0],s.lo0,a[2]],[b[0],s.lo1,b[2]],col);}
+        m.pat=topPat;
+      }
       else if(p.t==='ramp')ramp(m,p,col);else if(p.t==='gatewall')gatewall(m,p,col);
       else if(p.t==='cyl')cyl(m,p,col);else if(p.t==='cone')cone(m,p,col);else if(p.t==='dome')dome(m,p,col);else if(p.t==='gable')gable(m,p,col);else if(p.t==='hip')hip(m,p,col);
       else if(p.t==='arch')arch(m,p,col);else if(p.t==='crag')crag(m,p,cols);else if(p.t==='ring')prism(m,p,col);else if(p.t==='blob')blob(m,p,col);
@@ -174,7 +203,7 @@
   // its own. pos: position in block units (cell = floor(pos)), size: block size in metres (x,y), L: light direction in
   // the block's plane. Returns the colour; mortar colour mc, block colour bc.
   vec3 paintedBlock(vec2 pos,vec2 size,vec2 L,vec3 bc,vec3 mc,float seed){vec2 cell=floor(pos),f=fract(pos),hs=size*.5,P=(f-.5)*size;float id=hh(cell+seed);
-    float gap=.045,rad=min(hs.x,hs.y)*(.3+.25*hh(cell+3.1));vec2 hb=hs-gap-vec2(.02,.015)*hh(cell+5.);
+    float gap=.045,rad=min(hs.x,hs.y)*(.12+.08*hh(cell+3.1));vec2 hb=hs-gap-vec2(.02,.015)*hh(cell+5.);
     // Wobbly outline: the half-size breathes a little with position along each edge.
     hb+=vec2(.012,.01)*vec2(vn(P.yy*9.+id*7.),vn(P.xx*7.+id*5.));
     vec2 qd=abs(P)-hb+rad;float d=length(max(qd,0.))+min(max(qd.x,qd.y),0.)-rad;
@@ -182,9 +211,9 @@
     float ch=hh(floor(P*vec2(6.,8.))+cell*7.+seed);if(d>-.04&&ch>.88)d+=.035*smoothstep(.88,.98,ch);
     vec2 gq=vec2(qd.x>qd.y?sign(P.x):0.,qd.y>=qd.x?sign(P.y):0.);if(length(max(qd,0.))>0.)gq=normalize(max(qd,0.)*sign(P));
     float inside=smoothstep(.006,-.006,d),bev=smoothstep(-.09,0.,d);float facing=dot(gq,normalize(L));
-    vec3 tint=bc*(.88+.2*id)*vec3(1.+.05*(hh(cell+9.)-.5),1.,1.-.06*(hh(cell+11.)-.5));
+    vec3 tint=bc*(.94+.1*id)*vec3(1.+.05*(hh(cell+9.)-.5),1.,1.-.06*(hh(cell+11.)-.5));
     float strokes=vn(vec2(P.x*3.5,P.y*14.)+id*13.)*.6+vn(P*9.+id*3.)*.4;tint*=.92+.13*strokes;tint*=1.+.06*(f.y-.5)*sign(L.y);
-    vec3 blk=tint*(1.+bev*(.28*max(facing,0.)-.34*max(-facing,0.)));
+    vec3 blk=tint*(1.+bev*(.10*max(facing,0.)-.18*max(-facing,0.)));
     // Drop shadow on the mortar: the block shape shifted away from the light.
     vec2 Ps=P+normalize(L)*.06;vec2 qs=abs(Ps)-hb+rad;float ds=length(max(qs,0.))+min(max(qs.x,qs.y),0.)-rad;float drop=smoothstep(.05,-.02,ds);
     vec3 mort=mc*(.94+.08*vn(P*20.))*(1.-.32*drop);
@@ -201,11 +230,11 @@
       float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(hh(vec2(cell,3.))<.45)beam+=step(abs(fu-fy),.05);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
     else if(t==2){
       // Roof tiles: staggered rows, each tile its own shade and a little hue drift, a shadowed lower lip, moss in patches.
-      float y=sl*2.4,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);gBump=fy*.8+.2*smoothstep(0.,.08,fract(tu))*smoothstep(1.,.92,fract(tu));gBumpK=.05;float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
-      vec3 tc=c*(.84+.24*hh(vec2(cell,row)))*vec3(1.+.06*(hh(vec2(row,cell))-.5),1.,1.-.05*(hh(vec2(cell+3.,row))-.5));
+      float y=sl*2.4,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);gBump=fy*.8+.2*smoothstep(0.,.08,fract(tu))*smoothstep(1.,.92,fract(tu));gBumpK=.008;float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
+      vec3 tc=c*(.94+.10*hh(vec2(cell,row)))*vec3(1.+.06*(hh(vec2(row,cell))-.5),1.,1.-.05*(hh(vec2(cell+3.,row))-.5));
       // Patched in places with tiles of another batch (a different colour), as old roofs are.
       if(hh(vec2(floor(tu/3.),floor(row/2.)))>.93)tc*=vec3(.8,.85,1.05)*(.9+.2*hh(vec2(cell,row+5.)));
-      o=tc*mix(.68,1.,lip)*mix(.8,1.,gap);float moss=smoothstep(.62,.8,vn(p.xz*.35+u*.1)+.25*hh(vec2(cell,row)));o=mix(o,vec3(.42,.52,.3)*(.8+.3*hh(vec2(cell,row))),moss*.55);}
+      o=tc*mix(.68,1.,lip)*mix(.8,1.,gap);float moss=smoothstep(.62,.8,vn(p.xz*.35+u*.1)+.25*hh(vec2(cell,row)));o=mix(o,vec3(.42,.52,.3)*(.8+.3*hh(vec2(cell,row))),moss*.18);}
     else if(t==3&&!wall){
       // Flagstones, as painted backgrounds draw them: irregular rounded slabs in pale mortar, each slab tinted on its own
       // (warm pinks, greys, sand), painted light on the edge facing the sun and a soft shadow crescent on the far edge,
@@ -213,22 +242,23 @@
       vec2 w=p.xz*1.15;vec4 vr=voro(w);float bd=vr.x,stone=smoothstep(.035,.085,bd);
       vec3 tint=mix(mix(vec3(.93,.84,.8),vec3(.86,.85,.86),hh(vec2(vr.y,1.))),vec3(.95,.9,.78),hh(vec2(vr.y,2.))*.6);
       vec3 sc=c*tint*(.9+.18*vr.y);vec2 sd=normalize(SUN.xz+1e-4);float side=dot(normalize(vr.zw+1e-4),sd);
-      float rim=1.-smoothstep(.03,.2,bd);sc*=1.+.16*rim*max(side,0.)-.22*rim*max(-side,0.);sc*=.97+.06*vn(p.xz*2.3);
-      float drop=(1.-stone)*smoothstep(.12,-.1,dot(normalize(vr.zw+1e-4),sd))*.35;o=mix(c*vec3(1.02,1.,.98)*(1.-drop),sc*(.93+.1*vn(vec2(dot(p.xz,sd)*3.,dot(p.xz,vec2(-sd.y,sd.x))*9.)+vr.y*9.)),stone);gBump=smoothstep(.0,.25,bd);gBumpK=.03;}
+      float rim=1.-smoothstep(.03,.16,bd);sc*=1.+.05*rim*max(side,0.)-.10*rim*max(-side,0.);sc*=.97+.06*vn(p.xz*2.3);
+      float drop=(1.-stone)*smoothstep(.12,-.1,dot(normalize(vr.zw+1e-4),sd))*.35;o=mix(c*vec3(1.02,1.,.98)*(1.-drop),sc*(.93+.1*vn(vec2(dot(p.xz,sd)*3.,dot(p.xz,vec2(-sd.y,sd.x))*9.)+vr.y*9.)),stone);gBump=smoothstep(.0,.25,bd);gBumpK=0.;}
     else if(t==4){
       // Coursed stone: blocks of varied length and tone, recessed mortar, moss creeping up the lowest courses.
       vec2 sz=wall?vec2(.95,.48):vec2(.95,.7),q=(wall?vec2(u,p.y):p.xz)/sz;float row=floor(q.y);q.x+=row*.47+.3*hh(vec2(row,9.));
-      vec2 L=wall?vec2(dot(tg,SUN.xz)>0.?1.:-1.,1.6):SUN.xz;o=paintedBlock(q,sz,L,c,c*vec3(.72,.71,.74),4.);gBump=0.;gBumpK=0.;
+      vec2 L=wall?vec2(-.4,1.6):vec2(-.4,1.);o=paintedBlock(q,sz,L,c,c*vec3(.72,.71,.74),4.);gBump=0.;gBumpK=0.;
       if(wall){float m=smoothstep(.55,.85,vn(vec2(u,p.y)*.6))*(1.-smoothstep(0.,2.5,fract(p.y/40.)*40.-5.));o=mix(o,vec3(.4,.5,.3),m*.4);}}
+    else if(t==11){o=c*(.985+.03*vn(p.xz*.13+vec2(p.y*.12,p.y*.09)));}
     else if(t==5){
       // Plaster: soft mottling with warm/cool drift, stains and rain streaks running down, grime at the foot.
       // Painted plaster: big soft washes of warmer and cooler tone, a brushy mid layer, faint hairline cracks.
-      vec2 pq=vec2(u,p.y);float mot=vn(pq*.35)*.55+vn(pq*1.3)*.3+vn(pq*4.7)*.15;o=c*(.84+.26*mot)*vec3(1.+.08*(vn(pq*.12)-.5),1.,1.-.08*(vn(pq*.1+3.)-.5));
-      float crack=smoothstep(.985,1.,1.-abs(vn(pq*vec2(.9,.6)+11.)-.5)*2.)*step(.6,vn(pq*.2+7.));o*=1.-crack*.25;
+      vec2 pq=vec2(u,p.y);float mot=vn(pq*.35)*.55+vn(pq*1.3)*.3+vn(pq*4.7)*.15;o=c*(.94+.10*mot)*vec3(1.+.08*(vn(pq*.12)-.5),1.,1.-.08*(vn(pq*.1+3.)-.5));
+      // Broad painted washes keep the wall readable; no procedural hairline cracks.
       if(wall){float streak=smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;o*=1.-streak-.2*(1.-smoothstep(6.,7.4,p.y));
         // Plaster fallen away in patches, showing brick courses beneath with a ragged pale edge.
-        float pf=vn(vec2(u,p.y)*.45+31.)+.35*vn(vec2(u,p.y)*1.7);if(pf>1.02){vec2 bq=vec2(u/.24,p.y/.08);bq.x+=floor(bq.y)*.5;vec2 bf=fract(bq);float m2=min(bf.x*.3,min(bf.y,1.-bf.y));
-          vec3 brick=vec3(.66,.38,.3)*(.8+.3*hh(floor(bq)))*mix(.6,1.,smoothstep(.03,.12,m2));o=mix(o*1.06,brick,smoothstep(1.04,1.07,pf));}}}
+        float pf=vn(vec2(u,p.y)*.45+31.)+.35*vn(vec2(u,p.y)*1.7);if(t==5&&pf>1.15){vec2 bq=vec2(u/.24,p.y/.08);bq.x+=floor(bq.y)*.5;vec2 bf=fract(bq);float m2=min(bf.x*.3,min(bf.y,1.-bf.y));
+          vec3 brick=vec3(.66,.38,.3)*(.8+.3*hh(floor(bq)))*mix(.6,1.,smoothstep(.03,.12,m2));o=mix(o*1.06,brick,smoothstep(1.16,1.20,pf));}}}
     else if(t==6){float pl=fract((wall?p.y:p.x)*4.);o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));gBump=smoothstep(0.,.12,pl)*smoothstep(1.,.88,pl);gBumpK=.02;}
     else if(t==7){
       // Grass: broad light/dark drifts, tuft speckle and the odd white or yellow flower.
@@ -237,7 +267,7 @@
     else if(t==8||t==9){
       // Closed buildings: the plaster or framing, then painted windows on each storey (dark glass, pale frame).
       if(t==9&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
-      else{vec2 pq=vec2(u,p.y);float mot=vn(pq*.35)*.55+vn(pq*1.3)*.3+vn(pq*4.7)*.15;o=c*(.84+.26*mot)*vec3(1.+.08*(vn(pq*.12)-.5),1.,1.-.08*(vn(pq*.1+3.)-.5));o*=1.-smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;}
+      else{vec2 pq=vec2(u,p.y);float mot=vn(pq*.35)*.55+vn(pq*1.3)*.3+vn(pq*4.7)*.15;o=c*(.94+.10*mot)*vec3(1.+.08*(vn(pq*.12)-.5),1.,1.-.08*(vn(pq*.1+3.)-.5));o*=1.-smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;}
       if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     gBumpK*=fade;return mix(c,o,fade);}
@@ -278,19 +308,21 @@
     // and cooler (not just darker), with a second faint step deeper in; a hard specular highlight on glossy-ish faces
     // (up-facing roofs and glass), and a thin bright rim on the lit side. Sky fill and bounce stay small and flat.
     base*=1.+.05*(vn(gP.xz*.05+gP.y*.03)-.5);
-    float ndl=dot(n,SUN),sh=shadow(),lit=clamp(ndl*.5+.5,0.,1.)*mix(.25,1.,sh);
-    float ramp=smoothstep(.47,.53,lit),deep=smoothstep(.2,.26,lit);
-    float lum=dot(base,vec3(.3,.59,.11));vec3 sat=clamp(mix(vec3(lum),base,1.35),0.,1.);
-    vec3 shadowCol=sat*mix(vec3(.62,.66,.92),vec3(.6,.56,.86),GOLD)*mix(.8,1.,deep);
+    float ndl=dot(normalize(gN),SUN),sh=shadow();
+    // One graphic form-shadow boundary; fine material normals cannot fragment it.
+    float lit=min(smoothstep(-.08,.04,ndl),smoothstep(.38,.62,sh));
+    float ramp=lit,deep=smoothstep(-.65,-.25,ndl);
+    float lum=dot(base,vec3(.3,.59,.11));vec3 sat=clamp(mix(vec3(lum),base,1.12),0.,1.);
+    vec3 shadowCol=sat*mix(vec3(.66,.69,.88),vec3(.65,.60,.82),GOLD)*mix(.8,1.,deep);
     vec3 litCol=base*mix(vec3(1.05,1.02,.97),vec3(1.16,1.03,.86),GOLD);
     vec3 col=mix(shadowCol,litCol,ramp);
     col+=base*.06*(n.y*.5+.5);
-    vec3 H=normalize(SUN+V);float spec=smoothstep(.93,.95,pow(max(dot(n,H),0.),4.))*ramp*(n.y>.3?.18:.06);col+=vec3(1.,.97,.9)*spec;
-    float rim=smoothstep(.72,.78,1.-max(dot(n,V),0.))*ramp*clamp(dot(-V,SUN)*.5+.6,0.,1.);col+=litCol*rim*.22;
+    vec3 H=normalize(SUN+V);float spec=smoothstep(.93,.95,pow(max(dot(n,H),0.),4.))*ramp*(int(gT+.5)==2?.045:0.);col+=vec3(1.,.97,.9)*spec;
+    // Architectural edges receive the same cel light as their parent surface.
     // Layered haze: a soft light haze that pools low and thickens with distance (so roofscapes read in layers, like
     // painted backdrops), warm toward the sun, then aerial perspective toward the horizon sky.
     vec3 vd=normalize(gP-EYE),hz=mix(mix(vec3(.7,.8,.95),vec3(.72,.7,.9),GOLD),mix(vec3(1.,.93,.82),vec3(1.,.8,.62),GOLD),.45*pow(max(dot(vd,SUN),0.),4.));
-    float fog=(1.-exp(-dist/520.))*mix(.72,.38,clamp((gP.y-6.)/110.,0.,1.))*smoothstep(25.,140.,dist);col=mix(col,hz,fog);
+    float fog=(1.-exp(-dist/850.))*mix(.48,.28,clamp((gP.y-6.)/110.,0.,1.))*smoothstep(25.,140.,dist);col=mix(col,hz,fog);
     o=vec4(mix(col,skyCol(vd*vec3(1,.3,1)),1.-exp(-dist/7000.)),1.);}`;
   const FS=`#version 300 es
   precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;in vec4 vQ;
@@ -373,16 +405,16 @@
       for(int i=0;i<10;i++){float f=(float(i)+rnd)/10.;vec2 off=vec2((fract(float(i)*.618+rnd)-.5)*.5,f)*rad*1.6;float z=lin(q+off*PX),dz=zc-z;drop+=smoothstep(.08,.5,dz)*(1.-smoothstep(2.,6.,dz))*(1.-f*.6);}
       for(int i=0;i<8;i++){float a=float(i)*2.399+rnd*6.28,rr=rad*(.3+.7*fract(float(i)*.618));float z=lin(q+vec2(cos(a),sin(a))*rr*PX),dz=zc-z;ao+=smoothstep(.05,.5,dz)*(1.-smoothstep(1.5,4.,dz));}
       float far=1.-smoothstep(250.,900.,zc);drop=clamp(drop/10.*3.,0.,1.)*far;ao=clamp(ao/8.*1.4,0.,1.)*far;
-      c*=mix(vec3(1.),vec3(.5,.48,.68),drop*.95);c*=mix(vec3(1.),vec3(.74,.72,.86),ao*.45);
-      float bev=0.;for(int i=0;i<4;i++){vec2 o2=vec2(i==0?1.:i==1?-1.:0.,i==2?1.:i==3?-1.:0.)*PX*1.5;vec4 nb=texture(NRM,q+o2);if(nb.a<.5)continue;vec3 n2=nb.xyz*2.-1.;float zz=lin(q+o2);
-        if(dot(nn0,n2)<.75&&abs(zz-zc)<zc*.02&&(nn0.y>n2.y+.2))bev=1.;}
-      c=mix(c,c*1.18+vec3(.05,.045,.03),bev*.6*(1.-smoothstep(30.,160.,zc)));}
+      c*=mix(vec3(1.),vec3(.5,.48,.68),drop*.35);c*=mix(vec3(1.),vec3(.74,.72,.86),ao*.45);
+      // Contact shading only darkens; screen-space edge highlights produced bright
+      // halos around shaded sills, beams and flower boxes, regardless of the light.
+    }
     if(INK>0.&&nc.a>.5){vec2 o4[4]=vec2[4](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1));
       for(int i=0;i<4;i++){vec2 p=q+o4[i]*PX*1.2;float z=lin(p);vec4 nn=texture(NRM,p);
         e=max(e,smoothstep(.04,.1,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.55,.3,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.35);}
       // Backgrounds in anime are barely lined: only a faint, coloured line on silhouettes, gone within ~20 m and far off.
       e*=INK*.45*smoothstep(4.,20.,zc)*(1.-smoothstep(150.,700.,zc));}
-    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.12);c=mix(c,c*vec3(.5,.45,.58),e);
+    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.04);c=mix(c,c*vec3(.5,.45,.58),e);
     // Glow and sun shafts over the ink (screen blend, so they never clip to white).
     vec3 add=texture(BLOOM,q).rgb*GLOWK+texture(SHAFT,q).r*SUNCOL;c=1.-(1.-c)*(1.-clamp(add,0.,1.));o=vec4(c,1.);}`;
   // Bright pass (half resolution): glowing surfaces (normal alpha .75) fully, other pixels above a threshold; the sky
@@ -508,7 +540,7 @@
     pass(this.shaftP,this.hS.f,[[this.hB.t,'SRC']],Q=>gl.uniform2fv(Q('SUNUV'),suv));
     gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.disable(gl.DEPTH_TEST);gl.useProgram(this.post);const P=n=>gl.getUniformLocation(this.post,n);
     [[this.hY.t,'BLOOM'],[this.hS.t,'SHAFT']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE4+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),4+i);});
-    gl.uniform1f(P('GLOWK'),.85);gl.uniform3fv(P('SUNCOL'),this.gold?[1,.78,.5]:[1,.95,.82]);
+    gl.uniform1f(P('GLOWK'),.45);gl.uniform3fv(P('SUNCOL'),this.gold?[1,.78,.5]:[1,.95,.82]);
     [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
     gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
   // The beam part needs these helpers outside the GL section.

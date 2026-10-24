@@ -49,14 +49,46 @@
     // climb: the whole city rises toward the castle (set once the castle is placed), so the castle crowns the town.
     const climb={dx:0,dz:0,h:0,d0:0,d1:1};const sm=t=>{t=Math.min(1,Math.max(0,t));return t*t*(3-2*t);};
     const raw=(x,z)=>G+relief*((vnoise(x/520,z/520,ns)-.5)*1.6+(vnoise(x/190,z/190,ns+1)-.5)*.5)+climb.h*sm(((x*climb.dx+z*climb.dz)-climb.d0)/(climb.d1-climb.d0));
-    const gy=(x,z)=>{const off=Math.abs(riverOff(x,z));if(off<rW/2)return -3;let h=raw(x,z);const t=Math.min(1,Math.max(0,(off-rW/2-7)/90));h=Q+(h-Q)*t*t*(3-2*t);
-      for(const f of flats){const d=Math.hypot(x-f.x,z-f.z);if(d<f.r+f.fall){const k=d<f.r?1:1-(d-f.r)/f.fall,e=k*k*(3-2*k);h=h+(f.level-h)*e*(off>rW/2+7?1:0);}}return Math.max(Q,h);};
+    // Flat cores win over every surrounding blend. Overlapping falloffs may ease a slope,
+    // but must never tilt an already level plaza or a building's foundation datum.
+    const terrainHeight=(x,z)=>{const off=Math.abs(riverOff(x,z));if(off<rW/2)return -3;
+      let h=raw(x,z),t=sm((off-rW/2-7)/90);h=Q+(h-Q)*t;
+      let core=null,total=0,target=0,weight=0;
+      for(const f of flats){const d=Math.hypot(x-f.x,z-f.z);
+        if(d<=f.r){if(!core||f.r<core.r)core=f;continue;}
+        const w=1-sm((d-f.r)/f.fall);if(w>0){total+=w;target+=f.level*w;weight=Math.max(weight,w);}}
+      if(core&&off>rW/2+7)return Math.max(Q,core.level);
+      if(total>0)h+=(target/total-h)*weight*t;return Math.max(Q,h);};
+    // Road grades are indexed after every terrain terrace has been planned.
+    let gradeGrid=null;const GRADE_CELL=32;
+    const gy=(x,z)=>{let h=terrainHeight(x,z);if(!gradeGrid||inRiver(x,z,7))return h;
+      const list=gradeGrid.get(Math.floor(x/GRADE_CELL)+','+Math.floor(z/GRADE_CELL));if(!list)return h;
+      let best=0,target=h;
+      for(const g of list){const dx=g.x1-g.x0,dz=g.z1-g.z0,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-g.x0)*dx+(z-g.z0)*dz)/L2)),d=Math.hypot(x-g.x0-dx*t,z-g.z0-dz*t),w=1-sm((d-g.w/2-1)/7);
+        if(w>best){best=w;target=g.y0+(g.y1-g.y0)*t;}}
+      // Preserve all level plaza/castle cores, including at street junctions.
+      if(flats.some(f=>Math.hypot(x-f.x,z-f.z)<=f.r))return h;
+      return h+(target-h)*best;};
     flats.push({x:0,z:0,r:plazaR+18,fall:60,level:raw(0,0)});
     // ---- Occupancy (3 m cells): streets, plaza, river, walls and the castle hill are reserved before any building.
     const OC=3,occ=new Set(),key=(i,j)=>i*100003+j,mark=(x,z)=>occ.add(key(Math.floor(x/OC),Math.floor(z/OC))),isOcc=(x,z)=>occ.has(key(Math.floor(x/OC),Math.floor(z/OC)));
     const markDisk=(x,z,rad)=>{for(let i=Math.floor((x-rad)/OC);i<=Math.floor((x+rad)/OC);i++)for(let j=Math.floor((z-rad)/OC);j<=Math.floor((z+rad)/OC);j++){if(Math.hypot((i+.5)*OC-x,(j+.5)*OC-z)<rad)occ.add(key(i,j));}};
-    const streets=[],heroZones=[];
-    const street=(x0,z0,x1,z1,w,kind,id=-1)=>{if(heroZones.some(h=>h.inside((x0+x1)/2,(z0+z1)/2)))return;streets.push({x0,z0,x1,z1,w,kind,id});const L=Math.hypot(x1-x0,z1-z0),n=Math.ceil(L/1.5);for(let k=0;k<=n;k++){const t=k/n;markDisk(x0+(x1-x0)*t,z0+(z1-z0)*t,w/2+1);}};
+    const streets=[],heroZones=[];let castleBoundary=null;
+    const street=(x0,z0,x1,z1,w,kind,id=-1)=>{
+      // Clip city streets to the castle precinct, rather than paving through its walls.
+      if(castleBoundary&&kind!=='castle-ring'&&kind!=='castle-approach'){
+        const {x,z,r:radius}=castleBoundary,dx=x1-x0,dz=z1-z0,L2=dx*dx+dz*dz;
+        if(L2<1e-8)return;
+        const ax=x0-x,az=z0-z,B=2*(ax*dx+az*dz),C=ax*ax+az*az-radius*radius,D=B*B-4*L2*C;
+        const cuts=[0,1];if(D>0)for(const t of [(-B-Math.sqrt(D))/(2*L2),(-B+Math.sqrt(D))/(2*L2)])if(t>0&&t<1)cuts.push(t);
+        cuts.sort((a,b)=>a-b);
+        if(cuts.length>2||C<0||Math.hypot(x1-x,z1-z)<radius){
+          for(let j=1;j<cuts.length;j++){const a=cuts[j-1],b=cuts[j],m=(a+b)/2;
+            if(Math.hypot(ax+dx*m,az+dz*m)>=radius-.001&&b-a>.001)street(x0+dx*a,z0+dz*a,x0+dx*b,z0+dz*b,w,'castle-ring',id);}
+          return;
+        }
+      }
+      if(heroZones.some(h=>h.inside((x0+x1)/2,(z0+z1)/2)))return;streets.push({x0,z0,x1,z1,w,kind,id});const L=Math.hypot(x1-x0,z1-z0),n=Math.ceil(L/1.5);for(let k=0;k<=n;k++){const t=k/n;markDisk(x0+(x1-x0)*t,z0+(z1-z0)*t,w/2+1);}};
     markDisk(0,0,plazaR+2);
     // ---- Castle on its hill, out along one avenue on the side away from the river.
     // Plaza spokes. Not a uniform hub: one main road runs right through the city (two spokes, gate to gate), one road
@@ -70,9 +102,15 @@
       for(let k=Math.round(r(2,3));k>0&&free.length;k--){const a=free.splice(Math.floor(R()*free.length),1)[0];radials.push(a);for(let q=free.length-1;q>=0;q--)if(Math.abs(Math.atan2(Math.sin(free[q]-a),Math.cos(free[q]-a)))<.75)free.splice(q,1);}}
     // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
     const onHill=opts.castleSeat==='hill',flare=1.55;
-    Object.assign(climb,{dx:Math.cos(cA),dz:Math.sin(cA),h:opts.terrain==='flat'?0:r(26,40),d0:-plazaR,d1:cD-30});flats[0].level=raw(0,0);const cLevel=raw(cx,cz);
-    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',tall:1.2,ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','rings','linked']),scale:(onHill?r(.6,.72):r(.95,1.1))*S,palette:CastleGen.PALETTES.indexOf(pal)});
-    castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR,fall:50,level:cLevel});
+    Object.assign(climb,{dx:Math.cos(cA),dz:Math.sin(cA),h:opts.terrain==='flat'?0:r(12,18),d0:-plazaR,d1:cD-30});flats[0].level=raw(0,0);const cLevel=Math.max(Q,raw(cx,cz));
+    const castleOpts={style:onHill?'hill':'flat',profile:'city',tall:1,ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||'rings',scale:(onHill?r(.6,.72):r(.95,1.1))*S,palette:CastleGen.PALETTES.indexOf(pal)};
+    let castle=CastleGen.generate(seed*7+3,castleOpts);
+    // Fit the precinct between the civic square and outer city wall, leaving room for
+    // a graded approach. Two different flat datums must not claim the same ground.
+    if(!onHill){const maxRadius=Math.max(45,Math.min(cD-plazaR-85,Rw-cD-28)/1.1);
+      if(castle.radius>maxRadius)castle=CastleGen.generate(seed*7+3,{...castleOpts,scale:castleOpts.scale*maxRadius/castle.radius});}
+    castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;
+    markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR+8,fall:Math.max(65,Math.abs(cLevel-flats[0].level)/.12),level:cLevel});castleBoundary={x:cx,z:cz,r:hillR};
     // ---- Plaza gaps between avenues, best first (wide, and on the side opposite the castle). The cathedral takes the best:
     // it stands end-on to the plaza, its west front on the plaza and its nave running outward, and streets that would
     // cross its site are not laid (the ring street parts round it).
@@ -96,6 +134,15 @@
       for(let q=0;q<n;q++){const a=off+(q+r(.25,.75))/n*TAU;if([mA,mB].some(b=>Math.abs(Math.atan2(Math.sin(a-b),Math.cos(a-b)))<.06))continue;
         const am=a+r(-.05,.05),r0=ringR(k,a),r1=ringR(k+1,a),rm=(r0+r1)/2,wide=R()<.35,w=wide?7:5,kind=wide?'street':'lane';
         street(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(am)*rm,Math.sin(am)*rm,w,kind);street(Math.cos(am)*rm,Math.sin(am)*rm,Math.cos(a)*r1,Math.sin(a)*r1,w,kind);}}
+    // A continuous precinct street catches clipped ring roads and carries frontage up to the castle.
+    if(!onHill){const n=Math.ceil(TAU*hillR/18);for(let i=0;i<n;i++){
+      const a=i/n*TAU,b=(i+1)/n*TAU;
+      street(cx+Math.cos(a)*hillR,cz+Math.sin(a)*hillR,cx+Math.cos(b)*hillR,cz+Math.sin(b)*hillR,10,'castle-ring');
+    }
+      if(castle.entry){const e=castle.entry,angle=Math.atan2(e.z,e.x),ax=cx+Math.cos(angle)*hillR,az=cz+Math.sin(angle)*hillR;
+        street(ax,az,cx+e.x,cz+e.z,14,'castle-approach');
+      }
+    }
     // ---- Bridges are costly: only the avenues nearest the plaza (two or three) cross the river; every other street that
     // reaches it stops at the quay.
     {const crossing=[...new Set(streets.filter(st=>st.kind==='avenue'&&st.id>=0&&inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,2)).map(st=>st.id))];
@@ -149,6 +196,14 @@
       for(let q=0;q<Math.round(pr*.9);q++){const b=R()*TAU,f=Math.sqrt(R())*.92,tx=x+Math.cos(b)*pr*f,tz=z+Math.sin(b)*pr*f;if(Math.hypot(tx-px,tz-pz)<prr+3)continue;const th=r(5,9);const tg=gy(tx,tz);L.push({t:'tree',x:tx,y:tg,z:tz,species:pick(['oak','oak','birch','alder','spruce','gnarled','willow']),size:th/6},{t:'skip',x:tx,y:tg+th*.65,z:tz,rx:th*.38,ry:th*.34,rz:th*.38,mat:'green'});}
       for(let q=0;q<6;q++){const b=R()*TAU,bx=x+Math.cos(b)*pr*.5,bz=z+Math.sin(b)*pr*.5;const bg=gy(bx,bz);L.push({t:'box',x:bx,y:bg+.4,z:bz,w:1.8,h:.1,d:.5,rot:b,mat:'wood'},{t:'box',x:bx,y:bg-.2,z:bz,w:1.6,h:.6,d:.3,rot:b,mat:'dark'});}
       prop(x,z,L);}
+    // Freeze grades before placing street furniture or ordinary building foundations.
+    // Roads and terrain share these endpoint elevations instead of making independent slabs.
+    gradeGrid=new Map();
+    for(const st of streets){st.y0=inRiver(st.x0,st.z0,7)?Q:terrainHeight(st.x0,st.z0);st.y1=inRiver(st.x1,st.z1,7)?Q:terrainHeight(st.x1,st.z1);
+      const pad=st.w/2+8;for(let i=Math.floor((Math.min(st.x0,st.x1)-pad)/GRADE_CELL);i<=Math.floor((Math.max(st.x0,st.x1)+pad)/GRADE_CELL);i++)for(let j=Math.floor((Math.min(st.z0,st.z1)-pad)/GRADE_CELL);j<=Math.floor((Math.max(st.z0,st.z1)+pad)/GRADE_CELL);j++){
+        const k=i+','+j;if(!gradeGrid.has(k))gradeGrid.set(k,[]);gradeGrid.get(k).push(st);}}
+    // Hero buildings were reserved before parks; settle them once against the final terrain.
+    for(const b of buildings){const c=Math.cos(b.rot),s=Math.sin(b.rot),hs=[];for(const [u,v] of [[-1,-1],[1,-1],[1,1],[-1,1],[0,0]])hs.push(gy(b.x+u*b.w/2*c-v*b.d/2*s,b.z+u*b.w/2*s+v*b.d/2*c));b.floor=Math.max(...hs)+.15;b.base=Math.min(...hs)-.8;}
     // ---- Slums: a sector against the wall (on the river side, downstream) of shacks and cramped houses.
     const slumA=Math.atan2(Math.sin(cA+Math.PI)*.4+(-side)*0,Math.cos(cA+Math.PI))+r(-.8,.8),slumW=r(.45,.7);
     const inSlum=(x,z)=>Math.hypot(x,z)>Rw*.6&&Math.abs(Math.atan2(Math.sin(Math.atan2(z,x)-slumA),Math.cos(Math.atan2(z,x)-slumA)))<slumW;
@@ -209,21 +264,37 @@
         const hx=x+Math.cos(b)*off,hz=z+Math.sin(b)*off,rot=b+Math.PI/2+(slum?r(-.25,.25):0);if(fits(hx,hz,w,d,rot))place(type,hx,hz,w,d,rot,1);}
       prop(x,z,[{t:'disk',x,y:gy(x,z)-.5,z,r:cr,mat:'paving',pat:3},...(R()<.45?[{t:'tree',x,y:gy(x,z),z,species:pick(['oak','birch','alder','gnarled']),size:r(.7,1.1)}]:[])]);}
     // ---- The static city: ground, quays, streets, plaza, bridges, walls.
-    const span=Rw+340,C=10,TL=160;
+    const span=Rw+340,TL=160;
     // Ground: one heightfield per 160 m tile (10 m cells); cells over the river are left out (the water plane shows).
-    for(let ti=Math.floor(-span/TL);ti<Math.ceil(span/TL);ti++)for(let tj=Math.floor(-span/TL);tj<Math.ceil(span/TL);tj++){const n=TL/C,x0=ti*TL,z0=tj*TL,h=new Float32Array((n+1)*(n+1)),skip=new Uint8Array(n*n);
+    for(let ti=Math.floor(-span/TL);ti<Math.ceil(span/TL);ti++)for(let tj=Math.floor(-span/TL);tj<Math.ceil(span/TL);tj++){const C=Math.hypot((ti+.5)*TL,(tj+.5)*TL)<Rw*.6?5:10,n=TL/C,x0=ti*TL,z0=tj*TL,h=new Float32Array((n+1)*(n+1)),skip=new Uint8Array(n*n);
       for(let j=0;j<=n;j++)for(let i=0;i<=n;i++)h[j*(n+1)+i]=gy(x0+i*C,z0+j*C);for(let j=0;j<n;j++)for(let i=0;i<n;i++)skip[j*n+i]=inRiver(x0+(i+.5)*C,z0+(j+.5)*C,-2)?1:0;
       add('field',{x0,z0,n,C,h,skip,x:x0+TL/2,z:z0+TL/2},'grass');}
     // Quay walls along both banks, stone, from the riverbed to the quay.
     for(let i=0;i+2<rpts.length;i+=2){const [ax,az]=rpts[i],[bx,bz]=rpts[i+2];if(Math.hypot(ax,az)>span&&Math.hypot(bx,bz)>span)continue;const tl=Math.hypot(bx-ax,bz-az),nx=-(bz-az)/tl,nz=(bx-ax)/tl;
       for(const sd of [-1,1]){const o=sd*(rW/2+.6);add('box',{x:(ax+bx)/2+nx*o,y:-3,z:(az+bz)/2+nz*o,w:tl+.4,h:Q+3.2,d:1.4,rot:Math.atan2(bz-az,bx-ax),pat:4},'stone');}}
-    for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),n=Math.max(1,Math.ceil(L/10));
+    // Gentle grades remain ramps. Steeper pedestrian grades become stair flights;
+    // every tread and road edge has stone support down into the actual ground.
+    const supportedWay=(ax,az,ya,bx,bz,yb,w,pat,role)=>{
+      const L=Math.hypot(bx-ax,bz-az);if(L<1e-5)return;
+      const steps=Math.abs(yb-ya)/L>.12?Math.ceil(Math.abs(yb-ya)/.16):1;
+      const nx=-(bz-az)/L*w/2,nz=(bx-ax)/L*w/2;
+      for(let j=0;j<steps;j++){const t0=j/steps,t1=(j+1)/steps,x0=ax+(bx-ax)*t0,z0=az+(bz-az)*t0,x1=ax+(bx-ax)*t1,z1=az+(bz-az)*t1;
+        let y0=ya+(yb-ya)*t0,y1=ya+(yb-ya)*t1;
+        if(steps>1)y0=y1=Math.max(y0,y1);
+        const bottom=Math.min(gy(x0-nx,z0-nz),gy(x0+nx,z0+nz),gy(x1-nx,z1-nz),gy(x1+nx,z1+nz),gy((x0+x1)/2,(z0+z1)/2))-.65;
+        add('ramp',{x0,z0,y0,x1,z1,y1,w,base:Math.min(bottom,y0-.3,y1-.3),pat,sidePat:4,x:(x0+x1)/2,z:(z0+z1)/2,rail:false,terrainRoad:true,stair:steps>1,role},'stone2');
+      }
+    };
+    for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),n=Math.max(1,Math.ceil(L/5));
       for(let k=0;k<n;k++){const t0=k/n,t1=(k+1)/n,ax=s.x0+(s.x1-s.x0)*t0,az=s.z0+(s.z1-s.z0)*t0,bx=s.x0+(s.x1-s.x0)*t1,bz=s.z0+(s.z1-s.z0)*t1,x=(ax+bx)/2,z=(az+bz)/2;
-        // Over the river: a bridge bay at quay level (+1.2 m); elsewhere the street is laid on the ground as a gentle ramp.
         if(inRiver(x,z,2))add('arch',{x,y:-3,z,w:L/n+.3,h:Q+3.15,d:s.w+1,rot,span:L/n*.75},'stone2');
-        else{const ya=inRiver(ax,az,2)?Q+.15:gy(ax,az)+.12,yb=inRiver(bx,bz,2)?Q+.15:gy(bx,bz)+.12;add('ramp',{x0:ax,z0:az,y0:ya,x1:bx,z1:bz,y1:yb,w:s.w,base:Math.min(ya,yb)-1.2,pat:3,x,z,rail:false},s.kind==='alley'?'paving':'stone2');
-          // Raised kerbed footways along the wider streets.
-          if(s.w>=7){const nx=-(bz-az)/(L/n),nz=(bx-ax)/(L/n);for(const e of [-1,1]){const o=e*(s.w/2-.75);add('ramp',{x0:ax+nx*o,z0:az+nz*o,y0:ya+.16,x1:bx+nx*o,z1:bz+nz*o,y1:yb+.16,w:1.5,base:Math.min(ya,yb)-.2,pat:4,rail:false,x:x+nx*o,z:z+nz*o},'stone');}}}}}
+        else{const ya=inRiver(ax,az,2)?Q+.15:gy(ax,az)+.12,yb=inRiver(bx,bz,2)?Q+.15:gy(bx,bz)+.12;
+          supportedWay(ax,az,ya,bx,bz,yb,s.w,3,'street');
+          if(s.w>=7){const nx=-(bz-az)/(L/n),nz=(bx-ax)/(L/n);for(const e of [-1,1]){const o=e*(s.w/2-.75);
+            supportedWay(ax+nx*o,az+nz*o,ya+.16,bx+nx*o,bz+nz*o,yb+.16,1.5,4,'footway');}}
+        }
+      }
+    }
     // Plaza: paving disk, a fountain and a statue column.
     {const g0=gy(0,0);add('disk',{x:0,y:g0-.45,z:0,r:plazaR,pat:3},'stone2');add('cyl',{x:0,y:g0,z:0,r:9,h:1.2},'stone');add('cyl',{x:0,y:g0,z:0,r:1.6,h:9},'stone');add('cone',{x:0,y:g0+9,z:0,r:2.6,h:4},'gold');}
     // Gates go wherever a road actually crosses the wall line (after bridges have re-routed the avenues).
@@ -237,13 +308,13 @@
         if(gate)add('gatewall',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,gap:12,gateH:wt-wb-7,crenel:true},'stone');else add('box',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,crenel:true},'stone');}
       for(const t of wa){const x=Math.cos(t)*Rw,z=Math.sin(t)*Rw;if(inRiver(x,z,6))continue;const g=gy(x,z);add('cyl',{x,y:g-3,z,r:7,h:31},'stone');add('cone',{x,y:g+26,z,r:8,h:20},'roof');}}
     const plazaA=cA+Math.PI*.5,spawn={x:Math.cos(plazaA)*(plazaR-6),y:gy(0,0)+1,z:Math.sin(plazaA)*(plazaR-6),yaw:Math.atan2(cz-Math.sin(plazaA)*(plazaR-6),cx-Math.cos(plazaA)*(plazaR-6))};
-    return {seed,riverKind,radius:Rw,ground:G,relief,gy,palette:pal,parts,buildings,props,plazas,parks,castle,castleAt:{x:cx,z:cz},spawn,river:{inRiver}};
+    return {seed,riverKind,streets,radius:Rw,ground:G,relief,gy,terrainHeight,terraces:flats,palette:pal,parts,buildings,props,plazas,parks,castle,castleAt:{x:cx,z:cz},spawn,river:{inRiver}};
   }
   // ---- One building's parts. interior=false: a closed box and roof (far); true: a hollow shell with rooms and props.
   function buildingParts(b,interior){
     if(b.type==='prop')return b.parts;
     if(b.type==='cathedral')return cathedralParts(b);
-    if(interior==='near'){if(DETAILED.has(b.type)&&!b.hero)return detailedParts(b);interior=false;}
+    if(interior==='near'){if(DETAILED.has(b.type))return detailedParts(b);interior=false;}
     const out=[],R=rng(b.seed),r=(a,c)=>a+(c-a)*R(),c=Math.cos(b.rot),s=Math.sin(b.rot),W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c];
     const add=(t,o,mat)=>{out.push({t,mat,...o});};
     const prop=(u,v,w,d,h,y,col,rot=0)=>{const [x,z]=W(u,v);add('box',{x,y,z,w,h,d,rot:b.rot+rot,col});};
@@ -253,7 +324,7 @@
     // Closed shells carry painted windows (patterns 8 and 9); open interiors have real ones.
     const pat=type==='shack'?6:interior?(b.tudor?1:5):(b.tudor?9:8);
     if(!interior&&MASSED.has(type)&&!b.hero)return closedMass(b);
-    const body=(o,mat)=>interior?add('shell',{...o,pat},mat):add('box',{x:o.x,y:o.y,z:o.z,w:o.w,h:o.h,d:o.d,rot:o.rot,col:o.col,pat},mat);
+    const body=(o,mat)=>interior?add('shell',{...o,pat},mat):add('box',{x:o.x,y:o.y,z:o.z,w:o.w,h:o.h,d:o.d,rot:o.rot,col:o.col,pat:o.pat??pat,bakeShade:true},mat);
     if(type==='market'){
       // The street half of the ground floor is an open arcade (arched stone piers) full of stalls; the back half is a
       // walled storehouse with cart doors; the hall above is reached by an outside stair.
@@ -262,9 +333,17 @@
       {const n=Math.max(2,Math.round((b.w-2)/4.5)),bw=(b.w-.2)/n;for(let k=0;k<n;k++){const u=-b.w/2+.1+(k+.5)*bw,[x,z]=W(u,F*(dh-.8));add('arch',{x,y:base,z,w:bw+.05,h:up-base+1.4,d:1.4,rot:b.rot,span:bw*.72,col:STONE,pat:4},'stone');}
         for(const e of [-1,1]){const [x,z]=W(e*(b.w/2-.6),F*dh*.45);add('box',{x,y:base,z,w:1.2,h:up-base,d:dh*.9,rot:b.rot,col:STONE,pat:4},'stone');}
         for(let k=0;k<5;k++){const [x,z]=W(r(-b.w/2+2,b.w/2-2),F*r(1,dh-2.5));add('box',{x,y:y0,z,w:r(.6,1),h:r(.5,.9),d:r(.6,1),rot:b.rot+r(-.3,.3),col:WOOD,pat:6},'wood');}}
-      prop(0,0,b.w,b.d,.6,up-.6,STONE);body({x:b.x,y:up,z:b.z,w:b.w,h:b.H-5,d:b.d,rot:b.rot,th,floor:up,storeys:[0],door:{side:b.doorSide,u:b.w/2-2.5,wid:2,hgt:3},col:b.wall},'plaster');
+      prop(0,0,b.w,b.d,.6,up-.6,STONE);body({x:b.x,y:up,z:b.z,w:b.w,h:b.H-5,d:b.d,rot:b.rot,th,floor:up,storeys:[0],door:{side:b.doorSide,u:b.w/2-2.5,wid:2,hgt:3},col:b.wall,pat:5},'plaster');
+      // The market hall has readable window bays, rather than repeating world-grid slits.
+      for(const side of [-1,1]){const v=side*(b.d/2+.06),nw=Math.max(2,Math.floor(b.w/4));
+        prop(0,v,b.w,.14,.22,up+.2,WOOD);prop(0,v,b.w,.18,.24,top-.25,WOOD);
+        for(let k=0;k<nw;k++){const u=-b.w/2+(k+.5)*b.w/nw,yy=up+1.5,hh=Math.min(2.6,b.H-7);
+          prop(u,v,1.8,.14,hh+.3,yy-.15,WOOD);prop(u,v+side*.09,1.4,.08,hh,yy,[.22,.3,.42]);
+          prop(u,v+side*.15,.09,.06,hh,yy,WOOD);prop(u,v+side*.15,1.4,.06,.09,yy+hh*.55,WOOD);
+        }
+      }
       if(interior){for(let i=0;i<6;i++)prop(r(-b.w/3,b.w/3),r(-b.d/3,b.d/3),2.4,1.4,1,y0,[CLOTH,WOOD,[.4,.56,.7]][i%3]);const [ax,az]=W(b.w/2-2.5,b.doorSide*(b.d/2+3)),[bx,bz]=W(b.w/2-2.5-12,b.doorSide*(b.d/2+3));add('ramp',{x0:bx,z0:bz,y0:y0,x1:ax,z1:az,y1:up,w:2.4,base:y0},'stone2');}
-      add('gable',{x:b.x,y:top,z:b.z,w:b.w,d:b.d+1.2,h:roofH,rot:b.rot,col:b.roof},'roof');return out;}
+      add('gable',{x:b.x,y:top,z:b.z,w:b.w,d:b.d+1.2,h:roofH*.75,rot:b.rot,col:b.roof},'roof');return out;}
     const doorU=type==='cathedral'||b.hero?0:b.doorU,doorW=type==='smithy'||type==='warehouse'?4:type==='cathedral'?5:1.6,doorH=type==='cathedral'?8:type==='smithy'||type==='warehouse'?4:2.6;
     const door=type==='cathedral'?{side:1,u:0,wid:6,hgt:9}:{side:b.doorSide,u:doorU,wid:doorW,hgt:doorH};
     body({x:b.x,y:base,z:b.z,w:b.w,h:top-base,d:b.d,rot:b.rot,th:type==='cathedral'?1.6:th,floor:y0,storeys:b.storeys,door,col:b.wall,grand:type==='cathedral'||type==='guildhall'},'plaster');
@@ -340,7 +419,7 @@
   function closedMass(b){const out=[],c=Math.cos(b.rot),s=Math.sin(b.rot),F=b.doorSide||1,W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c],y0=b.floor??G,base=b.base??y0-1,top=y0+b.H;
     const box=(u,v,w,d,y,h,col,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot,col,...o});};
     const STONE=[[.74,.7,.64],[.68,.65,.6],[.82,.74,.64]][b.seed%3],gH=b.type==='warehouse'||b.type==='smithy'?4.4:3.6,J=b.type==='warehouse'||b.type==='smithy'?0:(b.tudor||b.mass==='jetty'?.55:.25);
-    box(0,0,b.w,b.d,base,y0+gH-base,STONE,{pat:4});if(top>y0+gH+.5)box(0,F*J/2,b.w,b.d+J,y0+gH,top-y0-gH,b.wall,{pat:b.tudor?9:8});
+    box(0,0,b.w,b.d,base,y0+gH-base,STONE,{pat:4});if(top>y0+gH+.5)box(0,F*J/2,b.w,b.d+J,y0+gH,top-y0-gH,b.wall,{pat:b.tudor?9:8,bakeShade:true});
     // Eaves overhang everything; narrow houses turn the gable to the street.
     const front=b.roofStyle==='front'||b.mass==='jetty'&&b.w<8.5,dd=b.d+J,roofH=front?b.w*b.pitch*.6:dd*b.pitch*.5,[rx,rz]=W(0,F*J/2);
     if(front)out.push({t:'gable',x:rx,y:top,z:rz,w:dd+1.6,d:b.w+1,h:roofH,rot:b.rot+Math.PI/2,col:b.roof,pat:2});
@@ -366,7 +445,7 @@
     // ---- Upper storeys: each jettied toward the street; plaster infill, and for framed houses a real timber frame of
     // sill and head plates, posts about every 1.3 m, and braces in the panels (alternating, with crossed panels).
     const face=i=>F*(J*i/2+(b.d+J*i)/2),depthAt=i=>b.d+J*i,offAt=i=>F*J*i/2;
-    for(let i=1;i<n;i++){const yy=y0+gH+(i-1)*sH,dd=depthAt(i),vo=offAt(i);box(0,vo,b.w,dd,yy,sH,b.wall,{pat:5,nocol:false});
+    for(let i=1;i<n;i++){const yy=y0+gH+(i-1)*sH,dd=depthAt(i),vo=offAt(i);box(0,vo,b.w,dd,yy,sH,b.wall,{pat:5,nocol:false,bakeShade:true});
       if(J){box(0,F*(J*i/2+dd/2-.12),b.w+.14,.34,yy-.3,.32,TIM);for(let k=0;k<=Math.floor(b.w/1.6);k++){const u=-b.w/2+.2+k*(b.w-.4)/Math.floor(b.w/1.6);box(u,face(i)-F*.2,.18,.6,yy-.55,.3,TIM);}}
       if(!framed)continue;
       for(const side of [F,-F]){const v=side===F?face(i)+F*.07:offAt(i)-F*(dd/2+.07),np=Math.max(2,Math.round(b.w/1.3)),ps=b.w/np;
@@ -377,11 +456,7 @@
       // End walls get corner posts and plates too.
       for(const su of [-1,1]){const u=su*(b.w/2+.07);beam(P(u,vo-dd/2,yy+.08),P(u,vo+dd/2,yy+.08),TIM,.2);beam(P(u,vo-dd/2,yy+sH-.1),P(u,vo+dd/2,yy+sH-.1),TIM,.2);beam(P(u,vo,yy),P(u,vo,yy+sH),TIM,.15);}}
     const topY=y0+gH+(n-1)*sH,dTop=depthAt(n-1),vTop=offAt(n-1),front=b.w<9.5||b.type==='towerhouse';
-    // Painted shadow bands: under each jetty and under the eaves, the wall below carries a soft darker band (two steps,
-    // dark then lighter), as background painters fake the overhang's shade on a façade.
-    {const band=(i,yTop)=>{const v=face(i)+F*.025,wc=i===0?STONE:b.wall;box(0,v,b.w-.05,.03,yTop-.72,.42,wc.map((x,k)=>x*[.6,.58,.72][k]));box(0,v,b.w-.05,.03,yTop-1.25,.53,wc.map((x,k)=>x*[.8,.79,.88][k]));};
-      // Storey i's wall top sits under the next jetty (or the eaves on the top storey); the ground floor under the first.
-      for(let i=0;i<n;i++)band(i,i===0?y0+gH:y0+gH+i*sH);}
+    // Contact shading is baked into the infill mesh on all four walls by CastleRender.
     // ---- Roof: deep eaves, fascia boards, barge boards up the gable edges, a ridge cap; gable ends get framing and a
     // small window; long roofs get dormers.
     {const ov=.75;if(front){const h=b.w*r(.85,1.1),ww=b.w+ov*2,[x,z]=W(0,vTop);out.push({t:'gable',x,y:topY,z,w:dTop+ov*2,d:ww,h,rot:b.rot+Math.PI/2,col:b.roof,pat:2});
