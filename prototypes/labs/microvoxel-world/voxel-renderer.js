@@ -1345,11 +1345,11 @@ tintBase=palette[mat];crownKey=vec4(0);
     #ifdef SHADOW
     ax=lightAxes[0];ay=lightAxes[1];az=-lightAxes[2];
     #else
-    // Walk: each card faces the eye's position, and its in-plane orientation comes from a fixed direction of its own in
-    // the world (projected onto the card), so walking toward, away or under a crown only tilts cards smoothly; they never
-    // spin, flip or slide on screen.
-    if(walkView>.5){az=normalize(eye-centre);float h=fract(b.z*5.31)*6.2832;vec3 ref=normalize(vec3(cos(h),.35,sin(h)));
-      vec3 r=ref-az*dot(ref,az);if(dot(r,r)<1e-3)r=vec3(-az.z,0.,az.x)+vec3(0,0,1e-3);ax=normalize(r);ay=cross(az,ax);}
+    // Walk: each card faces the eye's position with no roll: its horizontal axis is always level (perpendicular to world
+    // up and to the direction to the eye), so cards turn and tilt to face you but never spin on screen. A small fixed
+    // per-card level direction keeps it steady when you stand right under a card, where that axis is undefined.
+    if(walkView>.5){az=normalize(eye-centre);float h=fract(b.z*5.31)*6.2832;
+      ax=normalize(cross(vec3(0,1,0),az)+vec3(cos(h),0.,sin(h))*.12);ay=normalize(cross(az,ax));ax=cross(ay,az);}
     else{ax=camRight;ay=camUp;az=-camForward;}
     #endif
     sprayDir=vec2(0,-1);if(kind>1.5){vec3 bough=normalize(vec3(crownIn.x,0.,crownIn.z)+vec3(0,-.6,0));vec2 d=vec2(dot(bough,ax),dot(bough,ay));if(dot(d,d)>1e-4)sprayDir=normalize(d);}
