@@ -168,22 +168,32 @@
   // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
   // gBump: the pattern's relief (0 deep joint .. 1 face) in metres-ish units scaled by gBumpK, for normal perturbation.
   float gBump=0.,gBumpK=0.;
+  // Voronoi with distance to the cell border (for flagstones): returns (border distance, cell id hash, centre offset x,z).
+  vec4 voro(vec2 x){vec2 n=floor(x),f=fract(x),mg,mr;float md=8.;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(i,j),o=vec2(hh(n+g),hh(n+g+17.3))*.8+.1,r=g+o-f;float d=dot(r,r);if(d<md){md=d;mr=r;mg=g;}}
+    md=8.;for(int j=-2;j<=2;j++)for(int i=-2;i<=2;i++){vec2 g=mg+vec2(i,j),o=vec2(hh(n+g),hh(n+g+17.3))*.8+.1,r=g+o-f;if(dot(mr-r,mr-r)>1e-5)md=min(md,dot(.5*(mr+r),normalize(r-mr)));}
+    return vec4(md,hh(n+mg),-mr);}
   vec3 pattern(vec3 c,vec3 n,float dist){gBump=0.;gBumpK=0.;int t=int(gT+.5);if(t==0)return c;float fade=1.-smoothstep(60.,420.,dist);if(fade<=0.)return c;
     vec3 p=gP;bool wall=abs(n.y)<.5;vec2 tg=normalize(vec2(-n.z,n.x)+1e-5);float u=dot(p.xz,tg);vec3 o=c;
+    // Distance up the slope (not height), so patterns on roofs and ramps keep their size whatever the pitch.
+    float sl=abs(n.y)<.97?p.y/max(sqrt(1.-n.y*n.y),.25):dot(p.xz,vec2(-tg.y,tg.x));
     if(t==1&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;
       float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(hh(vec2(cell,3.))<.45)beam+=step(abs(fu-fy),.05);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
     else if(t==2){
       // Roof tiles: staggered rows, each tile its own shade and a little hue drift, a shadowed lower lip, moss in patches.
-      float y=p.y*2.6,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);gBump=fy*.8+.2*smoothstep(0.,.08,fract(tu))*smoothstep(1.,.92,fract(tu));gBumpK=.05;float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
+      float y=sl*2.4,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);gBump=fy*.8+.2*smoothstep(0.,.08,fract(tu))*smoothstep(1.,.92,fract(tu));gBumpK=.05;float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
       vec3 tc=c*(.84+.24*hh(vec2(cell,row)))*vec3(1.+.06*(hh(vec2(row,cell))-.5),1.,1.-.05*(hh(vec2(cell+3.,row))-.5));
       // Patched in places with tiles of another batch (a different colour), as old roofs are.
       if(hh(vec2(floor(tu/3.),floor(row/2.)))>.93)tc*=vec3(.8,.85,1.05)*(.9+.2*hh(vec2(cell,row+5.)));
       o=tc*mix(.68,1.,lip)*mix(.8,1.,gap);float moss=smoothstep(.62,.8,vn(p.xz*.35+u*.1)+.25*hh(vec2(cell,row)));o=mix(o,vec3(.42,.52,.3)*(.8+.3*hh(vec2(cell,row))),moss*.55);}
     else if(t==3&&!wall){
-      // Worn setts: irregular rounded stones of uneven size (a warped grid), close-set in dark joints, toned in a few
-      // greys and browns, the odd tuft of grass in a joint.
-      vec2 w=p.xz*vec2(1.9,2.4)+vec2(vn(p.xz*.9),vn(p.xz*.9+5.))*.55;w.x+=floor(w.y)*.47;vec2 cl=floor(w),f=fract(w)-.5;float r=max(abs(f.x)*1.05,abs(f.y))+.08*(hh(cl)-.5),stone=1.-smoothstep(.36,.44,r);gBump=stone*(1.-r*r*2.);gBumpK=.06;
-      vec3 sc=c*mix(vec3(.82,.8,.78),vec3(.95,.88,.8),hh(cl+3.))*(.78+.3*hh(cl))*(1.06-.25*r);o=mix(c*.42,sc,stone);o=mix(o,vec3(.4,.5,.3),(1.-stone)*smoothstep(.72,.86,vn(p.xz*.6))*.7);}
+      // Flagstones, as painted backgrounds draw them: irregular rounded slabs in pale mortar, each slab tinted on its own
+      // (warm pinks, greys, sand), painted light on the edge facing the sun and a soft shadow crescent on the far edge,
+      // a gentle dome so the cel ramp rounds them.
+      vec2 w=p.xz*1.15;vec4 vr=voro(w);float bd=vr.x,stone=smoothstep(.035,.085,bd);
+      vec3 tint=mix(mix(vec3(.93,.84,.8),vec3(.86,.85,.86),hh(vec2(vr.y,1.))),vec3(.95,.9,.78),hh(vec2(vr.y,2.))*.6);
+      vec3 sc=c*tint*(.9+.18*vr.y);vec2 sd=normalize(SUN.xz+1e-4);float side=dot(normalize(vr.zw+1e-4),sd);
+      float rim=1.-smoothstep(.03,.2,bd);sc*=1.+.16*rim*max(side,0.)-.22*rim*max(-side,0.);sc*=.97+.06*vn(p.xz*2.3);
+      o=mix(c*vec3(1.05,1.03,1.)*1.08,sc,stone);gBump=smoothstep(.0,.22,bd);gBumpK=.05;}
     else if(t==4){
       // Coursed stone: blocks of varied length and tone, recessed mortar, moss creeping up the lowest courses.
       vec2 q=wall?vec2(u/1.05,p.y/.5):p.xz/vec2(1.05,.8);float row=floor(q.y);q.x+=row*.37+.5*hh(vec2(row,9.));q.x/=.8+.5*hh(vec2(row,floor(q.x)));vec2 f=fract(q);
@@ -191,7 +201,9 @@
       if(wall){float m=smoothstep(.55,.85,vn(vec2(u,p.y)*.6))*(1.-smoothstep(0.,2.5,fract(p.y/40.)*40.-5.));o=mix(o,vec3(.4,.5,.3),m*.4);}}
     else if(t==5){
       // Plaster: soft mottling with warm/cool drift, stains and rain streaks running down, grime at the foot.
-      float mot=vn(vec2(u,p.y)*.5)*.6+vn(vec2(u,p.y)*2.1)*.4;o=c*(.9+.16*mot)*vec3(1.+.03*(vn(vec2(u,p.y)*.17)-.5),1.,1.-.03*(vn(vec2(u,p.y)*.13)-.5));
+      // Painted plaster: big soft washes of warmer and cooler tone, a brushy mid layer, faint hairline cracks.
+      vec2 pq=vec2(u,p.y);float mot=vn(pq*.35)*.55+vn(pq*1.3)*.3+vn(pq*4.7)*.15;o=c*(.84+.26*mot)*vec3(1.+.08*(vn(pq*.12)-.5),1.,1.-.08*(vn(pq*.1+3.)-.5));
+      float crack=smoothstep(.985,1.,1.-abs(vn(pq*vec2(.9,.6)+11.)-.5)*2.)*step(.6,vn(pq*.2+7.));o*=1.-crack*.25;
       if(wall){float streak=smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;o*=1.-streak-.2*(1.-smoothstep(6.,7.4,p.y));
         // Plaster fallen away in patches, showing brick courses beneath with a ragged pale edge.
         float pf=vn(vec2(u,p.y)*.45+31.)+.35*vn(vec2(u,p.y)*1.7);if(pf>1.02){vec2 bq=vec2(u/.24,p.y/.08);bq.x+=floor(bq.y)*.5;vec2 bf=fract(bq);float m2=min(bf.x*.3,min(bf.y,1.-bf.y));
@@ -204,7 +216,7 @@
     else if(t==8||t==9){
       // Closed buildings: the plaster or framing, then painted windows on each storey (dark glass, pale frame).
       if(t==9&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
-      else{float mot=vn(vec2(u,p.y)*.5)*.6+vn(vec2(u,p.y)*2.1)*.4;o=c*(.9+.16*mot);o*=1.-smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;}
+      else{vec2 pq=vec2(u,p.y);float mot=vn(pq*.35)*.55+vn(pq*1.3)*.3+vn(pq*4.7)*.15;o=c*(.84+.26*mot)*vec3(1.+.08*(vn(pq*.12)-.5),1.,1.-.08*(vn(pq*.1+3.)-.5));o*=1.-smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;}
       if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     gBumpK*=fade;return mix(c,o,fade);}
@@ -397,7 +409,9 @@
   function wonk(m,from,b){const R=k=>{const x=Math.sin((b.seed%100000)*12.9898+k*78.233)*43758.5453;return x-Math.floor(x);},a=R(1)*Math.PI*2,lean=.006+.02*R(2)*R(2),lx=Math.cos(a)*lean,lz=Math.sin(a)*lean;
     const sag=b.type==='shack'?.35+.3*R(3):.06+.22*R(3),c=Math.cos(b.rot),s=Math.sin(b.rot),base=b.base??0,W=b.w/2+1.2;
     for(let v=from;v<m.p.length/3;v++){const i=v*3,x=m.p[i],y=m.p[i+1],z=m.p[i+2],dy=Math.max(0,y-base);if(m.t[v]===2){const u=(x-b.x)*c+(z-b.z)*s,t=Math.min(1,Math.abs(u)/W);m.p[i+1]-=sag*(1-t*t);}
-      m.p[i]=x+dy*lx;m.p[i+2]=z+dy*lz;}}
+      // Bowed, skewed walls: a gentle belly that varies with height, and the plan sheared a little off square.
+      const lu=(x-b.x)*c+(z-b.z)*s,lv=-(x-b.x)*s+(z-b.z)*c,bow=.12*R(4)*Math.sin(dy*.35+R(5)*6)*Math.cos(lu/Math.max(1,b.w)*Math.PI),sk=(R(6)-.5)*.08*lu;
+      m.p[i]=x+dy*lx-s*(bow+sk);m.p[i+2]=z+dy*lz+c*(bow+sk);}}
   // Frustum planes from a view-projection matrix (column-major), and a sphere test against them.
   function planes(M){const r=i=>[M[i],M[4+i],M[8+i],M[12+i]],R0=r(0),R1=r(1),R2=r(2),R3=r(3),out=[];
     for(const [a,sg] of [[R0,1],[R0,-1],[R1,1],[R1,-1],[R2,1],[R2,-1]]){const p=R3.map((v,i)=>v+sg*a[i]),l=Math.hypot(p[0],p[1],p[2]);out.push(p.map(v=>v/l));}return out;}
