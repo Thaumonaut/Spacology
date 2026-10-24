@@ -49,3 +49,16 @@ pews and altar, columns); the rest draw as closed shells.
 | city2-0-overview / city2-1-low | Seed 2 from outside the walls and low over the roofs |
 | city2-3-cathedral | Cathedral nave: columns, pews, altar |
 | city2-3-inn / -shop / -house / -smithy / -market | Interiors by type (Walk placed inside each) |
+
+## City life (v8)
+
+| File | What to look at |
+| --- | --- |
+| v8-city2-1-low | Seed 2 low over the roofs: ~3,000 buildings, back-lot clusters on alleys, castle on its hill with its road |
+| v8-city2-2-plaza | Walk start on the plaza: cobbles, Tudor timber framing, oil lanterns, market stalls, the guildhall arcade |
+
+Hero buildings always spawn on the plaza (cathedral opposite the castle, guildhall with arcade and clock tower, grand
+market hall). Secondary plazas with fountains sit where some avenues cross ring streets; 2-4 parks have ponds, trees,
+gravel paths and benches; stalls line the avenues near the plaza; lanterns every 26 m along avenues and rings. A slum
+sector against the wall is shacks in tight clusters. Surface patterns (timber framing, roof tiles, cobbles, stone
+courses, plaster grime, planks, grass) are drawn by the shader and fade out with distance.

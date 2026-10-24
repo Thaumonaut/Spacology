@@ -5,10 +5,10 @@
   'use strict';
   const TAU=Math.PI*2;
   // ---- Mesh building: positions, normals, colours and a material flag (1 = water) per vertex.
-  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;}
+  function Mesh(){this.p=[];this.n=[];this.c=[];this.f=[];this.t=[];this.k=[];this.id=[];this.pid=-1;this.solid=1;this.pat=0;this.glow=0;}
   Mesh.prototype.tri=function(a,b,c,col,na,nb,nc,flag=0){
     if(!na){const u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],v=[c[0]-a[0],c[1]-a[1],c[2]-a[2]];let n=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]];const l=Math.hypot(...n)||1;n=n.map(x=>x/l);na=nb=nc=n;}
-    for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(flag);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
+    const fl=flag||(this.glow?2:0);for(const [p,n] of [[a,na],[b,nb],[c,nc]]){this.p.push(...p);this.n.push(...n);this.c.push(...col);this.f.push(fl);this.t.push(this.pat);}this.k.push(flag?0:this.solid);this.id.push(this.pid);
   };
   Mesh.prototype.quad=function(a,b,c,d,col,ns){if(ns){this.tri(a,b,c,col,ns[0],ns[1],ns[2]);this.tri(a,c,d,col,ns[0],ns[2],ns[3]);}else{this.tri(a,b,c,col);this.tri(a,c,d,col);}};
   const shade=(c,k)=>c.map(v=>Math.min(1,v*k));
@@ -103,45 +103,65 @@
     m.quad(T[0],T[1],T[2],T[3],col);m.quad(B[0],T[0],T[3],B[3],shade(col,.92));m.quad(B[1],B[2],T[2],T[1],shade(col,.92));m.quad(B[0],B[1],T[1],T[0],shade(col,.9));m.quad(B[3],T[3],T[2],B[2],shade(col,.9));
     for(const e of [-1,1]){const ex=nx*e*.94,ez=nz*e*.94;const a=[x0+ex,y0,z0+ez],b=[x1+ex,y1,z1+ez],a2=[a[0],y0+1.1,a[2]],b2=[b[0],y1+1.1,b[2]];m.quad(a,b,b2,a2,shade(col,.95));}}
   function gatewall(m,o,col){const F=frame(o,0),g=o.gap/2;panel(m,F,-o.w/2,o.w,o.y,o.y+o.h,o.d,[{u0:-g,u1:g,y0:o.y-1,y1:o.y+o.gateH}],col);crenels(m,o,col);}
+  // Surface patterns drawn by the shader (no geometry): 1 timber framing, 2 roof tiles, 3 cobbles, 4 stone blocks,
+  // 5 plaster, 6 wood planks, 7 grass.
+  const PAT={roof:2,roof2:2,gold:0,paving:3,stone:4,stone2:4,trim:4,plaster:5,wood:6,grass:7,green:0};
   // Parts to triangles. `p.col` overrides the palette colour (city buildings carry their own plaster and roof colours).
   function meshParts(parts,pal,ox=0,oz=0,m=new Mesh()){const cols=colours(pal);
     for(let pi=0;pi<parts.length;pi++){const p0=parts[pi],p={...p0};m.pid=pi;if(p.x!=null){p.x+=ox;p.z+=oz;}if(p.cx!=null||p.t==='crag'||p.t==='ring'){p.cx=(p.cx||0)+ox;p.cz=(p.cz||0)+oz;}if(p.x0!=null){p.x0+=ox;p.z0+=oz;p.x1+=ox;p.z1+=oz;}
       const col=jit(p.col||cols[p.mat]||[1,0,1],(p.x||p.x0||0)*.37+(p.z||p.z0||0)*.11+(p.y||0));
-      m.solid=p.t==='blob'||p.nocol?0:1;
+      m.solid=p.t==='blob'||p.nocol?0:1;m.glow=p.glow?1:0;m.pat=p.pat!=null?p.pat:PAT[p.mat]||0;
       if(p.t==='box'){box(m,p,col);if(p.crenel)crenels(m,p,col);}
       else if(p.t==='shell')shell(m,p,col);else if(p.t==='tube')tube(m,p,col);else if(p.t==='spiral')spiral(m,p,col);else if(p.t==='disk')disk(m,p,col);
       else if(p.t==='ramp')ramp(m,p,col);else if(p.t==='gatewall')gatewall(m,p,col);
       else if(p.t==='cyl')cyl(m,p,col);else if(p.t==='cone')cone(m,p,col);else if(p.t==='dome')dome(m,p,col);else if(p.t==='gable')gable(m,p,col);
       else if(p.t==='arch')arch(m,p,col);else if(p.t==='crag')crag(m,p,cols);else if(p.t==='ring')prism(m,p,col);else if(p.t==='blob')blob(m,p,col);
       else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
+      else if(p.t==='water'){const seg=32,N=[0,1,0];for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri([p.x,p.y,p.z],[p.x+Math.cos(a1)*p.r,p.y,p.z+Math.sin(a1)*p.r],[p.x+Math.cos(a0)*p.r,p.y,p.z+Math.sin(a0)*p.r],[.2,.5,.62],N,N,N,1);}}
       else if(p.t==='quad'){const {x0,z0,x1,z1,y}=p,N=[0,1,0];m.quad([x0,y,z0],[x0,y,z1],[x1,y,z1],[x1,y,z0],col,[N,N,N,N]);}
       else if(p.t==='shore'){cyl(m,{x:p.x,y:-4,z:p.z,r:p.r,h:p.h+4,r2:p.r*.985},cols.grass,96);}}
     return m;}
-  function waterMesh(m=new Mesh()){const W=30000;for(const [a,b,c] of [[[-W,0,-W],[-W,0,W],[W,0,W]],[[-W,0,-W],[W,0,W],[W,0,-W]]])m.tri(a,b,c,[.2,.5,.62],[0,1,0],[0,1,0],[0,1,0],1);return m;}
+  function waterMesh(m=new Mesh()){m.pat=0;m.glow=0;const W=30000;for(const [a,b,c] of [[[-W,0,-W],[-W,0,W],[W,0,W]],[[-W,0,-W],[W,0,W],[W,0,-W]]])m.tri(a,b,c,[.2,.5,.62],[0,1,0],[0,1,0],[0,1,0],1);return m;}
   function build(castles){const m=new Mesh();for(const {castle,ox,oz} of castles)meshParts(castle.parts,castle.palette,ox,oz,m);return waterMesh(m);}
   // ---- GL
   const VS=`#version 300 es
-  in vec3 P;in vec3 N;in vec3 C;in float F;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out vec4 vL;
-  void main(){vP=P;vN=N;vC=C;vF=F;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
+  in vec3 P;in vec3 N;in vec3 C;in float F;in float T;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;
+  void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
   const FS=`#version 300 es
-  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in vec4 vL;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;out vec4 o;
+  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;out vec4 o;
   vec3 skyCol(vec3 d){float t=clamp(d.y,0.,1.);return mix(vec3(.82,.9,.98),vec3(.28,.52,.9),pow(t,.6));}
   float shadow(){vec3 c=vL.xyz/vL.w*.5+.5;if(any(lessThan(c,vec3(0)))||any(greaterThan(c,vec3(1))))return 1.;float s=0.;
     for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)s+=texture(SH,vec3(c.xy+vec2(i,j)*TX,c.z-.0012));return s/9.;}
+  float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y);}
+  // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
+  vec3 pattern(vec3 c,vec3 n,float dist){int t=int(vT+.5);if(t==0)return c;float fade=1.-smoothstep(40.,260.,dist);if(fade<=0.)return c;
+    vec3 p=vP;bool wall=abs(n.y)<.5;vec2 tg=normalize(vec2(-n.z,n.x)+1e-5);float u=dot(p.xz,tg);vec3 o=c;
+    if(t==1&&wall){float y=p.y-6.,fy=fract(y/3.6),fu=fract(u/1.7),cell=floor(u/1.7)+floor(y/3.6)*7.;
+      float beam=step(fy,.06)+step(.94,fy)+step(fu,.07)+step(.93,fu);if(hh(vec2(cell,3.))<.45)beam+=step(abs(fu-fy),.05);if(y>0.)o=mix(c,vec3(.27,.19,.14),clamp(beam,0.,1.));}
+    else if(t==2){float y=p.y*2.4,row=floor(y);float j=step(fract(y),.12)+step(fract(u*1.4+row*.5),.07);o=c*(1.-.16*clamp(j,0.,1.))*(.93+.12*hh(vec2(floor(u*1.4+row*.5),row)));}
+    else if(t==3&&!wall){vec2 q=p.xz*1.6,cl=floor(q+vec2(0,floor(q.x)*.5)),f=fract(q+vec2(0,floor(q.x)*.5));float e=min(min(f.x,1.-f.x),min(f.y,1.-f.y));o=c*(.86+.18*hh(cl))*(1.-.22*(1.-smoothstep(.04,.1,e)));}
+    else if(t==4){vec2 q=wall?vec2(u/1.15,p.y/.55):p.xz/vec2(1.15,.8);q.x+=floor(q.y)*.5;vec2 f=fract(q);float e=min(min(f.x,1.-f.x)*1.15,min(f.y,1.-f.y)*.55);o=c*(.88+.16*hh(floor(q)))*(1.-.18*(1.-smoothstep(.02,.06,e)));}
+    else if(t==5){o=c*(.95+.08*vn(vec2(u,p.y)*.6));if(wall)o*=1.-.18*(1.-smoothstep(6.,7.2,p.y));}
+    else if(t==6){o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));}
+    else if(t==7){o=c*(.86+.2*vn(p.xz*.12)+.06*vn(p.xz*1.3));}
+    return mix(c,o,fade);}
   void main(){vec3 V=normalize(EYE-vP),n=normalize(vN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-vP);
     // Closed solids only show faces turned to the eye, so a normal facing away is a winding slip: flip it.
-    if(vF>.5){
+    if(vF>.5&&vF<1.5){
       // Water: deep teal to sky by fresnel, with a sun glint path and gentle ripple shading.
       vec2 q=vP.xz*.02;float rip=sin(q.x*3.1+sin(q.y*2.3))*.5+sin(q.y*4.7+q.x*1.3)*.5;vec3 wn=normalize(vec3(rip*.02,1.,rip*.015)*mix(1.,.2,clamp(dist/3000.,0.,1.))+vec3(0,1,0)*0.);
       float fr=pow(1.-max(dot(wn,V),0.),4.);vec3 R=reflect(-V,wn);vec3 col=mix(vec3(.12,.42,.55),skyCol(R),.25+.65*fr);
       col+=vec3(1.,.95,.8)*pow(max(dot(R,SUN),0.),180.)*1.5*shadow();col*=mix(.8,1.,shadow());
       o=vec4(mix(col,skyCol(normalize(vP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
+    if(vF>1.5){o=vec4(mix(vC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
+    vec3 base=pattern(vC,n,dist);
     float ndl=dot(n,SUN),sh=shadow(),lit=max(ndl,0.)*sh;
     // Soft cel: a shadow tone, a mid tone and a lit tone with short smooth steps between them.
     float tone=smoothstep(.02,.16,lit)*.62+smoothstep(.45,.62,lit)*.38;
-    vec3 cool=vC*vec3(.6,.66,.92)*.82+vec3(.02,.03,.07),warm=vC*vec3(1.1,1.02,.9);
+    vec3 cool=base*vec3(.6,.66,.92)*.82+vec3(.02,.03,.07),warm=base*vec3(1.1,1.02,.9);
     vec3 col=mix(cool,warm,tone);
-    col+=vC*.1*(n.y*.5+.5)*vec3(.7,.85,1.);
+    col+=base*.1*(n.y*.5+.5)*vec3(.7,.85,1.);
     col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.18*sh*max(dot(-V,SUN)+.3,0.);
     // Aerial perspective toward the horizon sky.
     o=vec4(mix(col,skyCol(normalize(vP-EYE)*vec3(1,.3,1)),1.-exp(-dist/7000.)),1.);}`;
@@ -190,7 +210,7 @@
   // Meshes are uploaded once per key and kept; setMeshes picks which keys draw. Water (flag 1) never casts.
   Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:m.p.length/3,bufs:[]};
     const buf=(data,loc,size,vao,prog)=>{gl.bindVertexArray(vao);const b=gl.createBuffer();g.bufs.push(b);gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(data),gl.STATIC_DRAW);const l=gl.getAttribLocation(prog,loc);if(l>=0){gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,size,gl.FLOAT,false,0,0);}};
-    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;this.cache.set(key,g);return g;};
+    for(const [d,l,s] of [[m.p,'P',3],[m.n,'N',3],[m.c,'C',3],[m.f,'F',1],[m.t,'T',1]])buf(d,l,s,g.vao,this.main);buf(m.p,'P',3,g.svao,this.shadowProg);g.casts=!m.f.length||m.f[0]!==1;this.cache.set(key,g);return g;};
   Renderer.prototype.drop=function(key){const g=this.cache.get(key);if(!g)return;const gl=this.gl;g.bufs.forEach(b=>gl.deleteBuffer(b));gl.deleteVertexArray(g.vao);gl.deleteVertexArray(g.svao);this.cache.delete(key);};
   Renderer.prototype.setMeshes=function(list,bounds){this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
   Renderer.prototype.setMesh=function(m,bounds){for(const k of [...this.cache.keys()])this.drop(k);this.setMeshes([{key:'main'+(this.n=(this.n||0)+1),mesh:m}],bounds);};

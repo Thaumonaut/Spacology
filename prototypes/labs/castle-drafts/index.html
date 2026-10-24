@@ -54,7 +54,7 @@
     for(const k of city.tiles.keys()){const [i,j]=k.split(',').map(Number),inside=tw&&Math.abs(i-tw[0])<=1&&Math.abs(j-tw[1])<=1,t=tileMesh(k,inside);list.push(t);if(inside)cols.push(t.col);}
     return {list,collider:new CastleWalk.Multi(cols)};}
   function buildCity(){tileCache.clear();for(const k of [...R.cache.keys()])R.drop(k);
-    city=CityGen.generate(state.seed,{scale:state.scale});city.tiles=new Map();for(const b of city.buildings){const k=Math.floor(b.x/TILE)+','+Math.floor(b.z/TILE);if(!city.tiles.has(k))city.tiles.set(k,[]);city.tiles.get(k).push(b);}
+    city=CityGen.generate(state.seed,{scale:state.scale});city.tiles=new Map();for(const b of [...city.buildings,...city.props]){const k=Math.floor(b.x/TILE)+','+Math.floor(b.z/TILE);if(!city.tiles.has(k))city.tiles.set(k,[]);city.tiles.get(k).push(b);}
     const sm=CastleRender.meshParts(city.parts,city.palette),cm=CastleRender.meshParts(city.castle.parts,city.castle.palette,city.castleAt.x,city.castleAt.z);
     city.static={key:'city'+city.seed+':static',mesh:sm,col:new CastleWalk.Collider(sm)};city.castleMesh={key:'city'+city.seed+':castle',mesh:cm,col:new CastleWalk.Collider(cm)};city.water={key:'water',mesh:CastleRender.waterMesh()};
     const {list,collider}=cityList(null);state.collider=collider;state.castle={spawn:city.spawn};R.setMeshes(list,{cx:0,cz:0,r:city.radius+120,h:80});
