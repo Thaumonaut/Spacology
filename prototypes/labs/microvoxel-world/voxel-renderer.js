@@ -1220,7 +1220,7 @@
     if(innerShell<.5&&under<.5&&uvs.y>1.){float spikes=abs(fract(uvs.x*170.+seed*3.)-.5)*2.;if((uvs.y-1.)/.25>.35+.65*(1.-spikes)*(.7+.3*meadowNoise(vec2(uvs.x*60.,seed*9.))))discard;}
     vec3 n=normalize(nrm);float sun=sunlight();
     float clumps=meadowNoise(vec2(uvs.x*48.,uvs.y*5.+seed*11.))-.5;
-    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y))-innerShell*.32;
+    float tone=(dot(n,SUN)*.5+.5)*mix(.55,1.,sun)+clumps*.3+(under>.5?-.35:.12*(1.-uvs.y))-innerShell*.4;
     vec3 shadow,mid,high;crownBands(tierMat,palette[tierMat],shadow,mid,high);
     vec3 c=mix(mix(shadow,mid,smoothstep(.33,.39,tone)),mix(mid,high,.65),smoothstep(.8,.86,tone));
     color=vec4(c,1.);
@@ -1367,15 +1367,16 @@
       if(f>v){second=v;v=f;leaf=fi;side=clamp(across/(L*.6),-1.,1.);}else second=max(second,f);}
     gap=v-second;return v;
   }
-  // A conifer needle spray: nine tapered needles fanning down and out from a twig at the top, each its own length.
+  // A conifer sprig, as painted fir boughs are: a thin twig running down the card with short needles combed out on both
+  // sides, angled toward the tip and shortening along it. leaf: the needle index, side: which side of the twig.
   float sprayLeaf(vec2 q,float seed,out float leaf,out float gap,out float side){
-    vec2 o=vec2(0,.55);float v=-9.,second=-9.;leaf=-1.;side=0.;
-    float twig=.035-abs(q.x+(q.y-.55)*.1)-max(0.,abs(q.y-.2)-.35)*2.;if(twig>v){v=twig;leaf=9.;}
-    for(int i=0;i<9;i++){float fi=float(i),h=fract(sin(seed*71.3+fi*9.7)*4375.5),b=-1.5708+(fi-4.)*.3+(h-.5)*.18,L=.75+.35*h;
-      vec2 u=vec2(cos(b),sin(b)),w=vec2(-u.y,u.x),d=q-o;float al=dot(d,u),ac=dot(d,w),t=clamp(al/L,0.,1.);
-      float f=(.07*(1.-t)+.012)-abs(ac)-max(0.,-al)*2.-max(0.,al-L)*2.;
-      if(f>v){second=v;v=f;leaf=fi;side=clamp(ac/.07,-1.,1.);}else second=max(second,f);}
-    gap=v-second;return v;
+    float t=(.6-q.y)/1.3;side=sign(q.x);gap=1.;leaf=-1.;
+    if(t<0.||t>1.)return -1.;
+    float ax=abs(q.x),wob=.04*sin(t*5.+seed*20.),bx=abs(q.x-wob),len=.38*(1.-t*.65)*(.85+.3*fract(seed*7.1));
+    if(bx<.022*(1.-t*.5))return 1.;
+    float yk=q.y+bx*.55,P=.075,f=fract(yk/P);leaf=floor(yk/P);
+    float w=.016*(1.-bx/len)+.004;
+    float v=min(w-abs(f-.5)*P,len-bx);gap=w-abs(f-.5)*P;return v;
   }
   float lobeInside(vec2 q,float seed){float a,b,c;return lobeLeaf(q,seed,a,b,c);}
   float lobeEdge(vec2 q,float seed){return lobeInside(q,seed)>0.?9.:0.;}`;
@@ -1427,7 +1428,7 @@
     // keeping a little of the blob's own roundness so clumps still separate.
     vec3 k=(centre-crown.xyz)/vec3(crown.w,crown.w*.78,crown.w);float inner=length(k);
     vec3 nc=normalize(k+vec3(0,.12,0)),N=nc;
-    if(kind>1.5){float shade=(kind-2.)/.9;N=normalize(crown.xyz);nc=N;inner=1.-shade*.8;k=N*inner;}
+    if(kind>1.5){float shade=(kind-2.)/.9;N=normalize(crown.xyz);nc=N;inner=1.-shade*.5;k=N*inner;}
     float sun=sunlight(),wrap=dot(N,SUN)*.5+.5;
     // Fake occlusion: the crown darkens toward its core and its underside.
     float occl=(1.-smoothstep(.35,.95,inner))*.18+(1.-smoothstep(-.7,.1,nc.y))*.2;
