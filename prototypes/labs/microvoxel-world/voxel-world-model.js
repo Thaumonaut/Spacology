@@ -88,7 +88,9 @@
     const gallery=infinite&&options&&!!options.gallery;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
     const gorgeX=-Math.cos(massifAngle)*58,gorgeZ=-Math.sin(massifAngle)*58,gorgeDX=-Math.sin(massifAngle),gorgeDZ=Math.cos(massifAngle);
-    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}${gallery?':gallery':''}`,trees=new Map();
+    // options.ruinDecay: one decay (0 intact .. 1 buried) for every ruin site and building, for checks and previews.
+    const decayFix=options&&Number.isFinite(options.ruinDecay)?clamp(options.ruinDecay,0,1):null;
+    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}${gallery?':gallery':''}${decayFix!=null?':decay'+decayFix:''}`,trees=new Map();
     // Streamed geography is a pure function of (seed, x, z): macro map → relief → climate → biome. Nothing is stored
     // per column; the macro map (MacroMap, one finite Azgaar-style continent map per seed) is built once and cached.
     const SEA=14,MM=infinite?MacroLib.get(seed,mapTemplate):null;
@@ -925,6 +927,9 @@
     function ruinStyle(key,dec,dark=.25){const r=hash(key,3,seed+541);return {mat:r<dark?MAT.masonryDark:MAT.masonryWarm,ch:hash(key,5,seed+543)<.6?.5:.75,bl:1+.8*hash(key,7,seed+545),dec,key};}
     // Course height of a ruin style in 5 cm steps (the renderer's per-column block-size byte).
     const courseCode=S=>Math.round(S.ch/.05);
+    // A building's own decay: the site's with noise (spread ~±0.25), so one ruin keeps a standing tower and another is
+    // a stub; fixed when a decay is forced.
+    const buildingDecay=(S,n,spread=.5)=>decayFix??clamp(S.dec+(hash(n,S.key,seed+565)-.5)*spread,.05,.97);
     function kit(ox,oz,a,parts,S){
       const ca=Math.cos(a),sa=Math.sin(a),at=(u,w)=>[ox+u*ca-w*sa,oz+u*sa+w*ca],R=n=>hash(n,S.key,seed+471);
       const K={at,R,S,parts,a,
@@ -994,7 +999,7 @@
         // The whole footprint (out to 50 m) must be dry ground: no sea, lake, river or stream anywhere under a ruin.
         const dry=()=>{for(let r=5;r<=50;r+=5)for(let q=0;q<16;q++){const A=q/10*Math.PI*2,G2=geography(x+Math.cos(A)*r,z+Math.sin(A)*r);if(G2.sea||G2.water>G2.height||G2.riverDistance<4)return false;}return true;};
         if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&dry()){
-          const dec=.5+.4*hash(k,9,seed+469),S=ruinStyle(k,dec),a=hash(i,j,seed+467)*Math.PI*2,g0=g.height*cellMetres,parts=[],K=kit(x,z,a,parts,S),R=K.R;
+          const dec=decayFix??.5+.4*hash(k,9,seed+469),S=ruinStyle(k,dec),a=hash(i,j,seed+467)*Math.PI*2,g0=g.height*cellMetres,parts=[],K=kit(x,z,a,parts,S),R=K.R;
           const kind=ruinKindOf(ruinRoll(i,j),raised);let reach;
           if(kind==='castle')reach=castleRuin(K,g0);
           else if(kind==='town')reach=hamletRuin(K);
@@ -1011,11 +1016,11 @@
     function castleRuin(K,g0){
       const {R,S}=K,L=12+5*R(2),H=S.ch*Math.round((6.5+2*R(3))/S.ch),T=1.5,wo={crenel:true,rubble:true};
       K.wall(-L,L,-L,T,H,{...wo,op:[{p:0,c:0,w:1.8,n:1,sh:H,sill:0,lin:H-4.5,round:true}]});K.wall(-L,L,L,T,H,wo);K.wallZ(-L,L,-L,T,H,wo);K.wallZ(-L,L,L,T,H,wo);
-      for(const [u,w] of [[-L,-L],[L,-L],[-L,L],[L,L]])K.box(u,w,0,2.6,2.6,H+S.ch*Math.round((3+2*R(u*7+w))/S.ch),{crenel:true,rubble:true});
+      for(const [c,[u,w]] of [[-L,-L],[L,-L],[-L,L],[L,L]].entries())K.box(u,w,0,2.6,2.6,H+S.ch*Math.round((3+2*R(10+c))/S.ch),{crenel:true,rubble:true,dec:buildingDecay(S,10+c,.7)});
       K.box(-3.2,-L,0,1.2,1.8,H+2,{crenel:true});K.box(3.2,-L,0,1.2,1.8,H+2,{crenel:true});
-      const Kp=4+1.5*R(4),KH=S.ch*Math.round((12+5*R(5))/S.ch),sh=KH/3,win={p:2.4,c:1.2,w:.5,n:3,sh,sill:sh*.4,lin:S.ch,round:true,s0:1};
-      K.wall(-Kp,Kp,-Kp,1.2,KH,{crenel:true,rubble:true,op:[win,{p:0,c:0,w:.8,n:1,sh:3.2,sill:0,lin:S.ch,round:true}]});K.wall(-Kp,Kp,Kp,1.2,KH,{crenel:true,op:[win]});
-      K.wallZ(-Kp,Kp,-Kp,1.2,KH,{crenel:true,op:[win]});K.wallZ(-Kp,Kp,Kp,1.2,KH,{crenel:true,op:[win]});
+      const Kp=4+1.5*R(4),KH=S.ch*Math.round((12+5*R(5))/S.ch),sh=KH/3,win={p:2.4,c:1.2,w:.5,n:3,sh,sill:sh*.4,lin:S.ch,round:true,s0:1},kd=buildingDecay(S,20,.7);
+      K.wall(-Kp,Kp,-Kp,1.2,KH,{crenel:true,rubble:true,dec:kd,op:[win,{p:0,c:0,w:.8,n:1,sh:3.2,sill:0,lin:S.ch,round:true}]});K.wall(-Kp,Kp,Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});
+      K.wallZ(-Kp,Kp,-Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});K.wallZ(-Kp,Kp,Kp,1.2,KH,{crenel:true,dec:kd,op:[win]});
       K.pave(0,-L*.5,0,2.2,L*.5-1,{sl:1.2});K.pave(0,0,0,Kp+2,Kp+2,{sl:1.2});
       K.scatter(0,0,L+3,8+Math.round(10*S.dec));
       return L+6;
@@ -1026,8 +1031,8 @@
       const {R,S}=K,lot=11;
       for(let gu=-2;gu<=2;gu++)for(const side of [-1,1]){const hk=100+gu*20+side*7;if(R(hk)<.15||gu===0&&side<0)continue;
         const u=gu*lot+(R(hk+1)-.5)*2,w=side*(7+2*R(hk+2)),hl=2.5+1.2*R(hk+3),hw=3+1.5*R(hk+4);
-        K.house(u,w,side<0?0:Math.PI,hl,hw,R(hk+5)<.35?2:1,{dec:clamp(S.dec+(R(hk+6)-.5)*.5,.1,.95),mat:R(hk+8)<.15?(S.mat===MAT.masonryWarm?MAT.masonryDark:MAT.masonryWarm):S.mat});}
-      const cu=3*lot+3,ch=K.sub(cu,0,0),CH=S.ch*Math.round(7/S.ch),tall={p:3,c:1.5,w:.6,n:1,sh:CH,sill:2,lin:S.ch*2,round:true};
+        K.house(u,w,side<0?0:Math.PI,hl,hw,R(hk+5)<.35?2:1,{dec:buildingDecay(S,hk),mat:R(hk+8)<.15?(S.mat===MAT.masonryWarm?MAT.masonryDark:MAT.masonryWarm):S.mat});}
+      const cu=3*lot+3,ch=K.sub(cu,0,0,{...S,dec:buildingDecay(S,60)}),CH=S.ch*Math.round(7/S.ch),tall={p:3,c:1.5,w:.6,n:1,sh:CH,sill:2,lin:S.ch*2,round:true};
       ch.wall(-6,6,-4,.9,CH,{op:[tall],rubble:true});ch.wall(-6,6,4,.9,CH,{op:[tall],rubble:true});
       ch.wallZ(-4,4,-6,.9,CH,{gable:3.5,op:[{p:0,c:0,w:1.2,n:1,sh:4.5,sill:0,lin:S.ch,round:true},{p:0,c:0,w:.6,n:1,sh:CH+2.5,sill:CH-.5,lin:S.ch,round:true}]});ch.wallZ(-4,4,6,.9,CH,{gable:3.5,rubble:true});
       const BT=S.ch*Math.round((14+4*R(70))/S.ch);ch.box(8.6,0,0,2.1,2.1,BT,{op:[{p:0,c:0,w:.7,n:1,sh:BT,sill:BT-3.6,lin:S.ch,round:true}]});
@@ -1043,9 +1048,9 @@
       K.box(0,0,0,L,W,P,{y0:base,dec:0});K.box(-L-1.5,0,0,1.5,W*.6,P,{y0:base,steps:{tread:.5,rise:S.ch/2},dec:0});
       const cols=[];
       for(let c=0;c<=6;c++)for(const side of [-1,1]){const u=-L+1.3+c*(2*L-2.6)/6,w=side*(W-1.2),r=R(80+c*2+(side>0)),hk=c*2+(side>0);
-        if(r<.18){// Toppled: its drums lie in a row on the ground beside the podium.
+        if(r<.4*S.dec-.08){// Toppled: its drums lie in a row on the ground beside the podium.
           for(let d=0;d<4;d++)K.fallen(u+(d-1.5)*bh*1.1,w+side*(3+d*.15),bh*.5,.5,.5,{tilt:.3});cols.push(null);continue;}
-        const n=r<.45?Math.max(1,Math.round(nb*(.25+.5*R(81+hk)))):nb;K.pillar(u,w,0,.5,n,{y0:top,bh,cap:n===nb,lean:r>.92?.05:0});cols.push({u,w,full:n===nb});}
+        const n=r<.75*S.dec-.05?Math.max(1,Math.round(nb*(.25+.5*R(81+hk)))):nb;K.pillar(u,w,0,.5,n,{y0:top,bh,cap:n===nb,lean:r>.92?.05:0});cols.push({u,w,full:n===nb});}
       for(let c=0;c<12;c+=2)for(const s of [0,1]){const A2=cols[c+s],B2=cols[c+2+s];if(A2&&B2&&A2.full&&B2.full&&R(90+c+s)>.3)K.box((A2.u+B2.u)/2,A2.w,0,(B2.u-A2.u)/2+.8,.7,S.ch,{y0:top+S.ch+nb*bh+S.ch,seat:false,dec:0});}
       const cl=L*.45,cw=W*.55,CH=S.ch*Math.round(6/S.ch);
       K.wall(-cl,cl,-cw,.8,CH,{y0:top});K.wall(-cl,cl,cw,.8,CH,{y0:top});K.wallZ(-cw,cw,cl,.8,CH,{y0:top});K.wallZ(-cw,cw,-cl,.8,CH,{y0:top,op:[{p:0,c:0,w:1.1,n:1,sh:4.2,sill:0,lin:S.ch,round:true}]});
@@ -1056,10 +1061,10 @@
     // capitals on the whole ones, several leaning or broken; a trilithon gate; a small arch; a paved path winding
     // through; many fallen blocks in the grass.
     function monolithField(K){
-      const {R,S}=K,n=6+Math.floor(R(2)*6),bh=S.ch*2,ring=18+8*R(3);
+      const {R,S}=K,n=6+Math.floor(R(2)*6),bh=S.ch*2,ring=18+8*R(3),B=.6*S.dec-.05;
       for(let m=0;m<n;m++){const b=m/n*Math.PI*2+(R(10+m)-.5)*.5,d=ring*(.55+.45*R(20+m)),u=Math.cos(b)*d,w=Math.sin(b)*d,full=Math.round((5+4*R(30+m))/bh),r=R(40+m);
-        K.pillar(u,w,R(50+m)*.5,.65+.35*R(60+m),r<.35?Math.max(1,Math.round(full*(.3+.4*R(70+m)))):full,{bh,cap:r>=.35,lean:r>.75?.04+.05*R(80+m):0,plinth:.45,ph:S.ch*(1+(R(90+m)<.5))});
-        if(r<.35)K.scatter(u,w,3,2+Math.round(2*R(95+m)),1.1);}
+        K.pillar(u,w,R(50+m)*.5,.65+.35*R(60+m),r<B?Math.max(1,Math.round(full*(.3+.4*R(70+m)))):full,{bh,cap:r>=B,lean:r>.75?.04+.05*R(80+m):0,plinth:.45,ph:S.ch*(1+(R(90+m)<.5))});
+        if(r<B)K.scatter(u,w,3,2+Math.round(2*R(95+m)),1.1);}
       // Trilithon gate: two pillars and a lintel across them.
       {const G=K.sub(0,-ring*.25,R(5)*Math.PI),gn=Math.round(5/bh);G.pillar(-2.2,0,0,.6,gn,{bh,cap:false});G.pillar(2.2,0,0,.6,gn,{bh,cap:false});G.box(0,0,0,3.2,.75,S.ch*2,{y0:null,rel:S.ch+gn*bh,seat:false,dec:0});}
       {const A=K.sub(ring*.3,ring*.35,R(6)*Math.PI);A.wall(-2.5,2.5,0,1,S.ch*Math.round(5/S.ch),{op:[{p:0,c:0,w:1.3,n:1,sh:5,sill:0,lin:S.ch*2,round:true}]});}

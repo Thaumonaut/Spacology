@@ -31,4 +31,18 @@ for(const R of list.slice(0,8))for(let n=0;n<300;n++){
 for(const m of ['masonryWarm','paving'])assert.ok(seen.has(M.MAT[m]),`${m} appears in ruin columns`);
 assert.ok(M.ABOVE_GROUND.has(M.MAT.masonryWarm)&&M.ABOVE_GROUND.has(M.MAT.masonryDark)&&!M.ABOVE_GROUND.has(M.MAT.paving),'ruin stone stands on the ground; paving is ground');
 assert.equal(M.COLORS.length,M.MAT.paving+1,'every material has a colour');
+// Decay: the same walled sites intact (0) stand far taller than buried (0.9); temple pillars stand whole when intact.
+const stone=new Set([M.MAT.masonryWarm,M.MAT.masonryDark,M.MAT.mossy]);
+const intact=M.createWorld(2718,.25,'infinite',{ruinDecay:0}),buried=M.createWorld(2718,.25,'infinite',{ruinDecay:.9});
+assert.notEqual(intact.dataId,buried.dataId,'a forced decay has its own cache identity');
+for(const R of [...list.filter(R=>R.kind==='town').slice(0,2),...list.filter(R=>R.kind==='castle').slice(0,2)]){let a=0,b=0;
+  for(let vz=Math.floor((R.z-R.reach)/.25);vz<(R.z+R.reach)/.25;vz+=4)for(let vx=Math.floor((R.x-R.reach)/.25);vx<(R.x+R.reach)/.25;vx+=4){
+    const ca=intact.column(vx,vz),cb=buried.column(vx,vz),h=Math.ceil(intact.ground((vx+.5)*.25,(vz+.5)*.25)/.25)+1;
+    for(let y=h;y<ca.length;y++){if(stone.has(ca[y]))a++;if(stone.has(cb[y]))b++;}}
+  assert.ok(a>b*1.6,`${R.kind} at ${R.x.toFixed(0)},${R.z.toFixed(0)}: intact stone ${a} well above buried ${b}`);
+  assert.equal(intact.landmarksAt(R.x,R.z).ruin.decay,0);assert.equal(buried.landmarksAt(R.x,R.z).ruin.decay,.9);
+}
+{const T=list.find(R=>R.kind==='temple'),whole=W=>W.landmarksAt(T.x,T.z).ruin.parts.filter(q=>q.t==='pillar'&&q.cap).length;assert.ok(whole(intact)>whole(buried),'more whole temple pillars when intact');}
+// Per-building decay varies around the site's: a hamlet's houses do not all share one value.
+{const T=list.find(R=>R.kind==='town'),decs=new Set(T.parts.filter(q=>q.t==='box'&&q.maxS).map(q=>q.dec.toFixed(3)));assert.ok(decs.size>3,'houses carry their own decay');}
 console.log(`microvoxel structures: PASS (${list.length} ruins, kinds ${[...kinds].join(', ')}, ${probes} index probes)`);
