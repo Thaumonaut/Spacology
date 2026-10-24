@@ -175,6 +175,12 @@
       list.push({t:'box',x:mx,y:g+.02,z:mz,w:.03,h:.03,d:half*2,rot:Math.atan2(nz,nx)+Math.PI/2,col:[.3,.25,.2],nocol:true});
       for(let f=0;f<=nf;f++){const t=f/nf*2-1,x=mx+nx*t*half,z=mz+nz*t*half,y=g-(1-t*t)*1.1;list.push({t:'cone',x,y:y-.42,z,r:.17,h:.42,inv:true,col:cols[f%3],nocol:true});}
       prop(mx,mz,list);}
+    // Laundry strung across lanes and alleys from window to window, sagging, hung with shirts and sheets.
+    for(const st of streets){if(!(st.kind==='lane'||st.kind==='alley')||R()>.4)continue;const L=Math.hypot(st.x1-st.x0,st.z1-st.z0),t=r(.2,.8),mx=st.x0+(st.x1-st.x0)*t,mz=st.z0+(st.z1-st.z0)*t;if(inRiver(mx,mz,6))continue;
+      const nx=-(st.z1-st.z0)/L,nz=(st.x1-st.x0)/L,half=st.w/2+1.4,g=gy(mx,mz)+r(4.5,7),list=[],nf=Math.round(half*2/.75);
+      for(let f=0;f<nf;f++){const a=f/nf*2-1,b2=(f+1)/nf*2-1,ya=g-(1-a*a)*.7,yb=g-(1-b2*b2)*.7;list.push({t:'beam',x0:mx+nx*a*half,y0:ya,z0:mz+nz*a*half,x1:mx+nx*b2*half,y1:yb,z1:mz+nz*b2*half,s:.03,col:[.3,.27,.24],nocol:true});
+        if(f>0&&R()<.65){const sh=r(.5,.95),cw=r(.45,.8);list.push({t:'box',x:mx+nx*a*half,y:ya-sh,z:mz+nz*a*half,w:.03,h:sh,d:cw,rot:Math.atan2(nz,nx),col:pick([[.96,.95,.9],[.92,.9,.82],[.7,.8,.9],[.9,.75,.7],[.75,.82,.65],[.85,.4,.35]]),nocol:true});}}
+      prop(mx,mz,list);}
     // The main plaza: a tiered fountain round the statue, benches and flower planters in a ring.
     {const g0=gy(0,0);prop(0,0,[{t:'cyl',x:0,y:g0,z:0,r:12,h:.8,mat:'stone'},{t:'water',x:0,y:g0+.7,z:0,r:11.4},{t:'cyl',x:0,y:g0+.7,z:0,r:5,h:1.4,mat:'stone'},{t:'water',x:0,y:g0+2.05,z:0,r:4.5}]);
       for(let k=0;k<12;k++){const a=(k+.5)/12*TAU,x=Math.cos(a)*17,z=Math.sin(a)*17,L=[];
@@ -389,7 +395,10 @@
       if(b.type!=='warehouse'&&R()<.8){const u=r(-.3,.3)*b.w,v=vTop-F*dTop*.18,hh=(front?b.w*.9:dTop*.62)+1.6;box(u,v,1,1,topY,hh,[.62,.42,.34],{pat:4});box(u,v,1.3,1.3,topY+hh,.25,[.5,.36,.3]);}}
     // ---- Windows: frame, glass, a cross mullion, a stone sill, shutters on some, flower boxes on many.
     const nw=Math.max(1,Math.floor(b.w/2.5)),doorU=b.doorU||0;
-    const windowAt=(u,v,yy,ww,wh,ground)=>{const lit=R()<.2;box(u,v+F*.04,ww+.32,.12,yy-.16,wh+.32,TIM);box(u,v+F*.09,ww,.06,yy,wh,lit?WARM:GLASS,{glow:lit});
+    // Windows are hand-set: each a little off in place and size; a few are boarded up with crossed planks.
+    const windowAt=(u0,v,yy0,ww0,wh0,ground)=>{const u=u0+r(-.14,.14),yy=yy0+r(-.1,.1),ww=ww0*r(.86,1.1),wh=wh0*r(.88,1.08);
+      if(!ground&&R()<.05){box(u,v+F*.04,ww+.2,.1,yy-.1,wh+.2,[.2,.17,.15]);for(const e of [-1,1])beam(P(u-ww/2,v+F*.12,yy+(e>0?0:wh)),P(u+ww/2,v+F*.12,yy+(e>0?wh:0)),[.5,.36,.24],.14);beam(P(u-ww/2,v+F*.15,yy+wh*.5),P(u+ww/2,v+F*.15,yy+wh*.55),[.46,.33,.22],.16);return;}
+      const lit=R()<.2;box(u,v+F*.04,ww+.32,.12,yy-.16,wh+.32,TIM);box(u,v+F*.09,ww,.06,yy,wh,lit?WARM:GLASS,{glow:lit});
       box(u,v+F*.13,.08,.05,yy,wh,TIM);box(u,v+F*.13,ww,.05,yy+wh*.58,.08,TIM);box(u,v+F*.14,ww+.5,.24,yy-.26,.12,SILL);
       if(!ground&&R()<.45)for(const e of [-1,1])box(u+e*(ww/2+.32),v+F*.08,.48,.08,yy-.05,wh+.1,SHUT);
       if(!ground&&R()<.55){box(u,v+F*.3,ww+.25,.36,yy-.4,.3,[.45,.3,.2]);for(let f=0;f<4;f++)blob(u+(f-1.5)*ww*.28,v+F*.32,yy-.02,.2,R()<.3?pk(LEAF):pk(FLOW));
@@ -398,6 +407,10 @@
       for(let q=0;q<nw;q++){const u=-b.w/2+(q+.5)*b.w/nw;if(i===0&&Math.abs(u-doorU)<1.7)continue;const big=i===0&&shop;windowAt(u,v,yy+(big?.65:1.05),big?1.9:.95,big?1.9:1.35,i===0);}
       // Side walls: a window or two on the upper floors.
       if(i>0)for(const su of [-1,1])if(R()<.6){const [x,z]=[0,0],vv=offAt(i)+r(-.25,.25)*depthAt(i);box(su*(b.w/2+.04),vv,.12,1.25,yy+1,1.6,TIM);box(su*(b.w/2+.08),vv,.08,.95,yy+1.12,1.35,GLASS);}}
+    // ---- Street wear: posters pasted on the ground floor; shops get a hand-painted board over the front.
+    {const v=face(0);for(let k=0;k<Math.round(r(0,2.4));k++){const u=r(-b.w/2+.6,b.w/2-.6);if(Math.abs(u-doorU)<1.3)continue;const pw=r(.4,.75),ph=pw*r(1.1,1.5);box(u,v+F*.03,pw,.03,y0+r(1,1.7),ph,pk([[.9,.86,.7],[.85,.4,.32],[.95,.8,.4],[.5,.62,.75]]));}
+      if(shop){const bw=Math.min(b.w*.7,4.5);box(0,v+F*.06,bw+.2,.08,y0+gH-.95,.82,TIM);box(0,v+F*.1,bw,.06,y0+gH-.88,.68,pk([[.85,.28,.25],[.25,.42,.68],[.28,.55,.38],[.9,.7,.25],[.55,.3,.55]]),{pat:0});
+        for(let k=0;k<Math.round(bw/.6);k++)box(-bw/2+.4+k*.55,v+F*.14,.32,.03,y0+gH-.62+r(-.06,.06),.18,[.96,.92,.82]);}}
     // ---- Bay window (oriel) or balcony on some houses, on the first upper floor.
     if(n>=3&&R()<.35){const i=1,yy=y0+gH,v=face(i),u=r(-.25,.25)*b.w,bw=r(2.2,3);box(u,v+F*.45,bw,.9,yy+.2,sH-.5,b.wall,{pat:5});box(u,v+F*.5,bw+.3,1.1,yy-.1,.3,TIM);
       const [x,z]=W(u,v+F*.5);out.push({t:'gable',x,y:yy+sH-.3,z,w:bw+.3,d:1.2,h:.8,rot:b.rot,col:b.roof,pat:2});for(const e of [-.6,0,.6])box(u+e*bw*.6,v+F*.92,.55,.06,yy+1,1.3,GLASS);}

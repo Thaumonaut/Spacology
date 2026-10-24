@@ -182,3 +182,10 @@ in when ready. Street views: ~0.32M triangles (was 1.25M at 25 cm meshes), 30 ra
 | v23-approach | One axis from the main gate through the plaza to the castle on the summit; lilac distance haze layering the roofscape |
 | v23-avenue | From the plaza: the castle rising behind the statue on the axis |
 | v24-shop / v24-inn | Painterly textures: sett cobbles, mottled and streaked plaster, coursed stone with mortar and moss, tiled roofs with moss; bloom on lit windows |
+
+## Handmade and painted (v25-v26)
+
+| File | What to look at |
+| --- | --- |
+| v25-* | Handmade: houses lean slightly, roof ridges sag (shacks a lot), windows off-true, a few boarded up, plaster fallen off over brick, patched roof tiles, posters, shop boards, laundry lines |
+| v26-inn / v26-approach | Painted shading: soft wrapped light, one broad transparent cool shadow tone with soft edges, warm bounce, sky fill, screen-space contact shading tinted violet, watercolour drift in base colours; ink reduced to faint coloured silhouettes |

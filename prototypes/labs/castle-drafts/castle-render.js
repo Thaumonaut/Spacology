@@ -40,8 +40,9 @@
     const a=P(-u,0,-q),b=P(u,0,-q),cc=P(u,0,q),dd=P(-u,0,q),r0=P(-rl,h,0),r1=P(rl,h,0);
     m.quad(a,r0,r1,b,col);m.quad(cc,r1,r0,dd,col);m.tri(a,dd,r0,shade(col,.92));m.tri(b,r1,cc,shade(col,.92));}
   function gable(m,o,col){const {x,y,z,w,d,h,rot=0}=o,c=Math.cos(rot),s=Math.sin(rot),P=(u,v,wv)=>[x+u*c-wv*s,y+v,z+u*s+wv*c],u=w/2,q=d/2;
-    const a=P(-u,0,-q),b=P(u,0,-q),cc=P(u,0,q),dd=P(-u,0,q),r0=P(-u,h,0),r1=P(u,h,0);
-    m.quad(a,r0,r1,b,col);m.quad(cc,r1,r0,dd,col);m.tri(a,dd,r0,shade(col,.9));m.tri(b,r1,cc,shade(col,.9));}
+    // The slopes are split along the ridge (one strip per ~2 m), so a later sag or wobble can bend them.
+    const n=Math.max(1,Math.min(8,Math.round(w/2)));for(let i=0;i<n;i++){const u0=-u+w*i/n,u1=-u+w*(i+1)/n;m.quad(P(u0,0,-q),P(u0,h,0),P(u1,h,0),P(u1,0,-q),col);m.quad(P(u1,0,q),P(u1,h,0),P(u0,h,0),P(u0,0,q),col);}
+    m.tri(P(-u,0,-q),P(-u,0,q),P(-u,h,0),shade(col,.9));m.tri(P(u,0,-q),P(u,h,0),P(u,0,q),shade(col,.9));}
   // A bridge bay: two piers, a round arch, and the deck band above (the spandrel as thin columns along the curve).
   // The deck's walking surface is at y+h (so a bridge meets the road it carries), with knee-high parapets on both edges.
   function arch(m,o,col){const {x,y,z,w,d,rot,span}=o,h=o.h-1.4,c=Math.cos(rot),s=Math.sin(rot),pier=(w-span)/2,R=span/2,spring=Math.max(2,h-R-3);
@@ -160,7 +161,8 @@
   vec3 gP,gN,gC;float gF,gT;vec4 gL,gQ;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
   vec3 skyCol(vec3 d){float t=clamp(d.y,0.,1.);return mix(mix(vec3(.82,.9,.98),vec3(1.,.82,.62),GOLD),mix(vec3(.28,.52,.9),vec3(.36,.5,.86),GOLD),pow(t,.6));}
   float shadow(){vec3 c=gL.xyz/gL.w*.5+.5;if(any(lessThan(c,vec3(0)))||any(greaterThan(c,vec3(1))))return 1.;float s=0.;
-    for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)s+=texture(SH,vec3(c.xy+vec2(i,j)*TX,c.z-.0012));return s/9.;}
+    // Wide soft PCF (a rotated 16-tap disc, ~3 texels): shadows with painted soft edges, not hard cut-outs.
+    float a0=fract(sin(dot(gP.xz,vec2(12.99,78.23)))*43758.5)*6.283;for(int i=0;i<16;i++){float a=a0+float(i)*2.4,rr=sqrt((float(i)+.5)/16.)*3.2;s+=texture(SH,vec3(c.xy+vec2(cos(a),sin(a))*rr*TX,c.z-.0016));}return s/16.;}
   float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hh(i),hh(i+vec2(1,0)),f.x),mix(hh(i+vec2(0,1)),hh(i+vec2(1,1)),f.x),f.y);}
   // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
@@ -172,11 +174,14 @@
       // Roof tiles: staggered rows, each tile its own shade and a little hue drift, a shadowed lower lip, moss in patches.
       float y=p.y*2.6,row=floor(y),fy=fract(y),tu=u*1.5+row*.5,cell=floor(tu);float lip=smoothstep(.0,.22,fy),gap=smoothstep(.0,.06,fract(tu))*smoothstep(1.,.94,fract(tu));
       vec3 tc=c*(.84+.24*hh(vec2(cell,row)))*vec3(1.+.06*(hh(vec2(row,cell))-.5),1.,1.-.05*(hh(vec2(cell+3.,row))-.5));
+      // Patched in places with tiles of another batch (a different colour), as old roofs are.
+      if(hh(vec2(floor(tu/3.),floor(row/2.)))>.93)tc*=vec3(.8,.85,1.05)*(.9+.2*hh(vec2(cell,row+5.)));
       o=tc*mix(.68,1.,lip)*mix(.8,1.,gap);float moss=smoothstep(.62,.8,vn(p.xz*.35+u*.1)+.25*hh(vec2(cell,row)));o=mix(o,vec3(.42,.52,.3)*(.8+.3*hh(vec2(cell,row))),moss*.55);}
     else if(t==3&&!wall){
-      // Cobbles: rounded stones in offset rows with dark joints, sparse grass in the joints, a worn paler path.
-      vec2 q=p.xz*vec2(2.4,3.);q.x+=floor(q.y)*.5;vec2 cl=floor(q),f=abs(fract(q)-.5);float r=length(max(f-vec2(.3,.28),0.))+min(max(f.x-.3,f.y-.28),0.),stone=1.-smoothstep(.1,.17,r+.12);
-      vec3 sc=c*(.8+.28*hh(cl))*(1.08-.18*length(fract(q)-.5));o=mix(c*.6,sc,stone);o=mix(o,vec3(.42,.52,.32),(1.-stone)*smoothstep(.7,.85,vn(p.xz*.6))*.6);o*=1.+.07*smoothstep(.4,.8,vn(p.xz*.05));}
+      // Worn setts: irregular rounded stones of uneven size (a warped grid), close-set in dark joints, toned in a few
+      // greys and browns, the odd tuft of grass in a joint.
+      vec2 w=p.xz*vec2(1.9,2.4)+vec2(vn(p.xz*.9),vn(p.xz*.9+5.))*.55;w.x+=floor(w.y)*.47;vec2 cl=floor(w),f=fract(w)-.5;float r=max(abs(f.x)*1.05,abs(f.y))+.08*(hh(cl)-.5),stone=1.-smoothstep(.36,.44,r);
+      vec3 sc=c*mix(vec3(.82,.8,.78),vec3(.95,.88,.8),hh(cl+3.))*(.78+.3*hh(cl))*(1.06-.25*r);o=mix(c*.42,sc,stone);o=mix(o,vec3(.4,.5,.3),(1.-stone)*smoothstep(.72,.86,vn(p.xz*.6))*.7);}
     else if(t==4){
       // Coursed stone: blocks of varied length and tone, recessed mortar, moss creeping up the lowest courses.
       vec2 q=wall?vec2(u/1.05,p.y/.5):p.xz/vec2(1.05,.8);float row=floor(q.y);q.x+=row*.37+.5*hh(vec2(row,9.));q.x/=.8+.5*hh(vec2(row,floor(q.x)));vec2 f=fract(q);
@@ -185,7 +190,10 @@
     else if(t==5){
       // Plaster: soft mottling with warm/cool drift, stains and rain streaks running down, grime at the foot.
       float mot=vn(vec2(u,p.y)*.5)*.6+vn(vec2(u,p.y)*2.1)*.4;o=c*(.9+.16*mot)*vec3(1.+.03*(vn(vec2(u,p.y)*.17)-.5),1.,1.-.03*(vn(vec2(u,p.y)*.13)-.5));
-      if(wall){float streak=smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;o*=1.-streak-.2*(1.-smoothstep(6.,7.4,p.y));}}
+      if(wall){float streak=smoothstep(.72,.95,vn(vec2(u*3.,p.y*.15)))*.12;o*=1.-streak-.2*(1.-smoothstep(6.,7.4,p.y));
+        // Plaster fallen away in patches, showing brick courses beneath with a ragged pale edge.
+        float pf=vn(vec2(u,p.y)*.45+31.)+.35*vn(vec2(u,p.y)*1.7);if(pf>1.02){vec2 bq=vec2(u/.24,p.y/.08);bq.x+=floor(bq.y)*.5;vec2 bf=fract(bq);float m2=min(bf.x*.3,min(bf.y,1.-bf.y));
+          vec3 brick=vec3(.66,.38,.3)*(.8+.3*hh(floor(bq)))*mix(.6,1.,smoothstep(.03,.12,m2));o=mix(o*1.06,brick,smoothstep(1.04,1.07,pf));}}}
     else if(t==6){o=c*(.9+.14*hh(vec2(floor((wall?u:p.x)*4.),2.)));}
     else if(t==7){
       // Grass: broad light/dark drifts, tuft speckle and the odd white or yellow flower.
@@ -222,14 +230,18 @@
       o=vec4(mix(col,skyCol(normalize(gP-EYE)*vec3(1,0,1)+vec3(0,.02,0)),1.-exp(-dist/9000.)),1.);return;}
     if(gF>1.5){nrm.a=.75;o=vec4(mix(gC*1.4+vec3(.35,.25,.08),vec3(1.,.92,.6),.5),1.);return;}
     vec3 base=gQ.w>0.?voxTex(gC,dist):pattern(gC,n,dist);
-    float ndl=dot(n,SUN),sh=shadow(),lit=max(ndl,0.)*sh;
-    // Soft cel: a shadow tone, a mid tone and a lit tone with short smooth steps between them.
-    float tone=smoothstep(.02,.16,lit)*.62+smoothstep(.45,.62,lit)*.38;
-    // Golden hour: a warmer, stronger key light and violet-blue shadows (anime evening palette).
-    vec3 cool=base*mix(vec3(.6,.66,.92)*.82,vec3(.52,.5,.82)*.8,GOLD)+vec3(.02,.03,.07),warm=base*mix(vec3(1.1,1.02,.9),vec3(1.28,1.03,.76),GOLD);
+    // Painted shading (anime background style): a soft wrapped key light, one broad painted shadow tone (cool, light
+    // and transparent: the colour shows through) blended over a wide band, a sky fill from above, and a watercolour
+    // drift in the base colour so flat walls never read as one swatch.
+    base*=1.+.07*(vn(gP.xz*.05+gP.y*.03)-.5)+.05*(vn(gP.xz*.21-gP.y*.11)-.5);
+    float ndl=dot(n,SUN),sh=shadow(),wrap=clamp((ndl+.25)/1.25,0.,1.),lit=wrap*sh;
+    float tone=smoothstep(.08,.55,lit);
+    vec3 cool=base*mix(vec3(.66,.72,.95),vec3(.62,.6,.9),GOLD)+mix(vec3(.03,.04,.09),vec3(.05,.03,.09),GOLD),warm=base*mix(vec3(1.06,1.02,.94),vec3(1.2,1.04,.84),GOLD);
     vec3 col=mix(cool,warm,tone);
-    col+=base*.1*(n.y*.5+.5)*vec3(.7,.85,1.);
-    col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.18*sh*max(dot(-V,SUN)+.3,0.);
+    col+=base*.12*(n.y*.5+.5)*vec3(.75,.85,1.);
+    // Bounce: shadowed walls pick up a little warm light from the sunlit ground.
+    col+=base*vec3(1.,.8,.6)*.07*(1.-tone)*clamp(-n.y*.5+.5,0.,1.)*(1.-abs(n.y));
+    col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.1*sh*max(dot(-V,SUN)+.3,0.);
     // Layered haze: a soft light haze that pools low and thickens with distance (so roofscapes read in layers, like
     // painted backdrops), warm toward the sun, then aerial perspective toward the horizon sky.
     vec3 vd=normalize(gP-EYE),hz=mix(mix(vec3(.7,.8,.95),vec3(.72,.7,.9),GOLD),mix(vec3(1.,.93,.82),vec3(1.,.8,.62),GOLD),.45*pow(max(dot(vd,SUN),0.),4.));
@@ -306,11 +318,17 @@
   precision highp float;in vec2 uv;uniform sampler2D COL,NRM,DEP,BLOOM,SHAFT;uniform vec2 PX;uniform float NEAR,FAR,INK,GLOWK;uniform vec3 SUNCOL;out vec4 o;
   float lin(vec2 q){float d=texture(DEP,q).r*2.-1.;return 2.*NEAR*FAR/(FAR+NEAR-d*(FAR-NEAR));}
   void main(){vec2 q=uv*.5+.5;vec3 c=texture(COL,q).rgb;vec4 nc=texture(NRM,q);float zc=lin(q),e=0.;
+    // Painted contact shading: a screen-space occlusion (12 depth samples in a ring scaled to ~0.8 m), multiplied in
+    // as a cool violet tint, so corners, eaves and wall feet darken softly the way painters shade them.
+    if(nc.a>.5&&zc<900.){float ao=0.;float rad=clamp(40./zc,1.5,26.);for(int i=0;i<12;i++){float a=float(i)*2.399+fract(sin(dot(q,vec2(91.3,47.7)))*43758.5)*6.28,rr=rad*(.35+.65*fract(float(i)*.618));
+        float z=lin(q+vec2(cos(a),sin(a))*rr*PX),dz=zc-z;ao+=smoothstep(.05,.6,dz)*(1.-smoothstep(1.5,4.,dz));}
+      ao=clamp(ao/12.*1.6,0.,1.)*(1.-smoothstep(300.,900.,zc));c*=mix(vec3(1.),vec3(.62,.6,.78),ao*.75);}
     if(INK>0.&&nc.a>.5){vec2 o4[4]=vec2[4](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1));
       for(int i=0;i<4;i++){vec2 p=q+o4[i]*PX*1.2;float z=lin(p);vec4 nn=texture(NRM,p);
-        e=max(e,smoothstep(.025,.06,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.72,.5,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.85);else e=max(e,1.);}
-      e*=INK*(1.-smoothstep(250.,1600.,zc)*.8);}
-    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.12);c=mix(c,c*vec3(.28,.22,.3),e*.8);
+        e=max(e,smoothstep(.04,.1,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.55,.3,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.35);}
+      // Backgrounds in anime are barely lined: only a faint, coloured line on silhouettes, gone within ~20 m and far off.
+      e*=INK*.45*smoothstep(4.,20.,zc)*(1.-smoothstep(150.,700.,zc));}
+    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.12);c=mix(c,c*vec3(.5,.45,.58),e);
     // Glow and sun shafts over the ink (screen blend, so they never clip to white).
     vec3 add=texture(BLOOM,q).rgb*GLOWK+texture(SHAFT,q).r*SUNCOL;c=1.-(1.-c)*(1.-clamp(add,0.,1.));o=vec4(c,1.);}`;
   // Bright pass (half resolution): glowing surfaces (normal alpha .75) fully, other pixels above a threshold; the sky
@@ -361,6 +379,13 @@
     // Bounding sphere for culling (the water plane is never culled).
     let lo=[1e9,1e9,1e9],hi=[-1e9,-1e9,-1e9];for(let i=0;i<m.p.length;i+=3)for(let a=0;a<3;a++){const v=m.p[i+a];if(v<lo[a])lo[a]=v;if(v>hi[a])hi[a]=v;}
     g.c=lo.map((v,a)=>(v+hi[a])/2);g.r=g.casts?Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2:1e9;this.cache.set(key,g);return g;};
+  // Handmade wonk for one building's vertices [from, end) in m: the whole house leans a little its own way (sheared with
+  // height above its base), and its roof (tile pattern) sags toward the middle of the ridge. Normals are left alone: at
+  // these angles the change only shows in the outlines, which is the point.
+  function wonk(m,from,b){const R=k=>{const x=Math.sin((b.seed%100000)*12.9898+k*78.233)*43758.5453;return x-Math.floor(x);},a=R(1)*Math.PI*2,lean=.006+.02*R(2)*R(2),lx=Math.cos(a)*lean,lz=Math.sin(a)*lean;
+    const sag=b.type==='shack'?.35+.3*R(3):.06+.22*R(3),c=Math.cos(b.rot),s=Math.sin(b.rot),base=b.base??0,W=b.w/2+1.2;
+    for(let v=from;v<m.p.length/3;v++){const i=v*3,x=m.p[i],y=m.p[i+1],z=m.p[i+2],dy=Math.max(0,y-base);if(m.t[v]===2){const u=(x-b.x)*c+(z-b.z)*s,t=Math.min(1,Math.abs(u)/W);m.p[i+1]-=sag*(1-t*t);}
+      m.p[i]=x+dy*lx;m.p[i+2]=z+dy*lz;}}
   // Frustum planes from a view-projection matrix (column-major), and a sphere test against them.
   function planes(M){const r=i=>[M[i],M[4+i],M[8+i],M[12+i]],R0=r(0),R1=r(1),R2=r(2),R3=r(3),out=[];
     for(const [a,sg] of [[R0,1],[R0,-1],[R1,1],[R1,-1],[R2,1],[R2,-1]]){const p=R3.map((v,i)=>v+sg*a[i]),l=Math.hypot(p[0],p[1],p[2]);out.push(p.map(v=>v/l));}return out;}
@@ -431,5 +456,5 @@
     [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
     gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
   // The beam part needs these helpers outside the GL section.
-  window.CastleRender={GROUND,colourOf,patOf,build,meshParts,waterMesh,Mesh,Renderer};
+  window.CastleRender={wonk,GROUND,colourOf,patOf,build,meshParts,waterMesh,Mesh,Renderer};
 })();

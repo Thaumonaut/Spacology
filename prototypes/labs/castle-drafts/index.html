@@ -65,14 +65,14 @@
   // Buildings drawn by ray marching leave their tile's shell mesh (like opened ones); they keep a collider of their shell.
   const out=b=>opened.has(b.id)||rayShown.has(b.id);
   function shells(k){const T=city.tiles.get(k),ver=T.b.filter(out).map(b=>b.id).join('.');
-    return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!out(b))CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);return m;});}
+    return cached('ext:'+k+':'+ver,()=>{const m=new CastleRender.Mesh();for(const b of T.b)if(!out(b)){const f=m.p.length/3;CastleRender.meshParts(CityGen.buildingParts(b,false),city.palette,0,0,m);if(b.type!=='cathedral'&&!b.hero)CastleRender.wonk(m,f,b);}return m;});}
   // Street-level detail for the tiles round the walker (or round the view's focus when zoomed in close).
   function shellsNear(k){const T=city.tiles.get(k),ver=T.b.filter(b=>opened.has(b.id)).map(b=>b.id).join('.');
     return cached('near:'+k+':'+ver+':'+state.vox,()=>{const m=new CastleRender.Mesh(),vs=+state.vox,t0=performance.now();
       for(const b of T.b){if(opened.has(b.id))continue;const parts=CityGen.buildingParts(b,'near');
         // Each building is a voxel model in its own rotated grid; what the voxeliser leaves (people, water) is meshed.
         if(vs>0){const V=CastleVox.voxelize(parts,{x:b.x,z:b.z,rot:b.rot},vs,CastleRender.colourOf(city.palette),CastleRender.patOf);CastleVox.meshVox(V,{x:b.x,z:b.z,rot:b.rot},m);CastleRender.meshParts(V.rest,city.palette,0,0,m);}
-        else CastleRender.meshParts(parts,city.palette,0,0,m);}
+        else{const f=m.p.length/3;CastleRender.meshParts(parts,city.palette,0,0,m);if(b.type!=='cathedral'&&!b.hero)CastleRender.wonk(m,f,b);}}
       voxStats.ms+=performance.now()-t0;voxStats.tiles++;return m;});}
   const voxStats={ms:0,tiles:0};
   // Trees from the voxel world: a {t:'tree'} placeholder grows that species with the world's own generator (trunk and
