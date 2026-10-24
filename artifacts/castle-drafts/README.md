@@ -84,3 +84,10 @@ Plaza in Walk: 123 of 378 tile meshes drawn after frustum culling, 196k triangle
 Terrain: flat, rolling (~10 m relief) or hilly (~25 m). The river sits in a valley that eases down to quays at 4.5 m
 (water at 0); plazas, ponds and a level castle are flattened into the ground. Buildings stand on their highest corner
 with a plinth to the lowest (up to ~6 m on hilly ground). Interiors are parked (?interiors=1 re-enables doors).
+
+## Layout feel (v11)
+
+| File | What to look at |
+| --- | --- |
+| v11-2-plaza | A human-scale plaza (~130 m) framed by 4-5 storey terraced houses, stalls, lanterns, people |
+| v11-1-low | ~4,000 buildings: terraced inner streets, taller toward the centre, chimneys, hipped and gable-front roofs, bending avenues and wobbling rings |

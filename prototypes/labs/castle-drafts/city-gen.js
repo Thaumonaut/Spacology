@@ -24,7 +24,7 @@
   const SHACK=[[.62,.52,.42],[.55,.5,.46],[.66,.58,.48],[.5,.44,.38],[.7,.64,.56]],CLOTHS=[[.8,.3,.28],[.9,.76,.3],[.3,.5,.75],[.35,.62,.42],[.88,.88,.82],[.7,.4,.62]];
   function generate(seed,opts={}){
     const R=rng(seed),r=(a,b)=>a+(b-a)*R(),pick=a=>a[Math.floor(R()*a.length)],S=opts.scale||1;
-    const Rw=r(720,920)*S,plazaR=r(92,115)*S,gap=r(95,125),nA=Math.round(r(6,8)),a0=R()*TAU,pal=CastleGen.PALETTES[Math.floor(R()*CastleGen.PALETTES.length)];
+    const Rw=r(720,920)*S,plazaR=r(58,72)*S,gap=r(95,125),nA=Math.round(r(6,8)),a0=R()*TAU,pal=CastleGen.PALETTES[Math.floor(R()*CastleGen.PALETTES.length)];
     const parts=[],add=(t,o,mat)=>{const q={t,mat,...o};parts.push(q);return q;};
     // Small things (stalls, lanterns, trees, benches) are grouped per spot, so the viewer can file them into tiles.
     const props=[];const prop=(x,z,list)=>props.push({type:'prop',x,z,parts:list});
@@ -46,32 +46,38 @@
     markDisk(0,0,plazaR+2);
     // ---- Castle on its hill, out along one avenue on the side away from the river.
     const radials=[];for(let i=0;i<nA;i++)radials.push(a0+i/nA*TAU+r(-.08,.08));
-    const cA=radials.reduce((b,a)=>Math.cos(a)*-side>Math.cos(b)*-side?a:b,radials[0]),cD=Rw*r(.42,.55),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
+    const cA=radials.reduce((b,a)=>Math.cos(a)*-side>Math.cos(b)*-side?a:b,radials[0]),cD=Rw*r(.6,.68),cx=Math.cos(cA)*cD,cz=Math.sin(cA)*cD;
     // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
-    const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=2.4,cLevel=gy(cx,cz);
-    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.3,.38):r(.26,.32))*S,palette:CastleGen.PALETTES.indexOf(pal)});
+    const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=1.9,cLevel=gy(cx,cz);
+    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.28,.34):r(.26,.32))*S,palette:CastleGen.PALETTES.indexOf(pal)});
     castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR,fall:50,level:cLevel});
     // ---- Streets: radial avenues from the plaza to the gates, ring streets, and lanes splitting long blocks.
     const rings=[];for(let rr=plazaR+gap*.8;rr<Rw-45;rr+=gap*r(.85,1.15))rings.push(rr);
-    for(const a of radials){if(a===cA){street(Math.cos(a)*plazaR,Math.sin(a)*plazaR,Math.cos(a)*(cD-hillR*.9),Math.sin(a)*(cD-hillR*.9),16,'avenue');continue;}
-      street(Math.cos(a)*plazaR,Math.sin(a)*plazaR,Math.cos(a)*(Rw+60),Math.sin(a)*(Rw+60),14,'avenue');}
-    const ringSeg=(rr,w,kind,from=0,to=TAU)=>{const n=Math.max(8,Math.ceil(rr*(to-from)/18));for(let k=0;k<n;k++){const t0=from+(to-from)*k/n,t1=from+(to-from)*(k+1)/n;street(Math.cos(t0)*rr,Math.sin(t0)*rr,Math.cos(t1)*rr,Math.sin(t1)*rr,w,kind);}};
-    for(const rr of rings)ringSeg(rr,8,'ring');
+    // Avenues bend gently on their way out (as old roads do); ring streets wobble round the city; the avenue toward the
+    // castle stops at its grounds. bendAt(a,d): the avenue's angle at distance d.
+    const bends=radials.map(()=>[R()*TAU,r(.03,.07)]),bendAt=(i,d)=>radials[i]+bends[i][1]*Math.sin(d/260+bends[i][0])-bends[i][1]*Math.sin(plazaR/260+bends[i][0]);
+    radials.forEach((a,i)=>{const end=a===cA?cD-hillR*.9:Rw+60,n=Math.ceil((end-plazaR)/40);for(let k=0;k<n;k++){const d0=plazaR+(end-plazaR)*k/n,d1=plazaR+(end-plazaR)*(k+1)/n,a0=bendAt(i,d0),a1=bendAt(i,d1);
+      street(Math.cos(a0)*d0,Math.sin(a0)*d0,Math.cos(a1)*d1,Math.sin(a1)*d1,a===cA?16:14,'avenue');}});
+    const wob=rings.map(()=>[R()*TAU,R()*TAU,r(.02,.05),r(.01,.03)]),ringR=(k,t)=>rings[k]*(1+wob[k][2]*Math.sin(3*t+wob[k][0])+wob[k][3]*Math.sin(5*t+wob[k][1]));
+    const ringSeg=(k,w,kind)=>{const rr=rings[k],n=Math.max(8,Math.ceil(rr*TAU/16));for(let q=0;q<n;q++){const t0=TAU*q/n,t1=TAU*(q+1)/n;street(Math.cos(t0)*ringR(k,t0),Math.sin(t0)*ringR(k,t0),Math.cos(t1)*ringR(k,t1),Math.sin(t1)*ringR(k,t1),w,kind);}};
+    rings.forEach((_,k)=>ringSeg(k,8,'ring'));
     const sorted=[...radials].sort((a,b)=>a-b);
     for(let k=0;k+1<rings.length;k++)for(let i=0;i<sorted.length;i++){const s0=sorted[i],s1=i+1<sorted.length?sorted[i+1]:sorted[0]+TAU,mid=(rings[k]+rings[k+1])/2,n=Math.floor(mid*(s1-s0)/r(110,150));
-      for(let q=1;q<=n;q++){const a=s0+(s1-s0)*q/(n+1);street(Math.cos(a)*rings[k],Math.sin(a)*rings[k],Math.cos(a)*rings[k+1],Math.sin(a)*rings[k+1],5,'lane');}}
+      // Lanes cross the band with a kink in the middle, so blocks are not all wedges.
+      for(let q=1;q<=n;q++){const a=s0+(s1-s0)*q/(n+1),am=a+r(-.04,.04),r0=ringR(k,a),r1=ringR(k+1,a),rm=(r0+r1)/2;
+        street(Math.cos(a)*r0,Math.sin(a)*r0,Math.cos(am)*rm,Math.sin(am)*rm,5,'lane');street(Math.cos(am)*rm,Math.sin(am)*rm,Math.cos(a)*r1,Math.sin(a)*r1,5,'lane');}}
     // River banks are kept clear (quays), and the wall band.
     const hasRiver=(x,z)=>inRiver(x,z,5);
     // ---- Buildings along every street, both sides, front door to the street.
     const buildings=[];
     const zoneAt=(x,z,kind)=>{const d=Math.hypot(x,z);return inSlum(x,z)?'slum':d<plazaR+40?'plaza':d>Rw-90?'edge':kind==='avenue'?'avenue':'town';};
     const pickType=z=>{const w=ZONES[z];let t=R()*Object.values(w).reduce((a,b)=>a+b,0);for(const [k,v] of Object.entries(w)){if((t-=v)<0)return k;}return 'house';};
-    const fits=(x,z,w,d,rot)=>{const c=Math.cos(rot),s=Math.sin(rot);for(let u=-w/2+.5;u<=w/2;u+=2)for(let v=-d/2+.5;v<=d/2;v+=2){const px=x+u*c-v*s,pz=z+u*s+v*c;if(isOcc(px,pz)||hasRiver(px,pz)||Math.hypot(px,pz)>Rw-12)return false;}return true;};
-    const claim=(x,z,w,d,rot)=>{const c=Math.cos(rot),s=Math.sin(rot);for(let u=-w/2;u<=w/2+.1;u+=1.5)for(let v=-d/2;v<=d/2+.1;v+=1.5)mark(x+u*c-v*s,z+u*s+v*c);};
-    function place(type,x,z,w,d,rot,doorSide){const T=TYPES[type],n=Math.round(r(T.st[0],T.st[1])),st=[0];for(let i=1;i<n;i++)st.push(T.g+(i-1)*3.6);
+    const fits=(x,z,w,d,rot)=>{const c=Math.cos(rot),s=Math.sin(rot);for(let u=-w/2+.9;u<=w/2-.8;u+=1.6)for(let v=-d/2+.9;v<=d/2-.8;v+=1.6){const px=x+u*c-v*s,pz=z+u*s+v*c;if(isOcc(px,pz)||hasRiver(px,pz)||Math.hypot(px,pz)>Rw-12)return false;}return true;};
+    const claim=(x,z,w,d,rot)=>{const c=Math.cos(rot),s=Math.sin(rot);for(let u=-w/2+.6;u<=w/2-.5;u+=1.2)for(let v=-d/2+.6;v<=d/2-.5;v+=1.2)mark(x+u*c-v*s,z+u*s+v*c);};
+    function place(type,x,z,w,d,rot,doorSide){const T=TYPES[type],dc=Math.hypot(x,z)/Rw,tall=type==='house'||type==='shop'||type==='inn'?Math.round(Math.max(0,1.8-dc*2.6)):0,n=Math.round(r(T.st[0],T.st[1]))+tall,st=[0];for(let i=1;i<n;i++)st.push(T.g+(i-1)*3.6);
       const H=type==='chapel'?r(11,16):type==='bath'?8:T.g+(n-1)*3.6+.8;
       const tudor=(type==='house'||type==='inn'||type==='shop')&&R()<.45;
-      const b={id:buildings.length,type,x,z,w,d,rot,doorSide,storeys:st,H,tudor,wall:type==='shack'?pick(SHACK):tudor?[.96,.94,.88]:pick(PLASTER),roof:type==='chapel'||type==='guildhall'?pick([[.36,.46,.66],[.34,.58,.54]]):pick(ROOFS),pitch:type==='shack'?r(.25,.45):r(.6,1.05),doorU:type==='chapel'?0:r(-.25,.25)*(w-1.2),seed:Math.floor(R()*1e9)};
+      const b={id:buildings.length,type,x,z,w,d,rot,doorSide,storeys:st,H,tudor,wall:type==='shack'?pick(SHACK):tudor?[.96,.94,.88]:pick(PLASTER),roof:type==='chapel'||type==='guildhall'?pick([[.36,.46,.66],[.34,.58,.54]]):pick(ROOFS),pitch:type==='shack'?r(.25,.45):r(.6,1.05),doorU:type==='chapel'?0:r(-.25,.25)*(w-1.2),roofStyle:type==='shack'?'gable':w<8.5&&d>w*1.1&&R()<.55?'front':R()<.32?'hip':'gable',chimney:(type==='house'||type==='inn'||type==='smithy')&&R()<.65,seed:Math.floor(R()*1e9)};
       // Floor on the highest ground under the footprint; a plinth reaches down to the lowest, so nothing floats.
       {const c=Math.cos(rot),s2=Math.sin(rot),hs=[];for(const [u,v] of [[-1,-1],[1,-1],[1,1],[-1,1],[0,0]])hs.push(gy(x+u*w/2*c-v*d/2*s2,z+u*w/2*s2+v*d/2*c));b.floor=Math.max(...hs)+.15;b.base=Math.min(...hs)-.8;}
       buildings.push(b);claim(x,z,w,d,rot);return b;}
@@ -120,10 +126,11 @@
     for(let k=0;k<16;k++){const a=k/16*TAU;lantern(Math.cos(a)*(plazaR-3),Math.sin(a)*(plazaR-3));}
     for(let k=0;k<10;k++){const a=(k+.5)/10*TAU,d=plazaR*r(.45,.75);stall(Math.cos(a)*d,Math.sin(a)*d,a+Math.PI/2);}
     for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),nx=-Math.sin(rot),nz=Math.cos(rot);
-      for(const sd of [-1,1]){let t=r(0,4);while(t<L){const zone=zoneAt(s.x0+(s.x1-s.x0)*t/L,s.z0+(s.z1-s.z0)*t/L,s.kind);let type=pickType(zone);const T=TYPES[type],w=r(T.w[0],T.w[1]),d=r(T.d[0],T.d[1]);
+      // Inner streets are terraced: narrow houses wall to wall; the outer town has small gaps and gardens.
+      for(const sd of [-1,1]){let t=r(0,4);while(t<L){const px0=s.x0+(s.x1-s.x0)*t/L,pz0=s.z0+(s.z1-s.z0)*t/L,zone=zoneAt(px0,pz0,s.kind),inner=Math.hypot(px0,pz0)<Rw*.58&&zone!=='slum';let type=pickType(zone);const T=TYPES[type],w=r(T.w[0],T.w[1])*(inner&&(type==='house'||type==='shop')?.75:1),d=r(T.d[0],T.d[1]);
         const ut=t+w/2,px=s.x0+(s.x1-s.x0)*ut/L,pz=s.z0+(s.z1-s.z0)*ut/L,off=s.w/2+1.2+d/2,x=px+nx*sd*off,z=pz+nz*sd*off;
         // Square buildings (tower houses, baths) stand any way; the rest keep their long side to the street.
-        if(ut+w/2<=L&&fits(x,z,w,d,rot)){place(type,x,z,w,d,rot,-sd);t+=w+r(0,1.5);}else t+=r(2,4);}}}
+        if(ut+w/2<=L&&fits(x,z,w,d,rot)){place(type,x,z,w,d,rot,-sd);t+=w+(inner?r(0,.15):r(.6,3));}else t+=r(1.5,3);}}}
     // ---- Back lots: clusters of homes round small courtyards behind the street fronts, each reached by an alley from
     // the nearest street (the alley is laid first, so the cluster is never walled in). Slum clusters are shacks.
     const nearestStreet=(x,z)=>{let best=null;for(const st of streets){const dx=st.x1-st.x0,dz=st.z1-st.z0,L2=dx*dx+dz*dz,t=Math.max(0,Math.min(1,((x-st.x0)*dx+(z-st.z0)*dz)/L2)),qx=st.x0+dx*t,qz=st.z0+dz*t,d=Math.hypot(x-qx,z-qz);if(!best||d<best.d)best={d,qx,qz,st};}return best;};
@@ -187,7 +194,11 @@
     const door=type==='cathedral'?{side:1,u:0,wid:6,hgt:9}:{side:b.doorSide,u:doorU,wid:doorW,hgt:doorH};
     body({x:b.x,y:base,z:b.z,w:b.w,h:top-base,d:b.d,rot:b.rot,th:type==='cathedral'?1.6:th,floor:y0,storeys:b.storeys,door,col:b.wall,grand:type==='cathedral'||type==='guildhall'},'plaster');
     if(type==='bath'){const [x,z]=W(0,0);add('cyl',{x,y:top,z,r:Math.min(b.w,b.d)*.42,h:2},'stone');add('dome',{x,y:top+2,z,r:Math.min(b.w,b.d)*.44,col:[.34,.58,.54]},'roof');}
+    // Roofs: a gable along the street, a gable end to the street (narrow houses), or hipped; chimneys on homes.
+    else if(type!=='cathedral'&&b.roofStyle==='front')add('gable',{x:b.x,y:top,z:b.z,w:b.d+1.2,d:b.w+.6,h:b.w*b.pitch*.6,rot:b.rot+Math.PI/2,col:b.roof},'roof');
+    else if(type!=='cathedral'&&b.roofStyle==='hip')add('hip',{x:b.x,y:top,z:b.z,w:b.w+.8,d:b.d+1.2,h:roofH,rot:b.rot,col:b.roof},'roof');
     else add('gable',{x:b.x,y:top,z:b.z,w:b.w,d:b.d+1.2,h:type==='cathedral'?b.d*.7:roofH,rot:b.rot,col:b.roof},'roof');
+    if(b.chimney&&type!=='smithy'){const su=R()<.5?-1:1,[x,z]=W(su*b.w*.3,-b.doorSide*b.d*.15);add('box',{x,y:top,z,w:.9,h:(b.roofStyle==='front'?b.w*b.pitch*.6:roofH)+1.2,d:.9,rot:b.rot,col:[.62,.42,.34],nocol:true},'stone');}
     // Bell towers (chapels at the front corner, the cathedral's two west towers and a crossing spire), hollow with a stair.
     // The door opens toward the building's middle; the top landing is open over the stair's last turn.
     const belfry=(u,v,tr,h)=>{const [x,z]=W(u,v);if(interior){add('tube',{x,y:y0-1,z,r:tr,h:h+1,th:.8,doors:[{a:Math.atan2(b.z-z,b.x-x),y0,y1:y0+2.8}]},'stone');const ri=tr-.8,y1=y0+h-3,a1=(y1-y0)/.45*1.05/(ri*.55+.6);
