@@ -12,7 +12,7 @@ try{
   await p.locator('#walk').click();await ready(p);let s=await state(p);
   assert.equal(s.camera.mode,'walk');assert.ok(s.walk.active);assert.ok(s.camera.eyeY>s.walk.height+1.2);assert.equal(s.camera.fov,70);
   assert.ok(Object.keys(s.stream.rings).length>=4,'several distance rings are simultaneously requested');assert.equal(s.stream.level,0,'the near ring keeps L0 detail at the default budget');
-  assert.ok(s.meshCacheBytes<=s.meshCacheLimit);assert.equal(s.camera.viewDistance,6000);assert.ok(await p.locator('#coop').isHidden());
+  assert.ok(s.meshCacheBytes<=s.meshCacheLimit);assert.equal(s.camera.viewDistance,10000);assert.ok(await p.locator('#coop').isHidden());
   console.log('Walk ready',JSON.stringify({rings:s.stream.rings,frames:[s.frameP50,s.frameP95],bytes:s.meshCacheBytes}));const start=point(s);await p.locator('#world').focus();await p.keyboard.down('w');
   try{await p.waitForFunction(start=>{const s=MicroWorldLab.snapshot(),q=s.position;return Math.hypot(q.cx*8+q.x-start.x,q.cz*8+q.z-start.z)>=10;},start,{timeout:Math.max(45000,s.frameP95*120)});}catch(e){console.log('Movement failed',JSON.stringify(await state(p)));await p.screenshot({path:dir+'/walk-debug.png'});throw e;}await p.keyboard.up('w');await ready(p);
   s=await state(p);const walked=point(s);assert.ok(Math.hypot(walked.x-start.x,walked.z-start.z)>=10);assert.ok(s.camera.eyeY>s.walk.height+1.2);assert.equal(s.camera.x,0);assert.equal(s.camera.z,0);

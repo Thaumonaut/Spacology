@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   const M=root.MicroWorld,ANGLE=50*Math.PI/180,S=Math.sin(ANGLE),C=Math.cos(ANGLE),YAW=35*Math.PI/180,SY=Math.sin(YAW),CY=Math.cos(YAW);
-  const CAMERA_UNIFORMS=['skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','fogY','inverseViewProj'];
+  const CAMERA_UNIFORMS=['fogReach','skyHorizon','skyZenith','fogLit','fogShade','viewProj','eye','camRight','camUp','camForward','walkView','cameraNear','cameraFar','cameraPixelScale','fogAmount','fogTime','fogOffset','fogLayer','fogY','inverseViewProj'];
   const dot=(a,b)=>a.reduce((n,v,i)=>n+v*b[i],0);
   // Biome atmospheres, all at golden hour: sky horizon and zenith, and the sunlit and shaded fog colours. The renderer
   // blends the biomes around the view and eases toward them, so crossing a border shifts the sky over a few seconds.
@@ -61,8 +61,12 @@
   uniform vec3 eye, camRight, camUp;
   uniform float walkView, cameraPixelScale;
   out float viewDistance, viewDepth;
+  out vec3 viewWorld;
   vec4 toClip(vec3 p){
-    vec4 clip=viewProj*vec4(p,1.);viewDistance=length(p-eye);viewDepth=clip.w;
+    // Walk: the world curves away over the horizon (an exaggerated 120 km radius), so distant land sinks below the sky
+    // line instead of ending at a visible edge.
+    if(walkView>.5){vec2 h=p.xz-eye.xz;p.y-=dot(h,h)/240000.;}
+    vec4 clip=viewProj*vec4(p,1.);viewDistance=length(p-eye);viewDepth=clip.w;viewWorld=p;
     if(walkView>.5)return clip;
     vec3 q=p-center;float forward=q.x*${SY}+q.z*${CY};
     return vec4((q.x*${CY}-q.z*${SY})/halfView.x,(q.y*${C}-forward*${S})/halfView.y,-(q.y*${S}+forward*${C})/depth,1.);
@@ -79,6 +83,7 @@
   uniform vec3 origin, scale, localOffset, center, patternOrigin;
   uniform vec2 halfView;
   uniform float yaw, pitch, overrideMaterial, depth, smoothMesh, xray;
+  uniform vec2 dither;
   uniform vec3 lightAt, lightHalf;
   uniform mat3 lightAxes;
   out vec3 worldPosition, localPosition;
@@ -108,6 +113,7 @@
     // X-ray silhouettes only for real cover: pulled 1.5 m toward the camera, a crew part shows through only where
     // something at least that far in front hides it (never their own body, gear or the grass at their feet).
     if(walkView>.5)gl_Position=toClip(p+normalize(eye-p)*xray*1.5);else gl_Position.z-=xray*1.5/depth;
+    if(dither.x<0.)gl_Position.z+=.0015*gl_Position.w;
     #endif
   }`;
   // Biome tint: undergrowth (ferns, bushes, tufts, reeds) takes the biome's palette, and soil and stone lean slightly toward
@@ -282,7 +288,7 @@
   ${PEEK}
   void main(){
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
-    if(dither.x!=0.){float n=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715))));if(dither.x>0.?n>=dither.y:n<dither.y)discard;}
+    if(dither.x>0.){vec3 vc=floor(block-normal*.01);float n=fract(sin(dot(vc,vec3(12.9898,78.233,37.719)))*43758.5453);if(n>=dither.y)discard;}
     // A coarse stand-in skips the quarters already drawn by finished finer nodes (bit per quarter, x then z).
     if(quadMask>0.){int qd=(block.x>=${M.NODE_SIZE||32}.*.5?1:0)+(block.z>=${M.NODE_SIZE||32}.*.5?2:0);if(((int(quadMask)>>qd)&1)==1)discard;}
     if(peek.z>0.&&normalSize>0.&&xray<.5){
@@ -317,6 +323,7 @@
     // darker fill, so peaks and slopes read as form (sunward faces bright and warm, shaded faces cool, never black).
     // Flat meadows keep the softer light above.
     float relief=isLeaf(mat)||isBark(mat)||mat==7?0.:isRock(mat)||isWarmRock(mat)?1.:smoothstep(.12,.55,1.-n.y);
+    if(walkView>.5&&mat!=7)relief=max(relief,smoothstep(300.,2500.,viewDistance)*.85);
     vec3 form=mix(vec3(.46,.5,.64),vec3(.64,.7,.84),n.y*.5+.5)*.72+vec3(1.1,.96,.78)*key*.68*sun;
     light=mix(light,form,relief);
     light*=1.+cavity*mix(.3,.65,relief);
@@ -764,7 +771,7 @@
   uniform sampler2D sceneColor, sceneGlow;
   uniform highp sampler2D sceneDepth;
   uniform vec2 texel;
-  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime, fogY;
+  uniform float depthRange, threshold, ink, width, walkView, cameraNear, cameraFar, fogAmount, fogTime, fogY, fogReach;
   uniform vec3 skyHorizon, skyZenith, fogLit, fogShade;
   uniform vec2 fogOffset, fogLayer;
   uniform vec3 eye;
@@ -791,9 +798,9 @@
     // The layer is a slab 3 thicknesses either side of its base: valleys far below and peaks far above stay clear.
     vec3 r=to-eye;float top=fogLayer.x+3.*fogLayer.y,bottom=fogLayer.x-3.*fogLayer.y,t0=0.,t1=1.;
     if(abs(r.y)>1e-4){float a=(top-eye.y)/r.y,b=(bottom-eye.y)/r.y;t0=max(t0,min(a,b));t1=min(t1,max(a,b));}else if(eye.y>top||eye.y<bottom)return vec3(0);
-    float L=length(r);t1=min(t1,t0+(walkView>.5?320.:600.)/L);
+    float L=length(r);t1=min(t1,t0+(walkView>.5?1600.:600.)/L);
     if(t0>=t1)return vec3(0);
-    float seg=(t1-t0)*L/10.,jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))),k=fogAmount*(walkView>.5?.06:.16);
+    float seg=(t1-t0)*L/10.,jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(.06711056,.00583715)))),k=fogAmount*(walkView>.5?.05:.16);
     vec3 sun=normalize(vec3(-.5,1.,.4)),dir=r/L,acc=vec3(0);float glow=pow(max(0.,dot(dir,sun)),4.);
     for(int i=0;i<10;i++){
       vec3 p=eye+r*mix(t0,t1,(float(i)+jitter)/10.);float h,d=bank(p,h)*k;if(d<=0.)continue;
@@ -836,12 +843,13 @@
         if(walkView>.5&&z<1.){
           vec3 r=to-eye;float d=length(r);vec3 dir=r/d,sun=normalize(vec3(-.5,1.,.4));
           vec3 sky=mix(skyHorizon,skyZenith,smoothstep(0.,.85,dir.y));
-          vec3 air=mix(mix(fogShade,skyHorizon,.45),sky,smoothstep(60.,320.,d))+vec3(.16,.09,.02)*pow(max(0.,dot(dir,sun)),5.);
-          float aerial=(1.-exp(-max(0.,d-12.)*.007*fogAmount))*.6;
+          // Cool blue at middle distance, becoming exactly the sky behind it toward the far edge (no band at the horizon).
+          vec3 air=mix(mix(skyHorizon,skyZenith,.42)*1.06,sky,smoothstep(fogReach*.45,fogReach*.9,d))+vec3(.12,.07,.02)*pow(max(0.,dot(dir,sun)),6.);
+          float aerial=pow(smoothstep(fogReach*.3,fogReach*.95,d),1.4)*mix(.3,.65,fogAmount);
           scene=mix(scene,air,aerial);
           // Ground mist: a 2.5 m layer around the feet (mean density from three points along the ray), so grazing views
           // thicken while views down into a valley or up a slope stay clear.
-          float B=fogLayer.x,H=2.5;vec3 mid=(eye+to)*.5;
+          float B=eye.y-2.1,H=2.5;vec3 mid=(eye+to)*.5;
           float mean=(exp(-abs(eye.y-B)/H)+exp(-abs(mid.y-B)/H)+exp(-abs(to.y-B)/H))/3.;
           float mist=(1.-exp(-mean*d*.02*fogAmount))*.4;
           scene=mix(scene,mix(air,fogLit,.5),mist);seen=(1.-aerial)*(1.-mist);
@@ -1535,10 +1543,10 @@ tintBase=palette[mat];crownKey=vec4(0);
     if(vertexSource.includes('toClip(')){
       vertexSource=vertexSource.replace('  void main(){',CAMERA+'\n  void main(){');
       if(fragmentSource.includes('out vec4 color')){
-        fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nuniform float walkView, cameraPixelScale, fogAmount, cameraFar;\nuniform vec3 skyHorizon;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
+        fragmentSource=fragmentSource.replace('precision highp float;', 'precision highp float;\nin float viewDistance, viewDepth;\nin vec3 viewWorld;\nuniform float walkView, cameraPixelScale, fogAmount, cameraFar;\nuniform vec3 skyHorizon, skyZenith;\nuniform float fogReach;\nuniform vec3 eye;').replace('  void main(){','  void sceneMain(){');
         // Pattern visibility follows local projected size rather than the overhead span.
         fragmentSource=fragmentSource.replace(/(wavelength|blockSize)\/pixelWorld/g,'$1/(walkView>.5?max(.001,viewDepth*cameraPixelScale):pixelWorld)');
-        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){float haze=min(.72,1.-exp(-max(0.,viewDistance-cameraFar*.55)*.0045));vec3 air=skyHorizon;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
+        fragmentSource+=`\nvoid main(){sceneMain();if(walkView>.5){vec3 vd=normalize(viewWorld-eye);float haze=smoothstep(fogReach*.6,fogReach*.95,viewDistance);vec3 air=mix(skyHorizon,skyZenith,smoothstep(0.,.85,vd.y));if(haze>.995)discard;color.rgb=mix(color.rgb,air,haze);${fragmentSource.includes('glowOut')?'glowOut*=1.-haze;':''}}}`;
       }
     }
     const program=gl.createProgram(),vs=compile(gl,gl.VERTEX_SHADER,vertexSource),fs=compile(gl,gl.FRAGMENT_SHADER,fragmentSource);
@@ -1838,10 +1846,12 @@ tintBase=palette[mat];crownKey=vec4(0);
       const gl=this.gl,yb=this.yBase||0,v={...this.view,eye:[this.view.eye[0],this.view.eye[1]-yb,this.view.eye[2]],viewProj:Float32Array.from(this.view.viewProj)},c=this.camera,o=this.worldOrigin||{x:0,z:0},P=95*4096,off=[o.x,o.z].map(x=>x-P*Math.round(x/P)),fog=this.fogAmount??.5;
       for(let i=0;i<4;i++)v.viewProj[12+i]+=yb*this.view.viewProj[4+i];
       // Layer base in the GPU's explorer-relative height (like the eye); the bank noise adds yBase back so it stays put.
-      const layer=v.ortho?[(c.y??8)-4-yb,10]:[(c.eyeY??c.y??8)-2.1-yb,6];
+      // Walk: the fog-bank layer lies on the lowest ground around the walker (valleys and lowlands), so from high ground you
+      // look down onto banks of mist below; the thin mist at the feet is separate (post pass).
+      const valley=Math.min(this.fogFloor??Infinity,(c.eyeY??c.y??8)-2.1),layer=v.ortho?[(c.y??8)-4-yb,10]:[valley-yb,14];
       for(const [program,u] of [[this.pondProgram,this.pu2],[this.tubeProgram,this.tu],[this.lobeProgram,this.lou],[this.program,this.u],[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.cloudProgram,this.ku],[this.postProgram,this.pu],[this.skyProgram,this.skyU]]){
         gl.useProgram(program);gl.uniformMatrix4fv(u.viewProj,false,v.viewProj);gl.uniform3fv(u.eye,v.eye);gl.uniform3fv(u.camRight,v.right);gl.uniform3fv(u.camUp,v.up);gl.uniform3fv(u.camForward,v.forward);gl.uniform1f(u.walkView,v.ortho?0:1);gl.uniform1f(u.cameraNear,v.near);gl.uniform1f(u.cameraFar,v.far);gl.uniform1f(u.cameraPixelScale,v.pixelWorldAt(1));
-        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
+        gl.uniform3fv(u.skyHorizon,this.sky_[0]);gl.uniform3fv(u.skyZenith,this.sky_[1]);gl.uniform3fv(u.fogLit,this.sky_[2]);gl.uniform3fv(u.fogShade,this.sky_[3]);gl.uniform1f(u.fogAmount,fog);gl.uniform1f(u.fogTime,time);gl.uniform2fv(u.fogOffset,off);gl.uniform2fv(u.fogLayer,layer);gl.uniform1f(u.fogReach,Math.max(80,Math.min(v.far,this.fogReach??v.far)));gl.uniform1f(u.fogY,yb);if(program===this.postProgram)gl.uniformMatrix4fv(u.inverseViewProj,false,invert(v.viewProj));
       }
     }
     sky(off){

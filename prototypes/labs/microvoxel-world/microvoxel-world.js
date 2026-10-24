@@ -44,6 +44,9 @@
     if(!jumped&&now-atmosphereAt<500)return;atmosphereAt=now;atmosphereFrom={x,z};
     const biomes=[];for(const [dx,dz] of [[0,0],[0,0],[40,0],[-40,0],[0,40],[0,-40]])biomes.push(world.geography(x+dx,z+dz).biome);
     renderer.setAtmosphere(biomes,jumped);
+    // The lowest ground within ~1.5 km (valley floors, lakes), where Walk's fog banks settle.
+    let floor=Infinity;for(const r of [0,300,700,1500])for(let k=0;k<(r?8:1);k++){const a=k*Math.PI/4,h=world.ground(x+Math.cos(a)*r,z+Math.sin(a)*r);if(h!==null)floor=Math.min(floor,h);}
+    renderer.fogFloor=Number.isFinite(floor)?floor+3:undefined;
   }
   // The view centres on the explorer's altitude so high ground stays on screen. Discrete moves snap it; travel re-centres
   // smoothly once the ground has drifted more than 10 m from it, and never during a drag (terrain must track the pointer).
@@ -154,7 +157,7 @@
   // Aim for about five screen pixels per voxel (ten in Economy): with hillshade, leaf cards and outlines carrying the
   // detail, finer levels cost far more geometry than they show.
   function autoLevel(){if(camera.mode==='walk')return 0;const ppm=canvas.width/camera.span;return Math.max(0,Math.round(Math.log2((economy?10:5)/ppm/world.cell)));}
-  function updateStream(){camera.viewDistance=economy?1200:6000;
+  function updateStream(){camera.viewDistance=economy?1500:10000;
     visible=[];viewY=camera.y;
     const pin=camera.mode==='walk'?null:pinnedVoxel(),want=pin?Math.round(Math.log2(pin)):autoLevel();let r;
     // A pinned level never coarsens; if its nodes cannot fit the budget, the view narrows instead.
@@ -375,6 +378,8 @@
       push(frameSamples,delta);if(!paused){simTime+=dt;if(!coop.update(dt,atlas.crew,atlas))atlas.update(dt);}
       if(visible.length&&visible.every(v=>cache.items.has(v.key)))renderStep=step;
       atmosphere();
+      // Fog reach follows what has loaded: it closes in at once to cover unbuilt ground and eases back out as it fills.
+      if(stream&&camera.mode==='walk'){const want=Math.max(150,stream.loadedRadius()),cur=renderer.fogReach??want;renderer.fogReach=want<cur?want:cur+(want-cur)*Math.min(1,delta/1500);}else if(renderer)renderer.fogReach=undefined;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       if(world.infinite)stream.draw(now);
       for(const v of visible){
