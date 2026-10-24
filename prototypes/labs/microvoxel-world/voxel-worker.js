@@ -1,6 +1,6 @@
 'use strict';
 // The version query bypasses stale browser/service-worker copies; bump it with generator revisions.
-importScripts('macro-map.js?v=wilds-24','voxel-world-model.js?v=wilds-24');
+importScripts('macro-map.js?v=wilds-25','voxel-world-model.js?v=wilds-25');
 let world,cache;
 self.onmessage=({data})=>{
   const {seed,cell=MicroWorld.CELL,extent=MicroWorld.EXTENT,map=null,gallery=false,cx,cz,step,token,dataId}=data;

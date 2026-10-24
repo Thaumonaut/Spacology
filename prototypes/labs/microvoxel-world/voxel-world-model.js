@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-24':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-25':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -2024,7 +2024,7 @@
     // highest cell written (lips included).
     let rockTop=0;
     const STRATA=1.1,stratum=k=>(k+.5*hash(k,7,seed+815))*STRATA;
-    function rockTone(k,region){const t=hash(k,11,seed+825)+(region-.5)*.5;return t<.2?MAT.rockDark:t>.85?MAT.rockPale:t>.7&&region>.5?MAT.rockWarm:MAT.basalt;}
+    function rockTone(k,region){const t=hash(k,11,seed+825)+(region-.5)*.5;return t<.2?MAT.rockDark:t>.85?MAT.rockPale:t>.78&&region>.68?MAT.rockWarm:MAT.basalt;}
     function roughRock(g,x,z,values,h,scree=false){
       // Crag walls (gorge walls, cliff bands, mesa walls) count as steep whatever the smooth slope says.
       const s=Math.min(Math.max(g.slope,(g.cliff||0)*2.2),3),r=.35+.65*clamp((s-.2)/.8,0,1),Hm=h*cellMetres,step=colStep*cellMetres;
@@ -2034,7 +2034,7 @@
       const Hs=Math.min(g.surface,Hm+cellMetres),warp=(noise(x*.06,z*.06,seed+811)-.5)*3+(noise(x*.19,z*.19,seed+813)-.5)*.8,u=Hs+warp;
       let k=Math.floor(u/STRATA);if(u<stratum(k))k--;
       const depth=u-stratum(k),soft=hash(k,9,seed+817);
-      const ht=clamp(Math.floor((Hs-(talus?0:r*(.4+.5*soft)*depth)+chip*(talus?.6:1))/cellMetres),Math.max(1,h-8*density),heightCells-8*density);
+      const ht=clamp(Math.floor((Hs-(talus?0:r*(.2+.3*soft)*depth)+chip*(talus?.6:1))/cellMetres),Math.max(1,h-8*density),heightCells-8*density);
       if(ht<h)values.fill(0,ht,h);else if(ht>h)values.fill(MAT.basalt,h,ht);
       rockTop=ht;
       if(talus){const c=hash(Math.floor(x*2),Math.floor(z*2),seed+837);values[ht-1]=c<.3?MAT.stone:c<.4?MAT.boulder:MAT.gravel;if(ht>h)values.fill(MAT.gravel,h,ht-1);return ht;}
@@ -2042,15 +2042,7 @@
       const region=noise(x*.035,z*.035,seed+823),D=Math.min(ht,Math.ceil((s*step+1.8)/cellMetres));
       let kk=k+1;for(let y=ht-1;y>=ht-D;y--){const uy=(y+.5)*cellMetres+warp;while(kk>-1e9&&uy<stratum(kk))kk--;values[y]=rockTone(kk,region);}
       // Lichen on treads: grey-green in patches, rust in drier regions.
-      if(s<1.7&&noise(x*.4,z*.4,seed+827)>.7&&hash(Math.floor(x*4),Math.floor(z*4),seed+829)<.6)values[ht-1]=noise(x*.07,z*.07,seed+831)>.72&&hash(Math.floor(x*4),Math.floor(z*4),seed+853)<.5?MAT.lichenOrange:MAT.lichen;
-      // Lip: within reach of the riser of the next stratum up, a hard layer overhangs this ledge (solid over air).
-      if(step<.51&&s>.6){
-        const bn=stratum(k+1),d=(bn-u)/s,reach=.45+.4*noise(x*.5,z*.5,seed+833);
-        if(d<reach&&bn-u<.6*(stratum(k+2)-bn)&&hash(k+1,13,seed+835)>.35){
-          const top=bn-warp+chip,hi=Math.min(heightCells,Math.floor(top/cellMetres)),lo=Math.max(ht,Math.floor((top-.5-.25*hash(k+1,15,seed+839))/cellMetres));
-          if(hi>ht+1&&hi>lo){values.fill(rockTone(k+1,region),lo-ht<2?ht:lo,hi);rockTop=hi;}
-        }
-      }
+      if(s<1.7&&noise(x*.4,z*.4,seed+827)>.7&&hash(Math.floor(x*4),Math.floor(z*4),seed+829)<.6)values[ht-1]=noise(x*.07,z*.07,seed+831)>.84&&hash(Math.floor(x*4),Math.floor(z*4),seed+853)<.4?MAT.lichenOrange:MAT.lichen;
       return ht;
     }
     // A column is a vertical band: cells [colFloor, colTop) are written into a reused full-height scratch; everything
