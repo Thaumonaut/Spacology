@@ -109,3 +109,10 @@ crossings nearest the plaza get bridges, each square to the river; other streets
 | --- | --- |
 | v13-city2 | Top-down: the main road bridges the river square to it; the castle (~360 m, palace layout) dwarfs the cathedral |
 | v13-city6 | Oblique: main road gate to gate across the river bridge; castle grounds ~520 m |
+
+## Linked castles and moat rivers (v14-v15)
+
+| File | What to look at |
+| --- | --- |
+| v14-linked-* | Linked castles: satellite crags with keeps and spire towers joined to the ring castle by high viaducts |
+| v15-moat3 / v15-moat6 | Moat cities: the river sweeps round two thirds of the walls; gate roads bridge it |

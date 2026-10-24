@@ -30,7 +30,19 @@
     const props=[];const prop=(x,z,list)=>props.push({type:'prop',x,z,parts:list});
     // ---- River: a meander crossing the city, kept clear of the plaza.
     const side=R()<.5?-1:1,xr0=side*(plazaR+r(160,280)),rA=r(30,70),rL=r(180,320),rP=R()*TAU,rW=r(40,64),ang=r(-.5,.5),ca=Math.cos(ang),sa=Math.sin(ang);
-    const toR=(x,z)=>[x*ca+z*sa,-x*sa+z*ca],riverOff=(x,z)=>{const [u,v]=toR(x,z);return u-(xr0+rA*Math.sin(v/rL+rP));},inRiver=(x,z,pad=0)=>Math.abs(riverOff(x,z))<rW/2+pad;
+    // The river is a centreline polyline (~6 m steps). meander: a sine meander crossing the city; moat: the river sweeps
+    // round two thirds of the city just outside the wall (bridges at the gates), coming in and leaving on tangents.
+    const riverKind=opts.river||(R()<.5?'moat':'meander'),rpts=[];
+    if(riverKind==='moat'){const Rm=Rw+rW/2+26,th0=R()*TAU,phi=r(3.6,4.4),ext=2200,dir=t=>[-Math.sin(t),Math.cos(t)],at=t=>[Math.cos(t)*Rm,Math.sin(t)*Rm];
+      {const [px,pz]=at(th0),[dx,dz]=dir(th0);for(let e=ext;e>0;e-=6)rpts.push([px-dx*e,pz-dz*e]);}
+      for(let q=0;q<=Math.ceil(Rm*phi/6);q++)rpts.push(at(th0+phi*q/Math.ceil(Rm*phi/6)));
+      {const [px,pz]=at(th0+phi),[dx,dz]=dir(th0+phi);for(let e=6;e<=ext;e+=6)rpts.push([px+dx*e,pz+dz*e]);}}
+    else for(let v=-2400;v<=2400;v+=6){const u=xr0+rA*Math.sin(v/rL+rP);rpts.push([u*ca-v*sa,u*sa+v*ca]);}
+    // Nearest centreline point via a 40 m grid of segment indices.
+    const RG=40,rgrid=new Map();rpts.forEach((p,i)=>{if(i+1>=rpts.length)return;const k=Math.floor(p[0]/RG)+','+Math.floor(p[1]/RG);if(!rgrid.has(k))rgrid.set(k,[]);rgrid.get(k).push(i);});
+    const nearRiver=(x,z,reach=200)=>{let best={d:1e9,i:-1,px:0,pz:0};const n=Math.ceil(reach/RG),ci=Math.floor(x/RG),cj=Math.floor(z/RG);
+      for(let a=-n;a<=n;a++)for(let b=-n;b<=n;b++){const L=rgrid.get((ci+a)+','+(cj+b));if(L)for(const i of L){const [ax,az]=rpts[i],[bx,bz]=rpts[i+1],dx=bx-ax,dz=bz-az,t=Math.max(0,Math.min(1,((x-ax)*dx+(z-az)*dz)/(dx*dx+dz*dz))),px=ax+dx*t,pz=az+dz*t,d=Math.hypot(x-px,z-pz);if(d<best.d)best={d,i,px,pz};}}return best;};
+    const riverOff=(x,z)=>nearRiver(x,z).d,inRiver=(x,z,pad=0)=>nearRiver(x,z,rW/2+pad+RG).d<rW/2+pad;
     // ---- Ground: rolling or hilly (or flat), the river in a valley down to stone quays, plazas and the castle grounds
     // levelled. flats: discs eased to a level over `fall` metres.
     const relief=opts.terrain==='flat'?0:opts.terrain==='hilly'?r(20,30):opts.terrain==='rolling'?r(8,12):pick([r(8,12),r(18,28)]),ns=Math.floor(R()*1e6),flats=[];
@@ -68,7 +80,7 @@
     // Avenues bend gently on their way out (as old roads do); ring streets wobble round the city; the avenue toward the
     // castle stops at its grounds. bendAt(a,d): the avenue's angle at distance d.
     const bends=radials.map(()=>[R()*TAU,r(.03,.07)]),bendAt=(i,d)=>radials[i]+bends[i][1]*Math.sin(d/260+bends[i][0])-bends[i][1]*Math.sin(plazaR/260+bends[i][0]);
-    radials.forEach((a,i)=>{const end=MAIN.has(a)?Rw+60:a===cA?cD-hillR*.9:rings[0]+1,n=Math.ceil((end-plazaR)/40);for(let k=0;k<n;k++){const d0=plazaR+(end-plazaR)*k/n,d1=plazaR+(end-plazaR)*(k+1)/n,a0=bendAt(i,d0),a1=bendAt(i,d1);
+    radials.forEach((a,i)=>{const end=MAIN.has(a)?Rw+(riverKind==='moat'?rW+110:60):a===cA?cD-hillR*.9:rings[0]+1,n=Math.ceil((end-plazaR)/40);for(let k=0;k<n;k++){const d0=plazaR+(end-plazaR)*k/n,d1=plazaR+(end-plazaR)*(k+1)/n,a0=bendAt(i,d0),a1=bendAt(i,d1);
       street(Math.cos(a0)*d0,Math.sin(a0)*d0,Math.cos(a1)*d1,Math.sin(a1)*d1,MAIN.has(a)?16:a===cA?14:9,MAIN.has(a)||a===cA?'avenue':'street',i);}});
     const wob=rings.map(()=>[R()*TAU,R()*TAU,r(.02,.05),r(.01,.03)]),ringR=(k,t)=>rings[k]*(1+wob[k][2]*Math.sin(3*t+wob[k][0])+wob[k][3]*Math.sin(5*t+wob[k][1]));
     const ringSeg=(k,w,kind)=>{const rr=rings[k],n=Math.max(8,Math.ceil(rr*TAU/16));for(let q=0;q<n;q++){const t0=TAU*q/n,t1=TAU*(q+1)/n;street(Math.cos(t0)*ringR(k,t0),Math.sin(t0)*ringR(k,t0),Math.cos(t1)*ringR(k,t1),Math.sin(t1)*ringR(k,t1),w,kind);}};
@@ -88,8 +100,8 @@
       // A kept avenue crosses on the shortest span: its segments near the water give way to a bridge square to the river
       // (along the local normal of the centreline) and two short connectors from the avenue's ends on each bank.
       for(const id of keep){const segs=streets.filter(st=>st.id===id),wet=st=>inRiver((st.x0+st.x1)/2,(st.z0+st.z1)/2,9),i0=segs.findIndex(wet),i1=segs.length-1-[...segs].reverse().findIndex(wet);if(i0<1||i1>=segs.length-1)continue;
-        const mid=segs[(i0+i1)>>1],[,vm]=toR((mid.x0+mid.x1)/2,(mid.z0+mid.z1)/2),k=rA/rL*Math.cos(vm/rL+rP),uc=xr0+rA*Math.sin(vm/rL+rP),nl=Math.hypot(1,k),nu=1/nl,nv=-k/nl,half=rW/2+5;
-        const W=(u,v)=>[u*ca-v*sa,u*sa+v*ca],A=W(uc-nu*half,vm-nv*half),B=W(uc+nu*half,vm+nv*half),before=segs[i0-1],after=segs[i1+1],w=before.w;
+        const mid=segs[(i0+i1)>>1],nr=nearRiver((mid.x0+mid.x1)/2,(mid.z0+mid.z1)/2,400),[ax,az]=rpts[nr.i],[bx,bz]=rpts[nr.i+1],tl=Math.hypot(bx-ax,bz-az),nx=-(bz-az)/tl,nz=(bx-ax)/tl,half=rW/2+5;
+        const A=[nr.px-nx*half,nr.pz-nz*half],B=[nr.px+nx*half,nr.pz+nz*half],before=segs[i0-1],after=segs[i1+1],w=before.w;
         for(let i=i0;i<=i1;i++)streets.splice(streets.indexOf(segs[i]),1);
         const [P,Q2]=Math.hypot(A[0]-before.x1,A[1]-before.z1)<Math.hypot(B[0]-before.x1,B[1]-before.z1)?[A,B]:[B,A];
         street(before.x1,before.z1,P[0],P[1],w,'avenue',id);street(P[0],P[1],Q2[0],Q2[1],w,'avenue',id);street(Q2[0],Q2[1],after.x0,after.z0,w,'avenue',id);}
@@ -178,8 +190,8 @@
       for(let j=0;j<=n;j++)for(let i=0;i<=n;i++)h[j*(n+1)+i]=gy(x0+i*C,z0+j*C);for(let j=0;j<n;j++)for(let i=0;i<n;i++)skip[j*n+i]=inRiver(x0+(i+.5)*C,z0+(j+.5)*C,-2)?1:0;
       add('field',{x0,z0,n,C,h,skip,x:x0+TL/2,z:z0+TL/2},'grass');}
     // Quay walls along both banks, stone, from the riverbed to the quay.
-    {const [u0]=[0];for(let v=-span;v<span;v+=8)for(const sd of [-1,1]){const u=xr0+rA*Math.sin(v/rL+rP)+sd*(rW/2+.6),x=u*ca-v*sa,z=u*sa+v*ca,u2=xr0+rA*Math.sin((v+8)/rL+rP)+sd*(rW/2+.6),x2=u2*ca-(v+8)*sa,z2=u2*sa+(v+8)*ca;
-      add('box',{x:(x+x2)/2,y:-3,z:(z+z2)/2,w:Math.hypot(x2-x,z2-z)+.3,h:Q+3.2,d:1.4,rot:Math.atan2(z2-z,x2-x),pat:4},'stone');}}
+    for(let i=0;i+2<rpts.length;i+=2){const [ax,az]=rpts[i],[bx,bz]=rpts[i+2];if(Math.hypot(ax,az)>span&&Math.hypot(bx,bz)>span)continue;const tl=Math.hypot(bx-ax,bz-az),nx=-(bz-az)/tl,nz=(bx-ax)/tl;
+      for(const sd of [-1,1]){const o=sd*(rW/2+.6);add('box',{x:(ax+bx)/2+nx*o,y:-3,z:(az+bz)/2+nz*o,w:tl+.4,h:Q+3.2,d:1.4,rot:Math.atan2(bz-az,bx-ax),pat:4},'stone');}}
     for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),n=Math.max(1,Math.ceil(L/10));
       for(let k=0;k<n;k++){const t0=k/n,t1=(k+1)/n,ax=s.x0+(s.x1-s.x0)*t0,az=s.z0+(s.z1-s.z0)*t0,bx=s.x0+(s.x1-s.x0)*t1,bz=s.z0+(s.z1-s.z0)*t1,x=(ax+bx)/2,z=(az+bz)/2;
         // Over the river: a bridge bay at quay level (+1.2 m); elsewhere the street is laid on the ground as a gentle ramp.
@@ -196,7 +208,7 @@
         if(gate)add('gatewall',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,gap:12,gateH:wt-wb-7,crenel:true},'stone');else add('box',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,crenel:true},'stone');}
       for(const t of wa){const x=Math.cos(t)*Rw,z=Math.sin(t)*Rw;if(inRiver(x,z,6))continue;const g=gy(x,z);add('cyl',{x,y:g-3,z,r:7,h:31},'stone');add('cone',{x,y:g+26,z,r:8,h:20},'roof');}}
     const plazaA=cA+Math.PI*.5,spawn={x:Math.cos(plazaA)*(plazaR-6),y:gy(0,0)+1,z:Math.sin(plazaA)*(plazaR-6),yaw:Math.atan2(cz-Math.sin(plazaA)*(plazaR-6),cx-Math.cos(plazaA)*(plazaR-6))};
-    return {seed,radius:Rw,ground:G,relief,gy,palette:pal,parts,buildings,props,plazas,parks,castle,castleAt:{x:cx,z:cz},spawn,river:{inRiver}};
+    return {seed,riverKind,radius:Rw,ground:G,relief,gy,palette:pal,parts,buildings,props,plazas,parks,castle,castleAt:{x:cx,z:cz},spawn,river:{inRiver}};
   }
   // ---- One building's parts. interior=false: a closed box and roof (far); true: a hollow shell with rooms and props.
   function buildingParts(b,interior){
