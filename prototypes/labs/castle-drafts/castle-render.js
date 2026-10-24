@@ -168,6 +168,27 @@
   // Surface pattern: returns the base colour with the pattern applied; fades out with distance so it never shimmers.
   // gBump: the pattern's relief (0 deep joint .. 1 face) in metres-ish units scaled by gBumpK, for normal perturbation.
   float gBump=0.,gBumpK=0.;
+  // ---- A painted block (stone, brick, tile), the way a background painter draws one: a rounded, slightly irregular
+  // shape; a soft bevel lit on the edge toward the light and shaded on the far edge; a soft drop shadow cast onto the
+  // mortar on the far side; chipped notches here and there along the edges; brushy streaks along the block and a tint of
+  // its own. pos: position in block units (cell = floor(pos)), size: block size in metres (x,y), L: light direction in
+  // the block's plane. Returns the colour; mortar colour mc, block colour bc.
+  vec3 paintedBlock(vec2 pos,vec2 size,vec2 L,vec3 bc,vec3 mc,float seed){vec2 cell=floor(pos),f=fract(pos),hs=size*.5,P=(f-.5)*size;float id=hh(cell+seed);
+    float gap=.045,rad=min(hs.x,hs.y)*(.3+.25*hh(cell+3.1));vec2 hb=hs-gap-vec2(.02,.015)*hh(cell+5.);
+    // Wobbly outline: the half-size breathes a little with position along each edge.
+    hb+=vec2(.012,.01)*vec2(vn(P.yy*9.+id*7.),vn(P.xx*7.+id*5.));
+    vec2 qd=abs(P)-hb+rad;float d=length(max(qd,0.))+min(max(qd.x,qd.y),0.)-rad;
+    // Chips: small notches eaten into the edge where a hash says so.
+    float ch=hh(floor(P*vec2(6.,8.))+cell*7.+seed);if(d>-.04&&ch>.88)d+=.035*smoothstep(.88,.98,ch);
+    vec2 gq=vec2(qd.x>qd.y?sign(P.x):0.,qd.y>=qd.x?sign(P.y):0.);if(length(max(qd,0.))>0.)gq=normalize(max(qd,0.)*sign(P));
+    float inside=smoothstep(.006,-.006,d),bev=smoothstep(-.09,0.,d);float facing=dot(gq,normalize(L));
+    vec3 tint=bc*(.88+.2*id)*vec3(1.+.05*(hh(cell+9.)-.5),1.,1.-.06*(hh(cell+11.)-.5));
+    float strokes=vn(vec2(P.x*3.5,P.y*14.)+id*13.)*.6+vn(P*9.+id*3.)*.4;tint*=.92+.13*strokes;tint*=1.+.06*(f.y-.5)*sign(L.y);
+    vec3 blk=tint*(1.+bev*(.28*max(facing,0.)-.34*max(-facing,0.)));
+    // Drop shadow on the mortar: the block shape shifted away from the light.
+    vec2 Ps=P+normalize(L)*.06;vec2 qs=abs(Ps)-hb+rad;float ds=length(max(qs,0.))+min(max(qs.x,qs.y),0.)-rad;float drop=smoothstep(.05,-.02,ds);
+    vec3 mort=mc*(.94+.08*vn(P*20.))*(1.-.32*drop);
+    return mix(mort,blk,inside);}
   // Voronoi with distance to the cell border (for flagstones): returns (border distance, cell id hash, centre offset x,z).
   vec4 voro(vec2 x){vec2 n=floor(x),f=fract(x),mg,mr;float md=8.;for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(i,j),o=vec2(hh(n+g),hh(n+g+17.3))*.8+.1,r=g+o-f;float d=dot(r,r);if(d<md){md=d;mr=r;mg=g;}}
     md=8.;for(int j=-2;j<=2;j++)for(int i=-2;i<=2;i++){vec2 g=mg+vec2(i,j),o=vec2(hh(n+g),hh(n+g+17.3))*.8+.1,r=g+o-f;if(dot(mr-r,mr-r)>1e-5)md=min(md,dot(.5*(mr+r),normalize(r-mr)));}
@@ -193,11 +214,11 @@
       vec3 tint=mix(mix(vec3(.93,.84,.8),vec3(.86,.85,.86),hh(vec2(vr.y,1.))),vec3(.95,.9,.78),hh(vec2(vr.y,2.))*.6);
       vec3 sc=c*tint*(.9+.18*vr.y);vec2 sd=normalize(SUN.xz+1e-4);float side=dot(normalize(vr.zw+1e-4),sd);
       float rim=1.-smoothstep(.03,.2,bd);sc*=1.+.16*rim*max(side,0.)-.22*rim*max(-side,0.);sc*=.97+.06*vn(p.xz*2.3);
-      o=mix(c*vec3(1.05,1.03,1.)*1.08,sc,stone);gBump=smoothstep(.0,.22,bd);gBumpK=.05;}
+      float drop=(1.-stone)*smoothstep(.12,-.1,dot(normalize(vr.zw+1e-4),sd))*.35;o=mix(c*vec3(1.02,1.,.98)*(1.-drop),sc*(.93+.1*vn(vec2(dot(p.xz,sd)*3.,dot(p.xz,vec2(-sd.y,sd.x))*9.)+vr.y*9.)),stone);gBump=smoothstep(.0,.25,bd);gBumpK=.03;}
     else if(t==4){
       // Coursed stone: blocks of varied length and tone, recessed mortar, moss creeping up the lowest courses.
-      vec2 q=wall?vec2(u/1.05,p.y/.5):p.xz/vec2(1.05,.8);float row=floor(q.y);q.x+=row*.37+.5*hh(vec2(row,9.));q.x/=.8+.5*hh(vec2(row,floor(q.x)));vec2 f=fract(q);
-      float e=min(min(f.x,1.-f.x)*1.2,min(f.y,1.-f.y)*.6);vec3 bc=c*(.8+.3*hh(floor(q)+row*13.))*vec3(1.+.05*(hh(floor(q))-.5),1.,1.);o=mix(c*.55,bc,smoothstep(.015,.05,e));gBump=smoothstep(0.,.07,e)+.15*vn(q*3.);gBumpK=.035;
+      vec2 sz=wall?vec2(.95,.48):vec2(.95,.7),q=(wall?vec2(u,p.y):p.xz)/sz;float row=floor(q.y);q.x+=row*.47+.3*hh(vec2(row,9.));
+      vec2 L=wall?vec2(dot(tg,SUN.xz)>0.?1.:-1.,1.6):SUN.xz;o=paintedBlock(q,sz,L,c,c*vec3(.72,.71,.74),4.);gBump=0.;gBumpK=0.;
       if(wall){float m=smoothstep(.55,.85,vn(vec2(u,p.y)*.6))*(1.-smoothstep(0.,2.5,fract(p.y/40.)*40.-5.));o=mix(o,vec3(.4,.5,.3),m*.4);}}
     else if(t==5){
       // Plaster: soft mottling with warm/cool drift, stains and rain streaks running down, grime at the foot.
