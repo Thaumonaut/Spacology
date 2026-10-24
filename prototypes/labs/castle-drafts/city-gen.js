@@ -54,7 +54,7 @@
       for(let k=Math.round(r(2,3));k>0&&free.length;k--){const a=free.splice(Math.floor(R()*free.length),1)[0];radials.push(a);for(let q=free.length-1;q>=0;q--)if(Math.abs(Math.atan2(Math.sin(free[q]-a),Math.cos(free[q]-a)))<.75)free.splice(q,1);}}
     // The castle stands on its own hill (with a road winding up, gate toward the plaza) or on level ground in the city.
     const onHill=opts.castleSeat?opts.castleSeat==='hill':R()<.6,flare=1.55,cLevel=gy(cx,cz);
-    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','spur','palace','cluster']),scale:(onHill?r(.6,.72):r(.65,.8))*S,palette:CastleGen.PALETTES.indexOf(pal)});
+    const castle=CastleGen.generate(seed*7+3,{style:onHill?'hill':'flat',ground:cLevel,flare,gate:Math.atan2(-cz,-cx),layout:opts.castleLayout||pick(['rings','rings','linked']),scale:(onHill?r(.6,.72):r(.65,.8))*S,palette:CastleGen.PALETTES.indexOf(pal)});
     castle.parts=castle.parts.filter(p=>p.t!=='land');const hillR=onHill?castle.radius*1.25*flare+10:castle.radius*1.1+10;markDisk(cx,cz,hillR);if(!onHill)flats.push({x:cx,z:cz,r:hillR,fall:50,level:cLevel});
     // ---- Plaza gaps between avenues, best first (wide, and on the side opposite the castle). The cathedral takes the best:
     // it stands end-on to the plaza, its west front on the plaza and its nave running outward, and streets that would
