@@ -17,8 +17,9 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<button id="menu" title="Panel (H)" style="position:fixed;top:12px;left:12px;z-index:3;display:none;padding:6px 10px;border-radius:8px;border:1px solid #9bb;background:rgba(255,255,255,.9);cursor:pointer">☰ Panel</button>
 <div id="panel">
-  <strong>Castle drafts</strong>
+  <div style="display:flex;justify-content:space-between;align-items:center"><strong>Castle drafts</strong><button id="hide" title="Hide (H)" style="flex:0;padding:2px 8px">✕</button></div>
   <label>Mode <select id="mode"><option value="castle">castle</option><option value="city">city</option></select></label>
   <label>Seed <input id="seed" type="number" value="1"></label>
   <div class="row"><button id="prev">◀ Prev</button><button id="next">Next ▶</button><button id="rand">Random</button></div>
@@ -41,6 +42,8 @@
 <script src="castle-render.js"></script>
 <script src="castle-walk.js"></script>
 <script src="castle-vox.js"></script>
+<script src="../microvoxel-world/macro-map.js"></script>
+<script src="../microvoxel-world/voxel-world-model.js"></script>
 <script src="city-gen.js"></script>
 <script>
 (function(){
@@ -70,11 +73,20 @@
         else CastleRender.meshParts(parts,city.palette,0,0,m);}
       voxStats.ms+=performance.now()-t0;voxStats.tiles++;return m;});}
   const voxStats={ms:0,tiles:0};
+  // Trees from the voxel world: a {t:'tree'} placeholder grows that species with the world's own generator (trunk and
+  // branch tubes, crown lobes, conifer bough tiers), turned into parts here. One world instance, made on first use.
+  let treeWorld=null;const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16)/255),MATC=i=>hex(MicroWorld.COLORS[i]||'#558855');
+  function worldTree(p){if(!treeWorld)treeWorld=MicroWorld.createWorld(1,.25,'infinite');const {parts:T}=treeWorld.growTreeParts(p.species,p.x,p.z,p.y,{k:.85*(p.size||1),cls:1}),out=[],dy=p.y-0;
+    for(let i=0;i<T.segs.length;i+=10){const [x0,y0,z0,r0,x1,y1,z1,r1,mat]=T.segs.slice(i,i+10);out.push({t:'beam',x0,y0,z0,x1,y1,z1,s:Math.max(.2,r0+r1),col:MATC(mat),nocol:true});}
+    for(let i=0;i<T.lobes.length;i+=6){const [x,y,z,r,ys,mat]=T.lobes.slice(i,i+6);out.push({t:'blob',x,y,z,rx:r,ry:r*ys,rz:r,col:MATC(mat),nocol:true});}
+    for(let i=0;i<T.tiers.length;i+=8){const [x,z,top,bot,r,rt,sd,mat]=T.tiers.slice(i,i+8);out.push({t:'cone',x,y:bot,z,r,h:top-bot,col:MATC(mat),nocol:true});}
+    return out;}
+  const withTrees=parts=>parts.some(p=>p.t==='tree')?parts.flatMap(p=>p.t==='tree'?worldTree(p):[p]):parts;
   // Props near the walker are voxel models too (stalls, lanterns, trees, benches, fountains); people stay meshes.
-  function propsNear(k){return cached('pnear:'+k+':'+state.vox,()=>{const m=new CastleRender.Mesh(),vs=+state.vox;for(const p of city.tiles.get(k).p){
+  function propsNear(k){return cached('pnear:'+k+':'+state.vox,()=>{const m=new CastleRender.Mesh(),vs=+state.vox;for(const p0 of city.tiles.get(k).p){const p={...p0,parts:withTrees(p0.parts)};
       if(vs>0){const V=CastleVox.voxelize(p.parts,{x:p.x,z:p.z,rot:0},vs,CastleRender.colourOf(city.palette),CastleRender.patOf);CastleVox.meshVox(V,{x:p.x,z:p.z,rot:0},m);CastleRender.meshParts(V.rest,city.palette,0,0,m);}
       else CastleRender.meshParts(p.parts,city.palette,0,0,m);}return m;});}
-  const propsOf=k=>cached('props:'+k,()=>{const m=new CastleRender.Mesh();for(const b of city.tiles.get(k).p)CastleRender.meshParts(b.parts,city.palette,0,0,m);return m;});
+  const propsOf=k=>cached('props:'+k,()=>{const m=new CastleRender.Mesh();for(const b of city.tiles.get(k).p)CastleRender.meshParts(withTrees(b.parts),city.palette,0,0,m);return m;});
   const staticOf=k=>cached('static:'+k,()=>CastleRender.meshParts(city.tiles.get(k).s,city.palette));
   const interiorOf=b=>cached('int:'+b.id,()=>CastleRender.meshParts(CityGen.buildingParts(b,true),city.palette));
   function cityList(focus){const list=[city.water,city.castleMesh],cols=[city.castleMesh.col],tw=walker?[Math.floor(walker.x/TILE),Math.floor(walker.z/TILE)]:null,
@@ -124,7 +136,7 @@
   let walker=null,last=0;
   function startWalk(){if(state.grid){state.grid=false;rebuild();return;}walkTile='';
     if(state.mode==='city'){walker={x:state.castle.spawn.x,z:state.castle.spawn.z};refreshCity();}
-    walker=new CastleWalk.Walker(state.collider,state.castle.spawn);follow();shadowNear();walker.spawn0={...state.castle.spawn,y:walker.y};cam.fp=walker.camera();$('walk').textContent='Exit walk (Esc)';requestAnimationFrame(tick);}
+    panel(false);walker=new CastleWalk.Walker(state.collider,state.castle.spawn);follow();shadowNear();walker.spawn0={...state.castle.spawn,y:walker.y};cam.fp=walker.camera();$('walk').textContent='Exit walk (Esc)';requestAnimationFrame(tick);}
   function stopWalk(){walker=null;cam.fp=null;cam.shadowFocus=null;if(state.mode==='city'&&city){opened.clear();refreshCity();}$('walk').textContent='Walk (WASD · mouse · Shift run · Space jump · F fly · Esc)';if(document.pointerLockElement)document.exitPointerLock();draw();}
   // In the city, the interior ring follows the walker tile by tile.
   let walkTile='';function follow(){if(state.mode!=='city'||!walker)return;const k=tkey(walker.x,walker.z),far=closeFar();if(k===walkTile&&!far)return;walkTile=k;refreshCity();}
@@ -135,6 +147,9 @@
   addEventListener('keydown',e=>{if(!walker)return;if(KEY[e.code]){walker.keys[KEY[e.code]]=true;e.preventDefault();}if(e.code==='KeyF')walker.fly=!walker.fly;if(e.code==='KeyE')toggleDoor();if(e.code==='Escape')stopWalk();});
   addEventListener('keyup',e=>{if(walker&&KEY[e.code])walker.keys[KEY[e.code]]=false;});
   addEventListener('mousemove',e=>{if(!walker||document.pointerLockElement!==canvas)return;walker.yaw+=e.movementX*.0025;walker.pitch=Math.max(-1.4,Math.min(1.4,walker.pitch-e.movementY*.0025));});
+  // The panel folds away (H, the ✕, or entering Walk) to a small ☰ button.
+  const panel=v=>{$('panel').style.display=v?'':'none';$('menu').style.display=v?'none':'';};$('hide').onclick=()=>panel(false);$('menu').onclick=()=>panel(true);
+  addEventListener('keydown',e=>{if(e.code==='KeyH'&&e.target.tagName!=='INPUT')panel($('panel').style.display==='none');});
   window.CastleDrafts={frames:0,state,cam,rebuild,draw,
     // Headless helpers: start Walk, step it, or place the walker.
     walk:()=>startWalk(),step:(keys,seconds)=>{Object.assign(walker.keys,keys);for(let i=0;i<seconds*30;i++){walker.update(1/30);follow();}walker.keys={};shadowNear();cam.fp=walker.camera();draw();return {x:walker.x,y:walker.y,z:walker.z};},

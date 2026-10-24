@@ -43,11 +43,13 @@
     const a=P(-u,0,-q),b=P(u,0,-q),cc=P(u,0,q),dd=P(-u,0,q),r0=P(-u,h,0),r1=P(u,h,0);
     m.quad(a,r0,r1,b,col);m.quad(cc,r1,r0,dd,col);m.tri(a,dd,r0,shade(col,.9));m.tri(b,r1,cc,shade(col,.9));}
   // A bridge bay: two piers, a round arch, and the deck band above (the spandrel as thin columns along the curve).
-  function arch(m,o,col){const {x,y,z,w,h,d,rot,span}=o,c=Math.cos(rot),s=Math.sin(rot),pier=(w-span)/2,R=span/2,spring=Math.max(2,h-R-3);
+  // The deck's walking surface is at y+h (so a bridge meets the road it carries), with knee-high parapets on both edges.
+  function arch(m,o,col){const {x,y,z,w,d,rot,span}=o,h=o.h-1.4,c=Math.cos(rot),s=Math.sin(rot),pier=(w-span)/2,R=span/2,spring=Math.max(2,h-R-3);
     for(const sgn of [-1,1]){const u=sgn*(w/2-pier/2);box(m,{x:x+u*c,y,z:z+u*s,w:pier,h,d,rot},col);}
     const n=12;for(let i=0;i<n;i++){const u0=-R+i*span/n,u1=u0+span/n,um=(u0+u1)/2,ah=spring+Math.sqrt(Math.max(0,R*R-um*um));
       box(m,{x:x+um*c,y:y+ah,z:z+um*s,w:span/n+.02,h:h-ah,d,rot},col);}
-    box(m,{x,y:y+h,z,w,h:1.4,d:d+.6,rot},shade(col,.95));}
+    box(m,{x,y:y+h,z,w,h:1.4,d:d+.6,rot},shade(col,.95));
+    for(const e of [-1,1]){const v=e*(d/2+.05);box(m,{x:x-s*v,y:y+h+1.4,z:z+c*v,w:w+.02,h:.85,d:.5,rot},shade(col,.92));}}
   // The crag: rings from the water up the cliff, flared at the foot, streaked by vertical jags, meadow on top.
   function crag(m,o,cols){const {pts,top,base,flare,cx=0,cz=0}=o,N=pts.length,L=18,V=[];
     for(let l=0;l<=L;l++){const t=l/L,yy=base+(top-base)*t,row=[];

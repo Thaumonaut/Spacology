@@ -148,3 +148,15 @@ pieces (window, shutter, flower box, beam, pot) and dropping detail pieces from 
 Cost: ~2.8k triangles per building (fewer than the mesh version), ~11 ms per building to voxelise and mesh on the main
 thread, so a 3x3 tile ring takes a few seconds the first time. Next: a Web Worker for voxelising, then the castle in
 chunked voxels. Voxel size selector: 12.5 / 25 / 50 cm or off.
+
+## Fixes (v19)
+
+| File | What to look at |
+| --- | --- |
+| v19-market | Market halls: an arched stone arcade on the street half with stalls and crates, a walled storehouse with cart doors behind (no more stilts) |
+| v19-park | Park and boulevard trees grown by the voxel world's own tree generator (oak, birch, alder, spruce, gnarled, willow) |
+
+Bridges: decks are flush with the quays and gates are cut wherever a road meets the wall; a walker test crosses every
+bridge on seeds 2, 3, 6 and 7 (was blocked by a 1.3 m step and by walls where re-routed roads met them). The panel folds
+away (H, the X, or entering Walk) to a small button. Houses on sloping ground get a cellar door in the plinth; others
+sometimes a slanted cellar hatch.

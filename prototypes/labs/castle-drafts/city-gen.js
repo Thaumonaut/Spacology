@@ -141,7 +141,7 @@
       // A pond off-centre, crossing gravel paths, trees round the edge and in clumps, benches by the paths.
       const L=[],px=x+r(-.25,.25)*pr,pz=z+r(-.25,.25)*pr,prr=pr*r(.2,.3),pg=gy(px,pz);flats.push({x:px,z:pz,r:prr+2,fall:12,level:pg});L.push({t:'cyl',x:px,y:pg-.6,z:pz,r:prr+.6,h:.7,mat:'stone'},{t:'water',x:px,y:pg+.02,z:pz,r:prr});
       for(const b of [R()*TAU,R()*TAU]){const c2=Math.cos(b),s2=Math.sin(b);{const ax=x-c2*pr,az=z-s2*pr,bx=x+c2*pr,bz=z+s2*pr;L.push({t:'ramp',x0:ax,z0:az,y0:gy(ax,az)+.06,x1:bx,z1:bz,y1:gy(bx,bz)+.06,w:3,base:Math.min(gy(ax,az),gy(bx,bz))-1,mat:'sand',pat:3,rail:false});}}
-      for(let q=0;q<Math.round(pr*.9);q++){const b=R()*TAU,f=Math.sqrt(R())*.92,tx=x+Math.cos(b)*pr*f,tz=z+Math.sin(b)*pr*f;if(Math.hypot(tx-px,tz-pz)<prr+3)continue;const th=r(5,9);const tg=gy(tx,tz);L.push({t:'cyl',x:tx,y:tg-.3,z:tz,r:.3,h:th*.55+.3,mat:'wood'},{t:'blob',x:tx,y:tg+th*.65,z:tz,rx:th*.38,ry:th*.34,rz:th*.38,mat:'green'});}
+      for(let q=0;q<Math.round(pr*.9);q++){const b=R()*TAU,f=Math.sqrt(R())*.92,tx=x+Math.cos(b)*pr*f,tz=z+Math.sin(b)*pr*f;if(Math.hypot(tx-px,tz-pz)<prr+3)continue;const th=r(5,9);const tg=gy(tx,tz);L.push({t:'tree',x:tx,y:tg,z:tz,species:pick(['oak','oak','birch','alder','spruce','gnarled','willow']),size:th/6},{t:'skip',x:tx,y:tg+th*.65,z:tz,rx:th*.38,ry:th*.34,rz:th*.38,mat:'green'});}
       for(let q=0;q<6;q++){const b=R()*TAU,bx=x+Math.cos(b)*pr*.5,bz=z+Math.sin(b)*pr*.5;const bg=gy(bx,bz);L.push({t:'box',x:bx,y:bg+.4,z:bz,w:1.8,h:.1,d:.5,rot:b,mat:'wood'},{t:'box',x:bx,y:bg-.2,z:bz,w:1.6,h:.6,d:.3,rot:b,mat:'dark'});}
       prop(x,z,L);}
     // ---- Slums: a sector against the wall (on the river side, downstream) of shacks and cramped houses.
@@ -153,6 +153,8 @@
     const lantern=(x,z)=>{const G=gy(x,z);prop(x,z,[{t:'cyl',x,y:G-.3,z,r:.08,h:3.6,mat:'dark',nocol:true},{t:'box',x,y:G+3.3,z,w:.42,h:.5,d:.42,rot:0,col:[1,.78,.38],glow:true,nocol:true},{t:'cone',x,y:G+3.8,z,r:.34,h:.35,mat:'dark',nocol:true}]);};
     for(const st of streets){if(st.kind==='lane')continue;const L=Math.hypot(st.x1-st.x0,st.z1-st.z0),rot=Math.atan2(st.z1-st.z0,st.x1-st.x0),nx=-Math.sin(rot),nz=Math.cos(rot),mid=Math.hypot((st.x0+st.x1)/2,(st.z0+st.z1)/2);
       for(let t=r(0,6);t<L;t+=26){const sd=Math.floor(t/26)%2?1:-1,x=st.x0+(st.x1-st.x0)*t/L+nx*sd*(st.w/2+.55),z=st.z0+(st.z1-st.z0)*t/L+nz*sd*(st.w/2+.55);if(!inRiver(x,z,3)&&mid<Rw-8)lantern(x,z);}
+      // Outside the market stretch, avenues are boulevards: a tree on each footway every ~16 m.
+      if(st.kind==='avenue'&&mid>plazaR+gap*1.8&&mid<Rw-20)for(let t=8;t<L-4;t+=16)for(const sd of [-1,1]){const x=st.x0+(st.x1-st.x0)*t/L+nx*sd*(st.w/2-.9),z=st.z0+(st.z1-st.z0)*t/L+nz*sd*(st.w/2-.9);if(!inRiver(x,z,6))prop(x,z,[{t:'tree',x,y:gy(x,z),z,species:pick(['oak','alder','birch']),size:r(.75,1)}]);}
       if(st.kind==='avenue'&&mid<plazaR+gap*1.8&&mid>plazaR+8)for(let t=3;t<L-3;t+=4.5)for(const sd of [-1,1]){if(R()<.3)continue;const x=st.x0+(st.x1-st.x0)*t/L+nx*sd*(st.w/2-1.6),z=st.z0+(st.z1-st.z0)*t/L+nz*sd*(st.w/2-1.6);if(!inRiver(x,z,4))stall(x,z,rot);}}
     // Townsfolk for scale: crowds on the plazas and at the stalls, a few on every street, strollers in parks.
     const CLOTH2=[[.55,.28,.25],[.3,.38,.55],[.42,.5,.32],[.6,.52,.36],[.38,.32,.42],[.72,.66,.58],[.25,.3,.3]],HAT=[[.3,.22,.16],[.5,.4,.25],[.2,.2,.24],[.62,.3,.2]];
@@ -194,7 +196,7 @@
       const n=Math.round(slum?r(5,9):r(3,6)),aa=Math.atan2(uz,ux);
       for(let k=0;k<n;k++){const b=aa+(k+.5)/n*TAU*(slum?1:.86)+(slum?0:TAU*.07),type=slum?'shack':R()<.85?'house':pick(['smithy','towerhouse','shop']),T=TYPES[type],w=r(T.w[0],T.w[1])*(slum?1:.85),d=r(T.d[0],T.d[1])*(slum?1:.8),off=cr+d/2+.4;
         const hx=x+Math.cos(b)*off,hz=z+Math.sin(b)*off,rot=b+Math.PI/2+(slum?r(-.25,.25):0);if(fits(hx,hz,w,d,rot))place(type,hx,hz,w,d,rot,1);}
-      prop(x,z,[{t:'disk',x,y:gy(x,z)-.5,z,r:cr,mat:'paving',pat:3}]);}
+      prop(x,z,[{t:'disk',x,y:gy(x,z)-.5,z,r:cr,mat:'paving',pat:3},...(R()<.45?[{t:'tree',x,y:gy(x,z),z,species:pick(['oak','birch','alder','gnarled']),size:r(.7,1.1)}]:[])]);}
     // ---- The static city: ground, quays, streets, plaza, bridges, walls.
     const span=Rw+340,C=10,TL=160;
     // Ground: one heightfield per 160 m tile (10 m cells); cells over the river are left out (the water plane shows).
@@ -207,18 +209,20 @@
     for(const s of streets){const L=Math.hypot(s.x1-s.x0,s.z1-s.z0),rot=Math.atan2(s.z1-s.z0,s.x1-s.x0),n=Math.max(1,Math.ceil(L/10));
       for(let k=0;k<n;k++){const t0=k/n,t1=(k+1)/n,ax=s.x0+(s.x1-s.x0)*t0,az=s.z0+(s.z1-s.z0)*t0,bx=s.x0+(s.x1-s.x0)*t1,bz=s.z0+(s.z1-s.z0)*t1,x=(ax+bx)/2,z=(az+bz)/2;
         // Over the river: a bridge bay at quay level (+1.2 m); elsewhere the street is laid on the ground as a gentle ramp.
-        if(inRiver(x,z,2))add('arch',{x,y:-3,z,w:L/n+.3,h:Q+4.4,d:s.w+1,rot,span:L/n*.75},'stone2');
-        else{const ya=inRiver(ax,az,2)?Q+1.4:gy(ax,az)+.12,yb=inRiver(bx,bz,2)?Q+1.4:gy(bx,bz)+.12;add('ramp',{x0:ax,z0:az,y0:ya,x1:bx,z1:bz,y1:yb,w:s.w,base:Math.min(ya,yb)-1.2,pat:3,x,z,rail:false},s.kind==='alley'?'paving':'stone2');
+        if(inRiver(x,z,2))add('arch',{x,y:-3,z,w:L/n+.3,h:Q+3.15,d:s.w+1,rot,span:L/n*.75},'stone2');
+        else{const ya=inRiver(ax,az,2)?Q+.15:gy(ax,az)+.12,yb=inRiver(bx,bz,2)?Q+.15:gy(bx,bz)+.12;add('ramp',{x0:ax,z0:az,y0:ya,x1:bx,z1:bz,y1:yb,w:s.w,base:Math.min(ya,yb)-1.2,pat:3,x,z,rail:false},s.kind==='alley'?'paving':'stone2');
           // Raised kerbed footways along the wider streets.
           if(s.w>=7){const nx=-(bz-az)/(L/n),nz=(bx-ax)/(L/n);for(const e of [-1,1]){const o=e*(s.w/2-.75);add('ramp',{x0:ax+nx*o,z0:az+nz*o,y0:ya+.16,x1:bx+nx*o,z1:bz+nz*o,y1:yb+.16,w:1.5,base:Math.min(ya,yb)-.2,pat:4,rail:false,x:x+nx*o,z:z+nz*o},'stone');}}}}}
     // Plaza: paving disk, a fountain and a statue column.
     {const g0=gy(0,0);add('disk',{x:0,y:g0-.45,z:0,r:plazaR,pat:3},'stone2');add('cyl',{x:0,y:g0,z:0,r:9,h:1.2},'stone');add('cyl',{x:0,y:g0,z:0,r:1.6,h:9},'stone');add('cone',{x:0,y:g0+9,z:0,r:2.6,h:4},'gold');}
+    // Gates go wherever a road actually crosses the wall line (after bridges have re-routed the avenues).
+    const gateAngles=[];for(const st of streets){const d0=Math.hypot(st.x0,st.z0),d1=Math.hypot(st.x1,st.z1);if((d0-Rw)*(d1-Rw)<=0&&st.w>=7){const t=(Rw-d0)/((d1-d0)||1);gateAngles.push(Math.atan2(st.z0+(st.z1-st.z0)*t,st.x0+(st.x1-st.x0)*t));}}
     // Outer wall: towers every ~70 m, gatehouses where avenues leave, water gates over the river.
     {const n=Math.round(Rw*TAU/70),wa=[];for(let i=0;i<n;i++)wa.push(i/n*TAU);
       for(let i=0;i<n;i++){const t0=wa[i],t1=i+1<n?wa[i+1]:TAU,p0=[Math.cos(t0)*Rw,Math.sin(t0)*Rw],p1=[Math.cos(t1)*Rw,Math.sin(t1)*Rw],mx=(p0[0]+p1[0])/2,mz=(p0[1]+p1[1])/2,len=Math.hypot(p1[0]-p0[0],p1[1]-p0[1]),rot=Math.atan2(p1[1]-p0[1],p1[0]-p0[0]);
         if(inRiver(mx,mz,4)){add('arch',{x:mx,y:-3,z:mz,w:len,h:Q+18,d:6,rot,span:len*.6},'stone');continue;}
         const ga0=gy(...p0),ga1=gy(...p1),wb=Math.min(ga0,ga1)-2,wt=Math.max(ga0,ga1)+16;
-        const gate=[mA,mB].map((a,i)=>bendAt(i,Rw)).some(a=>Math.abs(Math.atan2(Math.sin(a-(t0+t1)/2),Math.cos(a-(t0+t1)/2)))<(t1-t0)/2);
+        const gate=gateAngles.some(a=>Math.abs(Math.atan2(Math.sin(a-(t0+t1)/2),Math.cos(a-(t0+t1)/2)))<(t1-t0)/2+.004);
         if(gate)add('gatewall',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,gap:12,gateH:wt-wb-7,crenel:true},'stone');else add('box',{x:mx,y:wb,z:mz,w:len,h:wt-wb,d:6,rot,crenel:true},'stone');}
       for(const t of wa){const x=Math.cos(t)*Rw,z=Math.sin(t)*Rw;if(inRiver(x,z,6))continue;const g=gy(x,z);add('cyl',{x,y:g-3,z,r:7,h:31},'stone');add('cone',{x,y:g+26,z,r:8,h:20},'roof');}}
     const plazaA=cA+Math.PI*.5,spawn={x:Math.cos(plazaA)*(plazaR-6),y:gy(0,0)+1,z:Math.sin(plazaA)*(plazaR-6),yaw:Math.atan2(cz-Math.sin(plazaA)*(plazaR-6),cx-Math.cos(plazaA)*(plazaR-6))};
@@ -239,9 +243,13 @@
     const pat=type==='shack'?6:interior?(b.tudor?1:5):(b.tudor?9:8);
     const body=(o,mat)=>interior?add('shell',{...o,pat},mat):add('box',{x:o.x,y:o.y,z:o.z,w:o.w,h:o.h,d:o.d,rot:o.rot,col:o.col,pat},mat);
     if(type==='market'){
-      // Open arcade below, a closed hall above reached by an outside stair.
-      const up=y0+5;for(let u=-b.w/2+1;u<=b.w/2-1+.01;u+=(b.w-2)/Math.round((b.w-2)/4))for(const v of [-b.d/2+1,b.d/2-1]){const [x,z]=W(u,v);add('cyl',{x,y:y0,z,r:.55,h:5},'stone');}
-      for(let v=-b.d/2+1;v<=b.d/2-1+.01;v+=(b.d-2)/Math.round((b.d-2)/4))for(const u of [-b.w/2+1,b.w/2-1]){const [x,z]=W(u,v);add('cyl',{x,y:y0,z,r:.55,h:5},'stone');}
+      // The street half of the ground floor is an open arcade (arched stone piers) full of stalls; the back half is a
+      // walled storehouse with cart doors; the hall above is reached by an outside stair.
+      const up=y0+5,F=b.doorSide||1,dh=b.d/2;
+      {const [x,z]=W(0,-F*dh/2);add('box',{x,y:base,z,w:b.w,h:up-base,d:dh,rot:b.rot,col:STONE,pat:4},'stone');for(const e of [-1,1]){const [dx,dz]=W(e*b.w/4,-F*(dh+.05));add('box',{x:dx,y:y0,z:dz,w:2.6,h:3,d:.15,rot:b.rot,col:[.42,.28,.18],pat:6},'wood');}}
+      {const n=Math.max(2,Math.round((b.w-2)/4.5)),bw=(b.w-.2)/n;for(let k=0;k<n;k++){const u=-b.w/2+.1+(k+.5)*bw,[x,z]=W(u,F*(dh-.8));add('arch',{x,y:base,z,w:bw+.05,h:up-base+1.4,d:1.4,rot:b.rot,span:bw*.72,col:STONE,pat:4},'stone');}
+        for(const e of [-1,1]){const [x,z]=W(e*(b.w/2-.6),F*dh*.45);add('box',{x,y:base,z,w:1.2,h:up-base,d:dh*.9,rot:b.rot,col:STONE,pat:4},'stone');}
+        for(let k=0;k<5;k++){const [x,z]=W(r(-b.w/2+2,b.w/2-2),F*r(1,dh-2.5));add('box',{x,y:y0,z,w:r(.6,1),h:r(.5,.9),d:r(.6,1),rot:b.rot+r(-.3,.3),col:WOOD,pat:6},'wood');}}
       prop(0,0,b.w,b.d,.6,up-.6,STONE);body({x:b.x,y:up,z:b.z,w:b.w,h:b.H-5,d:b.d,rot:b.rot,th,floor:up,storeys:[0],door:{side:b.doorSide,u:b.w/2-2.5,wid:2,hgt:3},col:b.wall},'plaster');
       if(interior){for(let i=0;i<6;i++)prop(r(-b.w/3,b.w/3),r(-b.d/3,b.d/3),2.4,1.4,1,y0,[CLOTH,WOOD,[.4,.56,.7]][i%3]);const [ax,az]=W(b.w/2-2.5,b.doorSide*(b.d/2+3)),[bx,bz]=W(b.w/2-2.5-12,b.doorSide*(b.d/2+3));add('ramp',{x0:bx,z0:bz,y0:y0,x1:ax,z1:az,y1:up,w:2.4,base:y0},'stone2');}
       add('gable',{x:b.x,y:top,z:b.z,w:b.w,d:b.d+1.2,h:roofH,rot:b.rot,col:b.roof},'roof');return out;}
@@ -377,6 +385,12 @@
         const [sx,sz]=W(-b.w/2+.8,v+F*1.05);out.push({t:'box',x:sx,y:y0+gH+.3,z:sz,w:.08,h:.08,d:1.6,rot:b.rot,col:[.2,.18,.18],nocol:true},{t:'vdisk',x:sx,y:y0+gH-.4,z:sz,r:.5,rot:b.rot,col:[.25,.2,.18],col2:pk([[.85,.7,.3],[.7,.3,.25],[.3,.5,.6]]),nocol:true});
         for(let k=0;k<Math.round(r(3,6));k++){const u=r(-b.w/2+.8,b.w/2-.8);if(Math.abs(u-doorU)<1.3)continue;const vv=v+F*r(.6,1.6);if(R()<.5){const sz2=r(.5,.8),[x,z]=W(u,vv);out.push({t:'box',x,y:y0,z,w:sz2,h:sz2,d:sz2,rot:b.rot+r(-.3,.3),col:[.55,.4,.25],pat:6,nocol:true});if(R()<.6)for(let f=0;f<3;f++)out.push({t:'blob',x:x+r(-.15,.15),y:y0+sz2+.1,z:z+r(-.15,.15),rx:.14,ry:.12,rz:.14,col:pk([[.85,.25,.2],[.95,.6,.2],[.5,.7,.25],[.9,.8,.3]]),nocol:true});}
           else{const [x,z]=W(u,vv);out.push({t:'cyl',x,y:y0,z,r:.32,h:.9,r2:.3,col:[.48,.33,.2],nocol:true},{t:'cyl',x,y:y0+.2,z,r:.335,h:.06,col:[.25,.24,.26],nocol:true},{t:'cyl',x,y:y0+.65,z,r:.33,h:.06,col:[.25,.24,.26],nocol:true});}}}}
+    // ---- A way down to the cellar: where the plinth stands tall (sloping ground), a low arched door in it on the street
+    // side; elsewhere, on some houses, a slanted wooden cellar hatch against the front wall.
+    {const v=face(0),hi=y0-base;if(hi>1.9){const u=doorU+(R()<.5?-1:1)*Math.min(b.w/2-1.2,2.4),[x,z]=W(u,F*(b.d/2+.05));box(u,F*(b.d/2+.03),1.6,.14,base+.8,1.9,QUOIN,{pat:4});
+        out.push({t:'vdisk',x,y:base+2.6,z,r:.85,rot:b.rot+(F>0?Math.PI/2:-Math.PI/2),col:QUOIN,col2:[.18,.15,.14],nocol:true});box(u,F*(b.d/2+.08),1.2,.08,base+.8,1.75,[.38,.25,.17],{pat:6});}
+      else if(R()<.3&&b.type!=='warehouse'){const u=doorU+(R()<.5?-1:1)*Math.min(b.w/2-1.1,2.2),[ax,az]=W(u,v+F*.05),[bx,bz]=W(u,v+F*1.4);
+        out.push({t:'ramp',x0:ax,z0:az,y0:y0+.75,x1:bx,z1:bz,y1:y0+.05,w:1.5,base:y0-.2,rail:false,col:[.45,.3,.2],pat:6,nocol:true});box(u,v+F*.75,.08,1.4,y0+.45,.1,[.25,.22,.2]);}}
     return out;
   }
   // ---- The cathedral, after Milan's Duomo: a west front on the plaza (buttress piers crowned by tall spires, five
