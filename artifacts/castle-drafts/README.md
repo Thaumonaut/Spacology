@@ -129,3 +129,12 @@ crossings nearest the plaza get bridges, each square to the river; other streets
 Detailed buildings only build for the 3x3 tiles round the walker (or the view when zoomed in); farther tiles keep simple
 shells. Street views run 330k-750k triangles (+600-850k in the shadow pass) under SwiftShader; next step for speed is
 instancing the window/shutter/flower pieces.
+
+## Anime pass (v17)
+
+| File | What to look at |
+| --- | --- |
+| v17-shop / v17-lane / v17-inn / v17-plaza | Golden-hour light, ink outlines, real timber frames, eaves and barge boards, mullioned windows with sills, shutters and trailing flower boxes, quoins, arched doors, potted plants, ivy, bays, balconies, corner turrets |
+
+Cost at street level: 0.4-1.25M triangles (+0.85-1.4M shadow). Too heavy for phones; the fix is instancing the repeated
+pieces (window, shutter, flower box, beam, pot) and dropping detail pieces from the shadow pass beyond ~60 m.

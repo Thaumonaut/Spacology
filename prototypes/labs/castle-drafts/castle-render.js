@@ -61,7 +61,7 @@
     const T=V[L],C=[cx,top,cz];for(let i=0;i<N;i++){const j=(i+1)%N;m.tri(C,T[j],T[i],cols.grass,[0,1,0],[0,1,0],[0,1,0]);}}
   function prism(m,o,col){const {pts,y,top,cx=0,cz=0}=o,N=pts.length,P=([a,d],yy)=>[cx+Math.cos(a)*d,yy,cz+Math.sin(a)*d];
     for(let i=0;i<N;i++){const j=(i+1)%N;m.quad(P(pts[i],y-40),P(pts[i],top),P(pts[j],top),P(pts[j],y-40),col);m.tri([cx,top,cz],P(pts[j],top),P(pts[i],top),shade(col,1.02),[0,1,0],[0,1,0],[0,1,0]);}}
-  function blob(m,o,col){const {x,y,z,rx,ry,rz}=o,la=5,lo=8,P=(i,j)=>{const t=-Math.PI/2+i/la*Math.PI,a=j/lo*TAU;return [Math.cos(t)*Math.cos(a),Math.sin(t),Math.cos(t)*Math.sin(a)];};
+  function blob(m,o,col){const {x,y,z,rx,ry,rz}=o,small=Math.max(rx,ry,rz)<.6,la=small?3:5,lo=small?5:8,P=(i,j)=>{const t=-Math.PI/2+i/la*Math.PI,a=j/lo*TAU;return [Math.cos(t)*Math.cos(a),Math.sin(t),Math.cos(t)*Math.sin(a)];};
     for(let i=0;i<la;i++)for(let j=0;j<lo;j++){const n=[P(i,j),P(i+1,j),P(i+1,j+1),P(i,j+1)],v=n.map(q=>[x+q[0]*rx,y+q[1]*ry,z+q[2]*rz]);m.quad(v[0],v[3],v[2],v[1],col,[n[0],n[3],n[2],n[1]]);}}
   // A wall panel along local u (length L, from u0) in a frame, with rectangular openings cut out: split the length at
   // every opening edge, and in each strip keep the heights no opening covers.
@@ -128,6 +128,10 @@
       else if(p.t==='land'){const W=20000;m.quad([-W,p.y,-W],[-W,p.y,W],[W,p.y,W],[W,p.y,-W],cols.grass,[[0,1,0],[0,1,0],[0,1,0],[0,1,0]]);}
       else if(p.t==='water'){const seg=32,N=[0,1,0];for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri([p.x,p.y,p.z],[p.x+Math.cos(a1)*p.r,p.y,p.z+Math.sin(a1)*p.r],[p.x+Math.cos(a0)*p.r,p.y,p.z+Math.sin(a0)*p.r],[.2,.5,.62],N,N,N,1);}}
       else if(p.t==='figure'){figure(m,p);}
+      else if(p.t==='beam'){// A square timber between two points (braces, barge boards, ridge caps).
+        const a=[p.x0,p.y0,p.z0],b=[p.x1,p.y1,p.z1],d=sub(b,a),L=Math.hypot(...d),t=d.map(v=>v/L),up=Math.abs(t[1])>.9?[1,0,0]:[0,1,0],x=norm(cross(t,up)),y=cross(x,t),h=(p.s||.18)/2;
+        const C=(i,j,k)=>[0,1,2].map(q=>(k?b:a)[q]+x[q]*i*h+y[q]*j*h);const q4=[[-1,-1],[1,-1],[1,1],[-1,1]];
+        for(let e=0;e<4;e++){const [i0,j0]=q4[e],[i1,j1]=q4[(e+1)%4];m.quad(C(i0,j0,0),C(i1,j1,0),C(i1,j1,1),C(i0,j0,1),col);}m.quad(C(-1,-1,1),C(1,-1,1),C(1,1,1),C(-1,1,1),col);m.quad(C(-1,1,0),C(1,1,0),C(1,-1,0),C(-1,-1,0),col);}
       else if(p.t==='vdisk'){// A round panel standing upright, facing along rot (rose windows, clock faces): rim ring and spoked tracery.
         const seg=24,c=Math.cos(p.rot),sn=Math.sin(p.rot),P=(a,rr,o=0)=>[p.x+c*o-sn*Math.cos(a)*rr,p.y+Math.sin(a)*rr,p.z+sn*o+c*Math.cos(a)*rr],N=[c,0,sn];
         for(let i=0;i<seg;i++){const a0=i/seg*TAU,a1=(i+1)/seg*TAU;m.tri(P(0,0,.02),P(a0,p.r*.82,.02),P(a1,p.r*.82,.02),p.col2||[.18,.17,.24],N,N,N);m.quad(P(a0,p.r*.82,.05),P(a0,p.r,.05),P(a1,p.r,.05),P(a1,p.r*.82,.05),col,[N,N,N,N]);
@@ -145,8 +149,8 @@
   in vec3 P;in vec3 N;in vec3 C;in float F;in float T;uniform mat4 VP;uniform mat4 LVP;out vec3 vP;out vec3 vN;out vec3 vC;out float vF;out float vT;out vec4 vL;
   void main(){vP=P;vN=N;vC=C;vF=F;vT=T;vL=LVP*vec4(P,1.);gl_Position=VP*vec4(P,1.);}`;
   const FS=`#version 300 es
-  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;out vec4 o;
-  vec3 skyCol(vec3 d){float t=clamp(d.y,0.,1.);return mix(vec3(.82,.9,.98),vec3(.28,.52,.9),pow(t,.6));}
+  precision highp float;in vec3 vP;in vec3 vN;in vec3 vC;in float vF;in float vT;in vec4 vL;uniform vec3 SUN;uniform vec3 EYE;uniform highp sampler2DShadow SH;uniform float TX;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
+  vec3 skyCol(vec3 d){float t=clamp(d.y,0.,1.);return mix(mix(vec3(.82,.9,.98),vec3(1.,.82,.62),GOLD),mix(vec3(.28,.52,.9),vec3(.36,.5,.86),GOLD),pow(t,.6));}
   float shadow(){vec3 c=vL.xyz/vL.w*.5+.5;if(any(lessThan(c,vec3(0)))||any(greaterThan(c,vec3(1))))return 1.;float s=0.;
     for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)s+=texture(SH,vec3(c.xy+vec2(i,j)*TX,c.z-.0012));return s/9.;}
   float hh(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -170,7 +174,7 @@
       if(wall&&p.y>6.9){float y=p.y-6.,wy=fract(y/3.6),wu=fract(u/2.6+.5);float win=step(.34,wu)*step(wu,.66)*step(.3,wy)*step(wy,.78),frame=step(.3,wu)*step(wu,.7)*step(.26,wy)*step(wy,.82);
         o=mix(o,vec3(.93,.9,.84),frame*(1.-win)*.8);o=mix(o,vec3(.2,.25,.34)+.06*hh(floor(vec2(u/2.6,y/3.6))),win);}}
     return mix(c,o,fade);}
-  void main(){vec3 V=normalize(EYE-vP),n=normalize(vN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-vP);
+  void main(){vec3 V=normalize(EYE-vP),n=normalize(vN);n=dot(n,V)<0.?-n:n;float dist=length(EYE-vP);nrm=vec4(n*.5+.5,vF>.5&&vF<1.5?0.:1.);
     // Closed solids only show faces turned to the eye, so a normal facing away is a winding slip: flip it.
     if(vF>.5&&vF<1.5){
       // Water: deep teal to sky by fresnel, with a sun glint path and gentle ripple shading.
@@ -183,7 +187,8 @@
     float ndl=dot(n,SUN),sh=shadow(),lit=max(ndl,0.)*sh;
     // Soft cel: a shadow tone, a mid tone and a lit tone with short smooth steps between them.
     float tone=smoothstep(.02,.16,lit)*.62+smoothstep(.45,.62,lit)*.38;
-    vec3 cool=base*vec3(.6,.66,.92)*.82+vec3(.02,.03,.07),warm=base*vec3(1.1,1.02,.9);
+    // Golden hour: a warmer, stronger key light and violet-blue shadows (anime evening palette).
+    vec3 cool=base*mix(vec3(.6,.66,.92)*.82,vec3(.52,.5,.82)*.8,GOLD)+vec3(.02,.03,.07),warm=base*mix(vec3(1.1,1.02,.9),vec3(1.28,1.03,.76),GOLD);
     vec3 col=mix(cool,warm,tone);
     col+=base*.1*(n.y*.5+.5)*vec3(.7,.85,1.);
     col+=vec3(1.,.92,.8)*pow(1.-max(dot(n,V),0.),3.)*.18*sh*max(dot(-V,SUN)+.3,0.);
@@ -196,16 +201,27 @@
   const SKYV=`#version 300 es
   out vec2 uv;void main(){vec2 p=vec2(gl_VertexID==1?3.:-1.,gl_VertexID==2?3.:-1.);uv=p;gl_Position=vec4(p,.9999,1.);}`;
   const SKYF=`#version 300 es
-  precision highp float;in vec2 uv;uniform mat4 IVP;uniform vec3 SUN;out vec4 o;
+  precision highp float;in vec2 uv;uniform mat4 IVP;uniform vec3 SUN;uniform float GOLD;layout(location=0) out vec4 o;layout(location=1) out vec4 nrm;
   float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
   float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
   float fbm(vec2 p){float s=0.,a=.5;for(int i=0;i<5;i++){s+=a*n(p);p*=2.1;a*=.5;}return s;}
   void main(){vec4 a=IVP*vec4(uv,-1,1),b=IVP*vec4(uv,1,1);vec3 d=normalize(b.xyz/b.w-a.xyz/a.w);float t=clamp(d.y,0.,1.);
-    vec3 col=mix(vec3(.82,.9,.98),vec3(.28,.52,.9),pow(t,.6));
+    nrm=vec4(.5,.5,.5,0.);vec3 col=mix(mix(vec3(.82,.9,.98),vec3(1.,.82,.62),GOLD),mix(vec3(.28,.52,.9),vec3(.36,.5,.86),GOLD),pow(t,.6));
     // Cumulus: puffy cloud masses near the horizon band, white tops and soft blue-grey bellies.
     if(d.y>0.){vec2 q=d.xz/(d.y+.08)*1.6;float c=fbm(q+vec2(3.1,1.7)),m=smoothstep(.52,.62,c)*smoothstep(0.,.08,d.y);float belly=smoothstep(.55,.75,fbm(q*1.3+vec2(.4,.2)));
-      col=mix(col,mix(vec3(.72,.78,.9),vec3(1.,.99,.96),belly),m*.95);}
+      col=mix(col,mix(mix(vec3(.72,.78,.9),vec3(.75,.62,.72),GOLD),mix(vec3(1.,.99,.96),vec3(1.,.86,.66),GOLD),belly),m*.95);}
     col+=vec3(1.,.9,.7)*pow(max(dot(d,SUN),0.),60.)*.4;o=vec4(col,1.);}`;
+  // Ink pass: edges where depth jumps (silhouettes) or normals turn (creases) become soft dark lines tinted from the
+  // surface colour, fading with distance; then a gentle saturation lift for the painted look.
+  const POSTF=`#version 300 es
+  precision highp float;in vec2 uv;uniform sampler2D COL,NRM,DEP;uniform vec2 PX;uniform float NEAR,FAR,INK;out vec4 o;
+  float lin(vec2 q){float d=texture(DEP,q).r*2.-1.;return 2.*NEAR*FAR/(FAR+NEAR-d*(FAR-NEAR));}
+  void main(){vec2 q=uv*.5+.5;vec3 c=texture(COL,q).rgb;vec4 nc=texture(NRM,q);float zc=lin(q),e=0.;
+    if(INK>0.&&nc.a>.5){vec2 o4[4]=vec2[4](vec2(1,0),vec2(-1,0),vec2(0,1),vec2(0,-1));
+      for(int i=0;i<4;i++){vec2 p=q+o4[i]*PX*1.2;float z=lin(p);vec4 nn=texture(NRM,p);
+        e=max(e,smoothstep(.025,.06,(z-zc)/zc));if(nn.a>.5)e=max(e,smoothstep(.72,.5,dot(nc.xyz*2.-1.,nn.xyz*2.-1.))*.85);else e=max(e,1.);}
+      e*=INK*(1.-smoothstep(250.,1600.,zc)*.8);}
+    float l=dot(c,vec3(.3,.59,.11));c=mix(vec3(l),c,1.12);c=mix(c,c*vec3(.28,.22,.3),e*.8);o=vec4(c,1.);}`;
   function prog(gl,v,f){const p=gl.createProgram();for(const [t,s] of [[gl.VERTEX_SHADER,v],[gl.FRAGMENT_SHADER,f]]){const sh=gl.createShader(t);gl.shaderSource(sh,s);gl.compileShader(sh);if(!gl.getShaderParameter(sh,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(sh));gl.attachShader(p,sh);}gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));return p;}
   // ---- Matrices (column-major).
   const mul=(a,b)=>{const o=new Float32Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;};
@@ -229,7 +245,7 @@
     const S=4096;this.SM=S;this.depth=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT32F,S,S);
     for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
     this.cache=new Map();this.list=[];this.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depth,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
-    this.sun=norm([-.55,.62,.42]);
+    this.post=prog(gl,SKYV,POSTF);this.ink=1;this.setLight('noon');
   }
   // Meshes are uploaded once per key and kept; setMeshes picks which keys draw. Water (flag 1) never casts.
   Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:m.p.length/3,bufs:[]};
@@ -243,6 +259,14 @@
     for(const [a,sg] of [[R0,1],[R0,-1],[R1,1],[R1,-1],[R2,1],[R2,-1]]){const p=R3.map((v,i)=>v+sg*a[i]),l=Math.hypot(p[0],p[1],p[2]);out.push(p.map(v=>v/l));}return out;}
   const visible=(P,g)=>{for(const p of P)if(p[0]*g.c[0]+p[1]*g.c[1]+p[2]*g.c[2]+p[3]<-g.r)return false;return true;};
   Renderer.prototype.drop=function(key){const g=this.cache.get(key);if(!g)return;const gl=this.gl;g.bufs.forEach(b=>gl.deleteBuffer(b));gl.deleteVertexArray(g.vao);gl.deleteVertexArray(g.svao);this.cache.delete(key);};
+  Renderer.prototype.setLight=function(mode){this.gold=mode==='golden'?1:0;this.sun=norm(this.gold?[-.62,.3,.5]:[-.55,.62,.42]);};
+  // Offscreen targets (colour, normal, depth) at the canvas size, for the ink pass.
+  Renderer.prototype.targets=function(w,h){const gl=this.gl;if(this.tw===w&&this.th===h)return;this.tw=w;this.th=h;const mk=(fmt,ifmt,type)=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,ifmt,w,h,0,fmt,type,null);
+      for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);return t;};
+    if(this.ofb){gl.deleteFramebuffer(this.ofb);[this.tc,this.tn,this.td].forEach(t=>gl.deleteTexture(t));}
+    this.tc=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.tn=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.td=mk(gl.DEPTH_COMPONENT,gl.DEPTH_COMPONENT24,gl.UNSIGNED_INT);
+    this.ofb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,this.tc,0);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT1,gl.TEXTURE_2D,this.tn,0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.td,0);gl.drawBuffers([gl.COLOR_ATTACHMENT0,gl.COLOR_ATTACHMENT1]);gl.bindFramebuffer(gl.FRAMEBUFFER,null);};
   Renderer.prototype.setMeshes=function(list,bounds){this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
   Renderer.prototype.setMesh=function(m,bounds){for(const k of [...this.cache.keys()])this.drop(k);this.setMeshes([{key:'main'+(this.n=(this.n||0)+1),mesh:m}],bounds);};
   // Shadows cover a sun-aligned box: the scene bounds, or a focus (Walk) so nearby shadows stay sharp.
@@ -253,15 +277,19 @@
     this.lvp=this.lightFor(cam.shadowFocus||this.bounds);
     const LP=planes(this.lvp);let st=0;
     gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);for(const g of this.list)if(g.casts&&visible(LP,g)){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);st+=g.count/3;}
-    gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    this.targets(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     // Orbit camera, or first person (cam.fp: eye, yaw, pitch) for Walk.
     let eye,vp;
-    if(cam.fp){eye=cam.fp.eye;const {yaw,pitch}=cam.fp,dir=[Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),Math.cos(pitch)*Math.sin(yaw)];vp=mul(persp(1.15,w/h,.15,30000),look(eye,eye.map((v,i)=>v+dir[i]),[0,1,0]));}
+    let NEAR=2,FAR=60000;if(cam.fp){NEAR=.15;FAR=30000;eye=cam.fp.eye;const {yaw,pitch}=cam.fp,dir=[Math.cos(pitch)*Math.cos(yaw),Math.sin(pitch),Math.cos(pitch)*Math.sin(yaw)];vp=mul(persp(1.15,w/h,.15,30000),look(eye,eye.map((v,i)=>v+dir[i]),[0,1,0]));}
     else{eye=[cam.tx+Math.cos(cam.pitch)*Math.cos(cam.yaw)*cam.dist,cam.ty+Math.sin(cam.pitch)*cam.dist,cam.tz+Math.cos(cam.pitch)*Math.sin(cam.yaw)*cam.dist];vp=mul(persp(cam.fov||.75,w/h,2,60000),look(eye,[cam.tx,cam.ty,cam.tz],[0,1,0]));}
-    gl.disable(gl.DEPTH_TEST);gl.useProgram(this.sky);gl.uniformMatrix4fv(gl.getUniformLocation(this.sky,'IVP'),false,invert(vp));gl.uniform3fv(gl.getUniformLocation(this.sky,'SUN'),this.sun);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);
+    gl.disable(gl.DEPTH_TEST);gl.useProgram(this.sky);gl.uniformMatrix4fv(gl.getUniformLocation(this.sky,'IVP'),false,invert(vp));gl.uniform3fv(gl.getUniformLocation(this.sky,'SUN'),this.sun);gl.uniform1f(gl.getUniformLocation(this.sky,'GOLD'),this.gold);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);
     gl.enable(gl.DEPTH_TEST);gl.disable(gl.CULL_FACE);gl.useProgram(this.main);const U=n=>gl.getUniformLocation(this.main,n);
-    gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);
+    gl.uniformMatrix4fv(U('VP'),false,vp);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);gl.uniform3fv(U('SUN'),this.sun);gl.uniform3fv(U('EYE'),eye);gl.uniform1f(U('TX'),1/this.SM);gl.uniform1f(U('GOLD'),this.gold);
     gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.uniform1i(U('SH'),0);const VPl=planes(vp);let tris=0,drawn=0;for(const g of this.list){if(!visible(VPl,g))continue;gl.bindVertexArray(g.vao);gl.drawArrays(gl.TRIANGLES,0,g.count);tris+=g.count/3;drawn++;}
-    this.stats={meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};};
+    this.stats={meshes:this.list.length,drawn,tris:Math.round(tris),shadowTris:Math.round(st)};
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,w,h);gl.disable(gl.DEPTH_TEST);gl.useProgram(this.post);const P=n=>gl.getUniformLocation(this.post,n);
+    [[this.tc,'COL'],[this.tn,'NRM'],[this.td,'DEP']].forEach(([t,n],i)=>{gl.activeTexture(gl.TEXTURE1+i);gl.bindTexture(gl.TEXTURE_2D,t);gl.uniform1i(P(n),1+i);});
+    gl.uniform2f(P('PX'),1/w,1/h);gl.uniform1f(P('NEAR'),NEAR);gl.uniform1f(P('FAR'),FAR);gl.uniform1f(P('INK'),this.ink);gl.bindVertexArray(null);gl.drawArrays(gl.TRIANGLES,0,3);gl.activeTexture(gl.TEXTURE0);};
+  // The beam part needs these helpers outside the GL section.
   window.CastleRender={build,meshParts,waterMesh,Mesh,Renderer};
 })();

@@ -304,34 +304,79 @@
   const DETAILED=new Set(['house','shop','inn','towerhouse','smithy','warehouse','barracks']);
   function detailedParts(b){
     const out=[],R=rng((b.seed^0x5bd1)>>>0),r=(a,c)=>a+(c-a)*R(),pk=a=>a[Math.floor(R()*a.length)],c=Math.cos(b.rot),s=Math.sin(b.rot),F=b.doorSide||1;
-    const W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c],box=(u,v,w,d,y,h,col,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot,col,nocol:o.nocol,...o});};
-    const blob=(u,v,y,rr,col)=>{const [x,z]=W(u,v);out.push({t:'blob',x,y,z,rx:rr,ry:rr*.8,rz:rr,col});};
-    const STONE=pk([[.74,.7,.64],[.68,.65,.6],[.8,.74,.66]]),TIM=pk([[.32,.22,.15],[.4,.27,.17],[.27,.2,.17]]),SHUT=pk([[.24,.42,.36],[.3,.4,.58],[.6,.26,.22],[.36,.48,.3]]);
-    const WARM=[1,.8,.46],GLASS=[.2,.26,.36],FLOW=[[.9,.2,.22],[.95,.55,.2],[.92,.85,.3],[.85,.4,.7],[.95,.95,.9]];
-    const y0=b.floor,base=b.base,n=Math.max(1,b.storeys.length),gH=b.type==='warehouse'||b.type==='smithy'?4.4:3.4,sH=3.1,J=b.type==='warehouse'?0:b.tudor||R()<.5?r(.35,.55):0;
-    // Bodies: the stone ground floor, then each upper storey pushed out toward the street by the jetty.
-    box(0,0,b.w,b.d,base,y0+gH-base,STONE,{pat:4});
-    for(let i=1;i<n;i++){const yy=y0+gH+(i-1)*sH,dd=b.d+J*i;box(0,F*J*i/2,b.w,dd,yy,sH,b.wall,{pat:b.tudor?1:5});if(J)box(0,F*(J*i/2+dd/2-.15),b.w+.12,.3,yy-.28,.3,TIM);}
-    const topY=y0+gH+(n-1)*sH,dTop=b.d+J*(n-1),vTop=F*J*(n-1)/2,front=b.w<9.5||b.type==='towerhouse';
-    // Roof: a steep gable end to the street on narrow houses, else a long gable with dormers on the street side.
-    {const [x,z]=W(0,vTop);if(front)out.push({t:'gable',x,y:topY,z,w:dTop+1.4,d:b.w+.9,h:b.w*r(.8,1.05),rot:b.rot+Math.PI/2,col:b.roof,pat:2});
-      else{const h=dTop*r(.55,.7);out.push({t:'gable',x,y:topY,z,w:b.w+.9,d:dTop+1.6,h,rot:b.rot,col:b.roof,pat:2});
-        const nd=Math.max(1,Math.floor(b.w/5.5));for(let q=0;q<nd;q++){if(R()<.3)continue;const u=-b.w/2+(q+.5)*b.w/nd,v=vTop+F*dTop*.2,yb=topY+h*.25;box(u,v,1.8,1.6,yb,h*.45+1.2,b.wall,{pat:5});
-          const [dx,dz]=W(u,v);out.push({t:'gable',x:dx,y:yb+h*.45+1.2,z:dz,w:1.6+.6,d:2.2,h:1.1,rot:b.rot+Math.PI/2,col:b.roof,pat:2});box(u,v+F*.82,.9,.08,yb+h*.45-.2,1.1,R()<.4?WARM:GLASS,{glow:false});}}
-      if(b.type!=='warehouse'&&R()<.75){box(r(-.3,.3)*b.w,vTop-F*dTop*.2,.9,.9,topY,(front?b.w*.9:dTop*.6)+1.4,[.6,.42,.34],{pat:4});}}
-    // Windows on every storey of the street front.
-    const face=i=>F*(J*i/2+(b.d+J*i)/2),nw=Math.max(1,Math.floor(b.w/2.6)),doorU=b.doorU||0,shop=b.type==='shop'||b.type==='inn';
+    const W=(u,v)=>[b.x+u*c-v*s,b.z+u*s+v*c],P=(u,v,y)=>{const [x,z]=W(u,v);return [x,y,z];};
+    const box=(u,v,w,d,y,h,col,o={})=>{const [x,z]=W(u,v);out.push({t:'box',x,y,z,w,h,d,rot:b.rot+(o.turn||0),col,nocol:true,...o});};
+    const beam=(a,bb,col,sz=.16)=>out.push({t:'beam',x0:a[0],y0:a[1],z0:a[2],x1:bb[0],y1:bb[1],z1:bb[2],s:sz,col,nocol:true});
+    const blob=(u,v,y,rr,col)=>{const [x,z]=W(u,v);out.push({t:'blob',x,y,z,rx:rr,ry:rr*.8,rz:rr,col,nocol:true});};
+    const STONE=pk([[.74,.7,.64],[.68,.65,.6],[.82,.74,.64],[.72,.66,.58]]),QUOIN=STONE.map(v=>Math.min(1,v*1.12)),TIM=pk([[.32,.22,.15],[.4,.27,.17],[.27,.2,.17],[.36,.2,.16]]),SHUT=pk([[.24,.42,.36],[.3,.4,.58],[.6,.26,.22],[.36,.48,.3]]);
+    const WARM=[1,.8,.46],GLASS=[.22,.3,.42],FLOW=[[.92,.22,.24],[.96,.55,.2],[.94,.86,.32],[.86,.42,.72],[.97,.97,.92]],LEAF=[[.3,.55,.28],[.38,.62,.3],[.26,.48,.3]],SILL=[.86,.82,.74];
+    const y0=b.floor,base=b.base,n=Math.max(1,b.storeys.length),gH=b.type==='warehouse'||b.type==='smithy'?4.4:3.6,sH=3.2,J=b.type==='warehouse'?0:b.tudor||R()<.5?r(.35,.55):0;
+    const shop=b.type==='shop'||b.type==='inn',framed=b.tudor&&b.type!=='warehouse';
+    // ---- Ground floor in coursed stone with paler quoins at the corners and a plinth course.
+    box(0,0,b.w,b.d,base,y0+gH-base,STONE,{pat:4,nocol:false});box(0,0,b.w+.16,b.d+.16,y0-.05,.35,QUOIN,{pat:4});
+    for(const su of [-1,1])for(const sv of [-1,1])for(let k=0;k<Math.floor(gH/.55);k++){const long=k%2;box(su*(b.w/2-(long?.45:.3)),sv*(b.d/2-(long?.3:.45)),long?.95:.65,long?.65:.95,y0+k*.55,.5,QUOIN);}
+    // ---- Upper storeys: each jettied toward the street; plaster infill, and for framed houses a real timber frame of
+    // sill and head plates, posts about every 1.3 m, and braces in the panels (alternating, with crossed panels).
+    const face=i=>F*(J*i/2+(b.d+J*i)/2),depthAt=i=>b.d+J*i,offAt=i=>F*J*i/2;
+    for(let i=1;i<n;i++){const yy=y0+gH+(i-1)*sH,dd=depthAt(i),vo=offAt(i);box(0,vo,b.w,dd,yy,sH,b.wall,{pat:5,nocol:false});
+      if(J){box(0,F*(J*i/2+dd/2-.12),b.w+.14,.34,yy-.3,.32,TIM);for(let k=0;k<=Math.floor(b.w/1.6);k++){const u=-b.w/2+.2+k*(b.w-.4)/Math.floor(b.w/1.6);box(u,face(i)-F*.2,.18,.6,yy-.55,.3,TIM);}}
+      if(!framed)continue;
+      for(const side of [F,-F]){const v=side===F?face(i)+F*.07:offAt(i)-F*(dd/2+.07),np=Math.max(2,Math.round(b.w/1.3)),ps=b.w/np;
+        beam(P(-b.w/2,v,yy+.08),P(b.w/2,v,yy+.08),TIM,.2);beam(P(-b.w/2,v,yy+sH-.1),P(b.w/2,v,yy+sH-.1),TIM,.2);if(side===F)beam(P(-b.w/2,v,yy+.95),P(b.w/2,v,yy+.95),TIM,.12);
+        for(let k=0;k<=np;k++){const u=-b.w/2+k*ps;beam(P(u,v,yy),P(u,v,yy+sH),TIM,k===0||k===np?.24:.15);
+          if(k<np&&(side===-F||k%3!==1)){const u1=u+ps,st=(k+i)%4;if(st===0)beam(P(u,v,yy+.1),P(u1,v,yy+sH*.62),TIM,.12);else if(st===1)beam(P(u1,v,yy+.1),P(u,v,yy+sH*.62),TIM,.12);
+            else if(st===2&&side===-F){beam(P(u,v,yy+.1),P(u1,v,yy+sH-.1),TIM,.11);beam(P(u1,v,yy+.1),P(u,v,yy+sH-.1),TIM,.11);}}}}
+      // End walls get corner posts and plates too.
+      for(const su of [-1,1]){const u=su*(b.w/2+.07);beam(P(u,vo-dd/2,yy+.08),P(u,vo+dd/2,yy+.08),TIM,.2);beam(P(u,vo-dd/2,yy+sH-.1),P(u,vo+dd/2,yy+sH-.1),TIM,.2);beam(P(u,vo,yy),P(u,vo,yy+sH),TIM,.15);}}
+    const topY=y0+gH+(n-1)*sH,dTop=depthAt(n-1),vTop=offAt(n-1),front=b.w<9.5||b.type==='towerhouse';
+    // ---- Roof: deep eaves, fascia boards, barge boards up the gable edges, a ridge cap; gable ends get framing and a
+    // small window; long roofs get dormers.
+    {const ov=.75;if(front){const h=b.w*r(.85,1.1),ww=b.w+ov*2,[x,z]=W(0,vTop);out.push({t:'gable',x,y:topY,z,w:dTop+ov*2,d:ww,h,rot:b.rot+Math.PI/2,col:b.roof,pat:2});
+        for(const sv of [-1,1]){const v=vTop+sv*(dTop/2+ov);beam(P(-ww/2,v,topY),P(0,v,topY+h),TIM,.24);beam(P(ww/2,v,topY),P(0,v,topY+h),TIM,.24);
+          // The gable triangle itself, then its timbers and a window.
+          const vv=vTop+sv*(dTop/2+.02);out.push({t:'gable',x:W(0,vv)[0],y:topY,z:W(0,vv)[1],w:.1,d:b.w,h:h*.96,rot:b.rot+Math.PI/2,col:b.wall,pat:5,nocol:true});
+          if(framed){beam(P(0,vv+sv*.08,topY),P(0,vv+sv*.08,topY+h*.9),TIM,.15);beam(P(-b.w/2,vv+sv*.08,topY+h*.35),P(b.w/2,vv+sv*.08,topY+h*.35),TIM,.14);}
+          if(sv===F){box(0,vv+F*.06,1.1,.1,topY+h*.4,1.2,TIM);box(0,vv+F*.1,.8,.08,topY+h*.43,1,R()<.3?WARM:GLASS,{glow:false});}}
+        for(const su of [-1,1])box(su*(ww/2-.05),vTop,.12,dTop+ov*2,topY-.25,.3,TIM);beam(P(0,vTop-dTop/2-ov,topY+h+.05),P(0,vTop+dTop/2+ov,topY+h+.05),b.roof.map(v=>v*.7),.32);}
+      else{const h=dTop*r(.6,.75),dd=dTop+ov*2,[x,z]=W(0,vTop);out.push({t:'gable',x,y:topY,z,w:b.w+ov*1.4,d:dd,h,rot:b.rot,col:b.roof,pat:2});
+        for(const su of [-1,1]){const u=su*(b.w/2+ov*.7);beam(P(u,vTop-dd/2,topY),P(u,vTop,topY+h),TIM,.24);beam(P(u,vTop+dd/2,topY),P(u,vTop,topY+h),TIM,.24);}
+        for(const sv of [-1,1])box(0,vTop+sv*(dd/2-.05),b.w+ov*1.4,.12,topY-.25,.3,TIM);beam(P(-b.w/2-ov*.7,vTop,topY+h+.05),P(b.w/2+ov*.7,vTop,topY+h+.05),b.roof.map(v=>v*.7),.32);
+        const nd=Math.max(1,Math.floor(b.w/4.5));for(let q=0;q<nd;q++){if(R()<.25)continue;const u=-b.w/2+(q+.5)*b.w/nd,v=vTop+F*dTop*.2,yb=topY+h*.22,dh=h*.45+1.3;
+          box(u,v,1.9,1.8,yb,dh,b.wall,{pat:5});const [dx,dz]=W(u,v);out.push({t:'gable',x:dx,y:yb+dh,z:dz,w:2.6,d:2.4,h:1.2,rot:b.rot+Math.PI/2,col:b.roof,pat:2});
+          box(u,v+F*.92,1.15,.1,yb+dh-1.55,1.3,TIM);box(u,v+F*.96,.85,.08,yb+dh-1.45,1.05,R()<.3?WARM:GLASS);}}
+      if(b.type!=='warehouse'&&R()<.8){const u=r(-.3,.3)*b.w,v=vTop-F*dTop*.18,hh=(front?b.w*.9:dTop*.62)+1.6;box(u,v,1,1,topY,hh,[.62,.42,.34],{pat:4});box(u,v,1.3,1.3,topY+hh,.25,[.5,.36,.3]);}}
+    // ---- Windows: frame, glass, a cross mullion, a stone sill, shutters on some, flower boxes on many.
+    const nw=Math.max(1,Math.floor(b.w/2.5)),doorU=b.doorU||0;
+    const windowAt=(u,v,yy,ww,wh,ground)=>{const lit=R()<.2;box(u,v+F*.04,ww+.32,.12,yy-.16,wh+.32,TIM);box(u,v+F*.09,ww,.06,yy,wh,lit?WARM:GLASS,{glow:lit});
+      box(u,v+F*.13,.08,.05,yy,wh,TIM);box(u,v+F*.13,ww,.05,yy+wh*.58,.08,TIM);box(u,v+F*.14,ww+.5,.24,yy-.26,.12,SILL);
+      if(!ground&&R()<.45)for(const e of [-1,1])box(u+e*(ww/2+.32),v+F*.08,.48,.08,yy-.05,wh+.1,SHUT);
+      if(!ground&&R()<.55){box(u,v+F*.3,ww+.25,.36,yy-.4,.3,[.45,.3,.2]);for(let f=0;f<4;f++)blob(u+(f-1.5)*ww*.28,v+F*.32,yy-.02,.2,R()<.3?pk(LEAF):pk(FLOW));
+        if(R()<.4)for(let f=0;f<3;f++)blob(u+(f-1)*ww*.3,v+F*.4,yy-.45-f%2*.25,.16,pk(LEAF));}};
     for(let i=0;i<n;i++){const yy=i===0?y0:y0+gH+(i-1)*sH,v=face(i);
-      for(let q=0;q<nw;q++){const u=-b.w/2+(q+.5)*b.w/nw;if(i===0&&Math.abs(u-doorU)<1.6)continue;const big=i===0&&shop,ww=big?1.9:.95,wh=big?1.8:1.3,wy=yy+(big?.7:1);
-        box(u,v+F*.03,ww+.3,.1,wy-.15,wh+.3,TIM,{nocol:true});{const lit=R()<.22;box(u,v+F*.07,ww,.08,wy,wh,lit?WARM:GLASS,{glow:lit,nocol:true});}
-        if(!big&&R()<.45)for(const e of [-1,1])box(u+e*(ww/2+.3),v+F*.06,.45,.08,wy-.05,wh+.1,SHUT,{nocol:true});
-        if(i>0&&R()<.5){box(u,v+F*.24,ww+.2,.34,wy-.32,.3,[.45,.3,.2],{nocol:true});for(let f=0;f<3;f++)blob(u+(f-1)*ww*.33,v+F*.26,wy+.05,.22,pk(FLOW));}}}
-    // Door, step, wall lantern; shops and inns get an awning, a hanging sign, crates and barrels.
-    {const v=face(0);box(doorU,v+F*.03,1.5,.12,y0,2.55,TIM,{nocol:true});box(doorU,v+F*.08,1.15,.1,y0,2.3,pk([[.45,.28,.18],[.3,.38,.32],[.5,.24,.2]]),{nocol:true,pat:6});
-      box(doorU,v+F*.5,1.8,.9,y0-.5,.5,STONE,{pat:4});box(doorU+1.15,v+F*.2,.12,.3,y0+2.4,.12,[.2,.18,.18],{nocol:true});box(doorU+1.15,v+F*.32,.28,.28,y0+2.05,.36,WARM,{glow:true,nocol:true});
-      if(shop){const ew=b.w*.85,[ax,az]=W(0,v+F*.05),[bx,bz]=W(0,v+F*1.9);out.push({t:'ramp',x0:ax,z0:az,y0:y0+gH-.35,x1:bx,z1:bz,y1:y0+gH-1.05,w:ew,base:y0+gH-1.15,rail:false,pat:10,col:pk([[.8,.25,.22],[.25,.45,.7],[.3,.6,.4],[.85,.6,.2]]),nocol:true});
-        const [sx,sz]=W(-b.w/2+.8,v+F*.9);out.push({t:'box',x:sx,y:y0+gH+.4,z:sz,w:.08,h:.08,d:1.4,rot:b.rot,col:[.2,.18,.18],nocol:true},{t:'box',x:sx,y:y0+gH-.6,z:sz,w:.1,h:.8,d:.9,rot:b.rot,col:pk([[.7,.55,.3],[.5,.3,.2]]),nocol:true});
-        for(let k=0;k<Math.round(r(2,4));k++){const u=r(-b.w/2+.8,b.w/2-.8);if(Math.abs(u-doorU)<1.2)continue;const vv=v+F*r(.5,1.2);if(R()<.5){const sz2=r(.5,.8);box(u,vv,sz2,sz2,y0,sz2,[.55,.4,.25],{pat:6});}else{const [x,z]=W(u,vv);out.push({t:'cyl',x,y:y0,z,r:.32,h:.85,r2:.3,col:[.48,.33,.2]});}}}}
+      for(let q=0;q<nw;q++){const u=-b.w/2+(q+.5)*b.w/nw;if(i===0&&Math.abs(u-doorU)<1.7)continue;const big=i===0&&shop;windowAt(u,v,yy+(big?.65:1.05),big?1.9:.95,big?1.9:1.35,i===0);}
+      // Side walls: a window or two on the upper floors.
+      if(i>0)for(const su of [-1,1])if(R()<.6){const [x,z]=[0,0],vv=offAt(i)+r(-.25,.25)*depthAt(i);box(su*(b.w/2+.04),vv,.12,1.25,yy+1,1.6,TIM);box(su*(b.w/2+.08),vv,.08,.95,yy+1.12,1.35,GLASS);}}
+    // ---- Bay window (oriel) or balcony on some houses, on the first upper floor.
+    if(n>=3&&R()<.35){const i=1,yy=y0+gH,v=face(i),u=r(-.25,.25)*b.w,bw=r(2.2,3);box(u,v+F*.45,bw,.9,yy+.2,sH-.5,b.wall,{pat:5});box(u,v+F*.5,bw+.3,1.1,yy-.1,.3,TIM);
+      const [x,z]=W(u,v+F*.5);out.push({t:'gable',x,y:yy+sH-.3,z,w:bw+.3,d:1.2,h:.8,rot:b.rot,col:b.roof,pat:2});for(const e of [-.6,0,.6])box(u+e*bw*.6,v+F*.92,.55,.06,yy+1,1.3,GLASS);}
+    else if(n>=3&&R()<.35){const yy=y0+gH+sH,v=face(2),bw=r(2.5,4),u=r(-.2,.2)*b.w;box(u,v+F*.55,bw,1.1,yy-.12,.14,TIM);
+      for(let k=0;k<=Math.round(bw/.3);k++)box(u-bw/2+k*bw/Math.round(bw/.3),v+F*1.05,.06,.06,yy,.95,TIM);box(u,v+F*1.05,bw,.1,yy+.95,.08,TIM);for(let f=0;f<3;f++)blob(u+r(-bw/2,bw/2),v+F*.8,yy+.25,.3,pk(FLOW));}
+    // ---- A corner turret on some bigger houses: from the first floor up past the eaves, with a cone roof.
+    if(b.w>9&&n>=3&&R()<.25){const su=R()<.5?-1:1,tr=r(1.3,1.8),[x,z]=W(su*(b.w/2),face(n-1)),yb=y0+gH*.9,th=topY-yb+r(2,4);out.push({t:'cone',x,y:yb-1.2,z,r:tr,h:1.2,inv:true,col:STONE,nocol:true},{t:'cyl',x,y:yb,z,r:tr,h:th,col:b.wall,pat:5,nocol:true},{t:'cyl',x,y:yb+th-.2,z,r:tr*1.08,h:.3,col:TIM,nocol:true},{t:'cone',x,y:yb+th,z,r:tr*1.2,h:tr*3.2,col:b.roof,pat:2,nocol:true});
+      for(let k=0;k<3;k++){const a=b.rot+Math.PI/2*F+(k-1)*.7;out.push({t:'box',x:x+Math.cos(a)*tr,y:yb+th*.55,z:z+Math.sin(a)*tr,w:.5,h:1,d:.1,rot:a+Math.PI/2,col:GLASS,nocol:true});}}
+    // ---- Door: an arched stone surround, a plank door, a step, a lantern, potted plants, a hanging basket, ivy.
+    {const v=face(0),dw=b.type==='smithy'||b.type==='warehouse'?2.6:1.2;box(doorU,v+F*.04,dw+.6,.16,y0,2.6,QUOIN,{pat:4});const [ax,az]=W(doorU,v+F*.06);out.push({t:'vdisk',x:ax,y:y0+2.5,z:az,r:dw/2+.3,rot:b.rot+(F>0?Math.PI/2:-Math.PI/2),col:QUOIN,col2:pk([[.45,.28,.18],[.3,.38,.32],[.5,.24,.2]]),nocol:true});
+      box(doorU,v+F*.1,dw,.1,y0,2.45,pk([[.45,.28,.18],[.3,.38,.32],[.5,.24,.2]]),{pat:6});box(doorU+dw*.3,v+F*.17,.1,.06,y0+1.2,.1,[.8,.7,.3]);
+      box(doorU,v+F*.55,dw+1,1,y0-.5,.5,QUOIN,{pat:4});box(doorU,v+F*.95,dw+.8,.6,y0-.6,.3,QUOIN,{pat:4});
+      const lu=doorU+dw/2+.7;box(lu,v+F*.22,.1,.42,y0+2.55,.1,[.2,.18,.18]);box(lu,v+F*.42,.32,.32,y0+2.1,.42,WARM,{glow:true});box(lu,v+F*.42,.42,.42,y0+2.52,.1,[.2,.18,.18]);
+      for(const e of [-1,1])if(R()<.6){const [x,z]=W(doorU+e*(dw/2+.55),v+F*.45);out.push({t:'cyl',x,y:y0,z,r:.28,h:.5,r2:.34,col:[.7,.4,.28],nocol:true},{t:'blob',x,y:y0+.75,z,rx:.38,ry:.42,rz:.38,col:pk(LEAF),nocol:true});if(R()<.5)out.push({t:'blob',x,y:y0+1.05,z,rx:.16,ry:.14,rz:.16,col:pk(FLOW),nocol:true});}
+      if(R()<.4){const u=doorU-dw/2-.9;box(u,v+F*.3,.06,.6,y0+2.9,.06,[.2,.18,.18]);blob(u,v+F*.62,y0+2.45,.38,pk(LEAF));for(let f=0;f<3;f++)blob(u+r(-.2,.2),v+F*.62,y0+2.35+r(0,.3),.14,pk(FLOW));}
+      if(R()<.3){const u=r(-.4,.4)*b.w;for(let k=0;k<14;k++)blob(u+r(-1.4,1.4),v+F*.08,y0+r(.2,gH+sH*.8),r(.25,.45),pk(LEAF));}
+      if(shop){const ew=b.w*.85,[ax2,az2]=W(0,v+F*.05),[bx2,bz2]=W(0,v+F*2.1);out.push({t:'ramp',x0:ax2,z0:az2,y0:y0+gH-.4,x1:bx2,z1:bz2,y1:y0+gH-1.15,w:ew,base:y0+gH-1.25,rail:false,pat:10,col:pk([[.8,.25,.22],[.25,.45,.7],[.3,.6,.4],[.85,.6,.2],[.6,.3,.55]]),nocol:true});
+        for(const e of [-1,1]){const [x,z]=W(e*ew/2,v+F*2.05);out.push({t:'beam',x0:x,y0:y0+gH-1.15,z0:z,x1:W(e*ew/2,v+F*.05)[0],y1:y0+gH-1.9,z1:W(e*ew/2,v+F*.05)[1],s:.07,col:[.2,.18,.18],nocol:true});}
+        const [sx,sz]=W(-b.w/2+.8,v+F*1.05);out.push({t:'box',x:sx,y:y0+gH+.3,z:sz,w:.08,h:.08,d:1.6,rot:b.rot,col:[.2,.18,.18],nocol:true},{t:'vdisk',x:sx,y:y0+gH-.4,z:sz,r:.5,rot:b.rot,col:[.25,.2,.18],col2:pk([[.85,.7,.3],[.7,.3,.25],[.3,.5,.6]]),nocol:true});
+        for(let k=0;k<Math.round(r(3,6));k++){const u=r(-b.w/2+.8,b.w/2-.8);if(Math.abs(u-doorU)<1.3)continue;const vv=v+F*r(.6,1.6);if(R()<.5){const sz2=r(.5,.8),[x,z]=W(u,vv);out.push({t:'box',x,y:y0,z,w:sz2,h:sz2,d:sz2,rot:b.rot+r(-.3,.3),col:[.55,.4,.25],pat:6,nocol:true});if(R()<.6)for(let f=0;f<3;f++)out.push({t:'blob',x:x+r(-.15,.15),y:y0+sz2+.1,z:z+r(-.15,.15),rx:.14,ry:.12,rz:.14,col:pk([[.85,.25,.2],[.95,.6,.2],[.5,.7,.25],[.9,.8,.3]]),nocol:true});}
+          else{const [x,z]=W(u,vv);out.push({t:'cyl',x,y:y0,z,r:.32,h:.9,r2:.3,col:[.48,.33,.2],nocol:true},{t:'cyl',x,y:y0+.2,z,r:.335,h:.06,col:[.25,.24,.26],nocol:true},{t:'cyl',x,y:y0+.65,z,r:.33,h:.06,col:[.25,.24,.26],nocol:true});}}}}
     return out;
   }
   // ---- The cathedral, after Milan's Duomo: a west front on the plaza (buttress piers crowned by tall spires, five
