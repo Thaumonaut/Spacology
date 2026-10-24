@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>City slice · Spacology</title>
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#9fb8cc;font:13px system-ui,sans-serif}canvas{display:block}
+#hud{position:fixed;left:12px;bottom:12px;display:flex;gap:8px;flex-wrap:wrap}#hud span{background:rgba(20,28,30,.72);color:#e8e6dc;padding:6px 10px;border-radius:8px}
+#title{position:fixed;left:12px;top:12px;background:rgba(20,28,30,.72);color:#e8e6dc;padding:8px 12px;border-radius:10px;max-width:330px;line-height:1.4}#title b{font:600 15px Georgia,serif}</style>
+<script type="importmap">{"imports":{"three":"./vendor/three/build/three.webgpu.js","three/webgpu":"./vendor/three/build/three.webgpu.js","three/tsl":"./vendor/three/build/three.tsl.js","three/addons/":"./vendor/three/addons/"}}</script>
+</head><body>
+<div id="title"><b>City slice</b><br>Click to look around · WASD to walk · Shift run · Space jump. Walk up to any door to open it and go inside.</div>
+<div id="hud"><span id="status">Building the city…</span></div>
+<script src="../castle-drafts/castle-gen.js"></script><script src="../castle-drafts/castle-render.js"></script><script src="../castle-drafts/castle-walk.js"></script>
+<script src="../castle-drafts/toolkit/pavement-plan.js"></script><script src="../castle-drafts/toolkit/town-kit.js"></script><script src="../castle-drafts/toolkit/street-edges.js"></script><script src="../castle-drafts/toolkit/city-kit.js"></script>
+<script type="module" src="./slice.js"></script>
+</body></html>

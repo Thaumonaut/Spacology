@@ -14,6 +14,7 @@
     "test:balance": "node tests/run.cjs --balance"
   },
   "devDependencies": {
-    "playwright": "1.61.1"
+    "playwright": "1.61.1",
+    "three": "^0.186.1"
   }
 }
