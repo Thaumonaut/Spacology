@@ -299,7 +299,7 @@
       if(!(g.blend>0))return g.biome;
       return g.blend>.5+(noise(x*.05,z*.05,seed+813)-.5)*.9+(f-.5)*.55?g.biome2:g.biome;
     }
-    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.08,grassland:.04,tundra:.03,
+    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.8,meadow:.7,wetland:.3,savanna:.08,grassland:.04,tundra:.03,
       flowers:.02,autumn:.8,blossom:.5,fen:.1,heath:.03,golden:.05,bamboo:.9,badlands:.01,pinkgrass:.03,desert:0,beach:0};
     // Vegetated ground: everything tree floors, scree, worn patches and landmarks may paint over. GRASSY: where voxel flowers grow.
     const TURF=new Set([MAT.grass,MAT.tundra,MAT.dry,MAT.dirt,MAT.mossy,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.sphagnum,MAT.heather,MAT.steppegrass,MAT.savgrass,MAT.goldgrass,MAT.junglefloor,MAT.floodgrass]);
@@ -1457,11 +1457,16 @@
       // Treeline: forest thins and shrinks over the last ~4 degrees C (about 25 m) below the line, broadleaf dropping out
       // before conifers. The line is ~1 C (it follows the climate's temperature and lapse rate), lower on steep, exposed
       // ground. Just above it, only rare stunted krummholz conifers. Applies on any ground, snow included.
-      const warmth=g.temperature-1-g.slope*1.6,tl=clamp(warmth/4,0,1),tline=tl*tl*(3-2*tl);
+      // The forest reaches well up the mountains: full forest to ~2 C, thinning over ~6 C above that, steep ground
+      // lowering it only a little.
+      const warmth=g.temperature+1.5-g.slope*.8,tl=clamp(warmth/6,0,1),
+        // Green mountain biomes always carry trees (the climate model runs cold up there): subalpine parkland keeps most of
+        // its forest, alpine meadows scattered stands of smaller conifers.
+        tline=Math.max(tl*tl*(3-2*tl),b==='subalpine'?.8:b==='meadow'?.6:0);
       if(tline<=0){
         // Above the treeline, streams still carry a fringe of willow and alder scrub.
         if(cor&&warmth>-7&&b!=='snow'&&roll2<.6*rip)return growTree(roll<.6?'willow':'alder',S,g,gx,gz,x,z,{k:.22+.12*hash(gx,gz,seed+757)});
-        if(warmth>-2.5&&!barren&&roll<.06*(1+warmth/2.5))return growTree('spruce',S,g,gx,gz,x,z,{k:.28+.1*hash(gx,gz,seed+751)});
+        if(warmth>-4&&!barren&&roll<.1*(1+warmth/4))return growTree('spruce',S,g,gx,gz,x,z,{k:.28+.1*hash(gx,gz,seed+751)});
         return null;
       }
       base*=tline;
