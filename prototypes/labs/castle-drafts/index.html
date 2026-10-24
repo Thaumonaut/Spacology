@@ -19,6 +19,7 @@
 <canvas id="c"></canvas>
 <div id="panel">
   <strong>Castle drafts</strong>
+  <label>Mode <select id="mode"><option value="castle">castle</option><option value="city">city</option></select></label>
   <label>Seed <input id="seed" type="number" value="1"></label>
   <div class="row"><button id="prev">◀ Prev</button><button id="next">Next ▶</button><button id="rand">Random</button></div>
   <label>Style <select id="style"><option value="">auto</option><option>island</option><option>hill</option><option>cliff</option></select></label>
@@ -33,17 +34,37 @@
 <script src="castle-gen.js"></script>
 <script src="castle-render.js"></script>
 <script src="castle-walk.js"></script>
+<script src="city-gen.js"></script>
 <script>
 (function(){
   'use strict';
   const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search),canvas=$('c');
   const R=new CastleRender.Renderer(canvas);
   CastleGen.PALETTES.forEach((p,i)=>{const o=document.createElement('option');o.value=i;o.textContent=p.name;$('palette').appendChild(o);});
-  const state={seed:+(Q.get('seed')||1),style:Q.get('style')||'',layout:Q.get('layout')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
+  const state={mode:Q.get('mode')||'castle',seed:+(Q.get('seed')||1),style:Q.get('style')||'',layout:Q.get('layout')||'',palette:Q.get('palette')||'',scale:+(Q.get('scale')||1),grid:Q.get('grid')==='1'};
   const cam={yaw:+(Q.get('yaw')||0.9),pitch:+(Q.get('pitch')||0.1),dist:+(Q.get('dist')||0),tx:0,ty:0,tz:0,fov:.75};
-  function sync(){$('seed').value=state.seed;$('style').value=state.style;$('layout').value=state.layout;$('palette').value=state.palette;$('scale').value=state.scale;$('grid').checked=state.grid;
-    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.layout)q.set('layout',state.layout);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');history.replaceState(null,'','?'+q);}
+  function sync(){$('mode').value=state.mode;$('seed').value=state.seed;$('style').value=state.style;$('layout').value=state.layout;$('palette').value=state.palette;$('scale').value=state.scale;$('grid').checked=state.grid;
+    const q=new URLSearchParams({seed:state.seed,scale:state.scale});if(state.style)q.set('style',state.style);if(state.layout)q.set('layout',state.layout);if(state.palette!=='')q.set('palette',state.palette);if(state.grid)q.set('grid','1');if(state.mode!=='castle')q.set('mode',state.mode);history.replaceState(null,'','?'+q);}
+  // ---- City mode: the static city, its castle and 160 m building tiles. Tiles near the walker get full interiors;
+  // the rest are closed shells. Meshes and colliders are built per tile on demand and kept.
+  const TILE=160;let city=null;const tileCache=new Map();
+  function tileMesh(k,interior){const id=k+(interior?':int':':ext');if(tileCache.has(id))return tileCache.get(id);const m=new CastleRender.Mesh();
+    for(const b of city.tiles.get(k)||[])CastleRender.meshParts(CityGen.buildingParts(b,interior),city.palette,0,0,m);const t={key:'city'+city.seed+':'+id,mesh:m,col:interior?new CastleWalk.Collider(m):null};tileCache.set(id,t);return t;}
+  function cityList(near){const list=[city.water,city.static,city.castleMesh];const tw=near?[Math.floor(near.x/TILE),Math.floor(near.z/TILE)]:null,cols=[city.static.col,city.castleMesh.col];
+    for(const k of city.tiles.keys()){const [i,j]=k.split(',').map(Number),inside=tw&&Math.abs(i-tw[0])<=1&&Math.abs(j-tw[1])<=1,t=tileMesh(k,inside);list.push(t);if(inside)cols.push(t.col);}
+    return {list,collider:new CastleWalk.Multi(cols)};}
+  function buildCity(){tileCache.clear();for(const k of [...R.cache.keys()])R.drop(k);
+    city=CityGen.generate(state.seed,{scale:state.scale});city.tiles=new Map();for(const b of city.buildings){const k=Math.floor(b.x/TILE)+','+Math.floor(b.z/TILE);if(!city.tiles.has(k))city.tiles.set(k,[]);city.tiles.get(k).push(b);}
+    const sm=CastleRender.meshParts(city.parts,city.palette),cm=CastleRender.meshParts(city.castle.parts,city.castle.palette,city.castleAt.x,city.castleAt.z);
+    city.static={key:'city'+city.seed+':static',mesh:sm,col:new CastleWalk.Collider(sm)};city.castleMesh={key:'city'+city.seed+':castle',mesh:cm,col:new CastleWalk.Collider(cm)};city.water={key:'water',mesh:CastleRender.waterMesh()};
+    const {list,collider}=cityList(null);state.collider=collider;state.castle={spawn:city.spawn};R.setMeshes(list,{cx:0,cz:0,r:city.radius+120,h:80});
+    cam.tx=0;cam.tz=0;cam.ty=40;if(!Q.get('dist')||state._moved)cam.dist=city.radius*2.1;
+    const n={};for(const b of city.buildings)n[b.type]=(n[b.type]||0)+1;
+    $('info').textContent=`City ${state.seed} · ${Math.round(city.radius*2)} m across · ${city.buildings.length} buildings · ${Object.entries(n).sort((a,b)=>b[1]-a[1]).map(([k,v])=>k+' '+v).join(', ')}`;
+    sync();draw();}
   function rebuild(){
+    if(state.mode==='city'){buildCity();if(walker)startWalk();return;}
+    cam.tx=0;cam.tz=0;
     const opts={style:state.style||undefined,layout:state.layout||undefined,palette:state.palette===''?undefined:+state.palette,scale:state.scale},list=[];
     if(state.grid){for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){const s=state.seed+(j+1)*3+(i+1);const castle=CastleGen.generate(s,opts);castle.parts=castle.parts.filter(p=>p.t!=='shore');list.push({castle,ox:i*1300*state.scale,oz:j*1300*state.scale});}}
     else list.push({castle:CastleGen.generate(state.seed,opts),ox:0,oz:0});
@@ -57,9 +78,14 @@
   function draw(){const dpr=Math.min(2,devicePixelRatio||1);canvas.width=innerWidth*dpr;canvas.height=innerHeight*dpr;R.draw(cam);window.CastleDrafts.frames++;}
   // ---- Walk: first person against the castle mesh; pointer lock for mouse look.
   let walker=null,last=0;
-  function startWalk(){if(state.grid){state.grid=false;rebuild();return;}walker=new CastleWalk.Walker(state.collider,state.castle.spawn);walker.spawn0={...state.castle.spawn,y:walker.y};cam.fp=walker.camera();$('walk').textContent='Exit walk (Esc)';requestAnimationFrame(tick);}
-  function stopWalk(){walker=null;cam.fp=null;$('walk').textContent='Walk (WASD · mouse · Shift run · Space jump · F fly · Esc)';if(document.pointerLockElement)document.exitPointerLock();draw();}
-  function tick(t){if(!walker)return;const dt=Math.min(.05,(t-(last||t))/1000);last=t;walker.update(dt);cam.fp=walker.camera();draw();requestAnimationFrame(tick);}
+  function startWalk(){if(state.grid){state.grid=false;rebuild();return;}walkTile='';
+    if(state.mode==='city'){const s=state.castle.spawn;state.collider=cityList(s).collider;}
+    walker=new CastleWalk.Walker(state.collider,state.castle.spawn);follow();shadowNear();walker.spawn0={...state.castle.spawn,y:walker.y};cam.fp=walker.camera();$('walk').textContent='Exit walk (Esc)';requestAnimationFrame(tick);}
+  function stopWalk(){walker=null;cam.fp=null;cam.shadowFocus=null;if(state.mode==='city'&&city)R.setMeshes(cityList(null).list);$('walk').textContent='Walk (WASD · mouse · Shift run · Space jump · F fly · Esc)';if(document.pointerLockElement)document.exitPointerLock();draw();}
+  // In the city, the interior ring follows the walker tile by tile.
+  let walkTile='';function follow(){if(state.mode!=='city'||!walker)return;const k=Math.floor(walker.x/TILE)+','+Math.floor(walker.z/TILE);if(k===walkTile)return;walkTile=k;const {list,collider}=cityList(walker);walker.col=collider;R.setMeshes(list);}
+  function shadowNear(){cam.shadowFocus=walker&&state.mode==='city'?{cx:walker.x,cz:walker.z,r:260,h:(walker.y+20)/.3}:null;}
+  function tick(t){if(!walker)return;const dt=Math.min(.05,(t-(last||t))/1000);last=t;walker.update(dt);follow();shadowNear();cam.fp=walker.camera();draw();requestAnimationFrame(tick);}
   $('walk').onclick=()=>walker?stopWalk():startWalk();
   const KEY={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',ArrowUp:'w',ArrowDown:'s',ShiftLeft:'shift',ShiftRight:'shift',Space:'space',KeyC:'c'};
   addEventListener('keydown',e=>{if(!walker)return;if(KEY[e.code]){walker.keys[KEY[e.code]]=true;e.preventDefault();}if(e.code==='KeyF')walker.fly=!walker.fly;if(e.code==='Escape')stopWalk();});
@@ -67,11 +93,11 @@
   addEventListener('mousemove',e=>{if(!walker||document.pointerLockElement!==canvas)return;walker.yaw+=e.movementX*.0025;walker.pitch=Math.max(-1.4,Math.min(1.4,walker.pitch-e.movementY*.0025));});
   window.CastleDrafts={frames:0,state,cam,rebuild,draw,
     // Headless helpers: start Walk, step it, or place the walker.
-    walk:()=>startWalk(),step:(keys,seconds)=>{Object.assign(walker.keys,keys);for(let i=0;i<seconds*30;i++)walker.update(1/30);walker.keys={};cam.fp=walker.camera();draw();return {x:walker.x,y:walker.y,z:walker.z};},
-    place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});cam.fp=walker.camera();draw();},walker:()=>walker};
+    walk:()=>startWalk(),step:(keys,seconds)=>{Object.assign(walker.keys,keys);for(let i=0;i<seconds*30;i++){walker.update(1/30);follow();}walker.keys={};shadowNear();cam.fp=walker.camera();draw();return {x:walker.x,y:walker.y,z:walker.z};},
+    place:(x,y,z,yaw,pitch=0)=>{Object.assign(walker,{x,y,z,yaw,pitch,vy:0});follow();shadowNear();cam.fp=walker.camera();draw();},city:()=>city,walker:()=>walker};
   const set=(k,v)=>{state[k]=v;state._moved=true;rebuild();};
   $('seed').onchange=e=>set('seed',+e.target.value);$('prev').onclick=()=>set('seed',state.seed-(state.grid?9:1));$('next').onclick=()=>set('seed',state.seed+(state.grid?9:1));
-  $('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('layout').onchange=e=>set('layout',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);
+  $('mode').onchange=e=>set('mode',e.target.value);$('rand').onclick=()=>set('seed',Math.floor(Math.random()*99999));$('style').onchange=e=>set('style',e.target.value);$('layout').onchange=e=>set('layout',e.target.value);$('palette').onchange=e=>set('palette',e.target.value);
   $('scale').oninput=e=>set('scale',+e.target.value);$('grid').onchange=e=>set('grid',e.target.checked);
   addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'||walker)return;if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click();});
   let drag=null;canvas.onpointerdown=e=>{if(walker){canvas.requestPointerLock();return;}drag=[e.clientX,e.clientY];canvas.setPointerCapture(e.pointerId);};

@@ -23,6 +23,10 @@
     return best;};
   // Floor under (x,z) for feet at y: the first surface below y+step; -Infinity when there is none (falling into the sea).
   Collider.prototype.floor=function(x,y,z,step=.6){const t=this.ray([x,y+step,z],[0,-1,0],600);return t<600?y+step-t:-Infinity;};
+  // Several colliders as one (the city: static ground and walls, the castle, and the interior tiles near the walker).
+  function Multi(list){this.list=list;}
+  Multi.prototype.ray=function(o,d,max){let best=max;for(const c of this.list)best=Math.min(best,c.ray(o,d,best));return best;};
+  Multi.prototype.floor=Collider.prototype.floor;
   function Walker(col,spawn){this.col=col;this.x=spawn.x;this.z=spawn.z;this.yaw=spawn.yaw;this.pitch=0;this.vy=0;this.fly=false;this.keys={};
     const f=col.floor(spawn.x,spawn.y+40,spawn.z,0);this.y=isFinite(f)?f:spawn.y;}
   Walker.prototype.blocked=function(x,y,z,dx,dz){const L=Math.hypot(dx,dz);if(L<1e-6)return false;const d=[dx/L,0,dz/L];
@@ -35,5 +39,5 @@
     const g=this.col.floor(this.x,this.y,this.z);this.vy-=22*dt;this.y+=this.vy*dt;
     if(this.y<=g){this.y=g;this.vy=k.space?7:0;}if(this.y<-30){const s=this.spawn0;if(s){this.x=s.x;this.z=s.z;this.y=s.y;this.vy=0;}}};
   Walker.prototype.camera=function(){return {eye:[this.x,this.y+1.65,this.z],yaw:this.yaw,pitch:this.pitch};};
-  window.CastleWalk={Collider,Walker};
+  window.CastleWalk={Collider,Multi,Walker};
 })();

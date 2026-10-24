@@ -58,7 +58,7 @@
     }else if(style==='hill'){
       add('land',{y:2*S},'grass');
       // A near-conical profile keeps the flanks ~20-25 degrees all the way to the walls, so the hill can be walked up.
-      add('crag',{pts,top,base:0,flare:r(2.6,3.4),skin:'grass',profile:1.05},'grass');
+      add('crag',{pts,top,base:0,flare:opts.flare||r(2.6,3.4),skin:'grass',profile:1.05},'grass');
       for(let i=0;i<180;i++){const a=R()*TAU,f=r(1.2,2.8),d=rad(a)*f,yy=top*Math.max(0,1-(f-1)/2.3),s2=r(8,18)*S;add('blob',{x:Math.cos(a)*d,y:yy+s2*.4,z:Math.sin(a)*d,rx:s2,ry:s2*1.1,rz:s2},'green');}
     }else{
       add('crag',{pts,top,base:-6,flare:1.16},'rock');

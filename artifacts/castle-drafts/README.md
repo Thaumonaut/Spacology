@@ -33,3 +33,19 @@ Collision is the castle mesh itself (rays against a grid of triangles), so whate
 | v5-spur | Spur: a chain of walled baileys stepping up a long ridge to a square donjon with hanging turrets and a spire tower |
 | v5-palace | Palace: domed main block, wings and pavilions on an upper terrace, grand stair, gardens, outer ring wall |
 | v5-cluster | Cluster: a tight pile of halls of many heights on a narrow crag, turrets, one tallest tower |
+
+## City (v6)
+
+Mode **city**: a seeded walled city (~1.7 km, ~2,000 buildings): central plaza with fountain and statue, radial avenues to
+gatehouses, ring streets and lanes, a river in a walled channel with arched bridges and water gates, a castle on its hill,
+and a cathedral on the plaza. Every building is a random type for its district (house, shop, inn, smithy, warehouse,
+chapel, tower house, guildhall, market hall, bathhouse, barracks) with plaster and roof colours of its own.
+Buildings stream in 160 m tiles: tiles around the walker get full interiors (rooms with partitions, storeys and stairs,
+furniture by type: tables and hearths, beds, shop counters and shelves, inn bar and tables, forge and anvil, crates,
+pews and altar, columns); the rest draw as closed shells.
+
+| File | What to look at |
+| --- | --- |
+| city2-0-overview / city2-1-low | Seed 2 from outside the walls and low over the roofs |
+| city2-3-cathedral | Cathedral nave: columns, pews, altar |
+| city2-3-inn / -shop / -house / -smithy / -market | Interiors by type (Walk placed inside each) |
