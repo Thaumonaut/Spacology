@@ -10,13 +10,18 @@ import {PATTERN_KIND} from './textures.js';
 const lin=c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);
 export function partsToGroups(parts,palette,tiles){
   const m=window.CastleRender.meshParts(parts,palette),groups=new Map(),solids=[];
+  // Part centroids (meshParts tags each triangle with its part index): faces are wound to point away from their
+  // part's centre. The kit's own normals are not reliable (the old renderer flipped them toward the eye), and every
+  // kit part is a closed, near-convex solid, so outward-from-centre is the true outside.
+  const cen=new Map();for(let t=0;t<m.p.length/9;t++){const id=m.id[t],c=cen.get(id)||[0,0,0,0];for(let i=0;i<9;i++)c[i%3]+=m.p[t*9+i];c[3]+=3;cen.set(id,c);}
   const G=k=>{let g=groups.get(k);if(!g){g={p:[],n:[],c:[],uv:[],tg:[]};groups.set(k,g);}return g;};
   for(let t=0;t<m.p.length/9;t++){const o=t*9,A=[m.p[o],m.p[o+1],m.p[o+2]],B=[m.p[o+3],m.p[o+4],m.p[o+5]],C=[m.p[o+6],m.p[o+7],m.p[o+8]];
     const v=t*3,flag=m.f[v];if(flag===1)continue;
     let N=[m.n[o],m.n[o+1],m.n[o+2]];const e1=[B[0]-A[0],B[1]-A[1],B[2]-A[2]],e2=[C[0]-A[0],C[1]-A[1],C[2]-A[2]],F=[e1[1]*e2[2]-e1[2]*e2[1],e1[2]*e2[0]-e1[0]*e2[2],e1[0]*e2[1]-e1[1]*e2[0]],fl=Math.hypot(...F);if(fl<1e-9)continue;
-    const fn=F.map(x=>x/fl);if(Math.hypot(...N)<.5)N=fn;
-    // Wind to the shading normal (the meshers' normals are authoritative; some quads were wound the other way).
-    let tri=[A,B,C],nv=[[m.n[o],m.n[o+1],m.n[o+2]],[m.n[o+3],m.n[o+4],m.n[o+5]],[m.n[o+6],m.n[o+7],m.n[o+8]]],cv=[[m.c[o],m.c[o+1],m.c[o+2]],[m.c[o+3],m.c[o+4],m.c[o+5]],[m.c[o+6],m.c[o+7],m.c[o+8]]];
+    let fn=F.map(x=>x/fl);const pc=cen.get(m.id[t]),cx=pc[0]/pc[3],cy=pc[1]/pc[3],cz=pc[2]/pc[3],tc=[(A[0]+B[0]+C[0])/3-cx,(A[1]+B[1]+C[1])/3-cy,(A[2]+B[2]+C[2])/3-cz];
+    // Outward: the face normal must point away from the part centre; shading normals follow it.
+    const out=fn[0]*tc[0]+fn[1]*tc[1]+fn[2]*tc[2]<0?-1:1;N=fn.map(x=>x*out);
+    let tri=[A,B,C],nv=[[m.n[o],m.n[o+1],m.n[o+2]],[m.n[o+3],m.n[o+4],m.n[o+5]],[m.n[o+6],m.n[o+7],m.n[o+8]]].map(v=>v[0]*N[0]+v[1]*N[1]+v[2]*N[2]<0?v.map(x=>-x):v),cv=[[m.c[o],m.c[o+1],m.c[o+2]],[m.c[o+3],m.c[o+4],m.c[o+5]],[m.c[o+6],m.c[o+7],m.c[o+8]]];
     if(fn[0]*N[0]+fn[1]*N[1]+fn[2]*N[2]<0){tri=[A,C,B];nv=[nv[0],nv[2],nv[1]];cv=[cv[0],cv[2],cv[1]];}
     const kind=flag===2?'glow':PATTERN_KIND[m.t[v]]||'plain',tile=(tiles[kind]||tiles.plain).tile;
     // Face frame: U horizontal along the face (or world X on flat faces), V up the face (or world Z on flat faces).
