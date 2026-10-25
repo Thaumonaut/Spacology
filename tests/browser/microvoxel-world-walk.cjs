@@ -8,7 +8,7 @@ const point=s=>s.position?{x:s.position.cx*8+s.position.x,z:s.position.cz*8+s.po
 try{
   const p=await browser.newPage({viewport:{width:1280,height:800},deviceScaleFactor:1}),errors=[];
   p.on('pageerror',e=>errors.push(e.message));
-  await p.goto(BASE+'/prototypes/microvoxel-world.html?seed=2718&extent=infinite&cx=-1&cz=-5&lx=4&lz=6');await ready(p);
+  await p.goto(BASE+'/prototypes/microvoxel-world.html?seed=2718&extent=infinite&cx=-2&cz=-5&lx=1&lz=4');await ready(p);
   await p.locator('#walk').click();await ready(p);let s=await state(p);
   assert.equal(s.camera.mode,'walk');assert.ok(s.walk.active);assert.ok(s.camera.eyeY>s.walk.height+1.2);assert.equal(s.camera.fov,70);
   assert.ok(Object.keys(s.stream.rings).length>=4,'several distance rings are simultaneously requested');assert.equal(s.stream.level,0,'the near ring keeps L0 detail at the default budget');
@@ -43,7 +43,7 @@ try{
   await p.keyboard.press('m');await ready(p);s=await state(p);assert.equal(s.camera.mode,'map');assert.ok(Math.hypot(point(s).x-walked.x,point(s).z-walked.z)<.01,'Map returns at the walker position');assert.ok(!new URL(p.url()).searchParams.has('walk'));
   assert.deepEqual(errors,[]);assert.equal(s.glError,0);
   await p.close();const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,isMobile:true}),mobile=await context.newPage();
-  mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(BASE+'/prototypes/microvoxel-world.html?seed=2718&extent=infinite&cx=-1&cz=-5&lx=4&lz=6&walk=1');await ready(mobile);
+  mobile.on('pageerror',e=>errors.push(e.message));await mobile.goto(BASE+'/prototypes/microvoxel-world.html?seed=2718&extent=infinite&cx=-2&cz=-5&lx=1&lz=4&walk=1');await ready(mobile);
   const cd=await context.newCDPSession(mobile),r=await mobile.locator('#world').boundingBox(),before=await state(mobile),x=r.x+r.width*.2,y=r.y+r.height*.7;
   const touch=(type,x,y)=>cd.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x,y}]});
   await touch('touchStart',x,y);await touch('touchMove',x,y-60);await mobile.waitForFunction(start=>{const s=MicroWorldLab.snapshot(),q=s.position;return Math.hypot(q.cx*8+q.x-start.x,q.cz*8+q.z-start.z)>.5;},point(before),{timeout:60000});await touch('touchEnd');

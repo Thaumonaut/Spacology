@@ -121,6 +121,10 @@
             const p=getPoint(),sx=dx/steps,sz=dz/steps;let mx=0,mz=0;
             if(canStep(w,p.x,p.z,p.x+sx,p.z+sz,lim)){mx=sx;mz=sz;}
             else{if(canStep(w,p.x,p.z,p.x+sx,p.z,lim))mx=sx;if(canStep(w,p.x+mx,p.z,p.x+mx,p.z+sz,lim))mz=sz;}
+            // Round obstacles (trunks, boulders) hit head-on block both axes: steer around them at 45°, then 80°, choosing
+            // the side the walker is already drifting toward (alternating by step otherwise), at a little under full speed.
+            if(!mx&&!mz)for(const t of [.785,-.785,1.4,-1.4]){const a=t*(k%2?-1:1),c=Math.cos(a)*.85,sn=Math.sin(a)*.85,rx=sx*c-sz*sn,rz=sx*sn+sz*c;
+              if(canStep(w,p.x,p.z,p.x+rx,p.z+rz,lim)){mx=rx;mz=rz;break;}}
             if(mx||mz){move(mx,mz);changed=true;}else break;
           }
         }
