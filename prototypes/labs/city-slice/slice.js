@@ -14,6 +14,7 @@ import {SkyMesh} from 'three/addons/objects/SkyMesh.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
 import {makeTextureSets,loadTextureSets} from './textures.js';
 import {partsToGroups,groupsToMeshes} from './convert.js';
+import {celRamp,celMaterial} from './cel.js';
 import {interior} from './interiors.js';
 
 const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search),status=t=>{$('status').textContent=t;};
@@ -29,14 +30,19 @@ const sky=new SkyMesh();sky.scale.setScalar(4000);sky.turbidity.value=3;sky.rayl
 const sunDir=new THREE.Vector3().setFromSphericalCoords(1,THREE.MathUtils.degToRad(52),THREE.MathUtils.degToRad(215));sky.sunPosition.value.copy(sunDir);
 const sun=new THREE.DirectionalLight(0xfff1dc,3.2);sun.position.copy(sunDir).multiplyScalar(300);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0004;sun.shadow.normalBias=.04;
 const csm=new CSMShadowNode(sun,{cascades:4,maxFar:260,mode:'practical',lightMargin:80});csm.fade=true;sun.shadow.shadowNode=csm;scene.add(sun,sun.target);
-scene.add(new THREE.HemisphereLight(0xbcd6ff,0x6b5a45,.55));
-{const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.35;}
+// Cel: shadows are lit only by this fill, so it carries the shadow colour (cool sky above, warm bounce below).
+const celShade=Q.get('shade')!=='pbr';scene.add(celShade?new THREE.HemisphereLight(0x8fb0ff,0xb08a6a,1.5):new THREE.HemisphereLight(0xbcd6ff,0x6b5a45,.55));
+{const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=celShade?.12:.35;}
 scene.fog=new THREE.Fog(0xc9d8e6,120,900);
 
 // ---- Materials: one PBR material per surface kind; vertex colour tints the albedo detail map.
 // Scanned CC0 sets by default (textures/acg); ?tex=proc keeps the procedural ones.
 const T=Q.get('tex')==='proc'?makeTextureSets():await loadTextureSets(),materials={};
-for(const k of ['stone','paving','roof','plaster','wood','grass','plain']){const t=T[k],m=new THREE.MeshStandardNodeMaterial({map:t.map,normalMap:t.normalMap,roughnessMap:t.roughnessMap,vertexColors:true,metalness:0});
+// Cel shading by default (cel.js); ?shade=pbr keeps the physically based materials for comparison.
+const cel=Q.get('shade')!=='pbr',ramp=cel&&celRamp();
+for(const k of ['stone','paving','roof','plaster','wood','grass','plain']){const t=T[k];
+  if(cel){materials[k]=celMaterial({map:t.map,normalMap:t.normalMap,normalScale:t.normalScale??1,ramp});continue;}
+  const m=new THREE.MeshStandardNodeMaterial({map:t.map,normalMap:t.normalMap,roughnessMap:t.roughnessMap,vertexColors:true,metalness:0});
   m.normalScale=new THREE.Vector2(t.normalScale??1,t.normalScale??1);materials[k]=m;}
 materials.glow=new THREE.MeshStandardNodeMaterial({vertexColors:true,emissive:0xffb85a,emissiveIntensity:2.2,roughness:.4});
 
@@ -89,16 +95,18 @@ const keys={};addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Spac
 renderer.domElement.addEventListener('click',()=>renderer.domElement.requestPointerLock());
 addEventListener('mousemove',e=>{if(document.pointerLockElement!==renderer.domElement)return;player.yaw+=e.movementX*.0022;player.pitch=Math.max(-1.45,Math.min(1.45,player.pitch-e.movementY*.0022));});
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
-let last=performance.now(),acc=0,frames=0,fps=0,lastCell='',lastInt=0;
+let frozen=false,last=performance.now(),acc=0,frames=0,fps=0,lastCell='',lastInt=0;
 function step(dt){player.keys={w:keys.KeyW||keys.ArrowUp,s:keys.KeyS||keys.ArrowDown,a:keys.KeyA,d:keys.KeyD,shift:keys.ShiftLeft||keys.ShiftRight,space:keys.Space};
   const ck=key(player.x,player.z);if(ck!==lastCell||performance.now()-lastInt>500){lastCell=ck;lastInt=performance.now();updateInteriors();player.col=walkerCol();}
   player.update(dt);for(const d of doors){const s=doorOf.get(d.b.id),want=Math.hypot(s.x-player.x,s.z-player.z)<3?1:0;d.open+=(want-d.open)*Math.min(1,dt*5);d.pivot.rotation.y=-(d.p.rot||0)-d.open*1.45;}
-  const c=player.camera();camera.position.set(c.eye[0],c.eye[1],c.eye[2]);camera.lookAt(c.eye[0]+Math.cos(c.pitch)*Math.cos(c.yaw),c.eye[1]+Math.sin(c.pitch),c.eye[2]+Math.cos(c.pitch)*Math.sin(c.yaw));}
+  if(frozen)return;const c=player.camera();camera.position.set(c.eye[0],c.eye[1],c.eye[2]);camera.lookAt(c.eye[0]+Math.cos(c.pitch)*Math.cos(c.yaw),c.eye[1]+Math.sin(c.pitch),c.eye[2]+Math.cos(c.pitch)*Math.sin(c.yaw));}
 async function frame(now){const dt=Math.min(.05,(now-last)/1000);last=now;step(dt);pipeline.render();acc+=dt;frames++;if(acc>=.5){fps=Math.round(frames/acc);acc=0;frames=0;
     status(`${backend} · ${fps} fps · ${renderer.info.render.drawCalls} draws · ${(renderer.info.render.triangles/1e6).toFixed(2)}M tris · ${stats.chunks} cells · ${loaded.size} interiors · ${stats.lights} lights · city ${stats.buildMs} ms`);}
   requestAnimationFrame(frame);}
 // Headless helpers: place the player, render a frame, read stats.
-window.CitySlice={...window.CitySlice,stats,city,place:(x,z,yaw,pitch=0)=>{player.x=x;player.z=z;player.yaw=yaw;player.pitch=pitch;updateInteriors();player.col=walkerCol();const f=player.col.floor(x,player.y+30,z,0);if(isFinite(f))player.y=f;step(0);},
+window.CitySlice={...window.CitySlice,stats,city,place:(x,z,yaw,pitch=0)=>{frozen=false;player.x=x;player.z=z;player.yaw=yaw;player.pitch=pitch;updateInteriors();player.col=walkerCol();const f=player.col.floor(x,player.y+30,z,0);if(isFinite(f))player.y=f;step(0);},
   walk:(sec,k={w:true})=>{for(let i=0;i<sec*30;i++){Object.assign(keys,{KeyW:k.w,KeyA:k.a,KeyD:k.d,KeyS:k.s});step(1/30);}for(const c in keys)keys[c]=false;return {x:player.x,y:player.y,z:player.z};},
+  // Fixed camera for shading comparisons: view([x,y,z],[tx,ty,tz]) until the next place()/frame step.
+  view:(eye,at)=>{frozen=true;camera.position.set(...eye);camera.lookAt(...at);},
   render:()=>pipeline.render(),info:()=>({backend,draws:renderer.info.render.drawCalls,tris:renderer.info.render.triangles,interiors:loaded.size,lights:stats.lights,buildMs:stats.buildMs,textureMs:Math.round(T.ms)}),player:()=>player,doors:()=>doors.map(d=>({id:d.b.id,x:doorOf.get(d.b.id).x,z:doorOf.get(d.b.id).z,front:Math.sign(doorOf.get(d.b.id).z-d.b.footprint.z)})),ready:true};
 step(0);requestAnimationFrame(frame);

@@ -18,3 +18,10 @@ First numbers (headless WebGPU): ~1,270 draws, ~3.0M triangles for the whole 224
 Plaster001, Planks023A, Grass004), stylised at load into neutral banded detail maps with floored roughness. Compare
 `s2-door.png` (procedural stone with star-shaped joint artefacts) with `s3-door.png`. `?tex=proc` restores the old sets.
 Shading is still PBR; cel shading is the next step.
+
+## Cel shading (first pass)
+
+`cel-b-street.png` vs `pbr-a-street.png` (same camera, `?shade=pbr` for the latter): `cel.js` swaps the PBR materials
+for three's toon lighting with our own ramp (shade 0.5, a narrow 0.78 band at the terminator, full light; soft 2% band
+edges), no specular, a faint rim, and a cool sky / warm bounce hemisphere fill that carries the shadow colour.
+`cel-b-door.png` is the shaded side of a street.
