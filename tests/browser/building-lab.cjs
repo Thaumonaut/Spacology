@@ -30,6 +30,10 @@ try{
       if(SHOTS&&label!=='street')await page.locator('#view').screenshot({path:path.join(OUT,`${name}-${label}.png`)});
       metrics.push({case:name,view:label,frameMs:+Math.min(...ms).toFixed(2)});}
     if(SHOTS){await page.evaluate(()=>BuildingLab.setVisible(1));await page.locator('#plan').screenshot({path:path.join(OUT,`${name}-plan-ground.png`)});}
+    // Close-ups (3-6 m) of the street door, an eave and a roof corner: regressions in detail show up here first.
+    if(SHOTS&&['side','centre','courtyard','wing'].includes(c.typology)){const info=await page.evaluate(()=>BuildingLab.camera({})),[X,,Z]=info.dims,L=info.levels,fz=Z*.17,top=L[s.storeys];
+      for(const [label,cam] of [['door',{yaw:.25,pitch:.05,dist:4,target:[X*.5,L[0]+1.3,fz]}],['eave',{yaw:-.6,pitch:-.02,dist:5,target:[X*.25,top-.2,fz]}],['roof-corner',{yaw:-.8,pitch:.35,dist:6,target:[X*.2,top+.5,fz]}]]){
+        await page.evaluate(([cm,v])=>{BuildingLab.setVisible(v);BuildingLab.camera(cm);BuildingLab.frame();},[cam,s.storeys+1]);await page.locator('#view').screenshot({path:path.join(OUT,`${name}-close-${label}.png`)});}}
     metrics.push({case:name,seed:s.seed,dims:s.dims,quads:s.quads,furniture:s.furniture,timings:s.timings});
     console.log(`PASS ${name}: ${s.quads} quads, ${s.furniture} kit pieces, plan ${s.timings.planMs} ms, voxels ${s.timings.voxelMs} ms, mesh ${s.timings.meshMs} ms`);
   }

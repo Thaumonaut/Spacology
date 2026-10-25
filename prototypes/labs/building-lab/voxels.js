@@ -5,7 +5,7 @@
   // stamped from the voxelised KayKit pieces (kit-pieces.js) by room rules. Pure and seeded, like the planner.
   const isNode=typeof module==='object'&&module.exports;
   const Plan=isNode?require('./plan.js'):root.BuildingPlan,KIT=isNode?require('./kit-pieces.js'):root.BuildingKitPieces;
-  const V=0.0625,CV=8,SH=48,SLAB=3,PLINTH=4,GROUND=3,REVISION='building-voxels-1';
+  const V=0.0625,CV=8,SH=48,SLAB=3,PLINTH=4,GROUND=3,REVISION='building-voxels-2';
   const DOOR_H=34,SILL=14,HEAD=34;
 
   // Architecture palette (1-127). Kit pieces own 128-255 (kit-pieces.js). Order is the material id.
@@ -20,7 +20,13 @@
     ['glass',0x9fd3e6],['shoji',0xfff6dc],['door_wood',0x8b5a35],['stair_wood',0xa87846],
     ['cloth_indigo',0x2f3f73],['cloth_coral',0xe86f5c],['cloth_green',0x4f8a5b],['cloth_gold',0xe5b443],['cloth_white',0xf6f1e4],
     ['lantern',0xe8573e],['lantern_glow',0xffd27a],['brick',0xa45b45],['brick_dark',0x8a4a38],['terracotta',0xc0703f],['leaf',0x5f9c4a],['leaf_dark',0x4a7f3a],
-    ['flower_pink',0xf08cb4],['flower_yellow',0xf5d34d],['flower_white',0xfaf6ee],['iron',0x3b3b40],['water',0x6fb3d6],['sign',0x6b4528],['sign_ink',0xf1e6cf],['soot',0x2a2626]
+    ['flower_pink',0xf08cb4],['flower_yellow',0xf5d34d],['flower_white',0xfaf6ee],['iron',0x3b3b40],['water',0x6fb3d6],['sign',0x6b4528],['sign_ink',0xf1e6cf],['soot',0x2a2626],
+    // appended (never renumber): close-up detail and facade variants
+    ['plank_light',0xd2a673],['lantern_dark',0xb23f2c],['terracotta_dark',0x9c5630],
+    ['plaster_sage',0xd9e2c8],['plaster_rose',0xf0d2cf],['plaster_sky',0xd6e4ee],['plaster_ochre',0xead19a],['plaster_lavender',0xe2d8ec],['plaster_mint',0xd3ebe0],
+    ['stone_white',0xdcd8cf],['stone_white_dark',0xc0bbb0],['slate',0x5b6470],['slate_dark',0x4a525d],['tile_green',0x5f8a52],['tile_green_dark',0x4c7142],
+    ['shingle',0x8a6a4c],['shingle_dark',0x6f543c],['paint_green',0x4f7d5c],['paint_red',0xa8463e],['paint_blue',0x3e5f8a],['paint_cream',0xf3ead2],['timber_grey',0x7b746c],
+    ['brick_red',0xb4583f],['brick_red_dark',0x94452f],['tile_purple',0x6b5a8c],['tile_purple_dark',0x56487a]
   ];
   const M={};MATS.forEach(([n],i)=>{M[n]=i;});
   function palette(){const p=new Uint8Array(256*4);MATS.forEach(([,c],i)=>{p.set([c>>16&255,c>>8&255,c&255,255],i*4);});
@@ -34,8 +40,9 @@
     return pieces[id]={id,dims:src.dims,tags:src.tags,v};}
 
   function build(plan,opts={}){
-    const t0=Date.now(),src=Plan.STYLES[plan.style],style={...src,wall:M[src.wall],timber:M[src.timber],base:M[src.base],trim:M[src.trim]},{w,d,front,party}=plan.plot,storeys=plan.floors.length,r=Plan.rng(Plan.hash('voxels:'+plan.seed));
-    const eave=style.eave*4,margin=eave+24,MX=margin,MZ=margin+24,X=2*margin+w*CV,Z=MZ+d*CV+margin,roofRise=Math.ceil(style.pitch*(Math.max(w,d)*CV/2+eave)*(1+style.curve*.1))+24;
+    const t0=Date.now(),FA=plan.facade,RF=plan.roof,{w,d,front,party}=plan.plot,storeys=plan.floors.length,r=Plan.rng(Plan.hash('voxels:'+plan.seed));
+    const C={wall:M[FA.wall],timber:M[FA.timber],trim:M[FA.trim],base:M[FA.base],noren:M[FA.noren]||M.cloth_indigo,tile:M[RF.mat]};C.tileDk=dark(C.tile);C.baseDk=dark(C.base);
+    const eave=RF.eave*4,pitch=RF.pitch,curve=RF.curve,margin=eave+24,MX=margin,MZ=margin+24,X=2*margin+w*CV,Z=MZ+d*CV+margin,roofRise=Math.ceil(pitch*(Math.max(w,d)*CV/2+eave)*(1+curve*.1))+24;
     const Y0=GROUND,FL=f=>Y0+PLINTH+f*SH,plate=FL(storeys),Y=plate+roofRise+24,vol=new Uint8Array(X*Y*Z);
     const at=(x,y,z)=>x<0||y<0||z<0||x>=X||y>=Y||z>=Z?0:vol[x+X*(z+Z*y)];
     const set=(x,y,z,m)=>{if(x>=0&&y>=0&&z>=0&&x<X&&y<Y&&z<Z)vol[x+X*(z+Z*y)]=m;};
@@ -45,142 +52,197 @@
     const cx=x=>MX+x*CV,cz=z=>MZ+z*CV,mask=(f,x,z)=>x>=0&&z>=0&&x<w&&z<d&&plan.plot.masks[f][x+w*z]===1;
     const info={furniture:[],rooms:[],lights:[]};
 
-    // Ground: a cobbled street in front, packed earth and grass behind and in any yard.
+    // Ground: a cobbled street in front, packed earth and grass behind and in any yard or courtyard.
     for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const street=z<MZ+front*CV,yard=!street&&!mask(0,Math.floor((x-MX)/CV),Math.floor((z-MZ)/CV));
       for(let y=0;y<Y0;y++)set(x,y,z,y<Y0-1?M.earth:street?(((x>>2)+(z>>2)*3)%5===0||((x+z*7)%11===0)?M.cobble_dark:M.cobble):yard?((x*31+z*17)%13===0?M.grass_dark:M.grass):M.earth);}
-    // Stepping stones from the street to a yard door are added with the back door below.
 
-    // Floors: stone plinth under the ground floor, timber slabs above; stair voids stay open.
+    // Floors: stone plinth under the ground floor, timber slabs above; stair voids stay open. Boards run along x, 4
+    // voxels (25 cm) wide, with staggered butt joints; tatami on lattice styles; stone flags in wet and work rooms.
     const roomAt=(f,x,z)=>{if(!mask(f,x,z))return null;const k=plan.floors[f].grid[x+w*z];return k>=0?plan.floors[f].rooms[k]:null;};
-    const floorMat=(room,x,z,tx,tz)=>{const t=room.type;
-      if(t==='kitchen'||t==='bath'||t==='store'||(t==='workshop'))return (((tx>>3)+(tz>>3))&1)?M.floor_stone:M.floor_stone_dark;
-      if((style.lattice)&&(t==='bed'||t==='guest'||t==='living'||t==='study')){const u=(tx%24+24)%24,v=(tz%12+12)%12;return u===0||v===0?M.tatami_edge:M.tatami;}
-      return ((tz>>1)%2===0&&(tx%16===0))||((tx>>2)&1)?M.plank:M.plank_dark;};
+    const floorMat=(room,tx,tz)=>{const t=room.type;
+      if(t==='kitchen'||t==='bath'||t==='store'||t==='workshop'){const u=tx%12,v=tz%12;return u===0||v===0?M.floor_stone_dark:M.floor_stone;}
+      if(FA.lattice&&(t==='bed'||t==='guest'||t==='living'||t==='study')){const u=(tx%24+24)%24,v=(tz%12+12)%12;return u===0||v===0?M.tatami_edge:M.tatami;}
+      const board=tz>>2;if(((tx+board*11)%28)===0)return M.plank_dark;return board%3===0?M.plank_light:board%3===1?M.plank:M.plank_light;};
     for(let f=0;f<storeys;f++){const F=plan.floors[f],voids=new Set(F.voids),yTop=FL(f);
       for(let z=0;z<d;z++)for(let x=0;x<w;x++){if(!mask(f,x,z)||voids.has(x+w*z))continue;const room=roomAt(f,x,z);
-        if(f===0)box(cx(x),Y0,cz(z),cx(x)+CV,yTop-1,cz(z)+CV,style.base);else box(cx(x),yTop-SLAB,cz(z),cx(x)+CV,yTop-1,cz(z)+CV,M.timber_brown);
-        for(let a=0;a<CV;a++)for(let b=0;b<CV;b++)set(cx(x)+a,yTop-1,cz(z)+b,room?floorMat(room,x,z,x*CV+a,z*CV+b):M.plank);}}
+        if(f===0)box(cx(x),Y0,cz(z),cx(x)+CV,yTop-1,cz(z)+CV,C.base);else box(cx(x),yTop-SLAB,cz(z),cx(x)+CV,yTop-1,cz(z)+CV,M.timber_brown);
+        for(let a=0;a<CV;a++)for(let b=0;b<CV;b++)set(cx(x)+a,yTop-1,cz(z)+b,room?floorMat(room,x*CV+a,z*CV+b):M.plank);}}
 
-    // Walls. Exterior walls sit in the outer 3 voxels of edge cells; interior walls straddle the room boundary.
-    // The exterior face carries the style: posts, floor beams, base course, half-timber braces.
-    const DIRS=[['xm',-1,0],['xp',1,0],['zm',0,-1],['zp',0,1]],sideOf=Object.fromEntries(DIRS.map(([s,dx,dz])=>[s,[dx,dz]]));
+    // --- Facade ---------------------------------------------------------------------------------------------------
+    // Exterior walls are 3 voxels thick in the outer edge of each cell. The face is drawn from plan.facade: the timber
+    // frame snaps to the window grid (plan.facade.bays: a window on cells p, p+1 of every 4, so a post stands at the
+    // start of cell p+3, centred in the gap between windows), a beam band at each floor, a stone base course with
+    // mortar joints and a cap, boards under machiya windows, and braces in the frame panels.
+    const DIRS=[['xm',-1,0],['xp',1,0],['zm',0,-1],['zp',0,1]];
     const isParty=(s,x)=>(s==='xm'&&x===0&&party[0])||(s==='xp'&&x===w-1&&party[1]);
     const extWall=[]; // [f] -> Set of "X,Z" wall columns, for the roof's gable fill
-    const facade=(f,s,u,v,depth,party)=>{
+    const baseH=FA.groundBoards?6:9;
+    // Along-wall position: cell index and the voxel inside it, measured from the plot origin.
+    const cellOf=(s,A)=>{const o=s[0]==='z'?A-MX:A-MZ;return [Math.floor(o/CV),((o%CV)+CV)%CV];};
+    const postAt=(s,A)=>{const [c,o]=cellOf(s,A),p=FA.bays[s];return (o===0&&((c-p-3)%4+4)%4===0)||(o===CV-1&&((c+1-p-3)%4+4)%4===0);};
+    // distance (in the wall plane) from (u,v) to a segment; braces are 2 voxels thick
+    const segDist=(u,v,u0,v0,u1,v1)=>{const du=u1-u0,dv=v1-v0,t=Math.max(0,Math.min(1,((u-u0)*du+(v-v0)*dv)/(du*du+dv*dv)));return Math.hypot(u-u0-t*du,v-v0-t*dv);};
+    const frameAt=(f,s,A,v,corner)=>{
+      if(v<0||v>=SH-3)return C.timber;                                         // floor beam band
+      if(f===0&&v<baseH)return null;                                           // base course drawn separately
+      if(corner)return C.timber;
+      const kind=FA.frame;if(kind==='none')return null;
+      if(postAt(s,A)||postAt(s,A-1))return C.timber;
+      if(f===0&&FA.groundBoards&&v<SILL)return null;
+      if(kind==='posts')return null;
+      // rails at sill and head height on framed styles
+      if((v===SILL-2||v===SILL-1||v===HEAD+1||v===HEAD+2)&&(kind==='grid'||kind==='braced'||kind==='cross'))return C.timber;
+      const [c,o]=cellOf(s,A),p=FA.bays[s],k=((c-p)%4+4)%4,u=k*CV+o; // position within the 4-cell bay: window on k 0-1, post at k 3
+      if(kind==='braced'&&f>0){const pu=3*CV;if(segDist(u,v,pu,SILL,pu-7,HEAD)<=1||segDist(u,v,pu,SILL,pu+7,HEAD)<=1)return C.timber;
+        const pv=pu-4*CV;if(segDist(u,v,pv,SILL,pv+7,HEAD)<=1)return C.timber;}
+      if(kind==='cross'&&k<2&&v<SILL-2){if(segDist(u,v,1,0,2*CV-2,SILL-3)<=1||segDist(u,v,2*CV-2,0,1,SILL-3)<=1)return C.timber;}
+      return null;};
+    const baseAt=(A,v)=>{const row=v>>2,j=(A+row*5)%9;if(v===baseH-1)return C.base;if((v&3)===3||j===0)return C.baseDk;return C.base;};
+    const facade=(f,s,A,v,depth,party_,corner)=>{
       if(depth>0)return M.plaster_inside;
-      if(party)return v>=SH-3||v<0?style.timber:f===0&&v<8?style.base:style.wall; // a neighbour will stand against it
-      if(v<0||v>=SH-3)return style.timber;                                   // floor beam band
-      if(f===0&&v<8)return ((u>>2)+(v>>2))%2?style.base:dark(style.base);     // base course
-      if(f===0&&style.lattice&&v<14)return (u%3===0)?M.timber_dark:style.timber;   // machiya lower boards
-      const spacing=style.halfTimber||style.lattice?16:32,post=((u%spacing)+spacing)%spacing<2;
-      if(post)return style.timber;
-      if(style.halfTimber&&f>0){const p=((u%16)+16)%16,diag=Math.abs(((Math.floor(u/16)&1)?p:15-p)-v*15/(SH-4));if(diag<1.2)return style.timber;}
-      return style.wall;};
-    for(let f=0;f<storeys;f++){const y0=FL(f)-(f===0?PLINTH:SLAB),y1=FL(f+1)-(f+1<storeys?0:0),cols=new Set();extWall.push(cols);
+      if(party_)return v>=SH-3||v<0?C.timber:f===0&&v<baseH?C.base:C.wall; // a neighbour will stand against it
+      const fr=frameAt(f,s,A,v,corner);if(fr)return fr;
+      if(f===0&&v<baseH)return baseAt(A,v);
+      if(f===0&&FA.groundBoards&&v<SILL)return (A%3===0)?M.timber_dark:C.timber;
+      return C.wall;};
+    // Proud parts (1 voxel out from the plaster): the timber frame and the base course cap.
+    const proudAt=(f,s,A,v,corner)=>{const fr=frameAt(f,s,A,v,corner);if(fr)return fr;if(f===0&&v===baseH-1)return C.base;return null;};
+    for(let f=0;f<storeys;f++){const y0=FL(f)-(f===0?PLINTH:SLAB),y1=FL(f+1),cols=new Set();extWall.push(cols);
       for(let z=0;z<d;z++)for(let x=0;x<w;x++){if(!mask(f,x,z))continue;
         for(const [s,dx,dz] of DIRS){if(mask(f,x+dx,z+dz))continue;const party_=isParty(s,x);
+          // a corner post where the wall turns: the along-wall neighbour has no wall on this side
+          const along=s[0]==='z'?[[-1,0],[1,0]]:[[0,-1],[0,1]],endLo=!mask(f,x+along[0][0],z+along[0][1])||mask(f,x+along[0][0]+dx,z+along[0][1]+dz),endHi=!mask(f,x+along[1][0],z+along[1][1])||mask(f,x+along[1][0]+dx,z+along[1][1]+dz);
           const [ax0,ax1]=s==='xm'?[cx(x),cx(x)+3]:s==='xp'?[cx(x)+5,cx(x)+8]:[cx(x),cx(x)+8],[az0,az1]=s==='zm'?[cz(z),cz(z)+3]:s==='zp'?[cz(z)+5,cz(z)+8]:[cz(z),cz(z)+8];
+          const lo=s[0]==='z'?cx(x):cz(z),cornerOf=A=>(endLo&&A-lo<2)||(endHi&&A-lo>=CV-2);
           for(let y=y0;y<y1;y++)for(let zz=az0;zz<az1;zz++)for(let xx=ax0;xx<ax1;xx++){
-            const depth=s==='xm'?xx-cx(x):s==='xp'?cx(x)+7-xx:s==='zm'?zz-cz(z):cz(z)+7-zz,u=s[0]==='x'?zz-MZ:xx-MX;
-            set(xx,y,zz,facade(f,s,s==='xp'||s==='zm'?u:-u-1,y-FL(f),depth,party_));cols.add(xx+','+zz);}
-          // Posts and beams stand 1 voxel proud of the plaster, so the frame reads in light and outline.
-          if(!party_)for(let y=y0;y<y1;y++){const along=s[0]==='x'?[cz(z),cz(z)+8]:[cx(x),cx(x)+8];for(let a=along[0];a<along[1];a++){
-            const u=a-(s[0]==='x'?MZ:MX),uu=s==='xp'||s==='zm'?u:-u-1,m=facade(f,s,uu,y-FL(f),0,false);if(m!==style.timber)continue;
-            const ox=s==='xm'?cx(x)-1:s==='xp'?cx(x)+8:a,oz=s==='zm'?cz(z)-1:s==='zp'?cz(z)+8:a;if(s[0]==='x')fillIfAir(ox,y,a,m);else fillIfAir(a,y,oz,m);}}}}
-      // Interior walls between different rooms, with a post at each wall corner.
+            const depth=s==='xm'?xx-cx(x):s==='xp'?cx(x)+7-xx:s==='zm'?zz-cz(z):cz(z)+7-zz,A=s[0]==='x'?zz:xx;
+            set(xx,y,zz,facade(f,s,A,y-FL(f),depth,party_,cornerOf(A)));cols.add(xx+','+zz);}
+          if(!party_)for(let y=y0;y<y1;y++)for(let A=lo;A<lo+CV;A++){const m=proudAt(f,s,A,y-FL(f),cornerOf(A));if(m===null)continue;
+            const ox=s==='xm'?cx(x)-1:s==='xp'?cx(x)+8:A,oz=s==='zm'?cz(z)-1:s==='zp'?cz(z)+8:A;fillIfAir(s[0]==='x'?ox:A,y,s[0]==='x'?A:oz,m);}}}
+      // Interior walls between different rooms, with a post at each wall corner; they only fill air, so they never
+      // paint over the facade. A stairwell is open (railed) only towards circulation.
       const F=plan.floors[f],g=F.grid,yw0=FL(f),yw1=FL(f+1)-SLAB;
-      // A stairwell is open (railed) only towards circulation; bedrooms, baths and the rest keep a full wall.
       const voidSet=new Set(F.voids),circ=k=>k>=0&&['hall','living','common'].includes(F.rooms[k].type),railed=(i,j)=>(voidSet.has(i)&&circ(g[j]))||(voidSet.has(j)&&circ(g[i]));
       for(let z=0;z<d;z++)for(let x=0;x<w;x++){const a=g[x+w*z];if(a<0)continue;const i=x+w*z;
         if(x+1<w&&g[i+1]>=0&&g[i+1]!==a&&!railed(i,i+1))airFill(cx(x)+7,yw0,cz(z),cx(x)+9,yw1,cz(z)+8,M.plaster_inside);
         if(z+1<d&&g[i+w]>=0&&g[i+w]!==a&&!railed(i,i+w))airFill(cx(x),yw0,cz(z)+7,cx(x)+8,yw1,cz(z)+9,M.plaster_inside);}
-      for(let z=1;z<d;z++)for(let x=1;x<w;x++){const q=[g[x-1+w*(z-1)],g[x+w*(z-1)],g[x-1+w*z],g[x+w*z]];if(q.some(k=>k<0))continue;if(new Set(q).size>=2&&!(q[0]===q[1]&&q[2]===q[3])&&!(q[0]===q[2]&&q[1]===q[3]))airFill(cx(x)-1,yw0,cz(z)-1,cx(x)+1,yw1,cz(z)+1,style.timber);}}
+      for(let z=1;z<d;z++)for(let x=1;x<w;x++){const q=[g[x-1+w*(z-1)],g[x+w*(z-1)],g[x-1+w*z],g[x+w*z]];if(q.some(k=>k<0))continue;if(new Set(q).size>=2&&!(q[0]===q[1]&&q[2]===q[3])&&!(q[0]===q[2]&&q[1]===q[3]))airFill(cx(x)-1,yw0,cz(z)-1,cx(x)+1,yw1,cz(z)+1,C.timber);}}
 
-    // Stairs: solid timber flights of 3-voxel risers and treads, and landings, from the plan's stair module. Steps only
-    // fill air, so a flight against an outside wall never punches through it. A railing goes round every stair void
-    // except where the plan opens the stair onto the hall (the foot of the next flight, the head of the last).
-    const airBox=(x0,y0,z0,x1,y1,z1,m)=>{for(let y=y0;y<y1;y++)for(let z=z0;z<z1;z++)for(let x=x0;x<x1;x++)fillIfAir(x,y,z,m);};
-    for(const fl of plan.stair.flights){const yb=FL(fl.from),[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),along=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=along/fl.risers;
+    // --- Stairs ----------------------------------------------------------------------------------------------------
+    // Solid timber flights of 3-voxel risers and treads, and landings, from the plan's stair module. Steps only fill
+    // air, so a flight against an outside wall never punches through it. A railing goes round every stair void that
+    // opens onto circulation, except where the stair opens onto the hall (the foot of the next flight, the head of
+    // the last); bedrooms, baths and stores beside a stairwell keep their wall.
+    for(const fl of plan.stair.flights){const yb=FL(fl.from),[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),len=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=len/fl.risers;
       for(let k=0;k<fl.risers;k++){const a=Math.round(k*t),b=Math.round((k+1)*t),top=yb+(fl.start+k+1)*3;
         const [bx0,bx1,bz0,bz1]=fl.dir==='zp'?[X0,X1,Z0+a,Z0+b]:fl.dir==='zm'?[X0,X1,Z1-b,Z1-a]:fl.dir==='xp'?[X0+a,X0+b,Z0,Z1]:[X1-b,X1-a,Z0,Z1];
-        airBox(bx0,top-1,bz0,bx1,top,bz1,M.plank);airBox(bx0,yb+(fl.start?fl.start*3-2:0),bz0,bx1,top-1,bz1,M.stair_wood);}}
-    for(const ld of plan.stair.landings){const yb=FL(ld.from),[x0,z0,x1,z1]=ld.rect,top=yb+ld.rise*3;airBox(cx(x0),top-1,cz(z0),cx(x1),top,cz(z1),M.plank);airBox(cx(x0),yb,cz(z0),cx(x1),top-1,cz(z1),M.stair_wood);}
+        airFill(bx0,top-1,bz0,bx1,top,bz1,M.plank);airFill(bx0,yb+(fl.start?fl.start*3-2:0),bz0,bx1,top-1,bz1,M.stair_wood);}}
+    for(const ld of plan.stair.landings){const yb=FL(ld.from),[x0,z0,x1,z1]=ld.rect,top=yb+ld.rise*3;airFill(cx(x0),top-1,cz(z0),cx(x1),top,cz(z1),M.plank);airFill(cx(x0),top-6,cz(z0),cx(x1),top-1,cz(z1),M.stair_wood);
+      // a landing is carried on posts at its corners, not a solid block
+      for(const [px,pz] of [[cx(x0),cz(z0)],[cx(x1)-2,cz(z0)],[cx(x0),cz(z1)-2],[cx(x1)-2,cz(z1)-2]])airFill(px,yb,pz,px+2,top-6,pz+2,C.timber);}
     for(let f=1;f<storeys;f++){const voids=new Set(plan.floors[f].voids),yr=FL(f),open=new Set();
       for(const dr of plan.floors[f].doors)if(dr.kind==='open')for(const [x,z] of dr.cells)open.add(x+','+z);
       for(const i of voids){const x=i%w,z=Math.floor(i/w);for(const [s,dx,dz] of DIRS){const n=x+dx+w*(z+dz);if(voids.has(n)||!mask(f,x+dx,z+dz))continue;
-        const nk=plan.floors[f].grid[x+dx+w*(z+dz)];if(open.has((x+dx)+','+(z+dz))||!['hall','living','common'].includes(plan.floors[f].rooms[nk]?.type))continue; // walls, not railings, against rooms
+        const nk=plan.floors[f].grid[x+dx+w*(z+dz)];if(open.has((x+dx)+','+(z+dz))||!['hall','living','common'].includes(plan.floors[f].rooms[nk]?.type))continue;
         const [x0,x1]=s==='xm'?[cx(x),cx(x)+1]:s==='xp'?[cx(x)+7,cx(x)+8]:[cx(x),cx(x)+8],[z0,z1]=s==='zm'?[cz(z),cz(z)+1]:s==='zp'?[cz(z)+7,cz(z)+8]:[cz(z),cz(z)+8];
-        box(x0,yr+14,z0,x1,yr+16,z1,style.timber);for(let a=0;a<8;a+=4){const px=s[0]==='x'?x0:x0+a,pz=s[0]==='z'?z0:z0+a;fillIfAir(px,yr,pz,0);for(let yy=yr;yy<yr+14;yy++)if(!at(px,yy,pz))set(px,yy,pz,style.timber);}}}}
+        box(x0,yr+14,z0,x1,yr+16,z1,C.timber);for(let a=0;a<8;a+=4){const px=s[0]==='x'?x0:x0+a,pz=s[0]==='z'?z0:z0+a;for(let yy=yr;yy<yr+14;yy++)if(!at(px,yy,pz))set(px,yy,pz,C.timber);}}}}
 
-    // Openings. Each is cut through its wall, then framed, glazed or hung.
+    // --- Openings ---------------------------------------------------------------------------------------------------
+    // Each opening is cut through its wall, then framed, glazed or hung. Wall layers are addressed by depth from the
+    // face (0 = the plaster surface, 1-2 inside); 'proud' layers stand 1 and 2 voxels out from it.
     const edgeBox=(x,z,s,interior)=>{const t=interior?[7,9]:null;
       if(s==='xm')return [cx(x)-1,cx(x)+3,cz(z),cz(z)+8];if(s==='xp')return interior?[cx(x)+t[0],cx(x)+t[1],cz(z),cz(z)+8]:[cx(x)+5,cx(x)+9,cz(z),cz(z)+8];
       if(s==='zm')return [cx(x),cx(x)+8,cz(z)-1,cz(z)+3];return interior?[cx(x),cx(x)+8,cz(z)+t[0],cz(z)+t[1]]:[cx(x),cx(x)+8,cz(z)+5,cz(z)+9];};
     const span=(cells,s,interior)=>{let b=null;for(const [x,z] of cells){const e=edgeBox(x,z,s,interior);b=b?[Math.min(b[0],e[0]),Math.max(b[1],e[1]),Math.min(b[2],e[2]),Math.max(b[3],e[3])]:e;}return b;};
-    const along=(b,s)=>s[0]==='x'?[b[2],b[3]]:[b[0],b[1]];
-    const across=(b,s)=>s[0]==='x'?[b[0],b[1]]:[b[2],b[3]];
+    const alongOf=(b,s)=>s[0]==='x'?[b[2],b[3]]:[b[0],b[1]],acrossOf=(b,s)=>s[0]==='x'?[b[0],b[1]]:[b[2],b[3]];
     const put=(s,a,c,y,m)=>s[0]==='x'?set(c,y,a,m):set(a,y,c,m);
-    const cut=(b,y0,y1,inset)=>box(b[0]+(inset?.[0]||0),y0,b[2]+(inset?.[2]||0),b[1]-(inset?.[1]||0),y1,b[3]-(inset?.[3]||0),0);
-    const outward=s=>({xm:[-1,0],xp:[1,0],zm:[0,-1],zp:[0,1]})[s];
-    function opening(f,o,interior){
-      const s=o.side||o.dir,b=span(o.cells,s,interior),[a0,a1]=along(b,s),[c0,c1]=across(b,s),y=FL(f),kind=o.kind;
-      const out=outward(s),face=out[0]+out[1]<0?c0:c1-1,proud=face+(out[0]+out[1]),mid=Math.floor((c0+c1)/2);
-      const ins=k=>s[0]==='x'?[0,0,k,k]:[k,k,0,0];
-      if(kind==='open'){cut(b,y,y+DOOR_H+4,ins(0));return;}
-      if(kind==='door'||kind==='front'||kind==='back'){
-        cut(b,y,y+DOOR_H,ins(1));for(let yy=y;yy<y+DOOR_H+2;yy++)for(let c=c0;c<c1;c++){put(s,a0,c,yy,M.timber_dark);put(s,a1-1,c,yy,M.timber_dark);}
-        for(let a=a0;a<a1;a++)for(let c=c0;c<c1;c++)put(s,a,c,y+DOOR_H,M.timber_dark);
-        if(kind==='back'){for(let a=a0+1;a<a1-1;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,mid,yy,((a-a0)%4===0)?M.timber_dark:M.door_wood);}
-        if(kind==='front'){// sliding door pushed open, a noren hung across the head, lanterns either side
-          for(let a=a0+1;a<a0+(a1-a0)/2;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,c0+(out[0]+out[1]<0?1:c1-c0-2),yy,(yy-y)%6===0||(a-a0)%5===0?M.timber_dark:M.shoji);
-          for(let a=a0+1;a<a1-1;a++)for(let yy=y+DOOR_H-12;yy<y+DOOR_H;yy++)if((a-a0)%6!==0||yy>y+DOOR_H-4)put(s,a,proud,yy,yy>y+DOOR_H-3?M.timber_dark:style.noren?M[style.noren]:M.cloth_indigo);
-          for(const a of [a0-4,a1+3])lantern(s,a,proud+(out[0]+out[1]),y+DOOR_H-2);  // skipped where a neighbouring door's dressing already stands
-          // stepping stone and potted plants at the threshold
-          for(let a=a0+1;a<a1-1;a++)for(let k=1;k<6;k++)put(s,a,face+(out[0]+out[1])*k,y-1-Math.floor(k/3),M.stone_grey);
-          pot(s,a0-8,proud+(out[0]+out[1])*3,Y0,face);pot(s,a1+7,proud+(out[0]+out[1])*3,Y0,face);}
-        return;}
-      if(kind==='shopfront'||kind==='bay'){
-        const top=y+HEAD+2;cut(b,y+1,top,ins(1));for(let c=c0;c<c1;c++)for(let a=a0;a<a1;a++)put(s,a,c,top-1,style.timber);
-        for(let a=a0;a<a1;a+=16)for(let yy=y;yy<top;yy++)for(let c=c0;c<c1;c++)put(s,a,c,yy,style.timber);
-        // stall boards below, lattice or glazing above; a wide sliding section stays open on a shop.
-        for(let a=a0;a<a1;a++)for(let yy=y;yy<y+8;yy++)put(s,a,mid,yy,(a-a0)%4===0?M.timber_dark:style.timber);
-        const openFrom=kind==='shopfront'?a0+Math.floor((a1-a0)*.55):a1;
-        for(let a=a0;a<openFrom;a++)for(let yy=y+8;yy<top-1;yy++){const lat=style.lattice?((a-a0)%3===0||(yy-y)%9===0):((a-a0)%16===0||yy===y+20);put(s,a,mid,yy,lat?M.timber_dark:style.lattice?M.shoji:M.glass);}
-        // awning or a small tiled eave (hisashi) across the front
-        if(style.lattice)hisashi(f,s,a0-4,a1+4,face,top+5);else awning(s,a0,a1,proud,top+2);
-        if(kind==='shopfront')signboard(s,a0,a1,proud,top+8);
-        return;}
-      if(kind==='balcony'){cut(b,y,y+DOOR_H,ins(2));
-        for(let a=a0+1;a<a1-1;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,mid,yy,(a-a0)%5===0||(yy-y)%8===0?M.timber_dark:style.lattice?M.shoji:M.glass);
-        frame(s,a0+1,a1-1,proud,y,y+DOOR_H);
-        for(let k=1;k<=10;k++)for(let a=a0-2;a<a1+2;a++){const c=face+(out[0]+out[1])*k;put(s,a,c,y-1,style.timber);if(k===10||a===a0-2||a===a1+1)for(let yy=y;yy<y+15;yy++)if(yy===y+14||(a+k)%3===0)put(s,a,c,yy,style.trim);}
-        for(let a=a0;a<a1;a+=8)for(let k=1;k<=10;k++)fillAt(s,a,face+(out[0]+out[1])*k,y-2-Math.floor((10-k)/2),style.timber); // brackets: from low on the wall up to the balcony's edge
-        return;}
-      // windows
-      const small=kind==='small',lo=y+(small?22:SILL),hi=y+HEAD,wa0=a0+1,wa1=a1-1;
-      for(let a=wa0;a<wa1;a++)for(let yy=lo;yy<hi;yy++)for(let c=c0;c<c1;c++)put(s,a,c,yy,0);
-      for(let a=wa0;a<wa1;a++)for(let yy=lo;yy<hi;yy++){const u=a-wa0,v=yy-lo,lat=style.lattice?(u%3===0||v%4===0):(u===Math.floor((wa1-wa0)/2)||v===Math.floor((hi-lo)*.6));put(s,a,mid,yy,lat?M.timber_dark:style.lattice?M.shoji:M.glass);}
-      frame(s,wa0-1,wa1+1,proud,lo-1,hi+1);
-      if(!small&&!style.lattice&&f>0)flowerBox(s,wa0-1,wa1+1,proud,lo-1);
-      if(!small&&style.label.startsWith('Harbour'))for(const a of [wa0-4,wa1+1]){const cells=[];for(let k=0;k<3;k++)for(let yy=lo;yy<hi;yy++)cells.push([a+k,proud,yy,(yy-lo)%3===0?M.tile_blue_dark:M.tile_blue]);clearPut(s,cells);}
-    }
-    const sgn=s=>{const o=outward(s);return o[0]+o[1];};
     const fillAt=(s,a,c,y,m)=>s[0]==='x'?fillIfAir(c,y,a,m):fillIfAir(a,y,c,m),atS=(s,a,c,y)=>s[0]==='x'?at(c,y,a):at(a,y,c);
+    const cut=(b,y0,y1,inset)=>box(b[0]+(inset?.[0]||0),y0,b[2]+(inset?.[2]||0),b[1]-(inset?.[1]||0),y1,b[3]-(inset?.[3]||0),0);
+    const outward=s=>({xm:[-1,0],xp:[1,0],zm:[0,-1],zp:[0,1]})[s],sgn=s=>{const o=outward(s);return o[0]+o[1];};
     // Dressing is all-or-nothing: drawn only if every voxel it needs is empty, so it never cuts into a neighbour.
     const clearPut=(s,cells)=>{for(const [a,c,y] of cells)if(atS(s,a,c,y))return false;for(const [a,c,y,m] of cells)put(s,a,c,y,m);return true;};
-    function frame(s,a0,a1,c,y0,y1){for(let a=a0;a<a1;a++){put(s,a,c,y0,style.trim);put(s,a,c,y1-1,style.trim);}for(let yy=y0;yy<y1;yy++){put(s,a0,c,yy,style.trim);put(s,a1-1,c,yy,style.trim);}}
+    // Window shapes on a 12-voxel-wide light: rect, tall (French), arched (round head), paired (two lights).
+    const windowShape=(kind,small)=>{const W=12,lo=small?22:kind==='tall'?6:SILL,hi=small?HEAD-2:kind==='tall'?HEAD+2:kind==='arched'?HEAD+2:HEAD;
+      const clear=(u,v)=>{if(u<0||u>=W||v<lo||v>=hi)return false;if(kind==='arched'&&!small){const r=W/2,top=hi-r;if(v>=top){const du=u+.5-r,dv=v+.5-top;if(du*du+dv*dv>r*r)return false;}}
+        if(kind==='paired'&&!small&&(u===5||u===6))return false;return true;};
+      return {W,lo,hi,clear};};
+    function opening(f,o,interior){
+      const s=o.side||o.dir,b=span(o.cells,s,interior),[a0,a1]=alongOf(b,s),[c0,c1]=acrossOf(b,s),y=FL(f),kind=o.kind,k=sgn(s);
+      // layer(dep): wall layer at depth dep from the face; proud(n): n voxels out from the face
+      const layer=dep=>k<0?c0+1+dep:c1-2-dep,proud=n=>k<0?c0+1-n:c1-2+n,face=layer(0),mid=Math.floor((c0+c1)/2);
+      const ins=n=>s[0]==='x'?[0,0,n,n]:[n,n,0,0];
+      if(kind==='open'){cut(b,y,y+DOOR_H+4,ins(0));return;}
+      if(interior&&kind==='door'){cut(b,y,y+DOOR_H,ins(1));for(let yy=y;yy<y+DOOR_H+1;yy++)for(let c=c0;c<c1;c++){put(s,a0,c,yy,M.timber_dark);put(s,a1-1,c,yy,M.timber_dark);}
+        for(let a=a0;a<a1;a++)for(let c=c0;c<c1;c++)put(s,a,c,y+DOOR_H,M.timber_dark);return;}
+      if(kind==='front'||kind==='back'){
+        const L=a0+1,R=a1-2; // jambs; the clear opening is L+1..R-1 (12 voxels)
+        for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
+        for(let yy=y;yy<y+DOOR_H+2;yy++)for(let dep=-1;dep<3;dep++){put(s,L,dep<0?proud(1):layer(dep),yy,C.trim);put(s,R,dep<0?proud(1):layer(dep),yy,C.trim);}
+        for(let a=L-1;a<=R+1;a++)for(let n=0;n<2;n++)put(s,a,proud(n),y+DOOR_H+n,C.trim);   // lintel
+        for(let a=L+1;a<R;a++)for(let n=1;n<6;n++)fillAt(s,a,proud(n),y-1-Math.floor(n/3),M.stone_grey); // threshold step
+        if(kind==='back'){for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,((a-L)%4===0)||yy===y+DOOR_H-1||yy===y+12?M.timber_dark:M.door_wood);return;}
+        if(FA.lattice){// sliding shoji door pushed half open, a noren across the head, paper lanterns either side
+          for(let a=L+1;a<L+7;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,(yy-y)%6===0||(a-L)%5===1?M.timber_dark:M.shoji);
+          for(let a=L;a<=R;a++)for(let yy=y+DOOR_H-12;yy<y+DOOR_H;yy++)if((a-L)%6!==0||yy>y+DOOR_H-3)put(s,a,proud(1),yy,yy>y+DOOR_H-3?M.timber_dark:C.noren);
+          for(const a of [L-5,R+5])paperLantern(s,a,proud(3),y+DOOR_H+1);}
+        else{// a panelled door standing open into the room, a small canopy over the step and a wall lamp
+          for(let n=0;n<11;n++)for(let yy=y;yy<y+DOOR_H-1;yy++)fillAt(s,L+1,layer(2)-k*n,yy,(yy-y)%9===0||n===0||n===10?M.timber_dark:M.door_wood);
+          if(FA.canopy){for(let a=L-2;a<=R+2;a++)for(let n=0;n<6;n++){const yy=y+DOOR_H+5-Math.floor(n/2);put(s,a,proud(n),yy,C.tile);put(s,a,proud(n),yy-1,C.timber);}
+            for(const a of [L-2,R+2])for(let n=1;n<5;n++)fillAt(s,a,proud(n),y+DOOR_H+5-n-2,C.timber);}
+          wallLamp(s,R+4,proud(1),y+DOOR_H-4);}
+        for(const a of [L-9,R+9])pot(s,a,proud(4),Y0,face);
+        return;}
+      if(kind==='shopfront'||kind==='bay'){
+        const top=y+HEAD+2;for(let a=a0;a<a1;a++)for(let yy=y+1;yy<top;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
+        for(let a=a0;a<a1;a++)for(let dep=-1;dep<3;dep++){put(s,a,dep<0?proud(1):layer(dep),top-1,C.timber);put(s,a,dep<0?proud(1):layer(dep),top,C.timber);} // head beam
+        for(let a=a0;a<a1;a+=16)for(let yy=y;yy<top;yy++)for(let dep=-1;dep<3;dep++)put(s,a,dep<0?proud(1):layer(dep),yy,C.timber);for(let yy=y;yy<top;yy++)for(let dep=-1;dep<3;dep++)put(s,a1-1,dep<0?proud(1):layer(dep),yy,C.timber);
+        // stall riser below, then lattice or glazing; a wide sliding section stands open on a shop
+        for(let a=a0;a<a1;a++)for(let yy=y;yy<y+8;yy++)put(s,a,layer(1),yy,(a-a0)%4===0?M.timber_dark:C.timber);
+        for(let a=a0;a<a1;a++)put(s,a,proud(1),y+8,C.timber),put(s,a,proud(2),y+8,C.timber); // a display ledge
+        const openFrom=kind==='shopfront'?a0+Math.floor((a1-a0)*.55):a1;
+        for(let a=a0;a<openFrom;a++)for(let yy=y+9;yy<top-1;yy++){if((a-a0)%16===0)continue;const lat=FA.lattice?((a-a0)%3===0||(yy-y)%9===0):((a-a0)%8===0||yy===y+21);put(s,a,layer(1),yy,lat?M.timber_dark:FA.lattice?M.shoji:M.glass);}
+        if(FA.lattice)hisashi(s,a0-4,a1+4,face,top+5);else awning(s,a0,a1,proud(1),top+2);
+        if(kind==='shopfront')signboard(s,a0,a1,proud(1),top+8);
+        return;}
+      if(kind==='balcony'){const W=windowShape('tall'),L=a0+1,R=a1-2;
+        for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
+        for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,(a-L)%6===0||(yy-y)%8===0||yy===y+DOOR_H-1?M.timber_dark:FA.lattice?M.shoji:M.glass);
+        for(let yy=y;yy<y+DOOR_H+1;yy++){put(s,L,face,yy,C.trim);put(s,R,face,yy,C.trim);}for(let a=L;a<=R;a++)put(s,a,face,y+DOOR_H,C.trim);
+        // a deck 10 voxels deep on brackets, with a railing of balusters and a top rail
+        for(let n=1;n<=10;n++)for(let a=a0-2;a<a1+2;a++){const c=face+k*n;put(s,a,c,y-1,C.timber);if(n===10||a===a0-2||a===a1+1){put(s,a,c,y+13,C.trim);put(s,a,c,y+14,C.trim);if((a+n)%3===0||a===a0-2||a===a1+1)for(let yy=y;yy<y+13;yy++)put(s,a,c,yy,C.trim);}}
+        for(let a=a0;a<a1;a+=8)for(let n=1;n<=9;n++)fillAt(s,a,face+k*n,y-2-Math.floor((10-n)/2),C.timber);
+        void W;return;}
+      // windows: a recessed light with glazing bars, a 1-voxel frame, a lintel and a 2-deep sill
+      const small=kind==='small',shape=windowShape(small?'rect':f===0?FA.groundWindow:FA.window,small),wa=a0+2;
+      for(let u=-1;u<=shape.W;u++)for(let yy=y+shape.lo-1;yy<=y+shape.hi;yy++){const v=yy-y,isClear=shape.clear(u,v),near=!isClear&&[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]].some(([du,dv])=>shape.clear(u+du,v+dv));
+        if(isClear){for(let dep=0;dep<3;dep++)put(s,wa+u,layer(dep),yy,0);
+          const gl=FA.glazing==='lattice'?(u%3===2||(v-shape.lo)%4===3):FA.glazing==='grid'?(u%4===3||(v-shape.lo)%5===4):(u===5||u===6||v===shape.lo+Math.floor((shape.hi-shape.lo)*.6));
+          put(s,wa+u,layer(1),yy,gl?M.timber_dark:FA.lattice?M.shoji:M.glass);}
+        else if(near){put(s,wa+u,face,yy,C.trim);put(s,wa+u,layer(1),yy,C.trim);}}
+      if(!small||true){for(let u=-2;u<=shape.W+1;u++){fillAt(s,wa+u,proud(1),y+shape.lo-1,C.trim);fillAt(s,wa+u,proud(2),y+shape.lo-1,C.trim);}  // sill
+        if(FA.window!=='arched'||f===0&&FA.groundWindow!=='arched'||small)for(let u=-1;u<=shape.W;u++)fillAt(s,wa+u,proud(1),y+shape.hi,C.trim);}               // lintel
+      if(!small&&!FA.lattice&&f>0&&FA.boxes)flowerBox(s,wa-1,wa+shape.W+1,proud(1),y+shape.lo-2);
+      if(!small&&FA.shutters&&shape.clear(0,shape.lo)){const sh=FA.lattice?C.timber:M[FA.trim==='paint_white'?'tile_blue':'timber_brown'],shd=dark(sh);
+        for(const a of [wa-5,wa+shape.W+1]){const cells=[];for(let n=0;n<4;n++)for(let yy=y+shape.lo;yy<y+shape.hi;yy++)cells.push([a+n,proud(1),yy,(yy-y-shape.lo)%3===0?shd:sh]);clearPut(s,cells);}}
+    }
     function flowerBox(s,a0,a1,c,y){const k=sgn(s),cells=[];for(let a=a0;a<a1;a++)for(let t=0;t<3;t++){cells.push([a,c+k*t,y-1,M.terracotta],[a,c+k*t,y-2,M.terracotta]);
       const h=(a*7+t*3)%5;cells.push([a,c+k*t,y,h<3?M.leaf:M.leaf_dark]);if(h===0||h===3)cells.push([a,c+k*t,y+1,[M.flower_pink,M.flower_yellow,M.flower_white][(a+t)%3]]);}clearPut(s,cells);}
-    function lantern(s,a,c,ytop){const cells=[];for(let yy=ytop-9;yy<=ytop;yy++)for(let da=-2;da<=2;da++)for(let dc=-2;dc<=2;dc++){const v=yy-(ytop-5),rr=da*da+dc*dc+v*v*.45;
-      if(yy>=ytop-1){if(da===0&&dc===0)cells.push([a,c,yy,M.iron]);continue;}if(rr<=6.2)cells.push([a+da,c+dc*sgn(s),yy,v===-4||v===3?M.soot:rr<3?M.lantern_glow:M.lantern]);}
-      if(clearPut(s,cells))info.lights.push({s,a,c,y:ytop-5});}
+    // A paper lantern on a bracket: ribbed body, black caps top and bottom, a glowing core.
+    function paperLantern(s,a,c,ytop){const k=sgn(s),cells=[];for(let n=0;n<3;n++)cells.push([a,c-k*n,ytop,M.iron]);
+      for(let yy=ytop-12;yy<ytop;yy++){const v=yy-(ytop-6),rad=yy>=ytop-2||yy<ytop-11?1.6:3.1-Math.abs(v+.5)*.12;
+        for(let da=-3;da<=3;da++)for(let dc=-3;dc<=3;dc++){const rr=Math.hypot(da,dc);if(rr>rad)continue;const cap=yy>=ytop-2||yy<ytop-11;cells.push([a+da,c+dc*k,yy,cap?M.soot:(yy-ytop)%3===0&&rr>rad-1.2?M.lantern_dark:rr<1.5?M.lantern_glow:M.lantern]);}}
+      if(clearPut(s,cells))info.lights.push({s,a,c,y:ytop-6});}
+    // An iron wall lamp: a bracket arm and a small glazed lantern with a glowing pane.
+    function wallLamp(s,a,c,y){const k=sgn(s),cells=[];for(let n=0;n<4;n++)cells.push([a,c+k*n,y+6,M.iron]);
+      for(let yy=y;yy<y+6;yy++)for(let da=-1;da<=1;da++)for(let n=2;n<5;n++){const edge=yy===y||yy===y+5||Math.abs(da)===1&&(n===2||n===4);cells.push([a+da,c+k*n,yy,edge?M.iron:M.lantern_glow]);}
+      if(clearPut(s,cells))info.lights.push({s,a,c,y:y+3});}
     // A potted plant on the pavement, only in front of solid wall (not across a shopfront or another door).
     function pot(s,a,c,y,face){for(let da=-3;da<=3;da++)if(!atS(s,a+da,face,y+PLINTH+6))return;const cells=[];
-      for(let yy=y;yy<y+5;yy++)for(let da=-2;da<=2;da++)for(let dc=-2;dc<=2;dc++)if(da*da+dc*dc<=4.5)cells.push([a+da,c+dc,yy,M.terracotta]);
-      for(let yy=y+5;yy<y+12;yy++)for(let da=-3;da<=3;da++)for(let dc=-3;dc<=3;dc++){const v=yy-(y+8);if(da*da+dc*dc+v*v*1.2<=10&&((da*3+dc*5+yy)%4))cells.push([a+da,c+dc,yy,(da+dc+yy)%3?M.leaf:M.leaf_dark]);}
+      for(let yy=y;yy<y+6;yy++)for(let da=-3;da<=3;da++)for(let dc=-3;dc<=3;dc++){const rr=da*da+dc*dc,rad=yy===y+5?9.5:5+(yy-y)*.6;if(rr<=rad)cells.push([a+da,c+dc,yy,yy===y+5?M.terracotta_dark:M.terracotta]);}
+      for(let yy=y+6;yy<y+14;yy++)for(let da=-4;da<=4;da++)for(let dc=-4;dc<=4;dc++){const v=yy-(y+9);if(da*da+dc*dc+v*v*1.1<=14&&((da*3+dc*5+yy*7)%5))cells.push([a+da,c+dc,yy,(da+2*dc+yy)%3?M.leaf:M.leaf_dark]);}
       clearPut(s,cells);}
-    function awning(s,a0,a1,c,y){const k=sgn(s),cloth=style.noren?M[style.noren]:M.cloth_coral;for(let t=0;t<12;t++)for(let a=a0;a<a1;a++){const yy=y-Math.floor(t/2);put(s,a,c+k*t,yy,((a-a0)>>2)&1?cloth:M.cloth_white);if(t===11)for(let q=1;q<3;q++)put(s,a,c+k*t,yy-q,((a-a0)>>2)&1?cloth:M.cloth_white);}}
-    function hisashi(f,s,a0,a1,face,y){const k=sgn(s),roofM=M[style.roofMat],dk=dark(roofM);for(let t=-1;t<14;t++)for(let a=a0;a<a1;a++){const yy=y-Math.floor((t+1)*.55);put(s,a,face+k*t,yy,a%2?roofM:dk);put(s,a,face+k*t,yy-1,M.timber_dark);}
+    function awning(s,a0,a1,c,y){const k=sgn(s),cloth=C.noren;for(let t=0;t<12;t++)for(let a=a0;a<a1;a++){const yy=y-Math.floor(t/2);put(s,a,c+k*t,yy,((a-a0)>>2)&1?cloth:M.cloth_white);if(t===11)for(let q=1;q<3;q++)put(s,a,c+k*t,yy-q,((a-a0)>>2)&1?cloth:M.cloth_white);}}
+    function hisashi(s,a0,a1,face,y){const k=sgn(s);for(let t=-1;t<14;t++)for(let a=a0;a<a1;a++){const yy=y-Math.floor((t+1)*.55);put(s,a,face+k*t,yy,(a%4===0)?C.tileDk:C.tile);put(s,a,face+k*t,yy-1,M.timber_dark);if(a%4===0)fillAt(s,a,face+k*t,yy+1,C.tile);}
       for(let a=a0;a<a1;a+=16)for(let t=0;t<12;t++)put(s,a,face+k*t,y-2-Math.floor(t*.55),M.timber_dark);}
     function signboard(s,a0,a1,c,y){const k=sgn(s),mid=Math.floor((a0+a1)/2),half=Math.min(14,Math.floor((a1-a0)/2)-2),cells=[];
       for(let a=mid-half;a<mid+half;a++)for(let yy=y;yy<y+9;yy++){const edge=a===mid-half||a===mid+half-1||yy===y||yy===y+8,ink=!edge&&((Plan.hash(`${plan.seed}:${a>>1}:${yy>>1}`)%7)<2)&&yy>y+1&&yy<y+7&&(a-mid+half)%9>1;cells.push([a,c+k,yy,edge?M.timber_dark:ink?M.sign_ink:M.sign]);}
@@ -189,53 +251,69 @@
 
     for(let f=0;f<storeys;f++){const F=plan.floors[f];for(const dr of F.doors)opening(f,dr,true);for(const o of F.openings)opening(f,o,false);}
 
-    // Jetty brackets under any upper floor that overhangs the street.
-    if(plan.plot.jetty)for(let x=0;x<w;x+=2)for(let t=0;t<CV;t++){const xx=cx(x)+(x===0?0:-1),zz=cz(front)-1-t,yy=FL(1)-SLAB-1-(CV-1-t);box(xx,yy,zz,xx+2,yy+1,zz+1,style.timber);}
+    // Jetty brackets under any upper floor that overhangs the street, on the post grid.
+    if(plan.plot.jetty)for(let A=cx(0);A<cx(w);A++)if(postAt('zm',A)&&!postAt('zm',A-1)||A===cx(0)||A===cx(w)-2)for(let t=0;t<CV;t++){const zz=cz(front)-1-t,yy=FL(1)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}
 
-    // Roofs, one per level: each storey's footprint that has nothing built above it gets a roof at that storey's
-    // plate. The main roof is a union of gable/hip height fields over its rectangles (ridges follow the style;
-    // terraces never hip into a party wall). A lower part that meets a taller block (a rear wing, a stair tower) gets a
-    // lean-to sloping away from the taller wall; a small free-standing part gets a hipped cap.
-    const roofY=new Int16Array(X*Z).fill(-1),pitch=style.pitch,curve=style.curve,tile=M[style.roofMat],tileDk=dark(tile),top=storeys-1;
+    // --- Roofs -----------------------------------------------------------------------------------------------------
+    // One per level: each storey's footprint with nothing built above it gets a roof at that storey's plate. The main
+    // roof follows plan.roof (gable, hip; ridge along the frontage or the depth; terraces never hip into a party wall).
+    // A lower part that meets a taller block (a rear wing, a stair tower) gets a lean-to; a small free-standing part
+    // gets a hipped cap. Up close: the slope's voxel steps are the tile courses, round-tile
+    // ribs stand 1 voxel proud every 4 along the eave, a fascia board finishes the eave, rafter tails show under the
+    // overhang, bargeboards finish the gable verges, and the ridge and hips carry caps.
+    const roofY=new Int16Array(X*Z).fill(-1),top=storeys-1;
     for(let L=top;L>=0;L--){const region=plan.plot.masks[L].map((v,i)=>v&&!(L<top&&plan.plot.masks[L+1][i])?1:0);if(!region.some(Boolean))continue;
-      const lvlPlate=FL(L+1),above=L<top?plan.plot.masks[L+1]:null,lvY=new Int16Array(X*Z).fill(-1),kind=new Uint8Array(X*Z),stripeX=new Uint8Array(X*Z);
+      const lvlPlate=FL(L+1),above=L<top?plan.plot.masks[L+1]:null,lvY=new Int16Array(X*Z).fill(-1),kind=new Uint8Array(X*Z),eaveAxisX=new Uint8Array(X*Z);
       for(const [rx0,rz0,rx1,rz1] of decompose(region,w,d)){
         const x0=cx(rx0),x1=cx(rx1+1),z0=cz(rz0),z1=cz(rz1+1),wide=x1-x0,deep=z1-z0;
-        // Which side (if any) leans against a taller block.
         const touch=s_=>{if(!above)return 0;let n=0;if(s_==='xm')for(let z=rz0;z<=rz1;z++)n+=rx0>0&&above[rx0-1+w*z]?1:0;if(s_==='xp')for(let z=rz0;z<=rz1;z++)n+=rx1+1<w&&above[rx1+1+w*z]?1:0;
           if(s_==='zm')for(let x=rx0;x<=rx1;x++)n+=rz0>0&&above[x+w*(rz0-1)]?1:0;if(s_==='zp')for(let x=rx0;x<=rx1;x++)n+=rz1+1<d&&above[x+w*(rz1+1)]?1:0;return n;};
         const lean=['xm','xp','zm','zp'].map(s_=>[s_,touch(s_)]).sort((a,b)=>b[1]-a[1])[0],isLean=lean[1]>0;
-        const small=!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=small?'hip':isLean?'lean':L===top?(style.roof==='hip'&&!party[0]&&!party[1]?'hip':'gable'):'gable';
-        const ridgeX=isLean?lean[0][0]==='z':L===top?(style.ridge==='frontage'?true:style.ridge==='depth'?false:wide>=deep):wide>=deep;
+        const small=!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=small?'hip':isLean?'lean':L===top?(RF.form==='hip'&&!party[0]&&!party[1]?'hip':'gable'):'gable';
+        const ridgeX=isLean?lean[0][0]==='z':L===top?(RF.ridge==='frontage'?true:RF.ridge==='depth'?false:wide>=deep):wide>=deep;
         const noEave=s_=>(s_==='xm'&&rx0===0&&party[0])||(s_==='xp'&&rx1===w-1&&party[1])||(isLean&&s_===lean[0]);
         const eS=s_=>noEave(s_)?0:(shape==='gable'&&((ridgeX&&s_[0]==='x')||(!ridgeX&&s_[0]==='z'))?Math.round(eave*.5):eave);
         const gx0=x0-eS('xm'),gx1=x1+eS('xp'),gz0=z0-eS('zm'),gz1=z1+eS('zp');
         const span=ridgeX?deep:wide,half=span/2,lp=isLean?Math.min(pitch,(SH-14)/span):pitch;
         for(let z=gz0;z<gz1;z++)for(let x=gx0;x<gx1;x++){
-          const wz=Math.min(z-z0,z1-1-z),wx=Math.min(x-x0,x1-1-x);let dist,full;
-          if(isLean){const s_=lean[0];dist=s_==='xm'?x1-1-x:s_==='xp'?x-x0:s_==='zm'?z1-1-z:z-z0;full=span;}
-          else{dist=Math.min(half,shape==='hip'?Math.min(wz,wx):ridgeX?wz:wx);full=half;}
+          const wz=Math.min(z-z0,z1-1-z),wx=Math.min(x-x0,x1-1-x);let dist,full,slopeAlongZ;
+          if(isLean){const s_=lean[0];dist=s_==='xm'?x1-1-x:s_==='xp'?x-x0:s_==='zm'?z1-1-z:z-z0;full=span;slopeAlongZ=s_[0]==='z';}
+          else{const dz_=ridgeX?wz:1e9,dx_=ridgeX?1e9:wx;if(shape==='hip'){dist=Math.min(half,Math.min(wz,wx));slopeAlongZ=wz<=wx;}else{dist=Math.min(half,ridgeX?dz_:dx_);slopeAlongZ=ridgeX;}full=half;}
           const t=dist/full;let h=lp*dist;
           if(t>0&&!isLean)h-=curve*lp*half*.22*Math.sin(Math.PI*Math.min(1,t));else if(t<=0)h+=curve*lp*dist*dist/Math.max(1,eave)*.9;
           if(curve>0&&!isLean){const ex=Math.min(x-gx0,gx1-1-x),ez=Math.min(z-gz0,gz1-1-z);if(ex<eave&&ez<eave)h+=curve*12*(1-ex/eave)*(1-ez/eave);}
-          const tip=Math.min(x-gx0,gx1-1-x,z-gz0,gz1-1-z),yy=Math.round(lvlPlate+2+h),i=x+X*z;
-          if(yy>lvY[i]){lvY[i]=yy;kind[i]=(!isLean&&dist>=full-1?2:0)|(tip<2?4:0);stripeX[i]=ridgeX?1:0;}}}
-      const cols=extWall[L],lower=L<top; // tile rows run down the slope of each roof part (stripeX)
+          // eave tips (fascia) and gable verges (bargeboards)
+          const tipEave=slopeAlongZ?Math.min(z-gz0,gz1-1-z):Math.min(x-gx0,gx1-1-x),tipVerge=shape==='gable'?(ridgeX?Math.min(x-gx0,gx1-1-x):Math.min(z-gz0,gz1-1-z)):1e9;
+          const hipLine=shape==='hip'&&Math.abs(wz-wx)<1&&dist<half-1,yy=Math.round(lvlPlate+2+h),i=x+X*z;
+          if(yy>lvY[i]){lvY[i]=yy;kind[i]=(!isLean&&dist>=full-1?2:0)|(tipEave<1?4:0)|(tipVerge<2?8:0)|(hipLine?16:0);eaveAxisX[i]=slopeAlongZ?1:0;}}}
+      const cols=extWall[L],lower=L<top,put3=(x,y,z,m)=>lower?fillIfAir(x,y,z,m):set(x,y,z,m);
       for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const i=x+X*z,ry=lvY[i];if(ry<0)continue;roofY[i]=Math.max(roofY[i],ry);
-        const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),inside=x>=MX&&z>=MZ&&gx<w&&gz<d&&region[gx+w*gz];
+        const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),inside=x>=MX&&z>=MZ&&gx<w&&gz<d&&region[gx+w*gz],ea=eaveAxisX[i]?x:z,kd=kind[i];
         // gable infill: the outer wall rises to meet the roof
-        if(cols.has(x+','+z)&&inside)for(let yy=lvlPlate;yy<ry-2;yy++){const s_=x<MX+3?'xm':x>=MX+w*CV-3?'xp':z<MZ+3?'zm':'zp';const m=facade(L,s_,s_[0]==='x'?z-MZ:x-MX,SILL+2+(yy-lvlPlate)%(SH-SILL-6),0,isParty(s_,s_==='xm'?0:w-1)&&(s_==='xm'||s_==='xp'));if(lower)fillIfAir(x,yy,z,m);else set(x,yy,z,m);}
-        for(let k=0;k<3;k++){const m=k===2&&!inside?M.timber_dark:(kind[i]&4)?tileDk:(((stripeX[i]?x:z)>>1)&1)?tile:tileDk;if(lower)fillIfAir(x,ry-k,z,m);else set(x,ry-k,z,m);}
-        if(kind[i]&2){fillIfAir(x,ry+1,z,M.ridge);fillIfAir(x,ry+2,z,M.ridge);}}
-      // Ridge-end ornaments on the lacquer and machiya styles.
-      if(style.lattice)for(let z=1;z<Z-1;z++)for(let x=1;x<X-1;x++){const i=x+X*z;if(!(kind[i]&2))continue;const nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>kind[(x+a)+X*(z+b)]&2).length;
-        if(nb===1)for(let yy=lvY[i]+1;yy<lvY[i]+6;yy++)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)fillIfAir(x+a,yy,z+b,style.label.startsWith('Sky')?M.gold:M.ridge);}}
-    // Chimney over the kitchen's back wall.
+        if(cols.has(x+','+z)&&inside)for(let yy=lvlPlate;yy<ry-2;yy++){const s_=x<MX+3?'xm':x>=MX+w*CV-3?'xp':z<MZ+3?'zm':'zp',par=isParty(s_,s_==='xm'?0:w-1)&&(s_==='xm'||s_==='xp');
+          const m=par?C.wall:FA.frame==='none'||FA.frame==='posts'?(postAt(s_,s_[0]==='x'?z:x)||postAt(s_,(s_[0]==='x'?z:x)-1)?C.timber:C.wall):facade(L,s_,s_[0]==='x'?z:x,SILL+2+(yy-lvlPlate)%(SH-SILL-6),0,false,false);put3(x,yy,z,m);}
+        const surf=(kd&4)?C.trim:C.tile; // the voxel steps of the slope read as tile courses on their own
+        put3(x,ry,z,surf);put3(x,ry-1,z,C.tile);put3(x,ry-2,z,inside?C.tile:M.timber_brown);
+        if(!inside&&!(kd&4)&&!(kd&8)&&(ea%8)<2)put3(x,ry-3,z,M.timber_dark);                       // rafter tails under the overhang
+        if(kd&4)for(let n=1;n<3;n++)put3(x,ry-n,z,C.trim);                                        // fascia board
+        if(kd&8)for(let n=0;n<4;n++)put3(x,ry-n,z,C.trim);                                        // bargeboard on the verge
+        if(!(kd&(2|4|8|16))&&ea%4===0)fillIfAir(x,ry+1,z,C.tileDk);                                // round-tile ribs, a shade darker
+        if(kd&2){fillIfAir(x,ry+1,z,M.ridge);fillIfAir(x,ry+2,z,M.ridge);}
+        if(kd&16)fillIfAir(x,ry+1,z,M.ridge);}
+      // The ridge cap runs 3 voxels wide; ridge ends carry an ornament on lattice styles, a plain end tile otherwise.
+      for(let z=1;z<Z-1;z++)for(let x=1;x<X-1;x++){const i=x+X*z;if(!(kind[i]&2))continue;
+        for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]])if(lvY[(x+a)+X*(z+b)]>=lvY[i]-1&&!(kind[(x+a)+X*(z+b)]&2))fillIfAir(x+a,lvY[i]+1,z+b,M.ridge);
+        const nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>kind[(x+a)+X*(z+b)]&2).length;
+        if(nb===1)for(let yy=lvY[i]+1;yy<lvY[i]+(FA.lattice?6:4);yy++)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)fillIfAir(x+a,yy,z+b,FA.lattice&&plan.style==='spire'?M.gold:M.ridge);}}
+
+    // Chimney over the kitchen's back wall: brick with a stone cap and a pot.
     const kitchenFloor=plan.floors.findIndex(F=>F.rooms.some(r=>r.type==='kitchen'));
     if(kitchenFloor>=0){const F=plan.floors[kitchenFloor],k=F.rooms.findIndex(r=>r.type==='kitchen'),cells=[];for(let i=0;i<w*d;i++)if(F.grid[i]===k)cells.push(i);
       const c=cells.sort((a,b)=>Math.floor(b/w)-Math.floor(a/w)||((a%w)-(b%w)))[0],x=c%w,z=Math.floor(c/w),bx=cx(x)+1,bz=cz(z)+(mask(kitchenFloor,x,z+1)?1:-2);
       let peak=0;for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++)peak=Math.max(peak,roofY[xx+X*zz]);
-      for(let yy=FL(kitchenFloor);yy<peak+12;yy++)for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++){const edge=xx===bx||xx===bx+8||zz===bz||zz===bz+8;if(!edge&&yy>peak)continue;set(xx,yy,zz,yy>=peak+10?M.soot:((xx+zz)>>1)+(yy>>1)&1?M.brick:M.brick_dark);}}
+      for(let yy=FL(kitchenFloor);yy<peak+12;yy++)for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++){const edge=xx===bx||xx===bx+8||zz===bz||zz===bz+8;if(!edge&&yy>peak)continue;
+        set(xx,yy,zz,(yy%3===2)||((xx+zz+(yy/3|0)*2)%5===0)?M.brick_dark:M.brick);}
+      box(bx-1,peak+12,bz-1,bx+10,peak+14,bz+10,M.stone_grey);for(let yy=peak+14;yy<peak+18;yy++)for(let zz=bz+3;zz<bz+6;zz++)for(let xx=bx+3;xx<bx+6;xx++)if(xx!==bx+4||zz!==bz+4)set(xx,yy,zz,M.terracotta);}
 
     // Furniture.
     furnish(plan,{vol,X,Y,Z,at,set,cx,cz,FL,mask,r,info,M});

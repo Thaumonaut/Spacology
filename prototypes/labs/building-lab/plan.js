@@ -321,7 +321,7 @@
       // Windows sit on one grid per wall: a 1 m opening every 2 m, centred on the wall and starting on an even cell
       // so it falls between the timber posts. Every floor uses the same grid, so windows stack. Baths, stores and
       // halls take one high window; a room with no grid slot free gets one centred window instead.
-      const small=type==='bath'||type==='store'||type==='hall',alongX=l.side[0]==='z',len=alongX?w:d;let phase=(Math.floor(len/2)-1)%4;if(phase%2)phase=(phase+1)%4;
+      const small=type==='bath'||type==='store'||type==='hall',alongX=l.side[0]==='z',phase=gridPhase(alongX?w:d);
       const coord=c=>alongX?c[0]:c[1],here=()=>openings.some(o=>o.room===l.room&&o.kind!=='front'&&o.kind!=='back');let first=true;
       for(const run of runsOf(free).sort((a,b)=>b.length-a.length)){const slots=[];for(let i=0;i+1<run.length;i++)if(((coord(run[i])-phase)%4+4)%4===0)slots.push(i);
         const pickSlots=small?(slots.length&&!here()?[slots.sort((a,b)=>Math.abs(a+1-run.length/2)-Math.abs(b+1-run.length/2))[0]]:[]):slots;
@@ -344,14 +344,38 @@
     return {score:s,notes};
   }
 
-  // Styles: everything visual the voxel stage needs. A type plus a style is a building; districts choose the style.
+  // Styles: everything visual the voxel stage needs, as a distribution. Each building samples its own facade and roof
+  // (plan.facade, plan.roof) from its style, so a district shares a look without every house being the same.
+  // Lists are choices; {name: weight} tables are weighted choices; [lo, hi] pairs are ranges.
   const STYLES={
-    machiya:{label:'Lantern-street machiya',roof:'gable',ridge:'frontage',pitch:.45,eave:3,curve:.35,wall:'plaster_warm',timber:'timber_dark',base:'stone_grey',roofMat:'tile_charcoal',trim:'timber_dark',lattice:true,noren:'cloth_indigo',jettyOk:false},
-    harbour:{label:'Harbour white & blue',roof:'hip',ridge:'depth',pitch:.5,eave:2,curve:.2,wall:'plaster_white',timber:'timber_honey',base:'stone_sand',roofMat:'tile_blue',trim:'paint_white',lattice:false,noren:'cloth_coral',jettyOk:true},
-    fairytale:{label:'Storybook half-timber',roof:'gable',ridge:'depth',pitch:1.05,eave:2,curve:0,wall:'plaster_cream',timber:'timber_brown',base:'stone_grey',roofMat:'tile_red',trim:'timber_brown',lattice:false,halfTimber:true,noren:'cloth_green',jettyOk:true},
-    spire:{label:'Sky-temple lacquer',roof:'hip',ridge:'frontage',pitch:.7,eave:4,curve:.6,wall:'plaster_peach',timber:'lacquer_red',base:'stone_sand',roofMat:'tile_teal',trim:'lacquer_red',lattice:true,noren:'cloth_gold',jettyOk:false}
+    machiya:{label:'Lantern-street machiya',lattice:true,jettyOk:false,
+      walls:['plaster_warm'],timbers:['timber_dark'],trims:['timber_dark'],bases:['stone_grey'],roofMats:['tile_charcoal'],noren:['cloth_indigo'],
+      roofForms:{gable:1},ridge:'frontage',pitch:[.45,.45],eave:[3,3],curve:[.35,.35],
+      frames:{posts:1},windows:{rect:1},groundWindows:{rect:1},glazing:{lattice:1},shutters:0,boxes:0,groundBoards:1,canopy:0},
+    harbour:{label:'Harbour white & blue',lattice:false,jettyOk:true,
+      walls:['plaster_white'],timbers:['timber_honey'],trims:['paint_white'],bases:['stone_sand'],roofMats:['tile_blue'],noren:['cloth_coral'],
+      roofForms:{hip:1},ridge:'depth',pitch:[.5,.5],eave:[2,2],curve:[.2,.2],
+      frames:{posts:1},windows:{rect:1},groundWindows:{rect:1},glazing:{mullion:1},shutters:1,boxes:1,groundBoards:0,canopy:1},
+    fairytale:{label:'Storybook half-timber',lattice:false,jettyOk:true,
+      walls:['plaster_cream'],timbers:['timber_brown'],trims:['timber_brown'],bases:['stone_grey'],roofMats:['tile_red'],noren:['cloth_green'],
+      roofForms:{gable:1},ridge:'depth',pitch:[1.05,1.05],eave:[2,2],curve:[0,0],
+      frames:{braced:1},windows:{rect:1},groundWindows:{rect:1},glazing:{mullion:1},shutters:0,boxes:1,groundBoards:0,canopy:1},
+    spire:{label:'Sky-temple lacquer',lattice:true,jettyOk:false,
+      walls:['plaster_peach'],timbers:['lacquer_red'],trims:['lacquer_red'],bases:['stone_sand'],roofMats:['tile_teal'],noren:['cloth_gold'],
+      roofForms:{hip:1},ridge:'frontage',pitch:[.7,.7],eave:[4,4],curve:[.6,.6],
+      frames:{posts:1},windows:{rect:1},groundWindows:{rect:1},glazing:{lattice:1},shutters:0,boxes:0,groundBoards:1,canopy:0}
   };
-
+  // The window grid of each wall: a 1 m window every 2 m, centred on the wall and starting on an even cell (so it falls
+  // between timber posts). placeOpenings and the voxel facade both use it, so posts, braces and windows line up.
+  const gridPhase=len=>{let p=(Math.floor(len/2)-1)%4;if(p%2)p=(p+1)%4;return p;};
+  function sampleLook(styleId,plot,seed){
+    const S=STYLES[styleId],r=rng(hash('look:'+seed)),one=v=>Array.isArray(v)?pick(r,v):v&&typeof v==='object'?weighted(r,v):v,range=([a,b])=>+(a+(b-a)*r()).toFixed(3),chance=p=>r()<p;
+    const facade={wall:one(S.walls),timber:one(S.timbers),trim:one(S.trims),base:one(S.bases),noren:one(S.noren),lattice:S.lattice,frame:one(S.frames),
+      window:one(S.windows),groundWindow:one(S.groundWindows),glazing:one(S.glazing),shutters:chance(S.shutters),boxes:chance(S.boxes),groundBoards:chance(S.groundBoards),canopy:chance(S.canopy),
+      bays:{zm:gridPhase(plot.w),zp:gridPhase(plot.w),xm:gridPhase(plot.d),xp:gridPhase(plot.d)}};
+    const roof={form:one(S.roofForms),ridge:S.ridge,pitch:range(S.pitch),eave:Math.round(range(S.eave)),curve:range(S.curve),mat:one(S.roofMats)};
+    return {facade,roof};
+  }
   function makePlot(seed,opts={}){
     const r=rng(hash('plot:'+seed)),typeId=opts.type||pick(r,Object.keys(TYPES)),T=TYPES[typeId],contextId=opts.context||pick(r,['terrace','terrace','corner','detached']);
     const w=Math.round(between(r,T.frontage)/CELL),storeys=T.storeys[1]>T.storeys[0]?(r()<(T.tall??.5)?T.storeys[1]:T.storeys[0]):T.storeys[0];
@@ -376,9 +400,9 @@
         const {doors,reached}=placeDoors(P,F,start),openings=placeOpenings(P,F,T.entrances),sc=scoreFloor(P,F,reached,openings);return {F,doors,openings,...sc};});
       const score=floors.reduce((a,x)=>a+x.score,0);if(!best||score<best.score)best={score,P,T,floors,candidate:c};}
     if(!best)throw new Error(`no ${typology} plan for seed ${seed}`);
-    const {P,T}=best;
+    const {P,T}=best,look=sampleLook(styleId,P,seed);
     return {revision:REVISION,seed,type:P.type,typeLabel:TYPES[P.type].label,typology,typologyLabel:TYPOLOGIES[typology].label,style:styleId,styleLabel:style.label,context:P.context,cell:CELL,storey:STOREY,
-      plot:{w:P.w,d:P.d,front:P.front,jetty:P.jetty,party:P.party,masks:P.masks.map(m=>Array.from(m))},
+      facade:look.facade,roof:look.roof,plot:{w:P.w,d:P.d,front:P.front,jetty:P.jetty,party:P.party,masks:P.masks.map(m=>Array.from(m))},
       stair:{kind:T.stair.kind,orient:T.stair.orient,rect:T.stair.rect,flights:T.stair.flights,landings:T.stair.landings},
       floors:best.floors.map(({F,doors,openings,score,notes})=>({level:F.f,grid:Array.from(F.grid),rooms:F.rooms.map((room,k)=>({id:k,type:room.type,label:ROOMS[room.type].label,area:+((room.cells||0)*CELL*CELL).toFixed(2),box:room.box,cells:room.cells||0})),
         doors,openings,voids:F.voids,steps:F.steps,score:+score.toFixed(2),notes})),score:+best.score.toFixed(2),candidate:best.candidate};
@@ -401,6 +425,6 @@
     return c.map(r=>r.join('').trimEnd()).filter((r,k)=>k>0||r.trim()).join('\n');
   }
 
-  const api={CELL,STOREY,REVISION,ROOMS,TYPES,TYPOLOGIES,STYLES,CONTEXTS,hash,rng,makePlot,stairBay,generate,ascii,canLink,sharedRuns};
+  const api={CELL,STOREY,REVISION,ROOMS,TYPES,TYPOLOGIES,STYLES,CONTEXTS,hash,rng,makePlot,stairBay,generate,ascii,canLink,sharedRuns,gridPhase,sampleLook};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.BuildingPlan=api;
 })(typeof globalThis==='object'?globalThis:this);
