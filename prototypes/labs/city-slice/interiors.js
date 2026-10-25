@@ -11,7 +11,7 @@ const ROLE={inn:'tavern',pub:'tavern',courtyardInn:'tavern',smithy:'forge',tower
 function rng(seed){let a=seed>>>0||1;return ()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
 // b: {id, variant, footprint:{x,z,w,d,floor}, front (+1/-1: door toward +Z or -Z), storeys, storeyHeight}.
 export function interior(b){
-  const R=rng((b.id*2654435761)>>>0),fp=b.footprint,F=b.front,h=b.storeyHeight||3.2,n=Math.max(1,b.storeys||2),role=ROLE[b.variant]||'home';
+  const R=rng([...String(b.id)].reduce((h,c)=>Math.imul(h^c.charCodeAt(0),16777619),2166136261)),fp=b.footprint,F=b.front,h=b.storeyHeight||3.2,n=Math.max(1,b.storeys||2),role=ROLE[b.variant]||'home';
   const parts=[],lights=[],wall=.2,iw=fp.w-2*wall-.14,id=fp.d-2*wall-.14,x0=-iw/2,z0=-id/2;
   // Local (u across, v toward the street) to world.
   const W=(u,v)=>[fp.x+u,fp.z+v*F];
@@ -31,7 +31,9 @@ export function interior(b){
       box(stairX[(k+1)%2],(hv0+hv1)/2,sw,hv1-hv0,y-.25,.25,WOOD,{pat:6});}
     // Stair to the next storey: steps as solid blocks (each a riser and tread), a handrail on the open side.
     if(top){for(let s=0;s<steps;s++){const t=(s+.5)/steps,v=dir>0?vS+t*(vE-vS):vE-t*(vE-vS),yy=y+(s+1)*rise/steps;box(strip,v,sw-.04,tread+.02,y,yy-y,WOOD,{pat:6});}
-      const sv=dir>0?vS:vE,ev=dir>0?vE:vS,hx=strip+sw/2;const [ax,az]=W(hx,sv),[bx,bz]=W(hx,ev);parts.push({t:'beam',x0:ax,y0:y+1,z0:az,x1:bx,y1:y+rise+1,z1:bz,s:.06,col:DARK,nocol:true});}
+      const sv=dir>0?vS:vE,ev=dir>0?vE:vS,hx=strip+sw/2;const [ax,az]=W(hx,sv),[bx,bz]=W(hx,ev);parts.push({t:'beam',x0:ax,y0:y+1,z0:az,x1:bx,y1:y+rise+1,z1:bz,s:.06,col:DARK,nocol:true});
+      // Newel posts carry the rail at the foot and head of the flight.
+      box(hx,sv,.1,.1,y,1.05,DARK,{nocol:true});box(hx,ev,.1,.1,y+rise,1.05,DARK,{nocol:true});}
     // Ceiling under the roof on the top storey.
     if(!top)box(0,0,iw,id,y+h-.12,.12,PLASTER,{pat:5,nocol:true});
     // Partition: across the plan behind the front room, with a doorway clear of the stair strips.

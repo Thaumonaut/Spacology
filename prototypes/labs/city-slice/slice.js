@@ -50,8 +50,8 @@ const CELL=32,cells=new Map(),key=(x,z)=>Math.floor(x/CELL)+','+Math.floor(z/CEL
 for(const p of city.parts){const b=isDoorPane(p);if(b){doors.push({b,p});continue;}const x=p.x??(p.x0!=null?(p.x0+p.x1)/2:0),z=p.z??(p.z0!=null?(p.z0+p.z1)/2:0),k=key(x,z);if(!cells.has(k))cells.set(k,[]);cells.get(k).push(p);}
 const colliders=new Map(),cellSolids=new Map();
 for(const [k,parts] of cells){const {groups,solids}=partsToGroups(parts,pal,T);for(const m of groupsToMeshes(groups,materials))scene.add(m);cellSolids.set(k,solids);stats.chunks++;}
-// Ground beyond the block.
-{const g=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000).rotateX(-Math.PI/2).translate(0,3.6,0),materials.grass);g.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(4*3).fill(.32),3));
+// Ground beyond the block, just under the lowest city part (a fixed height cut through low ground floors).
+{let gy=1e9;for(const p of city.parts)if(isFinite(p.y))gy=Math.min(gy,p.y);const g=new THREE.Mesh(new THREE.PlaneGeometry(3000,3000).rotateX(-Math.PI/2).translate(0,gy-.05,0),materials.grass);g.geometry.setAttribute('color',new THREE.Float32BufferAttribute(new Float32Array(4*3).fill(.32),3));
   const uvs=g.geometry.attributes.uv;for(let i=0;i<uvs.count;i++)uvs.setXY(i,uvs.getX(i)*750,uvs.getY(i)*750);g.receiveShadow=true;scene.add(g);}
 // Doors: each a hinged leaf pivoting on its left edge.
 for(const d of doors){const {groups}=partsToGroups([{...d.p,x:d.p.w/2,y:0,z:0,rot:0}],pal,T),pivot=new THREE.Group();for(const m of groupsToMeshes(groups,materials))pivot.add(m);
