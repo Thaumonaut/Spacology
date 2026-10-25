@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-28':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-29':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -230,6 +230,17 @@
     const zone={slope:0,crease:0,hollow:0,spur:0,x:0,z:0};
     // Cold mountain biomes a volcano's flanks below its snowline turn into rock, meadow and scree (geography).
     const COLD_CONE=new Set(['snow','glacier','alpine','tundra','meadow','subalpine','heath']);
+    // Open plains: a low-frequency openness field (~5.5 km and ~2 km octaves) marks broad stretches of country that stay
+    // open grass meadow (grassland and wildflower meadow) instead of woodland, in temperate lowland and on the gentle
+    // floors of valleys between ranges. openMargin: how far a column is inside a plain (> 0) or outside it (< 0): wet
+    // country and slopes raise the bar, so forest keeps the damp ground and the valley sides and plains take the broad,
+    // moderately watered floors. geography() reports it as g.open; makeTree thins forest across a wide noisy fringe by it.
+    const openField=(x,z)=>noise(x*.00018,z*.00018,seed+1901)*.68+noise(x*.0005+31,z*.0005,seed+1903)*.32;
+    const openMargin=(O,M,slope)=>O-.43-Math.max(0,M-.62)*1.2-Math.max(0,slope-.25)*1;
+    // Plain biomes: open grass with only lone trees, copses and bush clumps (see makeTree, boulderCell and scatter).
+    const PLAIN=new Set(['grassland','flowers','pinkgrass']);
+    // Wooded biomes that give way to open ground where the openness field is high (warm jungle, cold boreal and wet woods keep theirs).
+    const OPENABLE=new Set(['forest','autumn','blossom','redwood','montane','meadow','subalpine','heath']);
     function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,R=null){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
@@ -247,6 +258,9 @@
         if(cliff&&T<2)return 'alpine';
         if(T<-1)return 'meadow';
         if(T<1.5)return 'subalpine';
+        // Broad, gentle valley floors between ranges open into grass meadow where the openness field allows (alpine
+        // meadow where it is cool; makeTree keeps that open too).
+        if(T<19&&R&&!wet&&openMargin(R.O,M,zone.slope)>0)return T<5?'meadow':R.U<.42?'flowers':'grassland';
         if(T<16&&M>.15&&!(wet&&M>.5))return 'montane';
       }
       if(T<-5&&!cliff)return 'snow';
@@ -260,6 +274,9 @@
       if(T<7)return M>.48?'boreal':T<3.5?'tundra':'heath';
       if(T<19){
         if(M>.82&&T<13&&!steep&&U>.58)return 'fen';
+        // Open plains claim the temperate lowland wherever the openness field is high, forest included (moors and rose
+        // prairie keep their own regions).
+        if(R&&!wet&&openMargin(R.O,M,zone.slope)>0&&M>.24)return T<10.5&&V<.3?'heath':T>=12&&V>.64?'pinkgrass':U<.42?'flowers':'grassland';
         if(M>.68&&T>=9&&T<16&&V>.58&&!wet)return 'redwood';
         if(M>.56)return T<12.5&&V<.4?'autumn':T>=11.5&&U>.6?'blossom':'forest';
         if(M>.24)return T<10.5&&V<.3?'heath':U<.45?'flowers':T>=12&&V>.64?'pinkgrass':'grassland';
@@ -274,9 +291,10 @@
     // Lowland region values for biomeOf: the cached region fields plus per-column jitter (about 20 m and 6 m wobble).
     // W: the climate at the column's warped position (see biomeWarp); its difference from C rides in jt/jm, which only the
     // lowland branch of biomeOf applies, so lowland borders meander while mountain zonation keeps the column's own climate.
-    function region(C,x,z,W=C){
+    // O: the openness field (see openField) with the same jitter, so plain borders are ragged too.
+    function region(C,x,z,W=C,O=0){
       const f=(noise(x*.21,z*.21,seed+365)-.5)*.6,j=noise(x*.05,z*.05,seed+363)-.5+f,k=noise(x*.045,z*.045,seed+367)-.5-f;
-      return {V:W.V+j*.14,U:W.U+k*.14,A:W.A,jt:j*1.8+W.T-C.T,jm:k*.08+W.M-C.M};
+      return {V:W.V+j*.14,U:W.U+k*.14,A:W.A,jt:j*1.8+W.T-C.T,jm:k*.08+W.M-C.M,O:O+(j-k)*.025};
     }
     // Lowland biome decisions read the climate fields at a domain-warped position (~240 m and ~90 m wavelengths, typically
     // 30-60 m and up to ~110 m displacement; region()'s 20 m jitter rides on top), so borders that are isolines of the smooth climate meander
@@ -299,8 +317,8 @@
       if(!(g.blend>0))return g.biome;
       return g.blend>.5+(noise(x*.05,z*.05,seed+813)-.5)*.9+(f-.5)*.55?g.biome2:g.biome;
     }
-    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.8,meadow:.7,wetland:.3,savanna:.08,grassland:.04,tundra:.03,
-      flowers:.02,autumn:.8,blossom:.5,fen:.1,heath:.03,golden:.05,bamboo:.9,badlands:.01,pinkgrass:.03,desert:0,beach:0};
+    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.8,meadow:.7,wetland:.3,savanna:.08,grassland:.004,tundra:.03,
+      flowers:.003,autumn:.8,blossom:.5,fen:.1,heath:.03,golden:.05,bamboo:.9,badlands:.01,pinkgrass:.004,desert:0,beach:0};
     // Vegetated ground: everything tree floors, scree, worn patches and landmarks may paint over. GRASSY: where voxel flowers grow.
     const TURF=new Set([MAT.grass,MAT.tundra,MAT.dry,MAT.dirt,MAT.mossy,MAT.lushgrass,MAT.sungrass,MAT.buttercup,MAT.violet,MAT.autumngrass,MAT.pinkgrass,MAT.sphagnum,MAT.heather,MAT.steppegrass,MAT.savgrass,MAT.goldgrass,MAT.junglefloor,MAT.floodgrass]);
     const GRASSY=new Set([MAT.grass,MAT.lushgrass,MAT.sungrass,MAT.pinkgrass,MAT.floodgrass]);
@@ -312,8 +330,9 @@
       const r=(noise(x*.3,z*.3,seed+703)-.5)*.16,n=noise(x*.03,z*.03,seed+701)+r,n2=noise(x*.022+40,z*.022,seed+705)-r,s=hash(Math.floor(x*2),Math.floor(z*2),seed+713);
       switch(b){
         case 'flowers':{const p=noise(x*.07,z*.07,seed+709)+(noise(x*.4,z*.4,seed+711)-.5)*.2;
-          if(p>.45&&s<Math.min(.4,(p-.45)*1.1))return n2<.45?MAT.buttercup:n2<.68?MAT.violet:s<.05?MAT.flower:MAT.buttercup;
-          return s>.9?MAT.sungrass:n<.45?MAT.lushgrass:n>.75?MAT.sungrass:MAT.grass;}
+          // Flowered turf only in the drifts' hearts and thinly, so the meadow reads green (the flowers themselves are props).
+          if(p>.58&&s<Math.min(.16,(p-.58)*.7))return n2<.45?MAT.buttercup:n2<.68?MAT.violet:s<.05?MAT.flower:MAT.buttercup;
+          return n<.45?MAT.lushgrass:n>.78?MAT.sungrass:MAT.grass;}
         case 'pinkgrass':return n2>.32-(g.riverDistance<30?.22:0)?(s<.16?MAT.violet:s>.9?MAT.sungrass:MAT.pinkgrass):s>.93?MAT.pinkgrass:n<.5?MAT.sungrass:MAT.grass;
         case 'autumn':return n2>.62?(s<.25?MAT.autumngrass:MAT.autumnlitter):s<.1?MAT.autumnlitter:n<.33?MAT.sungrass:MAT.autumngrass;
         // Blossom groves: rose grass with violet drifts under the pink and white crowns.
@@ -1033,13 +1052,18 @@
         const tone=b=>{const t=hash(b,k,seed+575);return t<.6?MAT.boulder:MAT.boulderPale;};
         const capOf=G=>G.temperature<-6?MAT.snow:G.temperature>-1&&!G.exposed&&G.biome!=='alpine'?MAT.mossy:0;
         mtn=g.relief>15||g.cone>20;
-        if(!mtn){
-          // Lone erratics (with an occasional smaller companion).
-          const chance=bad(g)||g.slope>1.1||Math.hypot(x,z)<30?0:BOULDER_MEADOW.has(g.biome)?.1:.006;
+        // Open plains (and plains on valley floors among the mountains) are strewn with erratics: lone boulders and small
+        // groups, half sunk into the turf, gathered more thickly in some ~250 m stretches than others.
+        const plain=PLAIN.has(g.biome)&&!bad(g)&&g.slope<.8&&Math.hypot(x,z)>=30;
+        if(!mtn||plain){
+          // Lone erratics (with an occasional smaller companion; on plains up to three, sunk deeper).
+          const chance=bad(g)||g.slope>1.1||Math.hypot(x,z)<30?0:plain?.035*(.25+1.5*noise(x*.004,z*.004,seed+1931)):BOULDER_MEADOW.has(g.biome)?.1:.006;
           if(p<chance){
-            const r=.4+.9*hash(i,j,seed+557)**2,ry=r*(1+.25*hash(i,j,seed+559)),list=[rockShape(x,z,restY(g.height*cellMetres,r,ry,g.slope),r,ry,k,tone(0),capOf(g))];
-            if(hash(i,j,seed+561)<.4){const a=hash(i,j,seed+563)*TAU,o=r+.3,cx=x+Math.cos(a)*o,cz=z+Math.sin(a)*o,cr=r*.5,G=geography(cx,cz);list.push(rockShape(cx,cz,restY(G.height*cellMetres,cr,cr*.9,G.slope),cr,cr*.9,k+7,tone(1),capOf(G)));}
-            v={x,z,list,reach:r*2.5+1};
+            const r=.4+.9*hash(i,j,seed+557)**2,ry=r*(1+.25*hash(i,j,seed+559)),sink=plain?ry*.3:0,list=[rockShape(x,z,restY(g.height*cellMetres,r,ry,g.slope)-sink,r,ry,k,tone(0),capOf(g))];
+            const mates=plain?(hash(i,j,seed+561)<.5?0:1+Math.floor(2.99*hash(i,j,seed+562)**2)):hash(i,j,seed+561)<.4?1:0;
+            for(let c=0;c<mates;c++){const a=hash(i+c*31,j,seed+563)*TAU,cr=r*(.35+.3*hash(i,j+c*17,seed+564)),o=r+cr*.6+.2+.8*hash(c,k,seed+566),cx=x+Math.cos(a)*o,cz=z+Math.sin(a)*o,G=geography(cx,cz);
+              if(bad(G))continue;list.push(rockShape(cx,cz,restY(G.height*cellMetres,cr,cr*.9,G.slope)-(plain?cr*.25:0),cr,cr*.9,k+7+c*13,tone(1+c),capOf(G)));}
+            v={x,z,list,reach:r*2.5+2.5};
           }
         }else if(!bad(g)&&g.slope<1.9){
           const q=hash(i,j,seed+557),rock=g.exposed||g.biome==='alpine',talus=rock&&g.slope>.45&&g.slope<1.15&&g.spur<-.25||!rock&&g.slope>.9;
@@ -1258,7 +1282,7 @@
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA&&!underLake&&!(edge<0&&Ws>SEA+.1&&riverDistance<999),steep=slope>.9;
         const lakeWater=underLake&&RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-(cool(metres)-cool(t.h)),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
         zone.slope=slope;zone.crease=crease;zone.hollow=hollow;zone.spur=spur;zone.x=x;zone.z=z;
-        const BW=biomeWarp(x,z),bang=BW.a,breach=BW.D,CW=climateD(BW.x,BW.z),RG=region(C,x,z,CW),mountain=t.relief>15||t.cone>20;
+        const BW=biomeWarp(x,z),bang=BW.a,breach=BW.D,bwx=BW.x,bwz=BW.z,CW=climateD(bwx,bwz),O0=openField(bwx,bwz),RG=region(C,x,z,CW,O0),mountain=t.relief>15||t.cone>20;
         const glacier=!gorge&&!sea&&iceCells>=2;let biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,sea?metres:Math.max(metres,SEA),wet,steep,slope>1.4,mountain,slope>1.8,RG);
         if(onCone&&!gorge&&!sea&&!glacier&&!lakeWater){
           const fr=t.coneFrac,rib=t.rib,j=(noise(x*.03,z*.03,seed+711)-.5)*.3,cold=COLD_CONE.has(biome);
@@ -1300,9 +1324,9 @@
         // pickBiome() (ground, scatter) or a per-tree-cell roll (trees).
         let biome2=biome,blend=0;
         if(LOWLAND.has(biome)&&!(water>height)){
-          const ux=Math.cos(bang)*breach,uz=Math.sin(bang)*breach,G=CW,SR={V:0,U:0,A:0,jt:0,jm:0};let n1=0,n2=0,b1=null,b2=null;
+          const ux=Math.cos(bang)*breach,uz=Math.sin(bang)*breach,G=CW,SR={V:0,U:0,A:0,jt:0,jm:0,O:0};let n1=0,n2=0,b1=null,b2=null;
           for(let q=0;q<4;q++){const ox=q&1?-1:1,sx=q<2?ux*ox:-uz*ox,sz=q<2?uz*ox:ux*ox;
-            SR.V=RG.V+G.Vx*sx+G.Vz*sz;SR.U=RG.U+G.Ux*sx+G.Uz*sz;SR.A=RG.A+G.Ax*sx+G.Az*sz;SR.jt=RG.jt+G.Tx*sx+G.Tz*sz;SR.jm=RG.jm+G.Mx*sx+G.Mz*sz;
+            SR.V=RG.V+G.Vx*sx+G.Vz*sz;SR.U=RG.U+G.Ux*sx+G.Uz*sz;SR.A=RG.A+G.Ax*sx+G.Az*sz;SR.jt=RG.jt+G.Tx*sx+G.Tz*sz;SR.jm=RG.jm+G.Mx*sx+G.Mz*sz;SR.O=RG.O+openField(bwx+sx,bwz+sz)-O0;
             const o=biomeOf(T,C.M,metres,wet,steep,slope>1.4,mountain,slope>1.8,SR);
             if(o===biome||!LOWLAND.has(o))continue;if(o===b1||!b1){b1=o;n1++;}else if(o===b2||!b2){b2=o;n2++;}}
           if(n1||n2){biome2=n2>n1?b2:b1;blend=(n1+n2)/4;}
@@ -1310,7 +1334,8 @@
         // crease: 0-1 erosion crease (gully floors where the coarse erosion octaves converge; 0 off mountains). erosion:
         // the eroded-terrain offset (m) included in height. hollow (m): depth below the broad landform (+ hollows and cols,
         // - peaks and ridges). spur: erosion / strength, about -1.4 (gully floor) to 1.4 (spur crest); 0 off mountains.
-        // surface: ground height (m) before it is quantized to cells.
+        // surface: ground height (m) before it is quantized to cells. open: openMargin (> 0 inside an open plain, < 0
+        // outside; see openField). coneFrac: how far up a volcano cone the column stands (0 off cones).
         // Flow: the reach's speed, fastest mid-channel and slowing toward the banks and on the inside of bends; zero on
         // lakes. riverDepth: water depth in this column (m); riverZone: source, upper, middle, lower or estuary.
         let riverSpeed=0;
@@ -1320,7 +1345,8 @@
         // Out at sea there is no river: no channel distance, width, speed, depth or zone (a mouth ends at the shore).
         const rv=!sea;
         return {height,riverDistance:rv?riverDistance:999,riparian,corridor,fast,calm,splash,lake:RV.lake,riverLevel:floor,riverWidth:rv?RV.w:0,riverSize:rv?RV.size:0,riverDir:rv?RV.dir:[0,0],riverSpeed:rv?riverSpeed:0,riverDepth,riverZone:rv&&riverDistance<999?RV.zone:null,macroRiver:rv&&RV.macro,coast:t.coast,spring:rv&&RV.spring&&riverDistance<3.4,foam:rv&&RV.foam&&riverDistance<3.4&&!gorge,bar,ridge,fault,clearing:0,exposed,wet,slope,cliff,talus,
-          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:rimEdge,rock,sea,water,biome,biome2,blend,glacier,iceCells:glacier?iceCells:0,crease,erosion,hollow,spur,surface:h,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief};
+          lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:rimEdge,rock,sea,water,biome,biome2,blend,glacier,iceCells:glacier?iceCells:0,crease,erosion,hollow,spur,surface:h,cone:t.cone,setting:t.setting,temperature:T,moisture:Math.min(1,C.M+riparian*.3),relief:t.relief,
+          open:openMargin(RG.O,C.M+RG.jm,slope),coneFrac:onCone?t.coneFrac:0};
       }
       const riverDistance=Math.abs(x-riverX(z));
       const ridge=Math.exp(-(((x-29)/14)**2))*(.65+.35*Math.sin(z*.025+.4));
@@ -1377,16 +1403,16 @@
       wetland:{mix:{gnarled:.4,birch:.3,oak:.3},bush:.1,deadwood:.03},
       savanna:{mix:{umbrella:.85,oak:.15},bush:.05,bamboo:.4},
       steppe:{mix:{umbrella:.6,oak:.4},size:.8,bush:.04},
-      grassland:{mix:{oak:.7,birch:.3},bush:.06,shrub:.05,deadwood:.006},
+      grassland:{mix:{oak:.7,birch:.3},bush:.014,shrub:.002,deadwood:.003},
       meadow:{mix:{larch:.6,spruce:.4},size:.7,bush:.03,shrub:.03},
       desert:{mix:{umbrella:1},density:0,cactus:.06},
       beach:{mix:{oak:1},density:0,bush:.01},
-      flowers:{mix:{oak:.6,birch:.4},bush:.09,shrub:.07,deadwood:.004},
+      flowers:{mix:{oak:.6,birch:.4},bush:.018,shrub:.002,deadwood:.002},
       autumn:{mix:{oak:.65,birch:.35},leaf:[MAT.autumnleaf,MAT.rustleaf,MAT.autumnleaf,MAT.rustleaf,MAT.larchGold],bushLeaf:MAT.rustleaf,bush:.08,shrub:.04,deadwood:.05,mushroom:.015},
       blossom:{mix:{oak:.8,birch:.2},leaf:[MAT.blossomleaf,MAT.blossomleaf,MAT.blossom,MAT.blossomWhite],bush:.07,shrub:.04,deadwood:.01},
       fen:{mix:{gnarled:.45,birch:.55},size:.8,bush:.08,deadwood:.04},
       heath:{mix:{birch:.6,spruce:.4},size:.6,bush:.08,shrub:.03},
-      pinkgrass:{mix:{umbrella:.6,oak:.4},bush:.04,shrub:.03},
+      pinkgrass:{mix:{umbrella:.6,oak:.4},bush:.014,shrub:.002},
       golden:{mix:{umbrella:1},bush:.03,shrub:.02},
       bamboo:{mix:{jungle:1},density:.2,bamboo:5,bush:.1,mushroom:.004},
       badlands:{mix:{umbrella:1},density:0,cactus:.015,deadwood:.004},
@@ -1452,17 +1478,32 @@
       // Forest edges thin out across the biome blend (with ~15 m noise clumps), so a forest frays into scattered trees and
       // copses instead of stopping at a line.
       if(g.blend>0&&g.biome2&&g.biome2!==g.biome){const dens=bb=>{const s2=treeStyle(bb);return s2.density??TREES[bb]??(TREELESS.has(bb)?0:.25);},w=clamp(g.blend+(noise(x*.07,z*.07,seed+967)-.5)*.7,0,1);base=dens(g.biome)*(1-w)+dens(g.biome2)*w;}
-      // Ruins are overgrown: trees crowd their courtyards and stand right against the walls.
-      const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,.5);
-      // Treeline: forest thins and shrinks over the last ~4 degrees C (about 25 m) below the line, broadleaf dropping out
-      // before conifers. The line is ~1 C (it follows the climate's temperature and lapse rate), lower on steep, exposed
-      // ground. Just above it, only rare stunted krummholz conifers. Applies on any ground, snow included.
-      // The forest reaches well up the mountains: full forest to ~2 C, thinning over ~6 C above that, steep ground
-      // lowering it only a little.
-      const warmth=g.temperature+1.5-g.slope*.8,tl=clamp(warmth/6,0,1),
-        // Green mountain biomes always carry trees (the climate model runs cold up there): subalpine parkland keeps most of
-        // its forest, alpine meadows scattered stands of smaller conifers.
-        tline=Math.max(tl*tl*(3-2*tl),b==='subalpine'?.8:b==='meadow'?.6:0);
+      // Open plains (see openField): lone trees, and copses of a few trees where ~35 m clump noise peaks inside a ~170 m
+      // patch field, so copses gather in some stretches and leave others bare.
+      if(PLAIN.has(b)){const cp=clamp((noise(x*.028,z*.028,seed+1911)-.8)/.1,0,1)*clamp((noise(x*.006,z*.006,seed+1913)-.5)/.25,0,1);base=Math.max(base,.55*cp);}
+      // Fringe noise for the forest edges below: ~150 m, ~50 m and ~20 m octaves (-0.5..0.5 each, weighted) plus per-cell
+      // jitter, so the edge frays into irregular tongues, clumps and stragglers instead of following a contour.
+      const fringe=(noise(x*.0067,z*.0067,seed+1921)-.5)*.5+(noise(x*.02,z*.02,seed+1923)-.5)*.32+(noise(x*.05,z*.05,seed+1925)-.5)*.18,jit=hash(gx,gz,seed+1927)-.5;
+      // Forest meeting a plain thins over a wide noisy fringe (a few hundred metres, as the openness field rises slowly),
+      // down to the plain's own lone trees and copses.
+      const om=g.open??-1;
+      if(om>-.16&&OPENABLE.has(b)){const k=clamp((om+.13+fringe*.12+jit*.05)/.14,0,1);base*=1-.97*k*k*(3-2*k);}
+      // Ruins are overgrown: trees crowd their courtyards and stand right against the walls (more thinly out on a plain).
+      const RU=ruinNear(x,z);if(RU&&!barren&&Math.hypot(x-RU.x,z-RU.z)<RU.reach)base=Math.max(base,PLAIN.has(b)?.25:.5);
+      // Treeline: forest thins and shrinks over ~6 C above ~-1.5 C, broadleaf dropping out before conifers, lower on steep
+      // ground. The line wanders with the fringe noise (about +-2.5 C, so tongues of forest reach up gullies and bays of open
+      // ground cut down) and per-cell jitter, so it ends in a dithered fringe of thinning trees and small clumps. Just
+      // above it, only rare stunted krummholz conifers. Applies on any ground, snow included.
+      const warmth=g.temperature+1.5-g.slope*.8+fringe*5+jit*1.6,tl=clamp(warmth/6,0,1);
+      // Green mountain biomes always carry trees (the climate model runs cold up there): subalpine parkland keeps most of
+      // its forest, alpine meadows scattered stands of smaller conifers. Their floor also wanders with the fringe noise, and
+      // the parkland and alpine meadow thin out toward the rock and snow above them: up a volcano by cone height (alpine
+      // from ~0.5 of the way up), elsewhere by temperature over the last ~4.5 C above the snowline (snow and rock at about
+      // -3 C, lower in gullies), so the upper forest frays through subalpine parkland into scattered clumps on the meadow.
+      let floor=b==='subalpine'?.8:b==='meadow'?.6:0;
+      if(floor){floor=clamp(floor+fringe*.6+jit*.25,0,1);
+        const up=b==='meadow'&&g.coneFrac>0?clamp((.5-g.coneFrac+fringe*.22+jit*.08)/.24,0,1):clamp((g.temperature-2.2*(g.crease||0)+3.2+fringe*3+jit*.9)/4.5,0,1);floor*=up*up*(3-2*up);}
+      const tline=Math.max(tl*tl*(3-2*tl),floor);
       if(tline<=0){
         // Above the treeline, streams still carry a fringe of willow and alder scrub.
         if(cor&&warmth>-7&&b!=='snow'&&roll2<.6*rip)return growTree(roll<.6?'willow':'alder',S,g,gx,gz,x,z,{k:.22+.12*hash(gx,gz,seed+757)});
@@ -1608,7 +1649,7 @@
     const galPadAt=(x,z)=>{for(const p of GAL_PADS)if(x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1)return p;return null;};
     function galleryGeo(x,z){
       const o=(galPadAt(x,z)||{}).over||{},biome=o.biome||'grassland';
-      return {height:GAL_H,riverDistance:999,riparian:0,corridor:null,fast:false,calm:false,splash:false,lake:0,riverLevel:0,riverWidth:0,riverSize:0,riverDir:[0,0],riverSpeed:0,riverDepth:0,riverZone:null,macroRiver:false,coast:999,spring:false,foam:false,bar:0,ridge:0,fault:99,clearing:0,exposed:!!o.exposed,wet:false,slope:.05,cliff:0,talus:false,lift:0,highland:!o.open,pass:false,gorge:false,gorgeDistance:999,gorgeHalf:0,rock:0,sea:false,water:0,biome,biome2:null,blend:0,glacier:false,iceCells:0,crease:0,erosion:0,hollow:0,spur:0,surface:GAL_H*cellMetres,cone:0,setting:'',temperature:o.temperature??14,moisture:.55,relief:20};
+      return {height:GAL_H,riverDistance:999,riparian:0,corridor:null,fast:false,calm:false,splash:false,lake:0,riverLevel:0,riverWidth:0,riverSize:0,riverDir:[0,0],riverSpeed:0,riverDepth:0,riverZone:null,macroRiver:false,coast:999,spring:false,foam:false,bar:0,ridge:0,fault:99,clearing:0,exposed:!!o.exposed,wet:false,slope:.05,cliff:0,talus:false,lift:0,highland:!o.open,pass:false,gorge:false,gorgeDistance:999,gorgeHalf:0,rock:0,sea:false,water:0,biome,biome2:null,blend:0,glacier:false,iceCells:0,crease:0,erosion:0,hollow:0,spur:0,surface:GAL_H*cellMetres,cone:0,setting:'',temperature:o.temperature??14,moisture:.55,relief:20,open:-1,coneFrac:0};
     }
     const galleryTreeCell=(gx,gz)=>GAL_TREES.get(gx*134217728+gz)||null;
     const galleryAncientSite=(i,j)=>{const s=GAL_ANCIENTS.get(i*65536+j);return s?{x:s.x,z:s.z,g:galleryGeo(s.x,s.z),p:0}:null;};
@@ -2188,10 +2229,11 @@
         return 0;
       }
       if(TURF.has(top)){
-        // Wildflower patches in open grass and meadows: yellow, pink and violet drifts. Tufts are commoner on dry grasses.
-        const dry=DRYGRASS.has(top);
-        if((GRASSY.has(top)||top===MAT.tundra)&&!FOREST_FLOOR.has(b)){const p=noise(x*.07,z*.07,seed+647)+(b==='flowers'?.2:0);if(p>.7&&r<.08*(p-.7)/.3+.012){const c=noise(x*.03,z*.03,seed+649)+(r2-.5)*.35;return put(c<.42?MAT.flowerYellow:c<.62?MAT.flower:MAT.flowerViolet,density);}}
-        if(r<(dry?.02:.008))return put(MAT.tuft,Math.round((.25+.3*r2)/cellMetres));
+        // Wildflower patches in open grass and meadows: yellow, pink and violet drifts, richer out on the open plains (the
+        // deeper inside one, the more). Tufts are commoner on dry grasses and on the plains.
+        const dry=DRYGRASS.has(top),plain=PLAIN.has(b);
+        if((GRASSY.has(top)||top===MAT.tundra)&&!FOREST_FLOOR.has(b)){const p=noise(x*.07,z*.07,seed+647)+(b==='flowers'?.2:0)+(plain?.06+clamp(g.open||0,0,.3)*.4:0);if(p>.7&&r<.08*(p-.7)/.3+.012){const c=noise(x*.03,z*.03,seed+649)+(r2-.5)*.35;return put(c<.42?MAT.flowerYellow:c<.62?MAT.flower:MAT.flowerViolet,density);}}
+        if(r<(dry?.02:plain?.016:.008))return put(MAT.tuft,Math.round((.25+.3*r2)/cellMetres));
         if(GRASSY.has(top)&&r>.994&&!g.wet)return put(MAT.flower,density);
       }
       return 0;
