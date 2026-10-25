@@ -95,17 +95,21 @@
         if(z+1<d&&g[i+w]>=0&&g[i+w]!==a&&!voidSet.has(i)&&!voidSet.has(i+w))box(cx(x),yw0,cz(z)+7,cx(x)+8,yw1,cz(z)+9,M.plaster_inside);}
       for(let z=1;z<d;z++)for(let x=1;x<w;x++){const q=[g[x-1+w*(z-1)],g[x+w*(z-1)],g[x-1+w*z],g[x+w*z]];if(q.some(k=>k<0))continue;if(new Set(q).size>=2&&!(q[0]===q[1]&&q[2]===q[3])&&!(q[0]===q[2]&&q[1]===q[3]))box(cx(x)-1,yw0,cz(z)-1,cx(x)+1,yw1,cz(z)+1,style.timber);}}
 
-    // Stairs: solid timber flights, 16 risers of 3 voxels over 6 cells; a railing round each stair void.
-    for(const run of plan.stair.runs){const yb=FL(run.from);
-      // Steps only fill air, so a flight against an outside wall never punches through it.
-      const airBox=(x0,y0,z0,x1,y1,z1,m)=>{for(let y=y0;y<y1;y++)for(let z=z0;z<z1;z++)for(let x=x0;x<x1;x++)fillIfAir(x,y,z,m);};
-      for(let k=0;k<16;k++){const zz0=run.dir>0?cz(run.z)+k*3:cz(run.z)+48-(k+1)*3;airBox(cx(run.x),yb+(k+1)*3-1,zz0,cx(run.x)+16,yb+(k+1)*3,zz0+3,M.plank);
-        airBox(cx(run.x),yb,zz0,cx(run.x)+16,yb+(k+1)*3-1,zz0+3,M.stair_wood);}}
-    for(let f=1;f<storeys;f++){const voids=new Set(plan.floors[f].voids),yr=FL(f);
+    // Stairs: solid timber flights of 3-voxel risers and treads, and landings, from the plan's stair module. Steps only
+    // fill air, so a flight against an outside wall never punches through it. A railing goes round every stair void
+    // except where the plan opens the stair onto the hall (the foot of the next flight, the head of the last).
+    const airBox=(x0,y0,z0,x1,y1,z1,m)=>{for(let y=y0;y<y1;y++)for(let z=z0;z<z1;z++)for(let x=x0;x<x1;x++)fillIfAir(x,y,z,m);};
+    for(const fl of plan.stair.flights){const yb=FL(fl.from),[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),along=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=along/fl.risers;
+      for(let k=0;k<fl.risers;k++){const a=Math.round(k*t),b=Math.round((k+1)*t),top=yb+(fl.start+k+1)*3;
+        const [bx0,bx1,bz0,bz1]=fl.dir==='zp'?[X0,X1,Z0+a,Z0+b]:fl.dir==='zm'?[X0,X1,Z1-b,Z1-a]:fl.dir==='xp'?[X0+a,X0+b,Z0,Z1]:[X1-b,X1-a,Z0,Z1];
+        airBox(bx0,top-1,bz0,bx1,top,bz1,M.plank);airBox(bx0,yb+(fl.start?fl.start*3-2:0),bz0,bx1,top-1,bz1,M.stair_wood);}}
+    for(const ld of plan.stair.landings){const yb=FL(ld.from),[x0,z0,x1,z1]=ld.rect,top=yb+ld.rise*3;airBox(cx(x0),top-1,cz(z0),cx(x1),top,cz(z1),M.plank);airBox(cx(x0),yb,cz(z0),cx(x1),top-1,cz(z1),M.stair_wood);}
+    for(let f=1;f<storeys;f++){const voids=new Set(plan.floors[f].voids),yr=FL(f),open=new Set();
+      for(const dr of plan.floors[f].doors)if(dr.kind==='open')for(const [x,z] of dr.cells)open.add(x+','+z);
       for(const i of voids){const x=i%w,z=Math.floor(i/w);for(const [s,dx,dz] of DIRS){const n=x+dx+w*(z+dz);if(voids.has(n)||!mask(f,x+dx,z+dz))continue;
-        const run=plan.stair.runs[f-1],arrival=run&&z+dz===run.top&&x+dx>=run.x&&x+dx<run.x+2;if(arrival)continue;
+        if(open.has((x+dx)+','+(z+dz)))continue;
         const [x0,x1]=s==='xm'?[cx(x),cx(x)+1]:s==='xp'?[cx(x)+7,cx(x)+8]:[cx(x),cx(x)+8],[z0,z1]=s==='zm'?[cz(z),cz(z)+1]:s==='zp'?[cz(z)+7,cz(z)+8]:[cz(z),cz(z)+8];
-        box(x0,yr+14,z0,x1,yr+16,z1,style.timber);for(let a=0;a<8;a+=4){const px=s[0]==='x'?x0:x0+a,pz=s[0]==='z'?z0:z0+a;box(px,yr,pz,px+1,yr+14,pz+1,style.timber);}}}}
+        box(x0,yr+14,z0,x1,yr+16,z1,style.timber);for(let a=0;a<8;a+=4){const px=s[0]==='x'?x0:x0+a,pz=s[0]==='z'?z0:z0+a;fillIfAir(px,yr,pz,0);for(let yy=yr;yy<yr+14;yy++)if(!at(px,yy,pz))set(px,yy,pz,style.timber);}}}}
 
     // Openings. Each is cut through its wall, then framed, glazed or hung.
     const edgeBox=(x,z,s,interior)=>{const t=interior?[7,9]:null;
@@ -179,37 +183,45 @@
     // Jetty brackets under any upper floor that overhangs the street.
     if(plan.plot.jetty)for(let x=0;x<w;x+=2)for(let t=0;t<CV;t++){const xx=cx(x)+(x===0?0:-1),zz=cz(front)-1-t,yy=FL(1)-SLAB-1-(CV-1-t);box(xx,yy,zz,xx+2,yy+1,zz+1,style.timber);}
 
-    // Roof: union of gable/hip height fields over the top floor's footprint rectangles. Ridges along the frontage
-    // slope to the street; terraces never hip into a party wall.
-    const top=storeys-1,rects=decompose(plan.plot.masks[top],w,d),hipOk=!party[0]&&!party[1],shape=style.roof==='hip'&&hipOk?'hip':'gable';
-    const roofY=new Int16Array(X*Z).fill(-1),roofKind=new Uint8Array(X*Z),pitch=style.pitch,curve=style.curve;
-    for(const [rx0,rz0,rx1,rz1] of rects){
-      const x0=cx(rx0),x1=cx(rx1+1),z0=cz(rz0),z1=cz(rz1+1),wide=x1-x0,deep=z1-z0;
-      const ridgeX=style.ridge==='frontage'?true:style.ridge==='depth'?false:wide>=deep,el=rx0===0&&party[0]?0:eave,er=rx1===w-1&&party[1]?0:eave;
-      const ge=shape==='gable'?Math.round(eave*.5):eave,gx0=x0-(ridgeX?(rx0===0&&party[0]?0:ge):el),gx1=x1+(ridgeX?(rx1===w-1&&party[1]?0:ge):er),gz0=z0-(ridgeX?eave:ge),gz1=z1+(ridgeX?eave:ge);
-      const half=(ridgeX?deep:wide)/2,Hmax=pitch*(half+eave);
-      for(let z=gz0;z<gz1;z++)for(let x=gx0;x<gx1;x++){
-        // Distances are measured from the wall line (negative out on the eaves), so a party-wall side with no
-        // eave still meets its wall top. Hip roofs slope from all four walls.
-        const wz=Math.min(z-z0,z1-1-z),wx=Math.min(x-x0,x1-1-x),tip=Math.min(ridgeX?Math.min(z-gz0,gz1-1-z):Math.min(x-gx0,gx1-1-x),shape==='hip'?(ridgeX?Math.min(x-gx0,gx1-1-x):Math.min(z-gz0,gz1-1-z)):1e9);
-        const dist=Math.min(half,shape==='hip'?Math.min(wz,wx):ridgeX?wz:wx),t=dist/half;
-        // Straight pitch, a gentle sag between wall line and ridge (zero at both), eaves that flick up past the
-        // wall line, and more lift at the corners.
-        let h=pitch*dist;
-        if(t>0)h-=curve*pitch*half*.22*Math.sin(Math.PI*Math.min(1,t));else h+=curve*pitch*dist*dist/eave*.9;
-        if(curve>0){const ex=Math.min(x-gx0,gx1-1-x),ez=Math.min(z-gz0,gz1-1-z);if(ex<eave&&ez<eave)h+=curve*12*(1-ex/eave)*(1-ez/eave);}
-        const yy=Math.round(plate+2+h),i=x+X*z;void Hmax;if(yy>roofY[i]){roofY[i]=yy;roofKind[i]=(dist>=half-1?2:0)|(tip<2?4:0);}}}
-    const tile=M[style.roofMat],tileDk=dark(tile),topCols=extWall[top];
-    for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const i=x+X*z,ry=roofY[i];if(ry<0)continue;
-      const inside=mask(top,Math.floor((x-MX)/CV),Math.floor((z-MZ)/CV))&&x>=MX&&z>=MZ;
-      // gable infill: the outer wall rises to meet the roof
-      if(topCols.has(x+','+z))for(let yy=plate;yy<ry-2;yy++){const s=x<MX+3?'xm':x>=MX+w*CV-3?'xp':z<MZ+3?'zm':'zp';set(x,yy,z,facade(top,s,s[0]==='x'?z-MZ:x-MX,SILL+2+(yy-plate)%(SH-SILL-6),0,isParty(s,s==='xm'?0:w-1)&&(s==='xm'||s==='xp')));}
-      for(let k=0;k<3;k++)set(x,ry-k,z,k===2&&!inside?M.timber_dark:(roofKind[i]&4)?tileDk:((ridgeAxis(x,z))&1)?tile:tileDk);
-      if(roofKind[i]&2){set(x,ry+1,z,M.ridge);set(x,ry+2,z,M.ridge);}}
+    // Roofs, one per level: each storey's footprint that has nothing built above it gets a roof at that storey's
+    // plate. The main roof is a union of gable/hip height fields over its rectangles (ridges follow the style;
+    // terraces never hip into a party wall). A lower part that meets a taller block (a rear wing, a stair tower) gets a
+    // lean-to sloping away from the taller wall; a small free-standing part gets a hipped cap.
+    const roofY=new Int16Array(X*Z).fill(-1),pitch=style.pitch,curve=style.curve,tile=M[style.roofMat],tileDk=dark(tile),top=storeys-1;
     function ridgeAxis(x,z){return style.ridge==='depth'?(z>>1):(x>>1);}
-    // Ridge-end ornaments on the lacquer and machiya styles.
-    if(style.lattice){for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const i=x+X*z;if(!(roofKind[i]&2))continue;const nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>roofKind[(x+a)+X*(z+b)]&2).length;
-      if(nb===1)box(x-1,roofY[i]+1,z-1,x+2,roofY[i]+6,z+2,style.label.startsWith('Sky')?M.gold:M.ridge);}}
+    for(let L=top;L>=0;L--){const region=plan.plot.masks[L].map((v,i)=>v&&!(L<top&&plan.plot.masks[L+1][i])?1:0);if(!region.some(Boolean))continue;
+      const lvlPlate=FL(L+1),above=L<top?plan.plot.masks[L+1]:null,lvY=new Int16Array(X*Z).fill(-1),kind=new Uint8Array(X*Z);
+      for(const [rx0,rz0,rx1,rz1] of decompose(region,w,d)){
+        const x0=cx(rx0),x1=cx(rx1+1),z0=cz(rz0),z1=cz(rz1+1),wide=x1-x0,deep=z1-z0;
+        // Which side (if any) leans against a taller block.
+        const touch=s_=>{if(!above)return 0;let n=0;if(s_==='xm')for(let z=rz0;z<=rz1;z++)n+=rx0>0&&above[rx0-1+w*z]?1:0;if(s_==='xp')for(let z=rz0;z<=rz1;z++)n+=rx1+1<w&&above[rx1+1+w*z]?1:0;
+          if(s_==='zm')for(let x=rx0;x<=rx1;x++)n+=rz0>0&&above[x+w*(rz0-1)]?1:0;if(s_==='zp')for(let x=rx0;x<=rx1;x++)n+=rz1+1<d&&above[x+w*(rz1+1)]?1:0;return n;};
+        const lean=['xm','xp','zm','zp'].map(s_=>[s_,touch(s_)]).sort((a,b)=>b[1]-a[1])[0],isLean=lean[1]>0;
+        const small=!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=small?'hip':isLean?'lean':L===top?(style.roof==='hip'&&!party[0]&&!party[1]?'hip':'gable'):'gable';
+        const ridgeX=isLean?lean[0][0]==='z':L===top?(style.ridge==='frontage'?true:style.ridge==='depth'?false:wide>=deep):wide>=deep;
+        const noEave=s_=>(s_==='xm'&&rx0===0&&party[0])||(s_==='xp'&&rx1===w-1&&party[1])||(isLean&&s_===lean[0]);
+        const eS=s_=>noEave(s_)?0:(shape==='gable'&&((ridgeX&&s_[0]==='x')||(!ridgeX&&s_[0]==='z'))?Math.round(eave*.5):eave);
+        const gx0=x0-eS('xm'),gx1=x1+eS('xp'),gz0=z0-eS('zm'),gz1=z1+eS('zp');
+        const span=ridgeX?deep:wide,half=span/2,lp=isLean?Math.min(pitch,(SH-14)/span):pitch;
+        for(let z=gz0;z<gz1;z++)for(let x=gx0;x<gx1;x++){
+          const wz=Math.min(z-z0,z1-1-z),wx=Math.min(x-x0,x1-1-x);let dist,full;
+          if(isLean){const s_=lean[0];dist=s_==='xm'?x1-1-x:s_==='xp'?x-x0:s_==='zm'?z1-1-z:z-z0;full=span;}
+          else{dist=Math.min(half,shape==='hip'?Math.min(wz,wx):ridgeX?wz:wx);full=half;}
+          const t=dist/full;let h=lp*dist;
+          if(t>0&&!isLean)h-=curve*lp*half*.22*Math.sin(Math.PI*Math.min(1,t));else if(t<=0)h+=curve*lp*dist*dist/Math.max(1,eave)*.9;
+          if(curve>0&&!isLean){const ex=Math.min(x-gx0,gx1-1-x),ez=Math.min(z-gz0,gz1-1-z);if(ex<eave&&ez<eave)h+=curve*12*(1-ex/eave)*(1-ez/eave);}
+          const tip=Math.min(x-gx0,gx1-1-x,z-gz0,gz1-1-z),yy=Math.round(lvlPlate+2+h),i=x+X*z;
+          if(yy>lvY[i]){lvY[i]=yy;kind[i]=(!isLean&&dist>=full-1?2:0)|(tip<2?4:0);}}}
+      const cols=extWall[L],lower=L<top;
+      for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const i=x+X*z,ry=lvY[i];if(ry<0)continue;roofY[i]=Math.max(roofY[i],ry);
+        const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),inside=x>=MX&&z>=MZ&&gx<w&&gz<d&&region[gx+w*gz];
+        // gable infill: the outer wall rises to meet the roof
+        if(cols.has(x+','+z)&&inside)for(let yy=lvlPlate;yy<ry-2;yy++){const s_=x<MX+3?'xm':x>=MX+w*CV-3?'xp':z<MZ+3?'zm':'zp';const m=facade(L,s_,s_[0]==='x'?z-MZ:x-MX,SILL+2+(yy-lvlPlate)%(SH-SILL-6),0,isParty(s_,s_==='xm'?0:w-1)&&(s_==='xm'||s_==='xp'));if(lower)fillIfAir(x,yy,z,m);else set(x,yy,z,m);}
+        for(let k=0;k<3;k++){const m=k===2&&!inside?M.timber_dark:(kind[i]&4)?tileDk:((ridgeAxis(x,z))&1)?tile:tileDk;if(lower)fillIfAir(x,ry-k,z,m);else set(x,ry-k,z,m);}
+        if(kind[i]&2){fillIfAir(x,ry+1,z,M.ridge);fillIfAir(x,ry+2,z,M.ridge);}}
+      // Ridge-end ornaments on the lacquer and machiya styles.
+      if(style.lattice)for(let z=1;z<Z-1;z++)for(let x=1;x<X-1;x++){const i=x+X*z;if(!(kind[i]&2))continue;const nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>kind[(x+a)+X*(z+b)]&2).length;
+        if(nb===1)for(let yy=lvY[i]+1;yy<lvY[i]+6;yy++)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)fillIfAir(x+a,yy,z+b,style.label.startsWith('Sky')?M.gold:M.ridge);}}
     // Chimney over the kitchen's back wall.
     const kitchenFloor=plan.floors.findIndex(F=>F.rooms.some(r=>r.type==='kitchen'));
     if(kitchenFloor>=0){const F=plan.floors[kitchenFloor],k=F.rooms.findIndex(r=>r.type==='kitchen'),cells=[];for(let i=0;i<w*d;i++)if(F.grid[i]===k)cells.push(i);

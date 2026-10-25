@@ -2,187 +2,255 @@
  "note": "headless Chromium (software GL); CPU submit time, not GPU time",
  "metrics": [
   {
-   "case": "shophouse-machiya",
+   "case": "side-shophouse-machiya",
    "view": "corner",
-   "visible": 3,
    "frameMs": 0
   },
   {
-   "case": "shophouse-machiya",
+   "case": "side-shophouse-machiya",
    "view": "street",
-   "visible": 3,
    "frameMs": 0
   },
   {
-   "case": "shophouse-machiya",
-   "view": "back",
-   "visible": 3,
+   "case": "side-shophouse-machiya",
+   "view": "ground",
    "frameMs": 0
   },
   {
-   "case": "shophouse-machiya",
-   "view": "above",
-   "visible": 1,
+   "case": "side-shophouse-machiya",
+   "view": "upper",
    "frameMs": 0
   },
   {
-   "case": "shophouse-machiya",
-   "view": "above",
-   "visible": 2,
-   "frameMs": 0
-  },
-  {
-   "case": "shophouse-machiya",
+   "case": "side-shophouse-machiya",
    "seed": 1,
    "dims": [
     168,
-    211,
-    328
+    206,
+    304
    ],
-   "quads": 43846,
-   "furniture": 65,
-   "timings": {
-    "planMs": 16,
-    "voxelMs": 75,
-    "meshMs": 350
-   }
-  },
-  {
-   "case": "home-fairytale",
-   "view": "corner",
-   "visible": 3,
-   "frameMs": 0
-  },
-  {
-   "case": "home-fairytale",
-   "view": "street",
-   "visible": 3,
-   "frameMs": 0
-  },
-  {
-   "case": "home-fairytale",
-   "view": "back",
-   "visible": 3,
-   "frameMs": 0
-  },
-  {
-   "case": "home-fairytale",
-   "view": "above",
-   "visible": 1,
-   "frameMs": 0
-  },
-  {
-   "case": "home-fairytale",
-   "view": "above",
-   "visible": 2,
-   "frameMs": 0
-  },
-  {
-   "case": "home-fairytale",
-   "seed": 7,
-   "dims": [
-    248,
-    265,
-    288
-   ],
-   "quads": 118447,
-   "furniture": 125,
-   "timings": {
-    "planMs": 7,
-    "voxelMs": 87,
-    "meshMs": 520
-   }
-  },
-  {
-   "case": "inn-harbour",
-   "view": "corner",
-   "visible": 4,
-   "frameMs": 0
-  },
-  {
-   "case": "inn-harbour",
-   "view": "street",
-   "visible": 4,
-   "frameMs": 0
-  },
-  {
-   "case": "inn-harbour",
-   "view": "back",
-   "visible": 4,
-   "frameMs": 0
-  },
-  {
-   "case": "inn-harbour",
-   "view": "above",
-   "visible": 1,
-   "frameMs": 0
-  },
-  {
-   "case": "inn-harbour",
-   "view": "above",
-   "visible": 2,
-   "frameMs": 0
-  },
-  {
-   "case": "inn-harbour",
-   "seed": 6,
-   "dims": [
-    264,
-    265,
-    328
-   ],
-   "quads": 101257,
-   "furniture": 158,
+   "quads": 39523,
+   "furniture": 54,
    "timings": {
     "planMs": 10,
-    "voxelMs": 132,
-    "meshMs": 696
+    "voxelMs": 92,
+    "meshMs": 331
    }
   },
   {
-   "case": "workshop-spire",
+   "case": "wing-workshop-fairytale",
    "view": "corner",
-   "visible": 3,
    "frameMs": 0
   },
   {
-   "case": "workshop-spire",
+   "case": "wing-workshop-fairytale",
    "view": "street",
-   "visible": 3,
    "frameMs": 0
   },
   {
-   "case": "workshop-spire",
-   "view": "back",
-   "visible": 3,
+   "case": "wing-workshop-fairytale",
+   "view": "ground",
    "frameMs": 0
   },
   {
-   "case": "workshop-spire",
-   "view": "above",
-   "visible": 1,
+   "case": "wing-workshop-fairytale",
+   "view": "upper",
    "frameMs": 0
   },
   {
-   "case": "workshop-spire",
-   "view": "above",
-   "visible": 2,
-   "frameMs": 0
-  },
-  {
-   "case": "workshop-spire",
-   "seed": 3,
+   "case": "wing-workshop-fairytale",
+   "seed": 1,
    "dims": [
-    216,
-    249,
-    336
+    176,
+    319,
+    392
    ],
-   "quads": 72370,
-   "furniture": 67,
+   "quads": 83162,
+   "furniture": 86,
    "timings": {
     "planMs": 5,
-    "voxelMs": 78,
-    "meshMs": 464
+    "voxelMs": 105,
+    "meshMs": 413
+   }
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "seed": 1,
+   "dims": [
+    192,
+    207,
+    288
+   ],
+   "quads": 50850,
+   "furniture": 74,
+   "timings": {
+    "planMs": 4,
+    "voxelMs": 106,
+    "meshMs": 298
+   }
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "corner",
+   "frameMs": 0.1
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "seed": 3,
+   "dims": [
+    240,
+    261,
+    280
+   ],
+   "quads": 105849,
+   "furniture": 77,
+   "timings": {
+    "planMs": 4,
+    "voxelMs": 87,
+    "meshMs": 472
+   }
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "ground",
+   "frameMs": 0.1
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "seed": 1,
+   "dims": [
+    176,
+    217,
+    248
+   ],
+   "quads": 41591,
+   "furniture": 43,
+   "timings": {
+    "planMs": 3,
+    "voxelMs": 62,
+    "meshMs": 251
+   }
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "seed": 1,
+   "dims": [
+    192,
+    244,
+    248
+   ],
+   "quads": 68659,
+   "furniture": 57,
+   "timings": {
+    "planMs": 3,
+    "voxelMs": 65,
+    "meshMs": 312
+   }
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "seed": 1,
+   "dims": [
+    256,
+    289,
+    312
+   ],
+   "quads": 73476,
+   "furniture": 108,
+   "timings": {
+    "planMs": 6,
+    "voxelMs": 127,
+    "meshMs": 555
    }
   }
  ]

@@ -13,32 +13,35 @@ for(const [id,p] of Object.entries(KIT.pieces)){const piece=V.piece(id),[X,Y,Z]=
 assert.equal(KIT.cell,V.V,'kit and building share the 6.25 cm cell');
 
 let built=0,doorsChecked=0,pieces=0;
-for(const [seed,type] of [[1,'shophouse'],[2,'home'],[3,'inn'],[4,'workshop'],[5,'home'],[6,'inn'],[9,'shophouse']]){
-  const plan=P.generate(seed,{type}),b=V.build(plan),[X,Y,Z]=b.dims,{vol}=b,at=(x,y,z)=>x<0||y<0||z<0||x>=X||y>=Y||z>=Z?0:vol[x+X*(z+Z*y)];
+const CASES=[];for(const [type,T] of Object.entries(P.TYPES))for(const typology of Object.keys(T.typologies)){for(let s=1;s<60;s++){const p=P.makePlot(s,{type,context:'corner'}),Y=P.TYPOLOGIES[typology];if(p.w>=Y.minW&&!(Y.straight&&p.storeys>2)){CASES.push([s,type,typology]);break;}}}
+for(const [seed,type,typology] of CASES){
+  const plan=P.generate(seed,{type,typology,context:'corner'}),b=V.build(plan),[X,Y,Z]=b.dims,{vol}=b,at=(x,y,z)=>x<0||y<0||z<0||x>=X||y>=Y||z>=Z?0:vol[x+X*(z+Z*y)];
   const [MX,,MZ]=b.origin,cx=x=>MX+x*V.CV,cz=z=>MZ+z*V.CV;built++;
   plan.floors.forEach((F,f)=>{const y=b.levels[f];
     // Doors: the middle of every door is open from floor to head height, across the wall.
-    for(const dr of F.doors){const [x,z]=dr.cells[0],mid=dr.dir==='xp'?[cx(x)+8,cz(z)+8]:[cx(x)+8,cz(z)+8];
+    for(const dr of F.doors){const [x,z]=dr.cells[0],mid={xp:[cx(x)+8,cz(z)+8],zp:[cx(x)+8,cz(z)+8],xm:[cx(x),cz(z)+8],zm:[cx(x)+8,cz(z)]}[dr.dir];
       for(let yy=y+1;yy<y+30;yy++)assert.equal(at(mid[0],yy,mid[1]),0,`${type} ${seed} floor ${f}: door ${F.rooms[dr.a].type}-${F.rooms[dr.b].type} blocked at +${yy-y}`);doorsChecked++;}
     // Windows: glazing (glass or shoji paper) inside the opening.
     for(const o of F.openings){if(o.kind!=='window')continue;const [x,z]=o.cells[0],glass=new Set([b.M.glass,b.M.shoji,b.M.timber_dark]);let found=false;
       for(let a=0;a<16&&!found;a++)for(let t=0;t<9&&!found;t++){const [px,pz]=o.side[0]==='x'?[o.side==='xm'?cx(x)+t-2:cx(x)+t,cz(z)+a]:[cx(x)+a,o.side==='zm'?cz(z)+t-2:cz(z)+t];
         if(glass.has(at(px,y+24,pz))&&at(px,y+24,pz)!==b.M.timber_dark)found=true;}
       assert.ok(found,`${type} ${seed} floor ${f}: window on ${o.side} is glazed`);}});
-  // Roof: every top-floor cell is covered by solid voxels above the wall plate.
-  const top=plan.floors.length-1;for(let z=0;z<plan.plot.d;z++)for(let x=0;x<plan.plot.w;x++){if(!plan.plot.masks[top][x+plan.plot.w*z])continue;
-    let covered=false;for(let yy=b.plate;yy<Y&&!covered;yy++)if(at(cx(x)+4,yy,cz(z)+4))covered=true;assert.ok(covered,`${type} ${seed}: roof covers cell ${x},${z}`);}
-  // Stairs: each run rises a full storey in 16 steps.
-  for(const run of plan.stair.runs){const y0=b.levels[run.from];let last=y0;
-    for(let k=0;k<16;k++){const zz=run.dir>0?cz(run.z)+k*3+1:cz(run.z)+48-k*3-2;let h=y0;while(at(cx(run.x)+8,h,zz))h++;assert.ok(h>last,`${type} ${seed}: step ${k} climbs`);last=h;}
-    assert.equal(last,b.levels[run.from+1],`${type} ${seed}: the flight lands on the next floor`);}
+  // Roofs: every footprint cell with nothing built above it is covered above its own storey.
+  plan.plot.masks.forEach((m,L)=>{for(let z=0;z<plan.plot.d;z++)for(let x=0;x<plan.plot.w;x++){const i=x+plan.plot.w*z;if(!m[i]||(L<plan.plot.masks.length-1&&plan.plot.masks[L+1][i]))continue;
+    let covered=false;for(let yy=b.levels[L+1];yy<Y&&!covered;yy++)if(at(cx(x)+4,yy,cz(z)+4))covered=true;assert.ok(covered,`${type} ${seed}: roof covers level ${L} cell ${x},${z}`);}});
+  // Stairs: each flight climbs one riser per tread and ends where its risers say (a full storey over the whole stair).
+  for(const fl of plan.stair.flights){const y0=b.levels[fl.from],[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),along=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=along/fl.risers,base=y0+fl.start*3;let last=base;
+    for(let k=0;k<fl.risers;k++){const a=Math.floor((k+.5)*t),[px,pz]=fl.dir==='zp'?[(X0+X1)>>1,Z0+a]:fl.dir==='zm'?[(X0+X1)>>1,Z1-1-a]:fl.dir==='xp'?[X0+a,(Z0+Z1)>>1]:[X1-1-a,(Z0+Z1)>>1];
+      let h=base;while(at(px,h,pz))h++;assert.ok(h>last,`${type}/${typology} ${seed}: flight ${fl.dir} ${fl.risers} step ${k} climbs (${h-base} after ${last-base})`);last=h;}
+    assert.equal(last,y0+(fl.start+fl.risers)*3,`${type} ${seed}: the flight ends at its height`);}
+  assert.equal(Math.max(...plan.stair.flights.filter(fl=>fl.from===0).map(fl=>(fl.start+fl.risers)*3)),V.SH,'the ground-floor stair reaches the next floor');
   // Furniture: placed on a floor, inside its room's cells, and every furnished room keeps its doors connected.
   for(const it of b.info.furniture){pieces++;const gx=Math.floor((it.x+it.w/2-MX)/V.CV),gz=Math.floor((it.z+it.d/2-MZ)/V.CV);
     assert.equal(plan.floors[it.floor].grid[gx+plan.plot.w*gz],it.room,`${it.piece} sits in its own room`);assert.ok(it.y>=b.levels[it.floor],'on or above the floor');}
   for(const r of b.info.rooms)assert.ok(r.reachable,`${type} ${seed}: ${r.type} on floor ${r.floor} is still walkable`);
-  const furnished=b.info.rooms.filter(r=>r.pieces>0).length;assert.ok(furnished>=plan.floors.reduce((a,F)=>a+F.rooms.length,0)*.6,`${type} ${seed}: most rooms are furnished`);
+  const real=b.info.rooms.filter(r=>!['hall','stair'].includes(r.type)),furnished=real.filter(r=>r.pieces>0).length;assert.ok(furnished>=real.length*.8,`${type}/${typology} ${seed}: most rooms are furnished (${furnished}/${real.length})`);
   // Deterministic.
-  if(seed<3){const again=V.build(P.generate(seed,{type}));assert.ok(Buffer.from(again.vol).equals(Buffer.from(vol)),'same plan, same voxels');}
+  if(CASES.indexOf(CASES.find(c=>c[0]===seed&&c[1]===type&&c[2]===typology))<2){const again=V.build(P.generate(seed,{type,typology,context:'corner'}));assert.ok(Buffer.from(again.vol).equals(Buffer.from(vol)),'same plan, same voxels');}
 }
 // Greedy mesher: a closed box meshes to exactly 6 quads; a segment boundary caps the cut.
 {const dims=[6,6,6],vol=new Uint8Array(216);for(let y=1;y<5;y++)for(let z=1;z<5;z++)for(let x=1;x<5;x++)vol[x+6*(z+6*y)]=3;

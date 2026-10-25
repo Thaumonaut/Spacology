@@ -2,41 +2,44 @@
 
 Open `prototypes/building-lab.html` through `npm run serve`, or the **Building lab** entry in the playtest library. It generates one seeded building, inside and out, for the fantasy city generator. It is the single-building proof, not the city: every stage is a system that would run for every plot, not a stamped prefab.
 
-URL parameters keep a building on reload: `?seed=6&type=inn&style=harbour&context=corner&view=corner&floors=2` (`floors` is how many storeys to show; leave it out to show the roof).
+URL parameters keep a building on reload: `?seed=6&type=inn&style=harbour&context=corner&typology=courtyard&view=corner&floors=2` (`floors` is how many storeys to show; leave it out to show the roof).
 
 ## Pipeline
 
 Each stage outputs plain data that the next one reads. The plan can be checked as a flat drawing before anything turns 3D.
 
 1. **Plot** (`plan.js`, `makePlot`).
-   - Type: shop-house or workshop with the home over it, family home, or a 3-storey inn.
+   - Type: shop-house or workshop with the home over it, family home, or inn.
    - Street context: terrace (party walls both sides), corner plot or detached.
-   - Frontage, storeys, and an optional upper-floor jetty over the street.
-   - Depth is the sum of a front band, the 5 m stair bay and a back band, so rooms come out at sensible depths.
-2. **Spine** (`makeSpine`). Real town houses are organised round a stair and a hall, not grown freely, so the spine comes first and stacks through every floor:
-   - The stair sits against a wall with a 1 m hall lane beside it.
-   - Narrow plots put the spine along one side wall (on a terrace, the party wall). Wide plots put it down the middle with rooms either side.
-   - Each flight is 16 risers of 18.75 cm over 3 m. Three-storey buildings switch back on the far side of the lane.
-3. **Bands** (`recipe`, `layoutFloor`). Each floor is three bands from the street:
-   - **Front:** shop, workshop, living room, common room, or bedrooms upstairs.
-   - **Middle:** beside the stair bay, holding baths, stores, studies and offices.
-   - **Back:** kitchen-diner, or bedrooms upstairs.
+   - Frontage and storeys, plus an optional upper-floor jetty over the street.
+2. **Typology** (`chooseTypology`, `BUILD`). Real houses follow a handful of plans that put circulation first; each typology is one. They are chosen per building, weighted by type, plot width and street context:
+   - **Side passage:** a passage along one side wall with a straight stair in it, and rooms in a row beside it. The stair sits at the front, middle or back and rises either way. Front and back rooms may run the full width.
+   - **Side passage with rear wing:** an L-shaped footprint. The passage ends in a rear wing (kitchen and scullery, sometimes a room above), with a yard beside it.
+   - **Central hall:** a hall down the middle with a straight stair, and rooms either side.
+   - **Stair hall:** a 2 m entrance hall leading to a U-turn stair at the back. Inns put the common room across the front.
+   - **Cross passage:** a passage across the house. Rooms sit side by side along the street and at the back, with a U-turn stair behind a small lobby. Terraces enter by a front lobby; corner and detached plots may use a side-street door.
+   - **Cottage:** no ground-floor hall. The front door opens into the living room, which holds the stair; on wide plots a dining room opens off it.
+   - **Courtyard:** a U around a courtyard. Galleries run along the outer walls, so every room looks onto the courtyard and party walls do not matter. A stair tower stands in a courtyard corner.
 
-   A band is one room wall to wall, or one room per row beside the spine. Middle rooms only become rooms that need light where their side wall can take a window; on a terrace they become stores and baths instead.
-   - Mixed-use ground floors run the hall out to its own street door, so the home upstairs has an entrance beside the shop.
-   - Rooms are always rectangles.
+   Every typology keeps the same rules:
+   - Rooms are rectangles (circulation rooms may bend).
+   - Every room opens off circulation, and leaf rooms (bedrooms, baths, stores, studies) are never walked through.
+   - The stair stacks through every floor and opens onto circulation at its foot and head.
+   - Mixed-use buildings give the home its own street door.
+3. **Stairs** (`stairBay`). *Straight* stairs are one 2×6-cell flight of 16 risers (18.75 cm), for 2 storeys. *U-turn* stairs are a 4×5-cell bay: 8 risers up, a half landing, then 8 back. They stack for any number of storeys, and you enter and arrive side by side.
+   **Room programs** (`program`) say what goes on each floor; '?' rooms are dropped when they do not fit. Room splitting is light-aware: rooms that need a window take the slots that can have one, and a dark slot (the middle of a terraced row) becomes a store or bath. On narrow cross-passage plots, rooms that do not fit behind the passage move to the front, though the bath stays at the back.
 4. **Doors** (`placeDoors`). Doors grow outwards from the hall, cheapest first, so every room opens onto it. Leaf rooms (bedrooms, baths, stores, studies) are never walked through. Work pairs (kitchen and dining room, shop and store) may also share a door. The stair opens onto the hall at the foot of each flight and the head of the one arriving.
 5. **Openings** (`placeOpenings`).
    - The home's front door; the business door at the end of its frontage, with the rest as shopfront; a back door from the kitchen.
    - Windows spaced along each outside wall, none on party walls.
    - Small windows for baths, stores and halls, and a balcony for an upper living room on the street.
-6. **Choosing.** A few variants per floor (room proportions) are scored on room width, area, aspect and fill. Hard failures (an unreachable room, or a windowless room that needs light) are listed in the plan's notes. A floor plan takes about 2 ms.
+6. **Choosing.** Ten variants of the chosen typology are built. Variants differ in band depths, stair position and direction, which rooms run full width, and room proportions. Each is scored on room width, area, aspect and hall size. Hard failures (an unreachable, windowless or misshapen room) are listed in the plan's notes. A whole plan takes 1–2 ms.
 7. **Voxel shell** (`voxels.js`), at 6.25 cm, i.e. 8 voxels per plan cell and 48 per storey.
    - Walls follow room edges: exterior walls 3 voxels thick, interior walls 2.
    - The exterior face carries the **style**: posts, floor beams, base course, half-timber braces, lattice. Posts and beams stand 1 voxel proud of the plaster.
    - Openings are cut and framed: glazing or shoji lattice, a noren, lanterns, a small tiled eave (hisashi) or an awning, a signboard, flower boxes, shutters, a balcony with brackets.
-   - Stairs are solid flights with railings round the void.
-   - The roof is a gable or hip height field per footprint rectangle, measured from the wall line. It sags a little between wall and ridge and its eaves flick up, more at the corners. Overlapping rectangles are unioned, so valleys form on their own.
+   - Stairs are solid flights and landings built from the plan's flight list, with railings round every void except where the stair opens onto the hall.
+   - **Roofs, one per level.** Each storey's footprint with nothing built above it gets a roof at that storey's height. The main roof is a gable or hip height field per rectangle, measured from the wall line; it sags a little between wall and ridge, its eaves flick up (more at the corners), and overlapping rectangles form valleys on their own. A lower part against a taller block (a rear wing) gets a lean-to; a small free-standing part (a stair tower) gets a hipped cap.
    - Also: a chimney over the kitchen, a voxel bath tub, a cobbled street and a yard.
 8. **Furniture** (`furnish`). Each room type has an ordered list of wants, placed into an occupancy map.
    - **Walking space.** Every piece reserves walking space in front of it, as do every door and the stair's foot and head. Footprints never overlap each other or that space.
@@ -66,13 +69,13 @@ One building is 4–20 M cells and 50–110 k quads. It meshes in about 0.3–0.
 
 ## Limits
 
-- One building per page, with no neighbours and no terrain slope. Party walls are plain because a neighbour would stand against them. Footprints are rectangles; wings, courtyards and back extensions are the next step.
+- One building per page, with no neighbours and no terrain slope. Party walls are plain because a neighbour would stand against them. Footprints are rectangles, Ls and Us; no curved or angled walls.
 - Interior doors are open frames, not leaves. Upper-floor fireplaces, attics and basements are not generated.
 - Four types and four styles. Room rules are hand-tuned for these; a new type needs its program, extras and furniture wants.
 - Furniture comes from a modern-cosy pack. A fantasy kit (barrels, hearths, looms, alchemy benches) would slot into the same `WANTS` rules.
 
 ## Tests
 
-- `node tests/unit/building-plan.cjs` covers 180 buildings (4 types × 3 plot contexts × 15 seeds). It checks full coverage, rectangular rooms, every room reachable from the hall through legal doors, leaf rooms never walked through, lit rooms, no openings in party walls, a separate home door on mixed-use buildings, the stacked stair opening onto the hall, and determinism. It prints a sample plan.
+- `node tests/unit/building-plan.cjs` covers over 300 buildings: every type and plot context over 12 seeds, plus every typology forced on every type and plot. It also checks that no typology dominates free choice. Each building is checked for full coverage, rectangular rooms, every room reachable from where you arrive through legal doors, leaf rooms never walked through, lit rooms, no openings in party walls, a separate home door on mixed-use buildings, a stair opening onto circulation on every floor, and determinism. It prints sample plans.
 - `node tests/unit/building-voxels.cjs` checks the kit decode and the palette. Across 7 buildings it checks that doors are open, windows are glazed, roofs cover the top floor, stairs climb exactly a storey, furniture sits in its own room with walkable doors, and output is deterministic. It also checks the mesher.
-- `npm test -- browser/building-lab` builds four styled buildings headlessly and checks for page errors. It saves views and plans to `artifacts/building-generator/`. Set `SPACOLOGY_BUILDING_SHOTS=0` to skip writing them.
+- `npm test -- browser/building-lab` builds one building of every typology headlessly and checks for page errors. It saves views, cutaways, plans and per-type contact sheets (16 seeds each) to `artifacts/building-generator/`. Set `SPACOLOGY_BUILDING_SHOTS=0` to skip writing them.
