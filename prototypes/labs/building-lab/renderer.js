@@ -32,7 +32,9 @@
   layout(location=0) in uvec4 a;
   uniform mat4 uVP;uniform mat4 uLight;uniform float uCell;
   out vec3 vPos;flat out uint vN;flat out uint vM;out vec4 vLight;
-  void main(){vec3 p=vec3(a.xyz)*uCell;vPos=p;vN=a.w&255u;vM=a.w>>8u;vLight=uLight*vec4(p,1.);gl_Position=uVP*vec4(p,1.);}`;
+  const vec3 NN[6]=vec3[6](vec3(1,0,0),vec3(-1,0,0),vec3(0,1,0),vec3(0,-1,0),vec3(0,0,1),vec3(0,0,-1));
+  // Shadows are looked up from a point nudged off the surface along its normal, so a wall never shadows itself.
+  void main(){vec3 p=vec3(a.xyz)*uCell;vPos=p;vN=a.w&255u;vM=a.w>>8u;vLight=uLight*vec4(p+NN[vN]*uCell*1.5,1.);gl_Position=uVP*vec4(p,1.);}`;
   const FS=`#version 300 es
   precision highp float;precision highp sampler2DShadow;
   in vec3 vPos;flat in uint vN;flat in uint vM;in vec4 vLight;
@@ -42,7 +44,7 @@
   void main(){
     vec3 n=N[vN],base=texelFetch(uPal,ivec2(int(vM),0),0).rgb;
     vec3 l=vLight.xyz/vLight.w*.5+.5;float sh=0.;
-    for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)sh+=texture(uShadow,vec3(l.xy+vec2(i,j)*uTexel,l.z-.0015));
+    for(int i=-1;i<=1;i++)for(int j=-1;j<=1;j++)sh+=texture(uShadow,vec3(l.xy+vec2(i,j)*uTexel,l.z-.0006));
     sh/=9.;if(l.x<0.||l.x>1.||l.y<0.||l.y>1.)sh=1.;
     float ndl=dot(n,uSun),lit=smoothstep(.0,.08,ndl)*sh;
     // banded toon: lit / shade, with a cool sky ambient from above and warm bounce from below
@@ -62,9 +64,14 @@
   const PFS=`#version 300 es
   precision highp float;in vec2 vUv;uniform sampler2D uColor;uniform sampler2D uDepth;uniform vec2 uPx;uniform vec2 uNF;uniform float uLine;out vec4 o;
   float lin(float d){float z=d*2.-1.;return 2.*uNF.x*uNF.y/(uNF.y+uNF.x-z*(uNF.y-uNF.x));}
+  // Greedy-meshed quads meet at T-junctions, which can leave single-pixel cracks showing whatever lies behind. A pixel
+  // much farther than both neighbours on one axis is a crack: it takes their colour and depth before outlining.
   void main(){float d0=texture(uDepth,vUv).r;vec3 sky=mix(vec3(.98,.86,.74),vec3(.56,.74,.93),smoothstep(.0,1.,vUv.y));
+    vec3 c=texture(uColor,vUv).rgb;float z=d0>=1.?1e4:lin(d0);
+    for(int a=0;a<2;a++){vec2 off=(a==0?vec2(uPx.x,0):vec2(0,uPx.y));float da=texture(uDepth,vUv+off).r,db=texture(uDepth,vUv-off).r;
+      if(da<1.&&db<1.){float za=lin(da),zb=lin(db),near=min(za,zb);if(z>max(za,zb)*1.02&&abs(za-zb)<near*.02){c=.5*(texture(uColor,vUv+off).rgb+texture(uColor,vUv-off).rgb);z=.5*(za+zb);d0=.5*(da+db);}}}
     if(d0>=1.){o=vec4(sky,1);return;}
-    vec3 c=texture(uColor,vUv).rgb;float z=lin(d0),e=0.;
+    float e=0.;
     for(int i=0;i<4;i++){vec2 off=vec2(i==0?1.:i==1?-1.:0.,i==2?1.:i==3?-1.:0.)*uPx*uLine;float dz=texture(uDepth,vUv+off).r;float zz=dz>=1.?1e4:lin(dz);e=max(e,(zz-z)/z);}
     float ink=smoothstep(.035,.07,e);
     o=vec4(mix(c,c*.28+vec3(.04,.03,.06),ink),1);}`;

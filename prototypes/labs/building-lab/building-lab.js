@@ -85,6 +85,8 @@
 
   window.BuildingLab={snapshot:()=>({ready:state.ready,errors:state.errors.slice(),seed:state.plan?.seed,type:state.plan?.type,typology:state.plan?.typology,style:state.plan?.style,context:state.plan?.context,storeys:state.plan?.floors.length,visible:state.visible,view:state.view,
       quads:state.quads,furniture:state.building?.info.furniture.length,unreachable:state.building?.info.rooms.filter(r=>!r.reachable).length,timings:state.timings,frameMs:renderer?.state.lastFrameMs,dims:state.building?.dims}),
+    // camera({yaw,pitch,dist,target:[x,y,z] metres}) for close-up captures
+    camera:(o)=>{Object.assign(renderer.state,o);redraw();return {extent:renderer.state.extent,dims:state.building.dims.map(n=>n*state.building.cell),levels:state.building.levels.map(n=>n*state.building.cell)};},
     setView,setVisible:k=>{state.visible=k;applyVisible();},build:(o={})=>{for(const k of ['seed','type','style','context','typology'])if(k in o)$(k).value=o[k]??'';build();},
     frame:()=>{renderer.draw();return renderer.state.lastFrameMs;},planSheet};
   build();

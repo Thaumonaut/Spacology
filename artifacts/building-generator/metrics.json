@@ -9,7 +9,7 @@
   {
    "case": "side-shophouse-machiya",
    "view": "street",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "side-shophouse-machiya",
@@ -29,12 +29,12 @@
     206,
     304
    ],
-   "quads": 39523,
+   "quads": 38514,
    "furniture": 54,
    "timings": {
-    "planMs": 10,
-    "voxelMs": 92,
-    "meshMs": 331
+    "planMs": 8,
+    "voxelMs": 71,
+    "meshMs": 326
    }
   },
   {
@@ -65,12 +65,12 @@
     319,
     392
    ],
-   "quads": 83162,
-   "furniture": 86,
+   "quads": 86874,
+   "furniture": 85,
    "timings": {
-    "planMs": 5,
-    "voxelMs": 105,
-    "meshMs": 413
+    "planMs": 4,
+    "voxelMs": 92,
+    "meshMs": 418
    }
   },
   {
@@ -101,18 +101,18 @@
     207,
     288
    ],
-   "quads": 50850,
-   "furniture": 74,
+   "quads": 49022,
+   "furniture": 71,
    "timings": {
     "planMs": 4,
-    "voxelMs": 106,
-    "meshMs": 298
+    "voxelMs": 72,
+    "meshMs": 302
    }
   },
   {
    "case": "stairhall-home-fairytale",
    "view": "corner",
-   "frameMs": 0.1
+   "frameMs": 0
   },
   {
    "case": "stairhall-home-fairytale",
@@ -137,18 +137,18 @@
     261,
     280
    ],
-   "quads": 105849,
+   "quads": 103369,
    "furniture": 77,
    "timings": {
     "planMs": 4,
-    "voxelMs": 87,
+    "voxelMs": 80,
     "meshMs": 472
    }
   },
   {
    "case": "cross-shophouse-spire",
    "view": "corner",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "cross-shophouse-spire",
@@ -158,7 +158,7 @@
   {
    "case": "cross-shophouse-spire",
    "view": "ground",
-   "frameMs": 0.1
+   "frameMs": 0
   },
   {
    "case": "cross-shophouse-spire",
@@ -173,12 +173,12 @@
     217,
     248
    ],
-   "quads": 41591,
-   "furniture": 43,
+   "quads": 40316,
+   "furniture": 42,
    "timings": {
     "planMs": 3,
-    "voxelMs": 62,
-    "meshMs": 251
+    "voxelMs": 66,
+    "meshMs": 260
    }
   },
   {
@@ -209,12 +209,12 @@
     244,
     248
    ],
-   "quads": 68659,
-   "furniture": 57,
+   "quads": 67496,
+   "furniture": 55,
    "timings": {
     "planMs": 3,
-    "voxelMs": 65,
-    "meshMs": 312
+    "voxelMs": 70,
+    "meshMs": 313
    }
   },
   {
@@ -245,12 +245,12 @@
     289,
     312
    ],
-   "quads": 73476,
-   "furniture": 108,
+   "quads": 74178,
+   "furniture": 110,
    "timings": {
-    "planMs": 6,
-    "voxelMs": 127,
-    "meshMs": 555
+    "planMs": 7,
+    "voxelMs": 125,
+    "meshMs": 544
    }
   }
  ]

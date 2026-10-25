@@ -26,6 +26,12 @@ for(const [seed,type,typology] of CASES){
       for(let a=0;a<16&&!found;a++)for(let t=0;t<9&&!found;t++){const [px,pz]=o.side[0]==='x'?[o.side==='xm'?cx(x)+t-2:cx(x)+t,cz(z)+a]:[cx(x)+a,o.side==='zm'?cz(z)+t-2:cz(z)+t];
         if(glass.has(at(px,y+24,pz))&&at(px,y+24,pz)!==b.M.timber_dark)found=true;}
       assert.ok(found,`${type} ${seed} floor ${f}: window on ${o.side} is glazed`);}});
+  // Stairwells: open (railed) only onto circulation; a bedroom, bath or store beside one keeps a full wall.
+  plan.floors.forEach((F,f)=>{if(!f)return;const voids=new Set(F.voids),y=b.levels[f];
+    for(const i of voids){const x=i%plan.plot.w,z=Math.floor(i/plan.plot.w);for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz,j=nx+plan.plot.w*nz;
+      if(nx<0||nz<0||nx>=plan.plot.w||nz>=plan.plot.d||voids.has(j)||F.grid[j]<1||P.ROOMS[F.rooms[F.grid[j]].type].circ)continue;
+      const px=dx>0?cx(nx):dx<0?cx(x)-1:cx(x)+4,pz=dz>0?cz(nz):dz<0?cz(z)-1:cz(z)+4;
+      assert.ok(at(px,y+20,pz),`${type}/${typology} ${seed} floor ${f}: the ${F.rooms[F.grid[j]].type} beside the stairwell has a full wall`);}}});
   // Roofs: every footprint cell with nothing built above it is covered above its own storey.
   plan.plot.masks.forEach((m,L)=>{for(let z=0;z<plan.plot.d;z++)for(let x=0;x<plan.plot.w;x++){const i=x+plan.plot.w*z;if(!m[i]||(L<plan.plot.masks.length-1&&plan.plot.masks[L+1][i]))continue;
     let covered=false;for(let yy=b.levels[L+1];yy<Y&&!covered;yy++)if(at(cx(x)+4,yy,cz(z)+4))covered=true;assert.ok(covered,`${type} ${seed}: roof covers level ${L} cell ${x},${z}`);}});

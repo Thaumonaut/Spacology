@@ -318,11 +318,15 @@
     for(const l of lines){const type=rooms[l.room].type;if(type==='hall'&&l.cells.length<3)continue;
       const free=l.cells.filter(c=>!taken.has(l.side+c.join(',')));
       if(f===0&&l.side===street&&['shop','workshop','common'].includes(type)){for(const run of runsOf(free))if(run.length>=2)take({room:l.room,side:l.side,cells:run.slice(0,run.length-(run.length>5?1:0)),kind:type==='common'?'bay':'shopfront'});continue;}
-      const small=type==='bath'||type==='store'||type==='hall',wide=small?1:2,every=small?99:5;let here=openings.some(o=>o.room===l.room&&o.kind!=='front'&&o.kind!=='back');
-      for(const run of runsOf(free).sort((a,b)=>b.length-a.length)){const n=run.length;if(n<wide+(here?1:0)||(small&&here))continue;
-        const count=Math.max(1,Math.floor((n-1)/every));
-        for(let k=0;k<count;k++){const s=Math.max(0,Math.min(n-wide,Math.round((n-wide)*(k+.5)/count)));here=true;
-          take({room:l.room,side:l.side,cells:run.slice(s,s+wide),kind:small?'small':l.side===street&&f>0&&type==='living'&&k===0?'balcony':'window'});}}}
+      // Windows sit on one grid per wall: a 1 m opening every 2 m, centred on the wall and starting on an even cell
+      // so it falls between the timber posts. Every floor uses the same grid, so windows stack. Baths, stores and
+      // halls take one high window; a room with no grid slot free gets one centred window instead.
+      const small=type==='bath'||type==='store'||type==='hall',alongX=l.side[0]==='z',len=alongX?w:d;let phase=(Math.floor(len/2)-1)%4;if(phase%2)phase=(phase+1)%4;
+      const coord=c=>alongX?c[0]:c[1],here=()=>openings.some(o=>o.room===l.room&&o.kind!=='front'&&o.kind!=='back');let first=true;
+      for(const run of runsOf(free).sort((a,b)=>b.length-a.length)){const slots=[];for(let i=0;i+1<run.length;i++)if(((coord(run[i])-phase)%4+4)%4===0)slots.push(i);
+        const pickSlots=small?(slots.length&&!here()?[slots.sort((a,b)=>Math.abs(a+1-run.length/2)-Math.abs(b+1-run.length/2))[0]]:[]):slots;
+        for(const i of pickSlots){take({room:l.room,side:l.side,cells:run.slice(i,i+2),kind:small?'small':l.side===street&&f>0&&type==='living'&&first?'balcony':'window'});first=false;}}
+      if(!here()&&ROOMS[type].light){const run=runsOf(free).sort((a,b)=>b.length-a.length)[0];if(run&&run.length>=2){const i=Math.floor((run.length-2)/2);take({room:l.room,side:l.side,cells:run.slice(i,i+2),kind:'window'});}}}
     return openings;
   }
 
