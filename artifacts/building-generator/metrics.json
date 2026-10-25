@@ -4,12 +4,12 @@
   {
    "case": "side-shophouse-machiya",
    "view": "corner",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "side-shophouse-machiya",
    "view": "street",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "side-shophouse-machiya",
@@ -32,8 +32,8 @@
    "quads": 37488,
    "furniture": 56,
    "timings": {
-    "planMs": 6,
-    "voxelMs": 91,
+    "planMs": 8,
+    "voxelMs": 77,
     "meshMs": 333
    }
   },
@@ -65,12 +65,12 @@
     310,
     400
    ],
-   "quads": 83153,
+   "quads": 83420,
    "furniture": 86,
    "timings": {
     "planMs": 4,
-    "voxelMs": 118,
-    "meshMs": 479
+    "voxelMs": 97,
+    "meshMs": 486
    }
   },
   {
@@ -101,12 +101,12 @@
     207,
     296
    ],
-   "quads": 45665,
+   "quads": 46052,
    "furniture": 73,
    "timings": {
     "planMs": 4,
-    "voxelMs": 74,
-    "meshMs": 339
+    "voxelMs": 107,
+    "meshMs": 333
    }
   },
   {
@@ -134,15 +134,15 @@
    "seed": 3,
    "dims": [
     240,
-    273,
+    324,
     280
    ],
-   "quads": 93887,
+   "quads": 85036,
    "furniture": 72,
    "timings": {
     "planMs": 4,
-    "voxelMs": 85,
-    "meshMs": 480
+    "voxelMs": 102,
+    "meshMs": 525
    }
   },
   {
@@ -173,12 +173,12 @@
     218,
     240
    ],
-   "quads": 36536,
-   "furniture": 43,
+   "quads": 40355,
+   "furniture": 38,
    "timings": {
     "planMs": 3,
-    "voxelMs": 67,
-    "meshMs": 240
+    "voxelMs": 107,
+    "meshMs": 256
    }
   },
   {
@@ -194,7 +194,7 @@
   {
    "case": "cottage-home-fairytale",
    "view": "ground",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "cottage-home-fairytale",
@@ -209,12 +209,12 @@
     240,
     256
    ],
-   "quads": 66242,
-   "furniture": 57,
+   "quads": 68122,
+   "furniture": 54,
    "timings": {
     "planMs": 3,
-    "voxelMs": 89,
-    "meshMs": 328
+    "voxelMs": 80,
+    "meshMs": 345
    }
   },
   {
@@ -230,7 +230,7 @@
   {
    "case": "courtyard-inn-spire",
    "view": "ground",
-   "frameMs": 0.1
+   "frameMs": 0
   },
   {
    "case": "courtyard-inn-spire",
@@ -245,12 +245,12 @@
     292,
     304
    ],
-   "quads": 86867,
+   "quads": 87885,
    "furniture": 108,
    "timings": {
     "planMs": 6,
-    "voxelMs": 121,
-    "meshMs": 567
+    "voxelMs": 133,
+    "meshMs": 575
    }
   }
  ]

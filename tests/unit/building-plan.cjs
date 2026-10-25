@@ -45,6 +45,11 @@ for(const t of Object.keys(P.TYPOLOGIES))assert.ok(free[t]>=1,`typology ${t} tur
 assert.ok(Math.max(...Object.values(free))<=120*.35,`no typology dominates (${JSON.stringify(free)})`);
 assert.deepEqual([...kinds].sort(),['dogleg','straight']);
 assert.deepEqual(P.generate(12345),P.generate(12345),'same seed, same building');
+// Massing variety: across free seeds the silhouettes differ: several roof forms, cross gables, dormers, turrets
+// and oriels all turn up.
+{const forms=new Set(),n={cross:0,dormers:0,turret:0,oriels:0};for(let s=1;s<=200;s++){const p=P.generate(s);forms.add(p.roof.form);n.cross+=!!p.roof.cross;n.dormers+=!!p.roof.dormers;n.turret+=!!p.roof.turret;n.oriels+=!!p.facade.oriels;
+    if(p.roof.turret)assert.ok(!p.plot.party[p.roof.turret.side==='xm'?0:1],'a turret never stands against a party wall');}
+  assert.ok(forms.size>=4,`roof forms vary (${[...forms]})`);for(const [k,v] of Object.entries(n))assert.ok(v>=4,`${k} turn up across 200 seeds (${v})`);console.log('massing over 200 seeds:',JSON.stringify(n),[...forms].join('/'));}
 // Facade variety: each style keeps its identity but its buildings differ in wall colour, windows, frame and roof.
 for(const style of Object.keys(P.STYLES)){const seen={wall:new Set(),window:new Set(),frame:new Set(),roof:new Set()};
   for(let s=1;s<=30;s++){const p=P.generate(s,{style});seen.wall.add(p.facade.wall);seen.window.add(p.facade.window);seen.frame.add(p.facade.frame);seen.roof.add(p.roof.mat+p.roof.form+p.roof.ridge);

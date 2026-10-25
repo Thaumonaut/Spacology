@@ -34,6 +34,12 @@ Each stage outputs plain data that the next one reads. The plan can be checked a
    - Windows spaced along each outside wall, none on party walls.
    - Small windows for baths, stores and halls, and a balcony for an upper living room on the street.
 6. **Choosing.** Ten variants of the chosen typology are built. Variants differ in band depths, stair position and direction, which rooms run full width, and room proportions. Each is scored on room width, area, aspect and hall size. Hard failures (an unreachable, windowless or misshapen room) are listed in the plan's notes. A whole plan takes 1–2 ms.
+6b. **Look** (`sampleLook`). Each style is a distribution, and each building samples its own `plan.facade` and `plan.roof`. A street shares a look without every house being the same.
+   - **Facade:** wall hue, timber, and a trim chosen to contrast with the wall; the base course (stone or brick); the timber pattern (posts, grid, braced, cross or none); ground and upper window shapes (rect, tall, arched, paired); glazing (lattice, mullion, small panes); shutters and their colour; flower boxes; door canopy; oriel windows.
+   - **Roof:** form (gable, hip, half-hip, gambrel), ridge along the street or gable to it, pitch, eave depth, eave curve, tile; a street-facing cross gable; dormers; a corner turret.
+   - **Window grid:** `plan.facade.bays` holds each wall's window-grid phase. Windows, timber posts, braces, jetty brackets and dormers all snap to it, so they line up.
+   - **Shape constraints:** the turret only stands on a free corner, and never where a door is. A forced look (`generate(seed, {look: {facade, roof}})`) overrides any sampled part; tests and contact sheets use it.
+
 7. **Voxel shell** (`voxels.js`), at 6.25 cm, i.e. 8 voxels per plan cell and 48 per storey.
    - Walls follow room edges: exterior walls 3 voxels thick, interior walls 2.
    - The exterior face carries the **style**: posts, floor beams, base course, half-timber braces, lattice. Posts and beams stand 1 voxel proud of the plaster.
@@ -78,4 +84,9 @@ One building is 4–20 M cells and 50–110 k quads. It meshes in about 0.3–0.
 
 - `node tests/unit/building-plan.cjs` covers over 300 buildings: every type and plot context over 12 seeds, plus every typology forced on every type and plot. It also checks that no typology dominates free choice. Each building is checked for full coverage, rectangular rooms, every room reachable from where you arrive through legal doors, leaf rooms never walked through, lit rooms, no openings in party walls, a separate home door on mixed-use buildings, a stair opening onto circulation on every floor, and determinism. It prints sample plans.
 - `node tests/unit/building-voxels.cjs` checks the kit decode and the palette. Across 7 buildings it checks that doors are open, windows are glazed, roofs cover the top floor, stairs climb exactly a storey, furniture sits in its own room with walkable doors, and output is deterministic. It also checks the mesher.
-- `npm test -- browser/building-lab` builds one building of every typology headlessly and checks for page errors. It saves views, cutaways, plans and per-type contact sheets (16 seeds each) to `artifacts/building-generator/`. Set `SPACOLOGY_BUILDING_SHOTS=0` to skip writing them.
+- `npm test -- browser/building-lab` builds one building of every typology headlessly and checks for page errors. It saves the following to `artifacts/building-generator/`:
+  - views, cutaways and plans for each typology;
+  - close-ups (door, eave, roof corner);
+  - plan contact sheets (16 seeds per type);
+  - street facade sheets (8 seeds per style);
+  - a massing sheet with every roof form and silhouette feature. Set `SPACOLOGY_BUILDING_SHOTS=0` to skip writing them.

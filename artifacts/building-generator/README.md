@@ -4,6 +4,12 @@ Headless captures from `tests/browser/building-lab.cjs` (the building lab, `prot
 
 **Variety at a glance:** `variety-<type>.png` shows the ground floors of seeds 1–16 for each building type, with the plot, typology and plan chosen freely. Each tile names its typology, plot context, storeys and stair kind. Rooms are coloured by type. Furniture is not drawn on these sheets.
 
+**Facades:** `facades-<style>.png` shows the street fronts of seeds 1–8 per style, with type, plan and look chosen freely. Wall hues, timber patterns, window shapes, roofs, cross gables and turrets vary within a style's character.
+
+**Massing:** `massing.png` shows one house built with each roof form and silhouette feature forced: gable along and to the street, hip, half-hip, gambrel with dormers, a cross gable, a turret with oriels, and a lacquer hip with a turret.
+
+**Close-ups:** `<typology>-…-close-door/eave/roof-corner.png` are taken 3–6 m away, where detail problems show first.
+
 **One building per typology:** `<typology>-<type>-<style>-…`:
 
 | Typology | Example |

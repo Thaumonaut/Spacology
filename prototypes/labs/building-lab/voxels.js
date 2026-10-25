@@ -43,7 +43,7 @@
     const t0=Date.now(),FA=plan.facade,RF=plan.roof,{w,d,front,party}=plan.plot,storeys=plan.floors.length,r=Plan.rng(Plan.hash('voxels:'+plan.seed));
     const C={wall:M[FA.wall],timber:M[FA.timber],trim:M[FA.trim],base:M[FA.base],noren:M[FA.noren]||M.cloth_indigo,tile:M[RF.mat]};C.tileDk=dark(C.tile);C.baseDk=dark(C.base);
     const eave=RF.eave*4,pitch=RF.pitch,curve=RF.curve,margin=eave+24,MX=margin,MZ=margin+24,X=2*margin+w*CV,Z=MZ+d*CV+margin,roofRise=Math.ceil(pitch*(Math.max(w,d)*CV/2+eave)*(1+curve*.1))+24;
-    const Y0=GROUND,FL=f=>Y0+PLINTH+f*SH,plate=FL(storeys),Y=plate+roofRise+24,vol=new Uint8Array(X*Y*Z);
+    const TU=RF.turret,Y0=GROUND,FL=f=>Y0+PLINTH+f*SH,plate=FL(storeys),Y=plate+Math.max(roofRise*(RF.form==='gambrel'?1.35:1),TU?TU.rise+TU.r*1.8+16:0)+24|0,vol=new Uint8Array(X*Y*Z);
     const at=(x,y,z)=>x<0||y<0||z<0||x>=X||y>=Y||z>=Z?0:vol[x+X*(z+Z*y)];
     const set=(x,y,z,m)=>{if(x>=0&&y>=0&&z>=0&&x<X&&y<Y&&z<Z)vol[x+X*(z+Z*y)]=m;};
     const box=(x0,y0,z0,x1,y1,z1,m)=>{for(let y=Math.max(0,y0);y<Math.min(Y,y1);y++)for(let z=Math.max(0,z0);z<Math.min(Z,z1);z++)vol.fill(m,X*(z+Z*y)+Math.max(0,x0),X*(z+Z*y)+Math.min(X,x1));};
@@ -212,6 +212,7 @@
         for(let n=1;n<=10;n++)for(let a=a0-2;a<a1+2;a++){const c=face+k*n;put(s,a,c,y-1,C.timber);if(n===10||a===a0-2||a===a1+1){put(s,a,c,y+13,C.trim);put(s,a,c,y+14,C.trim);if((a+n)%3===0||a===a0-2||a===a1+1)for(let yy=y;yy<y+13;yy++)put(s,a,c,yy,C.trim);}}
         for(let a=a0;a<a1;a+=8)for(let n=1;n<=9;n++)fillAt(s,a,face+k*n,y-2-Math.floor((10-n)/2),C.timber);
         void W;return;}
+      if(oriels.has(o)){oriel(s,a0,a1,y,layer,proud,face,k);return;}
       // windows: a recessed light with glazing bars, a 1-voxel frame, a lintel and a 2-deep sill
       const small=kind==='small',wk=small?'rect':f===0?FA.groundWindow:FA.window,shape=windowShape(wk,small,f),wa=a0+2;
       for(let u=-1;u<=shape.W;u++)for(let yy=y+shape.lo-1;yy<=y+shape.hi;yy++){const v=yy-y,isClear=shape.clear(u,v),near=!isClear&&[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]].some(([du,dv])=>shape.clear(u+du,v+dv));
@@ -226,6 +227,17 @@
       if(!small&&FA.shutters&&wk!=='arched'){const sh=M[FA.shutter]||C.timber,shd=dark(sh)===sh?C.timber:dark(sh);
         for(const a of [wa-5,wa+shape.W+1]){const cells=[];for(let n=0;n<4;n++)for(let yy=y+shape.lo;yy<y+shape.hi;yy++)cells.push([a+n,proud(1),yy,(yy-y-shape.lo)%3===0?shd:sh]);clearPut(s,cells);}}
     }
+    // An oriel: a glazed bay projecting 7 voxels on corbels, open to the room behind, under a small tiled cap.
+    function oriel(s,a0,a1,y,layer,proud,face,k){const A0=a0-1,A1=a1+1,lo=y+SILL-3,hi=y+HEAD+2,D=7;
+      for(let a=A0+1;a<A1-1;a++)for(let yy=lo;yy<hi;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
+      for(let n=1;n<=D;n++)for(let a=A0;a<A1;a++){const c=proud(n),side=a===A0||a===A1-1,frontN=n===D;
+        put(s,a,c,lo-1,C.timber);
+        for(let yy=lo;yy<hi;yy++){const glassFront=frontN&&!side&&yy>=lo+3&&yy<hi-2,glassSide=side&&n>=2&&n<=D-1&&yy>=lo+3&&yy<hi-2;
+          if(frontN||side)put(s,a,c,yy,glassFront||glassSide?((frontN&&(a-A0)%5===0)||yy===lo+12?M.timber_dark:FA.lattice?M.shoji:M.glass):(yy<lo+3?C.wall:C.trim));}
+        for(let t=0;t<4;t++)put(s,a,c,hi+t-Math.floor(n/2),C.tile);}
+      for(let a=A0-1;a<=A1;a++)for(let t=0;t<3;t++)put(s,a,proud(D+1),hi-1+t-Math.floor((D+1)/2),C.tile);
+      for(const a of [A0,A1-1,Math.floor((A0+A1)/2)])for(let n=1;n<=D;n++)for(let yy=lo-2-(D-n);yy<lo-1;yy++)put(s,a,proud(n),yy,C.timber); // corbels
+      void face;void k;}
     function flowerBox(s,a0,a1,c,y){const k=sgn(s),cells=[];for(let a=a0;a<a1;a++)for(let t=0;t<3;t++){cells.push([a,c+k*t,y-1,M.terracotta],[a,c+k*t,y-2,M.terracotta]);
       const h=(a*7+t*3)%5;cells.push([a,c+k*t,y,h<3?M.leaf:M.leaf_dark]);if(h===0||h===3)cells.push([a,c+k*t,y+1,[M.flower_pink,M.flower_yellow,M.flower_white][(a+t)%3]]);}clearPut(s,cells);}
     // A paper lantern on a bracket: ribbed body, black caps top and bottom, a glowing core.
@@ -250,6 +262,8 @@
       // hung clear of balconies and windows above: try the usual height, then lower onto the shopfront head
       if(!clearPut(s,cells))clearPut(s,cells.map(([a,cc,yy,m])=>[a,cc,yy-6,m]));}
 
+    // Oriels: the front windows nearest the middle on each upper floor, up to plan.facade.oriels.
+    const oriels=new Set();if(FA.oriels)for(let f=1;f<storeys;f++){const ws=plan.floors[f].openings.filter(o=>o.kind==='window'&&o.side==='zm').sort((a,b)=>Math.abs(a.cells[0][0]+1-w/2)-Math.abs(b.cells[0][0]+1-w/2));for(const o of ws.slice(0,FA.oriels))oriels.add(o);}
     for(let f=0;f<storeys;f++){const F=plan.floors[f];for(const dr of F.doors)opening(f,dr,true);for(const o of F.openings)opening(f,o,false);}
 
     // Jetty brackets under any upper floor that overhangs the street, on the post grid.
@@ -265,14 +279,17 @@
     const roofY=new Int16Array(X*Z).fill(-1),top=storeys-1;
     for(let L=top;L>=0;L--){const region=plan.plot.masks[L].map((v,i)=>v&&!(L<top&&plan.plot.masks[L+1][i])?1:0);if(!region.some(Boolean))continue;
       const lvlPlate=FL(L+1),above=L<top?plan.plot.masks[L+1]:null,lvY=new Int16Array(X*Z).fill(-1),kind=new Uint8Array(X*Z),eaveAxisX=new Uint8Array(X*Z);
-      for(const [rx0,rz0,rx1,rz1] of decompose(region,w,d)){
+      const zTop=Math.min(...[...region.keys()].filter(i=>region[i]).map(i=>Math.floor(i/w))),rects=decompose(region,w,d).map(r=>[r,false]);
+      if(L===top&&RF.cross)rects.push([[RF.cross.x0,zTop,RF.cross.x1-1,Math.min(d-1,zTop+RF.cross.depth-1)],true]);
+      for(const [[rx0,rz0,rx1,rz1],isCross] of rects){
         const x0=cx(rx0),x1=cx(rx1+1),z0=cz(rz0),z1=cz(rz1+1),wide=x1-x0,deep=z1-z0;
         const touch=s_=>{if(!above)return 0;let n=0;if(s_==='xm')for(let z=rz0;z<=rz1;z++)n+=rx0>0&&above[rx0-1+w*z]?1:0;if(s_==='xp')for(let z=rz0;z<=rz1;z++)n+=rx1+1<w&&above[rx1+1+w*z]?1:0;
           if(s_==='zm')for(let x=rx0;x<=rx1;x++)n+=rz0>0&&above[x+w*(rz0-1)]?1:0;if(s_==='zp')for(let x=rx0;x<=rx1;x++)n+=rz1+1<d&&above[x+w*(rz1+1)]?1:0;return n;};
         const lean=['xm','xp','zm','zp'].map(s_=>[s_,touch(s_)]).sort((a,b)=>b[1]-a[1])[0],isLean=lean[1]>0;
-        const small=!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=small?'hip':isLean?'lean':L===top?(RF.form==='hip'&&!party[0]&&!party[1]?'hip':'gable'):'gable';
-        const ridgeX=isLean?lean[0][0]==='z':L===top?(RF.ridge==='frontage'?true:RF.ridge==='depth'?false:wide>=deep):wide>=deep;
-        const noEave=s_=>(s_==='xm'&&rx0===0&&party[0])||(s_==='xp'&&rx1===w-1&&party[1])||(isLean&&s_===lean[0]);
+        const small=!isCross&&!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=isCross?'gable':small?'hip':isLean?'lean':L===top?(RF.form==='hip'&&!party[0]&&!party[1]?'hip':'gable'):'gable';
+        const ridgeX=isCross?false:isLean?lean[0][0]==='z':L===top?(RF.ridge==='frontage'?true:RF.ridge==='depth'?false:wide>=deep):wide>=deep;
+        const main=L===top&&!isCross&&!isLean&&!small;
+        const noEave=s_=>(s_==='xm'&&rx0===0&&party[0])||(s_==='xp'&&rx1===w-1&&party[1])||(isLean&&s_===lean[0])||(isCross&&s_==='zp');
         const eS=s_=>noEave(s_)?0:(shape==='gable'&&((ridgeX&&s_[0]==='x')||(!ridgeX&&s_[0]==='z'))?Math.round(eave*.5):eave);
         const gx0=x0-eS('xm'),gx1=x1+eS('xp'),gz0=z0-eS('zm'),gz1=z1+eS('zp');
         const span=ridgeX?deep:wide,half=span/2,lp=isLean?Math.min(pitch,(SH-14)/span):pitch;
@@ -281,7 +298,10 @@
           if(isLean){const s_=lean[0];dist=s_==='xm'?x1-1-x:s_==='xp'?x-x0:s_==='zm'?z1-1-z:z-z0;full=span;slopeAlongZ=s_[0]==='z';}
           else{const dz_=ridgeX?wz:1e9,dx_=ridgeX?1e9:wx;if(shape==='hip'){dist=Math.min(half,Math.min(wz,wx));slopeAlongZ=wz<=wx;}else{dist=Math.min(half,ridgeX?dz_:dx_);slopeAlongZ=ridgeX;}full=half;}
           const t=dist/full;let h=lp*dist;
-          if(t>0&&!isLean)h-=curve*lp*half*.22*Math.sin(Math.PI*Math.min(1,t));else if(t<=0)h+=curve*lp*dist*dist/Math.max(1,eave)*.9;
+          // gambrel: a steep lower slope and a shallow upper one; half-hip: the top of each gable end is clipped
+          if(main&&RF.form==='gambrel'&&dist>0){const k=.45*half;h=dist<k?lp*1.9*dist:lp*1.9*k+lp*.5*(dist-k);}
+          if(main&&RF.form==='halfhip'&&shape==='gable'){const dE=ridgeX?wx:wz;h=Math.min(h,lp*1.2*dE+.6*lp*half);}
+          if(t>0&&!isLean&&!(main&&RF.form==='gambrel'))h-=curve*lp*half*.22*Math.sin(Math.PI*Math.min(1,t));else if(t<=0)h+=curve*lp*dist*dist/Math.max(1,eave)*.9;
           if(curve>0&&!isLean){const ex=Math.min(x-gx0,gx1-1-x),ez=Math.min(z-gz0,gz1-1-z);if(ex<eave&&ez<eave)h+=curve*12*(1-ex/eave)*(1-ez/eave);}
           // eave tips (fascia) and gable verges (bargeboards)
           const tipEave=slopeAlongZ?Math.min(z-gz0,gz1-1-z):Math.min(x-gx0,gx1-1-x),tipVerge=shape==='gable'?(ridgeX?Math.min(x-gx0,gx1-1-x):Math.min(z-gz0,gz1-1-z)):1e9;
@@ -306,6 +326,41 @@
         for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]])if(lvY[(x+a)+X*(z+b)]>=lvY[i]-1&&!(kind[(x+a)+X*(z+b)]&2))fillIfAir(x+a,lvY[i]+1,z+b,M.ridge);
         const nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>kind[(x+a)+X*(z+b)]&2).length;
         if(nb===1)for(let yy=lvY[i]+1;yy<lvY[i]+(FA.lattice?6:4);yy++)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)fillIfAir(x+a,yy,z+b,FA.lattice&&plan.style==='spire'?M.gold:M.ridge);}}
+
+    // Dormers on a street-facing slope, on the window grid: a walled box with a window and its own small gable.
+    if(RF.dormers){const zTop=Math.min(...[...plan.plot.masks[top].keys()].filter(i=>plan.plot.masks[top][i]).map(i=>Math.floor(i/w))),zf=cz(zTop)+5,p0=FA.bays.zm,slots=[];
+      for(let c=2;c+3<w;c++)if(((c-p0)%4+4)%4===0)slots.push(c);slots.sort((a,b)=>Math.abs(a+1-w/2)-Math.abs(b+1-w/2));
+      for(const c of slots.slice(0,RF.dormers)){const X0=cx(c)-1,X1=cx(c+2)+1,xc=(X0+X1-1)/2,yb=roofY[Math.round(xc)+X*zf];if(yb<0)continue;const yt=yb+16,hw=(X1-X0)/2;
+        for(let z=zf;z<Z;z++){let done=true;for(let x=X0;x<X1;x++){const ry=roofY[x+X*z];if(ry>=yt)continue;done=false;
+            for(let y=Math.max(ry-1,yb-2);y<yt;y++){const edge=x===X0||x===X1-1||z===zf;if(edge)set(x,y,z,x===X0||x===X1-1?C.timber:C.wall);else set(x,y,z,0);}}
+          // the dormer's gable roof, ridge running back into the main roof
+          for(let x=X0-2;x<X1+2;x++){const h=Math.round(yt+(hw+1.5-Math.abs(x+.5-xc-.5))*.95);if(h<=roofY[x+X*z])continue;set(x,h,z,Math.abs(x+.5-xc-.5)<1?M.ridge:C.tile);set(x,h-1,z,C.tile);set(x,h-2,z,M.timber_brown);}
+          if(z===zf)for(let zz=zf-3;zz<zf;zz++)for(let x=X0-2;x<X1+2;x++){const h=Math.round(yt+(hw+1.5-Math.abs(x+.5-xc-.5))*.95);set(x,h,zz,C.tile);set(x,h-1,zz,C.trim);}
+          if(done)break;}
+        // its window: framed, glazed, with a sill
+        for(let x=X0+3;x<X1-3;x++)for(let y=yb+3;y<yt-2;y++){const u=x-X0-3,v=y-yb-3,fr=x===X0+3||x===X1-4||y===yb+3||y===yt-3;set(x,y,zf,fr?C.trim:(u===Math.floor((X1-X0-6)/2)||v===5)?M.timber_dark:FA.lattice?M.shoji:M.glass);}
+        for(let x=X0+2;x<X1-2;x++)set(x,yb+2,zf-1,C.trim);}}
+
+    // A corner turret: a round tower standing mostly outside a free front corner, open inside as an alcove of the
+    // corner room, with floor bands, a window per floor, and a steep cone with a finial above the eaves.
+    if(TU){const R=TU.r,cxT=TU.side==='xm'?MX-R*.35:MX+w*CV+R*.35,czT=cz(front)-R*.35,topWall=plate+TU.rise,dist=(x,z)=>Math.hypot(x+.5-cxT,z+.5-czT);
+      const ang0=Math.atan2(-1,TU.side==='xm'?-1:1); // facing out across the street corner
+      for(let z=Math.floor(czT-R-4);z<czT+R+4;z++)for(let x=Math.floor(cxT-R-4);x<cxT+R+4;x++){const dd=dist(x,z),inBldg=mask(0,Math.floor((x-MX)/CV),Math.floor((z-MZ)/CV));
+        if(dd<R){for(let y=Y0;y<topWall;y++){const f=Math.min(storeys-1,Math.max(0,Math.floor((y-Y0-PLINTH)/SH))),v=y-FL(f);
+            if(dd>=R-3){// the ring wall
+              let m=y<FL(0)+(FA.groundBoards?6:9)?C.base:(v<0||v>=SH-3)&&y<plate?C.timber:y>=topWall-3?C.timber:C.wall;
+              const a=Math.atan2(z+.5-czT,x+.5-cxT),da=Math.abs(((a-ang0+Math.PI*3)%(Math.PI*2))-Math.PI),da2=Math.abs(((a-ang0-.9*(TU.side==='xm'?-1:1)+Math.PI*3)%(Math.PI*2))-Math.PI);
+              const win=(y<plate&&f>0&&v>=SILL&&v<HEAD&&(da<.2||da2<.18))||(y>=plate+4&&y<topWall-6&&da<.16);
+              if(win)m=dd<R-1.5?(FA.lattice?M.shoji:M.glass):(dd>=R-1?C.trim:0);
+              if(win&&dd>=R-1&&!(v===SILL||v===HEAD-1||y===plate+4||y===topWall-7)&&!(da<.2&&(da>.17)))m=0;
+              set(x,y,z,m);}
+            else if(!inBldg||y>=plate){// inside the tower: floors at each level, air elsewhere
+              const lvl=y<FL(0)?'plinth':null;set(x,y,z,lvl?C.base:(y-Y0-PLINTH)%SH===SH-1&&y<plate+SH?M.plank:0);}
+            else{// where the tower overlaps the house corner, open the corner into the room (keep the floor slabs)
+              const v2=((y-Y0-PLINTH)%SH+SH)%SH;if(y>=FL(0)&&v2<SH-SLAB)set(x,y,z,0);}}}
+        // the cone roof, overhanging 3 voxels
+        if(dd<R+3){const h=Math.round(topWall+(R+3-dd)*1.75);for(let k=0;k<3;k++)set(x,h-k,z,k===0&&(Math.floor(Math.atan2(z-czT,x-cxT)*8/Math.PI)&1)?C.tileDk:C.tile);if(dd>=R+1)set(x,h-3,z,C.trim);}}
+      const apex=Math.round(topWall+(R+3)*1.75);for(let y=apex;y<apex+7;y++)set(Math.round(cxT),y,Math.round(czT),y>apex+4?M.gold:M.iron);}
 
     // Chimney over the kitchen's back wall: brick with a stone cap and a pot.
     const kitchenFloor=plan.floors.findIndex(F=>F.rooms.some(r=>r.type==='kitchen'));

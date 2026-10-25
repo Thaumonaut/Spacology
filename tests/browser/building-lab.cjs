@@ -49,6 +49,17 @@ try{
     const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=420,H=280,cols=4,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
       tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
     fs.writeFileSync(path.join(OUT,`facades-${style}.png`),Buffer.from(sheet.split(',')[1],'base64'));}
+  // Massing sheet: one house with each roof form and silhouette feature forced, so every shape is rendered.
+  if(SHOTS){const MASS=[['gable along street',{roof:{form:'gable',ridge:'frontage',cross:null,dormers:0,turret:null}}],['gable to street',{roof:{form:'gable',ridge:'depth',cross:null,dormers:0,turret:null}}],
+      ['hip',{roof:{form:'hip',ridge:'frontage',cross:null,dormers:0,turret:null}}],['half-hip',{roof:{form:'halfhip',ridge:'depth',cross:null,dormers:0,turret:null}}],
+      ['gambrel + dormers',{style:'harbour',roof:{form:'gambrel',ridge:'frontage',cross:null,dormers:2,turret:null}}],['cross gable',{roof:{form:'gable',ridge:'frontage',cross:{x0:7,x1:13,depth:7},dormers:0,turret:null}}],
+      ['turret + oriels',{roof:{form:'halfhip',ridge:'frontage',cross:null,dormers:0,turret:{side:'xp',r:14,rise:28}},facade:{oriels:2}}],['lacquer hip + turret',{style:'spire',roof:{form:'hip',ridge:'frontage',cross:null,dormers:0,turret:{side:'xm',r:13,rise:26}}}]];
+    const tiles=[];for(const [label,look] of MASS){await page.evaluate(([l,st])=>BuildingLab.build({seed:3,type:'home',style:st,context:'detached',typology:'centre',look:l}),[look,look.style||'fairytale']);
+      await page.waitForFunction(()=>BuildingLab.snapshot().ready,null,{timeout:60000});
+      tiles.push(await page.evaluate(lb=>{const i=BuildingLab.camera({}),[X,,Z]=i.dims,L=i.levels;BuildingLab.setVisible(9);BuildingLab.camera({yaw:-.55,pitch:.3,dist:X*1.35,target:[X/2,L[2]*.85,Z*.4]});BuildingLab.frame();return [lb,document.getElementById('view').toDataURL('image/png')];},label));}
+    const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=400,H=288,cols=4,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
+      tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
+    fs.writeFileSync(path.join(OUT,'massing.png'),Buffer.from(sheet.split(',')[1],'base64'));}
   await page.locator('#seed').fill('42');await page.locator('#typology').selectOption('');await page.locator('#build').click();
   await page.waitForFunction(()=>BuildingLab.snapshot().ready&&BuildingLab.snapshot().seed===42,null,{timeout:60000});
   assert.deepEqual(errors,[],'no page errors');

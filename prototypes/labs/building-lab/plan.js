@@ -48,8 +48,8 @@
   // or with a straight stair on a 3-storey building, are skipped.
   const TYPES={
     shophouse:{label:'Shop-house (home over shop)',frontage:[6,9],storeys:[2,3],tall:.2,typologies:{side:3,wing:2.5,cross:1.2}},
-    workshop:{label:'Workshop (home over workshop)',frontage:[7,10],storeys:[2,2],typologies:{side:2,wing:2,cross:1.2}},
-    home:{label:'Family home',frontage:[7.5,12],storeys:[2,2],typologies:{centre:2,stairhall:2,cross:1.2,cottage:1.5,side:1,wing:1.5,courtyard:1}},
+    workshop:{label:'Workshop (home over workshop)',frontage:[7,10],storeys:[2,3],tall:.15,typologies:{side:2,wing:2,cross:1.2}},
+    home:{label:'Family home',frontage:[7.5,12],storeys:[2,3],tall:.2,typologies:{centre:2,stairhall:2,cross:1.2,cottage:1.5,side:1,wing:1.5,courtyard:1}},
     inn:{label:'Inn',frontage:[11,14],storeys:[3,3],typologies:{stairhall:2.5,cross:1.3,courtyard:2.2}}
   };
   const TYPOLOGIES={
@@ -351,25 +351,25 @@
     machiya:{label:'Lantern-street machiya',lattice:true,jettyOk:false,
       walls:['plaster_warm','plaster_cream','plaster_ochre','plaster_white'],timbers:{timber_dark:3,timber_brown:1},trims:{default:['timber_dark']},bases:['stone_grey','stone_white'],
       roofMats:{tile_charcoal:3,slate:1},noren:['cloth_indigo','cloth_white','cloth_coral'],
-      roofForms:{gable:3,hip:1},ridges:{frontage:1},pitch:[.4,.55],eave:[3,3],curve:[.25,.45],
+      roofForms:{gable:3,hip:1},ridges:{frontage:1},pitch:[.4,.55],eave:[3,3],curve:[.25,.45],crossGable:0,dormers:0,turret:0,oriels:0,
       frames:{posts:3,grid:1},windows:{rect:3,tall:1},groundWindows:{rect:1},glazing:{lattice:1},shutters:0,boxes:0,groundBoards:.85,canopy:0},
     harbour:{label:'Harbour white & blue',lattice:false,jettyOk:true,
       walls:['plaster_white','plaster_sky','plaster_mint','plaster_cream','plaster_rose'],timbers:{timber_honey:2,timber_grey:1},
       trims:{plaster_white:['paint_blue','paint_green','timber_honey'],default:['paint_white','paint_white','paint_blue']},bases:['stone_sand','stone_white'],
       roofMats:{tile_blue:3,tile_red:1,slate:1},noren:['cloth_coral','cloth_indigo','cloth_green'],
-      roofForms:{hip:2,gable:1},ridges:{depth:1,frontage:1},pitch:[.45,.6],eave:[2,3],curve:[.1,.25],
+      roofForms:{hip:2,gable:1,halfhip:1,gambrel:1},ridges:{depth:1,frontage:1},pitch:[.45,.6],eave:[2,3],curve:[.1,.25],crossGable:.35,dormers:.45,turret:.3,oriels:.3,
       frames:{posts:2,none:2},windows:{rect:2,tall:1,arched:1},groundWindows:{rect:2,arched:1},glazing:{mullion:2,grid:1},
       shutters:.75,shutterColors:['tile_blue','paint_green','paint_red','paint_blue'],boxes:.7,groundBoards:0,canopy:.7},
     fairytale:{label:'Storybook half-timber',lattice:false,jettyOk:true,
       walls:['plaster_cream','plaster_ochre','plaster_rose','plaster_sage','plaster_white'],timbers:{timber_brown:3,timber_dark:2},trims:{default:['=timber']},bases:['stone_grey','brick_red','stone_white'],
       roofMats:{tile_red:3,shingle:2,slate:1,tile_purple:1},noren:['cloth_green','cloth_coral','cloth_indigo'],
-      roofForms:{gable:3,hip:1},ridges:{depth:2,frontage:1},pitch:[.9,1.2],eave:[2,3],curve:[0,0],
+      roofForms:{gable:3,hip:1,halfhip:2,gambrel:1},ridges:{depth:2,frontage:2},pitch:[.9,1.2],eave:[2,3],curve:[0,0],crossGable:.45,dormers:.5,turret:.5,oriels:.45,
       frames:{braced:3,cross:2,grid:1},windows:{rect:2,paired:1,arched:1},groundWindows:{rect:2,paired:1},glazing:{grid:2,mullion:1},
       shutters:.3,shutterColors:['paint_green','paint_red','timber_brown'],boxes:.8,groundBoards:0,canopy:.8},
     spire:{label:'Sky-temple lacquer',lattice:true,jettyOk:false,
       walls:['plaster_peach','plaster_white','plaster_rose','plaster_lavender'],timbers:{lacquer_red:3,timber_dark:1},trims:{default:['=timber']},bases:['stone_sand','stone_white'],
       roofMats:{tile_teal:3,tile_green:2,tile_purple:1,tile_blue:1},noren:['cloth_gold','cloth_coral','cloth_indigo'],
-      roofForms:{hip:3,gable:1},ridges:{frontage:1},pitch:[.6,.8],eave:[3,4],curve:[.45,.65],
+      roofForms:{hip:3,gable:1},ridges:{frontage:1},pitch:[.6,.8],eave:[3,4],curve:[.45,.65],crossGable:.35,dormers:0,turret:.5,oriels:.2,
       frames:{posts:2,grid:2},windows:{rect:2,arched:1,tall:1},groundWindows:{rect:1},glazing:{lattice:2,grid:1},shutters:0,boxes:0,groundBoards:.6,canopy:0}
   };
   // The window grid of each wall: a 1 m window every 2 m, centred on the wall and starting on an even cell (so it falls
@@ -383,6 +383,14 @@
       window:one(S.windows),groundWindow:one(S.groundWindows),glazing:one(S.glazing),shutters:chance(S.shutters),shutter:S.shutterColors?one(S.shutterColors):null,boxes:chance(S.boxes),groundBoards:chance(S.groundBoards),canopy:chance(S.canopy),
       bays:{zm:gridPhase(plot.w),zp:gridPhase(plot.w),xm:gridPhase(plot.d),xp:gridPhase(plot.d)}};
     const roof={form:one(S.roofForms),ridge:one(S.ridges),pitch:range(S.pitch),eave:Math.round(range(S.eave)),curve:range(S.curve),mat:one(S.roofMats)};
+    // Massing: a street-facing cross gable over the middle bays, dormers on a street-facing slope, a corner turret,
+    // oriel windows. Each is a chance per style; geometry that does not suit the plot is dropped in generate().
+    const mid=Math.floor(plot.w/2);
+    roof.cross=roof.ridge==='frontage'&&plot.w>=14&&chance(S.crossGable)?{x0:mid-3-(plot.w>=20?1:0),x1:mid+3+(plot.w>=20?1:0),depth:ri(r,6,9)}:null;
+    roof.dormers=roof.ridge==='frontage'&&!roof.cross&&roof.form!=='hip'&&chance(S.dormers)?ri(r,1,3):0;
+    const sides=[!plot.party[0]?'xm':null,!plot.party[1]?'xp':null].filter(Boolean);
+    roof.turret=sides.length&&chance(S.turret)?{side:pick(r,sides),r:ri(r,11,15),rise:ri(r,18,30)}:null;
+    facade.oriels=chance(S.oriels)?ri(r,1,2):0;
     return {facade,roof};
   }
   function makePlot(seed,opts={}){
@@ -410,6 +418,9 @@
       const score=floors.reduce((a,x)=>a+x.score,0);if(!best||score<best.score)best={score,P,T,floors,candidate:c};}
     if(!best)throw new Error(`no ${typology} plan for seed ${seed}`);
     const {P,T}=best,sampled=sampleLook(styleId,P,seed),look={facade:{...sampled.facade,...(opts.look?.facade||{})},roof:{...sampled.roof,...(opts.look?.roof||{})}};
+    // the turret stands mostly outside the corner and opens about one cell into it; keep doors out of that cell
+    if(look.roof.turret){const xs=look.roof.turret.side==='xm'?[0,1]:[P.w-2,P.w-1],z0=P.front;
+      if(best.floors.some(({openings})=>openings.some(o=>o.kind!=='window'&&o.kind!=='small'&&o.cells.some(([x,z])=>x>=xs[0]&&x<=xs[1]&&z<=z0+1))))look.roof.turret=null;}
     return {revision:REVISION,seed,type:P.type,typeLabel:TYPES[P.type].label,typology,typologyLabel:TYPOLOGIES[typology].label,style:styleId,styleLabel:style.label,context:P.context,cell:CELL,storey:STOREY,
       facade:look.facade,roof:look.roof,plot:{w:P.w,d:P.d,front:P.front,jetty:P.jetty,party:P.party,masks:P.masks.map(m=>Array.from(m))},
       stair:{kind:T.stair.kind,orient:T.stair.orient,rect:T.stair.rect,flights:T.stair.flights,landings:T.stair.landings},
