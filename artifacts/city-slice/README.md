@@ -11,3 +11,10 @@ doors swing open within 3 m and interiors (`interiors.js`) stream in within 22 m
 
 First numbers (headless WebGPU): ~1,270 draws, ~3.0M triangles for the whole 224-building city in view; city build
 1.1 s, texture generation 1.2 s.
+
+## s3 — scanned CC0 textures
+
+`s3-*.png`: the procedural texture sets replaced by ambientCG CC0 scans (Bricks066, RoofingTiles006, PavingStones070,
+Plaster001, Planks023A, Grass004), stylised at load into neutral banded detail maps with floored roughness. Compare
+`s2-door.png` (procedural stone with star-shaped joint artefacts) with `s3-door.png`. `?tex=proc` restores the old sets.
+Shading is still PBR; cel shading is the next step.

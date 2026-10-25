@@ -66,4 +66,23 @@ export function makeTextureSets(){const t0=performance.now(),S={};
   S.grass={tile:4,...toTextures(grass(17),3)};
   S.plain={tile:2,...toTextures(plaster(23),1)};
   S.ms=performance.now()-t0;return S;}
+// Scanned CC0 sets (ambientCG, see textures/acg/SOURCES.md), stylised for cel shading at load: the colour map becomes a
+// neutral detail map (luminance over its mean, contrast eased, softly banded) so the kit's vertex colours keep the hue;
+// roughness is floored so nothing turns shiny. Normal maps are used as authored (OpenGL convention). tile: metres per
+// repeat. Falls back to the procedural set for any kind that fails to load.
+const ACG={stone:['Bricks066',2.6,.9],roof:['RoofingTiles006',2.4,1],paving:['PavingStones070',2.2,1],plaster:['Plaster001',2.5,.6],wood:['Planks023A',2,.8],grass:['Grass004',2.5,.8]};
+async function pixels(url){const bmp=await createImageBitmap(await (await fetch(url)).blob()),c=new OffscreenCanvas(bmp.width,bmp.height),g=c.getContext('2d');g.drawImage(bmp,0,0);
+  const d=g.getImageData(0,0,bmp.width,bmp.height),w=bmp.width,h=bmp.height,out=new Uint8Array(w*h*4);
+  // Rows bottom-up, matching TextureLoader's flipY, so the normal map's green channel stays in the UV frame.
+  for(let y=0;y<h;y++)out.set(d.data.subarray((h-1-y)*w*4,(h-y)*w*4),y*w*4);return {data:out,w,h};}
+function dataTex(data,w,h,srgb){const t=new THREE.DataTexture(data,w,h,THREE.RGBAFormat);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.generateMipmaps=true;t.minFilter=THREE.LinearMipmapLinearFilter;t.magFilter=THREE.LinearFilter;t.anisotropy=8;if(srgb)t.colorSpace=THREE.SRGBColorSpace;t.needsUpdate=true;return t;}
+async function scanned(id,tile,normalScale){const base=new URL(`./textures/acg/${id}/`,import.meta.url);
+  const [col,nrm,rgh]=await Promise.all(['Color','NormalGL','Roughness'].map(m=>pixels(new URL(m+'.jpg',base))));
+  const n=col.w*col.h,L=new Float32Array(n);let mean=0;for(let i=0;i<n;i++){const o=i*4;L[i]=.2126*col.data[o]+.7152*col.data[o+1]+.0722*col.data[o+2];mean+=L[i];}mean/=n;
+  for(let i=0;i<n;i++){const o=i*4;let a=Math.pow(L[i]/mean,.7);a=Math.min(1.08,Math.max(.5,a));const band=Math.round(a*7)/7;a=a*.6+band*.4;const v=Math.round(a*228);col.data[o]=col.data[o+1]=col.data[o+2]=v;col.data[o+3]=255;}
+  for(let i=0;i<rgh.w*rgh.h;i++){const o=i*4,r=Math.max(178,rgh.data[o]);rgh.data[o]=rgh.data[o+1]=rgh.data[o+2]=r;}
+  return {tile,normalScale,map:dataTex(col.data,col.w,col.h,true),normalMap:dataTex(nrm.data,nrm.w,nrm.h,false),roughnessMap:dataTex(rgh.data,rgh.w,rgh.h,false)};}
+export async function loadTextureSets(){const t0=performance.now(),S=makeTextureSets();
+  await Promise.all(Object.entries(ACG).map(async([k,[id,tile,ns]])=>{try{S[k]=await scanned(id,tile,ns);S[k].source=id;}catch(e){console.warn('texture '+id+' failed, using procedural',e);}}));
+  S.ms=performance.now()-t0;return S;}
 export const PATTERN_KIND={0:'plain',1:'plaster',2:'roof',3:'paving',4:'stone',5:'plaster',6:'wood',7:'grass',8:'plaster',9:'plaster',10:'plain',11:'plaster'};

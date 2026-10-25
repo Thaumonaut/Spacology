@@ -12,7 +12,7 @@ import {smaa} from 'three/addons/tsl/display/SMAANode.js';
 import {CSMShadowNode} from 'three/addons/csm/CSMShadowNode.js';
 import {SkyMesh} from 'three/addons/objects/SkyMesh.js';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
-import {makeTextureSets} from './textures.js';
+import {makeTextureSets,loadTextureSets} from './textures.js';
 import {partsToGroups,groupsToMeshes} from './convert.js';
 import {interior} from './interiors.js';
 
@@ -34,9 +34,10 @@ scene.add(new THREE.HemisphereLight(0xbcd6ff,0x6b5a45,.55));
 scene.fog=new THREE.Fog(0xc9d8e6,120,900);
 
 // ---- Materials: one PBR material per surface kind; vertex colour tints the albedo detail map.
-const T=makeTextureSets(),materials={};
+// Scanned CC0 sets by default (textures/acg); ?tex=proc keeps the procedural ones.
+const T=Q.get('tex')==='proc'?makeTextureSets():await loadTextureSets(),materials={};
 for(const k of ['stone','paving','roof','plaster','wood','grass','plain']){const t=T[k],m=new THREE.MeshStandardNodeMaterial({map:t.map,normalMap:t.normalMap,roughnessMap:t.roughnessMap,vertexColors:true,metalness:0});
-  m.normalScale=new THREE.Vector2(1,1);materials[k]=m;}
+  m.normalScale=new THREE.Vector2(t.normalScale??1,t.normalScale??1);materials[k]=m;}
 materials.glow=new THREE.MeshStandardNodeMaterial({vertexColors:true,emissive:0xffb85a,emissiveIntensity:2.2,roughness:.4});
 
 // ---- City data and chunked meshes (32 m cells). Door panes of ground-floor doors are pulled out as separate,
