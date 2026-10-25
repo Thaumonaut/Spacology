@@ -45,5 +45,11 @@ for(const t of Object.keys(P.TYPOLOGIES))assert.ok(free[t]>=1,`typology ${t} tur
 assert.ok(Math.max(...Object.values(free))<=120*.35,`no typology dominates (${JSON.stringify(free)})`);
 assert.deepEqual([...kinds].sort(),['dogleg','straight']);
 assert.deepEqual(P.generate(12345),P.generate(12345),'same seed, same building');
+// Facade variety: each style keeps its identity but its buildings differ in wall colour, windows, frame and roof.
+for(const style of Object.keys(P.STYLES)){const seen={wall:new Set(),window:new Set(),frame:new Set(),roof:new Set()};
+  for(let s=1;s<=30;s++){const p=P.generate(s,{style});seen.wall.add(p.facade.wall);seen.window.add(p.facade.window);seen.frame.add(p.facade.frame);seen.roof.add(p.roof.mat+p.roof.form+p.roof.ridge);
+    assert.ok(!(p.facade.wall==='plaster_white'&&p.facade.trim==='paint_white'),'trim contrasts with the wall');assert.equal(p.facade.lattice,P.STYLES[style].lattice,'lattice stays with the style');}
+  assert.ok(seen.wall.size>=3,`${style}: at least 3 wall colours`);assert.ok(seen.window.size>=2,`${style}: at least 2 window kinds`);
+  assert.ok(seen.frame.size>=Math.min(2,Object.keys(P.STYLES[style].frames).length),`${style}: frame patterns vary`);assert.ok(seen.roof.size>=3,`${style}: roofs vary`);}
 for(const [typology,type] of [['side','shophouse'],['cross','home'],['courtyard','inn']]){const p=P.generate(3,{type,typology,context:'corner'});console.log(`${type} / ${P.TYPOLOGIES[typology].label}, ground floor:`);console.log(P.ascii(p,0));}
 console.log(`PASS building plan: ${buildings} buildings, ${floors} floors, ${rooms} rooms; typologies ${JSON.stringify(free)} over 120 free seeds`);

@@ -349,31 +349,40 @@
   // Lists are choices; {name: weight} tables are weighted choices; [lo, hi] pairs are ranges.
   const STYLES={
     machiya:{label:'Lantern-street machiya',lattice:true,jettyOk:false,
-      walls:['plaster_warm'],timbers:['timber_dark'],trims:['timber_dark'],bases:['stone_grey'],roofMats:['tile_charcoal'],noren:['cloth_indigo'],
-      roofForms:{gable:1},ridge:'frontage',pitch:[.45,.45],eave:[3,3],curve:[.35,.35],
-      frames:{posts:1},windows:{rect:1},groundWindows:{rect:1},glazing:{lattice:1},shutters:0,boxes:0,groundBoards:1,canopy:0},
+      walls:['plaster_warm','plaster_cream','plaster_ochre','plaster_white'],timbers:{timber_dark:3,timber_brown:1},trims:{default:['timber_dark']},bases:['stone_grey','stone_white'],
+      roofMats:{tile_charcoal:3,slate:1},noren:['cloth_indigo','cloth_white','cloth_coral'],
+      roofForms:{gable:3,hip:1},ridges:{frontage:1},pitch:[.4,.55],eave:[3,3],curve:[.25,.45],
+      frames:{posts:3,grid:1},windows:{rect:3,tall:1},groundWindows:{rect:1},glazing:{lattice:1},shutters:0,boxes:0,groundBoards:.85,canopy:0},
     harbour:{label:'Harbour white & blue',lattice:false,jettyOk:true,
-      walls:['plaster_white'],timbers:['timber_honey'],trims:['paint_white'],bases:['stone_sand'],roofMats:['tile_blue'],noren:['cloth_coral'],
-      roofForms:{hip:1},ridge:'depth',pitch:[.5,.5],eave:[2,2],curve:[.2,.2],
-      frames:{posts:1},windows:{rect:1},groundWindows:{rect:1},glazing:{mullion:1},shutters:1,boxes:1,groundBoards:0,canopy:1},
+      walls:['plaster_white','plaster_sky','plaster_mint','plaster_cream','plaster_rose'],timbers:{timber_honey:2,timber_grey:1},
+      trims:{plaster_white:['paint_blue','paint_green','timber_honey'],default:['paint_white','paint_white','paint_blue']},bases:['stone_sand','stone_white'],
+      roofMats:{tile_blue:3,tile_red:1,slate:1},noren:['cloth_coral','cloth_indigo','cloth_green'],
+      roofForms:{hip:2,gable:1},ridges:{depth:1,frontage:1},pitch:[.45,.6],eave:[2,3],curve:[.1,.25],
+      frames:{posts:2,none:2},windows:{rect:2,tall:1,arched:1},groundWindows:{rect:2,arched:1},glazing:{mullion:2,grid:1},
+      shutters:.75,shutterColors:['tile_blue','paint_green','paint_red','paint_blue'],boxes:.7,groundBoards:0,canopy:.7},
     fairytale:{label:'Storybook half-timber',lattice:false,jettyOk:true,
-      walls:['plaster_cream'],timbers:['timber_brown'],trims:['timber_brown'],bases:['stone_grey'],roofMats:['tile_red'],noren:['cloth_green'],
-      roofForms:{gable:1},ridge:'depth',pitch:[1.05,1.05],eave:[2,2],curve:[0,0],
-      frames:{braced:1},windows:{rect:1},groundWindows:{rect:1},glazing:{mullion:1},shutters:0,boxes:1,groundBoards:0,canopy:1},
+      walls:['plaster_cream','plaster_ochre','plaster_rose','plaster_sage','plaster_white'],timbers:{timber_brown:3,timber_dark:2},trims:{default:['=timber']},bases:['stone_grey','brick_red','stone_white'],
+      roofMats:{tile_red:3,shingle:2,slate:1,tile_purple:1},noren:['cloth_green','cloth_coral','cloth_indigo'],
+      roofForms:{gable:3,hip:1},ridges:{depth:2,frontage:1},pitch:[.9,1.2],eave:[2,3],curve:[0,0],
+      frames:{braced:3,cross:2,grid:1},windows:{rect:2,paired:1,arched:1},groundWindows:{rect:2,paired:1},glazing:{grid:2,mullion:1},
+      shutters:.3,shutterColors:['paint_green','paint_red','timber_brown'],boxes:.8,groundBoards:0,canopy:.8},
     spire:{label:'Sky-temple lacquer',lattice:true,jettyOk:false,
-      walls:['plaster_peach'],timbers:['lacquer_red'],trims:['lacquer_red'],bases:['stone_sand'],roofMats:['tile_teal'],noren:['cloth_gold'],
-      roofForms:{hip:1},ridge:'frontage',pitch:[.7,.7],eave:[4,4],curve:[.6,.6],
-      frames:{posts:1},windows:{rect:1},groundWindows:{rect:1},glazing:{lattice:1},shutters:0,boxes:0,groundBoards:1,canopy:0}
+      walls:['plaster_peach','plaster_white','plaster_rose','plaster_lavender'],timbers:{lacquer_red:3,timber_dark:1},trims:{default:['=timber']},bases:['stone_sand','stone_white'],
+      roofMats:{tile_teal:3,tile_green:2,tile_purple:1,tile_blue:1},noren:['cloth_gold','cloth_coral','cloth_indigo'],
+      roofForms:{hip:3,gable:1},ridges:{frontage:1},pitch:[.6,.8],eave:[3,4],curve:[.45,.65],
+      frames:{posts:2,grid:2},windows:{rect:2,arched:1,tall:1},groundWindows:{rect:1},glazing:{lattice:2,grid:1},shutters:0,boxes:0,groundBoards:.6,canopy:0}
   };
   // The window grid of each wall: a 1 m window every 2 m, centred on the wall and starting on an even cell (so it falls
   // between timber posts). placeOpenings and the voxel facade both use it, so posts, braces and windows line up.
   const gridPhase=len=>{let p=(Math.floor(len/2)-1)%4;if(p%2)p=(p+1)%4;return p;};
   function sampleLook(styleId,plot,seed){
     const S=STYLES[styleId],r=rng(hash('look:'+seed)),one=v=>Array.isArray(v)?pick(r,v):v&&typeof v==='object'?weighted(r,v):v,range=([a,b])=>+(a+(b-a)*r()).toFixed(3),chance=p=>r()<p;
-    const facade={wall:one(S.walls),timber:one(S.timbers),trim:one(S.trims),base:one(S.bases),noren:one(S.noren),lattice:S.lattice,frame:one(S.frames),
-      window:one(S.windows),groundWindow:one(S.groundWindows),glazing:one(S.glazing),shutters:chance(S.shutters),boxes:chance(S.boxes),groundBoards:chance(S.groundBoards),canopy:chance(S.canopy),
+    // Trim is chosen for the wall it sits on (never white on white); '=timber' means trim in the frame's timber.
+    const wall=one(S.walls),timber=one(S.timbers),trimPick=one(S.trims[wall]||S.trims.default),trim=trimPick==='=timber'?timber:trimPick;
+    const facade={wall,timber,trim,base:one(S.bases),noren:one(S.noren),lattice:S.lattice,frame:one(S.frames),
+      window:one(S.windows),groundWindow:one(S.groundWindows),glazing:one(S.glazing),shutters:chance(S.shutters),shutter:S.shutterColors?one(S.shutterColors):null,boxes:chance(S.boxes),groundBoards:chance(S.groundBoards),canopy:chance(S.canopy),
       bays:{zm:gridPhase(plot.w),zp:gridPhase(plot.w),xm:gridPhase(plot.d),xp:gridPhase(plot.d)}};
-    const roof={form:one(S.roofForms),ridge:S.ridge,pitch:range(S.pitch),eave:Math.round(range(S.eave)),curve:range(S.curve),mat:one(S.roofMats)};
+    const roof={form:one(S.roofForms),ridge:one(S.ridges),pitch:range(S.pitch),eave:Math.round(range(S.eave)),curve:range(S.curve),mat:one(S.roofMats)};
     return {facade,roof};
   }
   function makePlot(seed,opts={}){
@@ -400,7 +409,7 @@
         const {doors,reached}=placeDoors(P,F,start),openings=placeOpenings(P,F,T.entrances),sc=scoreFloor(P,F,reached,openings);return {F,doors,openings,...sc};});
       const score=floors.reduce((a,x)=>a+x.score,0);if(!best||score<best.score)best={score,P,T,floors,candidate:c};}
     if(!best)throw new Error(`no ${typology} plan for seed ${seed}`);
-    const {P,T}=best,look=sampleLook(styleId,P,seed);
+    const {P,T}=best,sampled=sampleLook(styleId,P,seed),look={facade:{...sampled.facade,...(opts.look?.facade||{})},roof:{...sampled.roof,...(opts.look?.roof||{})}};
     return {revision:REVISION,seed,type:P.type,typeLabel:TYPES[P.type].label,typology,typologyLabel:TYPOLOGIES[typology].label,style:styleId,styleLabel:style.label,context:P.context,cell:CELL,storey:STOREY,
       facade:look.facade,roof:look.roof,plot:{w:P.w,d:P.d,front:P.front,jetty:P.jetty,party:P.party,masks:P.masks.map(m=>Array.from(m))},
       stair:{kind:T.stair.kind,orient:T.stair.orient,rect:T.stair.rect,flights:T.stair.flights,landings:T.stair.landings},

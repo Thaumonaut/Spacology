@@ -40,6 +40,15 @@ try{
   // Contact sheets: ground floors of 16 seeds per type, plot and plan chosen freely.
   for(const type of Object.keys(P.TYPES)){const url=await page.evaluate(([t])=>BuildingLab.planSheet(Array.from({length:16},(_,i)=>i+1),{type:t}),[type]);
     if(SHOTS)fs.writeFileSync(path.join(OUT,`variety-${type}.png`),Buffer.from(url.split(',')[1],'base64'));}
+  // Facade contact sheets: the street fronts of 8 seeds per style (type, plan and look chosen freely).
+  if(SHOTS)for(const style of Object.keys(P.STYLES)){const tiles=[];
+    for(let seed=1;seed<=8;seed++){await page.evaluate(([sd,st])=>BuildingLab.build({seed:sd,style:st,type:'',context:'',typology:''}),[seed,style]);
+      await page.waitForFunction(sd=>BuildingLab.snapshot().ready&&BuildingLab.snapshot().seed===sd,seed,{timeout:60000});
+      tiles.push(await page.evaluate(()=>{const i=BuildingLab.camera({}),[X,,Z]=i.dims,L=i.levels,s=BuildingLab.snapshot();BuildingLab.setVisible(9);
+        BuildingLab.camera({yaw:.3,pitch:.12,dist:Math.max(14,X*1.15),target:[X/2,L[Math.min(2,s.storeys)]*.75,Z*.3]});BuildingLab.frame();return [`${s.seed} · ${s.type} · ${s.typology}`,document.getElementById('view').toDataURL('image/png')];}));}
+    const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=420,H=280,cols=4,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
+      tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
+    fs.writeFileSync(path.join(OUT,`facades-${style}.png`),Buffer.from(sheet.split(',')[1],'base64'));}
   await page.locator('#seed').fill('42');await page.locator('#typology').selectOption('');await page.locator('#build').click();
   await page.waitForFunction(()=>BuildingLab.snapshot().ready&&BuildingLab.snapshot().seed===42,null,{timeout:60000});
   assert.deepEqual(errors,[],'no page errors');

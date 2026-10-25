@@ -17,7 +17,7 @@
   function build(){
     state.ready=false;notice('Building…');
     requestAnimationFrame(()=>setTimeout(()=>{try{
-      const t0=performance.now(),opts={type:$('type').value||undefined,style:$('style').value||undefined,context:$('context').value||undefined,typology:$('typology').value||undefined};
+      const t0=performance.now(),opts={type:$('type').value||undefined,style:$('style').value||undefined,context:$('context').value||undefined,typology:$('typology').value||undefined,look:state.look};
       const plan=P.generate(Number($('seed').value)||0,opts),t1=performance.now(),b=V.build(plan),t2=performance.now();
       if(!renderer)renderer=window.BuildingRenderer.createRenderer($('view'));
       const mesh=renderer.setBuilding(b);state.plan=plan;state.building=b;
@@ -87,7 +87,7 @@
       quads:state.quads,furniture:state.building?.info.furniture.length,unreachable:state.building?.info.rooms.filter(r=>!r.reachable).length,timings:state.timings,frameMs:renderer?.state.lastFrameMs,dims:state.building?.dims}),
     // camera({yaw,pitch,dist,target:[x,y,z] metres}) for close-up captures
     camera:(o)=>{Object.assign(renderer.state,o);redraw();return {extent:renderer.state.extent,dims:state.building.dims.map(n=>n*state.building.cell),levels:state.building.levels.map(n=>n*state.building.cell)};},
-    setView,setVisible:k=>{state.visible=k;applyVisible();},build:(o={})=>{for(const k of ['seed','type','style','context','typology'])if(k in o)$(k).value=o[k]??'';build();},
+    setView,setVisible:k=>{state.visible=k;applyVisible();},build:(o={})=>{for(const k of ['seed','type','style','context','typology'])if(k in o)$(k).value=o[k]??'';state.look=o.look;build();},
     frame:()=>{renderer.draw();return renderer.state.lastFrameMs;},planSheet};
   build();
 })();

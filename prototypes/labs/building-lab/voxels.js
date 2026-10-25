@@ -162,7 +162,7 @@
     // Dressing is all-or-nothing: drawn only if every voxel it needs is empty, so it never cuts into a neighbour.
     const clearPut=(s,cells)=>{for(const [a,c,y] of cells)if(atS(s,a,c,y))return false;for(const [a,c,y,m] of cells)put(s,a,c,y,m);return true;};
     // Window shapes on a 12-voxel-wide light: rect, tall (French), arched (round head), paired (two lights).
-    const windowShape=(kind,small)=>{const W=12,lo=small?22:kind==='tall'?6:SILL,hi=small?HEAD-2:kind==='tall'?HEAD+2:kind==='arched'?HEAD+2:HEAD;
+    const windowShape=(kind,small,f)=>{const W=12,lo=small?22:kind==='tall'?(f===0?baseH+3:6):SILL,hi=small?HEAD-2:kind==='tall'?HEAD+2:kind==='arched'?HEAD+2:HEAD;
       const clear=(u,v)=>{if(u<0||u>=W||v<lo||v>=hi)return false;if(kind==='arched'&&!small){const r=W/2,top=hi-r;if(v>=top){const du=u+.5-r,dv=v+.5-top;if(du*du+dv*dv>r*r)return false;}}
         if(kind==='paired'&&!small&&(u===5||u===6))return false;return true;};
       return {W,lo,hi,clear};};
@@ -213,16 +213,17 @@
         for(let a=a0;a<a1;a+=8)for(let n=1;n<=9;n++)fillAt(s,a,face+k*n,y-2-Math.floor((10-n)/2),C.timber);
         void W;return;}
       // windows: a recessed light with glazing bars, a 1-voxel frame, a lintel and a 2-deep sill
-      const small=kind==='small',shape=windowShape(small?'rect':f===0?FA.groundWindow:FA.window,small),wa=a0+2;
+      const small=kind==='small',wk=small?'rect':f===0?FA.groundWindow:FA.window,shape=windowShape(wk,small,f),wa=a0+2;
       for(let u=-1;u<=shape.W;u++)for(let yy=y+shape.lo-1;yy<=y+shape.hi;yy++){const v=yy-y,isClear=shape.clear(u,v),near=!isClear&&[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]].some(([du,dv])=>shape.clear(u+du,v+dv));
         if(isClear){for(let dep=0;dep<3;dep++)put(s,wa+u,layer(dep),yy,0);
           const gl=FA.glazing==='lattice'?(u%3===2||(v-shape.lo)%4===3):FA.glazing==='grid'?(u%4===3||(v-shape.lo)%5===4):(u===5||u===6||v===shape.lo+Math.floor((shape.hi-shape.lo)*.6));
           put(s,wa+u,layer(1),yy,gl?M.timber_dark:FA.lattice?M.shoji:M.glass);}
         else if(near){put(s,wa+u,face,yy,C.trim);put(s,wa+u,layer(1),yy,C.trim);}}
-      if(!small||true){for(let u=-2;u<=shape.W+1;u++){fillAt(s,wa+u,proud(1),y+shape.lo-1,C.trim);fillAt(s,wa+u,proud(2),y+shape.lo-1,C.trim);}  // sill
-        if(FA.window!=='arched'||f===0&&FA.groundWindow!=='arched'||small)for(let u=-1;u<=shape.W;u++)fillAt(s,wa+u,proud(1),y+shape.hi,C.trim);}               // lintel
+      for(let u=-2;u<=shape.W+1;u++){fillAt(s,wa+u,proud(1),y+shape.lo-1,C.trim);fillAt(s,wa+u,proud(2),y+shape.lo-1,C.trim);}  // sill
+      if(wk!=='arched')for(let u=-1;u<=shape.W;u++)fillAt(s,wa+u,proud(1),y+shape.hi,C.trim);                                     // lintel (an arch carries its own)
+      else fillAt(s,wa+5,proud(1),y+shape.hi,C.trim),fillAt(s,wa+6,proud(1),y+shape.hi,C.trim);                                    // keystone
       if(!small&&!FA.lattice&&f>0&&FA.boxes)flowerBox(s,wa-1,wa+shape.W+1,proud(1),y+shape.lo-2);
-      if(!small&&FA.shutters&&shape.clear(0,shape.lo)){const sh=FA.lattice?C.timber:M[FA.trim==='paint_white'?'tile_blue':'timber_brown'],shd=dark(sh);
+      if(!small&&FA.shutters&&wk!=='arched'){const sh=M[FA.shutter]||C.timber,shd=dark(sh)===sh?C.timber:dark(sh);
         for(const a of [wa-5,wa+shape.W+1]){const cells=[];for(let n=0;n<4;n++)for(let yy=y+shape.lo;yy<y+shape.hi;yy++)cells.push([a+n,proud(1),yy,(yy-y-shape.lo)%3===0?shd:sh]);clearPut(s,cells);}}
     }
     function flowerBox(s,a0,a1,c,y){const k=sgn(s),cells=[];for(let a=a0;a<a1;a++)for(let t=0;t<3;t++){cells.push([a,c+k*t,y-1,M.terracotta],[a,c+k*t,y-2,M.terracotta]);
