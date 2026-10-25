@@ -1,0 +1,189 @@
+{
+ "note": "headless Chromium (software GL); CPU submit time, not GPU time",
+ "metrics": [
+  {
+   "case": "shophouse-machiya",
+   "view": "corner",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "shophouse-machiya",
+   "view": "street",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "shophouse-machiya",
+   "view": "back",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "shophouse-machiya",
+   "view": "above",
+   "visible": 1,
+   "frameMs": 0
+  },
+  {
+   "case": "shophouse-machiya",
+   "view": "above",
+   "visible": 2,
+   "frameMs": 0
+  },
+  {
+   "case": "shophouse-machiya",
+   "seed": 1,
+   "dims": [
+    168,
+    211,
+    328
+   ],
+   "quads": 43846,
+   "furniture": 65,
+   "timings": {
+    "planMs": 16,
+    "voxelMs": 75,
+    "meshMs": 350
+   }
+  },
+  {
+   "case": "home-fairytale",
+   "view": "corner",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "home-fairytale",
+   "view": "street",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "home-fairytale",
+   "view": "back",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "home-fairytale",
+   "view": "above",
+   "visible": 1,
+   "frameMs": 0
+  },
+  {
+   "case": "home-fairytale",
+   "view": "above",
+   "visible": 2,
+   "frameMs": 0
+  },
+  {
+   "case": "home-fairytale",
+   "seed": 7,
+   "dims": [
+    248,
+    265,
+    288
+   ],
+   "quads": 118447,
+   "furniture": 125,
+   "timings": {
+    "planMs": 7,
+    "voxelMs": 87,
+    "meshMs": 520
+   }
+  },
+  {
+   "case": "inn-harbour",
+   "view": "corner",
+   "visible": 4,
+   "frameMs": 0
+  },
+  {
+   "case": "inn-harbour",
+   "view": "street",
+   "visible": 4,
+   "frameMs": 0
+  },
+  {
+   "case": "inn-harbour",
+   "view": "back",
+   "visible": 4,
+   "frameMs": 0
+  },
+  {
+   "case": "inn-harbour",
+   "view": "above",
+   "visible": 1,
+   "frameMs": 0
+  },
+  {
+   "case": "inn-harbour",
+   "view": "above",
+   "visible": 2,
+   "frameMs": 0
+  },
+  {
+   "case": "inn-harbour",
+   "seed": 6,
+   "dims": [
+    264,
+    265,
+    328
+   ],
+   "quads": 101257,
+   "furniture": 158,
+   "timings": {
+    "planMs": 10,
+    "voxelMs": 132,
+    "meshMs": 696
+   }
+  },
+  {
+   "case": "workshop-spire",
+   "view": "corner",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "workshop-spire",
+   "view": "street",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "workshop-spire",
+   "view": "back",
+   "visible": 3,
+   "frameMs": 0
+  },
+  {
+   "case": "workshop-spire",
+   "view": "above",
+   "visible": 1,
+   "frameMs": 0
+  },
+  {
+   "case": "workshop-spire",
+   "view": "above",
+   "visible": 2,
+   "frameMs": 0
+  },
+  {
+   "case": "workshop-spire",
+   "seed": 3,
+   "dims": [
+    216,
+    249,
+    336
+   ],
+   "quads": 72370,
+   "furniture": 67,
+   "timings": {
+    "planMs": 5,
+    "voxelMs": 78,
+    "meshMs": 464
+   }
+  }
+ ]
+}
