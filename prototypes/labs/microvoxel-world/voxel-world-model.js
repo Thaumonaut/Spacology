@@ -2960,11 +2960,22 @@
         const sk2=Math.floor((y+base-1)/SL);out=outs.get(sk2);if(!out){out=[];outs.set(sk2,out);}sliceY=sk2*SL;
         for(const k of order){const [a,b,c]=cells[k];push(ids[k],a,b,c,m&127);}
       }
+      // Packed, indexed: each distinct vertex once (10 bytes: int16 x, y, z in 1/SMOOTH_Q block, int8 normal x, y, z,
+      // uint8 material) and triangles as 16-bit indices (32-bit if a slice ever exceeds 65536 vertices). About a quarter
+      // of the old 16-byte triangle soup, with sub-millimetre positions close up.
       const result=new Map();
       for(const [sk,out] of outs){
-        const buf=new ArrayBuffer(out.length/7*16),f=new Float32Array(buf),bytes=new Int8Array(buf),u8=new Uint8Array(buf);let top=0;
-        for(let k=0,o=0;k<out.length;k+=7,o+=16){f[o/4]=out[k];f[o/4+1]=out[k+1];f[o/4+2]=out[k+2];top=Math.max(top,out[k+1]);bytes[o+12]=Math.round(out[k+3]*127);bytes[o+13]=Math.round(out[k+4]*127);bytes[o+14]=Math.round(out[k+5]*127);u8[o+15]=out[k+6];}
-        result.set(sk,{buffer:buf,count:out.length/7,top});
+        // Scale: SMOOTH_Q steps a block, or fewer if this slice reaches further than int16 allows (tall test slices).
+        let reach=1;for(let k=0;k<out.length;k+=7)reach=Math.max(reach,Math.abs(out[k]),Math.abs(out[k+1])+8,Math.abs(out[k+2]));const Q=Math.min(SMOOTH_Q,Math.floor(32767/reach));
+        const keyOf=new Map(),verts=[],idx=new Array(out.length/7);let top=0;
+        for(let k=0,t=0;k<out.length;k+=7,t++){
+          const q=[Math.round(out[k]*Q),Math.round(out[k+1]*Q),Math.round(out[k+2]*Q),Math.round(out[k+3]*127),Math.round(out[k+4]*127),Math.round(out[k+5]*127),out[k+6]];
+          const key=q.join(',');let v=keyOf.get(key);if(v===undefined){v=verts.length;keyOf.set(key,v);verts.push(q);}idx[t]=v;top=Math.max(top,out[k+1]);
+        }
+        const buf=new ArrayBuffer(verts.length*SMOOTH_STRIDE+(verts.length%2?SMOOTH_STRIDE:0)),dv=new DataView(buf);
+        verts.forEach((q,v)=>{const o=v*SMOOTH_STRIDE;dv.setInt16(o,q[0],true);dv.setInt16(o+2,q[1],true);dv.setInt16(o+4,q[2],true);dv.setInt8(o+6,q[3]);dv.setInt8(o+7,q[4]);dv.setInt8(o+8,q[5]);dv.setUint8(o+9,q[6]);});
+        const indices=verts.length<65536?Uint16Array.from(idx):Uint32Array.from(idx);
+        result.set(sk,{buffer:buf,indices,count:idx.length,vertices:verts.length,top,q:Q});
       }
       return result;
     }
@@ -3109,6 +3120,8 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={STALKS,FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  // Packed smooth-terrain vertices: int16 positions in 1/SMOOTH_Q block (±255 blocks), 10 bytes a vertex.
+  const SMOOTH_Q=128,SMOOTH_STRIDE=10;
+  const api={SMOOTH_Q,SMOOTH_STRIDE,STALKS,FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

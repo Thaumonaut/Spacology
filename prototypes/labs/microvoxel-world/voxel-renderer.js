@@ -82,7 +82,7 @@
   layout(location=3) in vec3 smoothNormal;
   uniform vec3 origin, scale, localOffset, center, patternOrigin;
   uniform vec2 halfView;
-  uniform float yaw, pitch, overrideMaterial, depth, smoothMesh, xray;
+  uniform float yaw, pitch, overrideMaterial, depth, smoothMesh, xray, smoothQ;
   uniform vec2 dither;
   uniform vec3 lightAt, lightHalf;
   uniform mat3 lightAxes;
@@ -93,10 +93,12 @@
   flat out int mat;
   flat out int shaded;
   void main(){
-    vec3 p=(position+localOffset)*scale;
+    // Smooth-terrain positions arrive as packed int16 in 1/${M.SMOOTH_Q} block.
+    vec3 pos=smoothMesh>.5?position/smoothQ:position;
+    vec3 p=(pos+localOffset)*scale;
     p=vec3(p.x,p.y*cos(pitch)-p.z*sin(pitch),p.y*sin(pitch)+p.z*cos(pitch));
     p=vec3(p.x*cos(yaw)+p.z*sin(yaw),p.y,-p.x*sin(yaw)+p.z*cos(yaw));
-    worldPosition=p+patternOrigin;p+=origin;localPosition=p;block=position;
+    worldPosition=p+patternOrigin;p+=origin;localPosition=p;block=pos;
     vec3 n=smoothMesh>.5?normalize(smoothNormal):face<.5?vec3(-1,0,0):face<1.5?vec3(1,0,0):face<2.5?vec3(0,-1,0):face<3.5?vec3(0,1,0):face<4.5?vec3(0,0,-1):vec3(0,0,1);
     n=vec3(n.x,n.y*cos(pitch)-n.z*sin(pitch),n.y*sin(pitch)+n.z*cos(pitch));
     normal=vec3(n.x*cos(yaw)+n.z*sin(yaw),n.y,-n.x*sin(yaw)+n.z*cos(yaw));
@@ -1560,7 +1562,7 @@ tintBase=palette[mat];crownKey=vec4(0);
   const SUN=(()=>{const l=Math.hypot(.5,1,.4);return [-.5/l,1/l,.4/l];})(),SHADOW_SIZE=2048;
   // Sun-view axes as mat3 columns: right, up, and forward (away from the sun).
   const LIGHT_AXES=(()=>{const f=SUN.map(v=>-v),r=[f[2],0,-f[0]],rl=Math.hypot(...r),R=r.map(v=>v/rl),U=[R[1]*f[2]-R[2]*f[1],R[2]*f[0]-R[0]*f[2],R[0]*f[1]-R[1]*f[0]];return [...R,...U,...f];})();
-  const DRAW_UNIFORMS=['rockMap','rockOn','quadMask','origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
+  const DRAW_UNIFORMS=['smoothQ','rockMap','rockOn','quadMask','origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
   const skyFragment=`#version 300 es
   precision highp float;
   uniform vec3 eye,camForward,camRight,camUp,skyHorizon,skyZenith;
@@ -1583,18 +1585,21 @@ tintBase=palette[mat];crownKey=vec4(0);
     }
     color=vec4(sky,1.);glow=vec4(0.);
   }`;
+  // Skirts under the outer edges of a packed smooth mesh (see the model's SMOOTH_Q): each perimeter edge used by only one
+  // triangle gets a quad hanging 8 blocks down, as a non-indexed packed buffer drawn with drawArrays.
   function seamSkirts(mesh){
-    const f=new Float32Array(mesh.buffer),bytes=new Uint8Array(mesh.buffer),edges=new Map(),vertex=i=>Array.from(f.subarray(i*4,i*4+3));
-    const key=p=>p.map(x=>Math.round(x*100000)).join(',');
-    for(let i=0;i<mesh.count;i+=3)for(const [a,b] of [[i,i+1],[i+1,i+2],[i+2,i]]){
-      const A=vertex(a),B=vertex(b);
+    const S=M.SMOOTH_STRIDE,Q=mesh.q||M.SMOOTH_Q,dv=new DataView(mesh.buffer),bytes=new Uint8Array(mesh.buffer),ix=mesh.indices,edges=new Map();
+    const pos=v=>[dv.getInt16(v*S,true)/Q,dv.getInt16(v*S+2,true)/Q,dv.getInt16(v*S+4,true)/Q];
+    const key=v=>{const p=pos(v);return p.map(x=>Math.round(x*Q)).join(',');};
+    for(let i=0;i<mesh.count;i+=3)for(const [a,b] of [[ix[i],ix[i+1]],[ix[i+1],ix[i+2]],[ix[i+2],ix[i]]]){
+      const A=pos(a),B=pos(b);
       if(![0,2].some(k=>Math.max(A[k],B[k])<.51||Math.min(A[k],B[k])>31.49))continue;
-      const ka=key(A),kb=key(B),k=ka<kb?ka+':'+kb:kb+':'+ka;
+      const ka=key(a),kb=key(b),k=ka<kb?ka+':'+kb:kb+':'+ka;
       const edge=edges.get(k);if(edge)edge.count++;else edges.set(k,{a,b,count:1});
     }
-    const boundary=[...edges.values()].filter(e=>e.count===1),buffer=new ArrayBuffer(boundary.length*6*16),out=new Uint8Array(buffer),of=new Float32Array(buffer);let n=0;
-    for(const {a,b} of boundary)for(const [i,down] of [[b,0],[a,0],[a,1],[b,0],[a,1],[b,1]]){out.set(bytes.subarray(i*16,i*16+16),n*16);if(down)of[n*4+1]-=8;n++;}
-    return {buffer,count:n};
+    const boundary=[...edges.values()].filter(e=>e.count===1),n=boundary.length*6,buffer=new ArrayBuffer(n*S+(n%2?S:0)),out=new Uint8Array(buffer),odv=new DataView(buffer);let o=0;
+    for(const {a,b} of boundary)for(const [v,down] of [[b,0],[a,0],[a,1],[b,0],[a,1],[b,1]]){out.set(bytes.subarray(v*S,v*S+S),o*S);if(down)odv.setInt16(o*S+2,odv.getInt16(o*S+2,true)-8*Q,true);o++;}
+    return {buffer,count:n,q:Q};
   }
   function makeCube(){
     const data=[];
@@ -1678,10 +1683,11 @@ tintBase=palette[mat];crownKey=vec4(0);
       if(mesh.smooth?.count){
         // Smooth terrain: float position, signed-byte normal, byte material (16 bytes a vertex).
         const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);gl.bindBuffer(gl.ARRAY_BUFFER,sbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.smooth.buffer,gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,16,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,16,15);
-        out.smooth={vao:svao,buffer:sbuf,count:mesh.smooth.count};out.bytes+=mesh.smooth.buffer.byteLength;out.top=Math.max(out.top,Math.ceil(mesh.smooth.top));
+        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.SHORT,false,M.SMOOTH_STRIDE,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,M.SMOOTH_STRIDE,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,M.SMOOTH_STRIDE,9);
+        const ibuf=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ibuf);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,mesh.smooth.indices,gl.STATIC_DRAW);
+        out.smooth={vao:svao,buffer:sbuf,indexBuffer:ibuf,indexType:mesh.smooth.indices instanceof Uint32Array?gl.UNSIGNED_INT:gl.UNSIGNED_SHORT,count:mesh.smooth.count,q:mesh.smooth.q||M.SMOOTH_Q};out.bytes+=mesh.smooth.buffer.byteLength+mesh.smooth.indices.byteLength;out.top=Math.max(out.top,Math.ceil(mesh.smooth.top));
         const seams=seamSkirts(mesh.smooth),vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,seams.buffer,gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,16,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,16,12);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,16,15);
+        gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.SHORT,false,M.SMOOTH_STRIDE,0);gl.enableVertexAttribArray(3);gl.vertexAttribPointer(3,3,gl.BYTE,true,M.SMOOTH_STRIDE,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,M.SMOOTH_STRIDE,9);
         out.seams={vao,buffer,count:seams.count};out.bytes+=seams.buffer.byteLength;
       }
       gl.bindVertexArray(null);return out;
@@ -1828,7 +1834,7 @@ tintBase=palette[mat];crownKey=vec4(0);
     placeholder(on){this.flat=on;}
     // Quarters of the next drawn node to skip (finished finer nodes cover them); a masked stand-in draws ground only.
     mask(bits){this.maskBits=bits||0;}
-    disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);gl.deleteVertexArray(g.smooth.vao);}}
+    disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);if(g.smooth.indexBuffer)gl.deleteBuffer(g.smooth.indexBuffer);gl.deleteVertexArray(g.smooth.vao);}}
     dispose(mesh){for(const k of ['treeSegs','treeLimbs','treeLobes','treeTiers','treeShadows'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.rockMap)this.gl.deleteTexture(mesh.rockMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     // Biomes around the view (names; repeats weight a biome); the atmosphere eases toward their average.
@@ -1874,7 +1880,7 @@ tintBase=palette[mat];crownKey=vec4(0);
       // moved by the same amount so shading stays in absolute world height.
       const o=d.origin,p=d.patternOrigin;
       for(const sl of m.slices){const dy=sl.y*d.scale[1];gl.uniform3f(u.origin,o[0],o[1]+dy-yb,o[2]);gl.uniform3f(u.patternOrigin,p[0],p[1]+dy,p[2]);if(m.normalMap)gl.uniform1f(u.groundBase,m.groundBase-sl.y);this.drawGeometry(u,sl);}}
-    drawGeometry(u,m){const gl=this.gl;gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.bindVertexArray(m.smooth.vao);gl.drawArrays(gl.TRIANGLES,0,m.smooth.count);if(this.camera.mode==='walk'&&m.seams){gl.bindVertexArray(m.seams.vao);gl.drawArrays(gl.TRIANGLES,0,m.seams.count);}gl.uniform1f(u.smoothMesh,0);}}
+    drawGeometry(u,m){const gl=this.gl;gl.bindVertexArray(m.vao);gl.drawArrays(gl.TRIANGLES,0,m.count);if(m.smooth){gl.uniform1f(u.smoothMesh,1);gl.uniform1f(u.smoothQ,m.smooth.q);gl.bindVertexArray(m.smooth.vao);gl.drawElements(gl.TRIANGLES,m.smooth.count,m.smooth.indexType,0);if(this.camera.mode==='walk'&&m.seams){gl.bindVertexArray(m.seams.vao);gl.drawArrays(gl.TRIANGLES,0,m.seams.count);}gl.uniform1f(u.smoothMesh,0);}}
     shadowTarget(){
       // Allocated on first use and never in Economy, which renders without sun shadows.
       // It lives on texture unit 1 only: unit 0 holds hillshade maps, and a depth texture there breaks every draw.

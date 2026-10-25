@@ -29,9 +29,10 @@ assert.ok(canStep(paving,0,0,.2,0,{...game,feet:5}),'low paving does not read as
 console.log('Walk slope, cliff, step/drop, body collision, shallow/deep water and edge constraints pass');
 
 globalThis.MicroWorld=require('../../prototypes/labs/microvoxel-world/voxel-world-model.js');require('../../prototypes/labs/microvoxel-world/voxel-renderer.js');
-const R=globalThis.MicroRenderer,buf=new ArrayBuffer(6*16),f=new Float32Array(buf),bytes=new Uint8Array(buf);
-for(const [i,p] of [[0,[0,4,0]],[1,[0,4,32]],[2,[32,4,32]],[3,[0,4,0]],[4,[32,4,32]],[5,[32,4,0]]]){f.set(p,i*4);bytes[i*16+13]=127;bytes[i*16+15]=2;}
-const skirts=R.seamSkirts({buffer:buf,count:6});assert.equal(skirts.count,24,'skirts cover four perimeter edges, not the shared diagonal');
-const sf=new Float32Array(skirts.buffer);assert.equal(Math.min(...Array.from({length:skirts.count},(_,i)=>sf[i*4+1])),-4,'skirts extend eight local cells below the seam');
+// A packed, indexed smooth quad (two triangles sharing a diagonal): 10-byte vertices, int16 positions in 1/SMOOTH_Q block.
+const R=globalThis.MicroRenderer,Q=MicroWorld.SMOOTH_Q,S=MicroWorld.SMOOTH_STRIDE,buf=new ArrayBuffer(4*S),dv=new DataView(buf);
+[[0,4,0],[0,4,32],[32,4,32],[32,4,0]].forEach((p,i)=>{p.forEach((c,k)=>dv.setInt16(i*S+k*2,c*Q,true));dv.setInt8(i*S+7,127);dv.setUint8(i*S+9,2);});
+const skirts=R.seamSkirts({buffer:buf,indices:Uint16Array.from([0,1,2,0,2,3]),count:6});assert.equal(skirts.count,24,'skirts cover four perimeter edges, not the shared diagonal');
+const sdv=new DataView(skirts.buffer);assert.equal(Math.min(...Array.from({length:skirts.count},(_,i)=>sdv.getInt16(i*S+2,true)/Q)),-4,'skirts extend eight local cells below the seam');
 const camera={mode:'walk',x:10,z:-20,eyeY:7,span:32,yaw:.6,lookPitch:-.3,fov:70,viewDistance:600},v=R.cameraView(camera,1.6,1280),p=v.eye.map((x,i)=>x+v.forward[i]*10),q=[...p,1];
 const clip=[0,1,2,3].map(k=>q.reduce((sum,x,i)=>sum+x*v.viewProj[i*4+k],0));assert.ok(Math.abs(clip[0])<1e-5&&Math.abs(clip[1])<1e-5);assert.ok(clip[3]>0);assert.ok(Math.abs(v.pixelWorldAt(20)-v.pixelWorldAt(10)*2)<1e-10);

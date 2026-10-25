@@ -32,8 +32,9 @@ function faces(n){
       for(let a=lo[u];a<hi[u];a++)for(let b=lo[t];b<hi[t];b++){const c=[0,0,0];c[ax]=lo[ax];c[u]=a;c[t]=b;const key=c.join(',')+'|'+normal;assert.ok(!out.has(key),'a face is emitted once');out.set(key,mat);}}}
   return out;
 }
-function smoothTris(n){const out=[];for(const s of n.slices){if(!s.smooth)continue;const f=new Float32Array(s.smooth.buffer),u=new Uint8Array(s.smooth.buffer);
-  for(let i=0;i<s.smooth.count;i+=3){const t=[];for(let k=0;k<3;k++){const o=(i+k)*4;t.push([f[o],f[o+1]+s.y,f[o+2]].map(x=>Math.round(x*64)).join(',')+':'+u[(i+k)*16+15]);}out.push(t.sort().join(';'));}}return out.sort();}
+// Packed smooth meshes: indexed 10-byte vertices with int16 positions in 1/SMOOTH_Q block (see the model).
+function smoothTris(n){const out=[],S=M.SMOOTH_STRIDE;for(const s of n.slices){if(!s.smooth)continue;const Q=s.smooth.q,dv=new DataView(s.smooth.buffer),ix=s.smooth.indices;
+  for(let i=0;i<s.smooth.count;i+=3){const t=[];for(let k=0;k<3;k++){const o=ix[i+k]*S;t.push([dv.getInt16(o,true)/Q,dv.getInt16(o+2,true)/Q+s.y,dv.getInt16(o+4,true)/Q].map(x=>Math.round(x*64)).join(',')+':'+dv.getUint8(o+9));}out.push(t.sort().join(';'));}}return out.sort();}
 let seams=0;
 for(const smooth of [true,false])for(const [L,nx,nz] of [[0,0,0],[0,4,-3],[1,-2,2],[2,1,1],[3,0,0],[3,-8,2],[4,-4,1],[5,0,0]]){
   const n=w.node(L,nx,nz,{smooth,props:false}),one=w.node(L,nx,nz,{smooth,props:false,sliceBlocks:1<<20}),thin=w.node(L,nx,nz,{smooth,props:false,sliceBlocks:2});
