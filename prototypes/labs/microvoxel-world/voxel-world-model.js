@@ -2674,7 +2674,7 @@
       if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,fine,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
       const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
       const objects=objectTrees?treeObjectsIn(L,nx,nz,canopy,grounds,G):null;
-      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),rockDetail:L<=2?rockDetail(fine,G,rockColumns(cols,colY0,grounds,P,G),P,L,nx,nz):new Uint8Array(0),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),rockDetail:L<=2?rockDetail(fine,G,rockColumns(cols,colY0,grounds,P,G),P,L,nx,nz):new Uint8Array(0),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome,base):new Uint16Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2876,8 +2876,10 @@
     }
     // Grass tufts for close views, about 24 per square metre on columns whose surface is a blade grass: x, top, z (blocks, node
     // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
-    function grassTufts(L,nx,nz,tops,grounds,P,grassy,G,tint){
-      const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
+    // Packed 8 bytes a tuft (Uint16 x4): x and z in 1/GRASS_Q block across the node, the ground block above the node's
+    // base block, and material*128 + conifer-ness*16 + cover; the shader derives each tuft's variation seed from x, z.
+    function grassTufts(L,nx,nz,tops,grounds,P,grassy,G,tint,base=0){
+      const column=cellMetres*2**L,out=[];if(column>.5)return new Uint16Array(0);
       const per=24*column*column;
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
         // Fewer, shorter tufts toward the edge of a meadow; a few stray ones spill onto the ground beside it. The fourth
@@ -2886,10 +2888,11 @@
         const t=grounds[(j+1)*G+i+1],own=grassy[(j+1)*G+i+1],c=cover(grassy,G,i+1,j+1);if(!t||!own&&(c<.3||tops[j*P+i]!==t))continue;
         const mat=tint[((j-1)*NODE+i-1)*4+2];
         const gx=nx*NODE+i-1,gz=nz*NODE+j-1,n=Math.floor(per*(own?.35+.65*c:c*.35)+hash(gx,gz,seed+L*977+61));
-        for(let q=0;q<n;q++)out.push(i-1+hash(gx,gz,seed+62+q*7),t,j-1+hash(gx,gz,seed+63+q*7),mat*128+Math.round(tint[((j-1)*NODE+i-1)*4]/255*7)*16+Math.floor(c*15)+hash(gx,gz,seed+64+q*7)*.999);
+        const look=mat*128+Math.round(tint[((j-1)*NODE+i-1)*4]/255*7)*16+Math.floor(c*15);
+        for(let q=0;q<n;q++)out.push(Math.round((i-1+hash(gx,gz,seed+62+q*7))*GRASS_Q),Math.max(0,t-base),Math.round((j-1+hash(gx,gz,seed+63+q*7))*GRASS_Q),look);
       }
       // Shuffled by a fixed hash, so drawing any prefix of the list thins the whole tile evenly (the renderer's budget).
-      const order=[...Array(out.length/4).keys()].sort((a,b)=>hash(a,nx*7+nz,seed+91)-hash(b,nx*7+nz,seed+91)),shuffled=new Float32Array(out.length);
+      const order=[...Array(out.length/4).keys()].sort((a,b)=>hash(a,nx*7+nz,seed+91)-hash(b,nx*7+nz,seed+91)),shuffled=new Uint16Array(out.length);
       order.forEach((k,i)=>shuffled.set(out.slice(k*4,k*4+4),i*4));
       return shuffled;
     }
@@ -3121,7 +3124,7 @@
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
   // Packed smooth-terrain vertices: int16 positions in 1/SMOOTH_Q block (±255 blocks), 10 bytes a vertex.
-  const SMOOTH_Q=128,SMOOTH_STRIDE=10;
-  const api={SMOOTH_Q,SMOOTH_STRIDE,STALKS,FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const SMOOTH_Q=128,SMOOTH_STRIDE=10,GRASS_Q=2000;
+  const api={GRASS_Q,SMOOTH_Q,SMOOTH_STRIDE,STALKS,FLOWERS,ABOVE_GROUND,LEAVES,NEEDLES,BARKS,BLADE_GRASS,ROCKS,WARM_ROCKS,CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);

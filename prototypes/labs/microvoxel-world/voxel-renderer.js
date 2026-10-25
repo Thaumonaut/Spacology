@@ -542,7 +542,7 @@
   const grassVertex=`#version 300 es
   precision highp float;
   layout(location=0) in vec3 blade;
-  layout(location=1) in vec4 tuft;
+  layout(location=1) in vec4 tuftIn;
   uniform vec3 origin, scale, patternOrigin, center, lightAt, lightHalf;
   uniform mat3 lightAxes;
   uniform vec2 halfView;
@@ -551,8 +551,12 @@
   out vec2 field, cloudAt;
   out float along, sheen, conifer;
   flat out int bladeMat;
+  // A packed tuft (see the model's grassTufts): x, z in 1/${M.GRASS_Q} block, ground block above the node base, look bits;
+  // the variation seed comes from the tuft's own position.
+  vec4 tuft;
   float rand(float n){return fract(sin(n*91.345+tuft.w*311.7)*43758.5453);}
   void main(){
+    tuft=vec4(tuftIn.x/${M.GRASS_Q}.,tuftIn.y,tuftIn.z/${M.GRASS_Q}.,tuftIn.w+fract(sin(dot(tuftIn.xz,vec2(.12989,.78233)))*43758.5453)*.999);
     float v=blade.y,k=blade.z,seed=fract(tuft.w),cover=mod(floor(tuft.w),16.)/15.;conifer=floor(mod(tuft.w,128.)/16.)/7.;bladeMat=int(tuft.w/128.);
     // Each blade: its own spot in the clump, facing, length and lean.
     float a=rand(k)*6.2832,r=.13*sqrt(rand(k+.5)),h=(.34+.34*rand(k+.25))*grow*(walkView>.5?1.-smoothstep(30.,60.,length(origin+tuft.xyz*scale-eye)):1.)*mix(.35,1.,cover),w=.055+.03*rand(k+.75);
@@ -1699,7 +1703,7 @@ tintBase=palette[mat];crownKey=vec4(0);
     // side relative to the explorer, so no prop vertex or uniform carries kilometres of altitude.
     rebaseProps(mesh){
       const rb=mesh.base||0,rm=rb*(mesh.column||0),shift=(a,stride,k,v)=>{if(a?.length&&v)for(let i=k;i<a.length;i+=stride)a[i]-=v;};
-      shift(mesh.grass,4,1,rb);shift(mesh.flowers,4,1,rb);shift(mesh.leaves,8,1,rb);shift(mesh.stalks,8,1,rb);
+      /* grass arrives relative to the node base already */shift(mesh.flowers,4,1,rb);shift(mesh.leaves,8,1,rb);shift(mesh.stalks,8,1,rb);
       shift(mesh.skirts,8,2,rm);shift(mesh.skirts,8,3,rm);shift(mesh.fronds,8,1,rm);shift(mesh.mushrooms,8,1,rm);
       shift(mesh.treeSegs,12,1,rm);shift(mesh.treeSegs,12,5,rm);shift(mesh.treeLobes,12,1,rm);if(mesh.treeLobes&&rm)for(let i=0;i<mesh.treeLobes.length;i+=12)if(mesh.treeLobes[i+7]<1.5)mesh.treeLobes[i+9]-=rm;shift(mesh.treeTiers,8,2,rm);shift(mesh.treeTiers,8,3,rm);shift(mesh.treeShadows,4,1,rm);
       return {rb,rm};
@@ -1739,7 +1743,7 @@ tintBase=palette[mat];crownKey=vec4(0);
       if(mesh.grass?.length){
         const gvao=gl.createVertexArray(),gbuffer=gl.createBuffer();gl.bindVertexArray(gvao);
         gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.FLOAT,false,12,0);
-        gl.bindBuffer(gl.ARRAY_BUFFER,gbuffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.grass,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,1);
+        gl.bindBuffer(gl.ARRAY_BUFFER,gbuffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.grass,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.UNSIGNED_SHORT,false,8,0);gl.vertexAttribDivisor(1,1);
         out.grass={vao:gvao,buffer:gbuffer,count:mesh.grass.length/4};out.bytes+=mesh.grass.byteLength;
       }
       if(mesh.leaves?.length){
