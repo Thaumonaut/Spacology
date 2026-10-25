@@ -2094,7 +2094,8 @@ tintBase=palette[mat];crownKey=vec4(0);
         gl.drawArrays(gl.TRIANGLES,0,6);
         gl.disable(gl.BLEND);gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.bindVertexArray(null);
       }
-      this.lastError=this.lastError||gl.getError();this.queue.length=0;
+      // getError stalls the CPU on the GPU, so it is sampled about once a second.
+      if(!this.lastError&&(this.errorCheck=(this.errorCheck||0)+1)%60===0)this.lastError=gl.getError();this.queue.length=0;
     }
     actor(a,time,reduced){
       const walk=reduced?0:Math.sin(time*7+a.phase)*.5,y=a.y;this.casting=true;

@@ -40,11 +40,14 @@
   let atmosphereAt=0,atmosphereFrom=null;
   function atmosphere(){
     if(!world.infinite||!renderer)return;
-    const now=performance.now(),q=logical(),x=q.x+camera.x,z=q.z+camera.z,jumped=!atmosphereFrom||Math.hypot(x-atmosphereFrom.x,z-atmosphereFrom.z)>300;
-    if(!jumped&&now-atmosphereAt<500)return;atmosphereAt=now;atmosphereFrom={x,z};
+    // Throttled: these are generator lookups on the main thread, which are slow on unvisited ground. A jump (travel,
+    // reseed) still switches at once, but panning never samples faster than every 0.5 s (map) / 1 s (far).
+    const now=performance.now(),q=logical(),x=q.x+camera.x,z=q.z+camera.z,moved=atmosphereFrom?Math.hypot(x-atmosphereFrom.x,z-atmosphereFrom.z):Infinity,jumped=moved>5000;
+    if(!jumped&&now-atmosphereAt<(camera.mode==='walk'?500:1000))return;atmosphereAt=now;atmosphereFrom={x,z};
     const biomes=[];for(const [dx,dz] of [[0,0],[0,0],[40,0],[-40,0],[0,40],[0,-40]])biomes.push(world.geography(x+dx,z+dz).biome);
     renderer.setAtmosphere(biomes,jumped);
-    // The lowest ground within ~1.5 km (valley floors, lakes), where Walk's fog banks settle.
+    // The lowest ground within ~1.5 km (valley floors, lakes), where Walk's fog banks settle (Walk only).
+    if(camera.mode!=='walk')return;
     let floor=Infinity;for(const r of [0,300,700,1500])for(let k=0;k<(r?8:1);k++){const a=k*Math.PI/4,h=world.ground(x+Math.cos(a)*r,z+Math.sin(a)*r);if(h!==null)floor=Math.min(floor,h);}
     renderer.fogFloor=Number.isFinite(floor)?floor+3:undefined;
   }

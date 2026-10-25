@@ -54,11 +54,23 @@
     // Target nodes at level L that can reach the screen: candidates from the view footprint over the heights the view can
     // show (its depth slab around the view centre, capped by the world's tallest content; the world is 10 km tall), then a
     // projection test against each node's own height range: the exact range of its slices once built, else its bounds.
+    // A node's height bound, computed by the generator on this thread (slow on unvisited ground). Each view update spends
+    // at most ~3 ms on new ones; until a node's turn comes it borrows an ancestor's cached bound (always at least as
+    // high) or the world's content ceiling, so nothing is culled wrongly, only kept a little longer.
+    let boundBudget=0,boundFrame=-1;
+    function bound(L,nx,nz){
+      const c=world.nodeBoundCached?world.nodeBoundCached(L,nx,nz):undefined;if(c!==undefined)return c;
+      if(!world.nodeBoundCached||performance.now()<boundBudget)return world.nodeBound(L,nx,nz);
+      for(let k=L+1;k<=world.maxLevel;k++){const f=2**(k-L),a=world.nodeBoundCached(k,Math.floor(nx/f),Math.floor(nz/f));if(a!==undefined)return a;}
+      return world.contentTop?world.contentTop():world.heightMetres;
+    }
     function compute(L){
+      // One budget per animation frame, however many levels or updates the frame tries.
+      const f=Math.floor(performance.now()/16);if(f!==boundFrame){boundFrame=f;boundBudget=performance.now()+3;}
       const m=world.nodeMetres(L),cy=camera.y??8,reach=renderer.yReach(camera),ceiling=Math.min(world.contentTop?world.contentTop():world.heightMetres,cy+reach),floor=Math.max(0,cy-reach);
       const b=renderer.bounds(camera,Math.max(floor,ceiling),floor),out=[],w=canvas.clientWidth,h=canvas.clientHeight;
       for(let nz=Math.floor((b.minZ+origin.z)/m);nz<=Math.floor((b.maxZ+origin.z)/m);nz++)for(let nx=Math.floor((b.minX+origin.x)/m);nx<=Math.floor((b.maxX+origin.x)/m);nx++){
-        const ox=nx*m-origin.x,oz=nz*m-origin.z,built=cache.items.get(K(L,nx,nz)),top=built?built.hi:world.nodeBound(L,nx,nz),low=built?built.lo:0;let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
+        const ox=nx*m-origin.x,oz=nz*m-origin.z,built=cache.items.get(K(L,nx,nz)),top=built?built.hi:bound(L,nx,nz),low=built?built.lo:0;let x0=Infinity,x1=-Infinity,y0=Infinity,y1=-Infinity;
         if(top<floor||low>ceiling)continue;
         for(const y of [Math.max(low,floor),Math.min(top,ceiling)])for(const z of [oz,oz+m])for(const x of [ox,ox+m]){const p=renderer.project(camera,x,y,z);x0=Math.min(x0,p.x);x1=Math.max(x1,p.x);y0=Math.min(y0,p.y);y1=Math.max(y1,p.y);}
         if(x1<0||x0>w||y1<0||y0>h)continue;
