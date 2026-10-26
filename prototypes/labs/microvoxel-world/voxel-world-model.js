@@ -83,26 +83,40 @@
       return {h,base:base+(relief<0?relief:0),relief,setting,f,cone:0};
     }
     // Stratovolcanoes on the land side of subduction margins and in island arcs: one candidate per 700 m cell, a smooth
-    // cone 110-190 m high with a summit crater. They are part of plate relief, so rivers route around them and they cast
+    // concave cone 110-190 m high with a bowl crater. They are part of plate relief, so rivers route around them and they cast
     // rain shadows; tall cones on high ground are capped softly below the column ceiling.
+    // Eroded gullies score the flanks: ridged noise sampled on a circle around the vent whose radius grows with log
+    // distance, so the pattern is seamless, stretched downslope, gains branches toward the foot, and wanders with a warped
+    // angle (never straight spokes). Gullies fade out at the summit and the foot; their depth is returned so glaciers can
+    // fill them from the smooth cone surface.
     const VG=700,volcanoes=new Map();
     function volcanoCell(i,j){
       const k=i*65536+j;if(volcanoes.has(k))return volcanoes.get(k);let v=null;
       if(hash(i,j,seed+421)<.55){
         const x=(i+.25+.5*hash(i,j,seed+423))*VG,z=(j+.25+.5*hash(i,j,seed+425))*VG;
-        if(Math.hypot(x,z)>400){const p=plateRelief(x,z);if((p.setting==='subduction'||p.setting==='arc')&&p.h>SEA){const H=110+80*hash(i,j,seed+427);v={x,z,H,R:H*2.6};}}
+        if(Math.hypot(x,z)>400){const p=plateRelief(x,z);if((p.setting==='subduction'||p.setting==='arc')&&p.h>SEA){const H=110+80*hash(i,j,seed+427);v={x,z,H,R:H*2.6,k:1.7+1.1*hash(i,j,seed+429),o:hash(i,j,seed+431)*64};}}
       }
       volcanoes.set(k,v);if(volcanoes.size>4096)volcanoes.delete(volcanoes.keys().next().value);return v;
     }
     function tectonics(x,z){
-      const t=plateRelief(x,z),i=Math.floor(x/VG),j=Math.floor(z/VG);let cone=0,vx=0,vz=0;
+      const t=plateRelief(x,z),i=Math.floor(x/VG),j=Math.floor(z/VG);let cone=0,vx=0,vz=0,gully=0;
       for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
         const V=volcanoCell(i+di,j+dj);if(!V)continue;const d=Math.hypot(x-V.x,z-V.z);if(d>=V.R)continue;
-        let c=V.H*(1-d/V.R)**1.8;const crater=V.R*.05;if(d<crater)c-=V.H*.06*(1-d/crater);if(c>cone){cone=c;vx=V.x;vz=V.z;}
+        const crater=V.R*.085,u=d/V.R;let c=V.H*(1-u)**1.8,g=0;
+        if(d<crater){const rim=V.H*(1-crater/V.R)**1.8,q=d/crater;c=rim-V.H*.11*(1-q*q)**.7;}
+        else{
+          const fade=clamp((u-.1)/.12,0,1)*clamp((1-u)/.4,0,1);
+          if(fade>0){
+            const a=Math.atan2(z-V.z,x-V.x)+(noise(x*.006,z*.006,seed+433)-.5)*1.4,rho=V.k*Math.log(1+d/20);
+            const n=noise(V.o+rho*Math.cos(a),rho*Math.sin(a),seed+435),s=1-Math.abs(2*n-1),n2=noise(V.o+2.3*rho*Math.cos(a),2.3*rho*Math.sin(a),seed+437),s2=1-Math.abs(2*n2-1);
+            g=V.H*fade*(.06*s**4+.025*s2**4*clamp((u-.3)/.2,0,1))*(.55+.45*noise(x*.015,z*.015,seed+439));c-=g;
+          }
+        }
+        if(c>cone){cone=c;vx=V.x;vz=V.z;gully=g;}
       }
       if(!cone)return t;
       let h=t.h+cone;if(h>215)h=215+(h-215)*.3;
-      return {...t,h,cone:h-t.h,vx,vz};
+      return {...t,h,cone:h-t.h,vx,vz,gully};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
     const latAngle=hash(seed,13,seed+331)*Math.PI*2,latCos=Math.cos(latAngle),latSin=Math.sin(latAngle),lat0=18+hash(seed,17,seed+333)*34,twist=(hash(seed,19,seed+335)-.5)*.8;
@@ -122,11 +136,16 @@
     }
     // Mountains zone by temperature: montane conifer forest, subalpine parkland, alpine meadow, then snow on all but cliffs.
     // arid: inside one of the few large arid regions; only there does dry ground become desert (elsewhere steppe/savanna).
-    function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,arid=false){
+    // rib: metres the ground stands above the broad landform (positive on ridges and spurs, negative in hollows and gullies).
+    // The snow line drops into hollows and rises over ribs, so snow streaks down gullies and couloirs while spurs show rock;
+    // snow only lies on ground gentler than a cliff (very cold summits hold it a little steeper), and above the snow line
+    // ground that sheds snow is bare rock, not meadow.
+    function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,arid=false,rib=0){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
-        if(T<-3&&!sheer)return 'snow';
-        if(cliff&&T<2)return 'alpine';
+        const line=-3-clamp(rib*.3,-3,2.5);
+        if(T<line&&(!cliff||T<line-4&&!sheer))return 'snow';
+        if(T<line||cliff&&T<2)return 'alpine';
         if(T<-1)return 'meadow';
         if(T<1.5)return 'subalpine';
         if(T<16&&M>.15&&!(wet&&M>.5))return 'montane';
@@ -239,9 +258,14 @@
     }
     // Mountain detail on top of plate relief: squared ridged noise gives sharp arêtes and summits, scaled by how much the plates lift here.
     // Domain-warped so ridgelines wander, and modulated by a broad field so peaks cluster into massifs between lower cols.
-    // Eroded mountain detail: value-noise octaves whose strength fades where the octaves above are already steep
-    // (gradient-damped fBm), so detail collects into branching ridges and V-valleys instead of uniform bumps. The result is
-    // raised to a power so summits sharpen into horns. Volcano flanks get the same detail, weaker, scaled by the cone.
+    // Eroded mountain detail: a ridged multifractal. Each octave is squared ridged noise (sharp crests along the noise's
+    // mid contour), weighted by the octave above so finer spurs branch off existing crests (arêtes) while hollows stay
+    // smooth (cirques, valley heads); strength also fades where the octaves above are already steep (gradient damping).
+    // The result is raised to a power so summits sharpen into horns, and offset so valleys cut below the smooth plate
+    // landform: ranges become peaks, ridges and valleys rather than one dome with bumps. `top` (the plate height) caps
+    // the amplitude by the headroom to the column ceiling, so the highest belts keep pointed summits instead of clamping.
+    // cragLow is the same shape from the first two octaves only: the broad landform a glacier surface follows.
+    // Volcano flanks get the same detail, weaker, scaled by the cone.
     let cragLow=0;
     function noiseD(x,z,k,out){
       const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz),dsx=6*fx*(1-fx),dsz=6*fz*(1-fz);
@@ -249,19 +273,21 @@
       out[0]=a+(b-a)*sx+(c-a)*sz+e*sx*sz;out[1]=dsx*((b-a)+e*sz);out[2]=dsz*((c-a)+e*sx);
     }
     const nd=[0,0,0];
-    function cragAt(x,z,relief,cone=0){
+    function cragAt(x,z,relief,cone=0,top=0){
       const m=Math.max(clamp((relief-6)/50,0,1),clamp(cone/70,0,1)*.6);if(!m){cragLow=0;return 0;}
       const wx=x+(noise(x*.008,z*.008,seed+355)-.5)*50,wz=z+(noise(x*.008,z*.008,seed+357)-.5)*50,massif=.6+.4*noise(x*.004,z*.004,seed+359);
-      let px=wx*.011,pz=wz*.011,sum=0,gx=0,gz=0,amp=1,norm=0;
+      let px=wx*.009,pz=wz*.009,sum=0,gx=0,gz=0,amp=1,norm=0,w=1;
       for(let o=0;o<6;o++){
-        noiseD(px,pz,seed+351+o,nd);gx+=nd[1]*amp;gz+=nd[2]*amp;
-        sum+=amp*nd[0]/(1+gx*gx+gz*gz);norm+=amp;
+        noiseD(px,pz,seed+351+o,nd);
+        const s=1-Math.abs(2*nd[0]-1),r=s*s,k=2*s*amp;gx+=k*nd[1];gz+=k*nd[2];
+        sum+=amp*w*r/(1+.25*(gx*gx+gz*gz));norm+=amp;
         if(o===1)cragLow=sum/norm;
-        amp*=.5;const qx=1.6*px-1.2*pz,qz=1.2*px+1.6*pz;px=qx;pz=qz;
+        w=clamp(r*1.6,.15,1);amp*=.5;const qx=1.6*px-1.2*pz,qz=1.2*px+1.6*pz;px=qx;pz=qz;
       }
-      const f=clamp(sum/norm*1.5-.15,0,1.2),A=Math.max(relief,cone*.55)*.6*m*massif;
-      cragLow=A*clamp(cragLow*1.5-.15,0,1.2)**1.7;
-      return A*f**1.7;
+      const shape=v=>clamp((v-.05)/.6,0,1.3)**1.5-.25;
+      const A=Math.min(Math.max(relief*.85,cone*.2)*m*massif,Math.max(0,(234-top)/1.25));
+      cragLow=A*shape(cragLow);
+      return A*shape(sum/norm);
     }
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
@@ -461,13 +487,14 @@
         const RV=riverAt(x,z),riverDistance=RV.d;
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
-        const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;let h=t.h+bump*(t.h<SEA?.4:1)+crag;
+        const crag=cragAt(x,z,t.relief,t.cone,t.h),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;let h=t.h+bump*(t.h<SEA?.4:1)+crag;
         // Slope of the mountain surface (only where plates lift the land; lowlands are gentle by construction).
-        let slope=0;if(t.relief>12||t.cone>5){const e=1.5,hx=tectonics(x+e,z),hz=tectonics(x,z+e);slope=Math.hypot(hx.h+cragAt(x+e,z,hx.relief,hx.cone)-t.h-crag,hz.h+cragAt(x,z+e,hz.relief,hz.cone)-t.h-crag)/e;}
-        // Glaciers: in cold ground, ice fills hollows up to a smooth surface (plate relief plus a share of the crag), so
+        let slope=0;if(t.relief>12||t.cone>5){const e=1.5,hx=tectonics(x+e,z),hz=tectonics(x,z+e);slope=Math.hypot(hx.h+cragAt(x+e,z,hx.relief,hx.cone,hx.h)-t.h-crag,hz.h+cragAt(x,z+e,hz.relief,hz.cone,hz.h)-t.h-crag)/e;}
+        // Glaciers: in cold ground, ice fills hollows (cirques, valley heads, volcano gullies) up to a smooth surface (plate
+        // relief, the un-gullied cone, plus a share of the crag) sitting 2 m low, so
         // ridges and summits stand out of the ice fields as rock; ice thins out toward the warm margin.
         // Glacier surface follows the broad landform (the first erosion octaves): ice fills cirques and valleys carved below it.
-        const C=climate(x,z),iceTop=t.h+bump+low*.95-1,Tice=C.T-.17*Math.max(0,iceTop-t.h);
+        const C=climate(x,z),iceTop=t.h+(t.gully||0)+bump+low*.95-2,Tice=C.T-.17*Math.max(0,iceTop-t.h);
         let ice=0;if((t.relief>15||t.cone>20)&&Tice<-2&&iceTop>h)ice=(iceTop-h)*clamp((-2-Tice)/3,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
@@ -493,12 +520,12 @@
         iceBase=Math.min(iceBase,h);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
         const lakeWater=RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
-        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,noise(x*.0007,z*.0007,seed+611)>.62);
+        const glacier=!gorge&&!sea&&iceCells>=6,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,noise(x*.0007,z*.0007,seed+611)>.62,crag-low-(t.gully||0)+(noise(x*.05,z*.05,seed+619)-.5)*6);
         const water=sea?Math.round(SEA/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((floor+1)/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
         const rim=lift>0&&!pass&&[[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]].some(([u,v])=>upliftAt(x+u,z+v).up<L.up-1.5);
-        const exposed=gorgeDistance<half+1.5||rim||lift>0&&fault<.9&&ridge>.55||knoll>0||slope>(T>2?1.8:1.4)&&!sea&&biome!=='snow'&&!glacier||slope>1.8&&!sea&&!glacier||biome==='alpine';
+        const exposed=gorgeDistance<half+1.5||rim||lift>0&&fault<.9&&ridge>.55||knoll>0||slope>(T>2?1.8:1.15)&&!sea&&biome!=='snow'&&!glacier||slope>1.8&&!sea&&!glacier||biome==='alpine';
         return {height,riverDistance,riverLevel:floor,riverWidth:RV.w,riverSize:RV.size,spring:RV.spring&&riverDistance<3.4,foam:RV.foam&&riverDistance<3.4&&!gorge,ridge,fault,clearing:0,exposed,wet,slope,
           lift,highland:lift>0,pass,gorge,gorgeDistance,gorgeHalf:half,rock,sea,water,biome,glacier,iceCells:glacier?iceCells:0,cone:t.cone,setting:t.setting,temperature:T,moisture:C.M,relief:t.relief};
       }
