@@ -15,28 +15,33 @@ const KM=12;
 // Real references per style (fetched by fetch-real.cjs). The first is the headline comparison.
 const REFS={alps:['bernese','matterhorn'],cascades:['north-cascades'],rockies:['tetons','front-range'],himalaya:['khumbu'],andes:['cordillera-real'],old:['smokies'],plain:['gallatin']};
 const STYLES=['alps','cascades','rockies','himalaya','andes','old'];
-function world(){const M=require(path.join(__dirname,'../../prototypes/labs/microvoxel-world/voxel-world-model.js'));return M.createWorld(Number(process.env.SEED||2718),.25,'infinite');}
-// Window per style: the range of that style with the most crest above 60% of its peak, centred on the highest 3 km run
-// of its crest, nudged up to 3 km toward the side with more land.
-function windows(w){
+// Worlds by seed (one style's best range may sit on another seed: a single map has one or two of each).
+const SEEDS=(process.env.SEEDS||'2718,1,2,3,4,5,6,7').split(',').map(Number),worlds=new Map();
+function world(seed=2718){if(!worlds.has(seed)){const M=require(path.join(__dirname,'../../prototypes/labs/microvoxel-world/voxel-world-model.js'));worlds.set(seed,M.createWorld(seed,.25,'infinite'));}return worlds.get(seed);}
+// Windows: per style, the best-scoring window over the seeds in SEEDS (see below); the open basin on seed 2718.
+function windows(){const out={},score={};
+  for(const seed of SEEDS){const o=windowsOf(world(seed),seed);for(const [st,A] of Object.entries(o))if(st!=='plain'&&!(score[st]>=A.score)){score[st]=A.score;out[st]=A;}if(seed===2718&&o.plain)out.plain=o.plain;}
+  return out;
+}
+function windowsOf(w,seed){
   // Window tests use the macro map (fast; no drainage bakes). A window scores mountain samples whose baked style is that
   // style's (within 0.15 on age, glac, dis, basin), a little for dry lowland; candidates are crest points of the ranges of
   // that style, nudged up to 1.5 km across.
   const out={},MM=w.macro,q={},S=require(path.join(__dirname,'../../prototypes/labs/microvoxel-world/macro-map.js')).RANGE_STYLES;
   const dry=(x,z)=>{MM.at(x,z,q);return q.land&&q.lake<0&&q.m>15&&MM.volcanoes.every(v=>Math.hypot(x-v.x,z-v.z)>v.H*2.2);};
   for(const st of STYLES){const P=S[st];let best=null,bs=-1;
-    const pure=()=>Math.abs(q.age-P.age)<.15&&Math.abs(q.glac-P.glac)<.15&&Math.abs(q.dis-P.dis)<.15&&Math.abs(q.basin-P.basin)<.15;
+    const pure=()=>Math.abs(q.age-P.age)<.15&&Math.abs(q.glac-P.glac)<.15&&Math.abs(q.dis-P.dis)<.15&&Math.abs(q.basin-P.basin)<.15&&Math.abs(q.pyr-P.pyr)<.15;
     for(const r of MM.ranges){if(r.style!==st||r.kind==='home')continue;
       for(let v=0;v<r.x.length;v+=4)for(const off of [-1500,0,1500]){const j=Math.min(r.x.length-1,v+1),i0=Math.max(0,v-1),ex=r.x[j]-r.x[i0],ez=r.z[j]-r.z[i0],L=Math.hypot(ex,ez)||1,cx=r.x[v]-ez/L*off,cz=r.z[v]+ex/L*off;
         let sc=0;for(let b=-6;b<=6;b++)for(let a=-6;a<=6;a++){const x=cx+a*KM*1000/13,z=cz+b*KM*1000/13;if(!dry(x,z))continue;sc+=q.rc>40&&pure()?1+q.rc/400:.15;}
         if(sc>bs){bs=sc;best={x:cx,z:cz,r};}}}
-    if(best)out[st]={name:'style-'+st,label:`Ours: ${st} (${best.r.kind}, H ${Math.round(best.r.height)} m)`,kind:st,x:Math.round(best.x),z:Math.round(best.z),km:KM};}
+    if(best)out[st]={name:'style-'+st,label:`Ours: ${st} (seed ${seed}, ${best.r.kind}, H ${Math.round(best.r.height)} m)`,kind:st,seed,score:Math.round(bs),x:Math.round(best.x),z:Math.round(best.z),km:KM};}
   // Open basin: the 4 km window with the most land whose macro relief within +-1 km is under 50 m.
   const G=250,X0=-16000,Z0=-11000,NX=129,NZ=89,m=new Float32Array(NX*NZ),ld=new Uint8Array(NX*NZ),flat=new Uint8Array(NX*NZ);
   for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){ld[j*NX+i]=dry(X0+i*G,Z0+j*G)?1:0;m[j*NX+i]=q.m;}
   for(let j=4;j<NZ-4;j++)for(let i=4;i<NX-4;i++){if(!ld[j*NX+i])continue;let lo=1e9,hi=-1e9;for(let b=-4;b<=4;b++)for(let a=-4;a<=4;a++){const o=(j+b)*NX+i+a;if(ld[o]){lo=Math.min(lo,m[o]);hi=Math.max(hi,m[o]);}}if(hi-lo<50)flat[j*NX+i]=1;}
   let bp=null,bn=-1;for(let j=8;j<NZ-8;j+=2)for(let i=8;i<NX-8;i+=2){let c=0;for(let b=-8;b<=8;b++)for(let a=-8;a<=8;a++)c+=flat[(j+b)*NX+i+a];if(c>bn){bn=c;bp=[X0+i*G,Z0+j*G];}}
-  if(bp)out.plain={name:'style-plain',label:`Ours: open basin (${Math.round(bn/289*100)}% of it under 50 m macro relief)`,kind:'plain',x:bp[0],z:bp[1],km:4};
+  if(bp)out.plain={name:'style-plain',seed,label:`Ours: open basin (${Math.round(bn/289*100)}% of it under 50 m macro relief)`,kind:'plain',x:bp[0],z:bp[1],km:4};
   return out;
 }
 function styleMask(w,A,n,step){const half=(n-1)/2*step;
@@ -44,7 +49,8 @@ function styleMask(w,A,n,step){const half=(n-1)/2*step;
   // on a 120 m grid) has another style (left out of the metrics and summit picks), -1 on this style's own mountain ground
   // (the metrics' range mask), 0 elsewhere.
   const other=new Float32Array(n*n),q={},C=4,dom=(x,z)=>{let best=0,st=null;for(const r of w.macro.ranges)for(let v=0;v<r.x.length;v++){const d=Math.hypot(x-r.x[v],z-r.z[v]),e=r.H[v]*(1-d/(2*r.w[v]));if(e>best){best=e;st=r.style;}}return st;};
-  if(A.kind!=='plain')for(let j=0;j<n;j+=C)for(let i=0;i<n;i+=C){const x=A.x-half+(i+C/2)*step,z=A.z-half+(j+C/2)*step;w.macro.at(x,z,q);if(q.rc<=20)continue;const st=dom(x,z);
+  // The open-basin window marks all mountain ground as other.
+  for(let j=0;j<n;j+=C)for(let i=0;i<n;i+=C){const x=A.x-half+(i+C/2)*step,z=A.z-half+(j+C/2)*step;w.macro.at(x,z,q);if(q.rc<=20)continue;const st=A.kind==='plain'?'mountain':dom(x,z);
     for(let b=j;b<Math.min(n,j+C);b++)for(let a=i;a<Math.min(n,i+C);a++)other[b*n+a]=st&&st!==A.kind?1:-1;}
   fs.writeFileSync(path.join(GRIDS,A.name+'.other.f32'),Buffer.from(other.buffer));
 }
@@ -57,7 +63,7 @@ function sample(w,A){
     g[j*n+i]=sum/(SS*SS);cone[j*n+i]=q.cone||0;relief[j*n+i]=q.relief||0;open[j*n+i]=q.open??-1;}
   styleMask(w,A,n,step);
   for(const [k,v] of [['',g],['.cone',cone],['.relief',relief],['.open',open]])fs.writeFileSync(path.join(GRIDS,A.name+k+'.f32'),Buffer.from(v.buffer));
-  fs.writeFileSync(path.join(GRIDS,A.name+'.json'),JSON.stringify({...A,n,step,source:`generator ${w.revision} seed 2718, ${SS}x${SS} sub-samples per pixel`,sea:14.5}));
+  fs.writeFileSync(path.join(GRIDS,A.name+'.json'),JSON.stringify({...A,n,step,source:`generator ${w.revision} seed ${A.seed||2718}, ${SS}x${SS} sub-samples per pixel`,sea:14.5}));
   console.log(A.name,n+'x'+n,((Date.now()-t0)/1000).toFixed(1)+'s');
 }
 // Crest sharpness: on divide cells (single-cell catchment, slope > 15 degrees), the curvature across the crest at the
@@ -71,7 +77,7 @@ function metrics(name,ours){
   const g=G.load(name),{n,h}=g,cm=new Uint8Array(n*n);
   const oth=ours?G.extra(name,'other'):null;
   // Ours: only this style's own range ground (oth -1) off the cones; real windows are all range.
-  if(ours&&g.cone)for(let k=0;k<n*n;k++)if(g.cone[k]>5&&g.cone[k]>g.relief[k]||oth&&oth[k]>=0&&g.kind!=='plain')cm[k]=1;
+  if(ours&&g.cone)for(let k=0;k<n*n;k++)if(g.cone[k]>5&&g.cone[k]>g.relief[k]||oth&&(g.kind==='plain'?oth[k]>0:oth[k]>=0))cm[k]=1;
   const mask=ours?k=>h[k]>14.5&&!cm[k]:()=>true,S=X.slopes(g),D=X.drainage(g,mask),LR=X.localRelief(g),mtn=k=>mask(k)&&LR[k]>=300;
   let ms=0,land=0;for(let k=0;k<n*n;k++){if(mtn(k))ms++;if(mask(k))land++;}
   const sm=ms>.02*n*n?X.slopeStats(g,S,mtn):null,hm=ms>.02*n*n?X.hypsometry(g,mtn):null,c=X.curvature(g,mask,S,D),pk=X.peaks(g,mask),hy=X.hypsometry(g,mask);
@@ -84,9 +90,9 @@ const [cmd='all',...want]=process.argv.slice(2),sel=s=>!want.length||want.includ
 fs.mkdirSync(OUT,{recursive:true});
 const winFile=path.join(DATA,'style-windows.json');
 let W=null;
-if(cmd==='mask'){const w=world();W=JSON.parse(fs.readFileSync(winFile,'utf8'));for(const [st,A] of Object.entries(W))if(sel(st)){const g=G.load(A.name);styleMask(w,A,g.n,g.step);}}
-if(cmd==='list'||cmd==='sample'||cmd==='all'){const w=world();W=windows(w);fs.writeFileSync(winFile,JSON.stringify(W,null,1));console.log(JSON.stringify(W,null,1));
-  if(cmd!=='list')for(const [st,A] of Object.entries(W))if(sel(st))sample(w,A);}
+if(cmd==='mask'){W=JSON.parse(fs.readFileSync(winFile,'utf8'));for(const [st,A] of Object.entries(W))if(sel(st)){const g=G.load(A.name);styleMask(world(A.seed),A,g.n,g.step);}}
+if(cmd==='list'||cmd==='sample'||cmd==='all'){W=windows();fs.writeFileSync(winFile,JSON.stringify(W,null,1));console.log(JSON.stringify(W,null,1));
+  if(cmd!=='list')for(const [st,A] of Object.entries(W))if(sel(st))sample(world(A.seed),A);}
 else if(!W)W=JSON.parse(fs.readFileSync(winFile,'utf8'));
 if(cmd==='analyze'||cmd==='all'){
   const file=path.join(OUT,'metrics.json'),res=fs.existsSync(file)?JSON.parse(fs.readFileSync(file,'utf8')):{};
@@ -106,8 +112,8 @@ if(cmd==='render'||cmd==='all'){
     const img=G.grey(G.sideBySide(list.map(([n])=>panel(n))));const bytes=G.writePNG(path.join(OUT,st+'.png'),img);console.log(st+'.png',img.w+'x'+img.h,(bytes/1024).toFixed(0)+' KB');}
 }
 
-if(cmd==='closeup'){const w=world();
-  for(const st of STYLES){if(!sel(st)||!W[st])continue;const g=G.load(W[st].name),{n,step,h}=g,half=(n-1)/2*step,oth=G.extra(W[st].name,'other');let bk=-1,bh=-1e9;
+if(cmd==='closeup'){
+  for(const st of STYLES){if(!sel(st)||!W[st])continue;const w=world(W[st].seed);const g=G.load(W[st].name),{n,step,h}=g,half=(n-1)/2*step,oth=G.extra(W[st].name,'other');let bk=-1,bh=-1e9;
     for(let k=0;k<n*n;k++){const i=k%n,j=(k/n)|0;if(i<50||j<50||i>n-50||j>n-50)continue;if(g.cone&&g.cone[k]>5&&g.cone[k]>g.relief[k]||oth&&oth[k]>0)continue;if(h[k]>bh){bh=h[k];bk=k;}}
     const cx=W[st].x-half+(bk%n)*step,cz=W[st].z-half+((bk/n)|0)*step,KMc=3,st2=7.5,m=Math.round(KMc*1000/st2),hh=new Float32Array(m*m),hm=(m-1)/2*st2;
     for(let j=0;j<m;j++)for(let i=0;i<m;i++){const r=w.geography((Math.floor((cx-hm+i*st2)/w.cell)+.5)*w.cell,(Math.floor((cz-hm+j*st2)/w.cell)+.5)*w.cell);hh[j*m+i]=Math.max(r.height,r.water||0)*w.cell;}
@@ -121,14 +127,14 @@ if(cmd==='closeup'){const w=world();
 // point of the style's own range ground in the window. Eye: 1.7 m above dry ground on a circle around it (ours 2-3.2 km,
 // real 2.5x that: real ranges are ~2.5x bigger), in the direction where nothing between eye and summit blocks the
 // view (the least obstruction above the sight line), lower ground preferred.
-if(cmd==='view'){const w=world(),V=require('./view.cjs');
+if(cmd==='view'){const V=require('./view.cjs');
   const topOf=(g,ok)=>{const {n,step,h}=g,half=(n-1)/2*step;let bk=-1,bh=-1e9;for(let k=0;k<n*n;k++){const i=k%n,j=(k/n)|0;if(i<n/8||j<n/8||i>n*7/8||j>n*7/8||!ok(k))continue;if(h[k]>bh){bh=h[k];bk=k;}}return {x:(bk%n)*step-half,z:((bk/n)|0)*step-half,h:bh};};
   const eyeFor=(H,dry,pk,Ds)=>{let best=null;for(const D of Ds)for(let a=0;a<48;a++){const dx=Math.cos(a/48*Math.PI*2),dz=Math.sin(a/48*Math.PI*2),ex=pk.x+dx*D,ez=pk.z+dz*D,eh=H(ex,ez);if(!(eh===eh)||!dry(ex,ez))continue;
       let ob=0;for(let t=.04;t<.96;t+=.02){const hh=H(ex-dx*D*t,ez-dz*D*t),line=eh+1.7+(pk.h-eh-1.7)*t;if(hh===hh)ob=Math.max(ob,(hh-line)/(D*t));}
       const sc=ob*20+(eh-pk.h*.0)/(pk.h+1)*.3;if(!best||sc<best.sc)best={x:ex,z:ez,h:eh,sc};}return best;};
   const frame=(G,P)=>{const dx=P.peak.x-P.eye.x,dz=P.peak.z-P.eye.z,D=Math.hypot(dx,dz),yaw=Math.atan2(dx,dz),pitch=Math.atan((P.peak.h-P.eye.h)/D)*.7;
     return V.render(G,{x:P.eye.x,z:P.eye.z,y:P.eye.h+1.7},yaw,{pitch,far:Math.max(7000,D*2.6),sea:G.sea});};
-  for(const st of STYLES){if(!sel(st)||!W[st])continue;
+  for(const st of STYLES){if(!sel(st)||!W[st])continue;const w=world(W[st].seed);
     const g=G.load(W[st].name),oth=G.extra(W[st].name,'other'),own=k=>g.h[k]>15&&!(g.cone&&g.cone[k]>5&&g.cone[k]>g.relief[k])&&oth&&oth[k]<0;
     const pk=topOf(g,own),geo=(x,z)=>w.geography(W[st].x+x,W[st].z+z),Hs=(x,z)=>{const r=geo(x,z);return Math.max(r.height,r.water||0)*w.cell;};
     const eye=eyeFor(Hs,(x,z)=>{const r=geo(x,z);return !r.sea&&!r.water&&r.cone<5;},pk,[2000,2600,3200]);if(!eye){console.log(st,'no eye');continue;}
