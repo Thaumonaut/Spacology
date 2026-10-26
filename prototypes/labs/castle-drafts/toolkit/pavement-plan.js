@@ -4,7 +4,7 @@
   'use strict';
   const EPS=1e-6,snap=x=>Math.round(x/EPS)*EPS;
   function source(part,priority=0){
-    if(part.t==='box')return {part,priority,role:part.role,x0:part.x-part.w/2,x1:part.x+part.w/2,z0:part.z-part.d/2,z1:part.z+part.d/2,height:()=>part.y+part.h};
+    if(part.t==='box'){const c=Math.abs(Math.cos(part.rot||0)),s=Math.abs(Math.sin(part.rot||0));if(c>EPS&&s>EPS)throw Error('Paving box must be axis aligned');const w=c*part.w+s*part.d,d=s*part.w+c*part.d;return {part,priority,role:part.role,x0:part.x-w/2,x1:part.x+w/2,z0:part.z-d/2,z1:part.z+d/2,height:()=>part.y+part.h};}
     if(part.t!=='ramp')throw Error('Pavement sources must be boxes or axis-aligned ramps');
     const dx=part.x1-part.x0,dz=part.z1-part.z0;
     if(Math.abs(dx)>EPS&&Math.abs(dz)>EPS)throw Error('Pavement source is not axis aligned');

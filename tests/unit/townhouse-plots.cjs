@@ -1,0 +1,12 @@
+'use strict';
+const assert=require('node:assert/strict'),P=require('../../prototypes/labs/castle-drafts/toolkit/shape-study/plot-plan.js'),T=require('../../prototypes/labs/castle-drafts/toolkit/shape-study/trim-plan.js');
+for(const plot of Object.keys(P.PLOTS))for(const form of Object.keys(P.FORMS))for(const width of [5,9])for(const character of ['grounded','whimsical']){
+ const p=P.make({plot,form,width,character,storeys:2});assert(p.frontages.length>0);for(const f of p.floors){assert.equal(f.loops.length,1,'connected '+plot+' '+form);for(const loop of f.loops){assert(T.ring(loop,f.y,.16).every(Number.isFinite));for(const v of loop)for(let i=0;i<p.legal.length;i++){const a=p.legal[i],b=p.legal[(i+1)%p.legal.length];assert((b[0]-a[0])*(v[1]-a[1])-(b[1]-a[1])*(v[0]-a[0])>=-1e-6,'footprint within '+plot+' clearance');}}assert(f.parts.some(part=>P.inside([p.stair.x+.9,p.stair.z+1.4],part.poly)));}
+ const ground=p.floors[0],d=p.door;assert(ground.edges.some(e=>{const dx=e.b[0]-e.a[0],dz=e.b[1]-e.a[1],len=Math.hypot(dx,dz),t=((d.x-e.a[0])*dx+(d.z-e.a[1])*dz)/(len*len);return Math.abs((d.x-e.a[0])*dz-(d.z-e.a[1])*dx)<1e-6&&t*len>=d.width/2-1e-6&&(1-t)*len>=d.width/2-1e-6;}),'full entrance fits exposed edge');
+ const [a,b]=p.access.path;for(let k=1;k<20;k++){const t=k/20,q=[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];assert(!ground.parts.some(part=>P.inside(q,part.poly)),'approach is clear');}
+ if(plot==='alley')assert.equal(p.access.frontage,'Alley entrance');if(plot==='through')assert.equal(p.frontages.length,2);
+}
+assert.equal(new Set(Object.keys(P.PLOTS).map(plot=>JSON.stringify(P.make({plot}).parcel))).size,7,'through plot shares geometry but has a second frontage');
+console.log('PASS eight plot contexts: connected clipping, access routes, full door clearance, alley orientation and timber');
+
+for(const plot of ['through','corner','alley']){const p=P.make({plot,character:'whimsical',density:'packed',streetProjection:.8,storeys:3}),top=p.floors[2];for(const street of p.frontages){const dx=street.b[0]-street.a[0],dz=street.b[1]-street.a[1],len=Math.hypot(dx,dz),signed=v=>(dx*(v[1]-street.a[1])-dz*(v[0]-street.a[0]))/len;assert(Math.min(...top.loops.flat().map(signed))<-Math.min(.8,Math.max(.15,street.roadWidth/2-.3))+.01,'upper floor projects over '+street.label);assert(p.floors.slice(0,2).every(f=>f.loops.flat().every(v=>signed(v)>=.34)),'lower street stays open');}}

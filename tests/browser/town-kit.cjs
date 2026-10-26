@@ -19,6 +19,6 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict');
  await p.keyboard.press('Escape');assert.equal(await p.evaluate(()=>TownKitDemo.cam.fp),null);
  await p.locator('#menu').click();await p.locator('#reset').click();
  await p.setViewportSize({width:390,height:844});await p.waitForFunction(()=>document.querySelector('canvas').width===390);
- await p.setViewportSize({width:1280,height:900});await p.selectOption('#preset','city');const city=await p.evaluate(()=>({n:TownKitDemo.scene.buildings.length,error:TownKitDemo.renderer.gl.getError(),tris:TownKitDemo.renderer.stats.tris}));assert.equal(city.n,224);assert.equal(city.error,0);assert(city.tris>500000);assert.deepEqual(errors,[]);
+ await p.setViewportSize({width:1280,height:900});await p.selectOption('#preset','city');const city=await p.evaluate(()=>({n:TownKitDemo.scene.buildings.length,error:TownKitDemo.renderer.gl.getError(),tris:TownKitDemo.renderer.stats.tris,edges:TownKitDemo.scene.sidewalk.rows.length,roadWidth:TownKitDemo.scene.sidewalk.carriagewayWidth}));assert.equal(city.edges,32);assert(city.roadWidth>=4);assert.equal(city.n,224);assert.equal(city.error,0);assert(city.tris>500000);assert.deepEqual(errors,[]);
  console.log('PASS toolkit browser: imported assets, framebuffer size, incline/stair rebuild, sockets, both lights, uphill walking, exit/reset, mobile resize; no WebGL errors');
 }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

@@ -11,4 +11,4 @@ No Unity packages or purchased assets are bundled.
 
 Other candidates (not bundled):
 - Quaternius Medieval Village: https://quaternius.com/packs/medievalvillage.html (CC0)
-- Quaternius Medieval Village MegaKit: https://quaternius.com/packs/medievalvillagemegakit.html (free subset, CC0)
+- Quaternius Medieval Village MegaKit is now used separately by the room-first comparison: see `../room-compare/assets/SOURCES.md` for its selected free CC0 modules.

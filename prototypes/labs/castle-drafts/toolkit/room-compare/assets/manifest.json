@@ -1,0 +1,148 @@
+{
+  "source": "https://quaternius.com/packs/medievalvillagemegakit.html",
+  "download": "https://quaternius.itch.io/medieval-village-megakit",
+  "license": "CC0-1.0",
+  "downloaded": "2026-10-25",
+  "models": {
+    "Wall_Plaster_Straight": {
+      "min": [
+        -1.0,
+        -0.002096,
+        -0.314035
+      ],
+      "max": [
+        1.0,
+        3.122689,
+        0.092447
+      ]
+    },
+    "Wall_Plaster_Door_Flat": {
+      "min": [
+        -1.0,
+        0.0,
+        -0.314035
+      ],
+      "max": [
+        1.0,
+        3.122689,
+        0.092447
+      ]
+    },
+    "Wall_Plaster_Window_Wide_Flat": {
+      "min": [
+        -1.0,
+        0.0,
+        -0.314035
+      ],
+      "max": [
+        1.0,
+        3.122689,
+        0.092447
+      ]
+    },
+    "Wall_Plaster_Window_Thin_Round": {
+      "min": [
+        -1.0,
+        0.0,
+        -0.314035
+      ],
+      "max": [
+        1.0,
+        3.122689,
+        0.092447
+      ]
+    },
+    "Floor_WoodDark": {
+      "min": [
+        -1.0,
+        -0.01,
+        -1.0
+      ],
+      "max": [
+        1.0,
+        0.01,
+        1.0
+      ]
+    },
+    "Roof_RoundTiles_6x4": {
+      "min": [
+        -4.124892,
+        -0.782127,
+        -0.138202
+      ],
+      "max": [
+        4.124892,
+        4.890045,
+        4.853986
+      ]
+    },
+    "Roof_RoundTiles_6x8": {
+      "min": [
+        -4.124892,
+        -0.782127,
+        -4.828753
+      ],
+      "max": [
+        4.124892,
+        4.890045,
+        4.853986
+      ]
+    },
+    "Roof_RoundTiles_4x4": {
+      "min": [
+        -2.756538,
+        -0.515719,
+        -2.739908
+      ],
+      "max": [
+        2.756538,
+        3.733674,
+        2.821567
+      ]
+    },
+    "Roof_Front_Brick6": {
+      "min": [
+        -3.346518,
+        -0.131802,
+        -0.334964
+      ],
+      "max": [
+        3.347877,
+        4.383982,
+        0.79414
+      ]
+    },
+    "Roof_Front_Brick4": {
+      "min": [
+        -2.183807,
+        -0.131802,
+        -0.334964
+      ],
+      "max": [
+        2.215996,
+        2.936703,
+        0.79414
+      ]
+    },
+    "Prop_Crate": {
+      "min": [
+        -0.541791,
+        0.003362,
+        -0.541791
+      ],
+      "max": [
+        0.541791,
+        1.062942,
+        0.541791
+      ]
+    }
+  },
+  "textures": [
+    "T_Brick_BaseColor.png",
+    "T_Plaster_BaseColor.png",
+    "T_RockTrim_BaseColor.png",
+    "T_RoundTiles_BaseColor.png",
+    "T_WoodTrim_BaseColor.png"
+  ],
+  "sourceArchiveSHA256": "e60dea67c10f30dccccfbff92a7933f5ea5cfe99be0e2a0fa5118cceabeec5c4"
+}

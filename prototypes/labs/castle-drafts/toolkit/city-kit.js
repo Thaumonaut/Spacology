@@ -1,5 +1,5 @@
 // Dense, level city-scale assembly of the full-detail building kit.
-(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./town-kit.js'),require('./pavement-plan.js'));else root.TownKitCity=factory(root.TownKit,root.PavementPlan);})(this,function(K,P){
+(function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory(require('./town-kit.js'),require('./pavement-plan.js'),require('./street-edges.js'));else root.TownKitCity=factory(root.TownKit,root.PavementPlan,root.StreetEdges);})(this,function(K,P,Edges){
 'use strict';
 function build({grade=0}={}){
  if(!Number.isFinite(grade)||Math.abs(grade)>.2)throw Error("City grade must be between -0.2 and 0.2");
@@ -19,10 +19,10 @@ function build({grade=0}={}){
     const variant=variants[i],type=K.TYPES[variant],w=type.w*available/weight,d=Math.min(type.d,10),xx=cursor+w/2;cursor+=w+gap;
     const rot=side?0:Math.PI,localZ=side?bd/2-d/2:-bd/2+d/2,front=side?1:-1;
     const isBridge=(bx===1||bx===2)&&((side===1&&bz<2)||(side===0&&bz>0&&bz<=2))&&i===bridgeIndex;
-    const bayCount=Math.round(w/3),firstBay=-w/2+w/bayCount/2,doorLocalX=variant==='warehouse'?0:variant==='pub'?-w/2+(Math.floor(bayCount/2)+.5)*w/bayCount:firstBay,recess=variant==='galleryHouse'?.65:variant==='undercroftHouse'?2.2:variant==='smithy'?2.5:0,frontZ=cz+localZ+front*(d/2+.17-recess),datum=ground(cx+xx+front*doorLocalX,frontZ)+.16,localGround=(u,v)=>ground(cx+xx+front*u,cz+localZ+front*v),localStreet=u=>ground(cx+xx+front*u,frontZ);
+    const bayCount=Math.round(w/3),firstBay=-w/2+w/bayCount/2,doorLocalX=variant==='warehouse'?0:variant==='pub'?-w/2+(Math.floor(bayCount/2)+.5)*w/bayCount:firstBay,recess=variant==='galleryHouse'?.65:variant==='undercroftHouse'?2.2:variant==='smithy'?2.5:0,frontZ=cz+localZ+front*(d/2+.17-recess),datum=ground(cx+xx+front*doorLocalX,frontZ)+.28,localGround=(u,v)=>ground(cx+xx+front*u,cz+localZ+front*v),localStreet=u=>ground(cx+xx+front*u,frontZ)+.28;
     const b=K.building({...type,id:`city-${bx}-${bz}-${side}-${i}`,variant,bridgeDoor:isBridge,x:0,z:0,w,d,floor:datum,ground:localGround,streetHeight:localStreet,partyLeft:i>0,partyRight:i<6,roofCol:[[.34,.4,.4],[.43,.29,.24],[.31,.4,.33],[.29,.34,.43]][(bx+bz+i)%4]});
     if((bx+bz+i)%3===0)b.parts.push(...K.greenery(b,{density:.65}).parts);
-    const owned=[],rest=[];for(const p of b.parts){const priority={'work-yard':50,'ground-floor-frame':60,'ground-floor':70,'door-threshold':100}[p.role];if(p.role==='display-pad')continue;if(priority!=null)owned.push(P.source(p,priority));else rest.push(p);}
+    const owned=[],rest=[];for(const p of b.parts){const priority={'work-yard':50,'ground-floor-frame':60,'ground-floor':70,'door-threshold':100,'display-pad':40}[p.role];if(priority!=null)owned.push(P.source(p,priority));else rest.push(p);}
     if(owned.length)rest.push(...P.build(owned,localGround).parts);
     // Convert patches explicitly: the normal component transform handles primitive parts.
     const converted=rest.map(p=>{if(p.t!=='surfacePatch')return K.transform([p],cx+xx,0,cz+localZ,rot)[0];const q={...p};if(side){q.x0+=cx+xx;q.x1+=cx+xx;q.z0+=cz+localZ;q.z1+=cz+localZ;}else{q.x0=cx+xx-p.x1;q.x1=cx+xx-p.x0;q.z0=cz+localZ-p.z1;q.z1=cz+localZ-p.z0;q.heights=[p.heights[2],p.heights[3],p.heights[0],p.heights[1]];q.skirts=p.skirts.map(s=>({...s,edge:(s.edge+2)%4}));}return q;});
@@ -32,6 +32,9 @@ function build({grade=0}={}){
    }block.rows.push(row);
   }
  }
+ const sidewalk=Edges.build({blocks,buildings,parts,ground});parts.splice(0,parts.length,...sidewalk.parts);
+ for(const b of buildings)for(const p of b.parts)if(['gallery-post','work-post'].includes(p.role)){const base=sidewalk.heightAt(p.x,p.z);p.h+=p.y-base;p.y=base;}
+ for(const c of connections){const b=buildings.find(b=>b.id===c.building),block=blocks.find(q=>q.rows.flat().includes(b.id)),sign=b.footprint.z<block.z?-1:1,z=block.z+sign*(block.d/2+2.35);c.sockets.street={x:c.sockets.door.x,y:ground(c.sockets.door.x,z),z};}
  const bridges=[];
  for(const block of blocks.filter(q=>(q.x===-25||q.x===25)&&q.z<16)){
    const next=blocks.find(q=>q.x===block.x&&q.z===block.z+pitchZ);if(!next)continue;
@@ -39,8 +42,8 @@ function build({grade=0}={}){
    const span=K.bridge({a:a.sockets.upperDoor1,b:b.sockets.upperDoor1,y:a.sockets.upperDoor1.y,y1:b.sockets.upperDoor1.y});parts.push(...span.parts);bridges.push(span);
  }
  // Props stay at the facade edges; the middle of every street stays open.
- for(let i=0;i<buildings.length;i+=3){const b=buildings[i],f=b.footprint,block=blocks.find(q=>q.rows.flat().includes(b.id)),sign=f.z<block.z?-1:1,px=f.x+f.w*.35,pz=f.z+sign*(f.d/2+.65);if(Math.abs(px-b.sockets.door.x)<1.3)continue;
-   parts.push({t:'box',x:px,y:ground(px,pz),z:pz,w:.65,h:.6,d:.65,col:K.M.timber,pat:6,role:'street-crate'}, {t:'cyl',x:px+.6,y:ground(px+.6,pz),z:pz,r:.23,h:.65,col:[.4,.29,.17],pat:6,role:'street-barrel'});
+ for(let i=0;i<buildings.length;i+=3){const b=buildings[i],f=b.footprint,block=blocks.find(q=>q.rows.flat().includes(b.id)),sign=f.z<block.z?-1:1,px=f.x+f.w*.35,pz=f.z+sign*(f.d/2+.65);if(Math.min(Math.abs(px-b.sockets.door.x),Math.abs(px+.6-b.sockets.door.x))<1.4)continue;
+   parts.push({t:'box',x:px,y:sidewalk.heightAt(px,pz),z:pz,w:.65,h:.6,d:.65,col:K.M.timber,pat:6,role:'street-crate'}, {t:'cyl',x:px+.6,y:sidewalk.heightAt(px+.6,pz),z:pz,r:.23,h:.65,col:[.4,.29,.17],pat:6,role:'street-barrel'});
  }
  const strings=[];
  for(const block of blocks.filter(q=>q.z<48)){
@@ -52,7 +55,7 @@ function build({grade=0}={}){
    strings.push({a:A,b:B,clearance:3.41});
  }
 
- return {parts,buildings,blocks,bridges,strings,connections,placements,ground,grade,preset:'city',terraced:Math.abs(grade)>.1,bounds:{cx:0,cz:0,r:125,h:26+Math.abs(grade)*100},spawn:{x:-extentX+3,z:-extentZ+4,y:ground(-extentX+3,-extentZ+4)+.16,yaw:Math.PI/2},coverage:{blocks:16,frontageSlots:224,occupiedSlots:buildings.length,gap:.18}};
+ return {parts,buildings,blocks,sidewalk,bridges,strings,connections,placements,ground,grade,preset:'city',terraced:Math.abs(grade)>.1,bounds:{cx:0,cz:0,r:125,h:26+Math.abs(grade)*100},spawn:{x:-extentX+3,z:-extentZ+4,y:ground(-extentX+3,-extentZ+4)+.16,yaw:Math.PI/2},coverage:{blocks:16,frontageSlots:224,occupiedSlots:buildings.length,gap:.18}};
 }
 return {build};
 });

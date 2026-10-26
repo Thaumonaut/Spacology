@@ -110,7 +110,7 @@ console.log('PASS single-owner paving with exposed risers, varied slum/market sh
  const byId=new Map(city.buildings.map(b=>[b.id,b]));
  for(const block of city.blocks)for(const row of block.rows){const fs=row.map(id=>byId.get(id).footprint);assert(Math.abs(fs[0].x-fs[0].w/2-(block.x-block.w/2))<1e-6);assert(Math.abs(fs.at(-1).x+fs.at(-1).w/2-(block.x+block.w/2))<1e-6);for(let i=1;i<fs.length;i++)assert(Math.abs(fs[i].x-fs[i].w/2-fs[i-1].x-fs[i-1].w/2-.18)<1e-6,'no unfilled frontage slots');}
  const mesh=context.window.CastleRender.meshParts(city.parts,C.PALETTES[0]);assert(mesh.p.every(Number.isFinite));const col=new context.window.CastleWalk.Collider(mesh);
- for(const c of city.connections){const a=c.sockets.street,d=c.sockets.door;const ay=col.floor(a.x,4.4,a.z,0);assert(ay>=3.83&&ay<=4.02,'street approach is supported: '+c.building+' '+ay);assert(Math.abs(col.floor(d.x,4.4,d.z,0)-4)<.02,'transformed doorway threshold meets floor');}
+ for(const c of city.connections){const a=c.sockets.street,d=c.sockets.door;const ay=col.floor(a.x,4.4,a.z,0);assert(ay>=3.83&&ay<=4.02,'street approach is supported: '+c.building+' '+ay);assert(Math.abs(col.floor(d.x,d.y+.4,d.z,0)-d.y)<.02,'transformed doorway threshold meets floor');}
  for(const b of city.buildings)for(const [key,s] of Object.entries(b.sockets))if(key!=='door'){const forward=key==='rearDoor'?(b.footprint.z<city.blocks.find(q=>q.rows.flat().includes(b.id)).z?1:-1):(b.footprint.z<city.blocks.find(q=>q.rows.flat().includes(b.id)).z?-1:1);const y=col.floor(s.x,s.y+.4,s.z+forward*.35,0);assert(Math.abs(y-s.y)<.16,'city elevated door connects to deck: '+b.id+' '+key);}
  console.log('PASS 224-building city: all 224 frontage slots occupied, unique IDs, finite full-detail mesh and supported approaches/thresholds');
 }
@@ -141,3 +141,17 @@ for(const variant of ['apothecary','pub'])for(const grade of [-.18,.18]){
  for(const e of city.connections){const s=e.sockets.door,y=col.floor(s.x,s.y+.4,s.z,0);assert(Math.abs(y-s.y)<.17,'sloped city doorway has support: '+e.building+' '+y+' '+s.y);}
  for(const b of city.bridges){const a=b.sockets.a,d=b.sockets.b;for(let i=1;i<20;i++){const t=i/20,y=a.y+(d.y-a.y)*t,yy=col.floor(a.x+(d.x-a.x)*t,y+.3,a.z+(d.z-a.z)*t,0);assert(Math.abs(yy-y)<.03,'street bridge slope meets both doors');}}
 }
+
+for(const grade of [-.18,0,.18]){
+ const city=require('../../prototypes/labs/castle-drafts/toolkit/city-kit.js').build({grade}),mesh=context.window.CastleRender.meshParts(city.parts,C.PALETTES[0]),col=new context.window.CastleWalk.Collider(mesh);
+ assert.equal(city.sidewalk.rows.length,32);assert(city.sidewalk.carriagewayWidth>=4,'road has room for wagons');
+ for(const row of city.sidewalk.rows){
+  for(let i=1;i<row.sections.length;i++)assert(Math.abs(row.sections[i].y-row.sections[i-1].y)<=.161,'sidewalk risers stay shallow');
+  for(const n of row.landings)for(const dx of [-.65,0,.65]){const z=row.face+row.sign*.45,y=col.floor(n.x+dx,n.y+.25,z,0);assert(Math.abs(y-n.y)<.025,'door frontage has a broad level landing: '+grade+' '+n.building+' '+dx+' '+y+' expected '+n.y);}
+  let lastWalk=null;for(let x=row.x0+.05;x<row.x1;x+=.12){const z=row.face+row.sign*1.55,y=col.floor(x,city.sidewalk.heightAt(x,z)+.5,z,0);assert(Number.isFinite(y),'sidewalk has continuous support');if(lastWalk!=null)assert(Math.abs(y-lastWalk)<.21,'rendered sidewalk risers stay walkable: '+grade+' '+row.block+' '+row.side+' '+x+' '+y+' after '+lastWalk);lastWalk=y;}
+  // Sample the carriageway outside the curb, where it must remain a smooth plane.
+  const z=row.face+row.sign*3.7;for(let x=row.x0+.3;x<row.x1;x+=.8){const y=city.ground(x,z),actual=col.floor(x,y+.25,z,0);assert(Math.abs(actual-y)<.015,'carriageway stays smooth beside stepped sidewalks');}
+ }
+ assert(city.parts.some(p=>p.role==='curb-cap'));assert(city.parts.some(p=>p.role==='corner-curb-ramp'));
+}
+console.log('PASS stepped sidewalks: level door landings, <=16 cm risers, curb ramps and smooth wagon roads at +/-18%');

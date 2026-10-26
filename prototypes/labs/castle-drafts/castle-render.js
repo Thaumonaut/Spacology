@@ -455,10 +455,10 @@
     inv[3]=-a[1]*a[6]*a[11]+a[1]*a[7]*a[10]+a[5]*a[2]*a[11]-a[5]*a[3]*a[10]-a[9]*a[2]*a[7]+a[9]*a[3]*a[6];inv[7]=a[0]*a[6]*a[11]-a[0]*a[7]*a[10]-a[4]*a[2]*a[11]+a[4]*a[3]*a[10]+a[8]*a[2]*a[7]-a[8]*a[3]*a[6];
     inv[11]=-a[0]*a[5]*a[11]+a[0]*a[7]*a[9]+a[4]*a[1]*a[11]-a[4]*a[3]*a[9]-a[8]*a[1]*a[7]+a[8]*a[3]*a[5];inv[15]=a[0]*a[5]*a[10]-a[0]*a[6]*a[9]-a[4]*a[1]*a[10]+a[4]*a[2]*a[9]+a[8]*a[1]*a[6]-a[8]*a[2]*a[5];
     const det=a[0]*inv[0]+a[1]*inv[4]+a[2]*inv[8]+a[3]*inv[12];return inv.map(v=>v/det);}
-  function Renderer(canvas){
+  function Renderer(canvas,{shadowSize=4096}={}){
     const gl=canvas.getContext('webgl2',{antialias:true,preserveDrawingBuffer:true});if(!gl)throw new Error('WebGL2 unavailable');this.gl=gl;
     this.main=prog(gl,VS,FS);this.shadowProg=prog(gl,SVS,SFS);this.sky=prog(gl,SKYV,SKYF);this.vao=gl.createVertexArray();this.svao=gl.createVertexArray();this.count=0;
-    const S=4096;this.SM=S;this.depth=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT32F,S,S);
+    const S=shadowSize;this.SM=S;this.depth=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,this.depth);gl.texStorage2D(gl.TEXTURE_2D,1,gl.DEPTH_COMPONENT32F,S,S);
     for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_COMPARE_MODE,gl.COMPARE_REF_TO_TEXTURE],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
     this.cache=new Map();this.list=[];this.hid=gl.createTexture();this.hidData=new Uint8Array(256*64);gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,256,64,0,gl.RED,gl.UNSIGNED_BYTE,this.hidData);for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST]])gl.texParameteri(gl.TEXTURE_2D,k,v);this.fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.TEXTURE_2D,this.depth,0);gl.bindFramebuffer(gl.FRAMEBUFFER,null);
     this.post=prog(gl,SKYV,POSTF);this.brightP=prog(gl,SKYV,BRIGHTF);this.blurP=prog(gl,SKYV,BLURF);this.shaftP=prog(gl,SKYV,SHAFTF);this.ray=prog(gl,RAYV,RAYF);this.rayS=prog(gl,RAYV,RAYSF);this.rays=new Map();this.rayList=[];
@@ -479,7 +479,7 @@
       for(let a=0;a<3;a++){i8[o+12+a]=Math.max(-127,Math.min(127,Math.round(m.n[v*3+a]*127)));u8[o+16+a]=Math.max(0,Math.min(255,Math.round(m.c[v*3+a]*255)));}
       u8[o+19]=m.t[v]||0;u8[o+20]=m.f[v]||0;u16[(o+22)>>1]=m.b?m.b[v]||0:0;if(m.q&&m.q[v*4+3]){for(let a=0;a<4;a++)f[fo+6+a]=m.q[v*4+a];}}
     const casts=!n||m.f[0]!==1;return {buf,count:n,c:lo.map((v,a)=>(v+hi[a])/2),r:casts?Math.hypot(hi[0]-lo[0],hi[1]-lo[1],hi[2]-lo[2])/2:1e9,casts};}
-  Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);const P=m.packed||pack(m);
+  Renderer.prototype.upload=function(key,m){const gl=this.gl;if(this.cache.has(key))return this.cache.get(key);this.shadowDirty=true;const P=m.packed||pack(m);
     const up=this.upStats||(this.upStats={n:0,verts:0,bytes:0});up.n++;up.verts+=P.count;up.bytes+=P.buf.byteLength;
     const g={vao:gl.createVertexArray(),svao:gl.createVertexArray(),count:P.count,bufs:[],c:P.c,r:P.r,casts:P.casts,bytes:P.buf.byteLength},b=gl.createBuffer();g.bufs.push(b);
     gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,P.buf,gl.STATIC_DRAW);
@@ -500,10 +500,10 @@
   function planes(M){const r=i=>[M[i],M[4+i],M[8+i],M[12+i]],R0=r(0),R1=r(1),R2=r(2),R3=r(3),out=[];
     for(const [a,sg] of [[R0,1],[R0,-1],[R1,1],[R1,-1],[R2,1],[R2,-1]]){const p=R3.map((v,i)=>v+sg*a[i]),l=Math.hypot(p[0],p[1],p[2]);out.push(p.map(v=>v/l));}return out;}
   const visible=(P,g)=>{for(const p of P)if(p[0]*g.c[0]+p[1]*g.c[1]+p[2]*g.c[2]+p[3]<-g.r)return false;return true;};
-  Renderer.prototype.drop=function(key){const g=this.cache.get(key);if(!g)return;const gl=this.gl;g.bufs.forEach(b=>gl.deleteBuffer(b));gl.deleteVertexArray(g.vao);gl.deleteVertexArray(g.svao);this.cache.delete(key);};
-  Renderer.prototype.setLight=function(mode){this.gold=mode==='golden'?1:0;this.sun=norm(this.gold?[-.62,.3,.5]:[-.55,.62,.42]);};
+  Renderer.prototype.drop=function(key){this.shadowDirty=true;const g=this.cache.get(key);if(!g)return;const gl=this.gl;g.bufs.forEach(b=>gl.deleteBuffer(b));gl.deleteVertexArray(g.vao);gl.deleteVertexArray(g.svao);this.cache.delete(key);};
+  Renderer.prototype.setLight=function(mode){this.shadowDirty=true;this.gold=mode==='golden'?1:0;this.sun=norm(this.gold?[-.62,.3,.5]:[-.55,.62,.42]);};
   // Offscreen targets (colour, normal, depth) at the canvas size, for the ink pass.
-  Renderer.prototype.targets=function(w,h){const gl=this.gl;if(this.tw===w&&this.th===h)return;this.tw=w;this.th=h;const mk=(fmt,ifmt,type)=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,ifmt,w,h,0,fmt,type,null);
+  Renderer.prototype.targets=function(w,h){const gl=this.gl;if(this.tw===w&&this.th===h)return;for(const t of [this.tc,this.tn,this.td,this.hB?.t,this.hX?.t,this.hY?.t,this.hS?.t])if(t)gl.deleteTexture(t);for(const f of [this.ofb,this.hB?.f,this.hX?.f,this.hY?.f,this.hS?.f])if(f)gl.deleteFramebuffer(f);this.tw=w;this.th=h;const mk=(fmt,ifmt,type)=>{const t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);gl.texImage2D(gl.TEXTURE_2D,0,ifmt,w,h,0,fmt,type,null);
       for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);return t;};
     if(this.ofb){gl.deleteFramebuffer(this.ofb);[this.tc,this.tn,this.td].forEach(t=>gl.deleteTexture(t));}
     this.tc=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.tn=mk(gl.RGBA,gl.RGBA8,gl.UNSIGNED_BYTE);this.td=mk(gl.DEPTH_COMPONENT,gl.DEPTH_COMPONENT24,gl.UNSIGNED_INT);
@@ -516,13 +516,13 @@
   // Ray models: upload a sparse voxel model (CastleVox.voxelizeSparse output) under a key; setRays picks which draw.
   Renderer.prototype.uploadRay=function(key,V,F){const gl=this.gl;if(this.rays.has(key))return this.rays.get(key);gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
     const tex=(target,fn)=>{const t=gl.createTexture();gl.bindTexture(target,t);fn(t);for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST]])gl.texParameteri(target,k,v);return t;};
-    const co=tex(gl.TEXTURE_3D,()=>gl.texImage3D(gl.TEXTURE_3D,0,gl.R16UI,V.n[0],V.n[1],V.n[2],0,gl.RED_INTEGER,gl.UNSIGNED_SHORT,V.coarse));
+    this.shadowDirty=true;const co=tex(gl.TEXTURE_3D,()=>gl.texImage3D(gl.TEXTURE_3D,0,gl.R16UI,V.n[0],V.n[1],V.n[2],0,gl.RED_INTEGER,gl.UNSIGNED_SHORT,V.coarse));
     const br=tex(gl.TEXTURE_2D,()=>gl.texImage2D(gl.TEXTURE_2D,0,gl.R8UI,1024,V.brickRows,0,gl.RED_INTEGER,gl.UNSIGNED_BYTE,V.bricks));
     const pal=tex(gl.TEXTURE_2D,()=>gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,256,1,0,gl.RGBA,gl.UNSIGNED_BYTE,V.pal));
     const dim=V.n.map(v=>v*V.cvs),c=Math.cos(F.rot),sn=Math.sin(F.rot),mid=V.o.map((v,i)=>v+dim[i]/2);
     const g={co,br,pal,F,o:V.o,cvs:V.cvs,n:V.n,dim,bytes:V.coarse.byteLength+V.bricks.byteLength,c:[F.x+mid[0]*c-mid[2]*sn,mid[1],F.z+mid[0]*sn+mid[2]*c],r:Math.hypot(...dim)/2};this.rays.set(key,g);return g;};
-  Renderer.prototype.dropRay=function(key){const g=this.rays.get(key);if(!g)return;const gl=this.gl;[g.co,g.br,g.pal].forEach(t=>gl.deleteTexture(t));this.rays.delete(key);};
-  Renderer.prototype.setRays=function(keys){this.rayList=keys.map(k=>this.rays.get(k)).filter(Boolean);};
+  Renderer.prototype.dropRay=function(key){this.shadowDirty=true;const g=this.rays.get(key);if(!g)return;const gl=this.gl;[g.co,g.br,g.pal].forEach(t=>gl.deleteTexture(t));this.rays.delete(key);};
+  Renderer.prototype.setRays=function(keys){this.shadowDirty=true;this.rayList=keys.map(k=>this.rays.get(k)).filter(Boolean);};
   Renderer.prototype.drawRays=function(prog,M,P,extra){const gl=this.gl;if(!this.rayList.length)return 0;gl.useProgram(prog);gl.bindVertexArray(this.boxV);gl.enable(gl.CULL_FACE);gl.cullFace(gl.FRONT);
     const U=n=>gl.getUniformLocation(prog,n);gl.uniformMatrix4fv(U('M'),false,M);extra(U);let n=0;
     gl.uniform1i(U('CO'),5);gl.uniform1i(U('BR'),6);gl.uniform1i(U('PAL'),7);
@@ -530,18 +530,19 @@
       gl.uniform4f(U('FRM'),g.F.x,g.F.z,Math.cos(g.F.rot),Math.sin(g.F.rot));gl.uniform3fv(U('ORG'),g.o);gl.uniform3fv(U('DIM'),g.dim);gl.uniform1f(U('CS'),g.cvs);gl.uniform3i(U('NC'),...g.n);gl.drawArrays(gl.TRIANGLES,0,36);n++;}
     gl.cullFace(gl.BACK);gl.disable(gl.CULL_FACE);gl.activeTexture(gl.TEXTURE0);return n;};
   // Hide buildings by id (ids >= 0) in every mesh drawn after this; ids beyond 16383 are not hideable.
-  Renderer.prototype.setHidden=function(ids){const gl=this.gl;this.hidData.fill(0);for(const id of ids)if(id+1<this.hidData.length)this.hidData[id+1]=255;gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,64,gl.RED,gl.UNSIGNED_BYTE,this.hidData);};
-  Renderer.prototype.setMeshes=function(list,bounds){this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
+  Renderer.prototype.setHidden=function(ids){this.shadowDirty=true;const gl=this.gl;this.hidData.fill(0);for(const id of ids)if(id+1<this.hidData.length)this.hidData[id+1]=255;gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,64,gl.RED,gl.UNSIGNED_BYTE,this.hidData);};
+  Renderer.prototype.setMeshes=function(list,bounds){this.shadowDirty=true;this.list=list.map(({key,mesh})=>this.upload(key,mesh));if(bounds)this.bounds=bounds;};
   Renderer.prototype.setMesh=function(m,bounds){for(const k of [...this.cache.keys()])this.drop(k);this.setMeshes([{key:'main'+(this.n=(this.n||0)+1),mesh:m}],bounds);};
   // Shadows cover a sun-aligned box: the scene bounds, or a focus (Walk) so nearby shadows stay sharp.
   Renderer.prototype.lightFor=function(f){const {cx,cz,r,h}=f,L=this.sun,target=[cx,h*.3,cz],eye=target.map((v,i)=>v+L[i]*r*3);return mul(ortho(-r,r,-r,r,r*.2,r*6),look(eye,target,[0,1,0]));};
   Renderer.prototype.draw=function(cam){const gl=this.gl,c=gl.canvas,w=c.width,h=c.height;
     gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);
-    gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.viewport(0,0,this.SM,this.SM);gl.clear(gl.DEPTH_BUFFER_BIT);gl.disable(gl.CULL_FACE);gl.useProgram(this.shadowProg);
+    if(this.staticShadows){const f=cam.shadowFocus||this.bounds,key=[f.cx,f.cz,f.r,f.h,...this.sun].join('|');if(key!==this.shadowKey){this.shadowDirty=true;this.shadowKey=key;}}
+    let st=0;if(!this.staticShadows||this.shadowDirty){gl.bindFramebuffer(gl.FRAMEBUFFER,this.fb);gl.viewport(0,0,this.SM,this.SM);gl.clear(gl.DEPTH_BUFFER_BIT);gl.disable(gl.CULL_FACE);gl.useProgram(this.shadowProg);
     this.lvp=this.lightFor(cam.shadowFocus||this.bounds);
-    const LP=planes(this.lvp);let st=0;
+    const LP=planes(this.lvp);
     gl.uniformMatrix4fv(gl.getUniformLocation(this.shadowProg,'LVP'),false,this.lvp);gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,this.hid);gl.uniform1i(gl.getUniformLocation(this.shadowProg,'HID'),8);for(const g of this.list)if(g.casts&&visible(LP,g)){gl.bindVertexArray(g.svao);gl.drawArrays(gl.TRIANGLES,0,g.count);st+=g.count/3;}
-    this.drawRays(this.rayS,this.lvp,LP,U=>{gl.uniform3fv(U('LDIR'),this.sun);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);});
+    this.drawRays(this.rayS,this.lvp,LP,U=>{gl.uniform3fv(U('LDIR'),this.sun);gl.uniformMatrix4fv(U('LVP'),false,this.lvp);});this.shadowDirty=false;}
     this.targets(w,h);gl.bindFramebuffer(gl.FRAMEBUFFER,this.ofb);gl.viewport(0,0,w,h);gl.clearColor(.8,.88,.97,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
     // Orbit camera, or first person (cam.fp: eye, yaw, pitch) for Walk.
     let eye,vp;
