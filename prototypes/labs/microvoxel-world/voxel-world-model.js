@@ -2657,8 +2657,10 @@
       const m=nodeMetres(L),n=m>64?4:2,x0=nx*m,z0=nz*m;v=SEA+12;let ground=SEA;
       // Ground plus the most crag, erosion, bump and ice could add there, trees on top, and a margin for relief peaking
       // between the samples.
+      // Pyramidal peaks (pyramidAt) need no extra room: they are centred (-0.55..+0.6 Hp), and on 864 mountain L3 nodes
+      // the ground stayed at least 62 m under this bound.
       for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n),A=Math.max(cragRelief(t.relief),t.cone*.3)*.6;ground=Math.max(ground,t.h+A*1.4);
-        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+1.1*coarseE+(t.pyr>.02?Math.min(t.relief*.65,420)*.6*t.pyr:0)+(t.relief>15?60:50)+(t.relief>0||t.cone>0?Math.min(m*.15,30):0));}
+        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+1.1*coarseE+(t.relief>15?60:50)+(t.relief>0||t.cone>0?Math.min(m*.15,30):0));}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       // Landmark trees: a cell already evaluated gives its exact top; an unevaluated one only matters if its cheap hash allows a
       // landmark at all, and then is bounded conservatively, so the bound never runs full geography for landmark sites.
