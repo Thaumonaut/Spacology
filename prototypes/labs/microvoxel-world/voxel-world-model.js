@@ -62,11 +62,15 @@
     // Returns a shared scratch list (valid until the next call): plateRelief reads it before anything calls plates again.
     // Stable insertion sort, so ties keep the same order a stable sort would give.
     const nearP=new Array(9),nearD=new Float64Array(9),near5=Array.from({length:5},()=>({p:null,D:0}));
+    // Plate lookups run in warped space (about 2 km, 1 km and 500 m wavelengths), so plate boundaries, the ranges along them and
+    // the coasts built on them curve instead of following the straight bisectors of the site grid. pwx/pwz keep the warped
+    // point for plateRelief's coast detail.
+    let pwx=0,pwz=0;
     function plates(x,z){
-      const wx=x+(noise(x*.002,z*.002,seed+311)-.5)*180,wz=z+(noise(x*.002,z*.002,seed+313)-.5)*180;
+      const wx=x+(noise(x*.0005,z*.0005,seed+1101)-.5)*460+(noise(x*.001,z*.001,seed+1131)-.5)*220+(noise(x*.002,z*.002,seed+311)-.5)*180,wz=z+(noise(x*.0005,z*.0005,seed+1103)-.5)*460+(noise(x*.001,z*.001,seed+1133)-.5)*220+(noise(x*.002,z*.002,seed+313)-.5)*180;pwx=wx;pwz=wz;
       const ci=Math.floor(wx/PLATE+.5),cj=Math.floor(wz/PLATE+.5);let n=0;
       for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){
-        const p=site(ci+di,cj+dj),D=Math.hypot(wx-p.x,wz-p.z);let k=n++;
+        const p=site(ci+di,cj+dj),dx=wx-p.x,dz=wz-p.z,D=Math.sqrt(dx*dx+dz*dz);let k=n++;
         while(k>0&&nearD[k-1]>D){nearD[k]=nearD[k-1];nearP[k]=nearP[k-1];k--;}nearD[k]=D;nearP[k]=p;
       }
       for(let i=0;i<5;i++){near5[i].p=nearP[i];near5[i].D=nearD[i];}
@@ -74,15 +78,22 @@
     }
     const ridged=(x,z,k)=>1-Math.abs(noise(x,z,k)-.5)*2;
     // Plate relief: crust level, shelves, collision/subduction ranges, arcs, rifts. Used by columns and, unblended, by climate.
+    // Land and sea: the shoreline is the zero line of one continuous coast field, not a per-plate crust level. Continentalness
+    // (the share of continental crust among the nearest plates, blended over a few hundred metres) sets the broad layout;
+    // kilometre-scale noise opens gulfs and inland seas in continents and raises islands from ocean plates; winding drowned
+    // valleys cut long arms, straits and inlets; and fractal octaves sampled through a further 120 m warp add coves,
+    // headlands, spits and islets. The fine octaves are strong on rocky coasts (beside ranges and in rugged regions) and
+    // faint on sandy ones, so beaches and estuaries curve smoothly while mountain coasts are jagged.
     function plateRelief(x,z){
-      const near=plates(x,z),open=clamp((130-Math.hypot(x,z))/60,0,1),D0=near[0].D;
-      const level=p=>p.continental?20+(noise(x*.004,z*.004,seed+317)-.5)*12+(noise(x*.011,z*.011,seed+319)-.5)*5:4+noise(x*.006,z*.006,seed+321)*3;
+      const near=plates(x,z),qx=pwx,qz=pwz,open=clamp((130-Math.hypot(x,z))/60,0,1),D0=near[0].D;
       const r=ridged(x*.011,z*.011,seed+323)*.65+ridged(x*.029,z*.029,seed+325)*.35;
-      let base=0,sum=0;for(const {p,D} of near){const k=Math.exp(-(D-D0)/45);base+=level(p)*k;sum+=k;}base/=sum;
-      let up=0,down=0,best=null,shearF=0;
+      // Continentalness: the continental share among plates within 420 m of the nearest, weighted by closeness. Weights also fade
+      // out from 640 to 730 m, inside the 736 m every site entering or leaving the 3x3 search window lies beyond, so C is continuous.
+      let C=0,sum=0;for(let i=0;i<9;i++){const D=nearD[i],e=1-(D-D0)/420;if(e<=0||D>=730)break;const k=e*e*(D>640?(730-D)/90:1);sum+=k;if(nearP[i].continental)C+=k;}C=sum>0?C/sum:+nearP[0].continental;
+      let up=0,down=0,trench=0,best=null,shearF=0;
       for(let i=0;i<near.length;i++)for(let j=i+1;j<near.length;j++){
-        const P=near[i],Q=near[j],third=near.reduce((m,o,k)=>k===i||k===j?m:Math.min(m,o.D),Infinity),w=clamp((third-Q.D)/180,0,1);if(!w)continue;
-        const a=P.p,b=Q.p,ex=b.x-a.x,ez=b.z-a.z,len=Math.hypot(ex,ez),nx=ex/len,nz=ez/len,rx=a.vx-b.vx,rz=a.vz-b.vz;
+        const P=near[i],Q=near[j];let third=Infinity;for(let k=0;k<5;k++)if(k!==i&&k!==j&&near[k].D<third)third=near[k].D;const w=clamp((third-Q.D)/180,0,1);if(!w)continue;
+        const a=P.p,b=Q.p,ex=b.x-a.x,ez=b.z-a.z,len=Math.sqrt(ex*ex+ez*ez),nx=ex/len,nz=ez/len,rx=a.vx-b.vx,rz=a.vz-b.vz;
         // Belt coordinates use one orientation per plate pair (by plate index), so they don't flip where the nearer plate changes.
         const o=a.i<b.i||a.i===b.i&&a.j<b.j?1:-1,u=o*(z*nx-x*nz),s=o*(x*nx+z*nz),belt=(ridged(u*.003,s*.009,seed+329)*.6+ridged(u*.008,s*.02,seed+330)*.4)*.7+r*.3,peaks=.5+.8*noise(u*.004,len*.01,seed+332);
         const conv=rx*nx+rz*nz,shear=Math.abs(rz*nx-rx*nz),edge=(Q.D**2-P.D**2)/(2*len),f=clamp(1-edge/W,0,1),c=clamp(conv/1.1,0,1);
@@ -95,11 +106,37 @@
             v=c*(150*fc**1.6*(.3+.7*belt)*peaks+14*clamp(1-edge/(W*2.2),0,1));setting='collision';}
           else if(a.continental!==b.continental){v=land>0?c*105*Math.exp(-(((land-95)/60)**2))*clamp(land/30,0,1)*(.35+.65*belt)*peaks:-9*c*Math.exp(-(((land+40)/30)**2))*clamp(-land/20,0,1);setting=land>0?'subduction':'trench';}
           else{v=c*f*clamp((noise(x*.009,z*.009,seed+327)-.55)/.12,0,1)*40*(.5+.5*r);setting='arc';}
-        }else if(conv<-.45){v=a.continental&&b.continental?-8*f**1.5*clamp(-conv/1.1,0,1):3*f;setting='rift';}
+        }else if(conv<-.45){
+          // Continental rifts drown into long inland seas and lakes; their flanks wander (about ±70 m), so the water runs
+          // in a winding valley with inlets rather than a ruled band.
+          if(a.continental&&b.continental){const fr=clamp(1-(edge+(noise(pwx*.005,pwz*.005,seed+1127)-.5)*130+(noise(pwx*.016,pwz*.016,seed+1129)-.5)*45)/W,0,1);v=-8*fr**1.5*clamp(-conv/1.1,0,1);}
+          else v=3*f;setting='rift';}
         else if(shear>.6)shearF=Math.max(shearF,f*w);
-        v*=w;if(v>0)up=Math.max(up,v);else down=Math.min(down,v);
+        v*=w;if(setting==='trench')trench=Math.min(trench,v);else if(v>0)up=Math.max(up,v);else down=Math.min(down,v);
         if(setting&&(!best||Math.abs(v)>best.v))best={v:Math.abs(v),setting,f:f*w};
       }
+      // Coast field (land where cf>0). Coarse terms first: plates, a broad landmass around home, 6 km and 2 km continentalness
+      // noise, drowned valleys (winding ridged-noise lines, only in some regions) and the 500 m octave.
+      const gate=clamp((noise(qx*.0004,qz*.0004,seed+1113)-.3)/.3,0,1),valley=gate>0?clamp((ridged((qx+(noise(qx*.0025,qz*.0025,seed+1137)-.5)*300)*.0011+3.1,(qz+(noise(qx*.0025,qz*.0025,seed+1139)-.5)*300)*.0007,seed+1111)-.8)/.2,0,1)**2*gate:0;
+      let cf=.7*(C-.5)+.02+.75*clamp((3000-Math.hypot(x,z))/2000,0,1)+.3*clamp((9000-Math.hypot(x,z))/5000,0,1)+(noise(qx*.00013,qz*.00013,seed+1135)-.5)*.9+(noise(qx*.00035,qz*.00035,seed+1115)-.5)*1.1-.75*valley
+        +(noise((qx*.8-qz*.6)*.002,(qx*.6+qz*.8)*.002,seed+1117)-.5)*.55,rug=0;
+      // Fine octaves (240 m down to 30 m) through a further 120 m warp, each turned to its own angle so no octave lines up
+      // with the noise lattice. The spectrum flattens on rocky coasts (beside boundary ranges and in rugged regions: coves,
+      // skerries, headlands) and falls off on sandy ones. They can move cf by at most 0.68, so they are skipped where the
+      // ground is beyond the shore ramp either way (output unchanged).
+      if(Math.abs(cf)<.98){
+        rug=Math.max(clamp(up/45,0,1),clamp((noise(x*.0013,z*.0013,seed+1105)-.42)/.25,0,1));
+        const fx=qx+(noise(x*.0083,z*.0083,seed+1107)-.5)*60,fz=qz+(noise(x*.0083,z*.0083,seed+1109)-.5)*60;
+        const oct=(a,b,f,k)=>noise((fx*a-fz*b)*f,(fx*b+fz*a)*f,seed+k)-.5;
+        cf+=oct(.28,.96,.0042,1119)*(.38+.12*rug)+oct(-.6,.8,.0085,1121)*(.2+.18*rug)+oct(.96,-.28,.017,1123)*(.1+.17*rug);
+        if(rug>.05)cf+=oct(.5,.87,.034,1125)*.2*rug;
+      }
+      // Crust level from the coast field: continental interiors at 20 m (±6 m lowlands and uplands), ocean floors 4-7 m, each
+      // easing to sea level at the shore; rocky coasts rise and drop more steeply.
+      const reach=.3*(1-.45*rug),t=Math.min(1,Math.abs(cf)/reach),ease=t*(2-t);
+      const base=cf>0?SEA+(Math.max(SEA+3,20+(noise(x*.004,z*.004,seed+317)-.5)*12+(noise(x*.011,z*.011,seed+319)-.5)*5)-SEA)*ease:SEA-(SEA-4-noise(x*.006,z*.006,seed+321)*3)*ease;
+      // Trenches stay offshore wherever the coast falls.
+      down=Math.min(down,trench*clamp(-cf/.15,0,1));
       let relief=(up+down)*(1-open*.85),setting='craton',f=0;
       if(best&&best.v>1){setting=best.setting;f=best.f;}else if(shearF>.4){setting='transform';f=shearF;}
       let h=base+relief;if(open)h+=open*Math.max(0,SEA+4-h);
