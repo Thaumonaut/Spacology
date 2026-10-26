@@ -56,6 +56,19 @@ try{
     const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=480,H=248,cols=3,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
       tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
     fs.writeFileSync(path.join(OUT,'shop-fronts.png'),Buffer.from(sheet.split(',')[1],'base64'));}
+  // Stair sheet: each kind, inside and in an exterior tower, as a close cutaway of the ground floor from above.
+  if(SHOTS){const ST=[['side',{kind:'straight'}],['side',{kind:'straightLanding'}],['stairhall',{kind:'dogleg'}],['stairhall',{kind:'u3'}],['stairhall',{kind:'spiral'}],
+      ['centre',{kind:'L',tower:true}],['side',{kind:'spiral',tower:true}],['stairhall',{kind:'u3',tower:true}]];
+    const tiles=[];for(const [typology,stair] of ST){const seed=typology==='side'?2:typology==='centre'?1:3;
+      await page.evaluate(([ty,st,sd])=>BuildingLab.build({seed:sd,type:'home',style:'fairytale',context:'detached',typology:ty,stair:st}),[typology,stair,seed]);await page.waitForFunction(()=>BuildingLab.snapshot().ready,null,{timeout:60000});
+      tiles.push(await page.evaluate(()=>{BuildingLab.setVisible(1);const i=BuildingLab.camera({}),[x0,z0,x1,z1]=i.stair,L=i.levels;BuildingLab.camera({yaw:-.5,pitch:.95,dist:Math.max(6,(x1-x0+z1-z0)*.9),target:[(x0+x1)/2,L[0]+.6,(z0+z1)/2]});BuildingLab.frame();
+        return [i.stairLabel+' · '+BuildingLab.snapshot().typology,document.getElementById('view').toDataURL('image/png')];}));}
+    const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=400,H=288,cols=4,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
+      tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
+    fs.writeFileSync(path.join(OUT,'stairs.png'),Buffer.from(sheet.split(',')[1],'base64'));
+    // and a shop's ground floor from above: the retail layout
+    await page.evaluate(()=>BuildingLab.build({seed:2,type:'shophouse',style:'machiya',context:'terrace',typology:'side'}));await page.waitForFunction(()=>BuildingLab.snapshot().ready,null,{timeout:60000});
+    await page.evaluate(()=>{BuildingLab.setVisible(1);BuildingLab.setView('above');BuildingLab.frame();});await page.locator('#view').screenshot({path:path.join(OUT,'shop-interior.png')});}
   // Massing sheet: one house with each roof form and silhouette feature forced, so every shape is rendered.
   if(SHOTS){const MASS=[['gable along street',{roof:{form:'gable',ridge:'frontage',cross:null,dormers:0,turret:null}}],['gable to street',{roof:{form:'gable',ridge:'depth',cross:null,dormers:0,turret:null}}],
       ['hip',{roof:{form:'hip',ridge:'frontage',cross:null,dormers:0,turret:null}}],['half-hip',{roof:{form:'halfhip',ridge:'depth',cross:null,dormers:0,turret:null}}],

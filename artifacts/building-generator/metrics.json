@@ -4,7 +4,7 @@
   {
    "case": "side-shophouse-machiya",
    "view": "corner",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "side-shophouse-machiya",
@@ -29,12 +29,12 @@
     218,
     320
    ],
-   "quads": 41949,
-   "furniture": 64,
+   "quads": 41765,
+   "furniture": 63,
    "timings": {
-    "planMs": 7,
-    "voxelMs": 98,
-    "meshMs": 358
+    "planMs": 5,
+    "voxelMs": 84,
+    "meshMs": 355
    }
   },
   {
@@ -65,12 +65,12 @@
     325,
     432
    ],
-   "quads": 88577,
-   "furniture": 84,
+   "quads": 88586,
+   "furniture": 78,
    "timings": {
     "planMs": 5,
-    "voxelMs": 130,
-    "meshMs": 572
+    "voxelMs": 118,
+    "meshMs": 594
    }
   },
   {
@@ -101,12 +101,12 @@
     207,
     296
    ],
-   "quads": 43983,
-   "furniture": 63,
+   "quads": 46580,
+   "furniture": 73,
    "timings": {
-    "planMs": 4,
-    "voxelMs": 97,
-    "meshMs": 343
+    "planMs": 5,
+    "voxelMs": 85,
+    "meshMs": 339
    }
   },
   {
@@ -137,12 +137,12 @@
     324,
     280
    ],
-   "quads": 86635,
-   "furniture": 77,
+   "quads": 87649,
+   "furniture": 80,
    "timings": {
-    "planMs": 4,
-    "voxelMs": 108,
-    "meshMs": 542
+    "planMs": 5,
+    "voxelMs": 158,
+    "meshMs": 520
    }
   },
   {
@@ -173,12 +173,12 @@
     231,
     272
    ],
-   "quads": 42193,
-   "furniture": 42,
+   "quads": 44906,
+   "furniture": 52,
    "timings": {
     "planMs": 3,
-    "voxelMs": 109,
-    "meshMs": 284
+    "voxelMs": 106,
+    "meshMs": 272
    }
   },
   {
@@ -209,18 +209,18 @@
     240,
     256
    ],
-   "quads": 67765,
-   "furniture": 54,
+   "quads": 70256,
+   "furniture": 56,
    "timings": {
     "planMs": 3,
-    "voxelMs": 83,
-    "meshMs": 362
+    "voxelMs": 88,
+    "meshMs": 352
    }
   },
   {
    "case": "courtyard-inn-spire",
    "view": "corner",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "courtyard-inn-spire",
@@ -242,15 +242,15 @@
    "seed": 1,
    "dims": [
     248,
-    292,
-    304
+    282,
+    280
    ],
-   "quads": 89279,
-   "furniture": 110,
+   "quads": 85488,
+   "furniture": 105,
    "timings": {
-    "planMs": 6,
-    "voxelMs": 135,
-    "meshMs": 601
+    "planMs": 7,
+    "voxelMs": 134,
+    "meshMs": 514
    }
   }
  ]

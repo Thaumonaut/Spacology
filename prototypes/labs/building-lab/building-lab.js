@@ -17,7 +17,7 @@
   function build(){
     state.ready=false;notice('Building…');
     requestAnimationFrame(()=>setTimeout(()=>{try{
-      const t0=performance.now(),opts={type:$('type').value||undefined,style:$('style').value||undefined,context:$('context').value||undefined,typology:$('typology').value||undefined,look:state.look};
+      const t0=performance.now(),opts={type:$('type').value||undefined,style:$('style').value||undefined,context:$('context').value||undefined,typology:$('typology').value||undefined,look:state.look,stair:state.stair};
       const plan=P.generate(Number($('seed').value)||0,opts),t1=performance.now(),b=V.build(plan),t2=performance.now();
       if(!renderer)renderer=window.BuildingRenderer.createRenderer($('view'));
       const mesh=renderer.setBuilding(b);state.plan=plan;state.building=b;
@@ -29,7 +29,7 @@
   }
   function summary(){const p=state.plan,b=state.building,[X,Y,Z]=b.dims;
     $('name').textContent=`${p.typeLabel} · ${p.styleLabel}`;
-    $('facts').textContent=`${P.CONTEXTS[p.context].label}, ${(p.plot.w*p.cell).toFixed(1)} m frontage × ${((p.plot.d-p.plot.front)*p.cell).toFixed(1)} m deep, ${p.floors.length} storeys${p.plot.jetty?', upper floor jettied over the street':''}${p.plot.masks[0].some((v,i)=>!v&&Math.floor(i/p.plot.w)>=p.plot.front)?', with a yard':''}. Plan: ${p.typologyLabel.toLowerCase()}, ${p.stair.kind==='dogleg'?'U-turn':'straight'} stair. ${b.info.furniture.length} kit pieces placed.`;
+    $('facts').textContent=`${P.CONTEXTS[p.context].label}, ${p.stair.label} stair, ${(p.plot.w*p.cell).toFixed(1)} m frontage × ${((p.plot.d-p.plot.front)*p.cell).toFixed(1)} m deep, ${p.floors.length} storeys${p.plot.jetty?', upper floor jettied over the street':''}${p.plot.masks[0].some((v,i)=>!v&&Math.floor(i/p.plot.w)>=p.plot.front)?', with a yard':''}. Plan: ${p.typologyLabel.toLowerCase()}. ${b.info.furniture.length} kit pieces placed.`;
     $('stats').textContent=`seed ${p.seed} · plan score ${p.score}\nvolume ${X}×${Y}×${Z} @ 6.25 cm (${(X*Y*Z/1e6).toFixed(1)} M cells, ${(b.solid/1e6).toFixed(2)} M solid)\nquads ${state.quads.toLocaleString()} · plan ${state.timings.planMs} ms · voxels ${state.timings.voxelMs} ms · mesh ${state.timings.meshMs} ms\nframe ${renderer.state.lastFrameMs.toFixed(1)} ms (CPU submit)`;}
   function floorButtons(){const box=$('floors');box.textContent='';const n=state.plan.floors.length;
     for(let k=1;k<=n+1;k++){const btn=document.createElement('button');btn.type='button';btn.textContent=k===n+1?'Roof':k===1?'Ground':`Floor ${k}`;btn.dataset.visible=k;btn.addEventListener('click',()=>{state.visible=k;applyVisible();});box.append(btn);}}
@@ -86,8 +86,8 @@
   window.BuildingLab={snapshot:()=>({ready:state.ready,errors:state.errors.slice(),seed:state.plan?.seed,type:state.plan?.type,typology:state.plan?.typology,style:state.plan?.style,context:state.plan?.context,storeys:state.plan?.floors.length,visible:state.visible,view:state.view,
       quads:state.quads,furniture:state.building?.info.furniture.length,unreachable:state.building?.info.rooms.filter(r=>!r.reachable).length,timings:state.timings,frameMs:renderer?.state.lastFrameMs,dims:state.building?.dims}),
     // camera({yaw,pitch,dist,target:[x,y,z] metres}) for close-up captures
-    camera:(o)=>{Object.assign(renderer.state,o);redraw();return {extent:renderer.state.extent,dims:state.building.dims.map(n=>n*state.building.cell),levels:state.building.levels.map(n=>n*state.building.cell)};},
-    setView,setVisible:k=>{state.visible=k;applyVisible();},build:(o={})=>{for(const k of ['seed','type','style','context','typology'])if(k in o)$(k).value=o[k]??'';state.look=o.look;build();},
+    camera:(o)=>{Object.assign(renderer.state,o);redraw();const b=state.building,c=b.cell,[MX,,MZ]=b.origin,r=state.plan.stair.rect;return {extent:renderer.state.extent,dims:b.dims.map(n=>n*c),levels:b.levels.map(n=>n*c),stair:[(MX+r[0]*8)*c,(MZ+r[1]*8)*c,(MX+r[2]*8)*c,(MZ+r[3]*8)*c],stairLabel:state.plan.stair.label};},
+    setView,setVisible:k=>{state.visible=k;applyVisible();},build:(o={})=>{for(const k of ['seed','type','style','context','typology'])if(k in o)$(k).value=o[k]??'';state.look=o.look;state.stair=o.stair;build();},
     frame:()=>{renderer.draw();return renderer.state.lastFrameMs;},planSheet};
   build();
 })();

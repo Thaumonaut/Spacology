@@ -50,7 +50,12 @@ for(const [type,T] of Object.entries(P.TYPES))for(const typology of Object.keys(
 const free={},kinds=new Set();for(let s=1;s<=120;s++){const p=P.generate(s);free[p.typology]=(free[p.typology]||0)+1;kinds.add(p.stair.kind);}
 for(const t of Object.keys(P.TYPOLOGIES))assert.ok(free[t]>=1,`typology ${t} turns up when chosen freely (${JSON.stringify(free)})`);
 assert.ok(Math.max(...Object.values(free))<=120*.35,`no typology dominates (${JSON.stringify(free)})`);
-assert.deepEqual([...kinds].sort(),['dogleg','straight']);
+// Stairs vary: every kind turns up when chosen freely, some in exterior towers, and the L-shaped one (which arrives on
+// its side) only ever stands in a tower.
+{const seen={},towers={};for(let s=1;s<=300;s++){const p=P.generate(s);seen[p.stair.kind]=(seen[p.stair.kind]||0)+1;if(p.stair.tower)towers[p.stair.kind]=(towers[p.stair.kind]||0)+1;
+    if(p.stair.kind==='L')assert.ok(p.stair.tower,'an L-shaped stair stands in a tower');}
+  for(const k of Object.keys(P.STAIRS))assert.ok(seen[k]>=2,`stair kind ${k} turns up (${JSON.stringify(seen)})`);assert.ok(Object.values(towers).reduce((a,b)=>a+b,0)>=5,`exterior stair towers turn up (${JSON.stringify(towers)})`);
+  console.log('stairs over 300 seeds:',JSON.stringify(seen),'in towers:',JSON.stringify(towers));}
 assert.deepEqual(P.generate(12345),P.generate(12345),'same seed, same building');
 // Massing variety: across free seeds the silhouettes differ: several roof forms, cross gables, dormers, turrets
 // and oriels all turn up.

@@ -25,8 +25,18 @@ Each stage outputs plain data that the next one reads. The plan can be checked a
    - Rooms are rectangles (circulation rooms may bend).
    - Every room opens off circulation, and leaf rooms (bedrooms, baths, stores, studies) are never walked through.
    - The stair stacks through every floor and opens onto circulation at its foot and head.
-   - Mixed-use buildings give the home its own street door.
-3. **Stairs** (`stairBay`). *Straight* stairs are one 2×6-cell flight of 16 risers (18.75 cm), for 2 storeys. *U-turn* stairs are a 4×5-cell bay: 8 risers up, a half landing, then 8 back. They stack for any number of storeys, and you enter and arrive side by side.
+   - Shop-houses and workshops give the ground floor to the shop: full width from the street back to a small living area (hall, stair, kitchen, bath), with a door from the shop into it and the yard door as the home's own way in.
+3. **Stairs** (`STAIRS`, `stairBay`, `chooseStair`). Each kind is a spec in local cells (flights, landings, entry and arrival), placed with an origin and orientation:
+   - **Straight:** one 2×6-cell flight of 16 risers (18.75 cm).
+   - **Straight with a landing:** two flights with a 1 m landing between them.
+   - **U-turn (dogleg):** up one lane, a half landing, back down the other.
+   - **C-shaped:** three flights round two corner landings.
+   - **Spiral:** wedge treads round a post, turning 300° per storey.
+   - **L-shaped:** two flights at a right angle.
+
+   U-turn, C-shaped and spiral stairs arrive on the edge they are entered from, so they stack through any number of storeys; the others are for two storeys. Any kind can stand in an **exterior tower** on the back wall (a bump-out): a landing strip open to the hall, with the stair behind it. The L-shaped stair only stands in a tower, which gives its side arrival a landing.
+
+   The stair is chosen once per building, weighted by what the typology can hold, so scoring never favours one kind.
    **Room programs** (`program`) say what goes on each floor; '?' rooms are dropped when they do not fit. Room splitting is light-aware: rooms that need a window take the slots that can have one, and a dark slot (the middle of a terraced row) becomes a store or bath. On narrow cross-passage plots, rooms that do not fit behind the passage move to the front, though the bath stays at the back.
 4. **Doors** (`placeDoors`). Doors grow outwards from the hall, cheapest first, so every room opens onto it. Leaf rooms (bedrooms, baths, stores, studies) are never walked through. Work pairs (kitchen and dining room, shop and store) may also share a door. The stair opens onto the hall at the foot of each flight and the head of the one arriving.
 5. **Openings** (`placeOpenings`).

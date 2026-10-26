@@ -8,6 +8,10 @@ Headless captures from `tests/browser/building-lab.cjs` (the building lab, `prot
 
 **Massing:** `massing.png` shows one house built with each roof form and silhouette feature forced: gable along and to the street, hip, half-hip, gambrel with dormers, a cross gable, a turret with oriels, and a lacquer hip with a turret.
 
+**Stairs:** `stairs.png` shows a close ground-floor cutaway of each stair kind: straight, straight with a landing, U-turn, C-shaped, spiral, an L-shaped stair in a tower, a spiral in a tower and a C-shaped stair in a tower.
+
+**Shops:** `shop-fronts.png` shows eye-level shop fronts in every style. `shop-interior.png` shows a shop's ground floor from above: a counter across the back facing the street, shelving down both side walls, rows of display tables with goods, crates by the door, and the living area behind.
+
 **Close-ups:** `<typology>-…-close-door/eave/roof-corner.png` are taken 3–6 m away, where detail problems show first.
 
 **One building per typology:** `<typology>-<type>-<style>-…`:

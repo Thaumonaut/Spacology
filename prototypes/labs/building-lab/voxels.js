@@ -140,6 +140,14 @@
     for(const ld of plan.stair.landings){const yb=FL(ld.from),[x0,z0,x1,z1]=ld.rect,top=yb+ld.rise*3;airFill(cx(x0),top-1,cz(z0),cx(x1),top,cz(z1),M.plank);airFill(cx(x0),top-6,cz(z0),cx(x1),top-1,cz(z1),M.stair_wood);
       // a landing is carried on posts at its corners, not a solid block
       for(const [px,pz] of [[cx(x0),cz(z0)],[cx(x1)-2,cz(z0)],[cx(x0),cz(z1)-2],[cx(x1)-2,cz(z1)-2]])airFill(px,yb,pz,px+2,top-6,pz+2,C.timber);}
+    // Spiral stairs: wedge treads round a central post, each a riser higher, turning 300 degrees per storey from the
+    // entry to the arrival. Treads are 3 voxels thick and open underneath.
+    for(const sp of plan.stair.spirals||[]){const yb=FL(sp.from),cxs=MX+sp.centre[0]*CV,czs=MZ+sp.centre[1]*CV,R=sp.r*CV,post=Math.max(1.2,sp.post*CV),step=sp.sweep/sp.risers;
+      for(let z=Math.floor(czs-R-1);z<czs+R+1;z++)for(let x=Math.floor(cxs-R-1);x<cxs+R+1;x++){const dx=x+.5-cxs,dz=z+.5-czs,dd=Math.hypot(dx,dz);if(dd>R)continue;
+        if(dd<post){for(let yy=yb;yy<yb+SH;yy++)set(x,yy,z,C.timber);continue;}
+        const t=(((sp.a0-Math.atan2(dz,dx))%(Math.PI*2))+Math.PI*2)%(Math.PI*2);if(t>=sp.sweep)continue;
+        const kk=Math.floor(t/step),top=yb+(kk+1)*3,edge=dd>R-1.2;fillIfAir(x,top-1,z,edge?C.timber:M.plank);fillIfAir(x,top-2,z,M.stair_wood);fillIfAir(x,top-3,z,M.stair_wood);
+        if(edge&&(x+z)%3===0)for(let yy=top;yy<top+14;yy++)fillIfAir(x,yy,z,C.timber);}}                // balusters on the outer edge
     for(let f=1;f<storeys;f++){const voids=new Set(plan.floors[f].voids),yr=FL(f),open=new Set();
       for(const dr of plan.floors[f].doors)if(dr.kind==='open')for(const [x,z] of dr.cells)open.add(x+','+z);
       for(const i of voids){const x=i%w,z=Math.floor(i/w);for(const [s,dx,dz] of DIRS){const n=x+dx+w*(z+dz);if(voids.has(n)||!mask(f,x+dx,z+dz))continue;
@@ -385,7 +393,7 @@
       box(bx-1,peak+12,bz-1,bx+10,peak+14,bz+10,M.stone_grey);for(let yy=peak+14;yy<peak+18;yy++)for(let zz=bz+3;zz<bz+6;zz++)for(let xx=bx+3;xx<bx+6;xx++)if(xx!==bx+4||zz!==bz+4)set(xx,yy,zz,M.terracotta);}
 
     // Furniture.
-    furnish(plan,{vol,X,Y,Z,at,set,cx,cz,FL,mask,r,info,M});
+    furnish(plan,{vol,X,Y,Z,at,set,cx,cz,FL,mask,r,info,M,MX,MZ});
 
     info.ms=Date.now()-t0;let solid=0;for(let i=0;i<vol.length;i++)if(vol[i])solid++;
     return {revision:REVISION,cell:V,dims:[X,Y,Z],origin:[MX,Y0,MZ],levels:Array.from({length:storeys+1},(_,f)=>FL(f)),plate,vol,palette:palette(),info,solid,materials:MATS.map(m=>m[0]),M};
@@ -418,14 +426,20 @@
     common:[['wall','kitchencounter_straight_A_decorated',{c:14,far:true}],['beside','kitchencounter_straight_A',{c:14}],['beside','kitchencounter_straight_A',{c:14}],['centre','table_round_A_decorated',{chairs:'chair_B',n:4}],['centre','table_medium_long',{chairs:'chair_A_wood',n:6}],['centre','table_round_A_decorated',{chairs:'chair_B',n:4}],['centre','table_round_A_decorated',{chairs:'chair_B',n:3}],['high','shelf_B_large_decorated'],['corner','crate_potatoes',{c:4}],['corner','jar_C_large',{c:4}],['corner','cactus_medium_A',{c:4}]],
     dining:[['centre','table_medium_long|table_medium|table_round_A_decorated',{chairs:'chair_A_wood',n:6}],['rug','rug_rectangle_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','cactus_medium_A',{c:4}],['high','shelf_B_small_decorated']],
     kitchen:[['wall','kitchencounter_sink',{window:true,c:12}],['beside','stove_single',{c:12}],['beside','kitchencounter_straight_A_decorated',{c:12}],['beside','kitchencounter_straight_A',{c:12}],['wall','kitchencabinet',{c:10}],['beside','kitchencabinet',{c:10}],['centre','table_medium_long|table_medium',{chairs:'chair_A_wood',n:6,minArea:16}],['centre','kitchentable_A_large_decorated',{chairs:'chair_stool_wood',n:2}],['onTop','pot_large'],['rug','rug_rectangle_A'],['corner','crate_carrots',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_small_decorated']],
-    shop:[['wall','kitchencounter_straight_A',{street:true,c:14}],['beside','kitchencounter_straight_A_decorated',{c:14}],['beside','kitchencounter_straight_A',{c:14}],
-      ['wall','cabinet_medium_decorated',{c:10}],['beside','kitchencabinet',{c:10}],['beside','cabinet_medium_decorated',{c:10}],['wall','kitchencabinet',{c:10}],['beside','cabinet_medium_decorated',{c:10}],['beside','kitchencabinet',{c:10}],
-      ['centre','table_medium_long|table_medium',{n:0}],['onTop','jar_C_large'],['centre','table_medium|table_round_A_decorated',{n:0,minArea:22}],['onTop','book_set'],['centre','table_round_A_decorated|table_small',{n:0,minArea:32}],
-      ['corner','crate_tomatoes',{c:4}],['corner','crate_carrots',{c:4}],['corner','crate_potatoes',{c:4}],['onTop','crate'],['corner','crate',{c:4}],['corner','jar_C_large',{c:3}],['corner','cactus_medium_A',{c:4}],
+    // A shop: a counter across the back facing the street (the till on it), shelving and cabinets down both side
+    // walls, and rows of display tables with aisles between them, each with goods on top; produce crates by the door.
+    shop:[['wall','kitchencounter_straight_A',{street:true,c:16}],['beside','kitchencounter_straight_A_decorated',{c:16}],['beside','kitchencounter_straight_A',{c:16}],['onTop','book_set'],
+      ['wall','kitchencabinet',{side:true,c:12}],['beside','cabinet_medium_decorated',{c:12}],['beside','kitchencabinet',{c:12}],['beside','cabinet_medium_decorated',{c:12}],['beside','kitchencabinet',{c:12}],
+      ['wall','cabinet_medium_decorated',{side:true,c:12}],['beside','kitchencabinet',{c:12}],['beside','cabinet_medium_decorated',{c:12}],['beside','kitchencabinet',{c:12}],['beside','cabinet_medium_decorated',{c:12}],
+      ['rows','table_medium_long|table_medium',{n:6,gap:14,goods:['jar_C_large','crate_tomatoes','pot_large','crate_carrots','book_set','crate_potatoes']}],
+      ['corner','crate_potatoes',{c:4}],['corner','crate_tomatoes',{c:4}],['corner','crate',{c:4}],['onTop','crate_carrots'],
       ['high','shelf_B_large_decorated'],['high','shelf_B_large_decorated'],['high','shelf_B_small_decorated'],['high','shelf_B_small_decorated']],
-    workshop:[['wall','kitchentable_A_large_decorated',{window:true,c:12}],['tuck','chair_stool_wood'],['wall','kitchentable_A_large_decorated',{c:12}],['tuck','chair_stool_wood'],['beside','kitchentable_A_large_decorated',{c:12}],
-      ['wall','kitchencabinet',{c:10}],['beside','kitchencabinet',{c:10}],['beside','cabinet_medium_decorated',{c:10}],['centre','table_medium_long',{n:0}],['onTop','book_set'],['centre','table_medium',{n:0,minArea:26}],['onTop','pot_large'],
-      ['corner','crate',{c:4}],['onTop','crate_potatoes'],['corner','crate_potatoes',{c:4}],['corner','crate',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_large_decorated'],['high','shelf_B_large_decorated']],
+    // A workshop: workbenches down the side walls with stools, tool cabinets, and rows of work tables.
+    workshop:[['wall','kitchentable_A_large_decorated',{side:true,c:14}],['tuck','chair_stool_wood'],['beside','kitchentable_A_large_decorated',{c:14}],['tuck','chair_stool_wood'],
+      ['wall','kitchentable_A_large_decorated',{side:true,c:14}],['tuck','chair_stool_wood'],['beside','kitchencabinet',{c:12}],['beside','kitchencabinet',{c:12}],
+      ['wall','cabinet_medium_decorated',{street:true,c:12}],['beside','kitchencabinet',{c:12}],
+      ['rows','table_medium_long',{n:3,gap:16,goods:['book_set','pot_large','jar_C_large']}],
+      ['corner','crate',{c:4}],['onTop','crate_potatoes'],['corner','crate',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_large_decorated'],['high','shelf_B_large_decorated']],
     store:[['wall','kitchencabinet',{c:8}],['beside','kitchencabinet',{c:8}],['corner','crate',{c:2}],['onTop','crate_potatoes'],['corner','crate_carrots',{c:2}],['corner','crate',{c:2}],['onTop','crate_tomatoes'],['corner','jar_C_large',{c:2}],['corner','jar_C_large',{c:2}],['high','shelf_B_small_decorated']],
     study:[['wall','table_medium',{window:true,c:4}],['tuck','chair_A_wood'],['onTop','book_set'],['rug','rug_rectangle_stripes_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','armchair_pillows',{c:8}],['corner','lamp_standing',{c:4}],['high','shelf_B_large_decorated'],['corner','cactus_medium_A',{c:4}]],
     office:[['wall','table_medium',{window:true,c:4}],['tuck','chair_A_wood'],['onTop','book_set'],['wall','cabinet_medium_decorated',{c:8}],['corner','crate',{c:4}],['high','shelf_B_large_decorated']],
@@ -467,8 +481,12 @@
         q.push(s0);seen[s0[0]+X*s0[1]]=1;while(q.length){const [x,z]=q.pop();for(const [a,b] of [[S,0],[-S,0],[0,S],[0,-S]]){const nx=x+a,nz=z+b,i=nx+X*nz;if(!inside(nx,nz)||seen[i]||!ok(nx,nz))continue;seen[i]=1;q.push([nx,nz]);}}
         return pts.every(([px,pz])=>{for(let a=-5;a<=5;a++)for(let b=-5;b<=5;b++)if(inside(px+a,pz+b)&&seen[px+a+X*(pz+b)])return true;return false;});};
       F.rooms.forEach((room,k)=>{const wants=WANTS[room.type];if(!wants||k<1||!room.box)return;
-        // Interior rectangle: the walkable columns of this room.
-        let rx0=X,rz0=Z,rx1=0,rz1=0;for(let z=cz(room.box[1]);z<cz(room.box[3]+1);z++)for(let x=cx(room.box[0]);x<cx(room.box[2]+1);x++){const i=x+X*z;if(roomOf[i]===k&&floor[i]){rx0=Math.min(rx0,x);rz0=Math.min(rz0,z);rx1=Math.max(rx1,x+1);rz1=Math.max(rz1,z+1);}}
+        // (An unreachable room reports its doorway points, in plan cells, in info.rooms.)
+        // Interior rectangle: each side's wall face, found by sampling along the side and keeping the deepest wall
+        // (a doorway cut through a wall must not stretch the room into it).
+        const bx0=cx(room.box[0]),bx1=cx(room.box[2]+1),bz0=cz(room.box[1]),bz1=cz(room.box[3]+1),walk=(x,z)=>inside(x,z)&&roomOf[x+X*z]===k&&floor[x+X*z];
+        const faceIn=(axis,from,dirn,lo,hi)=>{let deep=0;for(let t=0;t<7;t++){const a=Math.round(lo+(hi-lo)*(t+.5)/7);let d=0;while(d<6&&!(axis==='x'?walk(from+dirn*d,a):walk(a,from+dirn*d)))d++;if(d<6)deep=Math.max(deep,d);}return from+dirn*deep;};
+        let rx0=faceIn('x',bx0,1,bz0+2,bz1-2),rx1=faceIn('x',bx1-1,-1,bz0+2,bz1-2)+1,rz0=faceIn('z',bz0,1,bx0+2,bx1-2),rz1=faceIn('z',bz1-1,-1,bx0+2,bx1-2)+1;
         if(rx1<=rx0)return;const placed=[],mx=(rx0+rx1)/2,mz=(rz0+rz1)/2,doors=doorPts.get(k)||[];
         const fits=(x0,z0,pw,pd,need=1)=>{for(let z=z0;z<z0+pd;z++)for(let x=x0;x<x0+pw;x++){const i=x+X*z;if(!inside(x,z)||roomOf[i]!==k||!floor[i]||occ[i]>=need)return false;}return true;};
         const clearOk=(x0,z0,pw,pd)=>{for(let z=z0;z<z0+pd;z++)for(let x=x0;x<x0+pw;x++){const i=x+X*z;if(!inside(x,z)||roomOf[i]!==k||!floor[i]||occ[i]===1)return false;}return true;};
@@ -514,6 +532,15 @@
                 if(ok){rec=stamp(p,face,x0,z0,y,false);break;}continue;}
               rec=tryPut(p,face,x0,z0,anchor==='front'?0:c,null,anchor==='front');if(rec)break;}
             if(rec&&anchor==='beside'){last=rec;faceUse[rec.face]=(faceUse[rec.face]||0)+1;}if(rec&&anchor==='front'){rec.main=main;last=rec;}if(rec)count[id]=(count[id]||0)+1;continue;}
+          if(anchor==='rows'){// display tables in rows with aisles: long side running back from the street, centred in the floor
+            const gap=o.gap??14,goods=o.goods||[];let put=0;
+            for(const alt of alts){if(put)break;p=piece(alt);const face=p.dims[2]>=p.dims[0]?'zp':'xp',R=rotated(p,face),margin=gap+4;
+              const ix0=rx0+margin,ix1=rx1-margin,iz0=rz0+margin+6,iz1=rz1-margin,cols=Math.max(0,Math.floor((ix1-ix0+gap)/(R.w+gap))),rows=Math.max(0,Math.floor((iz1-iz0+gap)/(R.d+gap)));
+              if(!cols||!rows)continue;const sx=ix0+Math.floor((ix1-ix0-(cols*R.w+(cols-1)*gap))/2),sz=iz0+Math.floor((iz1-iz0-(rows*R.d+(rows-1)*gap))/2);
+              for(let rr=0;rr<rows&&put<(o.n||6);rr++)for(let cc=0;cc<cols&&put<(o.n||6);cc++){const x0=sx+cc*(R.w+gap),z0=sz+rr*(R.d+gap),t=tryPut(p,face,x0,z0,0);if(!t)continue;put++;
+                reserve(x0-6,z0-6,x0+R.w+6,z0+R.d+6,k);const g=goods.length?piece(goods[(put+rr)%goods.length]):null;
+                if(g){const G=rotated(g,face);if(G.w<=R.w&&G.d<=R.d){const gx=x0+((R.w-G.w)>>1),gz=z0+((R.d-G.d)>>1);let topY=y;for(let yy=y;yy<y+R.h+1;yy++)if(at(gx+(G.w>>1),yy,gz+(G.d>>1)))topY=yy+1;stamp(g,face,gx,gz,topY,false);}}}}
+            count[ids]=(count[ids]||0)+put;continue;}
           if(anchor==='centre'){// table + chairs as one group, nearest the room's middle with a 0.6 m walkway round it
             const ch=o.chairs?piece(o.chairs):null,ring=ch?Math.max(ch.dims[0],ch.dims[2])+2:0,pad=ch?ring+4:10;let best=null; // display tables keep a 60 cm aisle round them
             for(const alt of alts){if(best)break;p=piece(alt);id=alt;for(const face of ['zp','xp']){const R=rotated(p,face);for(let z0=rz0+pad;z0+R.d+pad<=rz1;z0+=2)for(let x0=rx0+pad;x0+R.w+pad<=rx1;x0+=2){
@@ -538,12 +565,12 @@
               let s=r()*3;
               if(anchor==='corner')s+=toEnd*3;else s+=Math.abs(along-(lo+hi)/2)*.5;
               if(o.long)s-=wallLen*.8;if(o.far)s-=Math.min(60,distDoor(x0+R.w/2,z0+R.d/2))*.6;s+=(faceUse[face]||0)*12; // spread wall pieces round the room
-              if(o.window&&windowBehind(x0,z0,R,b,axis))s-=40;if(o.street)s+=face==='zm'?-60:face[0]==='x'?0:40;
+              if(o.window&&windowBehind(x0,z0,R,b,axis))s-=40;if(o.street)s+=face==='zm'?-60:face[0]==='x'?0:40;if(o.side)s+=face[0]==='x'?-50:40;
               cands.push({face,x0,z0,s});}}
           cands.sort((a,b)=>a.s-b.s);
           for(const cd of cands.slice(0,80)){rec=tryPut(p,cd.face,cd.x0,cd.z0,c);if(rec)break;}
           if(rec){last=rec;if(anchor==='wall')main=rec;count[id]=(count[id]||0)+1;faceUse[rec.face]=(faceUse[rec.face]||0)+1;}}
-        info.rooms.push({floor:f,room:k,type:room.type,pieces:placed.length,reachable:reach(k)});});
+        {const ok=reach(k);info.rooms.push({floor:f,room:k,type:room.type,pieces:placed.length,reachable:ok,...(ok?{}:{doorPoints:(doorPts.get(k)||[]).map(([x,z])=>[+((x-ctx.MX)/CV).toFixed(1),+((z-ctx.MZ)/CV).toFixed(1)])})});}});
     }
   }
 

@@ -18,7 +18,11 @@ const CASES=[];for(const [type,T] of Object.entries(P.TYPES))for(const typology 
 // dormers, and a spire hip with a turret.
 const FORCED=[[3,'home','centre',{style:'fairytale',context:'detached',look:{roof:{form:'gambrel',ridge:'frontage',cross:{x0:7,x1:13,depth:7},dormers:0,turret:{side:'xp',r:14,rise:28}},facade:{oriels:2,window:'arched',frame:'cross'}}}],
   [3,'home','centre',{style:'harbour',context:'detached',look:{roof:{form:'halfhip',ridge:'frontage',cross:null,dormers:3,turret:null},facade:{window:'tall',glazing:'grid',shutters:true,shutter:'paint_green'}}}],
-  [3,'home','cross',{style:'spire',context:'detached',look:{roof:{form:'hip',turret:{side:'xm',r:13,rise:24}},facade:{oriels:1,window:'paired'}}}]];
+  [3,'home','cross',{style:'spire',context:'detached',look:{roof:{form:'hip',turret:{side:'xm',r:13,rise:24}},facade:{oriels:1,window:'paired'}}}],
+  // every stair kind, inside and in a tower
+  [1,'home','side',{context:'detached',stair:{kind:'straightLanding'}}],[3,'home','stairhall',{context:'detached',stair:{kind:'spiral'}}],[3,'home','stairhall',{context:'detached',stair:{kind:'u3'}}],
+  [1,'home','centre',{context:'detached',stair:{kind:'L',tower:true}}],[1,'home','side',{context:'detached',stair:{kind:'spiral',tower:true}}],[3,'home','stairhall',{context:'detached',stair:{kind:'dogleg',tower:true}}],
+  [1,'inn','courtyard',{context:'detached',stair:{kind:'spiral'}}],[1,'shophouse','centre',{context:'detached'}],[1,'shophouse','stairhall',{context:'detached'}]];
 for(const [seed,type,typology,extra] of [...CASES.map(c=>[...c,{context:'corner'}]),...FORCED]){
   const plan=P.generate(seed,{type,typology,...extra}),b=V.build(plan),[X,Y,Z]=b.dims,{vol}=b,at=(x,y,z)=>x<0||y<0||z<0||x>=X||y>=Y||z>=Z?0:vol[x+X*(z+Z*y)];
   const [MX,,MZ]=b.origin,cx=x=>MX+x*V.CV,cz=z=>MZ+z*V.CV;built++;
@@ -53,7 +57,12 @@ for(const [seed,type,typology,extra] of [...CASES.map(c=>[...c,{context:'corner'
     for(let k=0;k<fl.risers;k++){const a=Math.floor((k+.5)*t),[px,pz]=fl.dir==='zp'?[(X0+X1)>>1,Z0+a]:fl.dir==='zm'?[(X0+X1)>>1,Z1-1-a]:fl.dir==='xp'?[X0+a,(Z0+Z1)>>1]:[X1-1-a,(Z0+Z1)>>1];
       let h=base;while(at(px,h,pz))h++;assert.ok(h>last,`${type}/${typology} ${seed}: flight ${fl.dir} ${fl.risers} step ${k} climbs (${h-base} after ${last-base})`);last=h;}
     assert.equal(last,y0+(fl.start+fl.risers)*3,`${type} ${seed}: the flight ends at its height`);}
-  assert.equal(Math.max(...plan.stair.flights.filter(fl=>fl.from===0).map(fl=>(fl.start+fl.risers)*3)),V.SH,'the ground-floor stair reaches the next floor');
+  // Spirals: walking round from the entry, each tread is higher than the last and the last reaches the next floor.
+  for(const sp of plan.stair.spirals||[]){const y0=b.levels[sp.from],cxs=MX+sp.centre[0]*V.CV,czs=MZ+sp.centre[1]*V.CV,rr=sp.r*V.CV*.7,step=sp.sweep/sp.risers;let last=y0;
+    for(let k=0;k<sp.risers;k++){const a=sp.a0-(k+.5)*step,px=Math.floor(cxs+Math.cos(a)*rr),pz=Math.floor(czs+Math.sin(a)*rr);let h=y0;for(let yy=y0;yy<y0+V.SH;yy++)if(at(px,yy,pz))h=yy+1;assert.ok(h>last,`${type}/${typology} ${seed}: spiral tread ${k} climbs (${h-y0})`);last=h;}
+    assert.equal(last,y0+V.SH,`${type}/${typology} ${seed}: the spiral lands on the next floor`);}
+  const climbs=[...plan.stair.flights.filter(fl=>fl.from===0).map(fl=>(fl.start+fl.risers)*3),...(plan.stair.spirals||[]).filter(sp=>sp.from===0).map(sp=>sp.risers*3)];
+  assert.equal(Math.max(...climbs),V.SH,'the ground-floor stair reaches the next floor');
   // Furniture: placed on a floor, inside its room's cells, and every furnished room keeps its doors connected.
   for(const it of b.info.furniture){pieces++;const gx=Math.floor((it.x+it.w/2-MX)/V.CV),gz=Math.floor((it.z+it.d/2-MZ)/V.CV);
     assert.equal(plan.floors[it.floor].grid[gx+plan.plot.w*gz],it.room,`${it.piece} sits in its own room`);assert.ok(it.y>=b.levels[it.floor],'on or above the floor');}
