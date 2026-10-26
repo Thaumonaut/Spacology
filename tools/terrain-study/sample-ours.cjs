@@ -5,7 +5,7 @@
 // Usage: [SS=3] node tools/terrain-study/sample-ours.cjs [name ...]
 //        node tools/terrain-study/sample-ours.cjs --custom name x z km step   (ad-hoc area, e.g. a coarse overview)
 const fs=require('node:fs'),path=require('node:path');
-const M=require(path.join(__dirname,'../../prototypes/labs/microvoxel-world/voxel-world-model.js'));
+const M=require(path.join(__dirname,'../../prototypes/labs/microvoxel-world/voxel-world-model.js')),MacroLib=require(path.join(__dirname,'../../prototypes/labs/microvoxel-world/macro-map.js'));
 const {DATA,STEP,OURS}=require('./areas.cjs');
 const GRIDS=path.join(DATA,'grids');fs.mkdirSync(GRIDS,{recursive:true});
 const SS=Number(process.env.SS||3),seed=Number(process.env.SEED||2718),w=M.createWorld(seed,.25,'infinite');
@@ -21,7 +21,7 @@ function sample(A,step){
   fs.writeFileSync(path.join(GRIDS,A.name+'.f32'),Buffer.from(g.buffer));
   fs.writeFileSync(path.join(GRIDS,A.name+'.cone.f32'),Buffer.from(cone.buffer));fs.writeFileSync(path.join(GRIDS,A.name+'.relief.f32'),Buffer.from(relief.buffer));
   fs.writeFileSync(path.join(GRIDS,A.name+'.json'),JSON.stringify({...A,n,step,source:`generator ${w.revision} seed ${seed}, ${SS}x${SS} sub-samples per pixel`,sea:14.5,
-    volcanoes:(w.macro.volcanoes||[]).map(v=>({x:v.x,z:v.z,H:v.H,R:v.H*3}))}));
+    volcanoes:(w.macro.volcanoes||[]).map(v=>({x:v.x,z:v.z,H:v.H,type:v.type,R:MacroLib.volcanoRadius(v.type,v.H)}))}));
   let lo=Infinity,hi=-Infinity;for(const v of g)if(v===v){lo=Math.min(lo,v);hi=Math.max(hi,v);}
   console.log(A.name,n+'x'+n,'step',step,'min',lo.toFixed(0),'max',hi.toFixed(0),((Date.now()-t0)/1000).toFixed(1)+'s');
 }
