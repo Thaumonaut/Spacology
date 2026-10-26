@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-29':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-30-ranges':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -95,19 +95,22 @@
     // coastal ranges near the sea are 'subduction', inland ranges 'collision', high islets 'arc', and a slow fault field
     // cuts 'rift' seams (narrow gorges) through low hills. Rolling hills and uplands ride on top (hillsAt; not relief).
     // Near the home start relief and hills are softened and the ground kept at least 8 m above the sea.
-    const mac={},hill={h:0,mesa:0,wall:0};
+    const mac={},hill={h:0,mesa:0,wall:0},raHome=infinite?MM.at(0,0,{}).ra:0;
     function plateRelief(x,z){
       MM.at(x,z,mac);const r=Math.hypot(x,z),open=clamp((180-r)/90,0,1);
       let relief=Math.max(0,mac.m-mac.ra-SEA-14);const flat=mac.m-relief;
       hillsAt(x,z,r,relief);
       let h=mac.m+hill.h;
-      if(open){relief*=1-open*.85;h=flat+hill.h+relief;h+=open*Math.max(0,SEA+8-h);}
+      // The home lowland also levels the range apron toward its value at the start, so the camp is not on a ramp.
+      if(open){relief*=1-open*.85;h=flat+hill.h+relief-(mac.ra-raHome)*open*.85;h+=open*Math.max(0,SEA+8-h);}
       let setting='craton',f=0;
       if(h<SEA)setting=h>SEA-6?'shelf':'ocean';
       else if(relief>40)setting=mac.distToCoast<2400?'subduction':'collision';
       else if(relief>12&&mac.distToCoast<700)setting='arc';
       else if(relief<25){const n=noise(x*.0006,z*.0006,seed+931);if(n>.74){setting='rift';f=clamp((n-.74)/.08,0,1);}}
-      return {h,base:h-relief,relief,setting,f,cone:0,coast:mac.distToCoast,precip:mac.precip,lake:mac.lake,lakeD:mac.lakeD,valley:mac.valley,mesa:hill.mesa,wall:hill.wall};
+      // Range style (macro-map.js RANGE_STYLES): age, glac, dis, basin, plat, pyr, read by crag, erosion, cliffs and hills.
+      return {h,base:h-relief,relief,setting,f,cone:0,coast:mac.distToCoast,precip:mac.precip,lake:mac.lake,lakeD:mac.lakeD,valley:mac.valley,mesa:hill.mesa,wall:hill.wall,
+        age:mac.age,glac:mac.glac,dis:mac.dis,basin:mac.basin,plat:mac.plat,pyr:mac.pyr};
     }
     // Rolling hills and uplands everywhere on land, at ~150 m to 1.5 km wavelengths, in regional styles: plains (+-1-3 m),
     // rolling country (5-20 m) and hill country (20-60 m), chosen by a ~5 km field. Uplands rise toward the ranges (the
@@ -122,8 +125,11 @@
       const fade=clamp((mac.distToCoast-120)/500,0,1)*clamp(mac.valley*1.25-.1,0,1)*(1-clamp((mac.lakeD-.03)*4,0,1))*(1-.6*clamp(relief/120,0,1)),hf=clamp((r-200)/350,0,1);
       if(fade<=0)return hill;
       const S=noise(x*.00019+3.1,z*.00019,seed+951)*.68+noise(x*.0007,z*.0007,seed+953)*.32;
-      let amp=S<.4?1.5+2.5*S/.4:S<.55?4+16*smooth01((S-.4)/.15):20+40*smooth01((S-.55)/.25);
-      amp=Math.max(amp,(6+40*clamp(mac.ra/30,0,1))*clamp(mac.ra/6,0,1),26*clamp((r-250)/500,0,1)*clamp((3000-r)/800,0,1));
+      // Basins around Rockies-style ranges (mac.basin) and the altiplano behind Andes-style ones (mac.plat) are flat
+      // parks and plateaus: their hills are lower and the apron does not lift them into hill country.
+      const flat=(1-.8*mac.basin)*(1-.7*mac.plat);
+      let amp=(S<.4?1.5+2.5*S/.4:S<.55?4+16*smooth01((S-.4)/.15):20+40*smooth01((S-.55)/.25))*flat;
+      amp=Math.max(amp,(6+40*clamp(mac.ra/30,0,1))*clamp(mac.ra/6,0,1)*(1-.85*mac.plat)*(1-.5*mac.basin),26*clamp((r-250)/500,0,1)*clamp((3000-r)/800,0,1));
       const wx=x+(noise(x*.0011,z*.0011,seed+955)-.5)*500,wz=z+(noise(x*.0011,z*.0011,seed+957)-.5)*500;
       const f=noise(wx/1500,wz/1500,seed+959)*.45+noise(wx/650,wz/650,seed+961)*.3+noise(wx/300,wz/300,seed+963)*.17+noise(wx/150,wz/150,seed+965)*.08;
       const q=clamp((f-.3)/.42,0,1);let v=amp*q**1.3;
@@ -407,7 +413,7 @@
       const fed=new Uint8Array(n),src=new Map(),sink=new Uint8Array(n),sinkAt=new Map();
       for(let j=0;j<W;j++)for(let i=0;i<W;i++){
         const k=j*W+i,gi=i0+i,gj=j0+j;px[k]=(gi+.2+.6*hash(gi,gj,seed+D.salt))*G;pz[k]=(gj+.2+.6*hash(gi,gj,seed+D.salt+2))*G;
-        const t=tectonics(px[k],pz[k]);cragAt(px[k],pz[k],t.relief,t.cone);
+        const t=tectonics(px[k],pz[k]);cragAt(px[k],pz[k],t.relief,t.cone,t.age,t.glac,t.pyr);
         const g=t.h+upliftAt(px[k],pz[k]).up+cragLow;h[k]=g<SEA?g:g-(creaseAt||ownCrease)(px[k],pz[k])*CREASE_DEPTH*clamp((g-SEA-.5)/12,0,1);rel[k]=Math.max(t.relief,t.cone);
         // The home start sits on a low drainage dome (in the routed surface only), so creeks rise around camp and flow
         // away from it instead of crossing the opening's gorge and massif.
@@ -563,7 +569,7 @@
       const r=MM.rivers[ri],m=r.x.length,D=deltaOf.get(ri);lv=new Float32Array(m);let run=Infinity;
       // A distributary leaves its river at the delta apex, at the river's level there.
       if(r.distributary){const P=macroLevels(r.distributary.river);run=levelAt(r.distributary.river,P,r.distributary.along)+.3;}
-      for(let i=0;i<m;i++){const t=tectonics(r.x[i],r.z[i]),c=cragAt(r.x[i],r.z[i],t.relief,t.cone);run=Math.min(run,t.h+Math.min(c,cragLow));lv[i]=run-.3;}
+      for(let i=0;i<m;i++){const t=tectonics(r.x[i],r.z[i]),c=cragAt(r.x[i],r.z[i],t.relief,t.cone,t.age,t.glac,t.pyr);run=Math.min(run,t.h+Math.min(c,cragLow));lv[i]=run-.3;}
       // Rivers reaching the sea ease down to sea level at the shore (the second-to-last vertex; the last lies 30 m out in
       // open water): straight across a delta from its apex, over an estuary's funnel, else over the last 300 m.
       if(r.end==='ocean'){const shore=r.along[Math.max(0,m-2)],from=D?D.kind==='delta'&&!r.distributary?shore-D.along:D.kind==='delta'?shore:D.R:300;
@@ -666,7 +672,43 @@
       out[0]=a+(b-a)*sx+(c-a)*sz+e*sx*sz;out[1]=dsx*((b-a)+e*sz);out[2]=dsz*((c-a)+e*sx);
     }
     const nd=[0,0,0],wa=[0,0,0],wb=[0,0,0];
-    function cragAt(x,z,relief,cone=0){
+    // Pyramidal peaks (young ranges; RANGE_STYLES pyr): one candidate summit per 650 m cell (88% of cells), each a
+    // pyramid of 3 or 4 planar faces: height Hp hf - max_f s_f (u_f . d) (s_f: 0.47-0.78 m/m on top of the range's own
+    // slope, so faces stand at ~35-50 degrees), so its faces are flat triangles, the edges
+    // where they meet are straight sharp arêtes running down from the summit, and neighbouring pyramids meet in straight
+    // V notches. A 4-face pyramid has edges along the local crest (raster CC/CS, sampled once at its summit) and across
+    // it, so arêtes run from summit to summit along the range and down its flanks as spurs; a 3-face one is a horn. Face
+    // slopes vary per face, so peaks lean. The union is the maximum of the pyramids, floored (15% of Hp below their
+    // bases, up to 15% above them where glacial: broad flat trough floors between steep planar walls) and lowered by 0.4 Hp, so the layer carves the notches and troughs between peaks
+    // as much as it raises the peaks. Every pyramid's shape is fixed by its cell's hashes: planar faces, no seams.
+    // Gradient in pyG (m/m).
+    const PC=650,pyG=[0,0],RR=infinite?MM.raster:null,SQ=Math.SQRT1_2,C60=.5,S60=Math.sqrt(3)/2;
+    // Per-cell values come from two hashes (further ones are their scrambled fractions); a pyramid that cannot beat the
+    // best so far (its steepest-case bound) is skipped.
+    const fr=v=>v-Math.floor(v),TRI=[C60,S60,-1,0,C60,-S60];
+    function pyramidAt(x,z,Hp,glac){
+      const gi=Math.floor(x/PC),gj=Math.floor(z/PC);let best=-1e9,bgx=0,bgz=0;
+      for(let j=gj-1;j<=gj+1;j++)for(let i=gi-1;i<=gi+1;i++){
+        const h0=hash(i,j,seed+1401);if(h0<.12)continue;const h1=hash(i,j,seed+1403),h2=hash(i,j,seed+1405);
+        const cx=(i+.15+.7*h1)*PC,cz=(j+.15+.7*h2)*PC,dx=x-cx,dz=z-cz,hf=Hp*(.55+.45*fr(h0*7.31)),s0=.62*(.9+.2*fr(h1*5.17));
+        if(hf-.35*s0*Math.hypot(dx,dz)<=best)continue;
+        // Crest direction (cos, sin of the angle) from the doubled-angle raster, else a random one; jittered +-13 degrees.
+        const o=clamp(Math.round((cz+MM.oy)/RR.RS),0,RR.RH-1)*RR.RW+clamp(Math.round((cx+MM.ox)/RR.RS),0,RR.RW-1),c2=RR.CC[o],s2=RR.CS[o],r2=Math.hypot(c2,s2);
+        let ca,sa;if(r2>.2){ca=Math.sqrt(Math.max(0,(1+c2/r2)/2));sa=(s2<0?-1:1)*Math.sqrt(Math.max(0,(1-c2/r2)/2));}else{const a=fr(h2*3.71)*Math.PI;ca=Math.cos(a);sa=Math.sin(a);}
+        const jt=(fr(h0*13.7)-.5)*.45,cj=1-jt*jt/2,c=ca*cj-sa*jt,sn=sa*cj+ca*jt,tri=fr(h2*11.3)<.3;
+        let mx=-1e9,ux=0,uz=0;
+        for(let f=0,n=tri?3:4;f<n;f++){
+          // Face normals between the edges: 4 faces at 45 + 90k degrees from the crest, 3 at 60 + 120k.
+          let kx,kz;if(tri){kx=TRI[2*f];kz=TRI[2*f+1];}else{kx=f&1?-SQ:SQ;kz=f&2?-SQ:SQ;}
+          const fx=c*kx-sn*kz,fz=sn*kx+c*kz,sl=s0*(.75+.5*fr((h1+h2)*(17.3+f*6.1))),dt=(dx*fx+dz*fz)*sl;if(dt>mx){mx=dt;ux=fx*sl;uz=fz*sl;}}
+        const P=hf-mx;if(P>best){best=P;bgx=-ux;bgz=-uz;}}
+      const F=Hp*(.3*glac-.15);if(best<=F){pyG[0]=pyG[1]=0;return F-.4*Hp;}
+      pyG[0]=bgx;pyG[1]=bgz;return best-.4*Hp;
+    }
+    // age (0 young .. 1 old) rounds the crag: lower, with a smaller summit exponent, so old ranges have domed crests.
+    // glac (0-1) widens the flat floors between the broad ridges (glacial troughs). pyr (0-1): pyramidal peaks take over
+    // from the rounded broad ridges and the fine crag is halved, so faces stay planar.
+    function cragAt(x,z,relief,cone=0,age=0,glac=0,pyr=0){
       const m=Math.max(clamp((relief-6)/50,0,1),clamp(cone/70,0,1)*.6);if(!m){cragLow=cragGx=cragGz=lowGx=lowGz=0;return 0;}
       noiseD(x*.008,z*.008,seed+355,wa);noiseD(x*.008,z*.008,seed+357,wb);
       const wx=x+(wa[0]-.5)*50,wz=z+(wb[0]-.5)*50,massif=.6+.4*noise(x*.004,z*.004,seed+359);
@@ -683,24 +725,27 @@
       // Volcano cones get only a light share of this landform: their shape comes from the cone and its erosion.
       // Detail height is capped (28 m) well under its wavelength (~90 m): taller mountains get their size from the broad ridge layer
       // below, not from taller noise, which would stand up as needles.
-      const A=Math.min(28,Math.max(cragRelief(relief),cone*.3)*.6)*m*massif,v=sum/norm*1.5-.15,f=clamp(v,0,1.2),lv=low*1.5-.15,lf=clamp(lv,0,1.2);
-      const s=v>0&&v<1.2?A*1.7*f**.7*1.5/norm:0,ls=lv>0&&lv<1.2?A*1.7*lf**.7*1.5:0;
+      const A=Math.min(28,Math.max(cragRelief(relief),cone*.3)*.6)*m*massif*(1-.45*age)*(1-.5*pyr),v=sum/norm*1.5-.15,f=clamp(v,0,1.2),lv=low*1.5-.15,lf=clamp(lv,0,1.2),e=1.7-.8*age;
+      const s=v>0&&v<1.2?A*e*Math.max(f,.02)**(e-1)*1.5/norm:0,ls=lv>0&&lv<1.2?A*e*Math.max(lf,.02)**(e-1)*1.5:0;
       // Chain rule through the domain warp: d(warped)/d(world) = I + 50 * d(warp noise).
       const Wxx=1+50*.008*wa[1],Wxz=50*.008*wa[2],Wzx=50*.008*wb[1],Wzz=1+50*.008*wb[2];
       cragGx=s*(dx*Wxx+dz*Wzx);cragGz=s*(dx*Wxz+dz*Wzz);
-      cragLow=A*lf**1.7;lowGx=ls*(ldx*Wxx+ldz*Wzx);lowGz=ls*(ldx*Wxz+ldz*Wzz);
+      cragLow=A*lf**e;lowGx=ls*(ldx*Wxx+ldz*Wzx);lowGz=ls*(ldx*Wxz+ldz*Wzz);
       // Broad ridges for big ranges: three gradient-damped octaves at ~350 m, so large relief breaks into sub-peaks,
       // spurs and wide valleys whose slopes stay walkable (height scales with wavelength, not with relief alone).
       const Bm=clamp((relief-60)/140,0,1);let big=0;
-      if(Bm>0){
-        const Ab=Math.min(relief*.32,120)*Bm*massif;let bx=x*.0029,bz=z*.0029,bs=0,bgx=0,bgz=0,ba=1,bn=0,bdx=0,bdz=0,J=.0029,K=0,L=0,N=.0029;
+      if(Bm>0&&pyr<.98){
+        const Ab=(1-pyr)*Math.min(relief*.32,120)*Bm*massif*(1-.35*age),fl=.1+.14*glac;let bx=x*.0029,bz=z*.0029,bs=0,bgx=0,bgz=0,ba=1,bn=0,bdx=0,bdz=0,J=.0029,K=0,L=0,N=.0029;
         for(let o=0;o<3;o++){noiseD(bx,bz,seed+381+o,nd);bgx+=nd[1]*ba;bgz+=nd[2]*ba;const k=ba/(1+bgx*bgx+bgz*bgz);bs+=k*nd[0];bn+=ba;
           bdx+=k*(nd[1]*J+nd[2]*L);bdz+=k*(nd[1]*K+nd[2]*N);ba*=.5;const qx=1.6*bx-1.2*bz,qz=1.2*bx+1.6*bz;bx=qx;bz=qz;
           const a0=1.6*J-1.2*L,a1=1.6*K-1.2*N;L=1.2*J+1.6*L;N=1.2*K+1.6*N;J=a0;K=a1;}
-        const bv=clamp(bs/bn*1.4-.1,0,1.2),bsl=bv>0&&bv<1.2?Ab*1.5*bv**.5*1.4/bn:0;big=Ab*bv**1.5;
+        const bv=clamp(bs/bn*1.4-fl,0,1.2),bsl=bv>0&&bv<1.2?Ab*1.5*bv**.5*1.4/bn:0;big=Ab*bv**1.5;
         cragGx+=bsl*bdx;cragGz+=bsl*bdz;cragLow+=big;lowGx+=bsl*bdx;lowGz+=bsl*bdz;
       }
-      return A*f**1.7+big;
+      // Pyramidal peaks, up to 420 m on the tallest ranges.
+      if(Bm>0&&pyr>.02&&RR){const Hp=Math.min(relief*.65,420)*Bm*pyr*(.8+.2*massif),P=pyramidAt(x,z,Hp,glac);
+        big+=P;cragLow+=P;cragGx+=pyG[0];cragGz+=pyG[1];lowGx+=pyG[0];lowGz+=pyG[1];}
+      return A*f**e+big;
     }
     // Eroded-terrain filter. Each octave sums 3x3 jittered cells; every cell lays a wave whose phase is the distance across
     // the local downhill direction, so its crests and troughs run downhill. Blending the cells by a smooth falloff makes
@@ -713,13 +758,18 @@
     //   so the next, finer octave runs down the walls of the gullies above it.
     // Input: point, running gradient (m/m) and first-octave amplitude (m). Writes height offset, gradient and crease to
     // `ero`: crease is 0-1, high on gully floors where the coarse octaves converge (where water would gather).
+    // Wave shape (real ranges have sharp ridges over broad floors; old ones the reverse): the soft triangle t (-1 floor ..
+    // +1 crest) is bent to 2((1+t)/2)^pc - 1 (pc > 1: a kink at the crest, a flat floor: U troughs and arêtes) plus
+    // 1 - 2((1-t)/2)^pv (pv > 1: domed crests over V floors, for old ranges). Both slopes stay bounded.
+    // Ec: an optional coarse octave on a 168 m cell (big relief only, see erosionStrength): valley-scale troughs that
+    // organise drainage and, U-shaped, read as glacial valleys.
     const ero={offset:0,gx:0,gz:0,crease:0},EG=84,TAU=Math.PI*2,ASK=Math.asin(.95);
-    function erodeAt(x,z,gx,gz,E){
-      let off=0,ox=0,oz=0,crease=0,cell=EG,amp=E;
-      for(let o=0;o<3;o++,cell*=.5,amp*=.42){
+    function erodeAt(x,z,gx,gz,E,Ec=0,pc=1,pv=1){
+      let off=0,ox=0,oz=0,crease=0,o0=Ec>0?-1:0,cell=o0?EG*2:EG,amp=o0?Ec:E;
+      for(let o=o0;o<3;o++,cell*=.5,amp=o?amp*.42:E){
         // Finer octaves need steeper ground: where the running gradient is weak its direction swings quickly, and so would
         // the waves laid along it.
-        const G=Math.hypot(gx,gz),fade=clamp((G-.06-.14*o)/.4,0,1);if(!fade)continue;
+        const G=Math.hypot(gx,gz),fade=clamp((G-.06-.14*Math.max(0,o))/.4,0,1);if(!fade)continue;
         const ux=-gz/G,uz=gx/G,px=x/cell,pz=z/cell,ix=Math.floor(px),iz=Math.floor(pz),k=seed+701+o*7;
         let C=0,S=0,Cx=0,Cz=0,Sx=0,Sz=0,wt=0;
         for(let j=-1;j<=1;j++)for(let i=-1;i<=1;i++){
@@ -733,12 +783,14 @@
         const L2=C*C+S*S;if(L2<1e-12)continue;
         // Soft triangle wave of the summed angle: asin(k cos a), nearly straight-sided but with crests and floors rounded
         // over a few metres, so no crest is a one-voxel fin.
-        const len=Math.sqrt(L2),cn=C/len,tri=Math.asin(.95*cn)/ASK,conf=clamp(len/wt*2.5,0,1),q=.95/(ASK*Math.sqrt(1-.9025*cn*cn))*S/(L2*len)*conf;
+        const len=Math.sqrt(L2),cn=C/len,tri=Math.asin(.95*cn)/ASK,conf=clamp(len/wt*2.5,0,1);
+        const u=(1+tri)/2,w=1-u,uc=pc===1?1:u**(pc-1),wv=pv===1?1:w**(pv-1),y=2*u*uc-1+1-2*w*wv-tri,yd=pc*uc+pv*wv-1;
+        const q=.95/(ASK*Math.sqrt(1-.9025*cn*cn))*S/(L2*len)*conf*yd;
         // Where the blend is incoherent the wave fades out rather than snapping between ridge and gully.
         const h=amp*fade,dx=h*q*(S*Cx-C*Sx),dz=h*q*(S*Cz-C*Sz);
         // The next octave follows the gradient of the plain cosine wave (cn): the soft triangle's crests turn the gradient
         // too abruptly to steer by.
-        const r=h*conf*S/(L2*len);off+=h*tri*conf;ox+=dx;oz+=dz;gx+=r*(S*Cx-C*Sx);gz+=r*(S*Cz-C*Sz);
+        const r=h*conf*S/(L2*len);off+=h*y*conf;ox+=dx;oz+=dz;gx+=r*(S*Cx-C*Sx);gz+=r*(S*Cz-C*Sz);
         if(o<2)crease=Math.max(crease,fade*conf*clamp((-tri-.3)/.55,0,1)*(o?.7:1));
       }
       ero.offset=off;ero.gx=ox;ero.gz=oz;ero.crease=crease;return ero;
@@ -764,15 +816,16 @@
     const surf={slope:0,erosion:0,crease:0,spur:0,gx:0,gz:0};
     function mountainSurface(x,z,t){
       surf.slope=surf.erosion=surf.crease=surf.spur=surf.gx=surf.gz=0;if(!(t.relief>12||t.cone>5))return surf;
-      macroGradient(x,z);const mx=mgrad[0],mz=mgrad[1],E=erosionStrength(t,x,z);let gx=mx+cragGx,gz=mz+cragGz;
-      if(E>0){erodeAt(x,z,mx+lowGx,mz+lowGz,E);surf.erosion=ero.offset;surf.crease=ero.crease;surf.spur=ero.offset/E;gx+=ero.gx;gz+=ero.gz;}
+      macroGradient(x,z);const mx=mgrad[0],mz=mgrad[1],E=erosionStrength(t,x,z),Ec=coarseE;let gx=mx+cragGx,gz=mz+cragGz;
+      // Young ranges get sharp crests over broader floors, glacial ones U troughs; old ones domed crests.
+      if(E>0){const g=t.glac||0,a=t.age||0;erodeAt(x,z,mx+lowGx,mz+lowGz,E,Ec,1+(.35+.75*g)*(1-a),1+.9*a);surf.erosion=ero.offset;surf.crease=ero.crease;surf.spur=ero.offset/(E+.4*Ec);gx+=ero.gx;gz+=ero.gz;}
       surf.gx=gx;surf.gz=gz;surf.slope=Math.hypot(gx,gz);return surf;
     }
     // Public erosion sample for other systems (drainage): {offset (m, added to the ground), crease (0-1, high on gully
     // floors where coarse erosion octaves converge, 0 off mountains), gradient [gx, gz] of the eroded mountain surface
     // (m/m)}. Pure function of (seed, x, z); costs one plate/crag evaluation plus three erosion octaves.
     function erosionAt(x,z){
-      const t=tectonics(x,z);cragAt(x,z,t.relief,t.cone);const s=mountainSurface(x,z,t);
+      const t=tectonics(x,z);cragAt(x,z,t.relief,t.cone,t.age,t.glac,t.pyr);const s=mountainSurface(x,z,t);
       return {offset:s.erosion,crease:s.crease,gradient:[s.gx,s.gz]};
     }
     // Soft ceiling for the tallest summits: above 3 km, height eases toward 3.4 km, well inside the 10 km column.
@@ -782,10 +835,16 @@
     // Erosion is patchy: a broad field decides which faces are deeply dissected and which stay smooth slabs and scree
     // aprons, so a range reads as rock massif rather than a uniform bed of spikes. Depth tracks relief (its cap grew with
     // the ranges); a volcano's crater and smooth summit cone stay uneroded.
-    const erosionStrength=(t,x,z)=>{const patch=.3+.7*noise(x*.0009,z*.0009,seed+743);
+    // Range style: dis (dissection) deepens gullies (to 15 m) and evens out the patches (North Cascades) or smooths faces
+    // (Rockies slabs); old ranges erode shallower. Big relief (> 150 m) also gets the coarse 168 m octave (coarseE, up to
+    // ~30 m: valley-scale troughs, U-shaped where glacial), deeper in glacial and dissected ranges.
+    let coarseE=0;
+    // Pyramidal (young) ranges keep their faces planar: gullies there are shallower couloirs (pyr).
+    const erosionStrength=(t,x,z)=>{const dis=t.dis||0,age=t.age||0,py=1-.6*(t.pyr||0),patch=clamp(.3+.7*noise(x*.0009,z*.0009,seed+743)+.25*dis,.1,1);
       // Gully depth is capped at 10 m (about an eighth of the first octave's 84 m cell), so gullies stay V-shaped, not needle combs.
       // On volcanoes the radial ribs (volcanoCone) are the landform; this finer erosion is only a light texture on their sides.
-      return Math.min(10,clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.04*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
+      coarseE=t.relief>150?clamp((t.relief-150)/250,0,1)*24*(.7+.35*(t.glac||0)+.3*dis)*(1-.5*age)*patch*py:0;
+      return Math.min(10*(1+.5*dis),clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11*(1+.3*dis)+(t.cone?clamp(t.cone/40,0,1)*t.cone*.04*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch*(1-.3*age)*py;};
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
     function outcropAt(x,z){
@@ -808,7 +867,7 @@
         if(p<.45*highlands*clamp((Math.max(t.relief,t.cone)-22)/15,0,1)&&Math.hypot(x,z)>90){
           // Hover clear of the highest ground beneath the whole slab.
           const r=8+13*hash(i,j,seed+377);let under=SEA;
-          for(const [u,v] of [[0,0],[r,0],[-r,0],[0,r],[0,-r],[.7*r,.7*r],[-.7*r,.7*r],[.7*r,-.7*r],[-.7*r,-.7*r]]){const q=tectonics(x+u,z+v);under=Math.max(under,q.h+cragAt(x+u,z+v,q.relief,q.cone)+12);}
+          for(const [u,v] of [[0,0],[r,0],[-r,0],[0,r],[0,-r],[.7*r,.7*r],[-.7*r,.7*r],[.7*r,-.7*r],[-.7*r,-.7*r]]){const q=tectonics(x+u,z+v);under=Math.max(under,q.h+cragAt(x+u,z+v,q.relief,q.cone,q.age,q.glac,q.pyr)+12);}
           const top=Math.min(heightCells*cellMetres-14,under+22+30*hash(i,j,seed+379));
           v={x,z,r,top,cold:climate(x,z).T-(cool(top)-cool(t.h))<-5,fall:null};
           // About 40% of isles spill a thin waterfall from under the rim (the outermost point still on the slab).
@@ -1190,7 +1249,7 @@
           if(LD>.1){const L0=lakeLevel(t.lake);LD=Math.max(Math.min(LD,.16),Math.min(LD,.5+.4*clamp((L0+3-t.h)/6,-1,1)));if(LD>.1){lakeL=L0;RV.lake=lakeL;}}}
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
-        const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
+        const crag=cragAt(x,z,t.relief,t.cone,t.age,t.glac,t.pyr),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
         const {slope,erosion,crease,spur}=mountainSurface(x,z,t);
         let h=summit(t.h+bump*(t.h<SEA?.4:1)+crag+erosion);
         // Crags: steep mountain ground breaks into cliff bands, 2.5-6 m risers between narrower ledges along wandering
@@ -1199,7 +1258,7 @@
         // fade out beside channels and break open into ramps (about a third of the ground, in ~50 m patches), so every face
         // has a walkable way up between its walls. cliff: 0-1 on a riser (bare rock); talus: the foot of a riser (scree).
         let cliff=0,talus=false;
-        const cs=t.relief>15?clamp((slope-.95)/.5,0,1)*clamp((t.relief-15)/30,0,1)*clamp((riverDistance-3)/6,0,1)*clamp((noise(x*.02,z*.02,seed+949)-.36)/.12,0,1):0;
+        const cs=t.relief>15?clamp((slope-.95)/.5,0,1)*clamp((t.relief-15)/30,0,1)*clamp((riverDistance-3)/6,0,1)*clamp((noise(x*.02,z*.02,seed+949)-.36)/.12,0,1)*(1-.8*(t.age||0)):0;
         // The band period is constant: a period that varied over the map would be multiplied by the band count (h/band, ~400
         // at 1.5 km), sliding the steps sideways a whole band per few metres and shredding faces into comb teeth. Riser
         // height varies instead through the step's sharpness.
@@ -2599,7 +2658,7 @@
       // Ground plus the most crag, erosion, bump and ice could add there, trees on top, and a margin for relief peaking
       // between the samples.
       for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n),A=Math.max(cragRelief(t.relief),t.cone*.3)*.6;ground=Math.max(ground,t.h+A*1.4);
-        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0||t.cone>0?Math.min(m*.15,30):0));}
+        v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+1.1*coarseE+(t.pyr>.02?Math.min(t.relief*.65,420)*.6*t.pyr:0)+(t.relief>15?60:50)+(t.relief>0||t.cone>0?Math.min(m*.15,30):0));}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       // Landmark trees: a cell already evaluated gives its exact top; an unevaluated one only matters if its cheap hash allows a
       // landmark at all, and then is bounded conservatively, so the bound never runs full geography for landmark sites.

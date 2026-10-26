@@ -417,8 +417,33 @@ Range 6-8 40-50 5-95 10-90`};
   //   minor     low ridges and hill ranges (50-130 m)
   //   home      one range on the start's skyline, about 1.1-1.4 km away, so the opening view shows mountains
   // Ranges keep off each other (parallel chains stay a valley apart), off the coast and out of the home lowland.
-  const RANGE_KINDS={spine:{pw:1.9,apron:.16,K:2.4},coastal:{pw:1.9,apron:.15,K:2.2},interior:{pw:1.9,apron:.15,K:2.3},massif:{pw:1.5,apron:.2,K:2.4},
-    secondary:{pw:1.5,apron:.14,K:2.2},branch:{pw:1.5,apron:.12,K:2},minor:{pw:1.4,apron:.12,K:2},home:{pw:1.55,apron:.14,K:2.6}};
+  // K: apron reach in core half-widths (capped at APRON_MAX), so foothills end within ~3 km and open basins lie between.
+  const RANGE_KINDS={spine:{pw:1.9,apron:.16,K:1.6},coastal:{pw:1.9,apron:.15,K:1.5},interior:{pw:1.9,apron:.15,K:1.55},massif:{pw:1.5,apron:.2,K:1.6},
+    secondary:{pw:1.5,apron:.14,K:1.5},branch:{pw:1.5,apron:.12,K:1.4},minor:{pw:1.4,apron:.12,K:1.4},home:{pw:1.55,apron:.14,K:2.6}},APRON_MAX=3000;
+  // Range styles, after real ranges (artifacts/range-styles). Every range has one, chosen at build time (majors from their
+  // kind's list, the least used first so a continent mixes them; branches take their parent's; secondary and minor ranges
+  // are old and worn). A style sets the cross-profile c = H (1 - q^pa)^pw (q: distance / half-width; pa > 1 fills the
+  // shoulders and rounds the crest, so only old ranges use it; pa = 1 with pw ~1.1 is a tent: a sharp crest over steep,
+  // nearly planar flanks; a large pa makes a flat-topped block with a steep front, Rockies-style), height and width
+  // multipliers, the apron reach multiplier K, and the parameters the world reads from the baked raster:
+  //   age   0 young .. 1 old: rounder crests, fewer cliffs, softer crag (Smokies)
+  //   glac  0 .. 1 glacial: broad U-floored troughs between sharp arêtes, cirque hollows, horns (Alps)
+  //   dis   -1 .. 1 dissection: deeper, denser gullies (North Cascades 1) or smoother slab faces (Rockies)
+  //   basin 0 .. 1: the lowland around the range is flat basin and park, hills fade (Rockies, Tetons)
+  //   pyr   0 .. 1: pyramidal peaks (planar triangular faces, straight arêtes meeting at summits, aligned with the
+  //         crest: see the world's pyramidAt); 0 on old ranges, which keep rounded broad ridges
+  // The raster also carries the local crest direction (CC, CS: cos and sin of twice its angle, so opposite directions agree).
+  // andes ranges also raise an altiplano: a flat plateau ~0.28 of the crest height reaching 3-4.5 km behind the crest on
+  // the inland side (raster PL), with low rolling hills only.
+  const RANGE_STYLES={
+    alps:{pa:1,pw:1.15,H:1,W:1.12,K:1,age:0,glac:1,dis:.35,basin:0,pyr:1},
+    cascades:{pa:1,pw:1.2,H:.95,W:.95,K:.9,age:0,glac:.35,dis:1,basin:0,pyr:.9},
+    rockies:{pa:2.6,pw:1.25,H:1,W:1.15,K:.6,age:.15,glac:.45,dis:-.4,basin:1,pyr:.7},
+    himalaya:{pa:1,pw:1.1,H:1.6,W:1.35,K:1.1,age:0,glac:.8,dis:.6,basin:0,pyr:1},
+    andes:{pa:1,pw:1.2,H:1.12,W:1.05,K:1,age:0,glac:.3,dis:.2,basin:.3,pyr:.85},
+    old:{pa:1.7,pw:1.8,H:.85,W:1.1,K:1.25,age:1,glac:0,dis:-.2,basin:0,pyr:0}};
+  const STYLE_PREFS={spine:['himalaya','andes','alps','rockies','cascades'],coastal:['andes','cascades','alps','rockies','himalaya'],interior:['rockies','alps','himalaya','cascades','andes'],
+    massif:['alps','rockies','himalaya','cascades','andes']};
   function landInfo(G,h){
     const {n,off,nb,border}=G,ocean=new Uint8Array(n),stack=[];
     for(let k=0;k<n;k++)if(border[k]&&h[k]<SEA_H&&!ocean[k]){ocean[k]=1;stack.push(k);while(stack.length){const q=stack.pop();for(let e=off[q];e<off[q+1];e++){const c=nb[e];if(h[c]<SEA_H&&!ocean[c]){ocean[c]=1;stack.push(c);}}}}
@@ -442,14 +467,29 @@ Range 6-8 40-50 5-95 10-90`};
   }
   // Range layer at map point (x, y): out.core and out.apron (m). Cores combine as a 4-norm (a junction stands a little
   // above either range), aprons by maximum. A ~1.1 km noise wobbles the flanks so they don't run as even contours.
+  // Style parameters (out.age, glac, dis, basin) are the ranges' own, weighted by presence (H (1 - d / 2.2 ws)^2, to the
+  // 4th power) and faded out where no range is within reach; out.plat (0-1) marks altiplano ground (its height is in
+  // out.apron, so the world treats it as upland, not mountain relief).
   const RQ={d:0,i:0,u:0,side:1};
   function rangeField(ranges,x,y,seed,out){
-    const dn=(noise(x/1100,y/1100,seed+971)-.5)*2;let s4=0,ap=0;
+    const dn=(noise(x/1100,y/1100,seed+971)-.5)*2;let s4=0,ap=0,pl=0,ws4=0,pmax=0,sa=0,sg=0,sd=0,sb=0,sp=0,sc=0,ss=0,cmax=0,sdc=0,ks=0;
     for(const r of ranges){if(x<r.bx0||x>r.bx1||y<r.by0||y>r.by1)continue;crestNear(r,x,y,RQ);const i=RQ.i,u=RQ.u;
-      const Hc=r.H[i]+(r.H[i+1]-r.H[i])*u,w=r.w[i]+(r.w[i+1]-r.w[i])*u,a=r.a[i]+(r.a[i+1]-r.a[i])*u,ws=w*(1+a*RQ.side),d=Math.max(0,RQ.d+dn*.16*w),q=d/ws;
-      if(q<1){const c=Hc*(1-q)**r.pw;s4+=c*c*c*c;}
-      const qa=d/Math.min(r.K*ws,6500);if(qa<1){const v=Hc*r.apron*(1-qa)**2;if(v>ap)ap=v;}}
-    out.core=Math.sqrt(Math.sqrt(s4));out.apron=ap;return out;
+      const Hc=r.H[i]+(r.H[i+1]-r.H[i])*u,w=r.w[i]+(r.w[i+1]-r.w[i])*u,a=r.a[i]+(r.a[i+1]-r.a[i])*u,ws=w*(1+a*RQ.side),d=RQ.d/(1-.14*dn),q=d/ws;
+      // Altiplano behind an andes crest: flat at Hp out to r.plat, easing down over 900 m; on the front side it tapers
+      // to nothing within 0.8 half-widths, under the core, so the crest stays continuous. The core stands on it.
+      let p=0;if(r.plat){const Hp=r.Hp[i]+(r.Hp[i+1]-r.Hp[i])*u;
+        if(RQ.side===r.back){const e=clamp((r.plat-RQ.d)/900,0,1);p=Hp*e*e*(3-2*e)*(1-.12*clamp(RQ.d/r.plat,0,1));}
+        else{const e=Math.max(0,1-RQ.d/(.8*ws));p=Hp*e*e;}
+        if(p>pl)pl=p;}
+      if(q<1){const c=Math.max(0,Hc*(1-q**r.pa)**r.pw-p);s4+=c*c*c*c;
+        // Crest kink of a tent profile (pa = 1): signed distance and slope at the crest of the strongest core, fading out by
+        // 0.35 half-widths (the sampler restores the kink the raster's smoothing rounds off).
+        if(c>cmax){cmax=c;sdc=RQ.side*RQ.d;ks=r.pa===1&&q<.35?Hc*r.pw/(ws*(1-.14*dn))*(1-q/.35)**2:0;}}
+      const qa=d/Math.min(r.K*ws,APRON_MAX);if(qa<1){const v=Hc*r.apron*(1-qa)**2;if(v>ap)ap=v;}
+      const qs=d/(2.2*ws);if(qs<1){const P=Hc*(1-qs)**2,P4=P*P*P*P,S=r.S;ws4+=P4;sa+=P4*S.age;sg+=P4*S.glac;sd+=P4*S.dis;sb+=P4*S.basin;sp+=P4*S.pyr;if(P>pmax)pmax=P;
+        const ex=r.x[i+1]-r.x[i],ey=r.y[i+1]-r.y[i],L2=ex*ex+ey*ey||1;sc+=P4*(ex*ex-ey*ey)/L2;ss+=P4*2*ex*ey/L2;}}
+    out.core=Math.sqrt(Math.sqrt(s4));out.apron=Math.max(ap,pl);out.plat=pl>0?pl*pl/(pl*pl+ap*ap+1):0;
+    const f=ws4>0?clamp(pmax/60,0,1)/ws4:0;out.age=sa*f;out.glac=sg*f;out.dis=sd*f;out.basin=sb*f;out.pyr=sp*f;out.cc=ws4>0?sc/ws4:0;out.cs=ws4>0?ss/ws4:0;out.sd=sdc;out.ks=ks;return out;
   }
   function buildRanges(G,h,seed,home){
     const {px,py,s,cellsX,cellsY,off,nb}=G,rng=mulberry(seed^0x2c1b3c6d),{ocean,t,comp,comps}=landInfo(G,h),ranges=[],volcanoes=[];
@@ -474,7 +514,7 @@ Range 6-8 40-50 5-95 10-90`};
     }
     // Crest polyline (Chaikin-smoothed, resampled every 150 m) with per-vertex height, width and asymmetry. Long ranges
     // taper at both ends; a branch starts at its parent's flank height and tapers toward its tip.
-    function finish(pts,kind,H0,w0,branch){
+    function finish(pts,kind,H0,w0,branch,style){
       for(let it=0;it<2&&pts.length>2;it++){const Q=[pts[0]];for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1];Q.push([a[0]*.75+b[0]*.25,a[1]*.75+b[1]*.25],[a[0]*.25+b[0]*.75,a[1]*.25+b[1]*.75]);}Q.push(pts[pts.length-1]);pts=Q;}
       const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));
       const L=cum[cum.length-1];if(L<300)return null;const m=Math.max(2,Math.ceil(L/150)+1),X=new Float64Array(m),Y=new Float64Array(m),Hs=new Float64Array(m),ws=new Float64Array(m),as=new Float64Array(m),k=ranges.length*7.31+.5;
@@ -482,9 +522,11 @@ Range 6-8 40-50 5-95 10-90`};
         const env=branch?sm(clamp((L-sv)/(.45*L),0,1))*(.8+.2*sm(clamp(sv/(.2*L),0,1))):sm(clamp(Math.min(sv,L-sv)/(.22*L),0,1));
         Hs[v]=H0*(.1+.9*env)*(.72+.28*noise(sv/2600,k,seed+961))+H0*.16*(noise(sv/700,k,seed+963)-.5)*env;
         ws[v]=w0*(.75+.5*noise(sv/3500,k,seed+965))*(.55+.45*env);as[v]=(noise(sv/5000,k,seed+967)-.5)*.6;}
-      const K=RANGE_KINDS[kind];
-      const r={kind,x:X,y:Y,H:Hs,w:ws,a:as,length:L,pw:K.pw,apron:K.apron,K:K.K,chunks:[]};
-      let reach=0;for(let v=0;v<m;v++)reach=Math.max(reach,Math.min(K.K*ws[v]*(1+Math.abs(as[v]))*1.2,6500));
+      const K=RANGE_KINDS[kind],S=RANGE_STYLES[style],home=kind==='home';
+      const r={kind,style,S,x:X,y:Y,H:Hs,w:ws,a:as,length:L,pa:home?1:S.pa,pw:home?K.pw:S.pw,apron:K.apron,K:home?K.K:K.K*S.K,plat:0,back:1,Hp:null,chunks:[]};
+      // Presence (style weights) reaches 2.2 half-widths, the apron K half-widths (at most APRON_MAX), an altiplano 4.6 km.
+      let reach=0;for(let v=0;v<m;v++)reach=Math.max(reach,ws[v]*(1+Math.abs(as[v]))*1.2*Math.max(2.2,Math.min(r.K,APRON_MAX/ws[v])));
+      if(style==='andes'&&!branch&&kind!=='home'){reach=Math.max(reach,4600);r.Hp=Float64Array.from(Hs,(_,v)=>.28*H0*sm(clamp(Math.min(v,m-1-v)/(.15*(m-1)),0,1)));}
       r.bx0=Math.min(...X)-reach;r.bx1=Math.max(...X)+reach;r.by0=Math.min(...Y)-reach;r.by1=Math.max(...Y)+reach;
       for(let c=0;c<m-1;c+=8){const e=Math.min(m-1,c+8);let cx=0,cy=0;for(let v=c;v<=e;v++){cx+=X[v];cy+=Y[v];}cx/=e-c+1;cy/=e-c+1;let rad=0;for(let v=c;v<=e;v++)rad=Math.max(rad,Math.hypot(X[v]-cx,Y[v]-cy));r.chunks.push(cx,cy,rad,c,e);}
       return r;
@@ -492,19 +534,29 @@ Range 6-8 40-50 5-95 10-90`};
     // Spacing: a new chain keeps (wa + wb) x f from every non-minor chain (a valley between parallel ranges) and its core
     // edge at least `homeGap` from home. A chain that runs into another is cut there, keeping its longest clear stretch plus
     // ~600 m on into the other range, so chains meet in junction knots instead of overlapping along their length.
-    function clip(r,f,homeGap,kind,H0,w0){
+    function clip(r,f,homeGap,kind,H0,w0,style){
       const m=r.x.length,bad=new Uint8Array(m);
       for(let v=0;v<m;v++){if(Math.hypot(r.x[v]-hx,r.y[v]-hy)<r.w[v]+homeGap){bad[v]=2;continue;}
         for(const o of ranges){if(o.kind==='minor'||r.x[v]<o.bx0||r.x[v]>o.bx1||r.y[v]<o.by0||r.y[v]>o.by1)continue;crestNear(o,r.x[v],r.y[v],RQ);if(RQ.d<(r.w[v]+o.w[RQ.i])*f){bad[v]=1;break;}}}
       let a=0,b=-1;for(let v=0,s0=0;v<=m;v++){if(v===m||bad[v]){if(v-1-s0>b-a){a=s0;b=v-1;}s0=v+1;}}
       if(b<0)return null;if(a===0&&b===m-1)return r;
       for(let k=0;k<4&&a>0&&bad[a-1]===1;k++)a--;for(let k=0;k<4&&b<m-1&&bad[b+1]===1;k++)b++;
-      const pts=[];for(let v=a;v<=b;v++)pts.push([r.x[v],r.y[v]]);return pts.length>3?finish(pts,kind,H0,w0,false):null;
+      const pts=[];for(let v=a;v<=b;v++)pts.push([r.x[v],r.y[v]]);return pts.length>3?finish(pts,kind,H0,w0,false,style):null;
     }
     const pick=(cells,ok)=>{for(let k=0;k<80;k++){const c=cells[Math.floor(rng()*cells.length)];if(ok(c))return c;}return -1;};
+    // Style: majors take the least used style, preferring those early in their kind's list (ties broken by a separate seeded stream, so the
+    // layout's own random sequence is untouched), secondary and minor ranges are old. Height and width follow the style.
+    const srng=mulberry(seed^0x51e7a2b9),used={};
+    function styleFor(kind){const L=STYLE_PREFS[kind];if(!L)return 'old';let best=null,bs=Infinity;L.forEach((k,i)=>{const sc=(used[k]||0)+i*.3+srng()*.25;if(sc<bs){bs=sc;best=k;}});return best;}
     function chain(kind,c,ang,len,H0,w0,o,f,homeGap){
-      const a=walk(px[c],py[c],ang,len/2,o),b=walk(px[c],py[c],ang+Math.PI,len/2,o);let r=finish([...b.reverse(),...a.slice(1)],kind,H0,w0,false);
-      if(r)r=clip(r,f,homeGap,kind,H0,w0);if(!r||r.length<Math.max(len*.4,Math.min(len,2500)))return null;ranges.push(r);return r;
+      const style=styleFor(kind),S=RANGE_STYLES[style];H0*=S.H;w0*=S.W;
+      const a=walk(px[c],py[c],ang,len/2,o),b=walk(px[c],py[c],ang+Math.PI,len/2,o);let r=finish([...b.reverse(),...a.slice(1)],kind,H0,w0,false,style);
+      if(r)r=clip(r,f,homeGap,kind,H0,w0,style);if(!r||r.length<Math.max(len*.4,Math.min(len,2500)))return null;
+      // An altiplano lies on the inland side (the side whose ground is further from the sea 3 km out from mid-crest).
+      if(r.Hp){const m=r.x.length>>1,j=Math.min(r.x.length-1,m+1),ex=r.x[j]-r.x[m-1],ey=r.y[j]-r.y[m-1],L=Math.hypot(ex,ey)||1,nx=-ey/L,ny=ex/L,tAt=(x,y)=>{const c=cellAt(x,y);return c<0||ocean[c]?0:t[c];};
+        // crestNear's side: +1 where (e x (p - a)) >= 0, i.e. toward the left normal (nx, ny).
+        r.back=tAt(r.x[m]+nx*3000,r.y[m]+ny*3000)>=tAt(r.x[m]-nx*3000,r.y[m]-ny*3000)?1:-1;r.plat=3000+1500*hash(ranges.length,17,seed+977);}
+      used[style]=(used[style]||0)+1;ranges.push(r);return r;
     }
     for(let ci=0;ci<comps.length;ci++){
       const cells=comps[ci],A=cells.length*s*s/1e6;if(A<6)continue;
@@ -524,13 +576,13 @@ Range 6-8 40-50 5-95 10-90`};
           const r=chain('coastal',c,Math.atan2(gy,gx)+Math.PI/2,R(9000,20000),R(550,800),R(1200,1700),{...base,minT:4,target:t[c]},k<30?.7:.55,1500);if(r)majors.push(r);}
         else{const c=pick(cells,c=>t[c]>=6);if(c<0)continue;const r=chain('interior',c,rng()*Math.PI*2,R(7000,16000),R(600,850),R(1200,1800),{...base,minT:4,turn:.4},k<30?.7:.55,1500);if(r)majors.push(r);}}
       tries(clamp(Math.round(A/80),0,3),()=>{const c=pick(cells,c=>t[c]>=6);return c>=0&&!!chain('massif',c,rng()*Math.PI*2,R(800,2200),R(550,750),R(1100,1600),{...base,minT:4},.7,1500);});
-      tries(clamp(Math.round(A/32),A>12?1:0,9),()=>{const c=pick(cells,c=>t[c]>=5);return c>=0&&!!chain('secondary',c,rng()*Math.PI*2,R(4000,10000),R(350,520),R(800,1250),{...base,minT:3},.65,1200);});
-      // Branches: spurs off the long ranges, leaving at 30-65 degrees, lower and narrower than the parent there.
-      for(const P of majors)for(let b=2+Math.floor(rng()*3);b>0;b--){
+      tries(clamp(Math.round(A/48),A>12?1:0,6),()=>{const c=pick(cells,c=>t[c]>=5);return c>=0&&!!chain('secondary',c,rng()*Math.PI*2,R(4000,10000),R(350,520),R(800,1250),{...base,minT:3},.65,1200);});
+      // Branches: one or two spurs off each long range, leaving at 30-65 degrees, lower and narrower than the parent there.
+      for(const P of majors)for(let b=1+Math.floor(rng()*2);b>0;b--){
         const i=Math.floor(P.x.length*R(.15,.85)),j=Math.min(P.x.length-1,i+1),i0=Math.max(0,i-1),dir=Math.atan2(P.y[j]-P.y[i0],P.x[j]-P.x[i0]),side=rng()<.5?-1:1;
-        const pts=walk(P.x[i],P.y[i],dir+side*R(.55,1.15),P.length*R(.2,.42),{...base,minT:3}),r=finish(pts,'branch',P.H[i]*R(.55,.8),P.w[i]*R(.55,.75),true);
+        const pts=walk(P.x[i],P.y[i],dir+side*R(.55,1.15),P.length*R(.2,.42),{...base,minT:3}),r=finish(pts,'branch',P.H[i]*R(.55,.8),P.w[i]*R(.55,.75),true,P.style);
         if(r&&r.length>1500&&r.x.every((x,v)=>Math.hypot(x-hx,r.y[v]-hy)>r.w[v]+900))ranges.push(r);}
-      tries(clamp(Math.round(A/12),0,16),()=>{const c=pick(cells,c=>t[c]>=3);return c>=0&&!!chain('minor',c,rng()*Math.PI*2,R(1500,5000),R(130,300),R(450,900),{...base,minT:2},.45,700);});
+      tries(clamp(Math.round(A/24),0,8),()=>{const c=pick(cells,c=>t[c]>=3);return c>=0&&!!chain('minor',c,rng()*Math.PI*2,R(1500,5000),R(130,300),R(450,900),{...base,minT:2},.45,700);});
       // Stratovolcanoes on the seaward flank of coastal ranges (one or two each) and now and then alone on a big landmass.
       for(const P of majors){if(P.kind!=='coastal')continue;let last=-1e9;
         for(let v=Math.floor(P.x.length*.2);v<P.x.length*.8;v+=3){const sAlong=v*P.length/(P.x.length-1);if(sAlong-last<5000||rng()>.12)continue;
@@ -550,7 +602,7 @@ Range 6-8 40-50 5-95 10-90`};
       const up=Math.atan2(-Math.cos(35*Math.PI/180),-Math.sin(35*Math.PI/180));
       for(let k=0;k<16;k++){const dir=up+(rng()<.5?-1:1)*R(.6,1.05),D=R(850,1000),x=hx+Math.cos(dir)*D,y=hy+Math.sin(dir)*D,c=cellAt(x,y);if(c<0||ocean[c]||t[c]<3)continue;
         const o={comp:comp[home],step:300,homeR:D*.92,minT:2},ang=dir+Math.PI/2+(rng()-.5)*.4,a=walk(x,y,ang,R(3500,6000),o),b=walk(x,y,ang+Math.PI,R(3500,6000),o);
-        const r=finish([...b.reverse(),...a.slice(1)],'home',R(600,750),Math.min(D-300,R(560,700)),false);
+        const r=finish([...b.reverse(),...a.slice(1)],'home',R(600,750),Math.min(D-300,R(560,700)),false,'alps');
         if(r&&r.length>3000){ranges.push(r);break;}}
     }
     return {ranges,volcanoes,land:{ocean,t,comp}};
@@ -614,7 +666,7 @@ Range 6-8 40-50 5-95 10-90`};
     X=hydrology(G,hc,mulberry(seed^0x7f4a7c15),latC,hp,false,core,G.px[home],G.py[home]);home=settleHome(G,ground,X,home);
     const C=courses(G,X),ox=G.px[home],oy=G.py[home];
     const map={seed,template,W,H,s:G.s,cellsX:G.cellsX,cellsY:G.cellsY,n:G.n,px:G.px,py:G.py,heights:hc,templateHeights:h,ocean:X.ocean,lakeOf:X.lakeOf,temp:X.temp,prec:X.prec,flux:X.fl,ox,oy,latC,home:{cell:home,x:0,z:0}};
-    map.ranges=RL.ranges.map(r=>({kind:r.kind,length:r.length,height:Math.max(...r.H),x:Float32Array.from(r.x,v=>v-ox),z:Float32Array.from(r.y,v=>v-oy),H:Float32Array.from(r.H),w:Float32Array.from(r.w),comp:RL.land.comp[Math.min(Math.floor(r.y[r.y.length>>1]/G.s),G.cellsY-1)*G.cellsX+Math.min(Math.floor(r.x[r.x.length>>1]/G.s),G.cellsX-1)]}));
+    map.ranges=RL.ranges.map(r=>({kind:r.kind,style:r.style,length:r.length,height:Math.max(...r.H),x:Float32Array.from(r.x,v=>v-ox),z:Float32Array.from(r.y,v=>v-oy),H:Float32Array.from(r.H),w:Float32Array.from(r.w),comp:RL.land.comp[Math.min(Math.floor(r.y[r.y.length>>1]/G.s),G.cellsY-1)*G.cellsX+Math.min(Math.floor(r.x[r.x.length>>1]/G.s),G.cellsX-1)]}));
     map.volcanoes=RL.volcanoes.map(v=>({x:v.x-ox,z:v.y-oy,H:v.H}));
     bake(map,G,X,C,RL);
     map.ms=(typeof performance!=='undefined'?performance.now():Date.now())-start;
@@ -650,6 +702,42 @@ Range 6-8 40-50 5-95 10-90`};
     }
     return best>=0?best:null;
   }
+  // ---- Valley network in the range layer ----
+  // A range core alone is a smooth dome: water would run straight down it in parallel lines. Real ranges are cut by
+  // dendritic valleys every 1-3 km that reach deep into the massif. On the 100 m raster (once per map, so free per
+  // sample and seam-free): the core is first broken into sub-massifs by a ~2 km and ~800 m noise (+-25%), then water is
+  // routed over the whole raster (priority flood from the sea and the map edge, so every cell drains; D8 along the
+  // flood order) and every cell with drainage carves a valley: depth alpha x core height x sqrt(area / A0) (A0 = 0.6 km2,
+  // capped), half-width 1.3-3.4 cells growing with area, profile by the style there (glacial: 1 - r^(1 + 3 glac),
+  // a flat U floor between steep walls; otherwise V). alpha is 0.5 (old ranges 0.3, glacial ones a little less, the
+  // tallest cores a little more, so Himalaya-style valleys are gorges). Two route-and-carve passes, the second on the
+  // carved surface, let tributaries find the trunk valleys. Where a valley runs deeper than the core, the apron below it
+  // is cut by half the excess.
+  const CV={crease:.25,passes:4,amin:8};
+  function carveValleys(seed,RW,RH,fH,RC,RA,AG,GL){
+    const N=RW*RH,RC0=Float32Array.from(RC),Z=new Float64Array(N),D=new Float32Array(N),A0=60;
+    for(let o=0;o<N;o++){if(RC[o]<=0)continue;const x=(o%RW)*RS,y=Math.floor(o/RW)*RS,wx=x+(noise(x/900,y/900,seed+1315)-.5)*500,wy=y+(noise(x/900,y/900,seed+1317)-.5)*500,cr=(1-Math.abs(noise(wx/1500,wy/1500,seed+1319)*2-1))**4;
+      RC[o]=RC0[o]=RC[o]*(1+.36*(noise(x/2000,y/2000,seed+1311)-.5)+.16*(noise(x/800,y/800,seed+1313)-.5)-CV.crease*cr);}
+    const heap=new Int32Array(N),key=new Float64Array(N),seen=new Uint8Array(N),order=new Int32Array(N),rec=new Int32Array(N),acc=new Float32Array(N);
+    for(let pass=0;pass<CV.passes;pass++){
+      for(let o=0;o<N;o++){Z[o]=(fH[o]<SEA_H?metres(fH[o]):upland(metres(fH[o])))+RC[o]+RA[o];seen[o]=0;rec[o]=-1;acc[o]=1;}
+      // Binary min-heap on Z, seeded with sea cells next to land and the raster border.
+      let hn=0,on=0;const push=o=>{let i=hn++;key[o]=Z[o];while(i>0){const p=(i-1)>>1;if(key[heap[p]]<=key[o])break;heap[i]=heap[p];i=p;}heap[i]=o;};
+      const pop=()=>{const top=heap[0],last=heap[--hn];let i=0;for(;;){let c=2*i+1;if(c>=hn)break;if(c+1<hn&&key[heap[c+1]]<key[heap[c]])c++;if(key[heap[c]]>=key[last])break;heap[i]=heap[c];i=c;}if(hn>0)heap[i]=last;return top;};
+      for(let o=0;o<N;o++){const i=o%RW,j=(o/RW)|0;if(i===0||j===0||i===RW-1||j===RH-1||fH[o]<SEA_H){seen[o]=1;push(o);}}
+      while(hn){const o=pop();order[on++]=o;const i=o%RW,j=(o/RW)|0;
+        for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){if(!di&&!dj)continue;const ii=i+di,jj=j+dj;if(ii<0||jj<0||ii>=RW||jj>=RH)continue;const c=jj*RW+ii;if(seen[c])continue;
+          seen[c]=1;rec[c]=o;if(Z[c]<Z[o])Z[c]=Z[o]+1e-3;push(c);}}
+      for(let k=on-1;k>=0;k--){const o=order[k];if(rec[o]>=0)acc[rec[o]]+=acc[o];}
+      for(let o=0;o<N;o++){const c0=RC0[o];if(c0<15||acc[o]<2||fH[o]<SEA_H)continue;
+        const a=acc[o]/A0,g=GL[o],a1=Math.sqrt(CV.amin/A0),dep=c0*(.5-.2*AG[o]-.08*g+.08*clamp((c0-600)/600,0,1))*clamp((Math.sqrt(Math.min(a,1))-a1)/(1-a1),0,1);if(dep<=1)continue;
+        const hw=1.3+.9*Math.sqrt(Math.min(a,6)),R=Math.ceil(hw),pe=1+3*g,i=o%RW,j=(o/RW)|0;
+        for(let dj=-R;dj<=R;dj++)for(let di=-R;di<=R;di++){const ii=i+di,jj=j+dj;if(ii<0||jj<0||ii>=RW||jj>=RH)continue;const r=Math.hypot(di,dj)/hw;if(r>=1)continue;
+          const v=dep*(1-r**pe),c=jj*RW+ii;if(v>D[c])D[c]=v;}}
+      for(let o=0;o<N;o++){if(D[o]<=0)continue;RC[o]=Math.max(0,RC0[o]-D[o]);}
+    }
+    for(let o=0;o<N;o++)if(D[o]>0&&RA[o]>0)RA[o]=Math.max(0,RA[o]-.5*Math.max(0,D[o]-RC0[o]));
+  }
   // ---- Bake: a 100 m raster of the smooth fields, a lake membership raster and a river segment index ----
   // Rasters: H (template height; lakes at their level), S (signed coast distance, m), P (precipitation), D/L (lake
   // membership), RC (range core, m, cut by river valleys), RA (range apron, m) and VF (valley factor: 0 on a macro river's
@@ -674,10 +762,19 @@ Range 6-8 40-50 5-95 10-90`};
       if(ws>0){fH[o]=a/ws;fS[o]=b/ws;fP[o]=c/ws;fW[o]=e/ws;}else{const k=Math.min(cj,cellsY-1)*cellsX+Math.min(ci,cellsX-1);fH[o]=hv[k];fS[o]=sv[k];fP[o]=pv[k];fW[o]=wv[k];}
       fD[o]=bestD;fL[o]=bestL;}
     // Range layer per raster point, faded toward the coast and out over the template's own lakes.
-    const RC=new Float32Array(N),RA=new Float32Array(N),VF=new Float32Array(N).fill(1),q={};
-    if(RL)for(let o=0;o<N;o++){if(fH[o]<SEA_H-.5)continue;const f=rangeMask(fS[o])*(1-clamp((fW[o]-.15)/.35,0,1));if(f<=0)continue;
-      rangeField(RL.ranges,(o%RW)*RS,Math.floor(o/RW)*RS,map.seed,q);RC[o]=q.core*f;RA[o]=q.apron*f;}
-    map.raster={RW,RH,RS,H:fH,S:fS,P:fP,D:fD,L:fL,RC,RA,VF};
+    // Style rasters (AG age, GL glac, DS dis, BS basin, PL altiplano share; see RANGE_STYLES) are not faded toward the
+    // coast: they shape whatever relief is there.
+    const RC=new Float32Array(N),RA=new Float32Array(N),VF=new Float32Array(N).fill(1),AG=new Float32Array(N),GL=new Float32Array(N),DS=new Float32Array(N),BS=new Float32Array(N),PL=new Float32Array(N),PY=new Float32Array(N),CC=new Float32Array(N),CS=new Float32Array(N),q={};
+    if(RL)for(let o=0;o<N;o++){if(fH[o]<SEA_H-3)continue;rangeField(RL.ranges,(o%RW)*RS,Math.floor(o/RW)*RS,map.seed,q);AG[o]=q.age;GL[o]=q.glac;DS[o]=q.dis;BS[o]=q.basin;PL[o]=q.plat;PY[o]=q.pyr;CC[o]=q.cc;CS[o]=q.cs;
+      if(fH[o]<SEA_H-.5)continue;const f=rangeMask(fS[o])*(1-clamp((fW[o]-.15)/.35,0,1));if(f<=0)continue;RC[o]=q.core*f;RA[o]=q.apron*f;}
+    // Crest kink rasters: SD (signed distance to the strongest crest), AD (its absolute value), KS (crest slope, cut where
+    // valleys lowered the core). The sampler adds KS (B(AD) - |B(SD)|): SD is linear across the crest, so its spline is
+    // exact, and the spline of AD exceeds |SD| by just the rounding the spline gave the tent's kink.
+    const SD=new Float32Array(N),AD=new Float32Array(N),KS=new Float32Array(N),RCpre=Float32Array.from(RC);
+    if(RL)for(let o=0;o<N;o++){if(RC[o]<=0)continue;rangeField(RL.ranges,(o%RW)*RS,Math.floor(o/RW)*RS,map.seed,q);SD[o]=q.sd;AD[o]=Math.abs(q.sd);KS[o]=q.ks*RC[o]/Math.max(1,q.core);}
+    if(RL)carveValleys(map.seed,RW,RH,fH,RC,RA,AG,GL);
+    for(let o=0;o<N;o++)if(KS[o]>0)KS[o]*=clamp(RC[o]/Math.max(1,RCpre[o]),0,1)**2;
+    map.raster={RW,RH,RS,H:fH,S:fS,P:fP,D:fD,L:fL,RC,RA,VF,AG,GL,DS,BS,PL,PY,CC,CS,SD,AD,KS};
     // Lakes in world coordinates: level (metres) is set by the world from its own ground; outlet and centre here.
     // mountain: a lake the ranges dammed (a basin in the range layer rather than a lake of the template).
     map.lakes=X.lakes.map(L=>{let cx=0,cy=0;for(const k of L.cells){cx+=px[k];cy+=py[k];}cx/=L.cells.length;cy/=L.cells.length;
@@ -731,13 +828,14 @@ Range 6-8 40-50 5-95 10-90`};
       for(let i=0;i<P.x.length-1;i++){const qx=P.x[i+1]-P.x[i],qz=P.z[i+1]-P.z[i],L2=qx*qx+qz*qz||1,u=clamp(((ex-P.x[i])*qx+(ez-P.z[i])*qz)/L2,0,1),d=Math.hypot(ex-P.x[i]-qx*u,ez-P.z[i]-qz*u);if(d<bd){bd=d;ba=P.along[i]+(P.along[i+1]-P.along[i])*u;bw=P.hw[i]+(P.hw[i+1]-P.hw[i])*u;}}
       if(bd<60){r.join={x:ex,z:ez,along:ba,hwP:bw};P.joins.push({river:ri,along:ba,hw:r.hw[m-1]});}});
     // Valleys: every raster point's nearest macro river within reach sets how far the river has cut into the range layer
-    // (VF, the floodplain-to-hillside ramp; bigger rivers cut deeper and wider valleys) and fades the hills.
+    // (VF, the floodplain-to-hillside ramp; bigger rivers cut deeper and wider valleys) and fades the hills. Through the
+    // tallest cores (Himalaya-style) the valley widens less than the core rises, so rivers cut deep gorges.
     const VC=new Float32Array(N);
     for(const r of map.rivers)for(let i=0;i<r.x.length-1;i++){const reach=Math.max(r.hw[i],r.hw[i+1])+70+9*16+260,x0=r.x[i]+map.ox,z0=r.z[i]+map.oy,x1=r.x[i+1]+map.ox,z1=r.z[i+1]+map.oy;
       const i0=Math.max(0,Math.floor((Math.min(x0,x1)-reach)/RS)),i1=Math.min(RW-1,Math.ceil((Math.max(x0,x1)+reach)/RS)),j0=Math.max(0,Math.floor((Math.min(z0,z1)-reach)/RS)),j1=Math.min(RH-1,Math.ceil((Math.max(z0,z1)+reach)/RS));
       const ex=x1-x0,ez=z1-z0,L2=ex*ex+ez*ez||1;
       for(let j=j0;j<=j1;j++)for(let ii=i0;ii<=i1;ii++){const x=ii*RS,z=j*RS,u=clamp(((x-x0)*ex+(z-z0)*ez)/L2,0,1),d=Math.hypot(x-x0-ex*u,z-z0-ez*u),hw=r.hw[i]+(r.hw[i+1]-r.hw[i])*u,ob=j*RW+ii;
-        const Wv=70+9*hw+.55*RC[ob],v=clamp((d-hw)/Wv,0,1),f=v*v*(3-2*v);if(f<VF[ob]){VF[ob]=f;VC[ob]=clamp(.35+hw/14,.35,.9);}}}
+        const Wv=70+9*hw+.55*Math.min(RC[ob],500)+.2*Math.max(0,RC[ob]-500),v=clamp((d-hw)/Wv,0,1),f=v*v*(3-2*v);if(f<VF[ob]){VF[ob]=f;VC[ob]=clamp(.35+hw/14,.35,.9);}}}
     for(let ob=0;ob<N;ob++)if(VF[ob]<1){const cut=VC[ob]*(1-VF[ob]);RC[ob]*=1-cut;RA[ob]*=1-.5*cut;}
     // Segment index: 128 m buckets, each holding the segments whose influence (the flared width, 3.6 half-widths in an
     // estuary funnel and 2.6 elsewhere, + 110 m) reaches it.
@@ -777,10 +875,15 @@ Range 6-8 40-50 5-95 10-90`};
       const amp=4.2*clamp(1-Math.abs(sd)/650,0,1);
       if(amp>0){const n=noise(x/480,z/480,seed+911)*.55+noise(x/220,z/220,seed+913)*.3+noise(x/110,z/110,seed+915)*.15-.5;h+=amp*n*2;sd+=n*2*amp*60;}
       // Range layer and valleys, sampled without the warp so valleys stay centred on the river courses.
-      let rc=0,ra=0,vf=0;
-      if(h>=SEA_H){const ux=clamp(x+map.ox,0,W)/RS,uz=clamp(z+map.oy,0,H)/RS,I=Math.floor(ux),J=Math.floor(uz);bw(ux-I,WX);bw(uz-J,WZ);
-        for(let b=0;b<4;b++){const jj=clamp(J-1+b,0,RH-1),wz2=WZ[b];for(let a=0;a<4;a++){const o=jj*RW+clamp(I-1+a,0,RW-1),w=WX[a]*wz2;rc+=w*R.RC[o];ra+=w*R.RA[o];vf+=w*R.VF[o];}}}
+      let rc=0,ra=0,vf=0,ag=0,gl=0,ds=0,bs=0,pl=0,py=0,kd=0,ad=0,ks=0;
+      if(h>=SEA_H-3){const ux=clamp(x+map.ox,0,W)/RS,uz=clamp(z+map.oy,0,H)/RS,I=Math.floor(ux),J=Math.floor(uz);bw(ux-I,WX);bw(uz-J,WZ);
+        for(let b=0;b<4;b++){const jj=clamp(J-1+b,0,RH-1),wz2=WZ[b];for(let a=0;a<4;a++){const o=jj*RW+clamp(I-1+a,0,RW-1),w=WX[a]*wz2;rc+=w*R.RC[o];ra+=w*R.RA[o];vf+=w*R.VF[o];ag+=w*R.AG[o];gl+=w*R.GL[o];ds+=w*R.DS[o];bs+=w*R.BS[o];pl+=w*R.PL[o];py+=w*R.PY[o];kd+=w*R.SD[o];ad+=w*R.AD[o];ks+=w*R.KS[o];}}
+        // Sharp crest: restore the tent's kink (see bake).
+        if(ks>0)rc+=ks*Math.max(0,ad-Math.abs(kd));
+        if(h<SEA_H){rc=ra=0;vf=1;}}
       else vf=1;
+      // Range style at this point (see RANGE_STYLES): age, glac, dis, basin, plat, pyr.
+      out.age=clamp(ag,0,1);out.glac=clamp(gl,0,1);out.dis=clamp(ds,-1,1);out.basin=clamp(bs,0,1);out.plat=clamp(pl,0,1);out.pyr=clamp(py,0,1);
       out.rc=Math.max(0,rc);out.ra=Math.max(0,ra);out.valley=clamp(vf,0,1);out.h0=h;
       out.m=(h>=SEA_H?upland(metres(h)):metres(h))+out.rc+out.ra;out.h=h>=SEA_H?invMetres(out.m):h;out.land=h>=SEA_H;out.distToCoast=sd;out.precip=clamp(p,0,1);
       const lat=latitudeAt(map.latC,z+map.oy);out.latitude=lat;out.temp=29-.4*Math.abs(lat)-cooling(out.m);
@@ -822,6 +925,6 @@ Range 6-8 40-50 5-95 10-90`};
     if(home)plot(0,0,3,[220,30,30]);
     return rgba;
   }
-  const api={get,generate,image,volcanoCone,metres,invMetres,cooling,LAPSE,TEMPLATES,WEIGHTS,WIDTH:W,HEIGHT:H,SEA_H,SEA,hash,noise};
+  const api={CV,get,generate,image,volcanoCone,metres,invMetres,cooling,LAPSE,TEMPLATES,WEIGHTS,RANGE_STYLES,WIDTH:W,HEIGHT:H,SEA_H,SEA,hash,noise};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MacroMap=api;
 })(typeof globalThis==='object'?globalThis:this);

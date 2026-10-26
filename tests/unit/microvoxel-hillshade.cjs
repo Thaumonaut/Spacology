@@ -23,7 +23,11 @@ function lightGround(L,cx,cz){
 // Flat ground stays flat-lit next to sky isles (5:-1:-6), trees (1:-4:-4, 1:-1:-4) and crystal spires (1:-7:-43, 2:-4:-22).
 // The specific nodes move with terrain revisions, so search near each original for one with enough flat ground.
 const flatCount=(L,nx,nz)=>{const x0=nx*N,z0=nz*N;let f=0;for(let j=2;j<N-2;j+=5)for(let i=2;i<N-2;i+=5){const h=groundBlock(L,x0+i,z0+j);let ok=true;for(let b=-2;b<=2&&ok;b+=2)for(let a=-2;a<=2&&ok;a+=2)ok=groundBlock(L,x0+i+a,z0+j+b)===h;if(ok)f++;}return f;};
-const near=(L,nx,nz)=>{for(let r=0;r<=18;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;if(flatCount(L,nx+dx,nz+dz)>5)return [L,nx+dx,nz+dz];}return [L,nx,nz];};
+// Level columns as the check below counts them (level blocks and level lighting height over +-2 columns).
+const levelCount=(L,nx,nz)=>{const x0=nx*N,z0=nz*N;let flat=0;for(let j=2;j<N-2;j++)for(let i=2;i<N-2;i++){const h=groundBlock(L,x0+i,z0+j);let level=true;
+  for(let b=-2;b<=2&&level;b++)for(let a=-2;a<=2&&level;a++)level=groundBlock(L,x0+i+a,z0+j+b)===h;if(!level)continue;const e=lightGround(L,x0+i,z0+j);
+  for(let b=-2;b<=2&&level;b++)for(let a=-2;a<=2&&level;a++)level=Math.abs(lightGround(L,x0+i+a,z0+j+b)-e)<=.15;if(level)flat++;}return flat;};
+const near=(L,nx,nz)=>{for(let r=0;r<=32;r++)for(let dz=-r;dz<=r;dz++)for(let dx=-r;dx<=r;dx++){if(Math.max(Math.abs(dx),Math.abs(dz))!==r)continue;if(flatCount(L,nx+dx,nz+dz)>8&&levelCount(L,nx+dx,nz+dz)>20)return [L,nx+dx,nz+dz];}return [L,nx,nz];};
 for(const [L,nx,nz] of [[5,-1,-6],[1,-4,-4],[1,-1,-4],[1,-7,-43],[2,-4,-22]].map(([L,x,z])=>near(L,x,z))){
   const n=w.node(L,nx,nz),x0=nx*N,z0=nz*N;let flat=0,wrong=0;
   for(let j=2;j<N-2;j++)for(let i=2;i<N-2;i++){
@@ -54,8 +58,13 @@ for(const L of [3,5]){
 // the normal step across a seam is no harsher than between neighbouring texels inside a node.
 {
   const D=2*N,dec=(r,a,b)=>{const o=(b*D+a)*4,x=r[o]/127.5-1,z=r[o+1]/127.5-1;return {x,z,y:Math.sqrt(Math.max(0,1-x*x-z*z))};};
-  const L=1,s=2**L,nz=Math.floor(-960/(N*M.CELL*s)),nx0=Math.floor(14448/(N*M.CELL*s));
-  assert.equal(w.node(3,Math.floor(14448/(N*M.CELL*8)),Math.floor(-960/(N*M.CELL*8))).rockDetail.length,0,'no rock detail at L3+');
+  // A bare-rock mountain spot: layouts move with terrain revisions, so scan for four L1 nodes in a row that all carry detail.
+  const L=1,s=2**L,span=N*M.CELL*s;let RX=null,RZ=null;
+  for(let k=0;k<4000&&RX===null;k++){const x=((k*7919)%140-70)*200,z=((k*104729)%70-40)*200,g=w.geography(x,z);if(g.sea||!(g.relief>150)||g.cone>5||!g.exposed)continue;
+    const nx=Math.floor(x/span),nz=Math.floor(z/span);let ok=true;for(let q=0;q<4&&ok;q++)ok=w.node(L,nx+q,nz).rockDetail.length===4*N*N*4;if(ok){RX=x;RZ=z;}}
+  assert.ok(RX!==null,'found a bare-rock mountain spot');
+  const nz=Math.floor(RZ/span),nx0=Math.floor(RX/span);
+  assert.equal(w.node(3,Math.floor(RX/(N*M.CELL*8)),Math.floor(RZ/(N*M.CELL*8))).rockDetail.length,0,'no rock detail at L3+');
   let seam=0,seams=0,inside=0,insides=0,rock=0;
   for(let nx=nx0;nx<nx0+3;nx++){
     const a=w.node(L,nx,nz).rockDetail,b=w.node(L,nx+1,nz).rockDetail;assert.equal(a.length,D*D*4,'mountain nodes carry rock detail');

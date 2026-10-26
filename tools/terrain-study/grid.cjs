@@ -36,4 +36,6 @@ function fit(img,max){if(img.w<=max&&img.h<=max)return img;const k=max/Math.max(
 // Greyscale copy (luma) for small committed images.
 function grey(img){const g=new Uint8Array(img.w*img.h);for(let k=0;k<g.length;k++)g[k]=Math.round(.3*img.rgb[k*3]+.59*img.rgb[k*3+1]+.11*img.rgb[k*3+2]);return {w:img.w,h:img.h,grey:g};}
 function writePNG(file,img){fs.mkdirSync(path.dirname(file),{recursive:true});const b=img.grey?encode(img.w,img.h,img.grey,1):encode(img.w,img.h,img.rgb);fs.writeFileSync(file,b);return b.length;}
-module.exports={GRIDS,load,crop,shade,sideBySide,fit,grey,writePNG};
+// Extra per-pixel layer saved beside a grid (name.<k>.f32), or null.
+function extra(name,k){const f=path.join(GRIDS,name+'.'+k+'.f32');if(!fs.existsSync(f))return null;const e=fs.readFileSync(f);return new Float32Array(e.buffer,e.byteOffset,e.length/4);}
+module.exports={GRIDS,extra,load,crop,shade,sideBySide,fit,grey,writePNG};
