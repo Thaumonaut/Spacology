@@ -20,7 +20,7 @@ Headless captures from `tests/browser/building-lab.cjs` (the building lab, `prot
 | --- | --- |
 | `side` | Shop-house, machiya, terrace: a side passage and straight stair, with rooms in a row |
 | `wing` | Workshop, half-timber, corner plot: a side passage ending in a rear wing, yard beside |
-| `centre` | Family home, harbour, terrace: a central hall with a straight stair |
+| `centre` | Family home, harbour, terrace: a short central hall around a straight stair, with full-width rooms behind it |
 | `stairhall` | Family home, half-timber, detached: a broad hall to a U-turn stair at the back |
 | `cross` | Shop-house, lacquer, corner plot: a passage across the house, rooms along the street |
 | `cottage` | Family home, half-timber, detached: the front door into the living room, with the stair in it |

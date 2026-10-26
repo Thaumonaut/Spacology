@@ -53,8 +53,10 @@
     const info={furniture:[],rooms:[],lights:[]};
 
     // Ground: a cobbled street in front, packed earth and grass behind and in any yard or courtyard.
-    for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const street=z<MZ+front*CV,yard=!street&&!mask(0,Math.floor((x-MX)/CV),Math.floor((z-MZ)/CV));
-      for(let y=0;y<Y0;y++)set(x,y,z,y<Y0-1?M.earth:street?(((x>>2)+(z>>2)*3)%5===0||((x+z*7)%11===0)?M.cobble_dark:M.cobble):yard?((x*31+z*17)%13===0?M.grass_dark:M.grass):M.earth);}
+    const LOT=plan.plot.lot,inLot=(gx,gz)=>!LOT||(gx>=0&&gz>=0&&gx<w&&gz<d&&LOT.mask[gx+w*gz]===1);
+    for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),street=z<MZ+front*CV,own=inLot(gx,gz),yard=!street&&!mask(0,gx,gz);
+      // the street; the building's own yard (grass); the neighbours' land beyond the lot line (trodden earth)
+      for(let y=0;y<Y0;y++)set(x,y,z,y<Y0-1?M.earth:street?(((x>>2)+(z>>2)*3)%5===0||((x+z*7)%11===0)?M.cobble_dark:M.cobble):yard&&own?((x*31+z*17)%13===0?M.grass_dark:M.grass):yard?((x*7+z*3)%9===0?M.earth:M.cobble_dark):M.earth);}
 
     // Floors: stone plinth under the ground floor, timber slabs above; stair voids stay open. Boards run along x, 4
     // voxels (25 cm) wide, with staggered butt joints; tatami on lattice styles; stone flags in wet and work rooms.
@@ -74,7 +76,7 @@
     // start of cell p+3, centred in the gap between windows), a beam band at each floor, a stone base course with
     // mortar joints and a cap, boards under machiya windows, and braces in the frame panels.
     const DIRS=[['xm',-1,0],['xp',1,0],['zm',0,-1],['zp',0,1]];
-    const isParty=(s,x)=>(s==='xm'&&x===0&&party[0])||(s==='xp'&&x===w-1&&party[1]);
+    const isParty=(s,x,z)=>Plan.isPartyEdge(plan.plot,x,z,s); // shared with a neighbour across the lot line
     const extWall=[]; // [f] -> Set of "X,Z" wall columns, for the roof's gable fill
     const baseH=FA.groundBoards?6:9;
     // Along-wall position: cell index and the voxel inside it, measured from the plot origin.
@@ -109,7 +111,7 @@
     const proudAt=(f,s,A,v,corner)=>{const fr=frameAt(f,s,A,v,corner);if(fr)return fr;if(f===0&&v===baseH-1)return C.base;return null;};
     for(let f=0;f<storeys;f++){const y0=FL(f)-(f===0?PLINTH:SLAB),y1=FL(f+1),cols=new Set();extWall.push(cols);
       for(let z=0;z<d;z++)for(let x=0;x<w;x++){if(!mask(f,x,z))continue;
-        for(const [s,dx,dz] of DIRS){if(mask(f,x+dx,z+dz))continue;const party_=isParty(s,x);
+        for(const [s,dx,dz] of DIRS){if(mask(f,x+dx,z+dz))continue;const party_=isParty(s,x,z);
           // a corner post where the wall turns: the along-wall neighbour has no wall on this side
           const along=s[0]==='z'?[[-1,0],[1,0]]:[[0,-1],[0,1]],endLo=!mask(f,x+along[0][0],z+along[0][1])||mask(f,x+along[0][0]+dx,z+along[0][1]+dz),endHi=!mask(f,x+along[1][0],z+along[1][1])||mask(f,x+along[1][0]+dx,z+along[1][1]+dz);
           const [ax0,ax1]=s==='xm'?[cx(x),cx(x)+3]:s==='xp'?[cx(x)+5,cx(x)+8]:[cx(x),cx(x)+8],[az0,az1]=s==='zm'?[cz(z),cz(z)+3]:s==='zp'?[cz(z)+5,cz(z)+8]:[cz(z),cz(z)+8];
@@ -290,7 +292,18 @@
     // Jetty brackets under every step where a floor overhangs the one below, on the post grid: each rises from the
     // lower floor's wall to the edge of the slab above.
     if(plan.plot.jetty)for(let f=1;f<storeys;f++){const zWall=cz(front-(f-1));
-      for(let A=cx(0);A<cx(w);A++)if(postAt('zm',A)&&!postAt('zm',A-1)||A===cx(0)||A===cx(w)-2)for(let t=0;t<CV;t++){const zz=zWall-1-t,yy=FL(f)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}}
+      for(let A=cx(0);A<cx(w);A++){const gx=Math.floor((A-MX)/CV);if(!mask(f,gx,front-f)||mask(f-1,gx,front-f))continue;const edgeL=!mask(f,gx-1,front-f),edgeR=!mask(f,gx+1,front-f);
+        if(postAt('zm',A)&&!postAt('zm',A-1)||(edgeL&&A===cx(gx))||(edgeR&&A===cx(gx)+CV-2))for(let t=0;t<CV;t++){const zz=zWall-1-t,yy=FL(f)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}}}
+
+    // A fence round the unbuilt lot line: pickets with two rails on the street, a low stone wall elsewhere, and a gate
+    // where the yard meets the street.
+    if(LOT){let gate=null;for(let x=0;x<w&&!gate;x++)if(inLot(x,front)&&!mask(0,x,front)&&inLot(x+1,front)&&!mask(0,x+1,front))gate=x;
+      for(let z=front;z<d;z++)for(let x=0;x<w;x++){if(!inLot(x,z)||mask(0,x,z))continue;
+        for(const [s_,dx,dz] of DIRS){const nx=x+dx,nz=z+dz;if(inLot(nx,nz)&&!(s_==='zm'&&nz<front))continue;const streetSide=s_==='zm'&&nz<front;if(streetSide&&(x===gate||x===gate+1))continue;
+          const [x0,x1]=s_==='xm'?[cx(x),cx(x)+1]:s_==='xp'?[cx(x)+7,cx(x)+8]:[cx(x),cx(x)+8],[z0,z1]=s_==='zm'?[cz(z),cz(z)+1]:s_==='zp'?[cz(z)+7,cz(z)+8]:[cz(z),cz(z)+8];
+          for(let zz=z0;zz<z1;zz++)for(let xx=x0;xx<x1;xx++){const a=s_[0]==='z'?xx:zz;
+            if(streetSide){const post=a%8===0;for(let yy=Y0;yy<Y0+(post?13:11);yy++){const rail=yy===Y0+4||yy===Y0+9;if(post||rail||a%2===0)fillIfAir(xx,yy,zz,post||rail?C.timber:M.paint_white);}}
+            else for(let yy=Y0;yy<Y0+8;yy++)fillIfAir(xx,yy,zz,yy===Y0+7?M.stone_grey_dark:(((a>>1)+(yy>>1))&1)?M.stone_grey:M.stone_grey_dark);}}}}
 
     // --- Roofs -----------------------------------------------------------------------------------------------------
     // One per level: each storey's footprint with nothing built above it gets a roof at that storey's plate. The main
@@ -309,10 +322,11 @@
         const touch=s_=>{if(!above)return 0;let n=0;if(s_==='xm')for(let z=rz0;z<=rz1;z++)n+=rx0>0&&above[rx0-1+w*z]?1:0;if(s_==='xp')for(let z=rz0;z<=rz1;z++)n+=rx1+1<w&&above[rx1+1+w*z]?1:0;
           if(s_==='zm')for(let x=rx0;x<=rx1;x++)n+=rz0>0&&above[x+w*(rz0-1)]?1:0;if(s_==='zp')for(let x=rx0;x<=rx1;x++)n+=rz1+1<d&&above[x+w*(rz1+1)]?1:0;return n;};
         const lean=['xm','xp','zm','zp'].map(s_=>[s_,touch(s_)]).sort((a,b)=>b[1]-a[1])[0],isLean=lean[1]>0;
-        const small=!isCross&&!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=isCross?'gable':small?'hip':isLean?'lean':L===top?(RF.form==='hip'&&!party[0]&&!party[1]?'hip':'gable'):'gable';
+        const sideParty=s_=>{let n=0,t=0;if(s_[0]==='x'){const x=s_==='xm'?rx0:rx1;for(let z=rz0;z<=rz1;z++){t++;if(isParty(s_,x,z))n++;}}else{const z=s_==='zm'?rz0:rz1;for(let x=rx0;x<=rx1;x++){t++;if(isParty(s_,x,z))n++;}}return n>0&&n>=t/2;};
+        const small=!isCross&&!isLean&&rx1-rx0<6&&rz1-rz0<6,shape=isCross?'gable':small?'hip':isLean?'lean':L===top?(RF.form==='hip'&&!sideParty('xm')&&!sideParty('xp')?'hip':'gable'):'gable';
         const ridgeX=isCross?false:isLean?lean[0][0]==='z':L===top?(RF.ridge==='frontage'?true:RF.ridge==='depth'?false:wide>=deep):wide>=deep;
         const main=L===top&&!isCross&&!isLean&&!small;
-        const noEave=s_=>(s_==='xm'&&rx0===0&&party[0])||(s_==='xp'&&rx1===w-1&&party[1])||(isLean&&s_===lean[0])||(isCross&&s_==='zp');
+        const noEave=s_=>sideParty(s_)||(isLean&&s_===lean[0])||(isCross&&s_==='zp');
         const eS=s_=>noEave(s_)?0:(shape==='gable'&&((ridgeX&&s_[0]==='x')||(!ridgeX&&s_[0]==='z'))?Math.round(eave*.5):eave);
         const gx0=x0-eS('xm'),gx1=x1+eS('xp'),gz0=z0-eS('zm'),gz1=z1+eS('zp');
         const span=ridgeX?deep:wide,half=span/2,lp=isLean?Math.min(pitch,(SH-14)/span):pitch;
@@ -334,7 +348,8 @@
       for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const i=x+X*z,ry=lvY[i];if(ry<0)continue;roofY[i]=Math.max(roofY[i],ry);
         const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),inside=x>=MX&&z>=MZ&&gx<w&&gz<d&&region[gx+w*gz],ea=eaveAxisX[i]?x:z,kd=kind[i];
         // gable infill: the outer wall rises to meet the roof
-        if(cols.has(x+','+z)&&inside)for(let yy=lvlPlate;yy<ry-2;yy++){const s_=x<MX+3?'xm':x>=MX+w*CV-3?'xp':z<MZ+3?'zm':'zp',par=isParty(s_,s_==='xm'?0:w-1)&&(s_==='xm'||s_==='xp');
+        const ox_=((x-MX)%CV+CV)%CV,oz_=((z-MZ)%CV+CV)%CV,gs=ox_<3&&!mask(L,gx-1,gz)?'xm':ox_>=5&&!mask(L,gx+1,gz)?'xp':oz_<3&&!mask(L,gx,gz-1)?'zm':'zp';
+        if(cols.has(x+','+z)&&inside)for(let yy=lvlPlate;yy<ry-2;yy++){const s_=gs,par=isParty(s_,gx,gz);
           const m=par?C.wall:FA.frame==='none'||FA.frame==='posts'?(postAt(s_,s_[0]==='x'?z:x)||postAt(s_,(s_[0]==='x'?z:x)-1)?C.timber:C.wall):facade(L,s_,s_[0]==='x'?z:x,SILL+2+(yy-lvlPlate)%(SH-SILL-6),0,false,false);put3(x,yy,z,m);}
         const surf=(kd&4)?C.trim:C.tile; // the voxel steps of the slope read as tile courses on their own
         put3(x,ry,z,surf);put3(x,ry-1,z,C.tile);put3(x,ry-2,z,inside?C.tile:M.timber_brown);

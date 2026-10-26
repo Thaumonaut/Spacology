@@ -24,22 +24,34 @@ function check(plan,tag){
     const opens=F.doors.filter(dr=>dr.kind==='open');
     assert.ok(opens.length>=1,`${tag} floor ${f}: the stair opens onto this floor`+show());
     const start=f===0?(F.openings.filter(o=>o.kind==='front').map(o=>o.room).find(k=>P.ROOMS[F.rooms[k].type].circ)??1):opens.at(-1).a;
-    const reach=new Set([start]),q=[start];
+    // a room may also be reached from outside, by its own door onto the yard or street
+    const reach=new Set([start,...F.openings.filter(o=>o.kind==='back'||o.kind==='front').map(o=>o.room)]),q=[...reach];
     while(q.length){const k=q.shift();if(k!==start&&P.ROOMS[F.rooms[k].type].leaf)continue;for(const n of adj.get(k)||[])if(!reach.has(n)){reach.add(n);q.push(n);}}
     F.rooms.forEach((r,k)=>{if(!r.cells)return;rooms++;assert.ok(reach.has(k),`${tag} floor ${f}: ${r.label} is unreachable`+show());
       if(P.ROOMS[r.type].light)assert.ok(F.openings.some(o=>o.room===k&&o.kind!=='front'&&o.kind!=='back'),`${tag} floor ${f}: ${r.label} has no window`+show());});
-    for(const o of F.openings)for(const [x] of o.cells){if(o.side==='xm'&&x===0)assert.ok(!plan.plot.party[0],'no openings in the left party wall');if(o.side==='xp'&&x===w-1)assert.ok(!plan.plot.party[1],'no openings in the right party wall');}
+    for(const o of F.openings)for(const [x,z] of o.cells)assert.ok(!P.isPartyEdge(plan.plot,x,z,o.side),`${tag} floor ${f}: no ${o.kind} in a party wall at ${x},${z} ${o.side}`+show());
     if(f===0){const fronts=F.openings.filter(o=>o.kind==='front');assert.ok(fronts.length>=1,`${tag}: a front door`);
-      const biz=F.rooms.findIndex(r=>['shop','workshop'].includes(r.type));
+      const biz=F.rooms.findIndex(r=>['shop','workshop'].includes(r.type)&&!r.extension); // the business, not a workroom built out behind
       // A shop or workshop takes most of the ground floor, opens onto the living quarters behind it, and the home
       // has a yard door of its own.
-      if(biz>0){const ground=F.rooms.reduce((a,r)=>a+r.cells,0);assert.ok(fronts.some(o=>o.room===biz&&o.side==='zm'),`${tag}: the business has a street door`+show());
-        assert.ok(F.rooms[biz].cells>=ground*.42,`${tag}: the ${F.rooms[biz].type} is most of the ground floor (${F.rooms[biz].cells}/${ground})`+show());
+      if(biz>0){const ground=F.rooms.reduce((a,r)=>a+(r.extension?0:r.cells),0); // of the main house, not its extensions
+        assert.ok(fronts.some(o=>o.room===biz&&o.side==='zm'),`${tag}: the business has a street door`+show());
+        assert.ok(F.rooms[biz].cells>=ground*.4,`${tag}: the ${F.rooms[biz].type} is most of the ground floor (${F.rooms[biz].cells}/${ground})`+show());
         assert.ok(F.doors.some(dr=>(dr.a===biz||dr.b===biz)&&P.ROOMS[F.rooms[dr.a===biz?dr.b:dr.a].type].circ),`${tag}: a door from the ${F.rooms[biz].type} to the living area`+show());
         assert.ok(F.openings.some(o=>o.kind==='back'),`${tag}: the home has a yard door`+show());}}
     for(const i of [...F.steps,...F.voids])assert.equal(F.rooms[F.grid[i]].type,'stair');
     assert.deepEqual(F.notes,[],`${tag} floor ${f}: no hard failures`);});
 }
+// Shaped lots: nothing is built outside the lot (upper floors may overhang only the street), extensions are
+// rectangles that each have a door, and most shaped lots are built out with at least one extension.
+{let shaped=0,withExt=0;
+  for(const lot of Object.keys(P.LOTS).filter(k=>k!=='rect'))for(const type of Object.keys(P.TYPES))for(let seed=1;seed<=6;seed++){const plan=P.generate(seed,{type,lot}),tag=`${type}/${lot} seed ${seed}`;check(plan,tag);
+    if(plan.lotKind==='rect')continue;shaped++;const {w,d,front}=plan.plot,L=plan.plot.lot.mask;
+    plan.floors.forEach((F,f)=>{for(let i=0;i<w*d;i++)if(F.grid[i]>=0)assert.ok(L[i]||Math.floor(i/w)<front,`${tag} floor ${f}: cell ${i%w},${Math.floor(i/w)} is inside the lot`);});
+    const F=plan.floors[0],ext=F.rooms.filter(r=>r.extension);if(ext.length)withExt++;
+    for(const r of ext){const [x0,z0,x1,z1]=r.box;assert.equal(r.cells,(x1-x0+1)*(z1-z0+1),`${tag}: the ${r.label} extension is a rectangle`);
+      assert.ok(F.doors.some(dr=>dr.a===r.id||dr.b===r.id)||F.openings.some(o=>o.room===r.id&&(o.kind==='back'||o.kind==='front')),`${tag}: the ${r.label} extension has a door`);}}
+  assert.ok(withExt>=shaped*.6,`most shaped lots get extensions (${withExt}/${shaped})`);console.log(`shaped lots: ${shaped} built, ${withExt} with extensions`);}
 for(const type of Object.keys(P.TYPES))for(const context of Object.keys(P.CONTEXTS))for(let seed=1;seed<=SEEDS;seed++)check(P.generate(seed,{type,context}),`${type}/${context} seed ${seed}`);
 // Every typology on every type that lists it, forced, across plots.
 for(const [type,T] of Object.entries(P.TYPES))for(const typology of Object.keys(T.typologies))for(const context of Object.keys(P.CONTEXTS))for(let seed=1;seed<=4;seed++){
@@ -58,8 +70,8 @@ assert.ok(Math.max(...Object.values(free))<=120*.35,`no typology dominates (${JS
   console.log('stairs over 300 seeds:',JSON.stringify(seen),'in towers:',JSON.stringify(towers));}
 assert.deepEqual(P.generate(12345),P.generate(12345),'same seed, same building');
 // Massing variety: across free seeds the silhouettes differ: several roof forms, cross gables, dormers, turrets
-// and oriels all turn up.
-{const forms=new Set(),n={cross:0,dormers:0,turret:0,oriels:0};for(let s=1;s<=200;s++){const p=P.generate(s);forms.add(p.roof.form);n.cross+=!!p.roof.cross;n.dormers+=!!p.roof.dormers;n.turret+=!!p.roof.turret;n.oriels+=!!p.facade.oriels;
+// and oriels all turn up (on rectangular lots: a shaped lot never gets a turret).
+{const forms=new Set(),n={cross:0,dormers:0,turret:0,oriels:0};for(let s=1;s<=200;s++){const p=P.generate(s,{lot:'rect'});forms.add(p.roof.form);n.cross+=!!p.roof.cross;n.dormers+=!!p.roof.dormers;n.turret+=!!p.roof.turret;n.oriels+=!!p.facade.oriels;
     if(p.roof.turret)assert.ok(!p.plot.party[p.roof.turret.side==='xm'?0:1],'a turret never stands against a party wall');}
   assert.ok(forms.size>=4,`roof forms vary (${[...forms]})`);for(const [k,v] of Object.entries(n))assert.ok(v>=4,`${k} turn up across 200 seeds (${v})`);console.log('massing over 200 seeds:',JSON.stringify(n),[...forms].join('/'));}
 // Facade variety: each style keeps its identity but its buildings differ in wall colour, windows, frame and roof.

@@ -11,7 +11,7 @@
   // stores, studies) are never walked through, and the stair stacks through every floor and opens onto circulation.
   //   side       a passage along one side wall, straight stair in it, rooms in a row beside it (narrow plots)
   //   wing       the side passage, ending in a rear wing on an L-shaped footprint with a yard beside it
-  //   centre     a hall down the middle with a straight stair in it, rooms either side
+  //   centre     a short hall in the middle around a straight stair, rooms either side and full-width rooms behind
   //   stairhall  a broad entrance hall leading to a U-turn stair at the back, rooms either side
   //   cross      a passage across the house; rooms sit side by side along the street front and the back,
   //              with a U-turn stair off the passage (a side-street door on corner plots)
@@ -181,7 +181,8 @@
     // A shop or workshop fills the ground floor's whole width and most of its depth; the living quarters (stair,
     // kitchen, bath) sit behind it through a door at its rear, and the home's own way in is the yard door.
     const {w,front,storeys}=plot,biz=['shophouse','workshop'].includes(plot.type),left=sideHall(plot,v),sx=left?0:w-4,stairX=left?0:w-2,laneX=left?2:w-4,rx0=left?4:0,rx1=left?w:w-4;
-    const Lm=biz?ri(v,26,32):ri(v,22,27),Dm=front+Lm,ww=wing?Math.min(w-2,ri(v,9,12)):0,wl=wing?ri(v,8,11):0,wing2=wing&&v()<.5;
+    const ww=wing?Math.min(w-2,ri(v,9,12)):0,wl=wing?ri(v,8,11):0,wing2=wing&&v()<.5,cap=plot.maxDepth?plot.maxDepth-wl-(plot.forceStair?.tower?(STAIRS[plot.forceStair.kind].V+2):0):1e9;
+    const Lm=Math.min(cap,biz?ri(v,26,32):ri(v,22,27)),Dm=front+Lm;if(Lm<(biz?20:18))return null; // on a shaped lot the house fits the depth it has
     // Sometimes the stair moves out into a tower on the back wall at the end of the passage (more room inside).
     const FS=plot.forceStair,tk=FS?(FS.tower&&!wing?FS.kind:null):!wing&&storeys===2&&v()<.3?weighted(v,{dogleg:1,spiral:1,u3:1,L:1}):null,Ut=tk?(tk==='L'?7:STAIRS[tk].U):0,Vt=tk?STAIRS[tk].V+2:0,tbx=tk?Math.max(0,Math.min(w-Ut,left?sx:sx+4-Ut)):0;
     plot.d=Dm+wl+Vt;plot.masks=blankMasks(plot);
@@ -189,7 +190,7 @@
     const progs=plot.programs;
     // Band choices per floor: a full-width front room (upper floors only) and a full-width back room.
     const frontFull=[biz,...Array.from({length:storeys-1},()=>v()<.55)],backFull=Array.from({length:storeys},(_,f)=>!wing&&!tk&&!(biz&&f===0)&&v()<(f===0?.5:.45));
-    const fbLen=Array.from({length:storeys},(_,f)=>f===0&&biz?Lm-ri(v,9,11):ri(v,8,10)),bbLen=ri(v,7,9); // a shop runs back to the living area
+    const fbLen=Array.from({length:storeys},(_,f)=>f===0&&biz?Lm-(wing?ri(v,8,9):ri(v,9,11)):ri(v,8,10)),bbLen=ri(v,7,9); // a shop runs back to the living area (the stair, and a kitchen unless the wing has it)
     // Hall rows per floor (the strip), which the stair and its landings must sit inside.
     const hallRows=f=>[z0Of(plot,f)+(frontFull[f]?fbLen[f]:0),Dm-(backFull[f]?bbLen:0)];
     const orient=v()<.6?'zp':'zm';
@@ -206,7 +207,7 @@
       F.fill(sx,z0,sx+4,Dm,1);
       if(frontFull[f])F.zone(0,z0,w,z0+fbLen[f],'x',[P.front[0]],v);
       if(backFull[f])F.zone(0,Dm-bbLen,w,Dm,'x',[P.back[0]],v);
-      const row=[...(frontFull[f]?P.front.slice(1):P.front),...P.support,...(backFull[f]?P.back.slice(1):wing&&f===0?['dining?']:P.back)];
+      const row=[...(frontFull[f]?P.front.slice(1):P.front),...P.support,...(backFull[f]?P.back.slice(1):wing&&f===0?(biz?[]:['dining?']):P.back)];
       F.zone(rx0,h0,rx1,h1,'z',row,v);
       if(wing&&(f===0||wing2))F.zone(left?0:w-ww,Dm,left?ww:w,Dm+wl,'z',f===0?['kitchen','store']:[pick(v,['bath','bed'])],v);
       putStair(F,st,plot);floors.push(F);}
@@ -215,22 +216,47 @@
     return {stair:st,floors,entrances};
   }
 
-  // Central hall: hall lane and straight stair down the middle, a row of rooms each side.
+  // Central hall: a 2 m hall from the front door to a straight stair in the middle of the house, a row of rooms each
+  // side. The hall stops at the landing past the stair; behind it, the back rooms run the full width (one room, or
+  // two meeting at the hall's end), so no space is lost to a hall running the length of the house.
   function tCentre(plot,v){
-    const {w,front,storeys}=plot,biz=['shophouse','workshop'].includes(plot.type),sx=Math.round((w-4)/2+(v()-.5)*2),stairLeft=v()<.5,stairX=stairLeft?sx:sx+2,Lm=biz?ri(v,26,30):ri(v,22,26),Dm=front+Lm,shopLen=biz?Lm-ri(v,9,11):0;
+    const {w,front,storeys}=plot,biz=['shophouse','workshop'].includes(plot.type),sx=Math.round((w-4)/2+(v()-.5)*2),stairLeft=v()<.5,stairX=stairLeft?sx:sx+2,cap=plot.maxDepth?plot.maxDepth-(plot.forceStair?.tower?STAIRS[plot.forceStair.kind].V+2:0):1e9,Lm=Math.min(cap,biz?ri(v,26,30):ri(v,22,26)),Dm=front+Lm,shopLen=biz?Lm-ri(v,9,11):0;
+    if(Lm<(biz?20:18))return null;
     // the tower (if any) is decided first: the plot grows to hold it before the floor masks are made
     const FS=plot.forceStair,tk=FS?(FS.tower?FS.kind:null):storeys===2&&v()<.3?weighted(v,{dogleg:1,spiral:1,u3:1,L:1}):null,Ut=tk?(tk==='L'?7:STAIRS[tk].U):0,Vt=tk?STAIRS[tk].V+2:0,tbx=tk?Math.max(0,Math.min(w-Ut,sx+2-Math.round(Ut/2))):0;
     plot.d=Dm+Vt;plot.masks=blankMasks(plot);plot.masks.forEach((m,f)=>{maskRect(plot,m,0,z0Of(plot,f),w,Dm);if(tk)maskRect(plot,m,tbx,Dm,tbx+Ut,Dm+Vt);});
-    const backFull=Array.from({length:storeys},()=>!tk&&v()<.45),bbLen=ri(v,7,9),orient=v()<.6?'zp':'zm';
-    const fits=L=>{const out=[];for(let a=front+shopLen;a+L<=Dm-(backFull[0]||backFull[1]?bbLen:0);a++){const e=orient==='zp'?a-1:a+L,ar=orient==='zp'?a+L:a-1,lim=Dm-(backFull[0]||backFull[1]?bbLen:0);if(e>front+Math.max(0,shopLen-1)&&e<lim&&ar>z0Of(plot,1)&&ar<lim&&e<Dm-1&&ar<Dm-1)out.push(a);}return out;};
+    const orient=v()<.6?'zp':'zm',BB=8; // the back band is at least 4 m deep
+    const fits=L=>{const out=[];for(let a=front+shopLen;a+L<=Dm;a++){const e=orient==='zp'?a-1:a+L,ar=orient==='zp'?a+L:a-1;if(e>front+Math.max(0,shopLen-1)&&ar>z0Of(plot,1)&&e<Dm-1&&ar<Dm-1)out.push(a);}return out;};
     let st;const floors=[];
     if(tk)st=stairBay(tk,'zp',tbx,Dm,storeys,true);
-    else{let kind=FS&&!STAIRS[FS.kind].stacks?FS.kind:v()<.45?'straightLanding':'straight',okA=fits(STAIRS[kind].V);if(!okA.length){kind='straight';okA=fits(6);}if(!okA.length)return null;st=stairBay(kind,orient,stairX,okA[Math.floor(v()*okA.length)],storeys);}
-    for(let f=0;f<storeys;f++){const F=Floor(plot,f),P=plot.programs[f],shop=biz&&f===0,z0=z0Of(plot,f)+(shop?shopLen:0),h1=Dm-(backFull[f]?bbLen:0);F.fill(sx,z0,sx+4,Dm,1);
-      if(shop)F.zone(0,z0Of(plot,f),w,z0,'x',[P.front[0]],v);
-      if(backFull[f])F.zone(0,h1,w,Dm,'x',[P.back[0]],v);
-      const rest=[...P.support,...(backFull[f]?P.back.slice(1):P.back)],half=Math.ceil(rest.length/2),fr=shop?[[],[]]:[[P.front[0]],[P.front[1]||P.front[0]]];
-      F.zone(0,z0,sx,h1,'z',[...fr[0],...rest.slice(0,half)],v);F.zone(sx+4,z0,w,h1,'z',[...fr[1],...rest.slice(half)],v);
+    else{let kind=FS&&!STAIRS[FS.kind].stacks?FS.kind:v()<.45?'straightLanding':'straight',okA=fits(STAIRS[kind].V);if(!okA.length){kind='straight';okA=fits(6);}if(!okA.length)return null;
+      // prefer a stair that leaves room for the back band and for a front room beside the hall on every floor
+      const L=STAIRS[kind].V,good=okA.filter(a=>Dm-(a+L+1)>=BB&&a+L+1-front-shopLen>=(biz?3:7));
+      const pool=good.length?good:okA;st=stairBay(kind,orient,stairX,pool[Math.floor(v()*pool.length)],storeys);}
+    // the hall ends one landing past the stair (the tower stair needs the hall to reach the back wall)
+    const he=tk||Dm-(st.rect[3]+2)<BB-2?Dm:st.rect[3]+2,sz0=st.rect[1],sz1=st.rect[3];
+    for(let f=0;f<storeys;f++){const F=Floor(plot,f),P=plot.programs[f],shop=biz&&f===0,
+        // when the stair stands far back (behind a shop), the front room runs the full width so the hall still only
+        // spans the stair
+        fb=!shop&&!tk&&sz0-z0Of(plot,f)>=12&&sz0-z0Of(plot,f)-ri(v,4,6)>=MINLEN[bare(P.front[0])]?sz0-z0Of(plot,f)-ri(v,4,6):0,z0=z0Of(plot,f)+(shop?shopLen:fb);
+      F.fill(sx,z0,sx+4,he,1);
+      if(shop||fb)F.zone(0,z0Of(plot,f),w,z0,'x',[P.front[0]],v);
+      // back band: one room across, or two meeting at the middle of the hall's end so both open off it
+      let back=P.back.slice(),used=0;
+      if(he<Dm){const two=back.length>1&&sx+2>=MINLEN[bare(back[1])]&&w-sx-2>=MINLEN[bare(back[0])]&&v()<.75;
+        if(two){const l=F.room(bare(back[1])),r=F.room(bare(back[0]));const left=v()<.5;F.fill(0,he,sx+2,Dm,left?r:l);F.fill(sx+2,he,w,Dm,left?l:r);used=2;}
+        else{F.zone(0,he,w,Dm,'x',[back[0]],v);used=1;}}
+      const rest=[...P.support,...back.slice(used)],half=Math.ceil(rest.length/2),fr=shop?[[],[]]:fb?[P.front.slice(1),[]]:[[P.front[0]],[P.front[1]||P.front[0]]];
+      // Beside the stair the hall is only open in front of it and behind it, so that side holds at most two rooms:
+      // one reaching the hall in front of the stair, one behind. The rest go to the open side.
+      const rows=[[...fr[0],...rest.slice(0,half)],[...fr[1],...rest.slice(half)]],ss=stairLeft||tk?0:1,open=1-ss,sr=rows[ss].filter(t=>!t.endsWith('?')||rows[ss].length<=2);
+      const xs=[[0,sx],[sx+4,w]],[ax,bx]=xs[ss],gapF=sz0-z0,gapB=he-sz1;
+      if(tk||he===Dm&&gapB<2||!sr.length){F.zone(xs[0][0],z0,xs[0][1],he,'z',rows[0],v);F.zone(xs[1][0],z0,xs[1][1],he,'z',rows[1],v);}
+      else{const two=sr.length>1&&gapF>=2&&gapB>=2&&he-z0>=MINLEN[bare(sr[0])]+MINLEN[bare(sr[1])],keep=two?sr.slice(0,2):(gapB>=2||gapF>=2?sr.slice(0,1):[]);
+        const left=rows[ss].slice();for(const t of keep)left.splice(left.indexOf(t),1);rows[open].push(...left);
+        if(two){const m=Math.max(z0+MINLEN[bare(keep[0])],Math.min(he-Math.max(2,MINLEN[bare(keep[1])]),Math.round((z0+he)/2)));F.zone(ax,z0,bx,m,'z',[keep[0]],v);F.zone(ax,m,bx,he,'z',[keep[1]],v);}
+        else if(keep.length)F.zone(ax,z0,bx,he,'z',keep,v);
+        F.zone(xs[open][0],z0,xs[open][1],he,'z',rows[open],v);}
       putStair(F,st,plot);floors.push(F);}
     return {stair:st,floors,entrances:biz?[{floor:0,room:floors[0].rooms.findIndex(r=>['shop','workshop'].includes(r.type)),side:'zm'}]:[{floor:0,room:1,side:'zm',at:stairLeft?sx+2:sx}]};
   }
@@ -238,7 +264,7 @@
   // Stair hall: a 4-cell-wide hall from the front door to a U-turn stair at the back, rooms either side.
   function tStairhall(plot,v){
     const {w,front,storeys}=plot,FS=plot.forceStair,tower=FS?!!FS.tower:v()<.3,k=FS&&STAIRS[FS.kind].stacks||FS&&FS.tower?FS.kind:weighted(v,{dogleg:2,spiral:1.2,u3:1,...(tower&&storeys===2?{L:1}:{})}),S=STAIRS[k],Ub=tower?4:S.U,Vb=tower?0:S.V;
-    const hx=Math.round((w-Ub)/2),Lm=ri(v,22,27),Dm=front+Lm,Ut=k==='L'?7:S.U,Vt=S.V+2,tbx=Math.max(0,Math.min(w-Ut,hx+2-Math.round(Ut/2)));
+    const hx=Math.round((w-Ub)/2),Lm=Math.min(plot.maxDepth?plot.maxDepth-(tower?S.V+2:0):1e9,ri(v,22,27)),Dm=front+Lm,Ut=k==='L'?7:S.U,Vt=S.V+2,tbx=Math.max(0,Math.min(w-Ut,hx+2-Math.round(Ut/2)));
     const bay=tower?stairBay(k,'zp',tbx,Dm,storeys,true):stairBay(k,'zp',hx,Dm-Vb,storeys);
     plot.d=Dm+(tower?Vt:0);plot.masks=blankMasks(plot);plot.masks.forEach((m,f)=>{maskRect(plot,m,0,z0Of(plot,f),w,Dm);if(tower)maskRect(plot,m,tbx,Dm,tbx+Ut,Dm+Vt);});
     const biz=['shophouse','workshop'].includes(plot.type),commonFront=plot.type==='inn'||biz,floors=[];
@@ -339,14 +365,25 @@
     const start=n<=3?Math.floor((n-2)/2):circSide?1:n-3;return {a:run.a,b:run.b,dir:run.dir,cells:run.cells.slice(start,start+2),kind:'door'};}
 
   function runsOf(cells){const out=[];for(const c of cells){const cur=out.at(-1);if(cur&&Math.abs(c[0]-cur.at(-1)[0])+Math.abs(c[1]-cur.at(-1)[1])===1)cur.push(c);else out.push([c]);}return out;}
+  // A wall is a party wall (shared with a neighbour: no windows, no doors) when the cell beyond it is outside the
+  // lot and that lot line is shared: never the street; on rectangular plots the sides per street context; on shaped
+  // lots every non-street lot line except the open side of a corner plot, and none on a detached plot. A wall facing
+  // the building's own yard is never a party wall.
+  function isPartyEdge(plot,x,z,s){const [dx,dz]={xm:[-1,0],xp:[1,0],zm:[0,-1],zp:[0,1]}[s],nx=x+dx,nz=z+dz;
+    if(nz<plot.front)return false;
+    const inGrid=nx>=0&&nz>=0&&nx<plot.w&&nz<plot.d;
+    if(!plot.lot)return !inGrid&&((s==='xm'&&plot.party[0])||(s==='xp'&&plot.party[1]));
+    if(inGrid&&plot.lot.mask[nx+plot.w*nz])return false;
+    if(plot.context==='detached')return false;
+    return s==='xm'?plot.party[0]:s==='xp'?plot.party[1]:true;}
   function exteriorSides(plot,mask,x,z){
     const out=[];for(const [dx,dz,s] of DIRS){const nx=x+dx,nz=z+dz,inside=nx>=0&&nz>=0&&nx<plot.w&&nz<plot.d&&mask[nx+plot.w*nz];
-      if(inside)continue;const party=(s==='xm'&&nx<0&&plot.party[0])||(s==='xp'&&nx>=plot.w&&plot.party[1]);out.push({side:s,party});}
+      if(inside)continue;out.push({side:s,party:isPartyEdge(plot,x,z,s)});}
     return out;
   }
   // Exterior openings: front doors from the typology (the home's own door, the business door), a back door from the
   // kitchen, and windows spaced along each room's outside walls (none on party walls). Shops get a shopfront.
-  function placeOpenings(plot,F,entrances){
+  function placeOpenings(plot,F,entrances,reached){
     const {grid,rooms,f}=F,{w,d}=plot,mask=plot.masks[f],edges=new Map();
     for(let z=0;z<d;z++)for(let x=0;x<w;x++){const g=grid[x+w*z];if(g<1)continue;
       for(const e of exteriorSides(plot,mask,x,z)){if(e.party)continue;const key=`${g}-${e.side}-${e.side[0]==='x'?x:z}`;if(!edges.has(key))edges.set(key,{room:g,side:e.side,cells:[]});edges.get(key).cells.push([x,z]);}}
@@ -363,6 +400,9 @@
         if(en.at!==undefined&&type==='hall'){const near=free.filter(i=>l.cells[i][0]===en.at);if(near.length)s=near[0];}
         take({room:en.room,side:l.side,cells:l.cells.slice(s,s+2),kind:'front'});}
       const kit=rooms.findIndex(r=>r.type==='kitchen'),back=lines.filter(l=>l.room===kit&&l.side!==street&&l.cells.length>=3).sort((a,b)=>(b.side==='zp')-(a.side==='zp')||b.cells.length-a.cells.length)[0];
+      // an extension the house does not reach inside opens onto the yard
+      if(reached)rooms.forEach((rm,k)=>{if(k<2||reached.has(k)||!rm.cells&&!grid.includes(k))return;const yl=lines.filter(l=>l.room===k&&(l.side!==street||rm.extension)&&l.cells.length>=2&&l.cells.every(c=>!taken.has(l.side+c.join(',')))).sort((a,b)=>(a.side===street)-(b.side===street)||b.cells.length-a.cells.length)[0]; // a street-facing extension may have its own street door
+        if(yl){const i=Math.floor((yl.cells.length-2)/2);take({room:k,side:yl.side,cells:yl.cells.slice(i,i+2),kind:'back'});}});
       if(kit>=0&&back){const n=back.cells.length,s=n>=6?n-3:Math.floor((n-2)/2);take({room:kit,side:back.side,cells:back.cells.slice(s,s+2),kind:'back'});}
       else{const hb=lines.filter(l=>l.room===1&&l.side!==street&&l.cells.length>=2).sort((a,b)=>(b.side==='zp')-(a.side==='zp'))[0];if(hb)take({room:1,side:hb.side,cells:hb.cells.slice(0,2),kind:'back'});}}
     for(const l of lines){const type=rooms[l.room].type;if(type==='hall'&&l.cells.length<3)continue;
@@ -387,7 +427,7 @@
       room.cells=n;room.box=n?[x0,z0,x1,z1]:null;if(k<2||!n)return;const R=ROOMS[room.type],bw=x1-x0+1,bd=z1-z0+1,a=n*CELL*CELL,minW=Math.min(bw,bd);
       if(minW<R.minW)s+=(R.minW-minW)*15;if(a<R.minA)s+=(R.minA-a)*6;const asp=Math.max(bw,bd)/minW;if(asp>2.6)s+=(asp-2.6)*12;
       if(n<bw*bd&&!R.circ){s+=300;notes.push(room.type+' not rectangular');}
-      if(!reached.has(k)){s+=500;notes.push(room.type+' unreachable');}
+      if(!reached.has(k)&&!openings.some(o=>o.room===k&&(o.kind==='back'||o.kind==='front'))){s+=500;notes.push(room.type+' unreachable');}
       if(R.light&&!openings.some(o=>o.room===k&&o.kind!=='front'&&o.kind!=='back')){s+=200;notes.push(room.type+' windowless');}});
     if(rooms[0].cells&&!reached.has(0)){s+=500;notes.push('stair unreachable');}
     const hallCells=rooms[1].cells||0;if(hallCells&&rooms.length>2)s+=Math.max(0,hallCells*CELL*CELL-14)*.8; // halls are for walking, not living
@@ -435,8 +475,8 @@
     const roof={form:one(S.roofForms),ridge:one(S.ridges),pitch:range(S.pitch),eave:Math.round(range(S.eave)),curve:range(S.curve),mat:one(S.roofMats)};
     // Massing: a street-facing cross gable over the middle bays, dormers on a street-facing slope, a corner turret,
     // oriel windows. Each is a chance per style; geometry that does not suit the plot is dropped in generate().
-    const mid=Math.floor(plot.w/2);
-    roof.cross=roof.ridge==='frontage'&&plot.w>=14&&chance(S.crossGable)?{x0:mid-3-(plot.w>=20?1:0),x1:mid+3+(plot.w>=20?1:0),depth:ri(r,6,9)}:null;
+    const mw=plot.lot?plot.lot.main.w:plot.w,mid=Math.floor((plot.lot?plot.lot.main.ox:0)+mw/2);
+    roof.cross=roof.ridge==='frontage'&&mw>=14&&chance(S.crossGable)?{x0:mid-3-(plot.w>=20?1:0),x1:mid+3+(plot.w>=20?1:0),depth:ri(r,6,9)}:null;
     roof.dormers=roof.ridge==='frontage'&&!roof.cross&&roof.form!=='hip'&&chance(S.dormers)?ri(r,1,3):0;
     const sides=[!plot.party[0]?'xm':null,!plot.party[1]?'xp':null].filter(Boolean);
     roof.turret=sides.length&&chance(S.turret)?{side:pick(r,sides),r:ri(r,11,15),rise:ri(r,18,30)}:null;
@@ -455,6 +495,89 @@
     return Object.keys(ok).length?weighted(r,ok):'cross';
   }
 
+  // --- Lots ---------------------------------------------------------------------------------------------------------
+  // A lot is a polygon on the 0.5 m grid with a straight street edge at row `front`. The main house (laid out by its
+  // typology exactly as on a rectangular plot) stands on the street frontage; the rest of the lot fills with
+  // extensions (stores, workrooms, garden rooms), single-storey rectangles carved from what is left, each touching
+  // the building, so a slanted or crooked lot line is followed in steps rather than with triangular rooms. Slivers too
+  // small for a room stay yard.
+  const LOTS={rect:'Rectangular',deep:'Deep, with a yard',wedge:'Wedge',slant:'Slanted back',flag:'Flag (narrow front)',dogleg:'Dog-leg',crooked:'Crooked'};
+  function makeLot(kind,r,front,Wf){
+    const Dl=ri(r,32,44),P=[];let pts;
+    if(kind==='deep')pts=[[0,0],[Wf,0],[Wf,Dl],[0,Dl]];
+    else if(kind==='wedge'){const Wb=Math.max(10,Wf+pick(r,[-1,1])*ri(r,5,9));pts=[[0,0],[Wf,0],[Wb,Dl],[0,Dl]];}
+    else if(kind==='slant'){const d1=Dl-ri(r,6,12);pts=r()<.5?[[0,0],[Wf,0],[Wf,Dl],[0,d1]]:[[0,0],[Wf,0],[Wf,d1],[0,Dl]];}
+    else if(kind==='flag'){const k=ri(r,24,30),Wt=Wf+ri(r,6,10),left=r()<.5;pts=left?[[0,0],[Wf,0],[Wf,k],[Wt,k],[Wt,Dl],[0,Dl]]:[[Wt-Wf,0],[Wt,0],[Wt,Dl],[0,Dl],[0,k],[Wt-Wf,k]];}
+    else if(kind==='dogleg'){const k=ri(r,20,28),sh=pick(r,[-1,1])*ri(r,4,7);pts=[[0,0],[Wf,0],[Wf,k],[Wf+sh,k],[Wf+sh,Dl],[sh,Dl],[sh,k],[0,k]];}
+    else{const a=ri(r,-4,4),b=ri(r,-4,4);pts=[[0,0],[Wf,0],[Wf+b,Dl-ri(r,0,8)],[a,Dl-ri(r,0,8)]];}
+    const minX=Math.min(...pts.map(q=>q[0])),W=Math.max(...pts.map(q=>q[0]))-minX,poly=pts.map(([x,z])=>[x-minX,z+front]),D=front+Dl;
+    const inside=(px,pz)=>{let c=false;for(let i=0,j=poly.length-1;i<poly.length;j=i++){const [xi,zi]=poly[i],[xj,zj]=poly[j];if((zi>pz)!==(zj>pz)&&px<(xj-xi)*(pz-zi)/(zj-zi)+xi)c=!c;}return c;};
+    const mask=new Uint8Array(W*D);for(let z=front;z<D;z++)for(let x=0;x<W;x++)if(inside(x+.5,z+.5))mask[x+W*z]=1;
+    return {kind,W,D,mask,poly,frontOffset:-minX};
+  }
+  // The main block's place on the lot: the street frontage, the building's width, aligned to a side, and how deep the
+  // lot runs behind it.
+  function placeMain(lot,wb,front,r){
+    const row=[];for(let x=0;x<lot.W;x++)if(lot.mask[x+lot.W*front])row.push(x);if(!row.length)return null;
+    const L0=Math.min(...row),L1=Math.max(...row)+1,depthAt=(ox,w)=>{let d=1e9;for(let x=ox;x<ox+w;x++){let z=front;while(z<lot.D&&lot.mask[x+lot.W*z])z++;d=Math.min(d,z-front);}return d;};
+    // try the left, right and centred positions, and up to 3 m narrower, keeping the best of width and depth (a
+    // narrowing lot gives a deeper house if it stands a little narrower); ties go to a seeded pick
+    const opts=[];for(let w=Math.min(wb,L1-L0);w>=Math.max(12,Math.min(wb,L1-L0)-6);w-=2)for(const ox of [L0,L1-w,L0+Math.floor((L1-L0-w)/2)]){const d=depthAt(ox,w);opts.push({ox,w,d,s:w*Math.min(d,28)+(d>=20?200:0)+r()});}
+    opts.sort((a,b)=>b.s-a.s);
+    return {ox:opts[0].ox,w:opts[0].w,maxDepth:opts[0].d};
+  }
+  // Greedy rectangle decomposition of a mask (largest rectangles first), as in voxels.js.
+  function decompose(mask,w,d){const left=Uint8Array.from(mask),out=[];
+    while(true){let best=null;for(let z0=0;z0<d;z0++)for(let x0=0;x0<w;x0++){if(!left[x0+w*z0])continue;let xmax=w;
+      for(let z1=z0;z1<d&&left[x0+w*z1];z1++){let x1=x0;while(x1+1<xmax&&left[x1+1+w*z1])x1++;xmax=x1+1;const a=(x1-x0+1)*(z1-z0+1);if(!best||a>best.a)best={a,r:[x0,z0,x1,z1]};}}
+      if(!best||best.a<4)break;const [x0,z0,x1,z1]=best.r;for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)left[x+w*z]=0;out.push(best.r);}
+    return out;}
+  // Paste a typology's building into the lot grid at the main block's offset, then carve extensions from the rest.
+  function pasteAndExtend(P,T,lot,main,v){
+    const W=lot.W,D=Math.max(lot.D,P.d),ox=main.ox,shift=i=>(i%P.w)+ox+W*Math.floor(i/P.w),sx=([x,z])=>[x+ox,z],sr=([x0,z0,x1,z1])=>[x0+ox,z0,x1+ox,z1];
+    const masks=P.masks.map(m=>{const n=new Uint8Array(W*D);for(let i=0;i<m.length;i++)if(m[i])n[shift(i)]=1;return n;});
+    const floors=T.floors.map(F=>{const g=new Int16Array(W*D).fill(-1);for(let i=0;i<F.grid.length;i++)if(F.grid[i]>=0)g[shift(i)]=F.grid[i];
+      return {f:F.f,grid:g,rooms:F.rooms,steps:F.steps.map(shift),voids:F.voids.map(shift),open:F.open.map(o=>({cells:o.cells.map(sx),dir:o.dir}))};});
+    const st=T.stair,stair={...st,rect:sr(st.rect),flights:st.flights.map(f=>({...f,rect:sr(f.rect)})),landings:st.landings.map(l=>({...l,rect:sr(l.rect)})),spirals:st.spirals.map(sp=>({...sp,centre:[sp.centre[0]+ox,sp.centre[1]]}))};
+    const entrances=T.entrances.map(e=>({...e,...(e.at!==undefined?{at:e.at+ox}:{})}));
+    const P2={...P,w:W,d:D,masks,lot:{kind:lot.kind,mask:lot.mask,main:{ox,w:P.w,d:P.d}}};
+    // Extensions: leftover rectangles that share at least 1.5 m of wall with the building (so they open off it), are
+    // at least 2 x 2.5 m, and leave every room that needs a window a wall to have one; up to three, always leaving an
+    // eighth of the lot as yard.
+    const house=masks[0].slice(),F0=floors[0],lotCells=lot.mask.reduce((a,b)=>a+b,0),type=P.type,biz=['shophouse','workshop'].includes(type);let made=0;
+    for(let it=0;it<3;it++){const left=new Uint8Array(W*D);let freeN=0;for(let i=0;i<W*D;i++)if(lot.mask[i]&&!masks[0][i]&&Math.floor(i/W)>=P.front){left[i]=1;freeN++;}
+      let best=null;for(let [x0,z0,x1,z1] of decompose(left,W,D)){
+        // trim to an extension's depth (3-5 m) out from the side it shares with the building; the rest stays yard
+        const touch=(xa,za)=>xa>=0&&za>=0&&xa<W&&za<D&&house[xa+W*za];let sides={xm:0,xp:0,zm:0,zp:0};
+        for(let z=z0;z<=z1;z++){if(touch(x0-1,z))sides.xm++;if(touch(x1+1,z))sides.xp++;}for(let x=x0;x<=x1;x++){if(touch(x,z0-1))sides.zm++;if(touch(x,z1+1))sides.zp++;}
+        const side=Object.entries(sides).sort((a,b)=>b[1]-a[1])[0][0],maxD=ri(v,6,10);
+        if(side==='xm')x1=Math.min(x1,x0+maxD-1);if(side==='xp')x0=Math.max(x0,x1-maxD+1);if(side==='zm')z1=Math.min(z1,z0+maxD-1);if(side==='zp')z0=Math.max(z0,z1-maxD+1);
+        // and along the wall it shares: a lean-to covers part of a wall (45-70%), tried against either end, leaving
+        // the rest of the wall its windows and the yard a way round
+        const along=side[0]==='z'?x1-x0+1:z1-z0+1,len=Math.min(along,Math.max(5,Math.round(along*between(v,[.45,.7])))),tries=[];
+        for(const end of [0,1]){const r=side[0]==='z'?(end?[x1-len+1,z0,x1,z1]:[x0,z0,x0+len-1,z1]):(end?[x0,z1-len+1,x1,z1]:[x0,z0,x1,z0+len-1]);tries.push(r);}
+        for(const [tx0,tz0,tx1,tz1] of tries){const x0=tx0,z0=tz0,x1=tx1,z1=tz1;
+        const rw=x1-x0+1,rd=z1-z0+1;if(Math.min(rw,rd)<4||Math.max(rw,rd)<5)continue;
+        let shared=0,edge=0;for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(nx>=x0&&nx<=x1&&nz>=z0&&nz<=z1)continue;
+          const inG=nx>=0&&nz>=0&&nx<W&&nz<D;if(inG&&house[nx+W*nz])shared++;else if(!inG||!lot.mask[nx+W*nz])edge++;}
+        if(shared<3)continue;const area=rw*rd;if(freeN-area<lotCells*.12)continue;
+        // never take the last outside wall of a room that needs a window
+        const covers=(x,z)=>x>=x0&&x<=x1&&z>=z0&&z<=z1;
+        const freeOf=ks=>{let free=0;for(let i=0;i<W*D;i++){if(!ks.includes(F0.grid[i]))continue;const x=i%W,z=Math.floor(i/W);for(const [dx,dz,sd] of DIRS){const nx=x+dx,nz=z+dz,inG=nx>=0&&nz>=0&&nx<W&&nz<D;
+            if(inG&&masks[0][nx+W*nz])continue;if(inG&&covers(nx,nz))continue;if(!isPartyEdge(P2,x,z,sd))free++;}}return free;};
+        if(F0.rooms.some((rm,k)=>k>=2&&ROOMS[rm.type].light&&freeOf([k])<2))continue;
+        // and the hall or kitchen keeps a wall for the yard door as well as the kitchen's window
+        const kit=F0.rooms.map((rm,k)=>rm.type==='kitchen'?k:-1).filter(k=>k>=0);if(kit.length&&freeOf([1,...kit])<6)continue;
+        const sc=shared*2+Math.min(edge,12)+area*.25;if(!best||sc>best.sc)best={sc,r:[x0,z0,x1,z1],area};}}
+      if(!best)break;const [x0,z0,x1,z1]=best.r,m2=best.area*CELL*CELL;
+      // the extension's use: preferred by building type and size, but always one that can open off a room it touches
+      const adj=new Set();for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++)for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,nz=z+dz;if(nx>=x0&&nx<=x1&&nz>=z0&&nz<=z1)continue;if(nx<0||nz<0||nx>=W||nz>=D)continue;const g=F0.grid[nx+W*nz];if(g>1)adj.add(F0.rooms[g].type);else if(g===1)adj.add('hall');}
+      const prefs=biz?(made===0&&m2>=7?['workshop','store']:['store','workshop']):type==='inn'?(m2>=9&&made===0?['dining','store','workshop']:['store','dining']):(m2>=8&&made===0?[pick(v,['study','workshop','dining']),'workshop','dining','store']:['store','workshop','study']);
+      const t=prefs.find(t=>[...adj].some(a=>canLink(t,a)))||prefs[0];
+      const k=F0.rooms.length;F0.rooms.push({type:t,extension:true});for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){F0.grid[x+W*z]=k;masks[0][x+W*z]=1;}made++;}
+    return {P:P2,floors,stair,entrances};
+  }
+
   // The stair is chosen once per building (kind, and whether it stands in an exterior tower), weighted by what the
   // typology can hold; the variants then all build that stair, so scoring never quietly prefers one kind.
   function chooseStair(plot,typology,r){
@@ -466,25 +589,36 @@
   }
   function generate(seed,opts={}){
     seed=Number(seed)>>>0;const r=rng(hash('building:'+seed)),styleId=opts.style||pick(r,Object.keys(STYLES)),style=STYLES[styleId];
-    const plot=makePlot(seed,{...opts,jetty:opts.jetty??(style.jettyOk&&r()<.6)}),typology=chooseTypology(plot,rng(hash('typology:'+seed)),opts.typology);
+    const plot=makePlot(seed,{...opts,jetty:opts.jetty??(style.jettyOk&&r()<.6)});
+    // The lot: rectangular by default for a plain plot, else one of the shaped lots (chosen per building).
+    const lr=rng(hash('lot:'+seed)),lotKind=opts.lot??(lr()<.55?pick(lr,Object.keys(LOTS).filter(k=>k!=='rect')):'rect');let lot=null,main=null;
+    if(lotKind!=='rect'){lot=makeLot(lotKind,lr,plot.front,plot.w+ri(lr,0,8));main=placeMain(lot,plot.w,plot.front,lr);if(main&&main.w>=12&&main.maxDepth>=16){plot.w=main.w;plot.maxDepth=main.maxDepth;}else{lot=null;main=null;}}
+    const typology=chooseTypology(plot,rng(hash('typology:'+seed)),opts.typology);
     let best=null;const C=opts.candidates||10,stairPick=chooseStair(plot,typology,rng(hash('stair:'+seed)));
     for(let c=0;c<C;c++){const v=rng(hash(`variant:${seed}:${c}`)),pr=rng(hash(`program:${seed}:${c}`)),P={...plot,party:plot.party.slice()};
       P.programs=Array.from({length:P.storeys},(_,f)=>program(P.type,f,P.storeys-1,pr));
       P.forceStair=opts.stair||stairPick; // {kind, tower}
-      const T=BUILD[typology](P,v);if(!T)continue;
-      const floors=T.floors.map(F=>{const arrive=F.f===0?null:F.open.map(o=>F.grid[o.cells[0][0]+P.w*o.cells[0][1]]).find(k=>k>0&&ROOMS[F.rooms[k].type].circ);
+      let T=BUILD[typology](P,v),PP=P;if(!T)continue;
+      if(lot){if(P.d-P.front>main.maxDepth)continue;const L2=pasteAndExtend(P,T,lot,main,v);
+        // a variant whose wing or stair tower would cross the lot line is no good here
+        if(L2.P.masks.some(m=>m.some((v_,i)=>v_&&Math.floor(i/L2.P.w)>=P.front&&!lot.mask[i])))continue;
+        PP=L2.P;T={...T,floors:L2.floors,stair:L2.stair,entrances:L2.entrances};}
+      const floors=T.floors.map(F=>{const arrive=F.f===0?null:F.open.map(o=>F.grid[o.cells[0][0]+PP.w*o.cells[0][1]]).find(k=>k>0&&ROOMS[F.rooms[k].type].circ);
         const start=F.f===0?(T.entrances.find(e=>e.floor===0&&e.room>0&&ROOMS[F.rooms[e.room].type].circ)?.room??1):(arrive??1);
-        const {doors,reached}=placeDoors(P,F,start),openings=placeOpenings(P,F,T.entrances),sc=scoreFloor(P,F,reached,openings);return {F,doors,openings,...sc};});
-      const score=floors.reduce((a,x)=>a+x.score,0);if(!best||score<best.score)best={score,P,T,floors,candidate:c};}
+        const {doors,reached}=placeDoors(PP,F,start),openings=placeOpenings(PP,F,T.entrances,F.f===0?reached:null),sc=scoreFloor(PP,F,reached,openings);return {F,doors,openings,...sc};});
+      const score=floors.reduce((a,x)=>a+x.score,0);if(!best||score<best.score)best={score,P:PP,T,floors,candidate:c};}
+    if(!best&&lot)return generate(seed,{...opts,lot:'rect'}); // the lot was too tight for this typology
     if(!best)throw new Error(`no ${typology} plan for seed ${seed}`);
     const {P,T}=best,sampled=sampleLook(styleId,P,seed),look={facade:{...sampled.facade,...(opts.look?.facade||{})},roof:{...sampled.roof,...(opts.look?.roof||{})}};
     // the turret stands mostly outside the corner and opens about one cell into it; keep doors out of that cell
+    if(P.lot)look.roof.turret=null; // a turret needs a free corner of the main block, which a lot rarely leaves
     if(look.roof.turret){const xs=look.roof.turret.side==='xm'?[0,1]:[P.w-2,P.w-1],z0=P.front;
       if(best.floors.some(({openings})=>openings.some(o=>o.kind!=='window'&&o.kind!=='small'&&o.cells.some(([x,z])=>x>=xs[0]&&x<=xs[1]&&z<=z0+1))))look.roof.turret=null;}
     return {revision:REVISION,seed,type:P.type,typeLabel:TYPES[P.type].label,typology,typologyLabel:TYPOLOGIES[typology].label,style:styleId,styleLabel:style.label,context:P.context,cell:CELL,storey:STOREY,
-      facade:look.facade,roof:look.roof,plot:{w:P.w,d:P.d,front:P.front,jetty:P.jetty,party:P.party,masks:P.masks.map(m=>Array.from(m))},
+      facade:look.facade,roof:look.roof,lotKind:P.lot?P.lot.kind:'rect',lotLabel:LOTS[P.lot?P.lot.kind:'rect'],
+      plot:{w:P.w,d:P.d,front:P.front,jetty:P.jetty,party:P.party,context:P.context,masks:P.masks.map(m=>Array.from(m)),lot:P.lot?{kind:P.lot.kind,mask:Array.from(P.lot.mask),main:P.lot.main}:null},
       stair:{kind:T.stair.kind,label:STAIR_LABELS[T.stair.kind]+(T.stair.tower?' in a tower':''),tower:T.stair.tower,orient:T.stair.orient,rect:T.stair.rect,flights:T.stair.flights,landings:T.stair.landings,spirals:T.stair.spirals},
-      floors:best.floors.map(({F,doors,openings,score,notes})=>({level:F.f,grid:Array.from(F.grid),rooms:F.rooms.map((room,k)=>({id:k,type:room.type,label:ROOMS[room.type].label,area:+((room.cells||0)*CELL*CELL).toFixed(2),box:room.box,cells:room.cells||0})),
+      floors:best.floors.map(({F,doors,openings,score,notes})=>({level:F.f,grid:Array.from(F.grid),rooms:F.rooms.map((room,k)=>({id:k,type:room.type,label:ROOMS[room.type].label,area:+((room.cells||0)*CELL*CELL).toFixed(2),box:room.box,cells:room.cells||0,...(room.extension?{extension:true}:{})})),
         doors,openings,voids:F.voids,steps:F.steps,score:+score.toFixed(2),notes})),score:+best.score.toFixed(2),candidate:best.candidate};
   }
 
@@ -505,6 +639,6 @@
     return c.map(r=>r.join('').trimEnd()).filter((r,k)=>k>0||r.trim()).join('\n');
   }
 
-  const api={CELL,STOREY,REVISION,ROOMS,TYPES,TYPOLOGIES,STYLES,CONTEXTS,STAIRS,STAIR_LABELS,hash,rng,makePlot,stairBay,generate,ascii,canLink,sharedRuns,gridPhase,sampleLook};
+  const api={CELL,STOREY,REVISION,ROOMS,TYPES,TYPOLOGIES,STYLES,CONTEXTS,STAIRS,STAIR_LABELS,LOTS,isPartyEdge,makeLot,hash,rng,makePlot,stairBay,generate,ascii,canLink,sharedRuns,gridPhase,sampleLook};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.BuildingPlan=api;
 })(typeof globalThis==='object'?globalThis:this);
