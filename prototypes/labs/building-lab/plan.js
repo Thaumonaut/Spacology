@@ -170,7 +170,9 @@
   // --- Typologies ---------------------------------------------------------------------------------------------------
   // Each takes the plot (w, front, storeys, party, type, jetty) and a variant rng, sets the footprint masks and
   // returns {stair, floors, entrances:[{room, side}]} where floors are built Floor objects.
-  const z0Of=(plot,f)=>f>0&&plot.jetty?0:plot.front;
+  // Jettied buildings step out over the street: each upper floor starts one row (0.5 m) further forward than the
+  // floor below, so the ground floor starts at row storeys-1 and the top floor at row 0. Unjettied: all at row 1.
+  const z0Of=(plot,f)=>plot.jetty?plot.front-f:plot.front;
   const sideHall=(plot,v)=>plot.party[0]&&!plot.party[1]?true:plot.party[1]&&!plot.party[0]?false:v()<.5;
 
   // Side passage (and wing): a 4-cell strip on one side (2 stair cells against the wall, a 2-cell lane) with a row
@@ -444,7 +446,7 @@
   function makePlot(seed,opts={}){
     const r=rng(hash('plot:'+seed)),typeId=opts.type||pick(r,Object.keys(TYPES)),T=TYPES[typeId],contextId=opts.context||pick(r,['terrace','terrace','corner','detached']);
     const w=Math.round(between(r,T.frontage)/CELL),storeys=T.storeys[1]>T.storeys[0]?(r()<(T.tall??.5)?T.storeys[1]:T.storeys[0]):T.storeys[0];
-    return {seed,type:typeId,context:contextId,party:CONTEXTS[contextId].party.slice(),w,d:0,front:1,storeys,jetty:!!opts.jetty};
+    return {seed,type:typeId,context:contextId,party:CONTEXTS[contextId].party.slice(),w,d:0,front:opts.jetty?Math.max(1,storeys-1):1,storeys,jetty:!!opts.jetty};
   }
   // The typology is chosen per building from the type's weights, among those that suit the plot.
   function chooseTypology(plot,r,forced){

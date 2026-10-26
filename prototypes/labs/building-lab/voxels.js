@@ -287,8 +287,10 @@
     for(let f=0;f<storeys;f++){const F=plan.floors[f];for(const dr of F.doors)opening(f,dr,true);for(const o of F.openings)opening(f,o,false);}
     for(const job of later)job();
 
-    // Jetty brackets under any upper floor that overhangs the street, on the post grid.
-    if(plan.plot.jetty)for(let A=cx(0);A<cx(w);A++)if(postAt('zm',A)&&!postAt('zm',A-1)||A===cx(0)||A===cx(w)-2)for(let t=0;t<CV;t++){const zz=cz(front)-1-t,yy=FL(1)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}
+    // Jetty brackets under every step where a floor overhangs the one below, on the post grid: each rises from the
+    // lower floor's wall to the edge of the slab above.
+    if(plan.plot.jetty)for(let f=1;f<storeys;f++){const zWall=cz(front-(f-1));
+      for(let A=cx(0);A<cx(w);A++)if(postAt('zm',A)&&!postAt('zm',A-1)||A===cx(0)||A===cx(w)-2)for(let t=0;t<CV;t++){const zz=zWall-1-t,yy=FL(f)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}}
 
     // --- Roofs -----------------------------------------------------------------------------------------------------
     // One per level: each storey's footprint with nothing built above it gets a roof at that storey's plate. The main
