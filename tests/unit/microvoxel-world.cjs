@@ -129,6 +129,7 @@ assert.ok(M.movePosition({cx:M.MAX_CHUNK,cz:-M.MAX_CHUNK,x:7,z:0},10,-10).x<8);
 assert.equal(M.movePosition({cx:-M.MAX_CHUNK,cz:0,x:0,z:0},-10,0).x,0);
 assert.throws(()=>M.movePosition({cx:.5,cz:0,x:0,z:0}));assert.throws(()=>M.movePosition({cx:0,cz:0,x:NaN,z:0}));
 const wild=M.createWorld(2718,.25,'infinite'),wildFine=M.createWorld(2718,.125,'infinite');
+assert.ok(Number.isFinite(wild.geography(0,0).height),'merged range and volcano fields produce finite terrain');
 assert.notEqual(wild.id,w.id);assert.equal(wild.deposit.id,wildFine.deposit.id);assert.equal(wild.deposit.x,wildFine.deposit.x);assert.equal(wild.deposit.z,wildFine.deposit.z);
 const origins=[[-1,-1],[0,0],[1,-1],[1000000,-1000000],[-M.MAX_CHUNK,M.MAX_CHUNK]];
 const chunks=origins.map(([x,z])=>wild.generateChunk(x,z));

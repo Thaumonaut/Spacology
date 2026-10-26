@@ -110,7 +110,7 @@
       else if(relief<25){const n=noise(x*.0006,z*.0006,seed+931);if(n>.74){setting='rift';f=clamp((n-.74)/.08,0,1);}}
       // Range style (macro-map.js RANGE_STYLES): age, glac, dis, basin, plat, pyr, read by crag, erosion, cliffs and hills.
       return {h,base:h-relief,relief,setting,f,cone:0,coast:mac.distToCoast,precip:mac.precip,lake:mac.lake,lakeD:mac.lakeD,valley:mac.valley,mesa:hill.mesa,wall:hill.wall,
-        age:mac.age,glac:mac.glac,dis:mac.dis,basin:mac.basin,plat:mac.plat,pyr:mac.pyr};
+        age:mac.age||0,glac:mac.glac||0,dis:mac.dis||0,basin:mac.basin||0,plat:mac.plat||0,pyr:mac.pyr||0};
     }
     // Rolling hills and uplands everywhere on land, at ~150 m to 1.5 km wavelengths, in regional styles: plains (+-1-3 m),
     // rolling country (5-20 m) and hill country (20-60 m), chosen by a ~5 km field. Uplands rise toward the ranges (the
@@ -127,9 +127,9 @@
       const S=noise(x*.00019+3.1,z*.00019,seed+951)*.68+noise(x*.0007,z*.0007,seed+953)*.32;
       // Basins around Rockies-style ranges (mac.basin) and the altiplano behind Andes-style ones (mac.plat) are flat
       // parks and plateaus: their hills are lower and the apron does not lift them into hill country.
-      const flat=(1-.8*mac.basin)*(1-.7*mac.plat);
+      const flat=(1-.8*(mac.basin||0))*(1-.7*(mac.plat||0));
       let amp=(S<.4?1.5+2.5*S/.4:S<.55?4+16*smooth01((S-.4)/.15):20+40*smooth01((S-.55)/.25))*flat;
-      amp=Math.max(amp,(6+40*clamp(mac.ra/30,0,1))*clamp(mac.ra/6,0,1)*(1-.85*mac.plat)*(1-.5*mac.basin),26*clamp((r-250)/500,0,1)*clamp((3000-r)/800,0,1));
+      amp=Math.max(amp,(6+40*clamp(mac.ra/30,0,1))*clamp(mac.ra/6,0,1)*(1-.85*(mac.plat||0))*(1-.5*(mac.basin||0)),26*clamp((r-250)/500,0,1)*clamp((3000-r)/800,0,1));
       const wx=x+(noise(x*.0011,z*.0011,seed+955)-.5)*500,wz=z+(noise(x*.0011,z*.0011,seed+957)-.5)*500;
       const f=noise(wx/1500,wz/1500,seed+959)*.45+noise(wx/650,wz/650,seed+961)*.3+noise(wx/300,wz/300,seed+963)*.17+noise(wx/150,wz/150,seed+965)*.08;
       const q=clamp((f-.3)/.42,0,1);let v=amp*q**1.3;
@@ -163,7 +163,7 @@
     // Volcano lookup: each cone is registered in every VG cell its radius touches (R can be ~5 km now, far more than one
     // cell), so a point anywhere on the flank finds its volcano with a single map hit instead of a fixed ±1-cell scan.
     const VG=700,volcanoCells=new Map();
-    if(infinite)for(const v of MM.volcanoes||[]){const V={x:v.x,z:v.z,H:v.H,R:v.H*3};
+    if(infinite)for(const v of MM.volcanoes||[]){const spec=MacroLib.volcanoSpec(v),V={x:v.x,z:v.z,H:v.H,R:spec.R,spec};
       const i0=Math.floor((v.x-V.R)/VG),i1=Math.floor((v.x+V.R)/VG),j0=Math.floor((v.z-V.R)/VG),j1=Math.floor((v.z+V.R)/VG);
       for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const k=i*65536+j;let a=volcanoCells.get(k);if(!a)volcanoCells.set(k,a=[]);a.push(V);}}
     // The cone itself (shape, crater, radial ribs) is MacroLib.volcanoCone, shared with the macro map's hydrology. Under a
@@ -175,7 +175,7 @@
       const t=plateRelief(x,z),list=volcanoCells.get(Math.floor(x/VG)*65536+Math.floor(z/VG));let cone=0,vx=0,vz=0,vr=0,vh=0,rib=0,frac=0;
       if(list)for(const V of list){
         if(Math.abs(x-V.x)>=V.R||Math.abs(z-V.z)>=V.R)continue;
-        MacroLib.volcanoCone(V.H,x-V.x,z-V.z,vc);
+        MacroLib.volcanoCone(V.spec,x-V.x,z-V.z,vc);
         if(vc.cone>cone){cone=vc.cone;vx=V.x;vz=V.z;vr=V.R;vh=V.H;rib=vc.rib;frac=vc.frac;}
       }
       if(!cone)return t;
