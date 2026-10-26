@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quartz Paint Study</title>
+<style>
+  html,body{margin:0;min-height:100%;background:#172f36;display:grid;place-items:center}
+  canvas{display:block;width:min(100vw,1200px);height:auto}
+</style>
+<canvas width="1200" height="800" aria-label="Painted blue and amber quartz study"></canvas>
+<script>
+(() => {
+  const c=document.querySelector('canvas'),g=c.getContext('2d');
+  let state=0x76aa91d3;
+  const rand=()=>((state=(Math.imul(state,1664525)+1013904223)>>>0)/4294967296);
+  const between=(a,b)=>a+(b-a)*rand();
+  const rgba=(hex,a)=>{const n=parseInt(hex.slice(1),16);return `rgba(${n>>16},${n>>8&255},${n&255},${a})`;};
+  const poly=(pts,color)=>{g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.fillStyle=color;g.fill();};
+
+  const bg=g.createLinearGradient(0,0,0,800);
+  bg.addColorStop(0,'#192a36');bg.addColorStop(.56,'#313f45');bg.addColorStop(1,'#6b6661');
+  g.fillStyle=bg;g.fillRect(0,0,1200,800);
+  // Loose landscape washes are scenery, not detailed objects competing with the specimen.
+  for(let i=0;i<42;i++){
+    const x=between(-100,1300),y=between(60,790),r=between(55,210);
+    const v=g.createRadialGradient(x,y,0,x,y,r),color=i%3?'#b19a82':'#657789';
+    v.addColorStop(0,rgba(color,between(.015,.06)));v.addColorStop(1,rgba(color,0));
+    g.fillStyle=v;g.fillRect(x-r,y-r,r*2,r*2);
+  }
+  for(let i=0;i<12000;i++){
+    g.fillStyle=rand()<.53?'rgba(242,224,181,.027)':'rgba(2,22,36,.047)';
+    g.fillRect(rand()*1200,rand()*800,between(.5,2),between(.5,2));
+  }
+  const haze=g.createRadialGradient(603,459,54,603,459,370);
+  haze.addColorStop(0,'rgba(250,199,116,.31)');
+  haze.addColorStop(.42,'rgba(216,155,92,.12)');
+  haze.addColorStop(1,'rgba(216,155,92,0)');
+  g.fillStyle=haze;g.fillRect(180,50,850,750);
+  g.save();g.translate(0,693);g.scale(1,.16);
+  const pool=g.createRadialGradient(610,0,18,610,0,370);
+  pool.addColorStop(0,'rgba(255,218,147,.42)');
+  pool.addColorStop(.65,'rgba(223,151,92,.12)');
+  pool.addColorStop(1,'rgba(223,151,92,0)');
+  g.fillStyle=pool;g.beginPath();g.arc(610,0,370,0,Math.PI*2);g.fill();g.restore();
+
+  const blue={
+    ink:'#163953',shadow:'#284b80',mid:'#5486ad',light:'#b0e9e5',
+    wash:['#123c76','#2a78a5','#8dd5cf','#e9f6d3'],line:'#def9e5'
+  };
+  const honey={
+    ink:'#653d43',shadow:'#8b4c4d',mid:'#c77d55',light:'#f8d58a',
+    wash:['#963f3e','#e98b4b','#f3bc6c','#fff3b4'],line:'#fff1c5'
+  };
+  const paper=document.createElement('canvas');paper.width=384;paper.height=640;
+  const pg=paper.getContext('2d'),pixels=pg.createImageData(384,640);
+  for(let i=0;i<pixels.data.length;i+=4){
+    const fiber=rand(),grain=fiber<.14?between(95,186):between(211,255);
+    pixels.data[i]=grain;pixels.data[i+1]=grain;pixels.data[i+2]=grain;pixels.data[i+3]=255;
+  }
+  pg.putImageData(pixels,0,0);
+  function face(pts,base,pal,amount=1){
+    g.save();g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.clip();
+    poly(pts,base);
+    // Pigment collects at the root and below the termination; leave breathing room in the middle.
+    for(let i=0;i<Math.round(24*amount);i++){
+      const x=between(-190,190),y=rand()<.74?between(410,690):between(115,260);
+      const rx=between(17,89),ry=rx*between(.64,1.55);
+      const color=i%5===0?pal.light:pal.wash[Math.floor(rand()*(pal.wash.length-1))];
+      const points=Array.from({length:14},(_,k)=>{
+        const a=k*Math.PI/7,dist=between(.76,1.16);
+        return [x+Math.cos(a)*rx*dist,y+Math.sin(a)*ry*dist];
+      });
+      const trace=()=>{
+        g.beginPath();
+        g.moveTo((points[13][0]+points[0][0])/2,(points[13][1]+points[0][1])/2);
+        for(let k=0;k<14;k++){
+          const a=points[k],b=points[(k+1)%14];
+          g.quadraticCurveTo(a[0],a[1],(a[0]+b[0])/2,(a[1]+b[1])/2);
+        }
+        g.closePath();
+      };
+      g.save();g.shadowBlur=between(3,10);g.shadowColor=rgba(color,.23);
+      trace();g.fillStyle=rgba(color,between(.11,.34));g.fill();g.restore();
+      if(rand()<.35){trace();g.strokeStyle=rgba(color,between(.08,.2));g.lineWidth=between(1,2.5);g.stroke();}
+    }
+    // These are small bristle deposits, not uniform vertical streaks over every face.
+    for(let i=0;i<Math.round(46*amount);i++){
+      const x=between(-195,195),y=rand()<.7?between(455,677):between(122,245),len=between(4,42),dx=between(-13,15);
+      const color=pal.wash[Math.floor(rand()*pal.wash.length)];
+      g.strokeStyle=rgba(color,between(.12,.32));g.lineWidth=between(1,8);
+      g.lineCap=rand()<.5?'butt':'round';
+      g.beginPath();g.moveTo(x,y);g.lineTo(x+dx,y+len);g.stroke();
+    }
+    for(let i=0;i<Math.round(6100*amount);i++){
+      const x=between(-195,195),y=between(12,650),size=between(.4,1.6);
+      g.fillStyle=rand()<.55?rgba(pal.ink,between(.07,.24)):rgba(pal.line,between(.05,.19));
+      g.fillRect(x,y,size,size);
+    }
+    g.globalCompositeOperation='multiply';g.globalAlpha=.25;
+    g.drawImage(paper,-195,0,390,650);
+    g.restore();
+  }
+  function edge(pts,color,width,broken=false){
+    g.strokeStyle=color;g.lineWidth=width;g.lineJoin='round';g.lineCap='round';
+    g.setLineDash(broken?[42,8,12,7,61,10]:[]);
+    g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));
+    g.stroke();g.setLineDash([]);
+  }
+  function gem(x,y,scale,pal,tilt=0){
+    g.save();g.translate(x,y);g.rotate(tilt);g.scale(scale,scale);
+    const body=[[-4,0],[121,129],[173,559],[75,642],[-86,629],[-173,558],[-156,167]];
+    const tipL=[[-4,0],[-156,167],[-68,190]];
+    const tipM=[[-4,0],[-68,190],[60,178]];
+    const tipR=[[-4,0],[121,129],[60,178]];
+    const left=[[-156,167],[-68,190],[-86,629],[-173,558]];
+    const front=[[-68,190],[60,178],[75,642],[-86,629]];
+    const right=[[60,178],[121,129],[173,559],[75,642]];
+    const cast=g.createRadialGradient(3,358,18,3,358,270);
+    cast.addColorStop(0,rgba(pal.mid,.38));cast.addColorStop(1,rgba(pal.mid,0));
+    g.fillStyle=cast;g.beginPath();g.ellipse(0,375,260,345,0,0,Math.PI*2);g.fill();
+    poly(body,pal.ink);
+    face(left,pal.mid,pal,.55);
+    face(right,pal.shadow,pal,.62);
+    face(front,pal.mid,pal,1);
+    face(tipL,pal.light,pal,.34);
+    face(tipM,pal.light,pal,.34);
+    face(tipR,pal.mid,pal,.35);
+    // A few specific painted planes tell the light story; random washes are only the underpainting.
+    poly([[-156,167],[-68,190],[-49,289],[-115,310]],rgba(pal.light,.22));
+    poly([[60,178],[121,129],[139,284],[81,331]],rgba(pal.ink,.21));
+    poly([[-83,474],[-27,507],[34,482],[75,642],[-86,629]],rgba(pal.shadow,.38));
+    poly([[-72,537],[-18,498],[22,525],[44,598],[-41,571]],rgba(pal.ink,.19));
+    poly([[-4,0],[-68,190],[-20,165],[9,113]],rgba(pal.line,.19));
+    poly([[-52,221],[-23,233],[-17,270],[-44,306]],rgba(pal.light,.2));
+    poly([[61,184],[99,171],[116,245],[78,259],[69,303]],rgba(pal.ink,.18));
+    poly([[58,188],[77,207],[69,231],[61,224]],rgba(pal.line,.32));
+    // Off-axis reflections overlap the actual planes instead of following their borders like surface highlights.
+    // A dark slice behind each bright slice gives the illusion of light traveling through cloudy quartz.
+    g.save();g.beginPath();body.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py));g.closePath();g.clip();
+    poly([[-72,247],[-16,301],[36,273],[71,306],[33,331],[-27,362]],rgba(pal.ink,.24));
+    poly([[-69,238],[-13,291],[41,261],[67,298],[20,313],[-32,345]],rgba(pal.line,.22));
+    poly([[-98,437],[-37,408],[20,445],[86,402],[93,429],[24,472],[-44,441]],rgba(pal.ink,.22));
+    poly([[-94,426],[-38,398],[16,431],[79,394],[85,410],[19,455],[-45,428]],rgba(pal.light,.19));
+    edge([[-69,238],[-13,291],[41,261]],rgba(pal.line,.32),1.5,true);
+    edge([[-94,426],[-38,398],[16,431]],rgba(pal.line,.28),1.4,true);
+    g.restore();
+    // Subsurface-like wrap light stays within the shaded planes; the center remains darker than the lit edges.
+    for(const [sx,sy,r,strength] of [[-148,255,141,.46],[120,350,111,.25],[-105,577,110,.38]]){
+      g.save();g.beginPath();body.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py));g.closePath();g.clip();
+      const wrap=g.createRadialGradient(sx,sy,8,sx,sy,r);
+      wrap.addColorStop(0,rgba(pal.light,strength));
+      wrap.addColorStop(.45,rgba(pal.mid,strength*.42));
+      wrap.addColorStop(1,rgba(pal.mid,0));
+      g.fillStyle=wrap;g.fillRect(sx-r,sy-r,2*r,2*r);g.restore();
+    }
+    // Broad painted core sits beneath narrow gouache dashes, instead of a glassy specular streak.
+    g.save();g.beginPath();front.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py));g.closePath();g.clip();
+    const heart=g.createRadialGradient(-6,356,17,-6,356,196);
+    heart.addColorStop(0,rgba(pal.light,.82));heart.addColorStop(.47,rgba(pal.light,.26));
+    heart.addColorStop(1,rgba(pal.light,0));
+    g.fillStyle=heart;g.fillRect(-180,115,370,540);
+    g.restore();
+    // One translucent inclusion and a paired shadow/light mineral cleft near the foot.
+    poly([[-58,334],[-25,306],[24,354],[42,427],[4,445],[-48,412]],rgba(pal.light,.11));
+    edge([[-92,576],[-46,533],[-15,547],[20,508],[43,516]],rgba(pal.ink,.48),3);
+    edge([[-91,570],[-46,527],[-14,542],[18,504]],rgba(pal.line,.32),2.2,true);
+    edge([[100,470],[76,447],[68,407]],rgba(pal.ink,.26),2);
+    // Localized abrasion: paired dark pits and catching-light rims, never an all-over scratch pattern.
+    g.save();g.beginPath();body.forEach(([px,py],i)=>i?g.lineTo(px,py):g.moveTo(px,py));g.closePath();g.clip();
+    for(const [cx,cy,rx,ry,count] of [[-101,207,29,35,32],[72,207,25,46,29],
+      [-79,574,37,43,48],[95,562,33,45,40]]){
+      for(let i=0;i<count;i++){
+        const dx=between(-rx,rx),dy=between(-ry,ry),px=cx+dx,py=cy+dy,s=between(.7,2.6);
+        g.fillStyle=rgba(pal.ink,between(.14,.45));g.fillRect(px,py,s,s*between(1,3));
+        if(i%3===0){g.fillStyle=rgba(pal.line,between(.23,.56));g.fillRect(px+1,py-2,s*.65,s);}
+      }
+    }
+    g.restore();
+    // Short growth striations cluster at actual facet transitions rather than uniformly filling the column.
+    for(const [sx,sy,length] of [[-55,205,18],[-49,215,11],[-34,209,23],[37,196,14],
+      [46,207,19],[86,214,12],[-60,550,13],[-44,569,24],[31,557,16],[45,579,21]]){
+      edge([[sx,sy],[sx+2,sy+length]],rgba(pal.ink,.15),between(.7,1.5));
+      edge([[sx+3,sy-2],[sx+4,sy+length*.48]],rgba(pal.line,.18),between(.5,1.1));
+    }
+    // Small gouache chips belong to the turning planes, not the middle of an unbroken face.
+    poly([[60,178],[81,195],[70,226],[55,213]],rgba(pal.line,.61));
+    poly([[-87,627],[-52,603],[-37,621],[-56,642]],rgba(pal.line,.22));
+    // Backlit pigment wraps around a few rough edges without turning the entire silhouette into a neon outline.
+    g.save();g.shadowColor=rgba(pal.light,.55);g.shadowBlur=19;
+    edge([[-156,167],[-165,362],[-173,558]],rgba(pal.light,.14),7);
+    edge([[-4,0],[60,178]],rgba(pal.line,.18),4);
+    g.restore();
+    edge([...body,body[0]],rgba(pal.ink,.85),4);
+    edge([[-156,167],[-68,190],[-80,375]],rgba(pal.ink,.49),2.5);
+    edge([[-80,458],[-86,629]],rgba(pal.ink,.31),2.2,true);
+    edge([[-4,0],[60,178],[69,342]],rgba(pal.line,.74),3);
+    edge([[73,442],[75,642]],rgba(pal.line,.39),2.3,true);
+    edge([[121,129],[60,178],[-68,190]],rgba(pal.line,.42),2,true);
+    g.fillStyle=rgba(pal.line,.77);
+    for(const [px,py,s] of [[-44,199,2.2],[28,247,2],[-50,568,2.8],[69,539,2.4]]){
+      g.save();g.translate(px,py);g.rotate(between(-.38,.36));g.fillRect(0,0,s,s*between(1.5,3));g.restore();
+    }
+    g.restore();
+  }
+  gem(607,66,.97,honey);
+  gem(476,435,.39,honey,-.12);
+  gem(752,455,.36,honey,.15);
+  // Smoky and citrine growths overlap the foot of the parent point, each with its own plane direction.
+  function rootShard(pts,ridge,shade,lit){
+    g.save();g.globalAlpha=.76;
+    poly(pts,shade);
+    const [apex,left,lowLeft,base,right]=pts;
+    poly([apex,left,lowLeft,base,ridge],rgba(lit,.58));
+    poly([apex,ridge,base,right],rgba(shade,.62));
+    g.save();g.beginPath();pts.forEach(([x,y],i)=>i?g.lineTo(x,y):g.moveTo(x,y));g.closePath();g.clip();
+    g.globalCompositeOperation='multiply';g.globalAlpha=.32;
+    g.drawImage(paper,375,512,458,205);g.restore();
+    edge([left,apex,right],rgba(lit,.58),2.2);
+    edge([apex,ridge,base],rgba(shade,.55),2.4);
+    edge([lowLeft,base,right],rgba('#423b43',.35),2);
+    g.restore();
+  }
+  rootShard([[548,521],[508,614],[519,691],[586,700],[607,621]],[564,611],'#8b8170','#d5d6b1');
+  rootShard([[676,535],[646,623],[658,692],[728,691],[742,642]],[693,618],'#ad6646','#f5c77d');
+  rootShard([[592,585],[573,646],[585,698],[638,703],[650,658]],[612,646],'#80504b','#e8af75');
+  // A single subdued mineral bed embeds the three points; the small chipped planes sit in it, not beside it.
+  poly([[372,704],[394,685],[425,690],[460,679],[504,688],[551,684],[590,694],
+    [629,686],[680,692],[728,680],[771,686],[814,676],[839,705],[804,722],
+    [752,714],[709,735],[614,725],[527,732],[446,725]],'rgba(36,42,49,.55)');
+  poly([[386,697],[427,686],[463,684],[496,694],[530,700],[461,706]],'rgba(196,142,88,.31)');
+  poly([[689,699],[729,685],[773,694],[809,681],[820,701],[779,716]],'rgba(199,136,91,.3)');
+  for(const [x,y,s] of [[390,701,10],[495,704,9],[566,705,10],[737,704,12],[813,704,8]]){
+    poly([[x-s,y+4],[x-s*.4,y-3],[x+s*.5,y-5],[x+s,y+5],[x,y+8]],'rgba(23,48,57,.48)');
+    edge([[x-s,y+4],[x-s*.4,y-3],[x+s*.5,y-5]],'rgba(192,211,184,.24)',1.3);
+  }
+  for(const [x,y] of [[374,709],[518,713],[724,710],[831,706]]){
+    edge([[x-5,y+4],[x,y-7],[x+4,y-4]],'rgba(185,222,191,.3)',1.5);
+  }
+  // Sparse hand-placed points: a tiny cluster near the charged apex, quieter elsewhere.
+  for(const [x,y,r,color] of [
+    [593,98,2,honey.line],[637,174,1.6,honey.line],[718,292,1.3,honey.line],
+    [535,452,1.4,honey.line],[683,556,1.1,honey.line],[425,490,1.6,honey.line],
+    [491,515,1.3,honey.line],[781,502,1.2,honey.line],[829,570,1.3,honey.line]
+  ]){
+    g.fillStyle=rgba(color,.66);g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
+  }
+})();
+</script>
+</html>

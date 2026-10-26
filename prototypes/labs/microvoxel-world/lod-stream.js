@@ -7,6 +7,12 @@
   const M=root.MicroWorld,FADE=250,SAMPLES=240;
   // Smooth terrain (Surface Nets for the ground, standing objects stay blocky) is the default; ?mesh=blocky compares.
   const SMOOTH=new URLSearchParams(root.location?.search||'').get('mesh')!=='blocky';
+  // ?trees=objects draws nearby trees as instanced objects instead of voxels (under evaluation).
+  const TREE_OBJECTS=new URLSearchParams(root.location?.search||'').get('trees')==='objects';
+  // ?cliffs=fine (A/B, smooth mesh only): vertices sit where the unquantized ground crosses each edge, lit by its gradient.
+  const CLIFFS=new URLSearchParams(root.location?.search||'').get('cliffs')||'';
+  // ?far=lobes (A/B): distant trees as object crowns (see the model's FAR_TREE levels) instead of voxel columns.
+  const FAR_TREES=new URLSearchParams(root.location?.search||'').get('far')==='lobes';
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const percentile=(list,p)=>{if(!list.length)return 0;const s=[...list].sort((a,b)=>a-b);return s[Math.floor((s.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>SAMPLES)list.shift();};
@@ -110,9 +116,12 @@
       const fine=n=>{for(const d of [1,2]){if(n.L-d<0)break;const f=2**d,list=[];for(let j=0;j<f;j++)for(let i=0;i<f;i++){const key=K(n.L-d,n.nx*f+i,n.nz*f+j);if(!ready(key)){list.length=0;break;}list.push({L:n.L-d,nx:n.nx*f+i,nz:n.nz*f+j,key});}if(list.length===f*f)return list;}return null;};
       const visit=n=>{
         if(!n.children){if(ready(n.key))return {list:[n],complete:true};const f=fine(n);return f?{list:f,complete:true}:{list:[],complete:false};}
-        const parts=[...n.children.values()].map(visit);
+        const kids=[...n.children.values()],parts=kids.map(visit);
         if(parts.every(p=>p.complete))return {list:parts.flatMap(p=>p.list),complete:true};
-        if(ready(n.key))return {list:[n],complete:true};
+        // Partly finished: the finished children draw, and this node stands in only over the rest (its finished quarters
+        // masked out), so detail near the viewer shows as soon as it is built instead of waiting for the whole group.
+        if(ready(n.key)){let mask=0;const done=[];parts.forEach((p,i)=>{if(p.complete){mask|=1<<((kids[i].nx&1)+((kids[i].nz&1)<<1));done.push(...p.list);}});
+          return {list:mask?[...done,{...n,mask}]:[n],complete:true};}
         return {list:parts.flatMap(p=>p.list),complete:false};
       };
       const list=[...roots.values()].flatMap(r=>visit(r).list),keys=new Set(list.map(n=>n.key));
@@ -138,12 +147,12 @@
       if(drawDirty)resolve(now);
       const t0=performance.now(),gl=renderer.gl;stats.maxOrigin=0;renderer.worldOrigin=origin;
       if(gpu&&!gpu.active){const q=gl.createQuery();gl.beginQuery(gpu.ext.TIME_ELAPSED_EXT,q);gpu.active=q;}
-      const one=(key,mode,t)=>{
+      const one=(key,mode,t,mask=0)=>{
         const mesh=cache.items.get(key);if(!mesh)return;const [L,nx,nz]=key.split(':').map(Number),m=world.nodeMetres(L),c=mesh.column;
         const ox=nx*m-origin.x,oz=nz*m-origin.z;stats.maxOrigin=Math.max(stats.maxOrigin,Math.abs(ox),Math.abs(oz));renderer.dither(mode,t);renderer.placeholder((camera.mode==='walk'?!targetKeys.has(key):L>level)&&!lit.has(key));
-        renderer.draw(mesh,[ox,0,oz],[c,c,c],0,0,0,[0,0,0],[((nx*m)%4096+4096)%4096,0,((nz*m)%4096+4096)%4096]);
+        renderer.mask(mask);renderer.draw(mesh,[ox,0,oz],[c,c,c],0,0,0,[0,0,0],[((nx*m)%4096+4096)%4096,0,((nz*m)%4096+4096)%4096]);renderer.mask(0);
       };
-      for(const n of drawList){const s=fades.get(n.key),t=s===undefined?1:(now-s)/FADE;if(t>=1){fades.delete(n.key);one(n.key,0,0);}else one(n.key,1,t);}
+      for(const n of drawList){const s=fades.get(n.key),t=s===undefined?1:(now-s)/FADE;if(t>=1){fades.delete(n.key);one(n.key,0,0,n.mask);}else one(n.key,1,t,n.mask);}
       for(const [key,s] of outgoing){const t=(now-s)/FADE;if(t>=1||drawKeys.has(key)){outgoing.delete(key);continue;}one(key,-1,t);}
       renderer.dither(0,0);renderer.placeholder(false);
       if(gpu?.active){gl.endQuery(gpu.ext.TIME_ELAPSED_EXT);gpu.queries.push(gpu.active);gpu.active=null;
@@ -155,6 +164,9 @@
     // Coverage first: a visible target with nothing drawable over it gets its ancestor two levels up built before any
     // fine node, so a fresh view fills quickly and then sharpens. Then targets nearest the view centre.
     function nextJob(){
+      // Walk: the ground around the walker comes first (targets are sorted by distance), before coverage of the far rings,
+      // so entering Walk never leaves you standing among coarse placeholders while the horizon fills.
+      if(camera?.mode==='walk')for(const t of targets){if(t.distance>56)break;if(!ready(t.key)&&!inflight.has(t.key))return t;}
       if(coarseFirst){
         for(const t of targets){
           const C=Math.min(world.maxLevel,t.L+2);if(C===t.L)continue;
@@ -172,7 +184,7 @@
       for(const s of workers){
         if(s.job)continue;const job=nextJob();if(!job)return;
         s.job={...job,epoch};s.started=performance.now();inflight.set(job.key,s);
-        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map,gallery:world.gallery||false});
+        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail,treeObjects:TREE_OBJECTS,farTrees:FAR_TREES,cliffs:CLIFFS},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map,gallery:world.gallery||false});
       }
     }
     function receive(slot,data){

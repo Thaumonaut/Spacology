@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-20':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-23':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -614,9 +614,12 @@
     // and streams (courseAt) are skipped out at sea, beyond any coast.
     // Channels are only looked for out to a normalized distance of 125 (past any valley, bank or riparian reach);
     // beyond that the point reads as far from water (999), which lets the course search prune most candidates.
+    // wideColumns: set while node() samples columns 16 m or wider, where local creeks and streams (at most ~7 m across)
+    // cannot show; their drainage network is skipped there (the macro rivers still draw).
+    let wideColumns=false,columnTone=.3;
     function riverAt(x,z,t){
       const wx=x+(noise(x*.02,z*.02,seed+345)-.5)*12,wz=z+(noise(x*.02,z*.02,seed+347)-.5)*12;
-      const r={e:125,lake:0,dx:0,dz:0};macroCourse(wx,wz,r);if(!(t&&t.coast<-700))courseAt(0,wx,wz,r);if(r.hw===undefined)r.e=999;
+      const r={e:125,lake:0,dx:0,dz:0};macroCourse(wx,wz,r);if(!(t&&t.coast<-700)&&!wideColumns)courseAt(0,wx,wz,r);if(r.hw===undefined)r.e=999;
       return {d:r.e,level:r.level||0,lake:0,w:r.e<999?r.hw:0,foam:!!r.foam,spring:!!r.spring,size:r.s||0,dir:[r.dx||0,r.dz||0],macro:!!r.macro,pool:r.macro?r.pool:null,
         speed:r.speed||0,depth:r.depth||0,zone:r.e<999?r.zone:null,curve:r.curve||0,slope:r.slope||0,cx:r.x,cz:r.z,dist:r.dist||0};
     }
@@ -788,7 +791,7 @@
       let v=null;const p=hash(i,j,seed+391);
       if(p<.4){
         const x=(i+.3+.4*hash(i,j,seed+393))*SG,z=(j+.3+.4*hash(i,j,seed+395))*SG,g=geography(x,z);
-        if(!g.sea&&!g.wet&&!g.highland&&Math.hypot(x,z)>40&&p<(g.gorgeDistance<24?.4:g.relief>20?.2:.02)){
+        if(!g.sea&&!g.wet&&!g.highland&&Math.hypot(x,z)>40&&(!gallery||galCellKind(i,j,SG)==='spire')&&p<(g.gorgeDistance<24?.4:g.relief>20?.2:.02)){
           const n=3+Math.floor(hash(i,j,seed+397)*5),list=[];
           for(let s=0;s<n;s++){
             const a=hash(s,k,seed+399)*Math.PI*2,o=s?1.5+4*hash(s,k,seed+401):0,sx=x+Math.cos(a)*o,sz=z+Math.sin(a)*o,lean=.08+.14*hash(s,k,seed+403);
@@ -893,7 +896,7 @@
         const raised=g.height*cellMetres-[[30,0],[-30,0],[0,30],[0,-30]].reduce((m,[u,w])=>m+geography(x+u,z+w).height*cellMetres,0)/4;
         // The whole footprint (out to 50 m) must be dry ground: no sea, lake, river or stream anywhere under a ruin.
         const dry=()=>{for(let r=5;r<=50;r+=5)for(let q=0;q<16;q++){const A=q/10*Math.PI*2,G2=geography(x+Math.cos(A)*r,z+Math.sin(A)*r);if(G2.sea||G2.water>G2.height||G2.riverDistance<4)return false;}return true;};
-        if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&dry()){
+        if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&(!gallery||galCellKind(i,j,STG)==='ruin')&&dry()){
           const R=n=>hash(n,k,seed+471),a=hash(i,j,seed+467)*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a),g0=g.height*cellMetres;
           const parts=[],at=(u,w)=>[x+u*ca-w*sa,z+u*sa+w*ca];let n=0;
           // box(u,w): centre in the site frame; ang: extra rotation; walls stand on each column's own ground.
@@ -949,9 +952,9 @@
       const k=i*65536+j;if(rocks.has(k))return rocks.get(k);let v=null;const p=hash(i,j,seed+501);
       if(p<.5){
         const x=(i+.3+.4*hash(i,j,seed+503))*KG,z=(j+.3+.4*hash(i,j,seed+505))*KG,g=geography(x,z),h=hash(i,j,seed+507),a=hash(i,j,seed+509)*Math.PI;
-        const dry=['desert','savanna','steppe'].includes(g.biome);
+        const dry=gallery||['desert','savanna','steppe'].includes(g.biome);
         const arch=(base,Ls,Ha)=>({kind:'arch',x,z,ux:Math.cos(a),uz:Math.sin(a),base,Ls,Ha,t:1.6+.8*hash(i,j,seed+511),dh:1.4+.8*hash(i,j,seed+513)});
-        if(dry&&!g.wet&&!g.sea&&g.slope<.6&&g.water<=g.height&&Math.hypot(x,z)>60&&p<.4){
+        if(dry&&!g.wet&&!g.sea&&g.slope<.6&&g.water<=g.height&&Math.hypot(x,z)>60&&(!gallery||galCellKind(i,j,KG)==='rock')&&p<.4){
           const base=g.height*cellMetres-.5;
           if(h<.45){v=arch(base,6+5*hash(i,j,seed+515),8+6*hash(i,j,seed+517));v.mat=MAT.sandstone;}
           else{
@@ -1003,6 +1006,7 @@
     function boulderCell(i,j){
       const k=i*1048576+j;if(boulders.has(k))return boulders.get(k);let v=null;const p=hash(i,j,seed+551);
       const x=(i+.2+.6*hash(i,j,seed+553))*BG,z=(j+.2+.6*hash(i,j,seed+555))*BG;
+      if(gallery&&!galHasPad(x,z,'boulders')){boulders.set(k,null);return null;}
       let mtn=false;if(p>=.2){const t=tectonics(x,z);mtn=gallery||t.relief>15||t.cone>20;}
       if(p<.2||mtn){
         const g=geography(x,z),bad=G=>G.sea||G.wet||G.water>G.height||G.gorge||G.highland||G.biome==='snow'||G.glacier||G.iceCells>0;
@@ -1302,7 +1306,7 @@
     // (open tiered cone), spire (redwood: a needle point over the trunk), umbrella (flat acacia pads), gnarled
     // (twisted, leaning lakeside tree).
     const SPECIES={
-      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[3.4,.85],trunk:.6},
+      oak:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[7,5],r:[4.4,1.3],trunk:.6},
       jungle:{crown:'round',bark:MAT.bark,leaf:MAT.leaf,h:[9,6],r:[3.4,.85],trunk:.7},
       birch:{crown:'oval',bark:MAT.birchBark,leaf:MAT.birchLeaf,h:[6,4],r:[1.9,.6],trunk:.3},
       spruce:{crown:'cone',bark:MAT.bark,leaf:MAT.needle,h:[32,10],r:[4.6,1.15],trunk:1.35,conifer:true},
@@ -1394,7 +1398,9 @@
     // bush clump, a bamboo clump, a cactus, a mushroom cluster, a log or a stump (or nothing).
     // plantBiome: the biome makeTree is planting for (growTree records it as t.biome, which picks the under-canopy floor).
     let plantBiome=null;
-    function makeTree(gx,gz){
+    // coarse: for far-view columns (4 m and wider), where a tree is about a column or smaller: skip the checks of the ground
+    // and water around the trunk (one geography lookup a tree instead of five to nine).
+    function makeTree(gx,gz,coarse=false){
       // Near a biome edge the cell plants for its own biome or the neighbour's (pickBiome), so species, density and
       // extras from both sides mix with a share that falls off with distance from the border.
       const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),b=pickBiome(g,x,z,hash(gx,gz,seed+817)),S=treeStyle(b);plantBiome=b;
@@ -1402,7 +1408,7 @@
       // sits on a rock face). Snow and ice are allowed: the renderer gives those trees snowy crowns.
       const bare=G=>G.exposed||G.sea||G.water>G.height||G.biome==='alpine'||G.biome==='gorge'||G.slope>1.3;
       if(bare(g)||g.highland||g.gorgeDistance<g.gorgeHalf+4||spireNear(x,z,4)||landmarkNear(x,z))return null;
-      for(const [u,w] of [[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]])if(bare(geography(x+u,z+w)))return null;
+      if(!coarse)for(const [u,w] of [[1.5,0],[-1.5,0],[0,1.5],[0,-1.5]])if(bare(geography(x+u,z+w)))return null;
       // Riparian corridor (see geography): rip 0-1 and its planting style. Deserts and badlands are barren except where
       // a river or lake feeds them.
       const rip=g.riparian||0,cor=rip>0&&!TREELESS.has(b)?g.corridor:null,CS=cor&&CORRIDOR[cor];
@@ -1426,7 +1432,7 @@
       // River and lake edges: twisted trees leaning out over the water, bushes on the bank.
       if(g.riverDistance<12||rip>.6&&g.lake){
         // Only cells that would take a lakeside plant sample their surroundings for water.
-        let wx=0,wz=0;if(roll<.55&&!barren)for(const [u,w] of [[4.5,0],[-4.5,0],[0,4.5],[0,-4.5]]){const G=geography(x+u,z+w);if(G.water>G.height&&!G.sea){wx+=u;wz+=w;}}
+        let wx=0,wz=0;if(roll<.55&&!barren&&!coarse)for(const [u,w] of [[4.5,0],[-4.5,0],[0,4.5],[0,-4.5]]){const G=geography(x+u,z+w);if(G.water>G.height&&!G.sea){wx+=u;wz+=w;}}
         // Waterside trees lean out over the water: a twisted tree, or the corridor's own (palm, willow, vine-hung jungle
         // giant, cold-bank scrub).
         if(wx||wz){const lean=Math.atan2(wz,wx);
@@ -1485,7 +1491,10 @@
       // Per-tree girth: most trunks sit near the species norm but the range runs from skinny poles (~0.5x) to real
       // veterans (~1.85x), so a stand mixes whip-thin boles with chonky ones. Big-class trees are floored fat.
       const girth=C.cls===2?1.1+.8*hash(gx,gz,seed+13):.5+Math.pow(hash(gx,gz,seed+13),1.35)*1.35;
-      const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1));
+      // Broadleaf crowns spread with the trunk: a thick old oak carries a huge, wide canopy (up to the 6.5 m radius the
+      // column search reaches), a pole a small one.
+      const spread=P.crown==='round'?clamp(.7+.45*girth,.85,1.55):1;
+      const hm=Math.min(MAX_TREE,(P.h[0]+P.h[1]*hash(gx,gz,seed+4))*k),rm=Math.min(MAX_RADIUS,(P.r[0]+P.r[1]*hash(gx,gz,seed+5))*k*(o.k?1.3:1)*spread);
       // Trunk girth scales with the tree's own height (allometry: a given species keeps its proportions at its mean
       // height, so a young 12 m spruce is a pole while a 40 m veteran is chonky) rather than varying free of height.
       const height=cells(hm),radius=cells(rm),t={x,z,base:g.height,biome:plantBiome,kind:'tree',species:sp,crown:P.crown,bark:P.bark,leaf:P.leaf,conifer:!!P.conifer,redwood:sp==='redwood',cls:C.cls,height,radius,trunk:Math.max(.72*density,hm*(P.trunk/P.h[0])*girth/cellMetres)};
@@ -1521,6 +1530,14 @@
       if(C.cls===2&&S.bush){const a=hash(gx,gz,seed+105)*Math.PI*2,d=Math.max(.9,rm*.75);t.under=bushLumps(x+Math.cos(a)*d,z+Math.sin(a)*d,gx,gz,611,.5+.3*hash(gx,gz,seed+107));if(S.bushLeaf)t.underLeaf=S.bushLeaf;}
       t.top=top;return Object.freeze(t);
     }
+    // Far-view trees (see makeTree's coarse), in their own larger cache so they never evict the detailed ones.
+    const coarseTrees=new Map();
+    function coarseTree(gx,gz){
+      if(gallery)return galleryTreeCell(gx,gz);
+      const key=gx*134217728+gz;if(coarseTrees.has(key))return coarseTrees.get(key);
+      const value=makeTree(gx,gz,true);
+      if(coarseTrees.size>=16384)coarseTrees.delete(coarseTrees.keys().next().value);coarseTrees.set(key,value);return value;
+    }
     function tree(gx,gz){
       if(infinite){
         if(gallery)return galleryTreeCell(gx,gz);
@@ -1542,21 +1559,42 @@
     // spires, rocks and boulders everywhere else but stamps nothing itself), and each pad is a cell whose own roll
     // produces the exhibit — so every specimen is built by the same code path as the wild.
     const GAL_H=Math.round(28/cellMetres),GAL_BOUND=140,GAL_PADS=[],GAL_ANCIENTS=new Map(),GAL_TREES=new Map(),GAL_SPOTS=[];
-    const galPadAt=(x,z)=>{for(const p of GAL_PADS)if(x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1)return p;return null;};
+    // Pad lookup: feature pads declare the cell they were built for (`over.cell`), so where pads overlap the ground
+    // reads from the latest feature pad first (a rock pad pushed after a ruin pad wins the desert biome its site
+    // needs); points outside every feature pad read the latest containing pad as before.
+    const galPadAt=(x,z)=>{
+      let open=null;
+      for(let k=GAL_PADS.length-1;k>=0;k--){const p=GAL_PADS[k];
+        if(!(x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1))continue;
+        if(p.over&&p.over.cell)return p;
+        if(!open)open=p;}
+      return open;};
+    // Each pad declares which feature family it hosts. Feature legality is by cell identity — the pad built for cell
+    // (i,j) makes that cell legal for its kind no matter which other pads overlap its site — so every declared
+    // exhibit resolves while undeclared cells stay dead: no stray ruin/spire/rock lands on another pad's exhibit.
+    // S is the feature grid pitch: (i,j) only means a cell in its own grid, so a ruin pad's STG cell can never
+    // shadow a spire pad's SG cell that happens to share the same indices.
+    const galCellKind=(i,j,S)=>{for(const p of GAL_PADS){const c=p.over&&p.over.cell;if(p.over&&p.over.cellSize===S&&c&&c[0]===i&&c[1]===j)return p.over.kind||'open';}return null;};
+    // Boulders are location-gated instead: a boulder site is legal anywhere inside a boulders pad, even when the pad
+    // lies inside a feature cell declared for another kind (the boulder pad has no cell of its own).
+    const galHasPad=(x,z,kind)=>{for(const p of GAL_PADS)if(p.over&&p.over.kind===kind&&x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1)return true;return false;};
     function galleryGeo(x,z){
       const o=(galPadAt(x,z)||{}).over||{},biome=o.biome||'grassland';
       return {height:GAL_H,riverDistance:999,riparian:0,corridor:null,fast:false,calm:false,splash:false,lake:0,riverLevel:0,riverWidth:0,riverSize:0,riverDir:[0,0],riverSpeed:0,riverDepth:0,riverZone:null,macroRiver:false,coast:999,spring:false,foam:false,bar:0,ridge:0,fault:99,clearing:0,exposed:!!o.exposed,wet:false,slope:.05,cliff:0,talus:false,lift:0,highland:!o.open,pass:false,gorge:false,gorgeDistance:999,gorgeHalf:0,rock:0,sea:false,water:0,biome,biome2:null,blend:0,glacier:false,iceCells:0,crease:0,erosion:0,hollow:0,spur:0,surface:GAL_H*cellMetres,cone:0,setting:'',temperature:o.temperature??14,moisture:.55,relief:20};
     }
     const galleryTreeCell=(gx,gz)=>GAL_TREES.get(gx*134217728+gz)||null;
-    const galleryAncientSite=(i,j)=>{const s=GAL_ANCIENTS.get(i*65536+j);return s?{x:s.x,z:s.z,g:galleryGeo(s.x,s.z),p:0}:null;};
+    const galleryAncientSite=(i,j)=>{const s=GAL_ANCIENTS.get(i*65536+j);return s?{x:s.x,z:s.z,g:{...galleryGeo(s.x,s.z),biome:s.biome||galleryGeo(s.x,s.z).biome},p:0}:null;};
     function buildGallery(){
       const pad=(x0,z0,x1,z1,over)=>GAL_PADS.push({x0,z0,x1,z1,over});
       const site=(i,j,S,a,b)=>[(i+.3+.4*hash(i,j,seed+a))*S,(j+.3+.4*hash(i,j,seed+b))*S];
       const put=(x,z,rec,kind,label)=>{const gx=Math.floor(x/TG),gz=Math.floor(z/TG);GAL_TREES.set(gx*134217728+gz,Object.freeze({x,z,base:GAL_H,biome:'grassland',top:GAL_H+cells(14),...rec}));GAL_SPOTS.push({kind,label,x,z});};
-      // Cells near (tx,tz) whose own roll passes `test(i,j)`, nearest first.
-      const scan=(S,tx,tz,test)=>{let best=null,bd=1e9;for(let j=Math.floor(tz/S)-8;j<=Math.floor(tz/S)+8;j++)for(let i=Math.floor(tx/S)-8;i<=Math.floor(tx/S)+8;i++){if(!test(i,j))continue;const d=Math.hypot((i+.5)*S-tx,(j+.5)*S-tz);if(d<bd){bd=d;best=[i,j];}}return best;};
-      // Ferrite outcrop at spawn: the root survey lands here, and the ore fill shows beside it.
-      pad(6,-16,20,-2,{open:true,exposed:true});GAL_SPOTS.push({kind:'outcrop',label:'ferrite outcrop',x:12,z:-8});
+      // All cells within `r` cells of (tx,tz) whose own roll passes `test(i,j)`, nearest first. Callers walk the
+      // list until a candidate whose site satisfies the placement gate, so a too-close nearest hit never costs an
+      // exhibit and rare rolls (the spire pad's p<.02) still land when the window is wide enough.
+      const scan=(S,tx,tz,test,r=12)=>{const out=[];for(let j=Math.floor(tz/S)-r;j<=Math.floor(tz/S)+r;j++)for(let i=Math.floor(tx/S)-r;i<=Math.floor(tx/S)+r;i++){if(test(i,j))out.push([i,j,Math.hypot((i+.5)*S-tx,(j+.5)*S-tz)]);}out.sort((a,b)=>a[2]-b[2]);return out;};
+      // Ferrite outcrop at spawn: the root survey lands on the exposed point nearest the origin (0,0), and the 1.15 m
+      // ore disc around it stays inside the pad.
+      pad(-6,-10,16,4,{open:true,exposed:true,kind:'outcrop'});GAL_SPOTS.push({kind:'outcrop',label:'ferrite outcrop',x:0,z:0});
       // Exhibit avenue along +x: every species at young / mature / veteran size, alternating sides of the walk.
       const NATURAL={oak:'forest',birch:'forest',jungle:'rainforest',spruce:'montane',larch:'montane',redwood:'redwood',umbrella:'savanna',gnarled:'wetland',willow:'wetland',alder:'wetland',palm:'desert',overhang:'rainforest'};
       let x=26,side=1;
@@ -1575,22 +1613,26 @@
       put(x+20,-9,{kind:'mushroom',list:[{x:x+20,z:-9,base:GAL_H,cr:1.8,sr:.61,sh:2.2,ct:1.12,spin:1},{x:x+23.4,z:-8,base:GAL_H,cr:1.2,sr:.41,sh:1.5,ct:.75,spin:3.2},{x:x+17.4,z:-7,base:GAL_H,cr:.8,sr:.27,sh:1,ct:.5,spin:5.1}]},'prop','mushrooms');
       put(x+30,-9,{kind:'log',ux:Math.cos(.7),uz:Math.sin(.7),len:3.4,r:.34},'prop','fallen log');
       put(x+36,-9,{kind:'stump',r:.42,ht:.7},'prop','stump');
-      pad(x+42,-14,x+54,-4,{open:true,biome:'desert'});
+      pad(x+42,-14,x+54,-4,{open:true,biome:'desert',kind:'props'});
       put(x+48,-9,{kind:'cactus',ht:2.4,r:.24,arms:[{ux:1,uz:0,at:1,up:.7},{ux:0,uz:1,at:1.5,up:.9}]},'prop','cactus');
       put(x+62,-9,{kind:'bamboo',culms:[{x:x+62,z:-9,lx:.02,lz:0,h:9,tr:.55},{x:x+63,z:-8.5,lx:0,lz:.02,h:7.5,tr:.45},{x:x+61.3,z:-8,lx:-.02,lz:0,h:8,tr:.5}],top:GAL_H+cells(10)+2},'prop','bamboo');
       // One castle, one town and one temple ruin — the cells picked are ones whose own rolls make that kind.
       const ruinKind=(i,j)=>hash(i,j,seed+461)<.45?(hash(1,i*65536+j,seed+471)<.25?'castle':hash(1,i*65536+j,seed+471)<.7?'town':'temple'):null;
-      for(const kind of ['castle','town','temple']){const f=scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});}}}
+      for(const kind of ['castle','town','temple'])for(const f of scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind)){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true,kind:'ruin',cell:[f[0],f[1]],cellSize:STG});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});break;}}
       // Sandstone arch and hoodoos on desert pads; a spire cluster; a boulder meadow.
       const rockKind=(i,j)=>hash(i,j,seed+501)<.4?(hash(i,j,seed+507)<.45?'arch':'hoodoos'):null;
-      for(const kind of ['arch','hoodoos']){const f=scan(KG,700,-80,(i,j)=>rockKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],KG,503,505);if(Math.hypot(rx,rz)>60){pad(f[0]*KG,f[1]*KG,(f[0]+1)*KG,(f[1]+1)*KG,{open:true,biome:'desert'});GAL_SPOTS.push({kind:'rock',label:kind,x:rx,z:rz});}}}
-      {const f=scan(SG,140,-70,(i,j)=>hash(i,j,seed+391)<.2);if(f){const [sx2,sz2]=site(f[0],f[1],SG,393,395);if(Math.hypot(sx2,sz2)>40){pad(f[0]*SG,f[1]*SG,(f[0]+1)*SG,(f[1]+1)*SG,{open:true});GAL_SPOTS.push({kind:'spire',label:'crystal spires',x:sx2,z:sz2});}}}
-      pad(60,-64,140,-28,{open:true,biome:'meadow'});GAL_SPOTS.push({kind:'boulders',label:'boulder field',x:100,z:-46});
+      for(const kind of ['arch','hoodoos'])for(const f of scan(KG,700,-80,(i,j)=>rockKind(i,j)===kind)){const [rx,rz]=site(f[0],f[1],KG,503,505);if(Math.hypot(rx,rz)>60){pad(f[0]*KG,f[1]*KG,(f[0]+1)*KG,(f[1]+1)*KG,{open:true,biome:'desert',kind:'rock',cell:[f[0],f[1]],cellSize:KG});GAL_SPOTS.push({kind:'rock',label:kind,x:rx,z:rz});break;}}
+      // The scan mirrors the real spireCell gate under galleryGeo (relief 20, no gorge): p<.02 is rare (~1 hit per
+      // 50 cells), so the window is wider and every hit is tried until one lands legally far enough from the origin.
+      for(const f of scan(SG,140,-70,(i,j)=>hash(i,j,seed+391)<.02,16)){const [sx2,sz2]=site(f[0],f[1],SG,393,395);if(Math.hypot(sx2,sz2)>40){pad(f[0]*SG,f[1]*SG,(f[0]+1)*SG,(f[1]+1)*SG,{open:true,kind:'spire',cell:[f[0],f[1]],cellSize:SG});GAL_SPOTS.push({kind:'spire',label:'crystal spires',x:sx2,z:sz2});break;}}
+      pad(60,-64,140,-28,{open:true,biome:'meadow',kind:'boulders'});GAL_SPOTS.push({kind:'boulders',label:'boulder field',x:100,z:-46});
       // Two world trees: a giant sequoia on a montane pad and a blossom/coral ancient, each in a real site cell.
-      {const [ax,az]=site(-1,0,AG,443,445);pad(ax-40,az-40,ax+40,az+80,{open:true,biome:'montane'});
-        GAL_ANCIENTS.set(-65536,{x:ax,z:az});GAL_SPOTS.push({kind:'ancient',label:'giant sequoia',x:ax,z:az});}
+      {const [ax,az]=site(-1,0,AG,443,445);pad(ax-40,az-40,ax+40,az+80,{open:true,biome:'montane',kind:'ancient'});
+        // The intended biome rides on the site record: where an earlier pad shadows the site geographically the
+        // variant roll still sees 'montane' ground, so the sequoia exhibit can never come up blossom.
+        GAL_ANCIENTS.set(-65536,{x:ax,z:az,biome:'montane'});GAL_SPOTS.push({kind:'ancient',label:'giant sequoia',x:ax,z:az});}
       {let bc=null;for(const [i,j] of [[-1,-1],[-2,-1],[-1,-2],[-2,0],[0,-1],[-2,-2],[-3,-1],[-1,-3],[-3,0],[0,-2]])if(hash(9,i*65536+j,seed+447)<.62){bc=[i,j];break;}
-        if(bc){const [bx,bz]=site(bc[0],bc[1],AG,443,445);if(Math.hypot(bx,bz)>40){pad(bx-40,bz-40,bx+40,bz+40,{open:true,biome:'forest'});GAL_ANCIENTS.set(bc[0]*65536+bc[1],{x:bx,z:bz});GAL_SPOTS.push({kind:'ancient',label:'blossom ancient',x:bx,z:bz});}}}
+        if(bc){const [bx,bz]=site(bc[0],bc[1],AG,443,445);if(Math.hypot(bx,bz)>40){pad(bx-40,bz-40,bx+40,bz+40,{open:true,biome:'forest',kind:'ancient'});GAL_ANCIENTS.set(bc[0]*65536+bc[1],{x:bx,z:bz,biome:'forest'});GAL_SPOTS.push({kind:'ancient',label:'blossom ancient',x:bx,z:bz});}}}
     }
     if(gallery)buildGallery();
     // Root geology and identity survive render/cache changes.
@@ -1618,9 +1660,13 @@
     let prof=null;const now=()=>performance.now();
     // colTop: one past the highest cell the last column() call can have written, so callers reusing a buffer scan and clear
     // only that far.
-    let colTop=0,colFloor=0,scratch=null,scratch32=null;
+    // colSurf: the column's ground top (cells) before quantizing, when its integer ground is floor(colSurf); else h+.5.
+    let colTop=0,colFloor=0,colSurf=0,scratch=null,scratch32=null;
     // colStep: cells between sampled columns (set by node()). Plants and scatter smaller than a sampled column are skipped.
-    let colStep=1,propsMode=false;
+    // treeObjects: trees (kind 'tree') are drawn as objects, so node() columns leave them out (see treeParts).
+    // crystalObjects: spires are drawn as instanced objects, so node() columns leave their voxels out too; direct
+    // column() calls (blockingAt, chunks, bands) still stamp crystal, so collisions and exports are unchanged.
+    let colStep=1,propsMode=false,treeObjects=false,crystalObjects=false;
     // Stamp one plant record into the column at (x,z) whose first air cell is h. Returns one past the highest cell the
     // stamp may have written (0 if none). Plants only fill air, except trunks and culms.
     function stampPlant(t,x,z,values,h){
@@ -1897,6 +1943,99 @@
       for(let y=lo;y<hi;y++)if(!values[y])values[y]=y<crownLow?m:leaf;
       return t.top;
     }
+    // ---- Trees as objects ----
+    // A tree's shape built once (not per column), in world metres, for drawing as instanced objects: segs (trunk and
+    // branch tubes: x0,y0,z0,r0,x1,y1,z1,r1, material, flag: 1 trunk foot, 2 branch), lobes (crown ellipsoids: x,y,z,r, height scale, material) and tiers
+    // (conifer bough skirts: x,z, top, bottom, radius, top radius, seed, material). It follows stampTree's hash chain, so an
+    // object tree matches the voxel tree drawn for the same record at coarse levels.
+    const partsCache=new WeakMap();
+    function treeParts(t){
+      let P=partsCache.get(t);if(P)return P;
+      const M=cellMetres,crown=t.crown||'round',R=t.radius,top=t.base+t.height,bark=t.bark||MAT.bark,leaf=t.leaf||MAT.leaf,trunk=t.trunk||.72*density;
+      const segs=[],lobes=[],tiers=[];
+      const seg=(x0,y0,z0,r0,x1,y1,z1,r1,m=bark,root=0)=>segs.push(x0,y0*M,z0,r0*M,x1,y1*M,z1,r1*M,m,root);
+      const lobe=(x,y,z,r,ys,m=leaf)=>lobes.push(x,y*M,z,r*M,ys,m);
+      if(t.kind==='bush'){
+        // A bush: each of its domed lumps (metres) a squat blob resting on the ground, in the bush leaf.
+        for(const l of t.lumps){const r=Math.max(l.r,.3)*1.1;lobes.push(l.x,t.base*M+l.ht*.42,l.z,r,clamp(l.ht/r*.62,.5,1.4),t.leaf||MAT.bushLeaf);}
+      }else if(crown==='spire'||crown==='cone'||crown==='larch'){
+        const bole=t.cls===0?.1:t.cls===-1?.12:crown==='spire'?(t.cls===2?.5:.45):crown==='larch'?(t.cls===2?.42:.35):(t.cls===2?.4:.3);
+        const low=t.base+Math.max(3*density,Math.floor(t.height*bole)),apex=top+(crown==='spire'?3:2)*density,span=apex-low;
+        const period=span/5.5,id=Math.floor(t.x*7)*31+Math.floor(t.z*7),soft=crown==='larch';
+        const flareH=Math.min(t.height*.12,Math.round(3/M));
+        seg(t.x,t.base,t.z,trunk*1.6,t.x,t.base+flareH,t.z,trunk*1.05,bark,1);
+        seg(t.x,t.base+flareH,t.z,trunk*1.05,t.x,apex-period*.8,t.z,trunk*.5);
+        for(let k=0;;k++){
+          const tierTop=apex-k*period,tierBottom=apex-(k+1)*period;if(tierTop<=low)break;
+          const h1=hash(k,id,seed+131),h2=hash(k,id,seed+137),env=R*Math.pow(Math.min(1,(k+1)/5.5),.55)*(.86+.14*h1);
+          const step=soft?.3+.12*h2:.45+.18*h2,rTop=k===0?0:env*(1-step);
+          tiers.push(t.x,t.z,tierTop*M,Math.max(tierBottom,low-period*.35)*M,env*M,rTop*M,hash(k,id,seed+139),leaf);
+        }
+      }else if(crown==='oval'){
+        seg(t.x,t.base,t.z,trunk*1.05,t.x,top-R*.9,t.z,trunk*.45);
+        lobe(t.x,top-R*.3,t.z,R,1.6);
+      }else if(crown==='umbrella'){
+        seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.8);
+        const P2=t.pads[1],y0=t.base+Math.round(t.height*.45);seg(t.x,y0,t.z,trunk*.8,P2.x,P2.y,P2.z,trunk*.5);
+        for(const p of t.pads)lobe(p.x,p.y,p.z,p.r,.32);
+      }else if(crown==='gnarled'){
+        const L=Math.hypot(t.lx,t.lz),nx=-t.lz/(L||1),nz=t.lx/(L||1),at=f=>{const wob=Math.sin(f*7+t.x)*.35*f;return [t.x+t.lx*f**1.5+nx*wob,t.base+t.height*f,t.z+t.lz*f**1.5+nz*wob,trunk*(1.35-.55*f)];};
+        for(let i=0;i<4;i++){const a=at(i/4),b=at((i+1)/4);seg(a[0],a[1],a[2],a[3],b[0],b[1],b[2],b[3]);}
+        for(const l of t.lumps)lobe(l.x,l.y-l.r*.1,l.z,l.r,.6);
+      }else if(crown==='willow'){
+        const O=R*1.08;seg(t.x,t.base,t.z,trunk,t.x,top,t.z,trunk*.7);
+        lobe(t.x,top,t.z,O,.42);
+        // The weeping curtain: a hanging skirt from the dome's rim nearly to the ground.
+        tiers.push(t.x,t.z,(top-R*.25)*M,(t.base+Math.max(2*density,t.height*.35))*M,O*M,O*.9*M,hash(Math.floor(t.x*4),Math.floor(t.z*4),seed+155),leaf);
+      }else if(crown==='palm'){
+        const at=f=>[t.x+t.lx*f*f,t.base+t.height*f,t.z+t.lz*f*f,trunk*(1.2-.35*f)];
+        for(let i=0;i<4;i++){const a=at(i/4),b=at((i+1)/4);seg(a[0],a[1],a[2],a[3],b[0],b[1],b[2],b[3]);}
+      }else{
+        // Broadleaf (oak and kin): the same fork, stems, branches and lobes as stampTree.
+        const clear=t.cls===-1?density:Math.max(Math.ceil(2.5/M),Math.round(t.height*.35));
+        const tidX=Math.floor(t.x*4),tidZ=Math.floor(t.z*4),forkY=t.base+Math.round(t.height*(.5+.12*hash(tidX,tidZ,seed+167)));
+        seg(t.x,t.base,t.z,trunk*1.45,t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15,bark,1);
+        seg(t.x,t.base+(forkY-t.base)*.25,t.z,trunk*1.15,t.x,forkY,t.z,trunk);
+        const a0=hash(tidX,tidZ,seed+173)*6.2832,nS=2+Math.floor(hash(tidZ,tidX,seed+169)*2),stems=[];
+        for(let i=0;i<nS;i++){
+          const a=a0+i*6.2832/nS+(hash(i,tidX,seed+175)-.5)*.8,o=R*(i===0?.05+.15*hash(0,tidZ,seed+177):.25+.4*hash(i,tidZ,seed+177));
+          stems.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:top-Math.round(R*(.02+.3*hash(i,tidX*3,seed+179)))});
+        }
+        const L=[],nL=4+Math.floor(hash(tidX,tidZ,seed+171)*3);
+        for(let i=0;i<nS;i++)L.push({x:stems[i].x,z:stems[i].z,y:stems[i].y+Math.round(density*.5),r:Math.max(2*density,Math.round(R*(.5+.2*hash(i,tidZ*5+tidX,seed+181)))),stem:i,at:.95});
+        for(let i=0;i<nL;i++){
+          const a=a0+(i+.5)*6.2832/nL+(hash(i,tidX+tidZ,seed+183)-.5)*.9,o=R*(.45+.4*hash(i,tidX,seed+185));
+          L.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:Math.round(forkY+(top-forkY)*(.3+.6*hash(i,tidZ,seed+187))),r:Math.max(2*density,Math.round(R*(.38+.25*hash(i,tidX*3+tidZ,seed+189)))),stem:i%nS,at:.4+.3*hash(i,tidX,seed+191)});
+        }
+        const nSkirt=1+Math.floor(hash(tidX,tidZ,seed+193)*2);
+        for(let i=0;i<nSkirt;i++){
+          const a=a0+hash(i,tidZ,seed+195)*6.2832,o=R*(.15+.35*hash(i,tidX,seed+197));
+          L.push({x:t.x+Math.cos(a)*o*M,z:t.z+Math.sin(a)*o*M,y:Math.round(forkY+(top-forkY)*(.1+.2*hash(i,tidZ,seed+199))),r:Math.max(2*density,Math.round(R*(.3+.2*hash(i,tidX*7+tidZ,seed+201)))),stem:i%nS,at:.15+.15*hash(i,tidZ,seed+203)});
+        }
+        for(const st of stems)seg(t.x,forkY,t.z,Math.max(.75*density,trunk*.7),st.x,st.y,st.z,Math.max(1,.5*density));
+        for(let i=nS;i<L.length;i++){const l=L[i],st=stems[l.stem],u=l.at;seg(t.x+(st.x-t.x)*u,forkY+(st.y-forkY)*Math.sqrt(u),t.z+(st.z-t.z)*u,Math.max(1,.6*density),l.x,l.y,l.z,Math.max(1,.45*density),bark,2);}
+        // Lobes droop below their centres (the voxel dome spans y-0.8h..y+0.6h) and never hang below the canopy floor.
+        for(const l of L){const ys=.7,cy=Math.max(l.y-l.r*.1,t.base+clear+l.r*ys);lobe(l.x,cy,l.z,l.r,ys);}
+      }
+      // Crown proxy (x, y, z, radius): one ellipsoid around all the lobes. The renderer lights every lobe mostly by this
+      // shape's normal (the anime-tree normal transfer), so a crown shades as one soft mass, not a cluster of balls.
+      let proxy=null;
+      if(lobes.length){let w=0,cx=0,cy=0,cz=0;for(let i=0;i<lobes.length;i+=6){const r=lobes[i+3];w+=r;cx+=lobes[i]*r;cy+=lobes[i+1]*r;cz+=lobes[i+2]*r;}cx/=w;cy/=w;cz/=w;
+        let cr=0;for(let i=0;i<lobes.length;i+=6)cr=Math.max(cr,Math.hypot(lobes[i]-cx,(lobes[i+1]-cy)*1.3,lobes[i+2]-cz)+lobes[i+3]);proxy=[cx,cy,cz,cr];}
+      // Leaf clusters, the way anime trees are painted: each lobe breaks into many small clumps (x, y, z, size, seed)
+      // spread mostly over its outer and upper surface, a few inside, with gaps between them where sky and branches show.
+      const clumps=[],tid=Math.floor(t.x*4)*7919+Math.floor(t.z*4);
+      for(let i=0,li=0;i<lobes.length;i+=6,li++){
+        const lx=lobes[i],ly=lobes[i+1],lz=lobes[i+2],r=lobes[i+3],ys=lobes[i+4],size=Math.max(.4,r*.3),n=20+Math.round(r*11);
+        for(let k=0;k<n;k++){
+          const h1=hash(k,tid+li*131,seed+921),h2=hash(k,tid+li*131,seed+923),h3=hash(k,tid+li*131,seed+925);
+          // Directions biased upward and outward; depth mostly near the surface.
+          const yv=clamp(h1*2-1+.25,-1,1),a=h2*6.2832,rr=Math.sqrt(1-yv*yv),depth=.62+.38*Math.sqrt(h3);
+          clumps.push(lx+Math.cos(a)*rr*r*depth,ly+yv*r*ys*depth,lz+Math.sin(a)*rr*r*depth,size*(.75+.5*hash(k,tid,seed+927)),lobes[i+5],hash(k,tid+li,seed+929));
+        }
+      }
+      P={segs,lobes,tiers,crown:proxy,clumps};partsCache.set(t,P);return P;
+    }
     // Twisted lakeside tree: a trunk that leans out (over the water) with a wobble, and a broad lumpy crown that droops.
     function stampGnarled(t,x,z,values,leaf,bark,trunk,small){
       const L=Math.hypot(t.lx,t.lz),mx=t.x+t.lx/2,mz=t.z+t.lz/2;
@@ -2014,7 +2153,7 @@
       const Hs=Math.min(g.surface,Hm+cellMetres),warp=(noise(x*.06,z*.06,seed+811)-.5)*3+(noise(x*.19,z*.19,seed+813)-.5)*.8,u=Hs+warp;
       let k=Math.floor(u/STRATA);if(u<stratum(k))k--;
       const depth=u-stratum(k),soft=hash(k,9,seed+817);
-      const ht=clamp(Math.floor((Hs-(talus?0:r*(.4+.5*soft)*depth)+chip*(talus?.6:1))/cellMetres),Math.max(1,h-8*density),heightCells-8*density);
+      const F=(Hs-(talus?0:r*(.4+.5*soft)*depth)+chip*(talus?.6:1))/cellMetres,ht=clamp(Math.floor(F),Math.max(1,h-8*density),heightCells-8*density);colSurf=ht===Math.floor(F)?F:ht+.5;
       if(ht<h)values.fill(0,ht,h);else if(ht>h)values.fill(MAT.basalt,h,ht);
       rockTop=ht;
       if(talus){const c=hash(Math.floor(x*2),Math.floor(z*2),seed+837);values[ht-1]=c<.3?MAT.stone:c<.4?MAT.boulder:MAT.gravel;if(ht>h)values.fill(MAT.gravel,h,ht-1);return ht;}
@@ -2043,7 +2182,7 @@
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
       if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       let t0=prof&&prof.on&&now();
-      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;
+      const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;columnTone=GRASS_TONE[g.biome]??.3;colSurf=g.surface!==undefined&&Math.floor(g.surface/cellMetres)===h?g.surface/cellMetres:h+.5;
       if(prof&&prof.on){const t=now();prof.geography+=t-t0;t0=t;}
       colFloor=into?bandFloor(h,g.iceCells):0;
       values.fill(MAT.basalt,colFloor,Math.max(colFloor,h-4*density));
@@ -2077,18 +2216,32 @@
       else if(h<24*density&&g.riverDistance<7)values.fill(MAT.water,h,24*density);
       if(prof&&prof.on){const t=now();prof.features+=t-t0;t0=t;}
       const gx=Math.floor(x/TG),gz=Math.floor(z/TG),floorWob=(noise(x*.45,z*.45,seed+619)-.5)*.45;let floorMat=9,floorBiome=null;
-      for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){
+      if(infinite&&colStep*cellMetres>=4){
+        // Far views (4 m and wider columns): a column samples one point of the canopy, so instead of testing all 25 tree
+        // cells around it, it takes the tree of its own cell or, failing that, of one neighbour picked by hash (two cells
+        // keep the canopy cover close to the fine levels'), and stamps it as if the point fell inside the crown at a
+        // hashed spot, which gives each column its own crown height.
+        const k=Math.floor(hash(gx,gz,seed+861)*8),nb=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]][k];
+        let t=coarseTree(gx,gz);if(!t||t.kind==='bush')t=coarseTree(gx+nb[0],gz+nb[1]);
+        if(t&&(!t.kind||t.kind==='tree'||t.kind==='bamboo')){
+          const r=(t.radius?t.radius*cellMetres:1.5)*.85,a=hash(Math.floor(x),Math.floor(z),seed+863)*6.2832,q=Math.sqrt(hash(Math.floor(x),Math.floor(z),seed+865))*r;
+          const px=t.x+(t.lx||0)+Math.cos(a)*q,pz=t.z+(t.lz||0)+Math.sin(a)*q;
+          if(t.radius&&t.cls!==-1||t.kind==='bamboo'){const m=t.conifer?0:1;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
+          if(!(treeObjects&&(!t.kind||t.kind==='tree'))){const w=stampPlant(t,px,pz,values,h);if(w>written)written=w;}
+        }
+      }else for(let dz=-4;dz<=4;dz++)for(let dx=-4;dx<=4;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
         // One squared distance per candidate gates both the litter ring and the stamp call: no crown part of a tree
-        // reaches past ~1.6 crown radii plus its gnarled/palm lean offset, so farther trees can be skipped without a
+        // reaches past ~1.65 crown radii plus its gnarled/palm lean offset, so farther trees can be skipped without a
         // sqrt or a stampPlant entry. Other plant kinds are rare enough to stamp unconditionally.
         const ddx=x-t.x,ddz=z-t.z,d2=ddx*ddx+ddz*ddz;
-        if(!t.kind||t.kind==='tree'){const reach=Math.max(t.radius?t.radius*cellMetres*1.6:0,3.8)+Math.hypot(t.lx||0,t.lz||0);if(d2>reach*reach)continue;}
+        if(!t.kind||t.kind==='tree'){const reach=Math.max(t.radius?t.radius*cellMetres*1.65:0,3.8)+Math.hypot(t.lx||0,t.lz||0);if(d2>reach*reach)continue;}
         // Needle or leaf litter under trees and bamboo, a ring of bare dirt around conifers.
         if(t.radius&&t.cls!==-1||t.kind==='bamboo'){
           const f=Math.sqrt(d2)/(t.radius?t.radius*cellMetres*(t.redwood?1.5:1.05):1.9)+floorWob;
           if(f<1.12){const m=f<1?(t.conifer?0:1):t.conifer?2:3;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
         }
+        if(treeObjects&&(t.kind==='tree'||t.kind==='bush'))continue;
         const w=stampPlant(t,x,z,values,h);if(w>written)written=w;
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
@@ -2113,7 +2266,7 @@
           for(const p of S.list){
             const dx=x-p.x,dz=z-p.z;if(Math.hypot(dx,dz)>p.r+p.h*.25+1){if(Math.hypot(dx,dz)<p.r+3.5)near=true;continue;}near=true;
             const y0=Math.max(0,Math.floor(p.base/cellMetres)),y1=Math.min(heightCells,Math.ceil((p.base+p.h)/cellMetres));written=Math.max(written,y1);
-            for(let y=y0;y<y1;y++){const u=y*cellMetres-p.base,r=p.r*(1-u/p.h)**.8;if(Math.hypot(dx-p.lx*u,dz-p.lz*u)<r)values[y]=MAT.crystal;}
+            for(let y=y0;y<y1;y++){const u=y*cellMetres-p.base,r=p.r*(1-u/p.h)**.8;if(!crystalObjects&&Math.hypot(dx-p.lx*u,dz-p.lz*u)<r)values[y]=MAT.crystal;}
           }
           // Aether moss carpets soft ground around a cluster.
           if(near&&!g.exposed&&values[h-1]!==MAT.crystal&&values[h-1]!==MAT.sand)values[h-1]=MAT.moss;
@@ -2361,28 +2514,34 @@
     function node(L,nx,nz,options={}){
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
-      const s=2**L,P=NODE+2,G=NODE+4,cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
-      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;propsMode=!!options.props;
+      const s=2**L,P=NODE+2,G=NODE+4,tones=new Float32Array(G*G),cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
+      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;wideColumns=s*cellMetres>=16;propsMode=!!options.props;treeObjects=!!(options.props!==false&&(options.treeObjects&&L<=TREE_OBJECT_LEVEL||options.farTrees&&L>=FAR_TREE_FROM&&L<=FAR_TREE_TO));crystalObjects=propsMode;
       // One sampled column per block column, reduced vertically by keeping each block's top occupied material. The column
       // scratch is reused: only the band [colFloor, colTop) was written, so only that is scanned and cleared.
       if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
       const buf=scratch,buf32=scratch32,floor=new Int32Array(P*P),BASALT=MAT.basalt;
+      // ?cliffs=fine: each column's unquantized ground as the edge crossing between block centres (block b's centre is
+      // b+.5; ground blocks are those below ceil(floor(colSurf)/s), so the crossing spans the same solid/air edge), and
+      // the same height on the hillshade grid where it agrees with the integer ground.
+      const crossP=new Float32Array(P*P),groundsF=new Float32Array(G*G);
+      // Ground-top material per column on the hillshade grid (two-column halo), for the painted ground (?ground=paint).
+      const groundMat=new Uint8Array(G*G);
       const blockAt=(k,y)=>{const y0=colY0[k];if(y<y0)return BASALT;const b=cols[k];return y-y0<b.length?b[y-y0]:0;};
       for(let j=0;j<P;j++)for(let i=0;i<P;i++){
         prof.on=((i+j)&3)===0;if(prof.on)sampled++;
-        const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,fl=colFloor,t0=prof.on&&now();
+        const c=column((nx*NODE+i-1)*s+(s>>1),(nz*NODE+j-1)*s+(s>>1),buf),lim=colTop,fl=colFloor,sf=colSurf,t0=prof.on&&now();
         let hi=lim-1;while(hi>=fl&&!c[hi])hi--;
         // The column's bedrock run (basalt from the band floor up) is whole basalt blocks, kept implicit below y0; only the
         // cells above it are read one by one, so tall mountain columns cost little more than lowland ones.
         const run=basaltRun(c,buf32,hi+1,fl),full=Math.floor(run/s),top=hi>=full*s?((hi/s)|0)+1:full,b=new Uint8Array(top-full);
         for(let y=full*s;y<=hi;y++){const m=c[y];if(m)b[((y/s)|0)-full]=m;}
         const k=j*P+i;cols[k]=b;colY0[k]=full;
-        const kk=(j+1)*G+i+1;grounds[kk]=groundBlocks(c,lim,s,run);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
-        tops[k]=top;floor[k]=f;if(prof.on)reduce+=now()-t0;
+        const kk=(j+1)*G+i+1;tones[kk]=columnTone;grounds[kk]=groundBlocks(c,lim,s,run);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;groundMat[kk]=gm;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
+        tops[k]=top;floor[k]=f;crossP[k]=sf/s+.5-1/s;groundsF[kk]=Math.floor(crossP[k]+.5)===grounds[kk]?crossP[k]:grounds[kk];if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;tones[j*G+i]=columnTone;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;groundMat[j*G+i]=gm;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}{const q=colSurf/s+.5-1/s,gg=grounds[j*G+i];groundsF[j*G+i]=Math.floor(q+.5)===gg?q:gg;}c.fill(0,fl,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -2394,15 +2553,16 @@
         const k=j*P+i,b=cols[k],y0=colY0[k],o=j*plane+i;dense[o]=1;
         for(let y=base;y<limits[k];y++)dense[o+(y-base+1)*P]=y<y0?BASALT:b[y-y0];
       }
-      colStep=1;propsMode=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0);
+      const objectTrees=treeObjects,objectCrystals=crystalObjects;wideColumns=false;colStep=1;propsMode=false;treeObjects=false;crystalObjects=false;const scale=P*P/Math.max(1,sampled),timing={geography:prof.geography*scale,trees:prof.trees*scale,features:prof.features*scale,reduce:reduce*scale};prof=null;const t1=now(),detail=options.props!==false,none=new Float32Array(0),flowers=detail?flowerProps(L,nx,nz,dense,P,plane,base,span):none,stalks=detail?stalkProps(L,nx,nz,dense,P,plane,base,span):new Float32Array(0);
       // Slices: greedy meshing runs per slice over a window of the footprint's dense volume (the rows just above and below
       // the window take part, so each face between two slices is emitted exactly once); Surface Nets runs once over the
       // footprint and each quad goes to the slice holding its owned edge, so slice seams close exactly.
       const SL=options.sliceBlocks||SLICE,voxels=options.smooth?objectsOnly(dense):dense,byK=new Map(),k0=Math.floor(base/SL),k1=Math.floor((ny-1)/SL);
       for(let k=k0;k<=k1;k++){const a=Math.max(base,k*SL),e=Math.min(ny,(k+1)*SL);if(e<=a)continue;const m=greedy(voxels,NODE,span,NODE,a-k*SL,{y0:a-base+1,h:e-a});if(m.count)byK.set(k,{y:k*SL,...m});}
-      if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
+      if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,G,P,base,SL,options.cliffs==='fine'?{crossP,groundsF}:null)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
       const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
-      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      const objects=objectTrees?treeObjectsIn(L,nx,nz,canopy,grounds,G):null,crystals=objectCrystals?crystalsIn(L,nx,nz):null;
+      return {slices,slice:SL,base,flowers,stalks,crystals:crystals?crystals.list:none,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,G),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome):new Float32Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),groundMat,normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:Math.max(ny,crystals?crystals.top:0),timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2418,6 +2578,62 @@
         out[o]=Math.round(128-127*x/l);out[o+1]=Math.round(128-127*z/l);out[o+2]=clamp(T(I,J)-grounds[J*G+I],0,255);out[o+3]=Math.round(cover(grassy,G,I,J)*255);
       }
       return {canopy:out};
+    }
+    // Object trees of a node (those whose trunk stands in it), as flat arrays in node-local metres (x, z) and absolute
+    // metres (y): treeSegs (12 a segment), treeLobes (12 a lobe: centre, radius, height scale, material, seed, 0, then the crown proxy's centre and radius), treeTiers (8 a tier, the sequoiaSkirts layout with the
+    // leaf material last). Their crowns are also rasterized into the canopy heights, so crown shading, Peek and the crew
+    // x-ray see them as they saw voxel crowns.
+    // ?far=lobes (A/B): levels past the nearest (0.5-4 m columns) draw trees as object crowns too, so distant forest keeps the lobed
+    // anime crowns instead of turning into one-sample voxel columns; their clumps thin out level by level.
+    const TREE_OBJECT_LEVEL=3,FAR_TREE_FROM=1,FAR_TREE_TO=4,underBushes=new WeakMap();
+    function underBush(t){let b=underBushes.get(t);if(!b){b={kind:'bush',x:t.under[0].x,z:t.under[0].z,base:t.base,lumps:t.under,leaf:t.underLeaf||MAT.bushLeaf};underBushes.set(t,b);}return b;}
+    function treeObjectsIn(L,nx,nz,canopy,grounds,G){
+      const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,segs=[],lobes=[],tiers=[];
+      const raise=(cx,cz,r,topM)=>{const tb=Math.ceil(topM/blockM);
+        const i0=Math.max(0,Math.floor((cx-r-x0)/blockM)+2),i1=Math.min(G-1,Math.ceil((cx+r-x0)/blockM)+2),j0=Math.max(0,Math.floor((cz-r-z0)/blockM)+2),j1=Math.min(G-1,Math.ceil((cz+r-z0)/blockM)+2);
+        for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const px=x0+(i-2+.5)*blockM,pz=z0+(j-2+.5)*blockM;if(Math.hypot(px-cx,pz-cz)<r){const k=j*G+i;if(tb>canopy[k])canopy[k]=tb;}}};
+      // Trees whose crowns overhang this node from a neighbour still shade its canopy map.
+      const pad=12;
+      for(let gz=Math.floor((z0-pad)/TG);gz<=Math.floor((z0+m+pad)/TG);gz++)for(let gx=Math.floor((x0-pad)/TG);gx<=Math.floor((x0+m+pad)/TG);gx++){
+        const t0=tree(gx,gz);if(!t0||t0.kind!=='tree'&&t0.kind!=='bush')continue;
+        // A big tree's foot bushes are a bush of their own (own lighting mass), cached on the tree's lump list.
+        for(const t of [t0,t0.under&&underBush(t0)]){if(!t)continue;
+        const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+(t===t0?901:903));
+        for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys]=P.lobes.slice(i,i+5);raise(x,z,r,y+r*ys*.85);}
+        if(own&&P.crown){const C=P.crown,n=P.clumps.length/6,cap=L<=3?Infinity:L===4?8:L===5?4:2,keep=Math.max(L===0?1:L===1?2:L===2?4:6,Math.ceil(n/cap)),grow=Math.sqrt(keep);
+          for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}}
+        for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8);raise(T[0],T[1],T[4],T[2]);if(own)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
+        if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2||S[9]!==1&&L>=4)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
+        }
+      }
+      return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers)};
+    }
+    // Crystal spires of a node, as instanced objects instead of voxels (the voxel stamp is suppressed while node()
+    // builds columns for a props node). Each spire is one record of 8 floats, x and z node-local metres, the rest
+    // absolute metres or unitless: base position x, base y, z; height; base radius; lean per metre up x, z; seed.
+    // The node holding a spire's base owns it; a lean or radius overhang into a neighbour is drawn by that owner.
+    function crystalsIn(L,nx,nz){
+      const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,list=[];let top=0;
+      // Cells in a ±8 m apron: a cluster's scatter can push a spire's base ~6 m outside its own cell.
+      for(let gz=Math.floor((z0-8)/SG);gz<=Math.floor((z0+m+8)/SG);gz++)for(let gx=Math.floor((x0-8)/SG);gx<=Math.floor((x0+m+8)/SG);gx++){
+        const S=spireCell(gx,gz);if(!S)continue;
+        for(const p of S.list){
+          if(p.x<x0||p.x>=x0+m||p.z<z0||p.z>=z0+m)continue;
+          const sh=hash(Math.round(p.x*8),Math.round(p.z*8),seed+77);
+          list.push(p.x-x0,p.base,p.z-z0,p.h,p.r,p.lx,p.lz,sh);
+          top=Math.max(top,p.base+p.h);
+          // Satellite shards: one to three small points growing from the same footing, more steeply tilted, keeping
+          // the parent's seed so the cluster shares one hue like the refs' crystal growths.
+          for(let k=0;k<1+Math.floor(sh*2.9)%3;k++){
+            const a=hash(Math.round(p.x*13)+k,Math.round(p.z*17),seed)*6.283,d=p.r*(1.6+hash(Math.round(p.x*7)+k,Math.round(p.z*11),seed)*2.4);
+            const sx=p.x+Math.cos(a)*d,sz=p.z+Math.sin(a)*d;
+            if(sx<x0||sx>=x0+m||sz<z0||sz>=z0+m)continue;
+            const hh=p.h*(.22+.4*hash(Math.round(p.x*5)+k,Math.round(p.z*3),seed)),rr=p.r*(.4+.35*hash(Math.round(p.x*3)+k,Math.round(p.z*7),seed));
+            list.push(sx-x0,p.base,sz-z0,hh,rr,(hash(Math.round(sx),Math.round(sz),seed)-.5)*.9,(hash(Math.round(sz),Math.round(sx),seed+3)-.5)*.9,sh);
+          }
+        }
+      }
+      return {list:Float32Array.from(list),top:Math.ceil(top/blockM)};
     }
     // Giant sequoia crowns as bough skirts, from the hero tree's tier data: one record per tier, in node-local metres:
     // crown centre x, z, tier top, tier bottom; radius at the bottom, radius at the top (stepped in), seed. Listed by the
@@ -2550,28 +2766,33 @@
         // views keep their real depth colour instead of reading as shore everywhere.
         const I=i+2,J=j+2,d=water[J*G+I],o=(j*NODE+i)*4;let near=4;
         if(d)for(let b=-2;b<=2;b++)for(let a=-2;a<=2;a++)if(!water[(J+b)*G+I+a])near=Math.min(near,Math.max(0,(Math.hypot(a,b)-.5)*column));
-        const x=(x0+(i+.5)*column)/FLOW,z=(z0+(j+.5)*column)/FLOW,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b,f=[0,1].map(c=>(flowAt(a,b)[c]*(1-u)+flowAt(a+1,b)[c]*u)*(1-v)+(flowAt(a,b+1)[c]*(1-u)+flowAt(a+1,b+1)[c]*u)*v);
+        // Flow only matters on water, and only where its moving pattern can be seen: dry columns, and columns 16 m and
+        // wider, skip its geography lookups.
+        const x=(x0+(i+.5)*column)/FLOW,z=(z0+(j+.5)*column)/FLOW,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b,f=d&&column<16?[0,1].map(c=>(flowAt(a,b)[c]*(1-u)+flowAt(a+1,b)[c]*u)*(1-v)+(flowAt(a,b+1)[c]*(1-u)+flowAt(a+1,b+1)[c]*u)*v):[0,0];
         out[o]=Math.min(255,Math.round(d*32));out[o+1]=d?Math.min(255,Math.round(near*64)):0;out[o+2]=Math.round(128+f[0]*127);out[o+3]=Math.round(128+f[1]*127);
       }
       return out;
     }
-    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water){
+    function biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones){
       const column=cellMetres*2**L,x0=nx*NODE*column,z0=nz*NODE*column,out=new Uint8Array(NODE*NODE*4),dominant=dominantGrass(grassMat);
       for(let j=0;j<NODE;j++)for(let i=0;i<NODE;i++){
         // Grass tone blends between biomes in irregular drifts: the sample point is warped by noise and the tone averaged over
         // a 3×3 spread, so a biome border never shows as a straight line along the sampling grid.
         const wx=x0+(i+.5)*column,wz=z0+(j+.5)*column,dx=(noise(wx*.02,wz*.02,seed+611)-.5)*40,dz=(noise(wx*.02+9.1,wz*.02,seed+613)-.5)*40;
         const bil=(px,pz)=>{const x=px/TINT,z=pz/TINT,a=Math.floor(x),b=Math.floor(z),u=x-a,v=z-b;return (coniferAt(a,b)*(1-u)+coniferAt(a+1,b)*u)*(1-v)+(coniferAt(a,b+1)*(1-u)+coniferAt(a+1,b+1)*u)*v;};
-        let c=0;for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;const o=(j*NODE+i)*4;
+        // Columns as wide as the tint grid already average over it: one sample.
+        let c=0;if(column>=TINT&&tones)c=tones[(j+2)*G+i+2];else{for(let q=-1;q<=1;q++)for(let r=-1;r<=1;r++)c+=bil(wx+dx+r*TINT*.75,wz+dz+q*TINT*.75)*(r?.5:1)*(q?.5:1);c/=4;}const o=(j*NODE+i)*4;
         out[o]=Math.round(c*255);out[o+1]=Math.round(cover(snowy,G,i+2,j+2)*255);out[o+2]=localGrass(grassy,grassMat,G,i+2,j+2,dominant);out[o+3]=255;
       }
       return out;
     }
-    // Grass tufts for close views, about 24 per square metre on columns whose surface is a blade grass: x, top, z (blocks, node
-    // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits.
+    // Grass tufts for close views, about 48 per square metre on columns whose surface is a blade grass: x, top, z (blocks, node
+    // local) and a 0–1 variation seed each. A pure function of the column, so tufts never reshuffle between visits. The near
+    // level scatters thick enough to hide the ground outright; coarser levels thin to cheaper counts since blades merge at
+    // that pixel size — the far field reads as the same carpet from a widened scatter through the 320 m ring.
     function grassTufts(L,nx,nz,tops,grounds,P,grassy,G,tint){
-      const column=cellMetres*2**L,out=[];if(column>.5)return new Float32Array(0);
-      const per=24*column*column;
+      const column=cellMetres*2**L,out=[];if(column>2)return new Float32Array(0);
+      const per=[48,20,8,3][Math.min(L,3)]*column*column;
       for(let j=1;j<=NODE;j++)for(let i=1;i<=NODE;i++){
         // Fewer, shorter tufts toward the edge of a meadow; a few stray ones spill onto the ground beside it. The fourth
         // value packs the blade material (×128), conifer-ness (0–7, ×16) and the local cover (0–15) with the 0–1 variation seed.
@@ -2595,12 +2816,16 @@
     function objectsOnly(dense){const out=new Uint8Array(dense.length);for(let k=0;k<dense.length;k++){const m=dense[k];out[k]=isTerrain(m)?0:m;}return out;}
     // Returns Map(slice index -> {buffer, count, top}): each quad goes to the slice holding the lower sample of its owned
     // edge, with y local to that slice's origin (k*SL blocks).
-    function surfaceNets(cols,colY0,tops,grounds,G,P,base,SL){
+    // fine ({crossP, groundsF}, ?cliffs=fine): where a column's top terrain block is its plain ground, each crossing edge
+    // places its point where the unquantized ground meets the edge (linear between the two samples' signed heights)
+    // instead of at the midpoint, so slopes come out as true planes and strata ledges stay crisp; no relax pass (it would
+    // only blur them again), and normals come from the gradient of the unquantized ground.
+    function surfaceNets(cols,colY0,tops,grounds,G,P,base,SL,fine=null){
       const cell=(k,b)=>{const y0=colY0[k];if(b<y0)return MAT.basalt;const c=cols[k];return b-y0<c.length?c[b-y0]:0;};
       // Height range covers every sampled column, halo included, so a taller neighbour is never cut off at the seam.
       let ny=1;for(let k=0;k<P*P;k++)ny=Math.max(ny,tops[k]);
       // Ground-surface gradient (Sobel over the hillshade's two-ring ground heights): identical on both sides of a seam.
-      const GH=(i,j)=>grounds[clamp(j,0,G-1)*G+clamp(i,0,G-1)];
+      const GF=fine?fine.groundsF:grounds,GH=(i,j)=>GF[clamp(j,0,G-1)*G+clamp(i,0,G-1)];
       const groundNormal=(bx,bz)=>{const fx=bx-.5+2,fz=bz-.5+2,i0=Math.floor(fx),j0=Math.floor(fz),u=fx-i0,v=fz-j0;let x=0,z=0;
         for(const [di,dj,w] of [[0,0,(1-u)*(1-v)],[1,0,u*(1-v)],[0,1,(1-u)*v],[1,1,u*v]]){const i=i0+di,j=j0+dj;
           x+=w*(GH(i+1,j-1)+2*GH(i+1,j)+GH(i+1,j+1)-GH(i-1,j-1)-2*GH(i-1,j)-GH(i-1,j+1))/8;z+=w*(GH(i-1,j+1)+2*GH(i,j+1)+GH(i+1,j+1)-GH(i-1,j-1)-2*GH(i,j-1)-GH(i+1,j-1))/8;}
@@ -2608,6 +2833,8 @@
       const groundAt=(bx,bz)=>GH(Math.floor(bx)+2,Math.floor(bz)+2);
       // Each column's surface material and height, so a slope shows its grass, snow or rock rather than the soil beneath.
       const surf=new Uint8Array(P*P),surfY=new Int32Array(P*P);for(let k=0;k<P*P;k++){for(let b=ny-1;b>=0;b--){const m=cell(k,b);if(isTerrain(m)){surf[k]=m&127;surfY[k]=b;break;}}}
+      // Crossing height (blocks) of each column whose top terrain block is its plain ground; NaN elsewhere (lips, boulders).
+      const cross=new Float32Array(P*P).fill(NaN);if(fine)for(let k=0;k<P*P;k++){const q=fine.crossP[k];if(Math.floor(q+.5)===surfY[k]+1)cross[k]=q;}
       const Y=ny-base+2,at=(i,y,j)=>{if(i<0||j<0||i>=P||j>=P)return 0;const b=y+base-1;if(b<0)return 1;if(b>=ny)return 0;const m=cell(j*P+i,b);return isTerrain(m)?m:0;};
       const solid=new Uint8Array(P*P*Y);for(let j=0;j<P;j++)for(let y=0;y<Y;y++)for(let i=0;i<P;i++)solid[(j*Y+y)*P+i]=at(i,y,j);
       const S=(i,y,j)=>i<0||j<0||y<0||i>=P||j>=P||y>=Y?(y<0?1:0):solid[(j*Y+y)*P+i];
@@ -2619,6 +2846,12 @@
         let sx=0,sy=0,sz=0,n=0;
         for(const [a,b] of [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]]){
           if(((mask>>a)&1)===((mask>>b)&1))continue;
+          if(fine){
+            // Signed height of each end above its sample centre (block y+base-1, centre +.5); the point is their zero.
+            const ca=cross[(j+(a>>2))*P+i+(a&1)],cb=cross[(j+(b>>2))*P+i+(b&1)],yc=y+base-.5,da=ca-yc-(a>>1&1),db=cb-yc-(b>>1&1);
+            const sa=(mask>>a)&1,ok=da===da&&db===db&&(sa?da>=0&&db<=0:da<=0&&db>=0)&&da!==db,t=ok?da/(da-db):.5;
+            sx+=(a&1)+t*((b&1)-(a&1));sy+=(a>>1&1)+t*((b>>1&1)-(a>>1&1));sz+=(a>>2)+t*((b>>2)-(a>>2));n++;continue;
+          }
           sx+=((a&1)+(b&1))/2;sy+=((a>>1&1)+(b>>1&1))/2;sz+=((a>>2)+(b>>2))/2;n++;
         }
         vid[(j*CY+y)*C+i]=vx.length;vx.push(i+sx/n);vy.push(y+sy/n);vz.push(j+sz/n);
@@ -2629,7 +2862,7 @@
         const v=vid[(j*CY+y)*C+i];if(v<0)continue;
         // Border cells are shared with the neighbouring node, which sees different neighbours: leave them unrelaxed so both
         // nodes place them identically and the seam stays closed.
-        if(i===0||j===0||i===C-1||j===C-1){rx[v]=vx[v];ry[v]=vy[v];rz[v]=vz[v];continue;}
+        if(fine||i===0||j===0||i===C-1||j===C-1){rx[v]=vx[v];ry[v]=vy[v];rz[v]=vz[v];continue;}
         let sx=0,sy=0,sz=0,n=0;
         for(const [a,b,c] of [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]){const I=i+a,Yy=y+b,J=j+c;if(I<0||J<0||Yy<0||I>=C||J>=C||Yy>=CY)continue;const u=vid[(J*CY+Yy)*C+I];if(u<0)continue;sx+=vx[u];sy+=vy[u];sz+=vz[u];n++;}
         rx[v]=n?vx[v]*.5+sx/n*.5:vx[v];ry[v]=n?vy[v]*.5+sy/n*.5:vy[v];rz[v]=n?vz[v]*.5+sz/n*.5:vz[v];

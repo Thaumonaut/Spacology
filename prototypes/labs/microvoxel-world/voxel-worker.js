@@ -1,12 +1,12 @@
 'use strict';
 // The version query bypasses stale browser/service-worker copies; bump it with generator revisions.
-importScripts('macro-map.js?v=wilds-20','voxel-world-model.js?v=wilds-20');
+importScripts('macro-map.js?v=wilds-23','voxel-world-model.js?v=wilds-23');
 let world,cache;
 self.onmessage=({data})=>{
   const {seed,cell=MicroWorld.CELL,extent=MicroWorld.EXTENT,map=null,gallery=false,cx,cz,step,token,dataId}=data;
   try{
     if(!world||world.seed!==seed||world.cell!==cell||world.extent!==extent||world.map!==map||world.gallery!==gallery){world=MicroWorld.createWorld(seed,cell,extent,{map,gallery});cache=new MicroWorld.BudgetCache(128,4*1024*1024);}
-    if(data.node){const start=performance.now(),{L,nx,nz,smooth,props}=data.node,mesh=world.node(L,nx,nz,{smooth,props});self.postMessage({key:data.key,dataId:world.dataId,...mesh,generateMs:performance.now()-start,vegetationEntries:world.vegetationEntries()},[...mesh.slices.flatMap(s=>s.smooth?[s.buffer,s.smooth.buffer]:[s.buffer]),mesh.normals.buffer,mesh.canopy.buffer,mesh.biome.buffer,mesh.waterMap.buffer,mesh.grass.buffer,mesh.leaves.buffer,mesh.flowers.buffer,mesh.stalks.buffer,mesh.skirts.buffer,mesh.fronds.buffer,mesh.mushrooms.buffer]);return;}
+    if(data.node){const start=performance.now(),{L,nx,nz,smooth,props,treeObjects,farTrees,cliffs}=data.node,mesh=world.node(L,nx,nz,{smooth,props,treeObjects,farTrees,cliffs});self.postMessage({key:data.key,dataId:world.dataId,...mesh,generateMs:performance.now()-start,vegetationEntries:world.vegetationEntries()},[...mesh.slices.flatMap(s=>s.smooth?[s.buffer,s.smooth.buffer]:[s.buffer]),mesh.normals.buffer,...(mesh.treeSegs?[mesh.treeSegs.buffer,mesh.treeLobes.buffer,mesh.treeTiers.buffer]:[]),...(mesh.crystals?.buffer?[mesh.crystals.buffer]:[]),mesh.canopy.buffer,mesh.biome.buffer,mesh.groundMat.buffer,mesh.waterMap.buffer,mesh.grass.buffer,mesh.leaves.buffer,mesh.flowers.buffer,mesh.stalks.buffer,mesh.skirts.buffer,mesh.fronds.buffer,mesh.mushrooms.buffer]);return;}
     const start=performance.now(),key=`${cx}:${cz}`,cached=cache.get(key),chunk=cached||world.generateChunk(cx,cz),generated=performance.now();
     if(!cached)cache.set(key,chunk);
     const mesh=MicroWorld.meshChunk(world,chunk,step),meshed=performance.now();

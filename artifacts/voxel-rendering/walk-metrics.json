@@ -1,9 +1,9 @@
 {
   "lod": "auto",
-  "worldId": "wilds:micro-wilds-20:2718",
-  "dataId": "wilds:micro-wilds-20:2718:cell:0.25:extent:infinite",
+  "worldId": "wilds:micro-wilds-21:2718",
+  "dataId": "wilds:micro-wilds-21:2718:cell:0.25:extent:infinite",
   "seed": 2718,
-  "revision": "micro-wilds-20",
+  "revision": "micro-wilds-21",
   "extent": "infinite",
   "position": {
     "cx": -2,
@@ -13,10 +13,10 @@
   },
   "travelled": 10.19999999999999,
   "vegetationEntries": 2048,
-  "mainVegetationEntries": 50,
+  "mainVegetationEntries": 126,
   "maxRenderOrigin": 6134.1495203492195,
   "deposit": {
-    "id": "wilds:micro-wilds-20:2718:ore:root",
+    "id": "wilds:micro-wilds-21:2718:ore:root",
     "kind": "Ferrite",
     "x": 20,
     "z": -10,
@@ -70,15 +70,15 @@
   "paused": false,
   "economy": false,
   "reducedMotion": false,
-  "simTime": 29.004999999976437,
+  "simTime": 32.52679999997645,
   "actors": [
     {
       "role": "explorer",
       "worker": false,
-      "x": 25.936914536239904,
-      "z": -9.075946231660895,
+      "x": 23.136914536239864,
+      "z": -13.925688492853775,
       "y": 33.75,
-      "yaw": -2.617993877991486,
+      "yaw": -2.6179938779914815,
       "phase": 0,
       "walking": true,
       "task": {
@@ -136,21 +136,21 @@
     ]
   },
   "meshCacheEntries": 945,
-  "meshCacheBytes": 224380032,
+  "meshCacheBytes": 224401536,
   "meshCacheLimit": 402653184,
   "voxelCacheBytes": 0,
   "voxelCacheEntries": 0,
   "cacheHits": 0,
   "completed": 945,
-  "firstReadyMs": 9057.399999976158,
+  "firstReadyMs": 10027.300000011921,
   "frameSamples": 240,
-  "frameP50": 2050,
-  "frameP95": 2685,
-  "frameP99": 2759.600000000035,
+  "frameP50": 3791,
+  "frameP95": 10262.5,
+  "frameP99": 22323.100000000093,
   "generationP95": 0,
   "meshingP95": 0,
   "drawCalls": 816,
-  "triangles": 1066249,
+  "triangles": 1066565,
   "pixelRatio": 1,
   "viewport": {
     "width": 1280,
@@ -180,7 +180,7 @@
     "inflight": 0,
     "workers": 4,
     "entries": 945,
-    "bytes": 224380032,
+    "bytes": 224401536,
     "budget": 402653184,
     "levels": {
       "0": 156,
@@ -202,53 +202,53 @@
     "gpuTimer": false,
     "timing": {
       "geography": {
-        "p50": 6.000000476837158,
-        "p95": 1085.2000012397766,
+        "p50": 7.600000619888306,
+        "p95": 1861.9999997615814,
         "n": 240
       },
       "trees": {
-        "p50": 173.20000004768372,
-        "p95": 690.4000005722046,
+        "p50": 352.79999709129333,
+        "p95": 1984.7999987602234,
         "n": 240
       },
       "features": {
-        "p50": 2.4000000953674316,
-        "p95": 14.40000033378601,
+        "p50": 2.8000001907348633,
+        "p95": 17.200000524520874,
         "n": 240
       },
       "reduce": {
-        "p50": 0.7999999523162842,
-        "p95": 2.4000003337860107,
+        "p50": 1.2000000476837158,
+        "p95": 3.200000524520874,
         "n": 240
       },
       "mesh": {
-        "p50": 3.5,
-        "p95": 10.600000023841858,
+        "p50": 4.900000035762787,
+        "p95": 16,
         "n": 240
       },
       "node": {
-        "p50": 303.5,
-        "p95": 1276.0999999642372,
+        "p50": 522.6999999880791,
+        "p95": 2966.300000011921,
         "n": 240
       },
       "view": {
-        "p50": 0.3999999761581421,
-        "p95": 0.7000000476837158,
+        "p50": 0.5,
+        "p95": 2,
         "n": 62
       },
       "resolve": {
-        "p50": 0.8999999761581421,
-        "p95": 1.4000000357627869,
+        "p50": 1.100000023841858,
+        "p95": 2.199999988079071,
         "n": 240
       },
       "draw": {
-        "p50": 0.30000001192092896,
-        "p95": 0.5,
+        "p50": 0.3999999761581421,
+        "p95": 0.9000000357627869,
         "n": 240
       },
       "upload": {
-        "p50": 3.099999964237213,
-        "p95": 6.399999976158142,
+        "p50": 4.200000047683716,
+        "p95": 10.5,
         "n": 240
       },
       "gpu": {
