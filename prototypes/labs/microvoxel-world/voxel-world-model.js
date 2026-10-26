@@ -1,8 +1,18 @@
 (function(root){
   'use strict';
   const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=1024,EXTENT=128,REVISION='micro-catchment-1';
-  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32});
-  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356']);
+  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32,
+    lush:33,sward:34,golden:35,sage:36,russet:37,leafgold:38,petal:39,rosegrass:40,fenmoss:41,sphagnum:42,heather:43,clay:44,claypale:45,bluebell:46,buttercup:47,violet:48});
+  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
+    '#6fa957','#9cc56a','#d8b65a','#a3b46c','#bfa34f','#c9783a','#eab3cb','#d9a2bf','#5d8f4a','#a2ad4c','#9b6b9e','#c46f45','#e2a877','#8fa6ea','#f3d25e','#b48be0']);
+  // Soft vegetated ground: the surfaces that canopy floors, scree, worn patches and flowers may replace.
+  const SOFT=new Uint8Array(256);for(const m of [3,18,27,32,33,34,35,36,37,40,41,42,43])SOFT[m]=1;
+  // Per-biome tree style, the hook for biome-specific tree shapes (see TREES in createWorld).
+  const TREE_STYLE=Object.freeze({redwood:'redwood',boreal:'conifer',montane:'conifer',subalpine:'conifer',tundra:'conifer',meadow:'conifer',forest:'broadleaf',
+    grassland:'broadleaf',wildflower:'broadleaf',rainforest:'jungle',savanna:'umbrella',steppe:'shrub',heath:'shrub',badlands:'shrub',desert:'shrub',
+    autumn:'autumn',blossom:'blossom',fen:'willow',wetland:'willow'});
+  const BIOME_NAMES=Object.freeze({sea:'Coastal shallows',beach:'Beach',snow:'Snowfield',alpine:'Alpine rock',tundra:'Tundra',boreal:'Boreal forest',forest:'Temperate forest',rainforest:'Rainforest',grassland:'Grassland',savanna:'Golden savanna',desert:'Desert',wetland:'Wetland',gorge:'Gorge',montane:'Montane conifer forest',subalpine:'Subalpine parkland',glacier:'Glacier',meadow:'Alpine meadow',redwood:'Redwood forest',steppe:'Steppe',
+    wildflower:'Wildflower meadow',heath:'Heather moor',autumn:'Autumn woodland',blossom:'Blossom grove',fen:'Mossy fen',badlands:'Badlands'});
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
@@ -105,24 +115,32 @@
       return {...t,h,cone:h-t.h,vx,vz};
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
-    const latAngle=hash(seed,13,seed+331)*Math.PI*2,latCos=Math.cos(latAngle),latSin=Math.sin(latAngle),lat0=18+hash(seed,17,seed+333)*34,twist=(hash(seed,19,seed+335)-.5)*.8;
+    // The start latitude sits in the temperate band and latitude changes slowly (about 4.5 °C per 2 km), so climate zones span
+    // kilometres; the temperature and moisture anomalies are kilometre-scale too, so biomes form large coherent regions.
+    // Regional fields, cached with the climate: `a` and `b` (domain-warped, ~1.5 km) choose regional variants of a climate zone
+    // (blossom or autumn woodland, wildflower meadow, heath, fen, badlands); `arid` (~4 km) marks the few large dry regions.
+    const latAngle=hash(seed,13,seed+331)*Math.PI*2,latCos=Math.cos(latAngle),latSin=Math.sin(latAngle),lat0=28+hash(seed,17,seed+333)*16,twist=(hash(seed,19,seed+335)-.5)*.8;
     const climateCells=new Map(),CG=32;
-    function latitude(x,z){return lat0+(x*latCos+z*latSin)/110;}
+    function latitude(x,z){return lat0+(x*latCos+z*latSin)/200;}
     function wind(lat){const L=Math.abs(lat),dir=L<30||L>60?-1:1,t=twist;return {x:dir*(-latSin*Math.cos(t)-latCos*Math.sin(t)),z:dir*(latCos*Math.cos(t)-latSin*Math.sin(t))};}
     function climateCell(i,j){
       const k=i*16777216+j;let v=climateCells.get(k);if(v)return v;
       const x=i*CG,z=j*CG,lat=latitude(x,z),w=wind(lat);let m=.55,prev=null,lift=0;
       for(let s=10;s>=0;s--){const e=tectonics(x-w.x*48*s,z-w.z*48*s).h;if(e<SEA)m=1;else{if(prev!==null){const rise=Math.max(0,e-Math.max(prev,SEA));const rain=Math.min(m*.7,rise*.018);m-=rain;if(s<=1)lift+=rise;}m=m*.99+.003;}prev=e;}
-      const here=tectonics(x,z).h,T=30-.5*Math.abs(lat)+(noise(x*.003,z*.003,seed+337)-.5)*6-.17*Math.max(0,here-SEA);
-      v={T,M:clamp(m*.85+lift*.02+(noise(x*.005,z*.005,seed+339)-.5)*.2,0,1)};climateCells.set(k,v);if(climateCells.size>8192)climateCells.delete(climateCells.keys().next().value);return v;
+      const here=tectonics(x,z).h,T=32-.45*Math.abs(lat)+(noise(x*.0008,z*.0008,seed+337)-.5)*7-.17*Math.max(0,here-SEA)-5*clamp((here-SEA-6)/30,0,1);
+      const wx=(noise(x*.002,z*.002,seed+701)-.5)*500,wz=(noise(x*.002,z*.002,seed+703)-.5)*500,arid=clamp((noise(x*.00025,z*.00025,seed+705)-.66)/.1,0,1);
+      v={T,M:clamp(m*.85+lift*.02+(noise(x*.0012,z*.0012,seed+339)-.5)*.24-arid*.3,0,1),a:noise((x+wx)*.0007,(z+wz)*.0007,seed+707),b:noise((x-wz)*.0008,(z+wx)*.0008,seed+709),arid};
+      climateCells.set(k,v);if(climateCells.size>8192)climateCells.delete(climateCells.keys().next().value);return v;
     }
     function climate(x,z){
       const gx=x/CG,gz=z/CG,i=Math.floor(gx),j=Math.floor(gz),u=gx-i,w=gz-j,a=climateCell(i,j),b=climateCell(i+1,j),c=climateCell(i,j+1),d=climateCell(i+1,j+1),mix=k=>(a[k]+(b[k]-a[k])*u)*(1-w)+(c[k]+(d[k]-c[k])*u)*w;
-      return {T:mix('T'),M:mix('M')};
+      return {T:mix('T'),M:mix('M'),a:mix('a'),b:mix('b'),arid:mix('arid')};
     }
     // Mountains zone by temperature: montane conifer forest, subalpine parkland, alpine meadow, then snow on all but cliffs.
-    // arid: inside one of the few large arid regions; only there does dry ground become desert (elsewhere steppe/savanna).
-    function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,arid=false){
+    // Lowland and upland zonation. C: the column's climate (regional fields a, b, arid, see climate()); jt/jm: small per-column
+    // jitter (tens of metres) so borders between zones are ragged, never contour-smooth. Variants are picked by the regional
+    // fields, so a blossom grove or a wildflower meadow is a region kilometres across, not a speckle.
+    function biomeOf(T,M,h,wet,steep,cliff,mountain,sheer=cliff,C=null,jt=0,jm=0){
       if(h<SEA)return 'sea';
       if(mountain&&h>=SEA+1.2){
         if(T<-3&&!sheer)return 'snow';
@@ -134,14 +152,36 @@
       if(T<-5&&!cliff)return 'snow';
       if(steep&&T<3)return 'alpine';
       if(h<SEA+1.2)return T<0?'tundra':'beach';
-      if(wet&&M>.5&&T>0&&!steep)return 'wetland';
-      if(T<1)return 'tundra';
-      if(T<7)return M>.38?'boreal':'tundra';
-      if(T>=8&&T<17&&M>.66&&!wet)return 'redwood';
-      if(T<19)return M>.5?'forest':M>.22?'grassland':arid&&M<.16?'desert':'steppe';
-      return M>.66?'rainforest':M>.3||!arid?'savanna':'desert';
+      const A=C?C.a+jm:.5,B=C?C.b+jm:.5,arid=C?C.arid:0,t=T+jt,m=M+jm;
+      if(wet&&M>.5&&T>0&&!steep)return t<14&&B>.5?'fen':'wetland';
+      if(t<1)return 'tundra';
+      // Cold: boreal forest where wet enough, heather moor in between, tundra only where it is cold and dry.
+      if(t<6.5)return m>.42?'boreal':m>.2||t>4?'heath':'tundra';
+      // Dry regions: badlands where the ground is broken by hills, sand desert elsewhere; rare but kilometres wide.
+      if(arid>.3&&m<.22+.2*arid)return B>.55||A<.3?'badlands':'desert';
+      if(t<19){
+        if(m>.62&&B>.62&&t<14&&h<SEA+8&&!steep)return 'fen';
+        if(m>.48){
+          if(A>.6&&t>9)return 'blossom';
+          if(A<.34&&t<15)return 'autumn';
+          return m>.66&&t>=8&&t<17&&!wet?'redwood':'forest';
+        }
+        if(m>.1){
+          if(B>.58)return 'wildflower';
+          if(B<.3&&t<11)return 'heath';
+          return 'grassland';
+        }
+        return 'steppe';
+      }
+      if(m>.66)return 'rainforest';
+      if(m>.45&&A>.6)return 'blossom';
+      return 'savanna';
     }
-    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.12,grassland:.06,tundra:.03};
+    // Tree density per biome (0..1). TREE_STYLE is the hook for per-biome tree shapes: makeTree() can read
+    // TREE_STYLE[g.biome] ('conifer','redwood','broadleaf','jungle','umbrella','autumn','blossom','willow','shrub'); the current
+    // tree code still decides shape from the biome name and treats unknown styles as broadleaf.
+    const TREES={steppe:.03,redwood:.95,rainforest:.92,forest:.82,montane:.86,boreal:.78,subalpine:.3,meadow:.02,wetland:.3,savanna:.1,grassland:.07,tundra:.03,
+      wildflower:.04,heath:.05,autumn:.8,blossom:.62,fen:.16,badlands:.01,desert:.005};
     // Home massif: stepped plateau walled by vertical 4.5 m tiers; inside notch zones the same uplift is a climbable ramp (a pass).
     function massifDistance(x,z){
       const dx=x-massifX,dz=z-massifZ,along=-dx*Math.sin(massifAngle)+dz*Math.cos(massifAngle),across=dx*Math.cos(massifAngle)+dz*Math.sin(massifAngle);
@@ -493,7 +533,7 @@
         iceBase=Math.min(iceBase,h);
         const height=clamp(Math.floor(h/cellMetres),1,heightCells-28*density),metres=height*cellMetres,sea=metres<SEA,steep=slope>.9;
         const lakeWater=RV.lake>metres+.2&&!gorge,wet=riverDistance<12||lakeWater,T=C.T-.17*Math.max(0,metres-t.h),iceCells=Math.max(0,height-Math.floor(iceBase/cellMetres));
-        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,noise(x*.0007,z*.0007,seed+611)>.62);
+        const glacier=!gorge&&!sea&&iceCells>=2,biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,metres,wet,steep,slope>1.4,t.relief>15||t.cone>20,slope>1.8,C,(noise(x*.045,z*.045,seed+711)-.5)*1.2+(noise(x*.16,z*.16,seed+713)-.5)*.5,(noise(x*.05,z*.05,seed+715)-.5)*.08);
         const water=sea?Math.round(SEA/cellMetres):riverDistance<3.4&&!gorge&&(floor+1)/cellMetres>height?Math.floor((floor+1)/cellMetres):lakeWater?Math.floor(RV.lake/cellMetres):0;
         // Bare rock only where landform demands it: gorge lips, the rims of massif tiers, thin fault seams, outcrop knolls,
         // cliff-steep mountainsides and alpine ground. Plateau tops, grassland and forest stay vegetated.
@@ -565,6 +605,24 @@
     // colTop: one past the highest cell the last column() call can have written, so callers reusing a buffer scan and clear
     // only that far.
     let colTop=0;
+    // Open ground per biome: two or three tones in patches tens of metres wide, with a fine wobble so every edge is ragged.
+    function groundOf(b,x,z,g){
+      const v=noise(x*.03,z*.03,seed+721)+(noise(x*.21,z*.21,seed+723)-.5)*.28;
+      switch(b){
+        case 'grassland':case 'forest':case 'redwood':return v<.38?MAT.lush:v>.64?MAT.sward:MAT.grass;
+        case 'wildflower':return g.riverDistance<28&&v>.66?MAT.rosegrass:v<.32?MAT.lush:v>.6?MAT.sward:MAT.grass;
+        case 'rainforest':case 'wetland':return v>.62?MAT.grass:MAT.lush;
+        case 'autumn':return v<.34?MAT.grass:v>.74?MAT.leafgold:MAT.russet;
+        case 'blossom':return v<.36?MAT.grass:v>.66?MAT.rosegrass:MAT.sward;
+        case 'fen':return v<.2?MAT.mud:v>.7?MAT.sphagnum:v>.5?MAT.lush:MAT.fenmoss;
+        case 'heath':return v<.5?MAT.heather:v>.76?MAT.sward:MAT.tundra;
+        case 'boreal':return v>.6?MAT.tundra:MAT.grass;
+        case 'steppe':return v<.26?MAT.grass:v>.7?MAT.golden:MAT.sage;
+        case 'savanna':return v<.24?MAT.sage:MAT.golden;
+        case 'tundra':return v>.74?MAT.heather:MAT.tundra;
+      }
+      return MAT.grass;
+    }
     function column(vx,vz,into){
       const values=into||new Uint8Array(heightCells);colTop=0;
       const x=(vx+.5)*cellMetres,z=(vz+.5)*cellMetres;
@@ -577,14 +635,16 @@
       if(infinite){
         const b=g.biome,sub=b==='desert'||b==='beach'||b==='sea'?MAT.sand:MAT.soil;
         if(!g.exposed)values.fill(sub,Math.max(0,h-4*density),h);
+        // Badlands: banded clay strata, so slopes and from above contour lines show the layers.
+        if(b==='badlands'&&!g.exposed)for(let y=Math.max(0,h-4*density);y<h;y++){const k=Math.floor(y*cellMetres/.9+noise(x*.04,z*.04,seed+729)*1.5)%3;values[y]=k===0?MAT.clay:k===1?MAT.claypale:MAT.sandstone;}
         // Ground variety, each with a noise-wobbled edge: wet mud then sand on river banks (creeks: mud only), gravel scree on
         // steep mountain soil, and worn coarse-dirt patches in open grass.
         const wob=(noise(x*.35,z*.35,seed+611)-.5)*1.6,rd=g.riverDistance+wob;
         const bank=g.water>h&&!g.sea?0:rd<4.6?MAT.mud:g.riverSize>=.6&&rd<9?MAT.sand:0;
-        values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='desert'||b==='beach'?MAT.sand:bank?bank:b==='savanna'||b==='steppe'?MAT.dry:b==='tundra'?MAT.tundra:b==='alpine'?MAT.basalt:MAT.grass;
-        if(values[h-1]===MAT.grass||values[h-1]===MAT.tundra||values[h-1]===MAT.dry){
+        values[h-1]=g.exposed?MAT.basalt:b==='glacier'?(g.temperature<-6?MAT.snow:MAT.ice):b==='snow'?MAT.snow:b==='sea'||b==='desert'||b==='beach'?MAT.sand:bank?bank:b==='alpine'?MAT.basalt:b==='badlands'?values[h-1]:groundOf(b,x,z,g);
+        if(SOFT[values[h-1]]){
           if(g.relief>15&&g.slope>.75+(noise(x*.3,z*.3,seed+613)-.5)*.35)values[h-1]=MAT.gravel;
-          else if(values[h-1]===MAT.grass&&noise(x*.06,z*.06,seed+615)>.85-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
+          else if((b==='grassland'||b==='steppe'||b==='savanna')&&noise(x*.06,z*.06,seed+615)>.88-(noise(x*.5,z*.5,seed+617)-.5)*.08)values[h-1]=MAT.dirt;
         }
         if(g.iceCells)values.fill(MAT.ice,h-g.iceCells,h);
       }else values[h-1]=g.exposed?MAT.basalt:g.riverDistance<9?MAT.sand:MAT.grass;
@@ -609,7 +669,9 @@
         }
       }
       if(prof&&prof.on){const t=now();prof.trees+=t-t0;t0=t;}
-      if(infinite&&floorMat<9){const m=values[h-1];if(m===MAT.grass||m===MAT.dirt||m===MAT.tundra||m===MAT.dry)values[h-1]=floorMat===0?MAT.podzol:floorMat===1?MAT.litter:MAT.dirt;}
+      // Canopy floor: podzol under conifers, leaf litter under broadleaf (gold in autumn woodland, petals in blossom groves);
+      // the fringe is bare dirt in conifer forest and shaded lush grass elsewhere.
+      if(infinite&&floorMat<9){const m=values[h-1],b=g.biome;if(SOFT[m])values[h-1]=floorMat===0?MAT.podzol:floorMat===1?(b==='autumn'?MAT.leafgold:b==='blossom'?MAT.petal:MAT.litter):b==='boreal'||b==='redwood'||b==='montane'||b==='subalpine'||b==='tundra'?MAT.dirt:MAT.lush;}
       if(infinite){
         const I=isleAt(x,z),F=isleCell(Math.floor(x/IG),Math.floor(z/IG))?.fall;
         if(F){const q=Math.hypot(x-F.x,z-F.z);
@@ -634,7 +696,7 @@
       if(infinite){
         const A=ancientNear(x,z);
         if(A&&Math.abs(x-A.x)<A.reach&&Math.abs(z-A.z)<A.reach){
-          {const f=Math.hypot(x-A.x,z-A.z)/(A.reach*.8)+(noise(x*.3,z*.3,seed+621)-.5)*.35,m=values[h-1];if(f<1.2&&(m===MAT.grass||m===MAT.dirt||m===MAT.tundra||m===MAT.dry||m===MAT.podzol))values[h-1]=f<.35?MAT.podzol:f<1?MAT.litter:MAT.dirt;}
+          {const f=Math.hypot(x-A.x,z-A.z)/(A.reach*.8)+(noise(x*.3,z*.3,seed+621)-.5)*.35,m=values[h-1];if(f<1.2&&(SOFT[m]||m===MAT.podzol))values[h-1]=f<.35?MAT.podzol:f<1?MAT.litter:MAT.dirt;}
           const d=Math.hypot(x-A.x,z-A.z),fill=(m,y0,y1)=>{const a=Math.max(0,Math.floor(y0/cellMetres)),b=Math.min(heightCells,Math.ceil(y1/cellMetres));for(let y=a;y<b;y++)if(!values[y]||m===MAT.bark)values[y]=m;};
           // Trunk: wide root flare over the lowest 5 m, gnarled girth, up to the crown.
           for(let y=Math.max(0,Math.floor(A.base/cellMetres));y<Math.min(heightCells,Math.ceil((A.fork+3)/cellMetres));y++){
@@ -704,7 +766,15 @@
         }
       }
       if(prof&&prof.on)prof.features+=now()-t0;
-      if(!g.exposed&&!g.wet&&g.clearing<.5&&(!infinite||values[h-1]===MAT.grass)&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);
+      if(!infinite){if(!g.exposed&&!g.wet&&g.clearing<.5&&hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>.994&&values[h]===0)values.fill(MAT.flower,h,h+density);}
+      else if(!g.exposed&&!g.wet&&SOFT[values[h-1]]&&values[h]===0){
+        // Flowers: a sprinkle on any soft ground, drifts of one colour in wildflower meadows (and lighter ones in blossom groves).
+        const b=g.biome,drift=b==='wildflower'?.02+.16*clamp((noise(x*.05,z*.05,seed+725)-.35)*2.5,0,1):b==='blossom'?.012:b==='heath'?.004:.006;
+        if(hash(Math.floor(vx/density),Math.floor(vz/density),seed+52)>1-drift){
+          const c=noise(x*.03,z*.03,seed+727)+(hash(Math.floor(vx/density),Math.floor(vz/density),seed+731)-.5)*.3;
+          values.fill(b==='heath'?MAT.violet:c<.36?MAT.bluebell:c<.52?MAT.flower:c<.7?MAT.buttercup:MAT.violet,h,h+density);
+        }
+      }
       colTop=Math.min(heightCells,written);
       return values;
     }
@@ -855,6 +925,6 @@
     delete(key){const v=this.items.get(key);if(v){this.bytes-=v.bytes;this.items.delete(key);this.dispose(v);}}
     clear(){for(const key of this.items.keys())this.delete(key);}
   }
-  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
+  const api={CELL,CHUNK,HEIGHT,EXTENT,REVISION,MAX_CHUNK,MAT,SHADE,COLORS,BIOME_NAMES,TREE_STYLE,hash,riverX,movePosition,positionAt,createWorld,voxel,meshChunk,BudgetCache};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MicroWorld=api;
 })(typeof globalThis==='object'?globalThis:this);
