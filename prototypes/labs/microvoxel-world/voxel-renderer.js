@@ -487,7 +487,7 @@
       }
     }
     // Anime rock: basalt, standing stone, sandstone and gravel in three flat bands like the crowns: warm sunlit tops, a
-    // mid tone, and cool lavender-blue shadow faces. Ridges catch extra light, hollows sink, and soft facet patches stop
+    // mid tone, and cool slate-blue shadow faces. Cool rock stays well darker than snow so bare faces read sharp against it. Ridges catch extra light, hollows sink, and soft facet patches stop
     // big faces reading flat. Sandstone keeps its warmth in every band.
     if(isRock(mat)){
       // Two rock looks. Paths and flat rock ground (an upward face with nothing standing on the column) break into angular
@@ -498,7 +498,7 @@
       float standing=normalSize>0.?texture(canopyMap,block.xz/normalSize).b:0.;
       // Flagstones only on genuinely flat rock (paths, slabs), not on every tread of a stepped slope.
       bool path=fn.y>.5&&standing<=.002&&n.y>.93;
-      vec3 shadow=warm?vec3(.5,.36,.38):vec3(.33,.35,.5),mid=warm?vec3(.76,.56,.42):vec3(.5,.53,.6),high=warm?vec3(.9,.76,.58):vec3(.72,.71,.68);
+      vec3 shadow=warm?vec3(.5,.36,.38):vec3(.22,.23,.33),mid=warm?vec3(.76,.56,.42):vec3(.38,.39,.44),high=warm?vec3(.9,.76,.58):vec3(.6,.58,.54);
       if(mat==30){shadow=mix(shadow,vec3(.45,.43,.42),.5);mid=mix(mid,vec3(.66,.63,.58),.5);high=mix(high,vec3(.82,.78,.7),.5);}
       if(path){
         vec3 q=w*1.4+vec3(7.1,3.3,5.9);vec3 cell=floor(q);float d1=9.,d2=9.;vec3 tilt=vec3(0);

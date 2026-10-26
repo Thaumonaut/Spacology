@@ -1,0 +1,9 @@
+
+> test
+> node tests/run.cjs microvoxel-world-walk
+
+PASS  tests/unit/microvoxel-world-walk.cjs  0.1s
+PASS  tests/browser/microvoxel-world-walk-props.cjs  3.8s
+PASS  tests/browser/microvoxel-world-walk.cjs  45.4s
+
+3 passed, 0 failed, 3 files

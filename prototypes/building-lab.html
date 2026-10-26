@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#172a28"><title>Building Lab · Spacology</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="labs/building-lab/building-lab.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="minigames.html" aria-label="Back to playtest library">S<span>SPACOLOGY</span></a>
+    <div class="title"><span class="eyebrow">CITY LAB / 001</span><h1 id="title">One building, inside and out</h1></div>
+  </header>
+  <main>
+    <aside class="panel" aria-label="Generator controls">
+      <form id="form" class="controls">
+        <label>Seed <span class="row"><input id="seed" type="number" min="0" step="1" value="1" required><button id="random" type="button" aria-label="Random seed">⟳</button></span></label>
+        <label>Type <select id="type"><option value="">Any</option></select></label>
+        <label>Style <select id="style"><option value="">Any</option></select></label>
+        <label>Plot <select id="context"><option value="">Any</option></select></label>
+        <label>Plan <select id="typology"><option value="">Any</option></select></label>
+        <label>Plot shape <select id="lot"><option value="">Any</option></select></label>
+        <button id="build" type="submit">Build</button>
+      </form>
+      <section class="summary" aria-live="polite"><h2 id="name">…</h2><p id="facts"></p></section>
+      <section aria-label="Floors">
+        <div class="eyebrow">SHOW UP TO</div>
+        <div id="floors" class="seg" role="group" aria-label="Visible floors"></div>
+      </section>
+      <section aria-label="Views">
+        <div class="eyebrow">VIEW</div>
+        <div class="seg" role="group"><button data-view="street">Street</button><button data-view="corner">Corner</button><button data-view="back">Back</button><button data-view="above">Above</button></div>
+      </section>
+      <section aria-label="Floor plan">
+        <div class="eyebrow">PLAN · <span id="planFloor">ground</span></div>
+        <canvas id="plan" width="560" height="560" aria-label="Floor plan of the visible top floor"></canvas>
+        <p id="rooms" class="rooms"></p>
+      </section>
+      <p id="stats" class="stats"></p>
+      <p class="credit">Furniture and kitchen pieces: KayKit Furniture Bits and Restaurant Bits by Kay Lousberg (CC0), voxelised at 6.25 cm.</p>
+    </aside>
+    <section class="viewport">
+      <canvas id="view" tabindex="0" aria-label="Building view. Drag to orbit, scroll or pinch to zoom, shift-drag to pan."></canvas>
+      <div id="notice" role="status">Building…</div>
+    </section>
+  </main>
+  <script src="labs/building-lab/plan.js"></script>
+  <script src="labs/building-lab/kit-pieces.js"></script>
+  <script src="labs/building-lab/voxels.js"></script>
+  <script src="labs/building-lab/renderer.js"></script>
+  <script src="labs/building-lab/building-lab.js"></script>
+</body>
+</html>

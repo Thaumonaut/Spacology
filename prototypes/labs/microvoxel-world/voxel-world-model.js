@@ -221,7 +221,8 @@
       f('T','Tx','Tz');f('M','Mx','Mz');f('V','Vx','Vz');f('U','Ux','Uz');f('A','Ax','Az');return o;
     }
     // Mountains zone by temperature: montane conifer forest, subalpine parkland, green alpine meadow, then rock and snow.
-    // Snow holds only on ground gentler than a limit that rises as it gets colder (steeper cold ground is bare rock), and
+    // Snow holds only on ground gentler than ~31 deg (a little steeper when colder, in hollows and up couloirs; real faces
+    // steeper than ~45 deg shed it, so they read as dark rock), and
     // it lies lower in gullies than on spurs, so the snowline runs down creases in tongues instead of following a contour.
     // zone.slope / zone.crease / zone.hollow / zone.spur: the mountain slope, erosion crease, depth below the broad landform
     // (m, + in hollows) and erosion spur of the current column, set by geography(). zone.x / zone.z: the column.
@@ -248,7 +249,7 @@
         // Peaks, ridge crests, arêtes and spurs that stand out of the broad landform blow bare; only gentle ledges on them
         // keep thin patches. Below the snowline nothing changes.
         const hollow=zone.hollow,snowT=T-2.2*zone.crease,deep=.12*clamp(hollow,0,6);
-        const gentle=zone.slope<.7+.12*clamp(-3-snowT+deep,0,5)+.15*clamp(hollow/4,0,1)+.55*zone.crease;
+        const gentle=zone.slope<.6+.04*clamp(-3-snowT+deep,0,5)+.12*clamp(hollow/4,0,1)+.22*zone.crease;
         if(snowT>=-3&&snowT-deep<-3&&gentle)return 'snow';
         if(snowT<-3){
           const j=noise(zone.x*.11,zone.z*.11,seed+801)-.5,crest=clamp((-hollow-1.2+j*3)/3,0,1)+clamp((zone.spur-.35+j*.5)/.4,0,1);
@@ -1223,7 +1224,7 @@
         // the ribs (lower in gullies where snow lingers, higher on bare ridge crests). Below it, whatever the climate:
         // bare rock mid-slope, alpine meadow on the lower flanks, gravel scree and boulders down the gullies (see below).
         const onCone=t.cone>20&&t.cone>t.relief&&t.vh>0,coneSnow=!onCone||t.coneFrac>.72+.07*t.rib+(noise(x*.012,z*.012,seed+709)-.5)*.08;
-        let ice=0;if((t.relief>15||t.cone>20)&&!crater&&coneSnow&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1);
+        let ice=0;if((t.relief>15||t.cone>20)&&!crater&&coneSnow&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1)*clamp((.8-slope+.12*crease)/.25,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
         // smooth landform (not small bumps), so the valley edge, where massif tiers end, stays a clean line. Big rivers open
@@ -1288,7 +1289,7 @@
         const glacier=!gorge&&!sea&&iceCells>=2;let biome=gorge?'gorge':glacier?'glacier':biomeOf(T,C.M,sea?metres:Math.max(metres,SEA),wet,steep,slope>1.4,mountain,slope>1.8,RG);
         if(onCone&&!gorge&&!sea&&!glacier&&!lakeWater){
           const fr=t.coneFrac,rib=t.rib,j=(noise(x*.03,z*.03,seed+711)-.5)*.3,cold=COLD_CONE.has(biome);
-          if(coneSnow){if((biome==='snow'||biome==='alpine')&&fr<.92)biome=rib>.7+j?'alpine':'snow';}
+          if(coneSnow){if((biome==='snow'||biome==='alpine')&&fr<.92)biome=rib>.7+j||slope>.75+.2*crease?'alpine':'snow';}
           else if(cold&&fr>.5+j*.2){if(rib<-.45+j){biome='meadow';talus=true;}else biome='alpine';}
           else{if(cold)biome=rib>.75+j&&fr>.28?'alpine':'meadow';if(rib<-.7+j&&fr>.12)talus=true;}
         }
