@@ -9,6 +9,8 @@
   const SMOOTH=new URLSearchParams(root.location?.search||'').get('mesh')!=='blocky';
   // ?trees=objects draws nearby trees as instanced objects instead of voxels (under evaluation).
   const TREE_OBJECTS=new URLSearchParams(root.location?.search||'').get('trees')==='objects';
+  // ?far=lobes (A/B): distant trees as object crowns (see the model's FAR_TREE levels) instead of voxel columns.
+  const FAR_TREES=new URLSearchParams(root.location?.search||'').get('far')==='lobes';
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   const percentile=(list,p)=>{if(!list.length)return 0;const s=[...list].sort((a,b)=>a-b);return s[Math.floor((s.length-1)*p)];};
   const push=(list,n)=>{list.push(n);if(list.length>SAMPLES)list.shift();};
@@ -202,7 +204,7 @@
       for(const s of workers){
         if(s.job)continue;const job=nextJob();if(!job)return;
         s.job={...job,epoch};s.started=performance.now();inflight.set(job.key,s);
-        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail,treeObjects:TREE_OBJECTS},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map,gallery:world.gallery||false});
+        s.w.postMessage({node:{L:job.L,nx:job.nx,nz:job.nz,smooth:SMOOTH,props:detail,treeObjects:TREE_OBJECTS,farTrees:FAR_TREES},key:job.key,dataId:world.dataId,seed:world.seed,cell:world.cell,extent:world.extent,map:world.map,gallery:world.gallery||false});
       }
     }
     // Finished nodes wait here and are uploaded a few per frame (see land), so a burst of arrivals never stalls a frame;

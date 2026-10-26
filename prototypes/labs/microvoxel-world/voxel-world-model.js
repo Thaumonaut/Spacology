@@ -2338,7 +2338,7 @@
           const r=(t.radius?t.radius*cellMetres:1.5)*.85,a=hash(Math.floor(x),Math.floor(z),seed+863)*6.2832,q=Math.sqrt(hash(Math.floor(x),Math.floor(z),seed+865))*r;
           const px=t.x+(t.lx||0)+Math.cos(a)*q,pz=t.z+(t.lz||0)+Math.sin(a)*q;
           if(t.radius&&t.cls!==-1||t.kind==='bamboo'){const m=t.conifer?0:1;if(m<floorMat){floorMat=m;floorBiome=t.biome;}}
-          const w=stampPlant(t,px,pz,values,h);if(w>written)written=w;
+          if(!(treeObjects&&(!t.kind||t.kind==='tree'))){const w=stampPlant(t,px,pz,values,h);if(w>written)written=w;}
         }
       }else for(let R=treeObjects?2:4,dz=-R;dz<=R;dz++)for(let dx=-R;dx<=R;dx++){
         const t=tree(gx+dx,gz+dz);if(!t)continue;
@@ -2629,7 +2629,7 @@
       if(!infinite)throw new Error('LOD nodes are only generated for the streamed world');
       if(!(Number.isInteger(L)&&L>=0&&L<=MAX_LEVEL)||![nx,nz].every(Number.isInteger))throw new Error('Invalid LOD node');
       const s=2**L,P=NODE+2,G=NODE+4,tones=new Float32Array(G*G),fine=new Float32Array(G*G),cols=new Array(P*P),colY0=new Int32Array(P*P),tops=new Int32Array(P*P),grounds=new Int32Array(G*G),canopy=new Int32Array(G*G),water=new Float32Array(G*G),grassy=new Uint8Array(G*G),grassMat=new Uint8Array(G*G),snowy=new Uint8Array(G*G);let ny=1,reduce=0;
-      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;wideColumns=s*cellMetres>=16;propsMode=!!options.props;treeObjects=!!(options.treeObjects&&options.props!==false&&L<=TREE_OBJECT_LEVEL);
+      prof={geography:0,trees:0,features:0,on:false};let sampled=0;colStep=s;wideColumns=s*cellMetres>=16;propsMode=!!options.props;treeObjects=!!(options.props!==false&&(options.treeObjects&&L<=TREE_OBJECT_LEVEL||options.farTrees&&L>=FAR_TREE_FROM&&L<=FAR_TREE_TO));
       // Lighting height of the column just sampled, in blocks: its exact surface where the ground is bare terrain (top block at
       // the terrain height), else the block ground (boulders, ruins, water). The exact height is offset by the mean amount the
       // block ground rounds up ((s-2)/2s blocks), so the two kinds sit level beside each other.
@@ -2638,6 +2638,8 @@
       // scratch is reused: only the band [colFloor, colTop) was written, so only that is scanned and cleared.
       if(!scratch){scratch=new Uint8Array(heightCells+8);scratch32=new Uint32Array(scratch.buffer);}else scratch.fill(0);
       const buf=scratch,buf32=scratch32,floor=new Int32Array(P*P),BASALT=MAT.basalt;
+      // Ground-top material per column on the hillshade grid (two-column halo), for the painted ground (?ground=paint).
+      const groundMat=new Uint8Array(G*G);
       const blockAt=(k,y)=>{const y0=colY0[k];if(y<y0)return BASALT;const b=cols[k];return y-y0<b.length?b[y-y0]:0;};
       for(let j=0;j<P;j++)for(let i=0;i<P;i++){
         prof.on=((i+j)&3)===0;if(prof.on)sampled++;
@@ -2648,12 +2650,12 @@
         const run=basaltRun(c,buf32,hi+1,fl),full=Math.floor(run/s),top=hi>=full*s?((hi/s)|0)+1:full,b=new Uint8Array(top-full);
         for(let y=full*s;y<=hi;y++){const m=c[y];if(m)b[((y/s)|0)-full]=m;}
         const k=j*P+i;cols[k]=b;colY0[k]=full;
-        const kk=(j+1)*G+i+1;tones[kk]=columnTone;grounds[kk]=groundBlocks(c,lim,s,run);fine[kk]=fineGround(grounds[kk]);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
+        const kk=(j+1)*G+i+1;tones[kk]=columnTone;grounds[kk]=groundBlocks(c,lim,s,run);fine[kk]=fineGround(grounds[kk]);canopy[kk]=top;water[kk]=waterDepth(c,lim);{const m=top>0?blockAt(k,top-1)&127:0;grassy[kk]=BLADE_GRASS.has(m)?1:0;grassMat[kk]=grassy[kk]?m:0;const gm=grounds[kk]>0?blockAt(k,grounds[kk]-1)&127:0;groundMat[kk]=gm;snowy[kk]=gm===MAT.snow||gm===MAT.ice||m===MAT.snow||m===MAT.ice?1:0;}c.fill(0,fl,lim);let f=full;while(f<top&&b[f-full])f++;
         tops[k]=top;floor[k]=f;if(prof.on)reduce+=now()-t0;
         if(i>0&&j>0&&i<=NODE&&j<=NODE)ny=Math.max(ny,top);
       }
       // Hillshade sees one ring further than the mesh halo, so its blur matches across node borders.
-      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;tones[j*G+i]=columnTone;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));fine[j*G+i]=fineGround(grounds[j*G+i]);let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
+      for(let j=0;j<G;j++)for(let i=0;i<G;i++)if(i===0||j===0||i===G-1||j===G-1){const c=column((nx*NODE+i-2)*s+(s>>1),(nz*NODE+j-2)*s+(s>>1),buf),lim=colTop,fl=colFloor;tones[j*G+i]=columnTone;grounds[j*G+i]=groundBlocks(c,lim,s,basaltRun(c,buf32,lim,fl));fine[j*G+i]=fineGround(grounds[j*G+i]);let h=lim-1;while(h>=fl&&!c[h])h--;canopy[j*G+i]=h<0?0:((h/s)|0)+1;water[j*G+i]=waterDepth(c,lim);grassy[j*G+i]=h>=0&&BLADE_GRASS.has(c[h]&127)?1:0;grassMat[j*G+i]=grassy[j*G+i]?c[h]&127:0;{const gy=grounds[j*G+i]*s-1,gm=gy>=0?c[gy]&127:0,tm=h>=0?c[h]&127:0;groundMat[j*G+i]=gm;snowy[j*G+i]=gm===MAT.snow||gm===MAT.ice||tm===MAT.snow||tm===MAT.ice?1:0;}c.fill(0,fl,lim);}
       // Skirt: halo columns stop two blocks below the lower of themselves and the adjacent inside column, so every
       // border carries a short wall that covers height mismatches against a coarser or finer neighbour.
       const limits=new Int32Array(P*P);let low=ny;
@@ -2674,7 +2676,7 @@
       if(options.smooth)for(const [k,m] of surfaceNets(cols,colY0,tops,grounds,fine,G,P,base,SL)){const r=byK.get(k)||{y:k*SL,buffer:new ArrayBuffer(0),count:0,quads:0,exposedFaces:0};r.smooth=m;byK.set(k,r);}
       const slices=[...byK.keys()].sort((a,b)=>a-b).map(k=>byK.get(k));timing.mesh=now()-t1;
       const objects=objectTrees?treeObjectsIn(L,nx,nz,canopy,grounds,G):null;
-      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),rockDetail:L<=2?rockDetail(fine,G,rockColumns(cols,colY0,grounds,P,G),P,L,nx,nz):new Uint8Array(0),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome,base):new Uint16Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
+      return {slices,slice:SL,base,flowers,stalks,skirts:detail?sequoiaSkirts(L,nx,nz):new Float32Array(0),fronds:detail?frondProps(L,nx,nz):new Float32Array(0),mushrooms:detail?mushroomProps(L,nx,nz):new Float32Array(0),...hillshade(grounds,fine,G),rockDetail:L<=2?rockDetail(fine,G,rockColumns(cols,colY0,grounds,P,G),P,L,nx,nz):new Uint8Array(0),...canopyShade(canopy,grounds,grassy,G),...(objects||{}),...(()=>{const biome=biomeTint(L,nx,nz,grassy,grassMat,snowy,G,water,tones);return {biome,waterMap:waterMap(L,nx,nz,water,G),grass:detail?grassTufts(L,nx,nz,tops,grounds,P,grassy,G,biome,base):new Uint16Array(0)};})(),leaves:detail?leafCards(L,nx,nz,dense,P,plane,base,span,snowy,G):new Float32Array(0),groundMat,normalSize:NODE,level:L,nx,nz,column:cellMetres*s,top:ny,timing};
     }
     // Canopy shape per inside column (RGBA8: x, z of a broad, smoothed normal of the top surface including trees; canopy
     // top in blocks above the column's ground, capped at 255; grass cover, the 5×5 share of grass-topped columns, which
@@ -2695,7 +2697,9 @@
     // metres (y): treeSegs (12 a segment), treeLobes (12 a lobe: centre, radius, height scale, material, seed, 0, then the crown proxy's centre and radius), treeTiers (8 a tier, the sequoiaSkirts layout with the
     // leaf material last). Their crowns are also rasterized into the canopy heights, so crown shading, Peek and the crew
     // x-ray see them as they saw voxel crowns.
-    const TREE_OBJECT_LEVEL=3,underBushes=new WeakMap();
+    // ?far=lobes (A/B): levels past the nearest (0.5-4 m columns) draw trees as object crowns too, so distant forest keeps the lobed
+    // anime crowns instead of turning into one-sample voxel columns; their clumps thin out level by level.
+    const TREE_OBJECT_LEVEL=3,FAR_TREE_FROM=1,FAR_TREE_TO=4,underBushes=new WeakMap();
     function underBush(t){let b=underBushes.get(t);if(!b){b={kind:'bush',x:t.under[0].x,z:t.under[0].z,base:t.base,lumps:t.under,leaf:t.underLeaf||MAT.bushLeaf};underBushes.set(t,b);}return b;}
     function treeObjectsIn(L,nx,nz,canopy,grounds,G){
       const s=2**L,m=NODE*cellMetres*s,x0=nx*m,z0=nz*m,blockM=cellMetres*s,segs=[],lobes=[],tiers=[],shadows=[];
@@ -2710,7 +2714,7 @@
         for(const t of [t0,t0.under&&underBush(t0)]){if(!t)continue;
         const P=treeParts(t),own=t.x>=x0&&t.x<x0+m&&t.z>=z0&&t.z<z0+m,sd=hash(gx,gz,seed+(t===t0?901:903));
         for(let i=0;i<P.lobes.length;i+=6){const [x,y,z,r,ys]=P.lobes.slice(i,i+5);raise(x,z,r,y+r*ys*.85);}
-        if(own&&P.crown){const C=P.crown,keep=L===0?1:L===1?2:L===2?4:6,grow=Math.sqrt(keep);
+        if(own&&P.crown){const C=P.crown,n=P.clumps.length/6,cap=L<=3?Infinity:L===4?8:L===5?4:2,keep=Math.max(L===0?1:L===1?2:L===2?4:6,Math.ceil(n/cap)),grow=Math.sqrt(keep);
           for(let i=0,k=0;i<P.clumps.length;i+=6,k++){if(k%keep)continue;const [x,y,z,sz,mat,sdc]=P.clumps.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz*grow,1,mat,sdc,0,C[0]-x0,C[1],C[2]-z0,C[3]);}
           // Loose leaves only where a single leaf can be seen (the two finest levels); kind 1 in the lobe record.
           if(L<=1)for(let i=0;i<P.loose.length;i+=6){const [x,y,z,sz,mat,sdc]=P.loose.slice(i,i+6);lobes.push(x-x0,y,z-z0,sz,1,mat,sdc,1,C[0]-x0,C[1],C[2]-z0,C[3]);}}
@@ -2718,7 +2722,7 @@
           for(let i=0,k=0;i<P.sprays.length;i+=10,k++){if(k%keep)continue;const S=P.sprays.slice(i,i+10);lobes.push(S[0]-x0,S[1],S[2]-z0,S[3]*grow,1,S[4],S[5],2+S[9]*.9,S[6],S[7],S[8],0);}}
         if(own&&P.contact)shadows.push(P.contact[0]-x0,P.contact[1],P.contact[2]-z0,P.contact[3]);
         for(let i=0;i<P.tiers.length;i+=8){const T=P.tiers.slice(i,i+8),inner=P.sprays.length>0;raise(T[0],T[1],T[4],T[2]);if(own&&!P.sprays.length&&!P.noShell)tiers.push(T[0]-x0,T[1]-z0,T[2],T[3],T[4],T[5],T[6],T[7]);}
-        if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
+        if(own)for(let i=0;i<P.segs.length;i+=10){const S=P.segs.slice(i,i+10);if(S[9]===2&&L>=2||S[9]!==1&&L>=4)continue;segs.push(S[0]-x0,S[1],S[2]-z0,S[3],S[4]-x0,S[5],S[6]-z0,S[7],S[8],(sd+i*.071)%1,S[9],0);}
         }
       }
       return {treeSegs:Float32Array.from(segs),treeLobes:Float32Array.from(lobes),treeTiers:Float32Array.from(tiers),treeShadows:Float32Array.from(shadows)};

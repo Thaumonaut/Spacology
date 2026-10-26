@@ -146,11 +146,14 @@
   // the hand-picked anime greens; blossom, autumn, gold, birch and other leaves derive their bands from their palette
   // colour (cool shadow, the colour itself, a warm sunlit lift).
   const family=set=>[...set].map(m=>`m==${m}`).join('||');
+  // Soft ground the painted ground (?ground=paint) may recolour: blade grasses and loose floors, not rock, snow or water.
+  const PAINT_GROUND=new Set([...M.BLADE_GRASS,...['soil','sand','dry','moss','tundra','podzol','litter','mud','dirt','autumnlitter','sphagnum','heather','dune','junglefloor'].map(k=>M.MAT[k])]);
   const MATERIALS=`bool isLeaf(int m){return ${family(M.LEAVES)}||${family(M.NEEDLES)};}
   bool isNeedle(int m){return ${family(M.NEEDLES)};}
   bool isBark(int m){return ${family(M.BARKS)};}
   bool isBladeGrass(int m){return ${family(M.BLADE_GRASS)};}
   bool isRock(int m){return ${family(M.ROCKS)};}
+  bool isSoftGround(int m){return ${family(PAINT_GROUND)};}
   bool isWarmRock(int m){return ${family(M.WARM_ROCKS)};}
   void crownBands(int m,vec3 tint,out vec3 shadow,out vec3 mid,out vec3 high){
     if(m==${M.MAT.needle}){shadow=vec3(.13,.3,.33);mid=vec3(.22,.48,.36);high=vec3(.5,.72,.4);}
@@ -275,7 +278,8 @@
   uniform float time, detail, normalSize, groundBase, blockSize, pixelWorld, cards, grassGrow, cloudTime, placeholder, xray, yBase, quadMask;
   uniform vec2 worldOffset;
   uniform vec2 dither;
-  uniform sampler2D normalMap, canopyMap, biomeMap, waterMap, rockMap;
+  uniform sampler2D normalMap, canopyMap, biomeMap, waterMap, rockMap, groundMat;
+  uniform float paintGround;
   uniform float rockOn;
   layout(location=0) out vec4 color;
   layout(location=1) out vec4 glowOut;
@@ -288,6 +292,20 @@
   ${MATERIALS}
   ${BIOME_TINT}
   ${PEEK}
+  // Painted ground: instead of each voxel showing its own material, a fragment takes the material that covers most of
+  // the 3×3 columns around a noise-warped point (ground-top material per column, two-column halo). Lone speckles merge
+  // into their surroundings and borders between floors become wandering painted curves up to ~1 m off the voxel grid;
+  // the warp is in metres, so the shapes hold across LOD levels.
+  int paintedMat(vec2 blk,vec2 p,int own){
+    vec2 w=(vec2(meadowNoise(p*.35),meadowNoise(p*.35+17.3))-.5)*1.8+(vec2(meadowNoise(p*1.2+5.1),meadowNoise(p*1.2+11.7))-.5)*.6;
+    vec2 q=blk+w/blockSize;ivec2 c0=ivec2(floor(q));int G=int(normalSize)+4;
+    int mats[9];float wts[9];
+    for(int b=0;b<3;b++)for(int a=0;a<3;a++){ivec2 c=c0+ivec2(a-1,b-1);int k=b*3+a;
+      mats[k]=int(texelFetch(groundMat,clamp(c+2,ivec2(0),ivec2(G-1)),0).r*255.+.5);wts[k]=max(0.,1.6-length(q-vec2(c)-.5));}
+    int best=own;float bw=-1.;
+    for(int k=0;k<9;k++){if(!isSoftGround(mats[k]))continue;float sc=0.;for(int j=0;j<9;j++)if(mats[j]==mats[k])sc+=wts[j];if(sc>bw){bw=sc;best=mats[k];}}
+    return best;
+  }
   void main(){
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
     if(dither.x>0.){vec3 vc=floor(block-normal*.01);float n=fract(sin(dot(vc,vec3(12.9898,78.233,37.719)))*43758.5453);if(n>=dither.y)discard;}
@@ -330,26 +348,36 @@
     light=mix(light,form,relief);
     light*=1.+cavity*mix(.3,.65,relief);
     float grain=mat==7?0.:(hash(floor(worldPosition*4.+normal*.01))-.5)*.07*detail*visible(.25);
-    vec3 base=palette[mat];
+    // Painted ground replaces the voxel's own material on soft ground tops (see paintedMat) and drops the per-voxel grain.
+    bool painted=paintGround>.5&&normalSize>0.&&normal.y>.5&&isSoftGround(mat);int pm=painted?paintedMat(block.xz,worldPosition.xz,mat):mat;
+    if(painted||paintGround>.5&&normal.y>.5&&(mat==${M.MAT.bushLeaf}||mat==${M.MAT.fern}||mat==${M.MAT.tuft}||mat==${M.MAT.mossy}||mat==${M.MAT.vine}))grain=0.;
+    vec3 base=palette[pm];
     // Grass ground: the root colour under visible blades; once they fade with distance, the blades' average colour, so a
     // meadow keeps its tone at every zoom.
     float conifer=normalSize>0.?texture(biomeMap,block.xz/normalSize).r:0.;vec3 grassTone=forestGrass(palette[3],conifer);
-    if(isBladeGrass(mat))base=meadow(worldPosition.xz,forestGrass(palette[mat],conifer))*mix(vec3(1.08,1.1,.94),vec3(.86),grassGrow);
+    if(isBladeGrass(pm))base=meadow(worldPosition.xz,forestGrass(palette[pm],conifer))*mix(vec3(1.08,1.1,.94),vec3(.86),grassGrow);
+    // Loose floors carry two soft painted tones in patches a few metres across, in place of the voxel grain.
+    else if(painted){vec2 p=worldPosition.xz;base*=mix(.92,1.06,smoothstep(.44,.56,meadowNoise(p*.22)+(meadowNoise(p*.9+3.3)-.5)*.35));}
     // Soft meadow borders: the grass cover map, warped by noise, decides where meadow colour gives way to the ground
     // beside it, so grass creeps over dirt and sand in ragged tongues and frays to a dry fringe at its own edge.
     if(normalSize>0.&&normal.y>.5&&(isBladeGrass(mat)||mat==2||mat==4||mat==18||mat==32||mat==28||mat==29)){
       vec2 p=worldPosition.xz;float cover=texture(canopyMap,block.xz/normalSize).a,edge=meadowNoise(p*1.7)*.65+meadowNoise(p*5.3+2.1)*.35;
-      float g=smoothstep(.4,.6,cover+(edge-.5)*.6);int local=int(texelFetch(biomeMap,clamp(ivec2(block.xz),ivec2(0),ivec2(int(normalSize)-1)),0).b*255.+.5);vec3 field=meadow(p,forestGrass(palette[local],conifer))*mix(vec3(1.08,1.1,.94),vec3(.86),grassGrow);
+      float g=smoothstep(.4,.6,cover+(edge-.5)*.6);int local=int(texelFetch(biomeMap,clamp(ivec2(block.xz),ivec2(0),ivec2(int(normalSize)-1)),0).b*255.+.5);if(painted&&isBladeGrass(pm))local=pm;vec3 field=meadow(p,forestGrass(palette[local],conifer))*mix(vec3(1.08,1.1,.94),vec3(.86),grassGrow);
       base=isBladeGrass(mat)?mix(mix(field,palette[2],.3)*vec3(1.06,1.,.82),field,g):mix(base,field,g);
     }
     if(normalSize>0.){
       bool under=mat==${M.MAT.bushLeaf}||mat==${M.MAT.fern}||mat==${M.MAT.tuft}||mat==${M.MAT.mossy}||mat==${M.MAT.vine};
       float k=under?.85:isBladeGrass(mat)||isLeaf(mat)||isBark(mat)||mat==7||mat==19||mat==20?0.:.12;
-      if(k>0.)base=undergrowth(biomeMap,normalSize,block.xz,base,k,under?plantSeed(block.xz):0.);
+      // Painted ground: undergrowth takes one tone per patch, a few metres across with wandering edges (bands of a warped
+      // noise field in metres, each band its own hashed seed), instead of a hash per 3×3-block cell, which reads as a
+      // checker of squares from above. Banding keeps the seed constant inside a patch, so tone choices never ring.
+      vec2 wp=worldPosition.xz;float seed=paintGround>.5?fract(sin(floor((meadowNoise(wp*.3+(meadowNoise(wp*1.1+7.7)-.5)*.9))*5.)*12.9898+3.1)*43758.5453):plantSeed(block.xz);
+      if(k>0.)base=undergrowth(biomeMap,normalSize,block.xz,base,k,under?seed:0.);
     }
     // Moss: fuzzy, a fine stipple of lighter tips and darker hollows, a little brighter on top.
     if(mat==${M.MAT.mossy}){
-      vec3 w=worldPosition*14.;float f=hash(floor(w))*.6+hash(floor(w*2.3+.5))*.4;
+      // Painted ground: soft blotches (smooth noise on the ground plane) instead of the pixel stipple.
+      vec3 w=worldPosition*14.;float f=paintGround>.5?smoothstep(.3,.7,meadowNoise(worldPosition.xz*2.2)*.65+meadowNoise(worldPosition.xz*6.1+2.3)*.35):hash(floor(w))*.6+hash(floor(w*2.3+.5))*.4;
       base*=mix(1.,.8+.38*f+(normal.y>.5?.06:0.),visible(.1));
     }
     // Ruin masonry: dressed blocks in 0.45 m courses, each 0.8 m stone offset from the course below, with its own tone and
@@ -879,7 +907,7 @@
   layout(location=1) in vec4 prop;
   uniform vec3 origin, scale, patternOrigin, center;
   uniform vec2 halfView;
-  uniform float depth, time, pixelWorld;
+  uniform float depth, time, pixelWorld, anime;
   out vec2 uv;
   out float seed;
   flat out int flowerMat;
@@ -888,7 +916,7 @@
     vec3 root=origin+prop.xyz*scale+vec3(seed-.5,0,fract(seed*7.3)-.5)*scale.x*.6;
     vec2 at=patternOrigin.xz+prop.xz*scale.x;
     float sway=sin(time*2.1+seed*9.+dot(at,vec2(1.3,.7))*1.8)*.08+.12*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
-    float w=max(.42,localPixel(root,pixelWorld)*8.)*(.85+.3*fract(seed*3.1)),h=w*1.35;
+    float w=max(.42,localPixel(root,pixelWorld)*8.)*(.85+.3*fract(seed*3.1))*(1.+.6*anime),h=w*1.35;
     uv=corner*vec2(1.,.5)+vec2(0,.5);
     vec3 right=camRight;
     vec3 q=root+right*(corner.x*w*.5+sway*w*uv.y*uv.y)+vec3(0,uv.y*h,0)-center;
@@ -900,10 +928,61 @@
   in float seed;
   flat in int flowerMat;
   uniform vec3 palette[96];
+  uniform float anime;
   layout(location=0) out vec4 color;
   layout(location=1) out vec4 glowOut;
+  const float TAU=6.2831853;
+  float fhash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+  float segDist(vec2 p,vec2 a,vec2 b){vec2 ab=b-a;float t=clamp(dot(p-a,ab)/dot(ab,ab),0.,1.);return length(p-a-ab*t);}
+  // Anime flower heads (?flowers=anime). kind 0 cosmos: eight broad petals with a notched tip; 1 daisy: fourteen thin
+  // white petals; 2 forget-me-not: five round petals; 3 buttercup: five cupped petals. Returns the signed distance to
+  // the head's outline (negative inside) and, in shade, the painted colour.
+  float head(vec2 p,vec2 c,float R,int kind,float rot,vec3 tint,out vec3 shade){
+    vec2 d=p-c;float r=length(d),a=atan(d.y,d.x);
+    float N=kind==0?8.:kind==1?14.:5.,f=fract(a*N/TAU+rot)-.5,cp=max(0.,cos(f*3.14159));
+    float rr=kind==0?R*(.5+.5*sqrt(cp))*(1.-.12*exp(-f*f*140.)):kind==1?R*(.28+.72*pow(cp,.7)):kind==2?R*(.58+.42*sqrt(cp)):R*(.78+.22*cp);
+    float t=r/max(rr,1e-4),core=kind==1?.3:kind==2?.24:.22;
+    // Petals: deep and saturated at the base, the palette colour through the middle, pale at the tips; a soft fold
+    // between petals, a faint vein down each, sunlit tops a touch lighter and a thin rim in the petal's deeper tone.
+    vec3 deep=tint*vec3(.78,.66,.8),tip=mix(tint,vec3(1.,.98,.95),.42);
+    vec3 col=mix(mix(deep,tint,smoothstep(.28,.48,t)),tip,smoothstep(.72,.9,t));
+    col*=1.-.2*smoothstep(.36,.5,abs(f))*step(core*1.1,r/R);
+    col+=.06*(1.-smoothstep(0.,.05,abs(f)))*t;
+    col*=1.+.14*clamp(d.y/R,-1.,1.);
+    float edge=r-rr;col=mix(col,deep*.72,smoothstep(-.07*R,0.,edge));
+    // Centre: a gold disc with a darker ring and dotted pollen; forget-me-nots get a small pale eye.
+    if(r<R*core){
+      vec3 gold=kind==2?vec3(1.,.92,.62):vec3(1.,.76,.22);float q=r/(R*core);
+      float dots=step(.62,fhash(floor(d/R*14.)+c*7.))*step(.25,q);
+      col=mix(gold*(1.1-.25*dots),gold*vec3(.78,.5,.2),smoothstep(.7,.95,q));
+    }
+    shade=col;return edge;
+  }
   void main(){
     glowOut=vec4(0);
+    if(anime>.5){
+      // One stem with up to three heads at different heights; species from the material, varied by the seed.
+      vec2 p=vec2(uv.x,(uv.y-.68)*1.74);
+      vec3 tint=palette[flowerMat];
+      int kind=flowerMat==${M.MAT.flowerViolet}||flowerMat==${M.MAT.glowFlower}?2:flowerMat==${M.MAT.flowerYellow}?(seed<.5?3:0):seed<.35?1:0;
+      if(kind==1)tint=vec3(.97,.96,.92);
+      int n=kind==2?3:1+int(fract(seed*5.3)*2.99);
+      vec2 base=vec2(0,-1.15);
+      vec2 cs[3]=vec2[3](vec2(.06*sin(seed*20.),.02),vec2(-.5,-.36),vec2(.48,-.58));
+      float rs[3]=float[3](kind==2?.32:.44,kind==2?.28:.3,kind==2?.26:.26);
+      vec3 c=vec3(0);float best=1e9;bool hit=false;
+      for(int k=0;k<3;k++){
+        if(k>=n)break;vec3 sh;float e=head(p,cs[k],rs[k],kind,fract(seed*(3.7+float(k))),tint*(1.-.06*float(k)),sh);
+        if(e<0.&&!hit){c=sh;hit=true;}
+      }
+      if(!hit){
+        float sd=1e9;for(int k=0;k<3;k++){if(k>=n)break;sd=min(sd,segDist(p,base,cs[k]+vec2(0,-rs[k]*.3)));}
+        float lf=abs(p.x-(p.y+1.05)*.75-.04)-.09*(1.-smoothstep(-1.15,-.55,p.y))*smoothstep(-1.2,-1.05,p.y);
+        if(sd>.045&&!(lf<0.&&p.y<-.6))discard;
+        vec3 green=vec3(.26,.5,.24);c=green*(.75+.35*uv.y);
+      }
+      color=vec4(c,0.);return;
+    }
     // Head centred near the top; petals as five round lobes; stem a thin line below.
     // uv.x spans the card width (-1..1), uv.y its height (0..1); one unit of y is about 1.74 of x on screen.
     vec2 p=vec2(uv.x,(uv.y-.68)*1.74);float r=length(p),a=atan(p.y,p.x)+seed*6.28;
@@ -1566,7 +1645,7 @@ tintBase=palette[mat];crownKey=vec4(0);
   const SUN=(()=>{const l=Math.hypot(.5,1,.4);return [-.5/l,1/l,.4/l];})(),SHADOW_SIZE=2048;
   // Sun-view axes as mat3 columns: right, up, and forward (away from the sun).
   const LIGHT_AXES=(()=>{const f=SUN.map(v=>-v),r=[f[2],0,-f[0]],rl=Math.hypot(...r),R=r.map(v=>v/rl),U=[R[1]*f[2]-R[2]*f[1],R[2]*f[0]-R[0]*f[2],R[0]*f[1]-R[1]*f[0]];return [...R,...U,...f];})();
-  const DRAW_UNIFORMS=['smoothQ','rockMap','rockOn','quadMask','origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
+  const DRAW_UNIFORMS=['smoothQ','rockMap','rockOn','quadMask','origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','groundMat','paintGround','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
   const skyFragment=`#version 300 es
   precision highp float;
   uniform vec3 eye,camForward,camRight,camUp,skyHorizon,skyZenith;
@@ -1658,11 +1737,15 @@ tintBase=palette[mat];crownKey=vec4(0);
       ({program:this.fernProgram,u:this.fe}=link(gl,fernVertex,fernFragment,['origin','scale','patternOrigin','center','halfView','depth','time','palette','biomeMap','biomeSize']));
       this.fernGeom=makeFern();this.fernBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.fernBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.fernGeom,gl.STATIC_DRAW);
       for(const [program,u] of [[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.leafProgram,this.lu]]){gl.useProgram(program);gl.uniform1i(u.biomeMap,3);}
-      ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette']));
+      ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette','anime']));
+      // ?flowers=anime: species flower heads in clusters (A/B against the five-lobe flowers).
+      gl.useProgram(this.flowerProgram);gl.uniform1f(this.fu.anime,new URLSearchParams(root.location?.search||'').get('flowers')==='anime'?1:0);
       ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','sceneGlow','texel','depthRange','threshold','ink','width']));
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);gl.uniform1i(this.pu.sceneGlow,7);this.postVao=gl.createVertexArray();
       // Outlines on by default; ?outlines=0 turns them off for comparison.
       this.outlines=new URLSearchParams(root.location?.search||'').get('outlines')!=='0';
+      // ?ground=paint: painted ground (A/B against the per-voxel ground colours).
+      this.paintGround=new URLSearchParams(root.location?.search||'').get('ground')==='paint';
       ({program:this.skyProgram,u:this.skyU}=link(gl,postVertex,skyFragment,['resolution','tanFov','worldOffset','cloudTime','cloudFade','cloudY']));
       this.cardBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,1,1,-1,-1,1,1,-1,1]),gl.STATIC_DRAW);
       this.tuft=makeTuft();this.tuftBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.tuftBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.tuft,gl.STATIC_DRAW);
@@ -1673,7 +1756,7 @@ tintBase=palette[mat];crownKey=vec4(0);
       const paletteValues=[...M.COLORS].flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255));
       for(const [program,u] of [[this.grassProgram,this.gu],[this.leafProgram,this.lu],[this.flowerProgram,this.fu],[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.mushroomProgram,this.mu],[this.frondProgram,this.ru],[this.skirtProgram,this.ku2],[this.tubeProgram,this.tu],[this.lobeProgram,this.lou]]){gl.useProgram(program);gl.uniform3fv(u.palette,paletteValues);}
       gl.useProgram(this.program);
-      gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform1i(this.u.waterMap,6);gl.uniform1i(this.u.rockMap,8);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
+      gl.uniform1i(this.u.normalMap,0);gl.uniform1i(this.u.shadowMap,1);gl.uniform1i(this.u.canopyMap,2);gl.uniform1i(this.u.biomeMap,3);gl.uniform1i(this.u.waterMap,6);gl.uniform1i(this.u.rockMap,8);gl.uniform1i(this.u.groundMat,9);gl.uniform3fv(this.u.palette,colors.flatMap(c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16)/255)));
       this.cube=this.upload(makeCube());this.draws=0;this.triangles=0;this.pixelRatio=1;this.lost=false;this.queue=[];this.dithering=[0,0];this.casting=false;this.shadow=null;
       canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.lost=true;});
       gl.enable(gl.DEPTH_TEST);gl.enable(gl.CULL_FACE);gl.clearColor(.77,.81,.76,1);
@@ -1734,6 +1817,12 @@ tintBase=palette[mat];crownKey=vec4(0);
         out.biomeMap=gl.createTexture();out.bytes+=mesh.biome.byteLength;gl.bindTexture(gl.TEXTURE_2D,out.biomeMap);
         gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,mesh.normalSize,mesh.normalSize,0,gl.RGBA,gl.UNSIGNED_BYTE,mesh.biome);
         for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.LINEAR],[gl.TEXTURE_MAG_FILTER,gl.LINEAR],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
+      }
+      if(mesh.groundMat&&this.paintGround){
+        // Ground-top material per column with a two-column halo, read texel by texel.
+        const G=mesh.normalSize+4;out.groundMatTex=gl.createTexture();out.bytes+=mesh.groundMat.byteLength;gl.bindTexture(gl.TEXTURE_2D,out.groundMatTex);
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);gl.texImage2D(gl.TEXTURE_2D,0,gl.R8,G,G,0,gl.RED,gl.UNSIGNED_BYTE,mesh.groundMat);gl.pixelStorei(gl.UNPACK_ALIGNMENT,4);
+        for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);
       }
       if(mesh.canopy){
         out.canopyMap=gl.createTexture();out.bytes+=mesh.canopy.byteLength;gl.bindTexture(gl.TEXTURE_2D,out.canopyMap);
@@ -1839,7 +1928,7 @@ tintBase=palette[mat];crownKey=vec4(0);
     // Quarters of the next drawn node to skip (finished finer nodes cover them); a masked stand-in draws ground only.
     mask(bits){this.maskBits=bits||0;}
     disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);if(g.smooth.indexBuffer)gl.deleteBuffer(g.smooth.indexBuffer);gl.deleteVertexArray(g.smooth.vao);}}
-    dispose(mesh){for(const k of ['treeSegs','treeLimbs','treeLobes','treeTiers','treeShadows'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.rockMap)this.gl.deleteTexture(mesh.rockMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
+    dispose(mesh){for(const k of ['treeSegs','treeLimbs','treeLobes','treeTiers','treeShadows'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.rockMap)this.gl.deleteTexture(mesh.rockMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.groundMatTex)this.gl.deleteTexture(mesh.groundMatTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
     // Biomes around the view (names; repeats weight a biome); the atmosphere eases toward their average.
     setAtmosphere(biomes,snap=false){
@@ -1878,7 +1967,7 @@ tintBase=palette[mat];crownKey=vec4(0);
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){
       const mask=this.maskBits||0;if(mask)mesh={...mesh,grass:null,leaves:null,flowers:null,stalks:null,ferns:null,mushrooms:null,fronds:null,skirts:null,treeSegs:null,treeLimbs:null,treeLobes:null,treeTiers:null};
       this.queue.push({mesh,origin,scale,material,yaw,pitch,offset,patternOrigin,dither:this.dithering,flat:!!this.flat,caster:this.casting,mask});}
-    replay(u,d){const gl=this.gl,m=d.mesh,yb=this.yBase||0;gl.uniform1f(u.quadMask,d.mask||0);gl.uniform3f(u.origin,d.origin[0],d.origin[1]-yb,d.origin[2]);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}gl.uniform1f(u.rockOn,m.rockMap?1:0);if(m.rockMap){gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,m.rockMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}
+    replay(u,d){const gl=this.gl,m=d.mesh,yb=this.yBase||0;gl.uniform1f(u.quadMask,d.mask||0);gl.uniform3f(u.origin,d.origin[0],d.origin[1]-yb,d.origin[2]);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}gl.uniform1f(u.rockOn,m.rockMap?1:0);if(m.rockMap){gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,m.rockMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}if(m.groundMatTex){gl.activeTexture(gl.TEXTURE9);gl.bindTexture(gl.TEXTURE_2D,m.groundMatTex);gl.activeTexture(gl.TEXTURE0);}}gl.uniform1f(u.paintGround,m.groundMatTex?1:0);
       if(!m.slices){this.drawGeometry(u,m);return;}
       // Vertical slices: each draws at its own origin (y in blocks), with the pattern frame and the hillshade's ground base
       // moved by the same amount so shading stays in absolute world height.
