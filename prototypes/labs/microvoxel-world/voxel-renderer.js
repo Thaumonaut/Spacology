@@ -901,9 +901,9 @@
   }`;
   // Flower props: a camera-facing card rising from the flower's root, drawn as a thin stem and a five-petal head in the
   // flower's palette colour with a warm centre; it sways with the grass wind.
+  const FLOWER_CLUSTER=5;
   const flowerVertex=`#version 300 es
   precision highp float;
-  layout(location=0) in vec2 corner;
   layout(location=1) in vec4 prop;
   uniform vec3 origin, scale, patternOrigin, center;
   uniform vec2 halfView;
@@ -914,24 +914,49 @@
   out float seed;
   out vec3 lightCoord;
   out vec2 cloudAt;
-  flat out vec3 cardRight, cardFwd;
-  flat out float cardPx;
+  flat out vec3 cardRight, cardFwd, headN;
+  flat out float cardPx, part;
   flat out int flowerMat;
+  // Card corners from the vertex index (the same order as the shared card buffer); anime flowers draw 12 vertices per
+  // instance, the first six a stem and the next six the head.
+  const vec2 CORNERS[6]=vec2[6](vec2(-1,-1),vec2(1,-1),vec2(1,1),vec2(-1,-1),vec2(1,1),vec2(-1,1));
+  // Anime flower stems are STEM_SEGS stacked quads so they can bend; the head quad follows them.
+  const int STEM_SEGS=4,STEM_VERTS=STEM_SEGS*6;
   void main(){
+    vec2 corner=CORNERS[gl_VertexID%6];part=anime>.5?float(gl_VertexID>=STEM_VERTS):0.;headN=vec3(0,1,0);
     seed=fract(prop.w);flowerMat=int(prop.w);
     vec3 root=origin+prop.xyz*scale+vec3(seed-.5,0,fract(seed*7.3)-.5)*scale.x*.6;
     vec2 at=patternOrigin.xz+prop.xz*scale.x;
     float sway=sin(time*2.1+seed*9.+dot(at,vec2(1.3,.7))*1.8)*.08+.12*pow(.5+.5*sin(dot(at,vec2(.92,.39))*.32-time*1.15),3.);
     float w=max(.42,localPixel(root,pixelWorld)*8.)*(.85+.3*fract(seed*3.1))*(1.+.6*anime),h=w*1.35;cardPx=w/max(localPixel(root,pixelWorld),1e-5);
     if(anime>.5){
-      // Anime flowers lie flat on the grass tips, 50–65 cm up, as a horizontal quad tilted ~20° toward the viewer
-      // so they stay readable; far away they foreshorten into ellipses like real meadow flowers. No stems.
-      vec3 fwd=vec3(normalize((eye-root).xz+vec2(1e-4)),0).xzy,r=normalize(cross(vec3(0,1,0),fwd)),g=normalize(fwd*cos(.35)-vec3(0,1,0)*sin(.35));
-      float S=max(.26,localPixel(root,pixelWorld)*5.)*(.8+.4*fract(seed*3.1)),hgt=.5+.15*fract(seed*5.7);
-      uv=corner;cardRight=r;cardFwd=g;cardPx=2.*S/max(localPixel(root,pixelWorld),1e-5);
-      vec3 q=root+vec3(0,hgt,0)+r*(corner.x*S+sway*.25)+g*corner.y*S-center;
-      vec3 l=(q+center-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;cloudAt=root.xz;
-      gl_Position=toClip(q+center);return;
+      // Anime flowers, after the references: each flower spot is a cluster of FLOWER_CLUSTER flowers of one kind
+      // (consecutive instances share a spot through the attribute divisor), scattered within ~60 cm, so meadows read
+      // as drifts. Each is a small head on a hair-thin pale stem, 32–48 cm tall, level with most grass tips. Heads face
+      // roughly toward the viewer and up at the sky, each turned and tipped its own way (±35° sideways, 15–45° up,
+      // any roll), so they read as open flowers without facing in unison. Small, 5–9 cm across, never under ~2 pixels.
+      float sub=float(gl_InstanceID%${FLOWER_CLUSTER});seed=fract(seed+sub*.618034);
+      float h1=fract(seed*13.37),h2=fract(seed*29.71),h3=fract(seed*5.7),h4=fract(seed*47.1);
+      float ang=h4*6.2832,rad=sub<.5?0.:.15+.45*sqrt(fract(seed*61.7));root+=vec3(cos(ang),0,sin(ang))*rad;
+      float hgt=.32+.16*h3;
+      vec2 toEye=normalize((eye-root).xz+vec2(1e-4));float yaw=atan(toEye.y,toEye.x)+(h1-.5)*1.2,up=.26+.52*h2;
+      vec3 n=normalize(vec3(cos(yaw)*cos(up),sin(up),sin(yaw)*cos(up))),ax0=normalize(cross(vec3(0,1,0),n)),bx0=cross(n,ax0);
+      float roll=fract(seed*83.1)*6.2832;vec3 ax=ax0*cos(roll)+bx0*sin(roll),bx=cross(n,ax);
+      float px=localPixel(root,pixelWorld),S=max(.025+.02*fract(seed*3.1),px*2.);
+      // The stem rises straight from the root and bends over a quadratic curve: each leans 5–14 cm its own way, plus
+      // the wind sway, so the head ends off to one side and nods toward the lean.
+      float la=fract(seed*71.3)*6.2832;vec3 lean=vec3(cos(la),0,sin(la))*(.05+.09*fract(seed*19.9))+vec3(.6,0,.3)*sway*.35*hgt;
+      vec3 headC=root+vec3(0,hgt,0)+lean;
+      n=normalize(n+lean*2.2);ax=normalize(ax-n*dot(ax,n));bx=cross(n,ax);
+      headN=n;cardRight=ax;cardFwd=-bx;cardPx=2.*S/max(px,1e-5);uv=corner;
+      vec3 q;
+      if(part<.5){
+        float t=(float(gl_VertexID/6)+(corner.y*.5+.5))/float(STEM_SEGS),w=max(.0035,px*.55);
+        vec3 at=root+vec3(0,hgt*t,0)+lean*t*t,tangent=vec3(0,hgt,0)+lean*2.*t,side=normalize(cross(tangent,eye-at)+vec3(1e-5));
+        q=at+side*corner.x*w;uv=vec2(corner.x,t);
+      }else q=headC+(ax*corner.x+bx*corner.y)*S;
+      vec3 l=(q-lightAt)*lightAxes/lightHalf;lightCoord=l*.5+.5;cloudAt=root.xz;
+      gl_Position=toClip(q);return;
     }
     uv=corner*vec2(1.,.5)+vec2(0,.5);cardFwd=vec3(0);
     vec3 right=camRight;
@@ -945,11 +970,11 @@
   in float seed;
   in vec3 lightCoord;
   in vec2 cloudAt;
-  flat in vec3 cardRight, cardFwd;
-  flat in float cardPx;
+  flat in vec3 cardRight, cardFwd, headN;
+  flat in float cardPx, part;
   flat in int flowerMat;
   uniform vec3 palette[96];
-  uniform float anime, shadowOn, shadowTexel, blockSize, cloudTime;
+  uniform float anime, flowerStyle, shadowOn, shadowTexel, blockSize, cloudTime;
   uniform vec3 lightHalf;
   uniform vec2 worldOffset;
   uniform highp sampler2DShadow shadowMap;
@@ -990,6 +1015,37 @@
   void main(){
     glowOut=vec4(0);
     if(anime>.5){
+      // Stem: hair-thin and pale.
+      if(part<.5){color=vec4(mix(vec3(.42,.62,.32),vec3(.64,.82,.46),uv.y)*softLight(vec3(0,1,0)),0.);glowOut=vec4(0);return;}
+      // Head style (?flowerStyle): 0 pink star (five pointed petals, glowing magenta heart), 1 white lily (six pointed
+      // petals, soft grey petal shading, gold centre), 2 cosmos, 3 painted blobs (below), 4 mixed (each cluster picks 0
+      // or 1). Bright and high-key like the references, lightly lit, with a touch of bloom.
+      int st=int(flowerStyle+.5);if(st==4)st=fract(floor(seed*5.)*.37+seed)<.5?0:1;
+      if(st!=3){
+        vec2 p=uv;float r=length(p),a=atan(p.y,p.x);
+        float N=st==0?5.:st==1?6.:8.,f=fract(a*N/TAU)-.5,tri=max(0.,1.-abs(f)*2.);
+        float rr=st==0?.3+.7*pow(tri,.75):st==1?.22+.78*pow(tri,.95):(.52+.48*sqrt(max(0.,cos(f*3.14159))))*(1.-.14*exp(-f*f*140.));
+        if(r>rr)discard;
+        float t=r/rr;bool yellow=flowerMat==${M.MAT.flowerYellow};
+        vec3 col,heart;
+        if(st==0){
+          vec3 tip=yellow?vec3(1.,.97,.7):vec3(1.,.88,.97),mid=yellow?vec3(1.,.86,.3):flowerMat==${M.MAT.flowerViolet}?vec3(.84,.7,1.):vec3(1.,.6,.9);
+          heart=yellow?vec3(1.,.62,.14):flowerMat==${M.MAT.flowerViolet}?vec3(.62,.4,.98):vec3(.96,.3,.78);
+          col=mix(mix(heart,mid,smoothstep(.0,.45,r)),tip,smoothstep(.5,1.,t));
+        }else if(st==1){
+          col=yellow?vec3(1.,.93,.6):vec3(.99,.99,.97);
+          // Soft grey shading down each side of a petal from its base, a lighter midrib.
+          col*=1.-.16*(1.-smoothstep(0.,.7,t))-.1*smoothstep(.15,.45,abs(f))*(1.-t);
+          heart=vec3(1.,.82,.2);if(r<.2)col=mix(heart,vec3(.96,.64,.12),smoothstep(.08,.2,r));
+        }else{
+          vec3 tint=yellow?vec3(1.,.88,.42):flowerMat==${M.MAT.flowerViolet}?vec3(.78,.7,1.):vec3(1.,.72,.86);
+          col=mix(tint*vec3(.92,.86,.92),mix(tint,vec3(1),.35),smoothstep(.2,.95,t));if(r<.22)col=mix(vec3(1.,.86,.36),vec3(.95,.62,.2),r/.22);
+        }
+        if(!gl_FrontFacing)col=mix(col,vec3(.86,.92,.8),.2)*.92;
+        vec3 nrm=normalize(headN+(cardRight*p.x-cardFwd*p.y)*.3*t);
+        color=vec4(col*mix(.92,1.1,dot(nrm,SUN)*.5+.5)*mix(.86,1.,sunlight()*clouds(vec3(cloudAt.x,0,cloudAt.y))),0.);
+        glowOut=vec4(.12*(1.-t*.6),0,0,1);return;
+      }
       // Up to three flat heads lying in the grass, painted as blobs of colour rather than drawn petals: each head is a
       // ring of round dabs (5, or 8 for daisies) with wobbly edges around a gold centre dab, every dab one flat tone:
       // light on the side facing the sun, deep on the far side, mid between, nudged per dab so it reads hand-painted.
@@ -1852,9 +1908,11 @@ tintBase=palette[mat];crownKey=vec4(0);
       ({program:this.fernProgram,u:this.fe}=link(gl,fernVertex,fernFragment,['origin','scale','patternOrigin','center','halfView','depth','time','palette','biomeMap','biomeSize']));
       this.fernGeom=makeFern();this.fernBuffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.fernBuffer);gl.bufferData(gl.ARRAY_BUFFER,this.fernGeom,gl.STATIC_DRAW);
       for(const [program,u] of [[this.stalkProgram,this.su],[this.fernProgram,this.fe],[this.leafProgram,this.lu]]){gl.useProgram(program);gl.uniform1i(u.biomeMap,3);}
-      ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette','anime','lightAt','lightHalf','lightAxes','shadowOn','shadowTexel','blockSize','shadowMap','cloudTime','worldOffset']));
+      ({program:this.flowerProgram,u:this.fu}=link(gl,flowerVertex,flowerFragment,['origin','scale','patternOrigin','center','halfView','depth','time','pixelWorld','palette','anime','flowerStyle','lightAt','lightHalf','lightAxes','shadowOn','shadowTexel','blockSize','shadowMap','cloudTime','worldOffset']));
       // ?flowers=anime: species flower heads in clusters (A/B against the five-lobe flowers).
-      gl.useProgram(this.flowerProgram);gl.uniform1i(this.fu.shadowMap,1);gl.uniform1f(this.fu.blockSize,.3);gl.uniform1f(this.fu.anime,new URLSearchParams(root.location?.search||'').get('flowers')==='anime'?1:0);
+      gl.useProgram(this.flowerProgram);gl.uniform1i(this.fu.shadowMap,1);gl.uniform1f(this.fu.blockSize,.3);gl.uniform1f(this.fu.anime,(this.animeFlowers=new URLSearchParams(root.location?.search||'').get('flowers')==='anime')?1:0);
+      // ?flowerStyle= picks the anime flower head: mixed (default), soft, daffodil, cosmos or painted.
+      gl.uniform1f(this.fu.flowerStyle,Math.max(0,['star','lily','cosmos','painted','mixed'].indexOf(new URLSearchParams(root.location?.search||'').get('flowerStyle')||'mixed')));
       ({program:this.postProgram,u:this.pu}=link(gl,postVertex,postFragment,['sceneColor','sceneDepth','sceneGlow','texel','depthRange','threshold','ink','width']));
       gl.useProgram(this.postProgram);gl.uniform1i(this.pu.sceneColor,4);gl.uniform1i(this.pu.sceneDepth,5);gl.uniform1i(this.pu.sceneGlow,7);this.postVao=gl.createVertexArray();
       // Outlines on by default; ?outlines=0 turns them off for comparison.
@@ -1964,7 +2022,7 @@ tintBase=palette[mat];crownKey=vec4(0);
       if(mesh.flowers?.length){
         const fvao=gl.createVertexArray(),fbuf=gl.createBuffer();gl.bindVertexArray(fvao);
         gl.bindBuffer(gl.ARRAY_BUFFER,this.cardBuffer);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
-        gl.bindBuffer(gl.ARRAY_BUFFER,fbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.flowers,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,1);
+        gl.bindBuffer(gl.ARRAY_BUFFER,fbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.flowers,gl.STATIC_DRAW);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,4,gl.FLOAT,false,16,0);gl.vertexAttribDivisor(1,this.animeFlowers?FLOWER_CLUSTER:1);
         out.flowers={vao:fvao,buffer:fbuf,count:mesh.flowers.length/4};out.bytes+=mesh.flowers.byteLength;
       }
       // Object trees: instance buffers over the shared tube, lobe and tier meshes; their tops raise the tile's top (in
@@ -2282,7 +2340,7 @@ tintBase=palette[mat];crownKey=vec4(0);
         gl.uniform3f(g.center,c.x,cy,c.z);gl.uniform2f(g.halfView,c.span/2,c.span/2/this.aspect);gl.uniform1f(g.depth,Math.max(600,c.span*2.5/Math.min(1,this.aspect)));gl.uniform1f(g.time,this.time);gl.uniform1f(g.pixelWorld,c.span/this.width);
         // Sun, tree shadow and cloud shadow, as for the leaf cards (used by ?flowers=anime).
         gl.uniform1f(g.cloudTime,this.time);gl.uniform2f(g.worldOffset,...off);gl.uniform1f(g.shadowOn,shadows?1:0);if(shadows){gl.uniform3fv(g.lightAt,lightAt);gl.uniform3fv(g.lightHalf,box.half);gl.uniformMatrix3fv(g.lightAxes,false,LIGHT_AXES);gl.uniform1f(g.shadowTexel,box.texel);}
-        for(const d of this.queue){const t=d.mesh.flowers;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,6,t.count);this.draws++;this.triangles+=t.count*2;}
+        for(const d of this.queue){const t=d.mesh.flowers;if(!t||!this.onScreen(d))continue;gl.uniform3fv(g.origin,propOrigin(d));gl.uniform3fv(g.scale,d.scale);gl.uniform3fv(g.patternOrigin,d.patternOrigin);gl.bindVertexArray(t.vao);gl.drawArraysInstanced(gl.TRIANGLES,0,this.animeFlowers?30:6,t.count*(this.animeFlowers?FLOWER_CLUSTER:1));this.draws++;this.triangles+=t.count*(this.animeFlowers?10*FLOWER_CLUSTER:2);}
         gl.enable(gl.CULL_FACE);
       }
       if(grow>0&&this.queue.some(d=>d.mesh.leaves)){
