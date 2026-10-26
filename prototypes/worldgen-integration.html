@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#18332e">
+  <link rel="icon" href="data:,">
+  <title>Worldgen field board · Spacology</title>
+  <style>
+    :root {
+      --ink:#18332e;
+      --paper:#e9e6d8;
+      --cream:#f6f2e7;
+      --line:#b8c0ad;
+      --rust:#b85e3e;
+      --gold:#edbe6f;
+      --muted:#566c63;
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; color:var(--ink); background:var(--paper); font-family:"Trebuchet MS",sans-serif; }
+    body::before { content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.24;
+      background:repeating-linear-gradient(120deg,transparent 0,transparent 22px,#d4d8c7 23px,#d4d8c7 24px); }
+    a { color:inherit; }
+    a:focus-visible { outline:3px solid var(--rust); outline-offset:4px; }
+    .top { display:flex; align-items:center; justify-content:space-between; padding:18px max(24px,calc((100vw - 1320px)/2));
+      color:var(--cream); background:var(--ink); border-bottom:3px solid var(--gold); }
+    .brand { text-decoration:none; display:flex; align-items:center; gap:13px; font-size:.72rem; letter-spacing:.24em; font-weight:bold; }
+    .brand b { display:grid; place-items:center; width:32px; height:32px; border-radius:50%; font:italic bold 28px Georgia,serif; letter-spacing:0; color:var(--gold); }
+    .top small, .eyebrow, .index, .tag, .footnote { font-size:.68rem; font-weight:bold; letter-spacing:.17em; text-transform:uppercase; }
+    .top small { color:#bbd0bd; }
+    main { max-width:1320px; margin:auto; padding:0 24px 96px; }
+    .hero { position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(200px,270px); gap:50px;
+      padding:88px 0 82px; border-bottom:1px solid var(--ink); }
+    .eyebrow { color:var(--rust); }
+    h1,h2,h3,p { margin-top:0; }
+    h1,h2,h3 { font-family:Georgia,"Palatino Linotype",serif; font-weight:normal; }
+    h1 { max-width:940px; margin:22px 0 26px; font-size:clamp(3.7rem,8.5vw,8.4rem); line-height:.88; letter-spacing:-.065em; }
+    h1 em { font-weight:normal; color:var(--rust); }
+    .intro { max-width:640px; font-size:1.05rem; line-height:1.65; }
+    .hero aside { border-left:1px solid var(--line); padding:14px 0 0 28px; align-self:end; }
+    .hero aside strong { display:block; font:3.4rem Georgia,serif; line-height:1; color:var(--rust); }
+    .hero aside p { color:var(--muted); line-height:1.5; margin:10px 0 24px; }
+    .section-head { display:flex; justify-content:space-between; align-items:end; gap:20px; padding:38px 0 22px; }
+    .section-head h2 { margin:0; font-size:clamp(2.1rem,4vw,3.7rem); letter-spacing:-.04em; }
+    .section-head p { max-width:280px; margin:0; color:var(--muted); line-height:1.5; font-size:.83rem; }
+    .studies { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+    .study { display:flex; flex-direction:column; min-width:0; background:var(--cream); border:1px solid var(--ink); }
+    .study:first-child { grid-column:1/-1; display:grid; grid-template-columns:1.25fr .75fr; }
+    .capture { position:relative; min-height:250px; margin:0; overflow:hidden; background:#76927a; }
+    .study:first-child .capture { min-height:430px; }
+    .capture img { display:block; width:100%; height:100%; position:absolute; inset:0; object-fit:cover; transition:transform .7s ease; }
+    .study:hover .capture img { transform:scale(1.035); }
+    .capture figcaption { position:absolute; bottom:14px; left:14px; padding:8px 10px; background:var(--ink); color:var(--cream);
+      font-size:.65rem; letter-spacing:.14em; text-transform:uppercase; }
+    .study-body { display:flex; flex:1; flex-direction:column; padding:28px 30px 25px; }
+    .study .index { display:flex; align-items:center; gap:13px; color:var(--rust); }
+    .study .index::after { content:""; flex:1; height:1px; background:var(--line); }
+    .study h3 { margin:30px 0 14px; font-size:clamp(2rem,3vw,3.1rem); line-height:1; letter-spacing:-.045em; }
+    .study p { color:#40584f; line-height:1.6; max-width:42ch; }
+    .tags { display:flex; gap:7px; flex-wrap:wrap; margin:10px 0 28px; }
+    .tag { padding:7px 9px; border:1px solid var(--line); color:var(--muted); letter-spacing:.08em; }
+    .links { display:flex; align-items:center; flex-wrap:wrap; gap:9px 18px; margin-top:auto; }
+    .launch { display:inline-flex; justify-content:space-between; gap:28px; min-width:190px; padding:13px 16px;
+      color:var(--cream); background:var(--ink); text-decoration:none; font-size:.84rem; font-weight:bold; transition:background .2s; }
+    .launch:hover { background:var(--rust); }
+    .minor { font-size:.82rem; text-underline-offset:4px; }
+    .labs { display:grid; grid-template-columns:1fr 1fr; gap:20px; padding-top:22px; }
+    .lab { display:flex; align-items:baseline; gap:18px; padding:24px 0; border-top:1px solid var(--ink); text-decoration:none; }
+    .lab .index { color:var(--rust); min-width:34px; }
+    .lab span { flex:1; font:1.65rem Georgia,serif; letter-spacing:-.035em; }
+    .lab b { color:var(--rust); font-size:1.3rem; }
+    .lab:hover span { text-decoration:underline; text-underline-offset:5px; }
+    .record { display:grid; grid-template-columns:1fr 2fr; gap:30px; margin-top:65px; padding:28px 0; border-top:3px solid var(--ink); }
+    .record h2 { font-size:2.3rem; margin:0; }
+    .record p { max-width:660px; color:var(--muted); line-height:1.6; }
+    .record code { color:var(--ink); font-size:.9em; }
+    .footnote { padding-top:30px; border-top:1px solid var(--line); color:var(--muted); line-height:1.8; }
+    @media(max-width:760px) {
+      .top { padding:14px 20px; } .top small { display:none; }
+      main { padding:0 18px 65px; }
+      .hero { grid-template-columns:1fr; gap:8px; padding:60px 0 44px; }
+      .hero aside { display:flex; gap:16px; align-items:center; padding:10px 0 0; border:0; }
+      .hero aside p { margin:0; }
+      .section-head { display:block; } .section-head p { margin-top:10px; }
+      .studies,.labs,.record { grid-template-columns:1fr; }
+      .study:first-child { display:flex; grid-column:auto; }
+      .capture,.study:first-child .capture { min-height:240px; }
+      .study-body { padding:24px; }
+      .study h3 { margin-top:22px; }
+      .record { gap:10px; margin-top:45px; }
+    }
+    @media(prefers-reduced-motion:reduce) {
+      html { scroll-behavior:auto; }
+      .capture img,.launch { transition:none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="minigames.html"><b>S</b> SPACOLOGY</a>
+    <small>World lab / integration field board</small>
+  </header>
+  <main>
+    <section class="hero">
+      <div>
+        <span class="eyebrow">Field board / local integration branch</span>
+        <h1>One branch.<br><em>Many worlds.</em></h1>
+        <p class="intro">Terrain, water, vegetation, atmosphere, ruins and city studies are gathered here. The current world and two incompatible visual experiments can all be opened without changing branches.</p>
+      </div>
+      <aside><strong>03</strong><p>Runnable world views.<br>One shared source history.</p></aside>
+    </section>
+
+    <div class="section-head">
+      <h2>Choose a landscape</h2>
+      <p>Images are recorded captures, not live renders. Each view opens its own world and Performance panel.</p>
+    </div>
+    <section class="studies" aria-label="World variants">
+      <article class="study">
+        <figure class="capture">
+          <img src="../artifacts/voxel-rendering/walk-ground.png" alt="Voxel meadow with wildflowers, trees and distant cloud shadows" loading="eager">
+          <figcaption>01 / Recorded capture</figcaption>
+        </figure>
+        <div class="study-body">
+          <span class="index">Integrated default</span>
+          <h3>The ferrite catchment</h3>
+          <p>Explore the combined terrain, drainage, mountain forms, vegetation and rendering work. Switch ground, grass and distant-tree looks in View; use Performance for live timings.</p>
+          <div class="tags"><span class="tag">Streamed LOD</span><span class="tag">Walk + map</span><span class="tag">Live metrics</span></div>
+          <div class="links">
+            <a class="launch" href="microvoxel-world.html?extent=infinite&amp;seed=2718">Open world <span aria-hidden="true">↗</span></a>
+            <a class="minor" href="microvoxel-world.html?gallery=1&amp;walk=1">Specimen gallery</a>
+          </div>
+        </div>
+      </article>
+      <article class="study">
+        <figure class="capture">
+          <img src="../artifacts/anime-together/north-walk-a.png" alt="Painterly voxel grass and flowers stretching toward trees beneath a clouded sky" loading="lazy">
+          <figcaption>02 / Recorded capture</figcaption>
+        </figure>
+        <div class="study-body">
+          <span class="index">Anime + crystal experiment</span>
+          <h3>Painted distance</h3>
+          <p>A standalone copy of the anime terrain branch, including its crystal material experiment. Its model and renderer travel together.</p>
+          <div class="tags"><span class="tag">Visual study</span><span class="tag">Standalone</span></div>
+          <div class="links"><a class="launch" href="../artifacts/integration-variants/devin-1792601000-microvoxel-world/standalone.html">Open variant <span aria-hidden="true">↗</span></a></div>
+        </div>
+      </article>
+      <article class="study">
+        <figure class="capture">
+          <img src="../artifacts/ruins-anime/castle-island-1-span234.png" alt="Stone castle with peaked towers on an island linked to shore by a bridge" loading="lazy">
+          <figcaption>03 / Recorded capture</figcaption>
+        </figure>
+        <div class="study-body">
+          <span class="index">Ruins + castles experiment</span>
+          <h3>Built into the wild</h3>
+          <p>A standalone copy of the structures branch: ruined settlements, crag castles and stonework that sits within its own landscape generation. Open beside an island castle; zoom out for the full site.</p>
+          <div class="tags"><span class="tag">Structures</span><span class="tag">Standalone</span></div>
+          <div class="links">
+            <a class="launch" href="../artifacts/integration-variants/ruins-anime/standalone.html?seed=2718&amp;cx=-603&amp;cz=-180&amp;lx=6&amp;lz=2">Open castle <span aria-hidden="true">↗</span></a>
+            <a class="minor" href="../artifacts/integration-variants/ruins-anime/standalone.html">Start at camp</a>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <div class="section-head"><h2>Beyond the terrain</h2><p>Building and city labs are merged in the same worktree.</p></div>
+    <nav class="labs" aria-label="Building and city studies">
+      <a class="lab" href="building-lab.html"><small class="index">04</small><span>Building lab</span><b aria-hidden="true">↗</b></a>
+      <a class="lab" href="labs/castle-drafts/toolkit/index.html"><small class="index">05</small><span>Town toolkit</span><b aria-hidden="true">↗</b></a>
+      <a class="lab" href="labs/castle-drafts/toolkit/city-study/index.html"><small class="index">06</small><span>City study</span><b aria-hidden="true">↗</b></a>
+      <a class="lab" href="labs/castle-drafts/toolkit/infinite/index.html"><small class="index">07</small><span>Streamed city</span><b aria-hidden="true">↗</b></a>
+    </nav>
+    <section class="record">
+      <h2>Read the measurements.</h2>
+      <div>
+        <p>Each world has a live Performance panel. For a repeatable CPU sample, run <code>node tools/benchmark-lod.cjs</code> from the integration worktree. Captured frame times are machine-specific and should not be compared as benchmarks.</p>
+        <p>Conflicting source versions are retained under <code>artifacts/integration-variants/</code>. The two packaged variants remain separate from the integrated default rather than claiming incompatible generators can run as one.</p>
+      </div>
+    </section>
+    <footer class="footnote">Local branch: worldgen-integration · Integration notes: docs/worldgen-integration.md · No remote deployment</footer>
+  </main>
+</body>
+</html>

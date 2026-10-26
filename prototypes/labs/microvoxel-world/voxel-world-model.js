@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-31-integration':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-32-integration':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -891,7 +891,7 @@
       let v=null;const p=hash(i,j,seed+391);
       if(p<.4){
         const x=(i+.3+.4*hash(i,j,seed+393))*SG,z=(j+.3+.4*hash(i,j,seed+395))*SG,g=geography(x,z);
-        if(!g.sea&&!g.wet&&!g.highland&&Math.hypot(x,z)>40&&p<(g.gorgeDistance<24?.4:g.relief>20?.2:.02)){
+        if(!g.sea&&!g.wet&&!g.highland&&Math.hypot(x,z)>40&&(!gallery||galCellKind(i,j,SG)==='spire')&&p<(g.gorgeDistance<24?.4:g.relief>20?.2:.02)){
           const n=3+Math.floor(hash(i,j,seed+397)*5),list=[];
           for(let s=0;s<n;s++){
             const a=hash(s,k,seed+399)*Math.PI*2,o=s?1.5+4*hash(s,k,seed+401):0,sx=x+Math.cos(a)*o,sz=z+Math.sin(a)*o,lean=.08+.14*hash(s,k,seed+403);
@@ -998,7 +998,7 @@
         const raised=g.height*cellMetres-[[30,0],[-30,0],[0,30],[0,-30]].reduce((m,[u,w])=>m+geography(x+u,z+w).height*cellMetres,0)/4;
         // The whole footprint (out to 50 m) must be dry ground: no sea, lake, river or stream anywhere under a ruin.
         const dry=()=>{for(let r=5;r<=50;r+=5)for(let q=0;q<16;q++){const A=q/10*Math.PI*2,G2=geography(x+Math.cos(A)*r,z+Math.sin(A)*r);if(G2.sea||G2.water>G2.height||G2.riverDistance<4)return false;}return true;};
-        if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&dry()){
+        if(!g.sea&&!g.wet&&!g.glacier&&g.biome!=='snow'&&g.slope<.45&&g.water<=g.height&&!g.gorge&&!g.highland&&Math.hypot(x,z)>60&&(!gallery||galCellKind(i,j,STG)==='ruin')&&dry()){
           const R=n=>hash(n,k,seed+471),a=hash(i,j,seed+467)*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a),g0=g.height*cellMetres;
           const parts=[],at=(u,w)=>[x+u*ca-w*sa,z+u*sa+w*ca];let n=0;
           // box(u,w): centre in the site frame; ang: extra rotation; walls stand on each column's own ground.
@@ -1054,9 +1054,9 @@
       const k=i*65536+j;if(rocks.has(k))return rocks.get(k);let v=null;const p=hash(i,j,seed+501);
       if(p<.5){
         const x=(i+.3+.4*hash(i,j,seed+503))*KG,z=(j+.3+.4*hash(i,j,seed+505))*KG,g=geography(x,z),h=hash(i,j,seed+507),a=hash(i,j,seed+509)*Math.PI;
-        const dry=['desert','savanna','steppe'].includes(g.biome);
+        const dry=gallery||['desert','savanna','steppe'].includes(g.biome);
         const arch=(base,Ls,Ha)=>({kind:'arch',x,z,ux:Math.cos(a),uz:Math.sin(a),base,Ls,Ha,t:1.6+.8*hash(i,j,seed+511),dh:1.4+.8*hash(i,j,seed+513)});
-        if(dry&&!g.wet&&!g.sea&&g.slope<.6&&g.water<=g.height&&Math.hypot(x,z)>60&&p<.4){
+        if(dry&&!g.wet&&!g.sea&&g.slope<.6&&g.water<=g.height&&Math.hypot(x,z)>60&&(!gallery||galCellKind(i,j,KG)==='rock')&&p<.4){
           const base=g.height*cellMetres-.5;
           if(h<.45){v=arch(base,6+5*hash(i,j,seed+515),8+6*hash(i,j,seed+517));v.mat=MAT.sandstone;}
           else{
@@ -1108,6 +1108,7 @@
     function boulderCell(i,j){
       const k=i*1048576+j;if(boulders.has(k))return boulders.get(k);let v=null;const p=hash(i,j,seed+551);
       const x=(i+.2+.6*hash(i,j,seed+553))*BG,z=(j+.2+.6*hash(i,j,seed+555))*BG;
+      if(gallery&&!galHasPad(x,z,'boulders')){boulders.set(k,null);return null;}
       let mtn=false;if(p>=.2){const t=tectonics(x,z);mtn=gallery||t.relief>15||t.cone>20;}
       if(p<.2||mtn){
         const g=geography(x,z),bad=G=>G.sea||G.wet||G.water>G.height||G.gorge||G.highland||G.biome==='snow'||G.glacier||G.iceCells>0;
@@ -1709,12 +1710,14 @@
     // produces the exhibit — so every specimen is built by the same code path as the wild.
     const GAL_H=Math.round(28/cellMetres),GAL_BOUND=140,GAL_PADS=[],GAL_ANCIENTS=new Map(),GAL_TREES=new Map(),GAL_SPOTS=[];
     const galPadAt=(x,z)=>{for(const p of GAL_PADS)if(x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1)return p;return null;};
+    const galCellKind=(i,j,S)=>{for(const p of GAL_PADS){const c=p.over?.cell;if(p.over?.cellSize===S&&c?.[0]===i&&c[1]===j)return p.over.kind||'open';}return null;};
+    const galHasPad=(x,z,kind)=>GAL_PADS.some(p=>p.over?.kind===kind&&x>=p.x0&&x<p.x1&&z>=p.z0&&z<p.z1);
     function galleryGeo(x,z){
       const o=(galPadAt(x,z)||{}).over||{},biome=o.biome||'grassland';
       return {height:GAL_H,riverDistance:999,riparian:0,corridor:null,fast:false,calm:false,splash:false,lake:0,riverLevel:0,riverWidth:0,riverSize:0,riverDir:[0,0],riverSpeed:0,riverDepth:0,riverZone:null,macroRiver:false,coast:999,spring:false,foam:false,bar:0,ridge:0,fault:99,clearing:0,exposed:!!o.exposed,wet:false,slope:.05,cliff:0,talus:false,lift:0,highland:!o.open,pass:false,gorge:false,gorgeDistance:999,gorgeHalf:0,rock:0,sea:false,water:0,biome,biome2:null,blend:0,glacier:false,iceCells:0,crease:0,erosion:0,hollow:0,spur:0,surface:GAL_H*cellMetres,cone:0,setting:'',temperature:o.temperature??14,moisture:.55,relief:20,open:-1,coneFrac:0};
     }
     const galleryTreeCell=(gx,gz)=>GAL_TREES.get(gx*134217728+gz)||null;
-    const galleryAncientSite=(i,j)=>{const s=GAL_ANCIENTS.get(i*65536+j);return s?{x:s.x,z:s.z,g:galleryGeo(s.x,s.z),p:0}:null;};
+    const galleryAncientSite=(i,j)=>{const s=GAL_ANCIENTS.get(i*65536+j);if(!s)return null;const g=galleryGeo(s.x,s.z);return {x:s.x,z:s.z,g:{...g,biome:s.biome||g.biome},p:0};};
     function buildGallery(){
       const pad=(x0,z0,x1,z1,over)=>GAL_PADS.push({x0,z0,x1,z1,over});
       const site=(i,j,S,a,b)=>[(i+.3+.4*hash(i,j,seed+a))*S,(j+.3+.4*hash(i,j,seed+b))*S];
@@ -1722,7 +1725,7 @@
       // Cells near (tx,tz) whose own roll passes `test(i,j)`, nearest first.
       const scan=(S,tx,tz,test)=>{let best=null,bd=1e9;for(let j=Math.floor(tz/S)-8;j<=Math.floor(tz/S)+8;j++)for(let i=Math.floor(tx/S)-8;i<=Math.floor(tx/S)+8;i++){if(!test(i,j))continue;const d=Math.hypot((i+.5)*S-tx,(j+.5)*S-tz);if(d<bd){bd=d;best=[i,j];}}return best;};
       // Ferrite outcrop at spawn: the root survey lands here, and the ore fill shows beside it.
-      pad(6,-16,20,-2,{open:true,exposed:true});GAL_SPOTS.push({kind:'outcrop',label:'ferrite outcrop',x:12,z:-8});
+      pad(-6,-10,16,4,{open:true,exposed:true});GAL_SPOTS.push({kind:'outcrop',label:'ferrite outcrop',x:0,z:0});
       // Exhibit avenue along +x: every species at young / mature / veteran size, alternating sides of the walk.
       const NATURAL={oak:'forest',birch:'forest',jungle:'rainforest',spruce:'montane',larch:'montane',redwood:'redwood',umbrella:'savanna',gnarled:'wetland',willow:'wetland',alder:'wetland',palm:'desert',overhang:'rainforest'};
       let x=26,side=1;
@@ -1746,17 +1749,17 @@
       put(x+62,-9,{kind:'bamboo',culms:[{x:x+62,z:-9,lx:.02,lz:0,h:9,tr:.55},{x:x+63,z:-8.5,lx:0,lz:.02,h:7.5,tr:.45},{x:x+61.3,z:-8,lx:-.02,lz:0,h:8,tr:.5}],top:GAL_H+cells(10)+2},'prop','bamboo');
       // One castle, one town and one temple ruin — the cells picked are ones whose own rolls make that kind.
       const ruinKind=(i,j)=>hash(i,j,seed+461)<.45?(hash(1,i*65536+j,seed+471)<.25?'castle':hash(1,i*65536+j,seed+471)<.7?'town':'temple'):null;
-      for(const kind of ['castle','town','temple']){const f=scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});}}}
+      for(const kind of ['castle','town','temple']){const f=scan(STG,300,300,(i,j)=>ruinKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],STG,463,465);if(Math.hypot(rx,rz)>60){pad(f[0]*STG,f[1]*STG,(f[0]+1)*STG,(f[1]+1)*STG,{open:true,kind:'ruin',cell:[f[0],f[1]],cellSize:STG});GAL_SPOTS.push({kind:'ruin',label:`${kind} ruin`,x:rx,z:rz});}}}
       // Sandstone arch and hoodoos on desert pads; a spire cluster; a boulder meadow.
       const rockKind=(i,j)=>hash(i,j,seed+501)<.4?(hash(i,j,seed+507)<.45?'arch':'hoodoos'):null;
-      for(const kind of ['arch','hoodoos']){const f=scan(KG,700,-80,(i,j)=>rockKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],KG,503,505);if(Math.hypot(rx,rz)>60){pad(f[0]*KG,f[1]*KG,(f[0]+1)*KG,(f[1]+1)*KG,{open:true,biome:'desert'});GAL_SPOTS.push({kind:'rock',label:kind,x:rx,z:rz});}}}
-      {const f=scan(SG,140,-70,(i,j)=>hash(i,j,seed+391)<.2);if(f){const [sx2,sz2]=site(f[0],f[1],SG,393,395);if(Math.hypot(sx2,sz2)>40){pad(f[0]*SG,f[1]*SG,(f[0]+1)*SG,(f[1]+1)*SG,{open:true});GAL_SPOTS.push({kind:'spire',label:'crystal spires',x:sx2,z:sz2});}}}
-      pad(60,-64,140,-28,{open:true,biome:'meadow'});GAL_SPOTS.push({kind:'boulders',label:'boulder field',x:100,z:-46});
+      for(const kind of ['arch','hoodoos']){const f=scan(KG,700,-80,(i,j)=>rockKind(i,j)===kind);if(f){const [rx,rz]=site(f[0],f[1],KG,503,505);if(Math.hypot(rx,rz)>60){pad(f[0]*KG,f[1]*KG,(f[0]+1)*KG,(f[1]+1)*KG,{open:true,biome:'desert',kind:'rock',cell:[f[0],f[1]],cellSize:KG});GAL_SPOTS.push({kind:'rock',label:kind,x:rx,z:rz});}}}
+      {const f=scan(SG,140,-70,(i,j)=>hash(i,j,seed+391)<.02);if(f){const [sx2,sz2]=site(f[0],f[1],SG,393,395);if(Math.hypot(sx2,sz2)>40){pad(f[0]*SG,f[1]*SG,(f[0]+1)*SG,(f[1]+1)*SG,{open:true,kind:'spire',cell:[f[0],f[1]],cellSize:SG});GAL_SPOTS.push({kind:'spire',label:'crystal spires',x:sx2,z:sz2});}}}
+      pad(60,-64,140,-28,{open:true,biome:'meadow',kind:'boulders'});GAL_SPOTS.push({kind:'boulders',label:'boulder field',x:100,z:-46});
       // Two world trees: a giant sequoia on a montane pad and a blossom/coral ancient, each in a real site cell.
       {const [ax,az]=site(-1,0,AG,443,445);pad(ax-40,az-40,ax+40,az+80,{open:true,biome:'montane'});
-        GAL_ANCIENTS.set(-65536,{x:ax,z:az});GAL_SPOTS.push({kind:'ancient',label:'giant sequoia',x:ax,z:az});}
+        GAL_ANCIENTS.set(-65536,{x:ax,z:az,biome:'montane'});GAL_SPOTS.push({kind:'ancient',label:'giant sequoia',x:ax,z:az});}
       {let bc=null;for(const [i,j] of [[-1,-1],[-2,-1],[-1,-2],[-2,0],[0,-1],[-2,-2],[-3,-1],[-1,-3],[-3,0],[0,-2]])if(hash(9,i*65536+j,seed+447)<.62){bc=[i,j];break;}
-        if(bc){const [bx,bz]=site(bc[0],bc[1],AG,443,445);if(Math.hypot(bx,bz)>40){pad(bx-40,bz-40,bx+40,bz+40,{open:true,biome:'forest'});GAL_ANCIENTS.set(bc[0]*65536+bc[1],{x:bx,z:bz});GAL_SPOTS.push({kind:'ancient',label:'blossom ancient',x:bx,z:bz});}}}
+        if(bc){const [bx,bz]=site(bc[0],bc[1],AG,443,445);if(Math.hypot(bx,bz)>40){pad(bx-40,bz-40,bx+40,bz+40,{open:true,biome:'forest'});GAL_ANCIENTS.set(bc[0]*65536+bc[1],{x:bx,z:bz,biome:'forest'});GAL_SPOTS.push({kind:'ancient',label:'blossom ancient',x:bx,z:bz});}}}
     }
     if(gallery)buildGallery();
     // Root geology and identity survive render/cache changes.
