@@ -1,0 +1,12 @@
+'use strict';
+const {chromium}=require('playwright'),assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});try{
+ const p=await browser.newPage({viewport:{width:1280,height:900}}),errors=[];p.on('pageerror',e=>errors.push(e.message));await p.goto((process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173')+'/prototypes/labs/castle-drafts/toolkit/interiors/');await p.waitForFunction(()=>window.TownInteriorDemo?.view.frames>0);
+ await p.locator('canvas').focus();await p.keyboard.down('w');await p.waitForFunction(()=>TownInteriorDemo.view.walker.z<4.4);await p.keyboard.up('w');assert(await p.evaluate(()=>TownInteriorDemo.view.walker.z>TownInteriorDemo.doors[0].z),'closed entrance stops the walker');
+ await p.keyboard.press('e');assert(await p.evaluate(()=>TownInteriorDemo.doors[0].open));await p.keyboard.down('w');await p.waitForFunction(()=>TownInteriorDemo.view.walker.z<3.1);await p.keyboard.up('w');
+ await p.evaluate(()=>TownInteriorDemo.view.walker.yaw=0);await p.keyboard.down('w');await p.waitForFunction(()=>TownInteriorDemo.view.walker.x>=TownInteriorDemo.scene.stair.start.x-.08);await p.keyboard.up('w');
+ await p.evaluate(()=>TownInteriorDemo.view.walker.yaw=-Math.PI/2);await p.keyboard.down('w');await p.waitForFunction(()=>TownInteriorDemo.view.walker.y>3.45,{timeout:15000});await p.keyboard.up('w');
+ assert.equal(await p.evaluate(()=>TownInteriorDemo.view.renderer.gl.getError()),0);await p.selectOption('#type','apothecary');assert.equal(await p.evaluate(()=>TownInteriorDemo.scene.rooms[0].label),'Shop floor');assert.equal(await p.evaluate(()=>TownInteriorDemo.doors[0].open),false);assert.deepEqual(errors,[]);
+ await p.locator('canvas').click({position:{x:700,y:450}});await p.waitForFunction(()=>document.pointerLockElement===document.querySelector('canvas')||TownInteriorDemo.view.lookCaptured);const yaw=await p.evaluate(()=>TownInteriorDemo.view.walker.yaw);await p.mouse.move(780,470);await p.waitForFunction(y=>TownInteriorDemo.view.walker.yaw!==y,yaw);await p.keyboard.press('Escape');await p.waitForFunction(()=>!document.pointerLockElement&&!TownInteriorDemo.view.lookCaptured);
+ console.log('PASS interior browser: closed-door collision, E interaction, physical entry, walk to stairs and climb, shop switch; no WebGL errors');
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
