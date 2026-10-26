@@ -18,6 +18,12 @@ const REAL=[
   {name:'mauna-loa',label:'Mauna Loa (shield)',kind:'volcano',lat:19.4721,lon:-155.5922,km:90,step:90,zoom:10},
   {name:'kilauea',label:'Kilauea summit (shield caldera)',kind:'volcano',lat:19.41,lon:-155.28,km:16},
   {name:'gallatin',label:'Gallatin Valley MT (intermontane plain)',kind:'plain',lat:45.75,lon:-111.2,km:20},
+  // Range-style references (artifacts/range-styles): one real range per generator style.
+  {name:'matterhorn',label:'Pennine Alps (Matterhorn, Zermatt)',kind:'alps',lat:45.99,lon:7.70,km:20},
+  {name:'north-cascades',label:'North Cascades (Cascade Pass)',kind:'cascades',lat:48.50,lon:-121.07,km:20},
+  {name:'front-range',label:'Colorado Front Range (Longs Peak to the plains)',kind:'rockies',lat:40.28,lon:-105.45,km:30},
+  {name:'khumbu',label:'Himalaya (Everest, Khumbu)',kind:'himalaya',lat:27.94,lon:86.85,km:20},
+  {name:'cordillera-real',label:'Andes (Cordillera Real, Huayna Potosi, altiplano edge)',kind:'andes',lat:-16.30,lon:-68.20,km:20},
 ];
 // Generator areas (seed 2718), chosen from scan-ours.cjs: the two tallest volcanoes, both spines (tallest chains), a
 // secondary/minor-range belt (lowest, roundest mountains), and an open lowland between ranges.

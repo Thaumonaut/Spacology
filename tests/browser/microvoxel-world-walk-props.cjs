@@ -11,7 +11,7 @@ try{
   const fixtures=await p.evaluate(()=>{
     const w=MicroWorld.createWorld(2718,.25,'infinite'),out=[],rivers=[...w.macro.rivers].sort((a,b)=>Math.hypot(a.x[a.x.length-1],a.z[a.z.length-1])-Math.hypot(b.x[b.x.length-1],b.z[b.z.length-1]));
     let palm=null,river=null;for(let n=0,ri=0;ri<rivers.length&&!palm&&n<4000;ri++){const r=rivers[ri];for(let i=r.x.length-1;i>=0&&!palm&&n<4000;i-=2,n++){const q=w.palmsNear(r.x[i]+8,r.z[i],14);if(q.length){palm=q[0];river=[r.x[i],r.z[i]];}}}
-    if(palm)out.push({name:'palm',x:palm.x,z:palm.z,base:palm.base,target:palm.crownTop[1],prop:'fronds'});
+    if(palm)out.push({name:'palm',x:palm.x,z:palm.z,base:palm.base,target:palm.crownTop[1],prop:'fronds',aim:true});
     let mush=null;for(let R=0,n=0;R<6000&&!mush&&n<4000;R+=60)for(let k=0,K=Math.max(1,Math.round(R/60))*6;k<K&&!mush;k++,n++){const t=k/K*Math.PI*2,q=w.mushroomsNear(Math.cos(t)*R,Math.sin(t)*R,10);if(q.length)mush=q[0];}
     if(mush)out.push({name:'mushroom',x:mush.x,z:mush.z,base:mush.base,target:mush.base+mush.stemHeight+mush.capHeight,prop:'mushrooms'});
     if(river){const g=w.geography(river[0],river[1]);out.push({name:'water',x:river[0],z:river[1],target:Math.max(g.water,g.height)*w.cell});}
