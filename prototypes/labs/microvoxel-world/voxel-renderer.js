@@ -35,7 +35,7 @@
   in vec2 blockXZ;
   flat in int mat;
   flat in int shaded;
-  uniform vec3 palette[40];
+  uniform vec3 palette[64];
   uniform float time, detail, normalSize, blockSize, pixelWorld;
   uniform vec2 dither;
   uniform sampler2D normalMap;

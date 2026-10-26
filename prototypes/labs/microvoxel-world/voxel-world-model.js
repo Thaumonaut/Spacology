@@ -1,8 +1,13 @@
 (function(root){
   'use strict';
   const CELL=.25,CHUNK=32,HEIGHT=96,STREAM_HEIGHT=1024,EXTENT=128,REVISION='micro-catchment-1';
-  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32});
-  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356']);
+  const MAT=Object.freeze({air:0,basalt:1,soil:2,grass:3,sand:4,bark:5,leaf:6,water:7,ore:8,flower:9,snow:16,needle:17,dry:18,crystal:19,moss:20,ice:21,stone:22,redwood:23,foam:24,sandstone:25,mossy:26,tundra:27,podzol:28,litter:29,gravel:30,mud:31,dirt:32,
+    // Vegetation and landmark materials (trunks: birchBark, bambooCulm, cactus, mushroomStem; crowns/leaves: birchLeaf,
+    // larchNeedle, bushLeaf, bambooLeaf, blossom, blossomWhite, coral, autumnLeaf, acaciaLeaf, willowLeaf; ground plants:
+    // mushroomCap, glowFlower, reed, fern, wildflower).
+    birchBark:33,birchLeaf:34,larchNeedle:35,bushLeaf:36,bambooCulm:37,bambooLeaf:38,blossom:39,blossomWhite:40,coral:41,mushroomCap:42,mushroomStem:43,glowFlower:44,reed:45,cactus:46,fern:47,wildflower:48,autumnLeaf:49,acaciaLeaf:50,willowLeaf:51});
+  const COLORS=Object.freeze(['#000000','#717d91','#72614e','#85a96b','#c1b993','#665145','#426c57','#488f9b','#d6a85e','#e6baac','#dfac5c','#edcfad','#33434c','#a0c7c0','#ede7d4','#273b41','#eef2f2','#2e4c3c','#b5a067','#c9b2ff','#8a86c8','#bcdde6','#a9a596','#8b4a35','#f4fbfb','#c58a5c','#5f7d3c','#8e9c66','#5a4433','#8a6a42','#9a9184','#5e5040','#8c7356',
+    '#ebe6d8','#a8d070','#cfb54c','#4f8b55','#8fbb5c','#6aaa50','#b88ce6','#f5edfa','#f2876a','#d8473a','#efe5d0','#6ad3ff','#b4a65c','#5f9c5d','#5c9b4d','#f3d256','#e08a36','#88a548','#86b872']);
   const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
   function hash(x,z,seed=0){let h=Math.imul(x|0,374761393)^Math.imul(z|0,668265263)^(seed|0);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;}
   function noise(x,z,seed){const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz,sx=fx*fx*(3-2*fx),sz=fz*fz*(3-2*fz);const a=hash(ix,iz,seed),b=hash(ix+1,iz,seed),c=hash(ix,iz+1,seed),d=hash(ix+1,iz+1,seed);return (a+(b-a)*sx)*(1-sz)+(c+(d-c)*sx)*sz;}
@@ -515,14 +520,109 @@
     }
     function ground(x,z){if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return null;return geography((Math.floor(x/cellMetres)+.5)*cellMetres,(Math.floor(z/cellMetres)+.5)*cellMetres).height*cellMetres;}
     const TG=infinite?3:5;
-    // A streamed tree is a pure function of its 3 m grid cell; tree() memoizes it, the continent view keeps its own memo.
+    // ---- Vegetation ----
+    // Tree species: crown shape, materials and base size in 25 cm cells (h: height, r: crown radius) before the size class.
+    // Shapes: round (dome crown), oval (airy birch), cone (tiered conifer), spire (redwood: ends in a sharp needle point),
+    // umbrella (flat acacia pad), twisted (gnarled leaning shore tree, drooping crown), cactus, and bush (round, no trunk).
+    // trunk: trunk radius in cells (at least 0.72, so a trunk always covers a column); floor: ground under the crown
+    // (0 podzol, 1 leaf litter, 2 dirt, 9 unchanged); open: share of crown cells left out (airy crowns).
+    const SPECIES={
+      oak:{shape:'round',bark:MAT.bark,crown:MAT.leaf,h:[11,19],r:[5,8],floor:1},
+      jungle:{shape:'round',bark:MAT.bark,crown:MAT.leaf,h:[18,30],r:[7,10],trunk:.9,floor:1},
+      autumn:{shape:'round',bark:MAT.bark,crown:MAT.autumnLeaf,h:[11,19],r:[5,8],floor:1},
+      blossom:{shape:'round',bark:MAT.bark,crown:MAT.blossom,h:[9,15],r:[5,7],floor:1},
+      birch:{shape:'oval',bark:MAT.birchBark,crown:MAT.birchLeaf,h:[14,22],r:[3,5],floor:1,open:.16},
+      pine:{shape:'cone',bark:MAT.bark,crown:MAT.needle,h:[14,22],r:[4,7],floor:0},
+      dwarfPine:{shape:'cone',bark:MAT.bark,crown:MAT.needle,h:[8,13],r:[3,5],floor:0},
+      larch:{shape:'cone',bark:MAT.bark,crown:MAT.larchNeedle,h:[15,23],r:[3,6],floor:0,open:.2},
+      redwood:{shape:'spire',bark:MAT.redwood,crown:MAT.needle,h:[30,46],r:[4,7],trunk:1.3,floor:0},
+      acacia:{shape:'umbrella',bark:MAT.bark,crown:MAT.acaciaLeaf,h:[10,15],r:[6,9],floor:2},
+      willow:{shape:'twisted',bark:MAT.bark,crown:MAT.willowLeaf,h:[12,18],r:[5,8],trunk:1,floor:1},
+      cactus:{shape:'cactus',bark:MAT.cactus,crown:MAT.cactus,h:[7,13],r:[2,3],trunk:.9,floor:9},
+    };
+    // Per-biome vegetation, so each biome reads differently and new biomes slot in by adding a row (unknown biomes use
+    // `default`). mix: tree species and weights (cold: the mix below 11 °C); density: tree density where TREES has no entry;
+    // bush: bush rate on empty tree cells (forest edges, meadows); decor: forest-floor props on empty tree cells; scatter:
+    // small-plant set (forest, meadow, tuft, wet, dry, none); bamboo: groves where warm and wet; ancient: tree-of-life chance.
+    const VEG={
+      default:{mix:[['oak',.8],['birch',.2]],bush:.08,decor:['stump'],scatter:'tuft',ancient:0},
+      forest:{mix:[['oak',.7],['birch',.3]],cold:[['pine',.55],['birch',.25],['larch',.2]],bush:.3,decor:['mushroom','log','stump','mushroom'],scatter:'forest',bamboo:true,ancient:.3},
+      redwood:{mix:[['redwood',.9],['pine',.1]],bush:.12,decor:['log','stump','mushroom','log'],scatter:'forest',ancient:.15},
+      rainforest:{mix:[['jungle',1]],bush:.3,decor:['mushroom','log'],scatter:'forest',bamboo:true,ancient:.3},
+      boreal:{mix:[['pine',.5],['birch',.3],['larch',.2]],bush:.18,decor:['mushroom','log','stump'],scatter:'forest'},
+      montane:{mix:[['pine',.65],['larch',.35]],bush:.12,decor:['log','stump'],scatter:'forest',ancient:.12},
+      subalpine:{mix:[['dwarfPine',.7],['larch',.3]],bush:.15,decor:['stump'],scatter:'tuft'},
+      tundra:{mix:[['dwarfPine',1]],bush:.06,decor:[],scatter:'tuft'},
+      wetland:{mix:[['willow',.45],['birch',.35],['oak',.2]],bush:.25,decor:['log'],scatter:'wet',bamboo:true,ancient:.1},
+      savanna:{mix:[['acacia',1]],bush:.1,decor:[],scatter:'dry',bamboo:true,ancient:.12},
+      steppe:{mix:[['acacia',.4],['oak',.6]],bush:.08,decor:[],scatter:'dry'},
+      grassland:{mix:[['oak',.75],['birch',.25]],bush:.12,decor:['stump'],scatter:'meadow',ancient:.12},
+      meadow:{mix:[['dwarfPine',.6],['birch',.4]],bush:.1,decor:[],scatter:'meadow'},
+      desert:{mix:[['cactus',1]],density:.035,bush:0,decor:[],scatter:'none'},
+      // Rows ready for the biome redesign.
+      flowerMeadow:{mix:[['blossom',.5],['oak',.5]],density:.04,bush:.15,decor:[],scatter:'meadow'},
+      autumnWoodland:{mix:[['autumn',.75],['birch',.25]],density:.8,bush:.3,decor:['mushroom','log','stump'],scatter:'forest',ancient:.2},
+      blossomGrove:{mix:[['blossom',.8],['birch',.2]],density:.7,bush:.25,decor:['stump'],scatter:'meadow',ancient:.3},
+      fen:{mix:[['willow',.5],['birch',.5]],density:.15,bush:.2,decor:['log'],scatter:'wet'},
+      heath:{mix:[['dwarfPine',.5],['birch',.5]],density:.06,bush:.35,decor:[],scatter:'tuft'},
+      goldenSavanna:{mix:[['acacia',1]],density:.08,bush:.08,decor:[],scatter:'dry'},
+      badlands:{mix:[['cactus',1]],density:.02,bush:0,decor:[],scatter:'none'},
+    };
+    const BARE=new Set(['sea','beach','snow','glacier','alpine','gorge']),vegOf=g=>VEG[g.biome]||VEG.default;
+    const pick=(mix,u)=>{for(const [k,w] of mix){if(u<w)return SPECIES[k];u-=w;}return SPECIES[mix[mix.length-1][0]];};
+    // Bamboo groves: patches (strength > 0) where it is warm and wet, in biomes whose row allows bamboo.
+    const bambooAt=(x,z,g)=>vegOf(g).bamboo&&g.temperature>15&&g.moisture>.6&&!g.exposed&&!g.highland&&g.slope<1&&g.riverDistance>4?noise(x*.025,z*.025,seed+707)-.6:-1;
+    // A streamed plant is a pure function of its 3 m grid cell; tree() memoizes it, the continent view keeps its own memo.
+    // A cell holds a tree, a bush, a forest-floor prop (mushroom, log, stump, rubble) or nothing.
     function makeTree(gx,gz){
-        const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z);
-        const patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),dense=(TREES[g.biome]||0)*(.35+.65*patch);
-        const redwood=g.biome==='redwood',conifer=redwood||g.biome==='boreal'||g.biome==='tundra'||g.biome==='montane'||g.biome==='subalpine'||g.biome==='forest'&&g.temperature<11,big=g.biome==='rainforest',small=g.biome==='subalpine'||g.biome==='tundra';
-        const value=g.riverDistance<9||g.water>g.height||g.exposed||g.highland||g.sea||g.slope>(g.biome==='montane'?1.6:1.2)||g.gorgeDistance<g.gorgeHalf+4||hash(gx,gz,seed+23)>=dense||spireNear(x,z,4)||landmarkNear(x,z)?null
-          :Object.freeze({x,z,base:g.height,conifer,redwood,height:((redwood?30:small?8:conifer?14:big?18:11)+Math.floor(hash(gx,gz,seed+4)*(redwood?16:small?5:big?12:8)))*density,radius:((redwood?4:small?3:conifer?4:big?7:5)+Math.floor(hash(gx,gz,seed+5)*(small?2:3)))*density});
-        return value;
+      const x=(gx+.15+.7*hash(gx,gz,seed+9))*TG,z=(gz+.15+.7*hash(gx,gz,seed+11))*TG,g=geography(x,z),rd=g.riverDistance;
+      if(BARE.has(g.biome)||rd<3.6||g.water>g.height||g.exposed||g.highland||g.sea||g.gorgeDistance<g.gorgeHalf+4||spireNear(x,z,4)||landmarkNear(x,z))return null;
+      const V=vegOf(g),patch=clamp((noise(x*.03,z*.03,seed+341)-.25)/.3,0,1),R=ruinNear(x,z),ruin=!!R&&Math.hypot(x-R.x,z-R.z)<R.reach-2&&g.biome!=='desert';
+      let dense=(TREES[g.biome]??V.density??0)*(.35+.65*patch);if(ruin)dense=Math.max(dense,.45);
+      const roll=hash(gx,gz,seed+23),u=hash(gx,gz,seed+25),e=hash(gx,gz,seed+29),C=cellMetres,base=g.height;
+      // Shores: river banks, and lake shores found by probing a few metres out. Ordinary trees keep 9 m from rivers.
+      const bank=rd<9,shore=bank||g.moisture>.45&&hash(gx,gz,seed+27)<.35&&[[4,0],[-4,0],[0,4],[0,-4]].some(([a,b])=>{const G=geography(x+a,z+b);return G.water>G.height&&!G.sea;});
+      const steep=g.slope>(g.biome==='montane'?1.6:1.2);
+      let sp=null;
+      if(shore&&g.temperature>2&&!steep&&roll<(g.biome==='wetland'||V.scatter==='wet'?.3:.14))sp=SPECIES.willow;
+      else if(!bank&&!steep&&roll<dense&&!(bambooAt(x,z,g)>0&&roll>.08))sp=pick(V.cold&&g.temperature<11?V.cold:V.mix,u);
+      if(sp){
+        // Size class, clustered by low-frequency noise into young groves and old stands: about 25% young (x0.45-0.75),
+        // 60% mature (x0.85-1.15), 15% big (x1.3-1.7). Height and crown scale together; crowns stay within 3.2 m.
+        const c=clamp(.5+(noise(x*.022,z*.022,seed+701)-.5)*2.4+(hash(gx,gz,seed+31)-.5)*.5,0,1),k=hash(gx,gz,seed+33);
+        const scale=c<.27?.45+.3*k:c<.82?.85+.3*k:1.3+.4*k;
+        const height=Math.max(3,Math.round((sp.h[0]+(sp.h[1]-sp.h[0])*hash(gx,gz,seed+4))*scale))*density;
+        const radius=Math.min(3.2/C,Math.max(1.5,(sp.r[0]+(sp.r[1]-sp.r[0])*hash(gx,gz,seed+5))*scale)*density);
+        const t={kind:'tree',x,z,base,sp,height,radius,trunk:Math.max(.72,(sp.trunk||.72)*Math.min(1.3,scale)*density),mark:(hash(gx,gz,seed+35)*1e9)|0,ceil:base+height+Math.ceil(radius)+4*density+1};
+        if(sp.shape==='twisted'){const a=hash(gx,gz,seed+37)*Math.PI*2,lean=.25+.2*hash(gx,gz,seed+39);t.lx=Math.cos(a)*lean;t.lz=Math.sin(a)*lean;t.ph=hash(gx,gz,seed+41)*6.28;t.wob=(1+1.5*hash(gx,gz,seed+43))*density;t.ceil+=Math.ceil(lean*height);}
+        if(sp.shape==='cactus'){t.arms=[];const n=hash(gx,gz,seed+37)<.3?0:hash(gx,gz,seed+39)<.6?1:2,a=hash(gx,gz,seed+41)*Math.PI*2;
+          for(let m=0;m<n;m++){const b=a+m*Math.PI,o=3*density;t.arms.push({ax:Math.cos(b)*o,az:Math.sin(b)*o,y0:Math.round(height*(.3+.15*hash(m,gx*31+gz,seed+43))),y1:Math.round(height*(.65+.2*hash(m,gx*31+gz,seed+45)))});}}
+        if(sp.shape==='umbrella')t.ph=hash(gx,gz,seed+41)*6.28;
+        // An understory bush beside some big broadleaf trees.
+        if(scale>1.25&&(sp.shape==='round'||sp.shape==='oval'||sp.shape==='umbrella')&&hash(gx,gz,seed+47)<.45){const a=hash(gx,gz,seed+49)*Math.PI*2,o=radius*C*.75,r=(.35+.25*hash(gx,gz,seed+51))/C;t.under={x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,r};}
+        return Object.freeze(t);
+      }
+      if(steep||V.scatter==='none')return null;
+      // Empty cell: maybe a bush (clustered; most common at forest edges, on banks and around ruins), else a floor prop.
+      const forest=(TREES[g.biome]??V.density??0)>=.3,clump=clamp(noise(x*.09,z*.09,seed+703)*1.8-.4,0,1.4);
+      const bushRate=(bank||ruin?.3:V.bush*(forest?1.3-patch:1))*clump;
+      if(e<bushRate){
+        const lobes=[],n=1+Math.floor(hash(gx,gz,seed+53)*3);
+        for(let m=0;m<n;m++){const a=hash(m,gx*977+gz,seed+55)*Math.PI*2,r=(.3+.45*hash(m,gx*977+gz,seed+57))/C,o=m?(lobes[0].r+r)*C*.6:0;lobes.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,r});}
+        return Object.freeze({kind:'bush',x,z,base,lobes,ceil:base+Math.ceil(Math.max(...lobes.map(l=>l.r)))+2});
+      }
+      const propRate=ruin?.22:forest?.06*patch+.01:V.decor.length?.012:0;
+      if(e<bushRate+propRate){
+        const kind=ruin?'rubble':V.decor[Math.floor(hash(gx,gz,seed+59)*V.decor.length)],q=n=>hash(n,gx*977+gz,seed+61);
+        if(kind==='mushroom'){const parts=[],n=1+Math.floor(q(0)*3);
+          for(let m=0;m<n;m++){const s=m?.45+.3*q(m+5):1,a=q(m+9)*Math.PI*2,o=m?(.9+.6*q(m+13)):0;parts.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,stem:Math.max(.72,(1.2+.6*q(m+17))*s*density),h:Math.round((4+4*q(m+21))*s*density),cap:(3.5+2.5*q(m+25))*s*density});}
+          return Object.freeze({kind,x,z,base,parts,ceil:base+12*density});}
+        if(kind==='log'){const a=q(1)*Math.PI;return Object.freeze({kind,x,z,base,ux:Math.cos(a),uz:Math.sin(a),hl:(4+3*q(2))*density,r:(1+.8*q(3))*density,ceil:base+5*density});}
+        if(kind==='stump')return Object.freeze({kind,x,z,base,r:(1.2+.8*q(1))*density,h:Math.round((2+3*q(2))*density),ceil:base+6*density});
+        if(kind==='rubble'){const blocks=[],n=1+Math.floor(q(0)*3);for(let m=0;m<n;m++){const a=q(m+3)*Math.PI*2,o=m?1+q(m+7):0,b=q(m+11)*Math.PI;blocks.push({x:x+Math.cos(a)*o,z:z+Math.sin(a)*o,ux:Math.cos(b),uz:Math.sin(b),hl:(.3+.4*q(m+15))/C,hw:(.25+.25*q(m+19))/C,h:Math.max(1,Math.round((.4+.5*q(m+23))/C))});}
+          return Object.freeze({kind,x,z,base,blocks,ceil:base+Math.ceil(1/C)+2});}
+      }
+      return null;
     }
     function tree(gx,gz){
       if(infinite){
