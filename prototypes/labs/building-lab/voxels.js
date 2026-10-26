@@ -172,6 +172,10 @@
       const layer=dep=>k<0?c0+1+dep:c1-2-dep,proud=n=>k<0?c0+1-n:c1-2+n,face=layer(0),mid=Math.floor((c0+c1)/2);
       const ins=n=>s[0]==='x'?[0,0,n,n]:[n,n,0,0];
       if(kind==='open'){cut(b,y,y+DOOR_H+4,ins(0));return;}
+      // The timber frame stands proud of the plaster; an opening clears it in front of itself, so no post, rail or
+      // brace floats across a window, door or shopfront.
+      if(!interior){const ylo=y+(kind==='window'||kind==='small'?(f===0&&FA.groundWindow==='tall'||f>0&&FA.window==='tall'?4:SILL-4):0),yhi=y+(kind==='shopfront'||kind==='bay'?HEAD+3:HEAD+4);
+        for(let a=a0;a<a1;a++)for(let yy=ylo;yy<yhi;yy++)for(let n=1;n<=2;n++)put(s,a,proud(n),yy,0);}
       if(interior&&kind==='door'){cut(b,y,y+DOOR_H,ins(1));for(let yy=y;yy<y+DOOR_H+1;yy++)for(let c=c0;c<c1;c++){put(s,a0,c,yy,M.timber_dark);put(s,a1-1,c,yy,M.timber_dark);}
         for(let a=a0;a<a1;a++)for(let c=c0;c<c1;c++)put(s,a,c,y+DOOR_H,M.timber_dark);return;}
       if(kind==='front'||kind==='back'){
@@ -184,23 +188,28 @@
         if(FA.lattice){// sliding shoji door pushed half open, a noren across the head, paper lanterns either side
           for(let a=L+1;a<L+7;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,(yy-y)%6===0||(a-L)%5===1?M.timber_dark:M.shoji);
           for(let a=L;a<=R;a++)for(let yy=y+DOOR_H-12;yy<y+DOOR_H;yy++)if((a-L)%6!==0||yy>y+DOOR_H-3)put(s,a,proud(1),yy,yy>y+DOOR_H-3?M.timber_dark:C.noren);
-          for(const a of [L-5,R+5])paperLantern(s,a,proud(3),y+DOOR_H+1);}
+          for(const a of [L-5,R+5])later.push(()=>{if(atS(s,a,face,y+DOOR_H)&&atS(s,a,face,y+DOOR_H-12))paperLantern(s,a,proud(3),y+DOOR_H+1);});} // only against wall
         else{// a panelled door standing open into the room, a small canopy over the step and a wall lamp
           for(let n=0;n<11;n++)for(let yy=y;yy<y+DOOR_H-1;yy++)fillAt(s,L+1,layer(2)-k*n,yy,(yy-y)%9===0||n===0||n===10?M.timber_dark:M.door_wood);
-          if(FA.canopy){for(let a=L-2;a<=R+2;a++)for(let n=0;n<6;n++){const yy=y+DOOR_H+5-Math.floor(n/2);put(s,a,proud(n),yy,C.tile);put(s,a,proud(n),yy-1,C.timber);}
-            for(const a of [L-2,R+2])for(let n=1;n<5;n++)fillAt(s,a,proud(n),y+DOOR_H+5-n-2,C.timber);}
-          wallLamp(s,R+4,proud(1),y+DOOR_H-4);}
-        for(const a of [L-9,R+9])pot(s,a,proud(4),Y0,face);
+          if(FA.canopy)later.push(()=>{const cells=[];for(let a=L-2;a<=R+2;a++)for(let n=1;n<6;n++){const yy=y+DOOR_H+5-Math.floor(n/2);cells.push([a,proud(n),yy,C.tile],[a,proud(n),yy-1,C.timber]);}
+            for(const a of [L-2,R+2])for(let n=1;n<5;n++)cells.push([a,proud(n),y+DOOR_H+3-n,C.timber]);clearPut(s,cells);});
+          later.push(()=>{if(atS(s,R+4,face,y+DOOR_H-4)&&atS(s,R+4,face,y+DOOR_H+2))wallLamp(s,R+4,proud(1),y+DOOR_H-4);});}
+        if(f===0)for(const a of [L-9,R+9])later.push(()=>pot(s,a,proud(4),Y0,face));
         return;}
       if(kind==='shopfront'||kind==='bay'){
         const top=y+HEAD+2;for(let a=a0;a<a1;a++)for(let yy=y+1;yy<top;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
         for(let a=a0;a<a1;a++)for(let dep=-1;dep<3;dep++){put(s,a,dep<0?proud(1):layer(dep),top-1,C.timber);put(s,a,dep<0?proud(1):layer(dep),top,C.timber);} // head beam
-        for(let a=a0;a<a1;a+=16)for(let yy=y;yy<top;yy++)for(let dep=-1;dep<3;dep++)put(s,a,dep<0?proud(1):layer(dep),yy,C.timber);for(let yy=y;yy<top;yy++)for(let dep=-1;dep<3;dep++)put(s,a1-1,dep<0?proud(1):layer(dep),yy,C.timber);
+        // uprights at the ends and on the facade's post grid (so they continue the frame above), 2 voxels wide
+        const ups=[a0];for(let a=a0+3;a<a1-4;a++)if(postAt(s,a)&&!postAt(s,a-1))ups.push(a);if(ups.length===1&&a1-a0>36)ups.push(Math.floor((a0+a1)/2)-1);ups.push(a1-2);
+        for(const u of ups)for(let a=u;a<u+2;a++)for(let yy=y;yy<top;yy++)for(let dep=-1;dep<3;dep++)put(s,a,dep<0?proud(1):layer(dep),yy,C.timber);
         // stall riser below, then lattice or glazing; a wide sliding section stands open on a shop
         for(let a=a0;a<a1;a++)for(let yy=y;yy<y+8;yy++)put(s,a,layer(1),yy,(a-a0)%4===0?M.timber_dark:C.timber);
         for(let a=a0;a<a1;a++)put(s,a,proud(1),y+8,C.timber),put(s,a,proud(2),y+8,C.timber); // a display ledge
         const openFrom=kind==='shopfront'?a0+Math.floor((a1-a0)*.55):a1;
-        for(let a=a0;a<openFrom;a++)for(let yy=y+9;yy<top-1;yy++){if((a-a0)%16===0)continue;const lat=FA.lattice?((a-a0)%3===0||(yy-y)%9===0):((a-a0)%8===0||yy===y+21);put(s,a,layer(1),yy,lat?M.timber_dark:FA.lattice?M.shoji:M.glass);}
+        // glazing or lattice between the uprights: one bar midway between each pair, one transom; lattice counts from
+        // each upright so its bars stay even
+        for(let i=0;i+1<ups.length;i++){const u0=ups[i]+2,u1=ups[i+1],midA=Math.floor((u0+u1)/2);if(u0>=openFrom)break;
+          for(let a=u0;a<Math.min(u1,openFrom);a++)for(let yy=y+9;yy<top-1;yy++){const lat=FA.lattice?((a-u0)%3===2||(yy-y-9)%5===4):(a===midA||yy===y+21);put(s,a,layer(1),yy,lat?M.timber_dark:FA.lattice?M.shoji:M.glass);}}
         if(FA.lattice)hisashi(s,a0-4,a1+4,face,top+5);else awning(s,a0,a1,proud(1),top+2);
         if(kind==='shopfront')signboard(s,a0,a1,proud(1),top+8);
         return;}
@@ -250,7 +259,7 @@
       for(let yy=y;yy<y+6;yy++)for(let da=-1;da<=1;da++)for(let n=2;n<5;n++){const edge=yy===y||yy===y+5||Math.abs(da)===1&&(n===2||n===4);cells.push([a+da,c+k*n,yy,edge?M.iron:M.lantern_glow]);}
       if(clearPut(s,cells))info.lights.push({s,a,c,y:y+3});}
     // A potted plant on the pavement, only in front of solid wall (not across a shopfront or another door).
-    function pot(s,a,c,y,face){for(let da=-3;da<=3;da++)if(!atS(s,a+da,face,y+PLINTH+6))return;const cells=[];
+    function pot(s,a,c,y,face){if((zones[s]||[]).some(([z0,z1])=>a+5>z0&&a-5<z1))return;for(let da=-3;da<=3;da++)for(const h of [PLINTH+4,PLINTH+12])if(!atS(s,a+da,face,y+h))return;const cells=[];
       for(let yy=y;yy<y+6;yy++)for(let da=-3;da<=3;da++)for(let dc=-3;dc<=3;dc++){const rr=da*da+dc*dc,rad=yy===y+5?9.5:5+(yy-y)*.6;if(rr<=rad)cells.push([a+da,c+dc,yy,yy===y+5?M.terracotta_dark:M.terracotta]);}
       for(let yy=y+6;yy<y+14;yy++)for(let da=-4;da<=4;da++)for(let dc=-4;dc<=4;dc++){const v=yy-(y+9);if(da*da+dc*dc+v*v*1.1<=14&&((da*3+dc*5+yy*7)%5))cells.push([a+da,c+dc,yy,(da+2*dc+yy)%3?M.leaf:M.leaf_dark]);}
       clearPut(s,cells);}
@@ -262,9 +271,13 @@
       // hung clear of balconies and windows above: try the usual height, then lower onto the shopfront head
       if(!clearPut(s,cells))clearPut(s,cells.map(([a,cc,yy,m])=>[a,cc,yy-6,m]));}
 
+    // Ground-floor openings by side (along-wall extents), so pavement dressing keeps clear of every one of them; door
+    // dressing runs after all openings are cut.
+    const zones={},later=[];for(const o of plan.floors[0].openings){const b=span(o.cells,o.side,false),[a0,a1]=alongOf(b,o.side);(zones[o.side]??=[]).push([a0,a1]);}
     // Oriels: the front windows nearest the middle on each upper floor, up to plan.facade.oriels.
     const oriels=new Set();if(FA.oriels)for(let f=1;f<storeys;f++){const ws=plan.floors[f].openings.filter(o=>o.kind==='window'&&o.side==='zm').sort((a,b)=>Math.abs(a.cells[0][0]+1-w/2)-Math.abs(b.cells[0][0]+1-w/2));for(const o of ws.slice(0,FA.oriels))oriels.add(o);}
     for(let f=0;f<storeys;f++){const F=plan.floors[f];for(const dr of F.doors)opening(f,dr,true);for(const o of F.openings)opening(f,o,false);}
+    for(const job of later)job();
 
     // Jetty brackets under any upper floor that overhangs the street, on the post grid.
     if(plan.plot.jetty)for(let A=cx(0);A<cx(w);A++)if(postAt('zm',A)&&!postAt('zm',A-1)||A===cx(0)||A===cx(w)-2)for(let t=0;t<CV;t++){const zz=cz(front)-1-t,yy=FL(1)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}
@@ -405,8 +418,14 @@
     common:[['wall','kitchencounter_straight_A_decorated',{c:14,far:true}],['beside','kitchencounter_straight_A',{c:14}],['beside','kitchencounter_straight_A',{c:14}],['centre','table_round_A_decorated',{chairs:'chair_B',n:4}],['centre','table_medium_long',{chairs:'chair_A_wood',n:6}],['centre','table_round_A_decorated',{chairs:'chair_B',n:4}],['centre','table_round_A_decorated',{chairs:'chair_B',n:3}],['high','shelf_B_large_decorated'],['corner','crate_potatoes',{c:4}],['corner','jar_C_large',{c:4}],['corner','cactus_medium_A',{c:4}]],
     dining:[['centre','table_medium_long|table_medium|table_round_A_decorated',{chairs:'chair_A_wood',n:6}],['rug','rug_rectangle_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','cactus_medium_A',{c:4}],['high','shelf_B_small_decorated']],
     kitchen:[['wall','kitchencounter_sink',{window:true,c:12}],['beside','stove_single',{c:12}],['beside','kitchencounter_straight_A_decorated',{c:12}],['beside','kitchencounter_straight_A',{c:12}],['wall','kitchencabinet',{c:10}],['beside','kitchencabinet',{c:10}],['centre','table_medium_long|table_medium',{chairs:'chair_A_wood',n:6,minArea:16}],['centre','kitchentable_A_large_decorated',{chairs:'chair_stool_wood',n:2}],['onTop','pot_large'],['rug','rug_rectangle_A'],['corner','crate_carrots',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_small_decorated']],
-    shop:[['wall','kitchencounter_straight_A',{street:true,c:12}],['beside','kitchencounter_straight_A_decorated',{c:12}],['wall','cabinet_medium_decorated',{c:10}],['wall','cabinet_medium_decorated',{c:10}],['centre','table_medium',{n:0}],['onTop','jar_C_large'],['corner','crate_tomatoes',{c:4}],['corner','crate_carrots',{c:4}],['corner','crate_potatoes',{c:4}],['high','shelf_B_large_decorated']],
-    workshop:[['wall','kitchentable_A_large_decorated',{window:true,c:12}],['tuck','chair_stool_wood'],['wall','kitchentable_A_large_decorated',{c:12}],['wall','kitchencabinet',{c:10}],['centre','table_medium_long',{n:0}],['onTop','book_set'],['corner','crate',{c:4}],['corner','crate_potatoes',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_large_decorated']],
+    shop:[['wall','kitchencounter_straight_A',{street:true,c:14}],['beside','kitchencounter_straight_A_decorated',{c:14}],['beside','kitchencounter_straight_A',{c:14}],
+      ['wall','cabinet_medium_decorated',{c:10}],['beside','kitchencabinet',{c:10}],['beside','cabinet_medium_decorated',{c:10}],['wall','kitchencabinet',{c:10}],['beside','cabinet_medium_decorated',{c:10}],['beside','kitchencabinet',{c:10}],
+      ['centre','table_medium_long|table_medium',{n:0}],['onTop','jar_C_large'],['centre','table_medium|table_round_A_decorated',{n:0,minArea:22}],['onTop','book_set'],['centre','table_round_A_decorated|table_small',{n:0,minArea:32}],
+      ['corner','crate_tomatoes',{c:4}],['corner','crate_carrots',{c:4}],['corner','crate_potatoes',{c:4}],['onTop','crate'],['corner','crate',{c:4}],['corner','jar_C_large',{c:3}],['corner','cactus_medium_A',{c:4}],
+      ['high','shelf_B_large_decorated'],['high','shelf_B_large_decorated'],['high','shelf_B_small_decorated'],['high','shelf_B_small_decorated']],
+    workshop:[['wall','kitchentable_A_large_decorated',{window:true,c:12}],['tuck','chair_stool_wood'],['wall','kitchentable_A_large_decorated',{c:12}],['tuck','chair_stool_wood'],['beside','kitchentable_A_large_decorated',{c:12}],
+      ['wall','kitchencabinet',{c:10}],['beside','kitchencabinet',{c:10}],['beside','cabinet_medium_decorated',{c:10}],['centre','table_medium_long',{n:0}],['onTop','book_set'],['centre','table_medium',{n:0,minArea:26}],['onTop','pot_large'],
+      ['corner','crate',{c:4}],['onTop','crate_potatoes'],['corner','crate_potatoes',{c:4}],['corner','crate',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_large_decorated'],['high','shelf_B_large_decorated']],
     store:[['wall','kitchencabinet',{c:8}],['beside','kitchencabinet',{c:8}],['corner','crate',{c:2}],['onTop','crate_potatoes'],['corner','crate_carrots',{c:2}],['corner','crate',{c:2}],['onTop','crate_tomatoes'],['corner','jar_C_large',{c:2}],['corner','jar_C_large',{c:2}],['high','shelf_B_small_decorated']],
     study:[['wall','table_medium',{window:true,c:4}],['tuck','chair_A_wood'],['onTop','book_set'],['rug','rug_rectangle_stripes_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','armchair_pillows',{c:8}],['corner','lamp_standing',{c:4}],['high','shelf_B_large_decorated'],['corner','cactus_medium_A',{c:4}]],
     office:[['wall','table_medium',{window:true,c:4}],['tuck','chair_A_wood'],['onTop','book_set'],['wall','cabinet_medium_decorated',{c:8}],['corner','crate',{c:4}],['high','shelf_B_large_decorated']],
@@ -435,7 +454,10 @@
         for(const side of both?[0,1]:[0]){const k=F.grid[(Math.min(...xs)+(side?dx:0))+w*(Math.min(...zs)+(side?dz:0))];if(k<1)continue;
           // side 0 is the door cells' own room (zone ends at the wall); side 1 is the room past the wall
           const a0=dx?(side?(dx>0?X1:X0-16):(dx>0?X1-16:X0)):X0,a1=dx?a0+16:X1,b0=dz?(side?(dz>0?Z1:Z0-16):(dz>0?Z1-16:Z0)):Z0,b1=dz?b0+16:Z1;
-          reserve(a0,b0,a1,b1,k);addPt(k,(a0+a1)>>1,(b0+b1)>>1);}};
+          // the walking point is the middle of the doorway's cells on this side (not the zone's middle, which can
+          // fall inside a wall when the doorway is in the last row)
+          const ix=Math.round((Math.min(...xs)+Math.max(...xs))/2)+(side?dx:0),iz=Math.round((Math.min(...zs)+Math.max(...zs))/2)+(side?dz:0);
+          reserve(a0,b0,a1,b1,k);addPt(k,cx(ix)+4,cz(iz)+4);}};
       for(const dr of F.doors)zone(dr.cells,dr.dir,true);
       for(const o of F.openings)if(o.kind==='front'||o.kind==='back'||o.kind==='balcony')zone(o.cells,o.side,false);
       // Reachability: every door point of room k can reach the others through columns that are not footprints.
@@ -467,7 +489,7 @@
           for(let t=0;t<n;t++){const [bx,bz]=axis==='x'?[x0+t,b]:[b,z0+t];for(const yy of tall?ys:[y+3])if(!at(bx,yy,bz))return false;}return true;};
         const windowBehind=(x0,z0,R,b,axis)=>{const n=axis==='x'?R.w:R.d,[bx,bz]=axis==='x'?[x0+(n>>1),b]:[b,z0+(n>>1)];for(let t=1;t<4;t++){const m=at(axis==='x'?bx:bx+(b<(axis==='x'?z0:x0)?-t:t),y+24,axis==='x'?bz+(b<z0?-t:t):bz);if(m===ctx.M.glass||m===ctx.M.shoji||m===0)return true;}return false;};
         const distDoor=(x,z)=>doors.length?Math.min(...doors.map(([px,pz])=>Math.hypot(px-x,pz-z))):99;
-        let last=null,main=null;const count={};
+        let last=null,main=null;const count={},faceUse={};
         const area=(rx1-rx0)*(rz1-rz0)*V*V;
         for(const [anchor,ids,o={}] of wants){if(o.minArea&&area<o.minArea)continue;const alts=ids.split('|');let id=alts[0],p=piece(id),c=o.c??10,rec=null;if(o.max&&(count[id]||0)>=o.max)continue;
           if(anchor==='onTop'){if(!last)continue;const host=last,R=rotated(p,host.face);if(R.w>host.w||R.d>host.d)continue;const x0=host.x+((host.w-R.w)>>1),z0=host.z+((host.d-R.d)>>1);let top=host.y;
@@ -491,9 +513,9 @@
                 const R=rotated(p,face);let ok=true;for(let zz=0;zz<R.d&&ok;zz++)for(let xx=0;xx<R.w;xx++){const i=x0+xx+X*(z0+zz);if(!inside(x0+xx,z0+zz)||roomOf[i]!==k){ok=false;break;}}
                 if(ok){rec=stamp(p,face,x0,z0,y,false);break;}continue;}
               rec=tryPut(p,face,x0,z0,anchor==='front'?0:c,null,anchor==='front');if(rec)break;}
-            if(rec&&anchor==='beside')last=rec;if(rec&&anchor==='front'){rec.main=main;last=rec;}if(rec)count[id]=(count[id]||0)+1;continue;}
+            if(rec&&anchor==='beside'){last=rec;faceUse[rec.face]=(faceUse[rec.face]||0)+1;}if(rec&&anchor==='front'){rec.main=main;last=rec;}if(rec)count[id]=(count[id]||0)+1;continue;}
           if(anchor==='centre'){// table + chairs as one group, nearest the room's middle with a 0.6 m walkway round it
-            const ch=o.chairs?piece(o.chairs):null,ring=ch?Math.max(ch.dims[0],ch.dims[2])+2:0,pad=ring+4;let best=null;
+            const ch=o.chairs?piece(o.chairs):null,ring=ch?Math.max(ch.dims[0],ch.dims[2])+2:0,pad=ch?ring+4:10;let best=null; // display tables keep a 60 cm aisle round them
             for(const alt of alts){if(best)break;p=piece(alt);id=alt;for(const face of ['zp','xp']){const R=rotated(p,face);for(let z0=rz0+pad;z0+R.d+pad<=rz1;z0+=2)for(let x0=rx0+pad;x0+R.w+pad<=rx1;x0+=2){
               if(!fits(x0-ring,z0-ring,R.w+2*ring,R.d+2*ring))continue;if(!clearOk(x0-pad,z0-pad,R.w+2*pad,R.d+2*pad))continue;
               const s=Math.hypot(x0+R.w/2-mx,z0+R.d/2-mz)+r()*3;if(!best||s<best.s)best={s,face,x0,z0,R};}}}
@@ -515,12 +537,12 @@
               const along=axis==='x'?x0+R.w/2:z0+R.d/2,lo=axis==='x'?rx0:rz0,hi=axis==='x'?rx1:rz1,toEnd=Math.min(along-lo,hi-along)-(axis==='x'?R.w:R.d)/2;
               let s=r()*3;
               if(anchor==='corner')s+=toEnd*3;else s+=Math.abs(along-(lo+hi)/2)*.5;
-              if(o.long)s-=wallLen*.8;if(o.far)s-=Math.min(60,distDoor(x0+R.w/2,z0+R.d/2))*.6;
+              if(o.long)s-=wallLen*.8;if(o.far)s-=Math.min(60,distDoor(x0+R.w/2,z0+R.d/2))*.6;s+=(faceUse[face]||0)*12; // spread wall pieces round the room
               if(o.window&&windowBehind(x0,z0,R,b,axis))s-=40;if(o.street)s+=face==='zm'?-60:face[0]==='x'?0:40;
               cands.push({face,x0,z0,s});}}
           cands.sort((a,b)=>a.s-b.s);
           for(const cd of cands.slice(0,80)){rec=tryPut(p,cd.face,cd.x0,cd.z0,c);if(rec)break;}
-          if(rec){last=rec;if(anchor==='wall')main=rec;count[id]=(count[id]||0)+1;}}
+          if(rec){last=rec;if(anchor==='wall')main=rec;count[id]=(count[id]||0)+1;faceUse[rec.face]=(faceUse[rec.face]||0)+1;}}
         info.rooms.push({floor:f,room:k,type:room.type,pieces:placed.length,reachable:reach(k)});});
     }
   }

@@ -15,7 +15,9 @@ function check(plan,tag){
     assert.equal(F.rooms[0].type,'stair');
     F.rooms.forEach((r,k)=>{if(k<2||!r.cells||P.ROOMS[r.type].circ)return;const [x0,z0,x1,z1]=r.box;assert.equal(r.cells,(x1-x0+1)*(z1-z0+1),`${tag} floor ${f}: ${r.label} is a rectangle`+show());});
     const adj=new Map();for(const dr of F.doors){for(const [a,b] of [[dr.a,dr.b],[dr.b,dr.a]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push(b);}
-      if(dr.kind==='open'){assert.equal(F.rooms[dr.b].type,'stair');assert.ok(P.ROOMS[F.rooms[dr.a].type].circ,`${tag}: the stair opens onto circulation (${F.rooms[dr.a].type})`+show());}
+      if(dr.kind==='open'){const [dx,dz]={xm:[-1,0],xp:[1,0],zm:[0,-1],zp:[0,1]}[dr.dir];
+        for(const [x,z] of dr.cells)assert.ok(mask[(x-dx)+w*(z-dz)],`${tag} floor ${f}: the stair landing at ${x},${z} has floor beyond it, not an outside wall`+show());
+        assert.equal(F.rooms[dr.b].type,'stair');assert.ok(P.ROOMS[F.rooms[dr.a].type].circ,`${tag}: the stair opens onto circulation (${F.rooms[dr.a].type})`+show());}
       else assert.ok(P.canLink(F.rooms[dr.a].type,F.rooms[dr.b].type),`${tag}: no door between ${F.rooms[dr.a].type} and ${F.rooms[dr.b].type}`);
       assert.ok(dr.cells.length>=2,'doors are at least 1 m wide');}
     // Where you arrive: the front door's room on the ground floor, the stair head upstairs.
@@ -29,7 +31,12 @@ function check(plan,tag){
     for(const o of F.openings)for(const [x] of o.cells){if(o.side==='xm'&&x===0)assert.ok(!plan.plot.party[0],'no openings in the left party wall');if(o.side==='xp'&&x===w-1)assert.ok(!plan.plot.party[1],'no openings in the right party wall');}
     if(f===0){const fronts=F.openings.filter(o=>o.kind==='front');assert.ok(fronts.length>=1,`${tag}: a front door`);
       const biz=F.rooms.findIndex(r=>['shop','workshop'].includes(r.type));
-      if(biz>0){assert.ok(fronts.some(o=>o.room===biz&&o.side==='zm'),`${tag}: the business has a street door`+show());assert.ok(fronts.some(o=>o.room!==biz&&P.ROOMS[F.rooms[o.room].type].circ),`${tag}: the home has its own door`+show());}}
+      // A shop or workshop takes most of the ground floor, opens onto the living quarters behind it, and the home
+      // has a yard door of its own.
+      if(biz>0){const ground=F.rooms.reduce((a,r)=>a+r.cells,0);assert.ok(fronts.some(o=>o.room===biz&&o.side==='zm'),`${tag}: the business has a street door`+show());
+        assert.ok(F.rooms[biz].cells>=ground*.42,`${tag}: the ${F.rooms[biz].type} is most of the ground floor (${F.rooms[biz].cells}/${ground})`+show());
+        assert.ok(F.doors.some(dr=>(dr.a===biz||dr.b===biz)&&P.ROOMS[F.rooms[dr.a===biz?dr.b:dr.a].type].circ),`${tag}: a door from the ${F.rooms[biz].type} to the living area`+show());
+        assert.ok(F.openings.some(o=>o.kind==='back'),`${tag}: the home has a yard door`+show());}}
     for(const i of [...F.steps,...F.voids])assert.equal(F.rooms[F.grid[i]].type,'stair');
     assert.deepEqual(F.notes,[],`${tag} floor ${f}: no hard failures`);});
 }

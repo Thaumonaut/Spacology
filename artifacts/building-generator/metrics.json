@@ -4,12 +4,12 @@
   {
    "case": "side-shophouse-machiya",
    "view": "corner",
-   "frameMs": 0.1
+   "frameMs": 0
   },
   {
    "case": "side-shophouse-machiya",
    "view": "street",
-   "frameMs": 0.1
+   "frameMs": 0
   },
   {
    "case": "side-shophouse-machiya",
@@ -26,15 +26,15 @@
    "seed": 1,
    "dims": [
     168,
-    214,
-    304
+    218,
+    320
    ],
-   "quads": 37488,
-   "furniture": 56,
+   "quads": 41949,
+   "furniture": 64,
    "timings": {
-    "planMs": 8,
-    "voxelMs": 77,
-    "meshMs": 333
+    "planMs": 7,
+    "voxelMs": 98,
+    "meshMs": 358
    }
   },
   {
@@ -55,22 +55,22 @@
   {
    "case": "wing-workshop-fairytale",
    "view": "upper",
-   "frameMs": 0
+   "frameMs": 0.1
   },
   {
    "case": "wing-workshop-fairytale",
    "seed": 1,
    "dims": [
     184,
-    310,
-    400
+    325,
+    432
    ],
-   "quads": 83420,
-   "furniture": 86,
+   "quads": 88577,
+   "furniture": 84,
    "timings": {
-    "planMs": 4,
-    "voxelMs": 97,
-    "meshMs": 486
+    "planMs": 5,
+    "voxelMs": 130,
+    "meshMs": 572
    }
   },
   {
@@ -101,12 +101,12 @@
     207,
     296
    ],
-   "quads": 46052,
-   "furniture": 73,
+   "quads": 43983,
+   "furniture": 63,
    "timings": {
     "planMs": 4,
-    "voxelMs": 107,
-    "meshMs": 333
+    "voxelMs": 97,
+    "meshMs": 343
    }
   },
   {
@@ -137,12 +137,12 @@
     324,
     280
    ],
-   "quads": 85036,
-   "furniture": 72,
+   "quads": 86635,
+   "furniture": 77,
    "timings": {
     "planMs": 4,
-    "voxelMs": 102,
-    "meshMs": 525
+    "voxelMs": 108,
+    "meshMs": 542
    }
   },
   {
@@ -170,15 +170,15 @@
    "seed": 1,
    "dims": [
     168,
-    218,
-    240
+    231,
+    272
    ],
-   "quads": 40355,
-   "furniture": 38,
+   "quads": 42193,
+   "furniture": 42,
    "timings": {
     "planMs": 3,
-    "voxelMs": 107,
-    "meshMs": 256
+    "voxelMs": 109,
+    "meshMs": 284
    }
   },
   {
@@ -194,7 +194,7 @@
   {
    "case": "cottage-home-fairytale",
    "view": "ground",
-   "frameMs": 0.1
+   "frameMs": 0
   },
   {
    "case": "cottage-home-fairytale",
@@ -209,12 +209,12 @@
     240,
     256
    ],
-   "quads": 68122,
+   "quads": 67765,
    "furniture": 54,
    "timings": {
     "planMs": 3,
-    "voxelMs": 80,
-    "meshMs": 345
+    "voxelMs": 83,
+    "meshMs": 362
    }
   },
   {
@@ -245,12 +245,12 @@
     292,
     304
    ],
-   "quads": 87885,
-   "furniture": 108,
+   "quads": 89279,
+   "furniture": 110,
    "timings": {
     "planMs": 6,
-    "voxelMs": 133,
-    "meshMs": 575
+    "voxelMs": 135,
+    "meshMs": 601
    }
   }
  ]

@@ -149,32 +149,36 @@
   // Side passage (and wing): a 4-cell strip on one side (2 stair cells against the wall, a 2-cell lane) with a row
   // of rooms beside it. Front and back rooms may run the full width; a wing continues behind on the passage side.
   function tSide(plot,v,wing){
-    const {w,front,storeys}=plot,left=sideHall(plot,v),sx=left?0:w-4,stairX=left?0:w-2,laneX=left?2:w-4,rx0=left?4:0,rx1=left?w:w-4;
-    const Lm=ri(v,22,27),Dm=front+Lm,ww=wing?Math.min(w-2,ri(v,9,12)):0,wl=wing?ri(v,8,11):0,wing2=wing&&v()<.5;
+    // A shop or workshop fills the ground floor's whole width and most of its depth; the living quarters (stair,
+    // kitchen, bath) sit behind it through a door at its rear, and the home's own way in is the yard door.
+    const {w,front,storeys}=plot,biz=['shophouse','workshop'].includes(plot.type),left=sideHall(plot,v),sx=left?0:w-4,stairX=left?0:w-2,laneX=left?2:w-4,rx0=left?4:0,rx1=left?w:w-4;
+    const Lm=biz?ri(v,26,32):ri(v,22,27),Dm=front+Lm,ww=wing?Math.min(w-2,ri(v,9,12)):0,wl=wing?ri(v,8,11):0,wing2=wing&&v()<.5;
     plot.d=Dm+wl;plot.masks=blankMasks(plot);
     plot.masks.forEach((m,f)=>{maskRect(plot,m,0,z0Of(plot,f),w,Dm);if(wing&&(f===0||wing2))maskRect(plot,m,left?0:w-ww,Dm,left?ww:w,Dm+wl);});
     const progs=plot.programs;
     // Band choices per floor: a full-width front room (upper floors only) and a full-width back room.
-    const frontFull=[false,...Array.from({length:storeys-1},()=>v()<.55)],backFull=Array.from({length:storeys},(_,f)=>!wing&&v()<(f===0?.5:.45));
-    const fbLen=ri(v,8,10),bbLen=ri(v,7,9);
+    const frontFull=[biz,...Array.from({length:storeys-1},()=>v()<.55)],backFull=Array.from({length:storeys},(_,f)=>!wing&&!(biz&&f===0)&&v()<(f===0?.5:.45));
+    const fbLen=Array.from({length:storeys},(_,f)=>f===0&&biz?Math.round(Lm*between(v,[.55,.65])):ri(v,8,10)),bbLen=ri(v,7,9);
     // Hall rows per floor (the strip), which the stair and its landings must sit inside.
-    const hallRows=f=>[z0Of(plot,f)+(frontFull[f]?fbLen:0),Dm-(backFull[f]?bbLen:0)];
+    const hallRows=f=>[z0Of(plot,f)+(frontFull[f]?fbLen[f]:0),Dm-(backFull[f]?bbLen:0)];
     const orient=v()<.6?'zp':'zm',okA=[];
+    // landings never sit in a row against an outside wall (the wall would leave a 30 cm landing)
+    const inner=(z,f)=>z>z0Of(plot,f)&&z<Dm-1;
     for(let a=front;a+6<=Dm;a++){const entryZ=orient==='zp'?a-1:a+6,arriveZ=orient==='zp'?a+6:a-1,[h0,h1]=hallRows(0),[u0,u1]=hallRows(1);
-      if(a>=h0&&a+6<=h1&&a>=u0&&a+6<=u1&&entryZ>=h0&&entryZ<h1&&arriveZ>=u0&&arriveZ<u1)okA.push(a);}
+      if(a>=h0&&a+6<=h1&&a>=u0&&a+6<=u1&&entryZ>=h0&&entryZ<h1&&arriveZ>=u0&&arriveZ<u1&&inner(entryZ,0)&&inner(arriveZ,1))okA.push(a);}
     if(!okA.length)return null;
     const pos=v(),a=okA[Math.min(okA.length-1,Math.floor(pos*okA.length))],st=stairBay('straight',orient,stairX,orient==='zp'?a:a,storeys);
     const floors=[],entrances=[];
     for(let f=0;f<storeys;f++){const F=Floor(plot,f),P=progs[f],z0=z0Of(plot,f),[h0,h1]=hallRows(f);
       F.fill(sx,z0,sx+4,Dm,1);
-      if(frontFull[f])F.zone(0,z0,w,z0+fbLen,'x',[P.front[0]],v);
+      if(frontFull[f])F.zone(0,z0,w,z0+fbLen[f],'x',[P.front[0]],v);
       if(backFull[f])F.zone(0,Dm-bbLen,w,Dm,'x',[P.back[0]],v);
       const row=[...(frontFull[f]?P.front.slice(1):P.front),...P.support,...(backFull[f]?P.back.slice(1):wing&&f===0?['dining?']:P.back)];
       F.zone(rx0,h0,rx1,h1,'z',row,v);
       if(wing&&(f===0||wing2))F.zone(left?0:w-ww,Dm,left?ww:w,Dm+wl,'z',f===0?['kitchen','store']:[pick(v,['bath','bed'])],v);
       putStair(F,st,plot);floors.push(F);}
-    entrances.push({floor:0,room:1,side:'zm',at:laneX});
-    const biz=floors[0].rooms.findIndex(r=>['shop','workshop','living'].includes(r.type));if(biz>1&&floors[0].rooms[biz].type!=='living')entrances.push({floor:0,room:biz,side:'zm'});
+    const shop=floors[0].rooms.findIndex(r=>['shop','workshop'].includes(r.type));
+    if(biz&&shop>1)entrances.push({floor:0,room:shop,side:'zm'});else entrances.push({floor:0,room:1,side:'zm',at:laneX});
     return {stair:st,floors,entrances};
   }
 
@@ -183,7 +187,7 @@
     const {w,front,storeys}=plot,sx=Math.round((w-4)/2+(v()-.5)*2),stairLeft=v()<.5,stairX=stairLeft?sx:sx+2,Lm=ri(v,22,26),Dm=front+Lm;
     plot.d=Dm;plot.masks=blankMasks(plot);plot.masks.forEach((m,f)=>maskRect(plot,m,0,z0Of(plot,f),w,Dm));
     const backFull=Array.from({length:storeys},()=>v()<.45),bbLen=ri(v,7,9),orient=v()<.6?'zp':'zm',okA=[];
-    for(let a=front;a+6<=Dm-(backFull[0]||backFull[1]?bbLen:0);a++){const e=orient==='zp'?a-1:a+6,ar=orient==='zp'?a+6:a-1,lim=Dm-(backFull[0]||backFull[1]?bbLen:0);if(e>=front&&e<lim&&ar>=front&&ar<lim)okA.push(a);}
+    for(let a=front;a+6<=Dm-(backFull[0]||backFull[1]?bbLen:0);a++){const e=orient==='zp'?a-1:a+6,ar=orient==='zp'?a+6:a-1,lim=Dm-(backFull[0]||backFull[1]?bbLen:0);if(e>front&&e<lim&&ar>z0Of(plot,1)&&ar<lim&&e<Dm-1&&ar<Dm-1)okA.push(a);}
     if(!okA.length)return null;const a=okA[Math.floor(v()*okA.length)],st=stairBay('straight',orient,stairX,a,storeys),floors=[];
     for(let f=0;f<storeys;f++){const F=Floor(plot,f),P=plot.programs[f],z0=z0Of(plot,f),h1=Dm-(backFull[f]?bbLen:0);F.fill(sx,z0,sx+4,Dm,1);
       if(backFull[f])F.zone(0,h1,w,Dm,'x',[P.back[0]],v);
@@ -211,7 +215,7 @@
   // side behind with a U-turn stair opening off the passage. Terraces reach the passage by a front lobby; corner and
   // detached plots may use a side door instead. The cottage folds the ground-floor passage into the living room.
   function tCross(plot,v,cottage){
-    const {w,front,storeys,party}=plot,fb=ri(v,7,10),bb=ri(v,6,9),m=front+fb,D=m+2+bb;
+    const {w,front,storeys,party}=plot,biz=['shophouse','workshop'].includes(plot.type),fb=biz?ri(v,11,14):ri(v,7,10),bb=ri(v,6,9),m=front+fb,D=m+2+bb;
     plot.d=D;plot.masks=blankMasks(plot);plot.masks.forEach((m_,f)=>maskRect(plot,m_,0,z0Of(plot,f),w,D));
     const e=pick(v,[0,w-4,0,w-4,Math.round((w-4)/2)]),bay=stairBay('dogleg','zp',e,D-5,storeys); // at the back, with a lobby in front off the passage
     const openSide=!party[0]?'xm':!party[1]?'xp':null,sideDoor=!cottage&&openSide&&v()<.6,laneAt=['shophouse','workshop'].includes(plot.type)?pick(v,[0,w-2]):pick(v,[0,w-2,Math.round(w/2)-1]),floors=[],entrances=[];
@@ -221,11 +225,12 @@
       let cap=backRanges.reduce((a,[x0,x1])=>a+x1-x0,0);const back=[],moved=[];
       const sup=[...P0.support].sort((a,b)=>(bare(b)==='bath')-(bare(a)==='bath')); // the bath keeps its place at the back; a store moves forward first
       for(const t of [P0.back[0],...sup,...P0.back.slice(1)]){const need=MINLEN[bare(t)];if(need<=cap){back.push(t);cap-=need;}else if(!t.endsWith('?'))moved.push(t);}
-      const P={front:[...P0.front,...moved],support:[],back};
+      // on a shop's ground floor the front band stays all shop; what does not fit behind is left out
+      const P={front:biz&&f===0?[P0.front[0]]:[...P0.front,...moved],support:[],back};
       // The cottage's living room takes the passage too; on a wide plot a dining room opens off one end of it.
       if(f===0&&cottage){const liv=F.room('living');F.fill(0,z0,w,m+2,liv);if(w>=18){const dw=ri(v,7,9),left=v()<.5,dn=F.room('dining');F.fill(left?0:w-dw,z0,left?dw:w,m-1,dn);}}
       else{F.fill(0,m,w,m+2,1);
-        if(f===0&&!sideDoor&&plot.type!=='inn'){F.fill(laneAt,z0,laneAt+2,m,1);const parts=[[0,laneAt],[laneAt+2,w]].filter(([a,b])=>b-a>=4).sort((p,q)=>(q[1]-q[0])-(p[1]-p[0]));
+        if(f===0&&!sideDoor&&plot.type!=='inn'&&!biz){F.fill(laneAt,z0,laneAt+2,m,1);const parts=[[0,laneAt],[laneAt+2,w]].filter(([a,b])=>b-a>=4).sort((p,q)=>(q[1]-q[0])-(p[1]-p[0]));
           parts.forEach(([a,b],k)=>F.zone(a,z0,b,m,'x',parts.length===1?P.front:k===0?[P.front[0]]:P.front.slice(1),v));
           // a sliver too thin for a room joins the lobby
           for(const [a,b] of [[0,laneAt],[laneAt+2,w]])if(b-a>0&&b-a<4)F.fill(a,z0,b,m,1);}
@@ -239,9 +244,9 @@
       floors.push(F);}
     if(cottage)entrances.push({floor:0,room:floors[0].rooms.findIndex(r=>r.type==='living'),side:'zm'});
     else if(plot.type==='inn')entrances.push({floor:0,room:floors[0].rooms.findIndex(r=>r.type==='common'),side:'zm'});
+    else if(biz){const shop=floors[0].rooms.findIndex(r=>['shop','workshop'].includes(r.type));entrances.push({floor:0,room:shop,side:'zm'});if(sideDoor)entrances.push({floor:0,room:1,side:openSide});}
     else if(sideDoor)entrances.push({floor:0,room:1,side:openSide});
     else entrances.push({floor:0,room:1,side:'zm',at:laneAt});
-    const biz=floors[0].rooms.findIndex(r=>['shop','workshop'].includes(r.type));if(biz>1)entrances.push({floor:0,room:biz,side:'zm'});
     return {stair:bay,floors,entrances};
   }
 
@@ -309,12 +314,14 @@
     if(f===0){
       for(const en of entrances){if(en.room<0)continue;const l=lines.filter(l=>l.room===en.room&&l.side===en.side&&l.cells.length>=2).sort((a,b)=>b.cells.length-a.cells.length)[0];if(!l)continue;
         const n=l.cells.length,type=rooms[en.room].type,free=l.cells.map((c,i)=>i).filter(i=>i+1<n&&!taken.has(l.side+l.cells[i].join(','))&&!taken.has(l.side+l.cells[i+1].join(',')));if(!free.length)continue;
-        // a business door goes to the end of its frontage nearest the home's door, leaving the rest as shopfront
-        let s=free[Math.floor(free.length/2)];if(['shop','workshop'].includes(type)){const home=openings.find(o=>o.kind==='front');const ref=home?home.cells[0][0]:w/2;s=free.sort((a,b)=>Math.abs(l.cells[a][0]-ref)-Math.abs(l.cells[b][0]-ref))[0];}
+        // a business door goes to the end of its frontage away from the home's door, so the two entrances are
+        // apart and the shopfront runs between them
+        let s=free[Math.floor(free.length/2)];if(['shop','workshop'].includes(type)){const home=openings.find(o=>o.kind==='front');const ref=home?home.cells[0][0]:w/2;s=free.sort((a,b)=>Math.abs(l.cells[b][0]-ref)-Math.abs(l.cells[a][0]-ref))[0];}
         if(en.at!==undefined&&type==='hall'){const near=free.filter(i=>l.cells[i][0]===en.at);if(near.length)s=near[0];}
         take({room:en.room,side:l.side,cells:l.cells.slice(s,s+2),kind:'front'});}
       const kit=rooms.findIndex(r=>r.type==='kitchen'),back=lines.filter(l=>l.room===kit&&l.side!==street&&l.cells.length>=3).sort((a,b)=>(b.side==='zp')-(a.side==='zp')||b.cells.length-a.cells.length)[0];
-      if(kit>=0&&back){const n=back.cells.length,s=n>=6?n-3:Math.floor((n-2)/2);take({room:kit,side:back.side,cells:back.cells.slice(s,s+2),kind:'back'});}}
+      if(kit>=0&&back){const n=back.cells.length,s=n>=6?n-3:Math.floor((n-2)/2);take({room:kit,side:back.side,cells:back.cells.slice(s,s+2),kind:'back'});}
+      else{const hb=lines.filter(l=>l.room===1&&l.side!==street&&l.cells.length>=2).sort((a,b)=>(b.side==='zp')-(a.side==='zp'))[0];if(hb)take({room:1,side:hb.side,cells:hb.cells.slice(0,2),kind:'back'});}}
     for(const l of lines){const type=rooms[l.room].type;if(type==='hall'&&l.cells.length<3)continue;
       const free=l.cells.filter(c=>!taken.has(l.side+c.join(',')));
       if(f===0&&l.side===street&&['shop','workshop','common'].includes(type)){for(const run of runsOf(free))if(run.length>=2)take({room:l.room,side:l.side,cells:run.slice(0,run.length-(run.length>5?1:0)),kind:type==='common'?'bay':'shopfront'});continue;}

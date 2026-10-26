@@ -49,6 +49,13 @@ try{
     const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=420,H=280,cols=4,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
       tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
     fs.writeFileSync(path.join(OUT,`facades-${style}.png`),Buffer.from(sheet.split(',')[1],'base64'));}
+  // Shop fronts at eye level: the ground floor of shop-houses and workshops in every style.
+  if(SHOTS){const tiles=[];for(const style of Object.keys(P.STYLES))for(const [type,seed] of [['shophouse',2],['workshop',5],['shophouse',7]]){
+      await page.evaluate(([sd,st,ty])=>BuildingLab.build({seed:sd,style:st,type:ty,context:'',typology:''}),[seed,style,type]);await page.waitForFunction(()=>BuildingLab.snapshot().ready,null,{timeout:60000});
+      tiles.push(await page.evaluate(lb=>{const i=BuildingLab.camera({}),[X,,Z]=i.dims,L=i.levels,s=BuildingLab.snapshot();BuildingLab.setVisible(9);BuildingLab.camera({yaw:.06,pitch:.03,dist:Math.max(7,X*.62),target:[X/2,L[0]+1.5,Z*.2]});BuildingLab.frame();return [lb+' · '+s.typology,document.getElementById('view').toDataURL('image/png')];},`${style} ${type} ${seed}`));}
+    const sheet=await page.evaluate(tiles=>new Promise(res=>{const W=480,H=248,cols=3,c=document.createElement('canvas');c.width=cols*W;c.height=Math.ceil(tiles.length/cols)*(H+20);const g=c.getContext('2d');g.fillStyle='#f3ecdc';g.fillRect(0,0,c.width,c.height);let n=0;
+      tiles.forEach(([label,u],i)=>{const im=new Image();im.onload=()=>{const x=(i%cols)*W,y=Math.floor(i/cols)*(H+20);g.drawImage(im,x,y+20,W,H);g.fillStyle='#2b241d';g.font='600 13px system-ui';g.fillText(label,x+6,y+15);if(++n===tiles.length)res(c.toDataURL('image/png'));};im.src=u;});}),tiles);
+    fs.writeFileSync(path.join(OUT,'shop-fronts.png'),Buffer.from(sheet.split(',')[1],'base64'));}
   // Massing sheet: one house with each roof form and silhouette feature forced, so every shape is rendered.
   if(SHOTS){const MASS=[['gable along street',{roof:{form:'gable',ridge:'frontage',cross:null,dormers:0,turret:null}}],['gable to street',{roof:{form:'gable',ridge:'depth',cross:null,dormers:0,turret:null}}],
       ['hip',{roof:{form:'hip',ridge:'frontage',cross:null,dormers:0,turret:null}}],['half-hip',{roof:{form:'halfhip',ridge:'depth',cross:null,dormers:0,turret:null}}],
