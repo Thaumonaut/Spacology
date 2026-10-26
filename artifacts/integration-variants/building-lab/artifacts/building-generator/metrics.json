@@ -1,0 +1,257 @@
+{
+ "note": "headless Chromium (software GL); CPU submit time, not GPU time",
+ "metrics": [
+  {
+   "case": "side-shophouse-machiya",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "side-shophouse-machiya",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "side-shophouse-machiya",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "side-shophouse-machiya",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "side-shophouse-machiya",
+   "seed": 1,
+   "dims": [
+    168,
+    218,
+    320
+   ],
+   "quads": 41765,
+   "furniture": 63,
+   "timings": {
+    "planMs": 5,
+    "voxelMs": 107,
+    "meshMs": 384
+   }
+  },
+  {
+   "case": "wing-workshop-fairytale",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "wing-workshop-fairytale",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "wing-workshop-fairytale",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "wing-workshop-fairytale",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "wing-workshop-fairytale",
+   "seed": 1,
+   "dims": [
+    184,
+    329,
+    440
+   ],
+   "quads": 97821,
+   "furniture": 85,
+   "timings": {
+    "planMs": 4,
+    "voxelMs": 146,
+    "meshMs": 727
+   }
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "centre-home-harbour",
+   "seed": 1,
+   "dims": [
+    200,
+    205,
+    288
+   ],
+   "quads": 49089,
+   "furniture": 83,
+   "timings": {
+    "planMs": 5,
+    "voxelMs": 120,
+    "meshMs": 364
+   }
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "stairhall-home-fairytale",
+   "seed": 3,
+   "dims": [
+    280,
+    432,
+    416
+   ],
+   "quads": 105675,
+   "furniture": 81,
+   "timings": {
+    "planMs": 15,
+    "voxelMs": 203,
+    "meshMs": 730
+   }
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "cross-shophouse-spire",
+   "seed": 1,
+   "dims": [
+    168,
+    231,
+    272
+   ],
+   "quads": 44906,
+   "furniture": 52,
+   "timings": {
+    "planMs": 3,
+    "voxelMs": 129,
+    "meshMs": 305
+   }
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "cottage-home-fairytale",
+   "seed": 1,
+   "dims": [
+    200,
+    240,
+    256
+   ],
+   "quads": 70256,
+   "furniture": 56,
+   "timings": {
+    "planMs": 4,
+    "voxelMs": 111,
+    "meshMs": 406
+   }
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "corner",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "street",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "ground",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "view": "upper",
+   "frameMs": 0
+  },
+  {
+   "case": "courtyard-inn-spire",
+   "seed": 1,
+   "dims": [
+    248,
+    282,
+    280
+   ],
+   "quads": 85512,
+   "furniture": 105,
+   "timings": {
+    "planMs": 7,
+    "voxelMs": 122,
+    "meshMs": 566
+   }
+  }
+ ]
+}
