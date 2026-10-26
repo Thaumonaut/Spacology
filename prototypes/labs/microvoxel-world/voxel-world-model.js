@@ -338,7 +338,7 @@
         // at its level, so creeks and streams end in them (never crossing a lake) and never redraw the big rivers.
         if(h[k]>=SEA){
           if(t.lake>=0&&t.lakeD>.4){sink[k]=1;h[k]=Math.min(h[k],lakeLevel(t.lake));}
-          else if(MM.riverNear(px[k],pz[k],mr)&&mr.dist<mr.hw+G*.45){const lv=macroLevels(mr.river);sink[k]=1;h[k]=Math.min(h[k],lv[mr.seg]+(lv[mr.seg+1]-lv[mr.seg])*mr.t);}
+          else if(MM.riverNear(px[k],pz[k],mr)&&mr.dist<mr.hw+G*.45){const lv=macroLevels(mr.river);sink[k]=2;h[k]=Math.min(h[k],lv[mr.seg]+(lv[mr.seg+1]-lv[mr.seg])*mr.t);}
         }
       }
       const hk=new Float64Array(n),hv=new Int32Array(n);let hn=0,on=0;
@@ -399,6 +399,19 @@
       const grade=k=>{const d=down[k];return d<0?0:(lvl[k]-lvl[d])/(Math.hypot(px[d]-px[k],pz[d]-pz[k])||1);};
       for(let k=0;k<n;k++){const d=down[k];if(!head[k]||d<0||h[k]<SEA||lake[k]||lvl[d]<SEA+1)continue;const g=grade(k);if(g>.18&&lvl[k]-lvl[d]>=7&&grade(d)<g*.5)knick[k]=1;}
       T={i0,j0,W,px,pz,qx,qz,h,lvl,lake,feed,down,acc,rel,fed,mouth,hw,cs,head,spring,knick,src,sink};D.tiles.set(key,T);if(D.tiles.size>D.cap)D.tiles.delete(D.tiles.keys().next().value);return T;
+    }
+    // Local channel mouths (for checks): every drawn channel node in [x0,x1]x[z0,z1] whose downstream node is an outlet (a
+    // macro river, a macro lake or the sea). x, z: where its course ends; ax, az: its own control point; kind: 'river',
+    // 'lake' or 'sea'; level: the water level it ends at.
+    function streamMouths(x0,z0,x1,z1){
+      const D=DRAIN[0],G=D.G,out=[];
+      for(let tj=Math.floor(z0/G/D.T);tj<=Math.floor(z1/G/D.T);tj++)for(let ti=Math.floor(x0/G/D.T);ti<=Math.floor(x1/G/D.T);ti++){
+        const T=drainTile(0,ti,tj);
+        for(let j=D.M;j<D.M+D.T;j++)for(let i=D.M;i<D.M+D.T;i++){const a=j*T.W+i,b=T.down[a];
+          if(!T.head[a]||b<0||T.h[a]<SEA||T.sink[a]||!(T.sink[b]||T.h[b]<SEA))continue;const x=T.qx[b],z=T.qz[b];if(x<x0||x>x1||z<z0||z>z1)continue;
+          out.push({x,z,ax:T.qx[a],az:T.qz[a],hw:T.hw[a],kind:T.sink[b]===2?'river':T.sink[b]===1?'lake':'sea',level:T.lvl[b]});}
+      }
+      return out;
     }
     // Channel classes by upstream area. hw: half-width (m); s: how far its influence reaches (banks, sand, tree-free strip)
     // relative to a main river; head: area where the channel starts.
@@ -463,7 +476,15 @@
     // as a running minimum from the source so the water only ever runs down, held at least at the level of the lake or
     // parent river it ends in and at most at the level of the lake it leaves.
     const riverLevels=new Map(),lakeLevels=new Map(),mr={},RIVER_ZONES=['source','upper','middle','lower','estuary'];
+    const outlets=new Set((MM?.lakes||[]).map(L=>L.outletRiver).filter(i=>i>=0)),smooth=t=>t*t*(3-2*t);
     function lakeLevel(id){let v=lakeLevels.get(id);if(v===undefined){v=Math.max(SEA+1,MM.lakes[id].metres-.4);lakeLevels.set(id,v);}return v;}
+    function joinOf(ri){
+      const r=MM.rivers[ri],q=MM.rivers[r.parent],P=macroLevels(r.parent),ex=r.x.at(-1),ez=r.z.at(-1);
+      let best=0,bd=Infinity;
+      for(let i=0;i<q.x.length;i++){const d=(q.x[i]-ex)**2+(q.z[i]-ez)**2;if(d<bd){bd=d;best=i;}}
+      const hwP=q.hw[best],hwC=r.hw.at(-1);
+      return {level:P[best],hwP,flare:1+Math.min(1.5,hwP/Math.max(hwC,.1))};
+    }
     function macroLevels(ri){
       let lv=riverLevels.get(ri);if(lv)return lv;
       const r=MM.rivers[ri],m=r.x.length;lv=new Float32Array(m);let run=Infinity;
@@ -471,8 +492,10 @@
       // Rivers reaching the sea ease down to sea level over their last 300 m, so the water meets the sea flush.
       if(r.end==='ocean')for(let i=0;i<m;i++){const rest=r.length-r.along[i];if(rest<300)lv[i]=Math.min(lv[i],SEA+.2+rest/300*(lv[i]-SEA-.2));}
       if(r.end==='lake'&&r.lake>=0){const L=lakeLevel(r.lake);for(let i=0;i<m;i++)lv[i]=Math.max(lv[i],L);}
-      if(r.end==='river'&&r.parent>=0){const P=macroLevels(r.parent),q=MM.rivers[r.parent],ex=r.x[m-1],ez=r.z[m-1];let best=0,bd=Infinity;for(let i=0;i<q.x.length;i++){const d=(q.x[i]-ex)**2+(q.z[i]-ez)**2;if(d<bd){bd=d;best=i;}}
-        for(let i=0;i<m;i++)lv[i]=Math.max(lv[i],P[best]);}
+      // A tributary eases down to its parent's level at the join over its last 250 m (at most half its length), as an
+      // ocean river eases to the sea, so the two water surfaces meet without a step; it never sinks below the parent.
+      if(r.end==='river'&&r.parent>=0){const Pj=joinOf(ri).level,E=Math.min(250,r.length*.5);
+        for(let i=0;i<m;i++){const rest=r.length-r.along[i];if(rest<E)lv[i]=Math.min(lv[i],Pj+rest/E*(lv[i]-Pj));lv[i]=Math.max(lv[i],Pj);}}
       for(const L of MM.lakes)if(L.outletRiver===ri){const v=lakeLevel(L.id);for(let i=0;i<m;i++)lv[i]=Math.min(lv[i],v);}
       // Bed slope over a ~120 m window, flow speed (Manning: v = d^(2/3) sqrt(S) / n, n = 0.04; pools, lake reaches and
       // estuaries run slow) and the course zone from elevation, slope and discharge.
@@ -494,9 +517,15 @@
     function macroCourse(wx,wz,r){
       if(!MM.riverNear(wx,wz,mr))return;
       const lv=macroLevels(mr.river),level=lv[mr.seg]+(lv[mr.seg+1]-lv[mr.seg])*mr.t;
-      // A river widens into an estuary as it reaches sea level.
-      const hw=mr.hw*(1+.8*clamp((SEA+1.2-level)/1.2,0,1)),e=(mr.dist-hw)/mr.size+2.3;
-      if(e<r.e){const i=mr.seg,t=mr.t,R=MM.rivers[mr.river],j=t<.5?i:i+1;Object.assign(r,{e,dist:mr.dist,hw,s:mr.size,level,foam:false,x:mr.x,z:mr.z,spring:false,dx:mr.dx,dz:mr.dz,macro:true,
+      // A river widens into an estuary as it reaches sea level; a tributary flares into its parent over its last few tens
+      // of metres, a lake inlet into the lake and a lake outlet out of it.
+      const R=MM.rivers[mr.river],i=mr.seg,t=mr.t,at=R.along[i]+(R.along[i+1]-R.along[i])*t,rest=R.length-at;
+      let hw=mr.hw*(1+.8*clamp((SEA+1.2-level)/1.2,0,1));
+      if(R.end==='river'&&R.parent>=0&&rest<70){const J=joinOf(mr.river),FL=25+2.5*J.hwP;if(rest<FL)hw*=1+(J.flare-1)*smooth(1-rest/FL);}
+      else if(R.end==='lake'&&rest<100)hw*=1+.7*smooth(1-rest/100);
+      if(at<60&&outlets.has(mr.river))hw*=1+.6*smooth(1-at/60);
+      const e=(mr.dist-hw)/mr.size+2.3;
+      if(e<r.e){const j=t<.5?i:i+1;Object.assign(r,{e,dist:mr.dist,hw,s:mr.size,level,foam:false,x:mr.x,z:mr.z,spring:false,dx:mr.dx,dz:mr.dz,macro:true,
         speed:lv.speed[i]+(lv.speed[i+1]-lv.speed[i])*t,depth:R.depth[i]+(R.depth[i+1]-R.depth[i])*t,zone:RIVER_ZONES[lv.zone[j]],curve:R.curvature[i]+(R.curvature[i+1]-R.curvature[i])*t,slope:lv.slope[i]+(lv.slope[i+1]-lv.slope[i])*t});}
     }
     // A light meander warp only (meander loops come from the macro courses and the local control network). Local creeks
@@ -2190,7 +2219,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,streamMouths:(x0,z0,x1,z1)=>infinite?streamMouths(x0,z0,x1,z1):[],cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,heightBound,nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk;
