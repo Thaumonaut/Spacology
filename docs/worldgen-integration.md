@@ -38,11 +38,17 @@ root). `npm test -- microvoxel-world-launch` is the headless startup check;
 `npm test -- --unit microvoxel terrain-crossings building town city room`
 checks the affected unit modules. `node tools/benchmark-lod.cjs` samples LOD
 generation, and the in-page Performance panel reports live rendering costs.
+The integration-specific world revision is `micro-wilds-31-integration` (with
+matching worker cache keys), so old generated meshes cannot share its identity.
+
+Verified here: the core world unit test and `terrain-crossings`, plus headless
+`microvoxel-world-launch`, `microvoxel-world-crossings`,
+`microvoxel-world-streaming`, `building-lab` and `town-infinite` browser
+tests. The standalone package builds with the matching inline worker.
 
 Known gaps at this checkpoint: `microvoxel-crystal-material` still expects
 the alternate crystal renderer; `microvoxel-gallery` finds undeclared
-landmarks; `microvoxel-structures` assumes a ruin distribution from its
-source branch; and `terrain-crossings` expects the other branch's revision
-label. Their tests remain present and failing, rather than being disabled.
-Other browser journeys and cross-variant benchmark comparisons have not
-been validated yet.
+landmarks; and `microvoxel-structures` assumes a ruin distribution from its
+source branch. Their tests remain present and failing, rather than being
+disabled. Other browser journeys and cross-variant benchmark comparisons
+have not been validated yet.
