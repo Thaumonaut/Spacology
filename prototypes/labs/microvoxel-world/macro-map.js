@@ -258,7 +258,7 @@ Range 6-8 40-50 5-95 10-90`};
   // legacy: the template-only pass that picks the home start keeps the earlier rules (0.17 C/m lapse, no rain on frozen
   // ground, every flux path a river, no source walk), so the start stays where it was before the range layer.
   // core: the range layer's core per cell (m), when present: a basin the ranges dam holds a lake only among mountains.
-  function hydrology(G,h,rng,latC,hp=h,legacy=false,core=null,homeX=-1e9,homeY=-1e9){
+  function hydrology(G,h,rng,latC,hp=h,legacy=false,core=null,homeX=-1e9,homeY=-1e9,dry=null){
     const {n,off,nb,px,py,border,cellsX,cellsY,s}=G;
     // Water bodies touching the map edge are ocean; enclosed ones are lakes (features-generator markup).
     const ocean=new Uint8Array(n),lakeOf=new Int32Array(n).fill(-1),stack=[];
@@ -317,7 +317,8 @@ Range 6-8 40-50 5-95 10-90`};
     // lowland; a lowland basin half-dammed by a range is filled and the water runs on.
     const mtnBasin=b=>{if(!core)return true;if(b.cells.some(k=>Math.hypot(px[k]-homeX,py[k]-homeY)<1500))return false;
       const up=b.cells.filter(k=>core[k]>25).length/b.cells.length;return up>.5||b.cells.every(k=>core[k]<8);};
-    for(const [sp,b] of basins){if(!(b.water&&b.cells.length>=2||b.deep>=4&&b.cells.length>=3&&mtnBasin(b)))continue;
+    // No lake on a caldera (dry): the world fills the caldera with its own lake.
+    for(const [sp,b] of basins){if(!(b.water&&b.cells.length>=2||b.deep>=4&&b.cells.length>=3&&mtnBasin(b))||dry&&b.cells.some(k=>dry[k]))continue;
       const id=lakes.length,level=Math.max(...b.cells.map(k=>fill[k]));for(const k of b.cells)lakeOf[k]=id;
       lakes.push({id,cells:b.cells,spill:sp,height:level,outCell:down[sp],flux:0,evaporation:0,closed:false,inlets:[],outlet:-1});}
     // Water flux: precipitation down the filled surface, highest first. Lakes pool their inflow and pass on only what
@@ -335,7 +336,7 @@ Range 6-8 40-50 5-95 10-90`};
     // uplands (top: the highest ground upstream, ~80 m or more). Plains-only catchments are left to the world's local streams.
     const top=new Float32Array(n);
     for(let o=on-1;o>=0;o--){const c=order[o];if(ocean[c])continue;top[c]=Math.max(top[c],h[c]);const d=down[c];if(d>=0&&top[c]>top[d])top[d]=top[c];}
-    const isRiver=k=>!ocean[k]&&lakeOf[k]<0&&fl[k]>=MIN_FLUX&&(legacy||top[k]>=UPLAND_H);
+    const isRiver=k=>!ocean[k]&&lakeOf[k]<0&&fl[k]>=MIN_FLUX&&(legacy||top[k]>=UPLAND_H)&&!(dry&&dry[k]);
     const main=new Int32Array(n).fill(-1);
     for(let k=0;k<n;k++){if(!isRiver(k))continue;const d=down[k];if(d<0)continue;if(main[d]<0||fl[k]>fl[main[d]])main[d]=k;}
     // A lake outlet feeds its out cell as the main inflow.
@@ -348,7 +349,7 @@ Range 6-8 40-50 5-95 10-90`};
     // river threshold out on the plain.
     const dOff=new Int32Array(n+1);for(let k=0;k<n;k++)if(down[k]>=0)dOff[down[k]+1]++;for(let k=0;k<n;k++)dOff[k+1]+=dOff[k];
     const dList=new Int32Array(dOff[n]),dFill=dOff.slice(0,n);for(let k=0;k<n;k++)if(down[k]>=0)dList[dFill[down[k]]++]=k;
-    const upstream=hd=>{const chain=[];let c=hd;for(let guard=0;guard<2000;guard++){let b=-1;for(let e=dOff[c];e<dOff[c+1];e++){const d=dList[e];if(ocean[d]||lakeOf[d]>=0||isRiver(d))continue;if(b<0||top[d]>top[b]+.5||top[d]>top[b]-.5&&fl[d]>fl[b])b=d;}
+    const upstream=hd=>{const chain=[];let c=hd;for(let guard=0;guard<2000;guard++){let b=-1;for(let e=dOff[c];e<dOff[c+1];e++){const d=dList[e];if(ocean[d]||lakeOf[d]>=0||isRiver(d)||dry&&dry[d])continue;if(b<0||top[d]>top[b]+.5||top[d]>top[b]-.5&&fl[d]>fl[b])b=d;}
       if(b<0||fl[b]<MIN_FLUX*.22)break;chain.push(b);c=b;}return chain.reverse();};
     for(const hd of heads){const cells=[];let c=hd,end='land',lake=-1;const src=fromLake[hd]>=0?fromLake[hd]:-1;
       if(src>=0)cells.push(lakes[src].spill);else if(!legacy)cells.push(...upstream(hd));
@@ -451,10 +452,19 @@ Range 6-8 40-50 5-95 10-90`};
       const qa=d/Math.min(r.K*ws,6500);if(qa<1){const v=Hc*r.apron*(1-qa)**2;if(v>ap)ap=v;}}
     out.core=Math.sqrt(Math.sqrt(s4));out.apron=ap;return out;
   }
-  function buildRanges(G,h,seed,home){
+  function buildRanges(G,h,seed,home,template){
     const {px,py,s,cellsX,cellsY,off,nb}=G,rng=mulberry(seed^0x2c1b3c6d),{ocean,t,comp,comps}=landInfo(G,h),ranges=[],volcanoes=[];
     const cellAt=(x,y)=>x<0||y<0||x>=W||y>=H?-1:Math.min(Math.floor(y/s),cellsY-1)*cellsX+Math.min(Math.floor(x/s),cellsX-1);
     const R=(a,b)=>a+(b-a)*rng(),hx=home!=null?px[home]:-1e9,hy=home!=null?py[home]:-1e9,sm=v=>v*v*(3-2*v);
+    // Volcano type at (x, y) on cell c, from a hash of the position, weighted by setting: shields near the sea and on
+    // island and hotspot maps (volcano, high and low islands, archipelagos), calderas rarer and inland, Rainier-like
+    // glaciated giants and breached cones in between.
+    const islandMap=['volcano','highIsland','lowIsland','archipelago','shattered'].includes(template);
+    // Shields rise away from the ranges (a hotspot, not an arc): rarely where a range's core is near.
+    function volcanoType(x,y,c){const coast=t[c]<=4,inland=t[c]>=9,q={};let core=0;for(const [u,v] of [[0,0],[1500,0],[-1500,0],[0,1500],[0,-1500]])core=Math.max(core,rangeField(ranges,x+u,y+v,seed,q).core);
+      const w={fuji:28,rainier:22,helens:16,caldera:inland?14:9,shield:(islandMap?60:22)*(coast?2.2:inland?.4:1)*(core>40?.5:1)};
+      let r=hash(Math.floor(x),Math.floor(y),seed+4021)*(w.fuji+w.rainier+w.helens+w.caldera+w.shield);
+      for(const k of VOLCANO_TYPES){r-=w[k];if(r<0)return k;}return 'fuji';}
     // Steering walk: each step tries five headings and scores a short and a longer look-ahead (stay on this landmass, keep
     // the coast distance at least minT cells, hold a target coast distance for coastal ranges, keep out of the home zone,
     // turn as little as possible), with a slowly drifting bias so crests curve.
@@ -531,17 +541,24 @@ Range 6-8 40-50 5-95 10-90`};
         const pts=walk(P.x[i],P.y[i],dir+side*R(.55,1.15),P.length*R(.2,.42),{...base,minT:3}),r=finish(pts,'branch',P.H[i]*R(.55,.8),P.w[i]*R(.55,.75),true);
         if(r&&r.length>1500&&r.x.every((x,v)=>Math.hypot(x-hx,r.y[v]-hy)>r.w[v]+900))ranges.push(r);}
       tries(clamp(Math.round(A/12),0,16),()=>{const c=pick(cells,c=>t[c]>=3);return c>=0&&!!chain('minor',c,rng()*Math.PI*2,R(1500,5000),R(130,300),R(450,900),{...base,minT:2},.45,700);});
-      // Stratovolcanoes on the seaward flank of coastal ranges (one or two each) and now and then alone on a big landmass.
+      // Volcanoes on the seaward flank of coastal ranges (one or two each), at the ends of long ranges near the coast and
+      // alone near the coast, up to ~1 per 50 km2 of land. Each gets a type (volcanoType) from a hash of its position, so the
+      // choice draws nothing from the layout's random stream. Cones keep clear of each other (at least 8 km, and most of
+      // both radii) and of the home lowland (the whole apron: 0.9 R, where a cone is ~1 % of its height).
+      const want=A>=30?clamp(Math.round(A/50),1,4):0,mine=()=>volcanoes.filter(v=>comp[cellAt(v.x,v.y)]===ci).length;
+      // A breached cone opens toward the lowest ground around it (the sea, a valley), away from the ranges.
+      const make=(x,y,vH,c)=>{const type=volcanoType(x,y,c),R=volcanoRadius(type,vH),o={x,y,H:vH,type,R};
+        if(type==='helens'){let best=Infinity;const j=hash(Math.floor(x),Math.floor(y),seed+4027);
+          for(let i=0;i<12;i++){const a=(i+j)/12*Math.PI*2,X=x+Math.cos(a)*R*.45,Y=y+Math.sin(a)*R*.45,c2=cellAt(X,Y),g=c2<0||ocean[c2]?-50:metres(h[c2])+rangeField(ranges,X,Y,seed,{}).core;if(g<best){best=g;o.breach=a;}}}
+        return o;};
+      const spaced=o=>volcanoes.every(v=>Math.hypot(v.x-o.x,v.y-o.y)>Math.max(8000,.8*(v.R+o.R)))&&Math.hypot(o.x-hx,o.y-hy)>o.R*.9+400;
       for(const P of majors){if(P.kind!=='coastal')continue;let last=-1e9;
         for(let v=Math.floor(P.x.length*.2);v<P.x.length*.8;v+=3){const sAlong=v*P.length/(P.x.length-1);if(sAlong-last<5000||rng()>.12)continue;
           const j=Math.min(P.x.length-1,v+1),dx=P.x[j]-P.x[v-1],dy=P.y[j]-P.y[v-1],L=Math.hypot(dx,dy)||1;
-          for(const sd of [1,-1]){const x=P.x[v]-dy/L*sd*P.w[v]*.8,y=P.y[v]+dx/L*sd*P.w[v]*.8,vH=R(1150,1800),c=cellAt(x,y);if(c<0||ocean[c]||t[c]>=t[cellAt(P.x[v],P.y[v])]||t[c]<3||Math.hypot(x-hx,y-hy)<vH*1.8+800||volcanoes.some(o=>Math.hypot(o.x-x,o.y-y)<8000))continue;
-            volcanoes.push({x,y,H:vH});last=sAlong;break;}}}
-      // Then volcanoes at the ends of long ranges near the coast and alone near the coast, up to ~1 per 50 km2 of land.
-      // The apron of a 2-3 km cone reaches ~7 km out, so the home lowland must clear the whole cone, not just its centre.
-      const want=A>=30?clamp(Math.round(A/50),1,4):0,mine=()=>volcanoes.filter(v=>comp[cellAt(v.x,v.y)]===ci).length,spaced=(x,y,vH)=>volcanoes.every(v=>Math.hypot(v.x-x,v.y-y)>8000)&&Math.hypot(x-hx,y-hy)>vH*1.8+800;
-      for(const P of majors)for(const e of [0,P.x.length-1]){if(mine()>=want)break;const vH=R(1100,1800),c=cellAt(P.x[e],P.y[e]);if(c>=0&&!ocean[c]&&t[c]>=3&&t[c]<=20&&spaced(P.x[e],P.y[e],vH)&&rng()<.7)volcanoes.push({x:P.x[e],y:P.y[e],H:vH});}
-      for(let k=0;k<30&&mine()<want;k++){const vH=R(1150,1800),c=pick(cells,c=>t[c]>=4&&t[c]<=14&&h[c]>=SEA_H);if(c>=0&&spaced(px[c],py[c],vH)&&rangeField(ranges,px[c],py[c],seed,{}).core<60)volcanoes.push({x:px[c],y:py[c],H:vH});}
+          for(const sd of [1,-1]){const x=P.x[v]-dy/L*sd*P.w[v]*.8,y=P.y[v]+dx/L*sd*P.w[v]*.8,vH=R(1150,1800),c=cellAt(x,y);if(c<0||ocean[c]||t[c]>=t[cellAt(P.x[v],P.y[v])]||t[c]<3)continue;
+            const o=make(x,y,vH,c);if(!spaced(o))continue;volcanoes.push(o);last=sAlong;break;}}}
+      for(const P of majors)for(const e of [0,P.x.length-1]){if(mine()>=want)break;const vH=R(1100,1800),c=cellAt(P.x[e],P.y[e]);if(c>=0&&!ocean[c]&&t[c]>=3&&t[c]<=20){const o=make(P.x[e],P.y[e],vH,c);if(spaced(o)&&rng()<.7)volcanoes.push(o);}}
+      for(let k=0;k<30&&mine()<want;k++){const vH=R(1150,1800),c=pick(cells,c=>t[c]>=4&&t[c]<=14&&h[c]>=SEA_H);if(c<0)continue;const o=make(px[c],py[c],vH,c);if(spaced(o)&&rangeField(ranges,px[c],py[c],seed,{}).core<60)volcanoes.push(o);}
     }
     // The home range: a chain whose crest passes 0.85-1 km from the start, diagonally up-screen (toward -x, -z in the
     // world, turned 35-60 degrees to one side), where the 50-degree view of a 2 km span still holds its summits, so the
@@ -555,36 +572,126 @@ Range 6-8 40-50 5-95 10-90`};
     }
     return {ranges,volcanoes,land:{ocean,t,comp}};
   }
-  // Stratovolcano cone, shared by the macro map (its hydrology) and the world (tectonics), so rivers route around the
-  // same mountain the world draws (a narrower macro cone once let sea-level rivers cut pits into the world's flanks).
-  // Base radius 3x the height, concave flanks steepening from gentle at the foot to ~34 degrees under the summit.
-  // crater: a bowl inside a sharp rim with a slight raised lip. The world draws crater and ribs; the macro map leaves
-  // both out (its 200 m cells would alias the ribs into closed hollows, and its depression fill would flood them and the
-  // crater into lakes), so its hydrology sees the smooth cone.
-  // Radial ribs (Rainier / Fuji): 10-18 major ridges per volcano with deep V gullies between, readable at km scale. The
-  // angle is warped a little with distance so ribs meander; spacing widens downslope with the circumference, and on the
-  // lower flanks a second set splits each ridge with a new gully (ribs branch as they spread). Rib strength varies per
-  // rib. Ribs are absent within ~1.3 crater radii, peak mid-flank and fade out over the apron, never deeper than the cone.
-  // Writes out.cone (m, ribs included), out.rib (-1 gully floor .. +1 ridge crest) and out.frac (smooth cone height as a
-  // share of the summit, 0 at the foot .. 1 at the rim; crater 1). Pure function of (Hv, dx, dz).
-  const TAU=Math.PI*2,RIB_ASIN=Math.asin(.92);
-  function volcanoCone(Hv,dx,dz,out,crater=true,ribs=true){
-    const R=Hv*3,d=Math.hypot(dx,dz);out.cone=0;out.rib=0;out.frac=0;if(d>=R)return out;
-    const q=d/R,rc=.075,qc=q/rc,top=(1-rc)**2;let c;
-    if(crater&&qc<1){c=Hv*(top-.08*(1-qc*qc));out.frac=1;}else{c=Hv*(1-q)**2;out.frac=Math.min(1,(1-q)**2/top);}
-    if(crater)c+=Hv*.02*Math.exp(-(((qc-1)/.35)**2));
-    const ramp=clamp((q-.1)/.2,0,1),fade=clamp((1-q)/.45,0,1),A=Math.min(Hv*.06*ramp*ramp*(3-2*ramp)*fade*fade*(3-2*fade),c*.7);
-    if(A>0&&ribs){
-      const k=Math.floor(Hv*7919),N=10+Math.floor(hash(k,1,0)*9),p1=hash(k,2,0)*TAU,p2=hash(k,3,0)*TAU,a=Math.atan2(dz,dx);
-      const w=a+.1*Math.sin(3*a+p1+d/900)+.05*Math.sin(5*a+p2-d/430),u=w/TAU*N,i=Math.floor(u),f=u-i,sf=f*f*(3-2*f);
-      const s=.65+.7*(hash(((i%N)+N)%N,k,4)*(1-sf)+hash((((i+1)%N)+N)%N,k,4)*sf);
-      const tri=Math.asin(.92*Math.cos(TAU*u))/RIB_ASIN,o1=A*s*(((1+tri)/2)**.6-.61);
-      const A2=A*.4*clamp((q-.4)/.3,0,1),tri2=Math.asin(.92*Math.cos(TAU*(2*u+.5)))/RIB_ASIN,o2=A2*(((1+tri2)/2)**.6-.61);
-      c+=o1+o2;out.rib=clamp((o1+o2)/(.39*(A*s+A2)),-1,1);
+  // ---- Volcanoes ----
+  // Five real-world types, shared by the macro map (its hydrology) and the world (tectonics), so rivers route around the
+  // same mountain the world draws. Each volcano is {x, y|z, H, type}; volcanoSpec turns it into the shape parameters once
+  // (all from H and type: the per-volcano hash is floor(H*7919)), and volcanoCone(spec, dx, dz) evaluates it.
+  //   fuji     symmetric stratovolcano: base radius 4.4H, concave flanks H(1-r/R)^2.6 (~6-10 degrees at the foot, ~30 near
+  //            the top), a small summit crater, shallow radial ribs and a few flank cinder cones.
+  //   rainier  massive glaciated stratovolcano: a little elongated, deep radial glacial valleys from just under the summit,
+  //            a lumpy summit of two or three knobs (the world gives it a low snowline).
+  //   helens   breached cone: truncated summit, a horseshoe crater open to one side (sector collapse) with a lava dome in
+  //            it, and a hummocky debris apron spilling out of the breach.
+  //   caldera  collapsed cone (Crater Lake): a ring of steep inner walls round a wide flat floor (the world fills it with a
+  //            lake), a cinder-cone island, gentle outer slopes.
+  //   shield   Hawaiian shield: 0.4 of the height on a base of 12 heights, (1-r/R)^2 flanks (~8 degrees high, 2-4 low), a flat summit
+  //            with an elliptical caldera, pit craters and two rift-zone ridges, cinder cones on the flanks.
+  // crater: the world's detail (craters, caldera basin, dome, pits). The macro map leaves it out (its 200 m cells would
+  // alias it into closed hollows, and its depression fill would flood them into lakes): it sees the smooth cone, a caldera
+  // as the cone it collapsed from (its outer profile carried on up), which sheds water radially like any cone. ribs: radial ribs (Rainier / Fuji), ridges with gullies between, readable at km scale; the
+  // angle is warped a little with distance so ribs meander, spacing widens downslope, and on the lower flanks a second set
+  // splits each ridge (ribs branch as they spread). Ribs are narrow crests over broad gullies (wave exponent 1.4), absent
+  // near the summit, peak mid-flank and fade out over the apron. Cinder cones and debris hummocks come with the ribs.
+  // Writes out.cone (m), out.rib (-1 gully floor .. +1 rib crest), out.frac (smooth cone height as a share of the summit or
+  // rim: 0 at the foot .. 1 at the rim, 1 inside the crater), out.crater (signed distance to the crater or caldera edge,
+  // m, negative inside), out.ero (0-1: where the world's fine erosion may cut; 0 in and around the crater) and out.basin
+  // (1 inside a caldera's rim). Pure function of (spec, dx, dz).
+  const TAU=Math.PI*2;
+  // Rib wave: a softened triangle asin(k cos)/asin(k) (k near 1: crisp crests), raised to 1.4; its mean is removed.
+  const ribWave=k=>{const A=Math.asin(k);let m=0;for(let i=0;i<256;i++)m+=((1+Math.asin(k*Math.cos(TAU*i/256))/A)/2)**1.4;return {k,A,mean:m/256};};
+  const VOLCANO_TYPES=Object.freeze(['fuji','rainier','helens','caldera','shield']);
+  // Base radius of a volcano of type `type` and size class vH (m), for placement before a spec exists.
+  const volcanoRadius=(type,vH)=>type==='shield'?vH*4.8:type==='caldera'?vH*4.5:type==='fuji'||type==='rainier'?vH*4.4:vH*4;
+  function volcanoSpec(v){
+    const type=VOLCANO_TYPES.includes(v.type)?v.type:'fuji',Hv=v.H,k=Math.floor(Hv*7919),r=i=>hash(k,i,17);
+    const S={type,Hv,H:Hv,R:volcanoRadius(type,Hv),p:2.2,rc:.075*3/4,k,N:10+Math.floor(hash(k,1,0)*9),p1:hash(k,2,0)*TAU,p2:hash(k,3,0)*TAU,
+      ribA:.04,ribQ0:.1,ribQ1:.3,branch:.4,ribK:.92,snow:.72,rough:1,bury:.6,elong:0,ea:0,knobs:[],cc:[],rifts:[],pits:[],x:v.x,y:v.y,z:v.z};
+    // Cinder cones: n cones between q0 and q1 of the radius, h0-h1 tall (in units of S.H), ~30-degree flanks.
+    const cones=(n,q0,q1,h0,h1,salt)=>{for(let i=0;i<n;i++){const a=r(salt+i*3)*TAU,q=q0+(q1-q0)*r(salt+i*3+1),h=S.H*(h0+(h1-h0)*r(salt+i*3+2));S.cc.push({x:Math.cos(a)*q*S.R,z:Math.sin(a)*q*S.R,h,r:h/.55});}};
+    if(type==="fuji"){S.p=2.6;S.rc=.045;S.ribA=.035;S.rough=.6;cones(1+Math.floor(r(1)*3),.35,.7,.03,.05,20);}
+    else if(type==='rainier'){
+      Object.assign(S,{p:2.4,rc:.045,bury:.4,ribA:.055,ribK:.995,ribQ0:.05,ribQ1:.2,N:14+Math.floor(hash(k,1,0)*8),snow:.45,elong:.1,ea:r(5)*TAU});
+      for(let i=0,n=2+Math.floor(r(6)*2);i<n;i++){const a=r(7+i)*TAU,q=.04+.05*r(10+i);S.knobs.push({x:Math.cos(a)*q*S.R,z:Math.sin(a)*q*S.R,h:S.H*(.025+.025*r(13+i)),r:S.R*(.035+.02*r(16+i))});}}
+    else if(type==='helens'){const b=v.breach!==undefined?v.breach:r(5)*TAU;
+      // Breach along (bx, bz): the crater is a round end behind the vent (c0, radius units) opening into arms wc wide that
+      // diverge (wg per radius) toward the breach, with ww walls. Its floor lies dep below the cone along the axis at the
+      // vent, the depth easing to nothing by c1, so the floor falls away down the breach and the horseshoe's walls sink into
+      // the flank where it opens onto the debris apron. The dome stands on the floor just inside the vent; the apron fans
+      // out from a0 to 0.95 R beyond the breach.
+      Object.assign(S,{bx:Math.cos(b),bz:Math.sin(b),trunc:.78,c0:-.02,c1:.45,wc:.085,wg:.22,ww:.05,dep:.35,du:.03,dr:.05,dh:.1,a0:.35,ribA:.04,snow:.7});}
+    else if(type==='caldera'){
+      // Rim at rr of the radius (varying with angle), Hr high; floor fl and lake level (both above the vent's base); walls
+      // ww (radius units) wide. Wizard Island: a cinder cone standing out of the lake.
+      Object.assign(S,{rr:.3,rm1:.06,rm2:.04,Hr:S.H*.26,rh:.07,fl:S.H*.04,lake:S.H*.15,ww:.05,ribA:.02,snow:.75,rough:.5,bury:.8,po:1.2});
+      const a=r(5)*TAU,q=.08+.06*r(6),h=S.lake-S.fl+S.H*.07;S.cc.push({x:Math.cos(a)*q*S.R,z:Math.sin(a)*q*S.R,h,r:h/.45});}
+    else if(type==='shield'){S.H=Hv*.4;const a=r(5)*TAU,b=a+Math.PI+(r(6)-.5)*1.2;
+      Object.assign(S,{p:2,q0:.05,ribA:.012,ribQ0:.05,ribQ1:.15,branch:0,N:22+Math.floor(hash(k,1,0)*13),snow:.9,rough:.35,bury:.9,ca:.07,cb:.045,cd:.05,ux:Math.cos(a),uz:Math.sin(a),ra:.06,rw:.045});
+      S.rifts=[[Math.cos(a),Math.sin(a)],[Math.cos(b),Math.sin(b)]];
+      for(let i=0,n=2+Math.floor(r(7)*3);i<n;i++){const [ux,uz]=S.rifts[i&1],q=.07+.15*r(8+i);S.pits.push({x:ux*q*S.R,z:uz*q*S.R,r:S.R*(.01+.006*r(12+i)),d:S.H*(.02+.012*r(16+i))});}
+      cones(4+Math.floor(r(2)*3),.15,.75,.06,.1,20);}
+    // feat: the tallest narrow feature on top of the smooth cone (cinder cones, knobs, a debris apron's hummocks, ribs),
+    // for height bounds that sample the cone coarsely.
+    S.feat=Math.max(0,...S.cc.map(C=>C.h),...S.knobs.map(K=>K.h),type==='helens'?S.H*.06:0)+S.H*S.ribA;
+    S.top=(1-S.rc)**S.p;S.cr=S.rc*S.R;S.rw=ribWave(S.ribK);return S;
+  }
+  const sm=v=>v*v*(3-2*v);
+  function volcanoCone(S,dx,dz,out,crater=true,ribs=true){
+    out.cone=0;out.rib=0;out.frac=0;out.crater=1e9;out.ero=1;out.basin=0;
+    const R=S.R,H=S.H,d=Math.hypot(dx,dz);if(d>=R)return out;
+    const T=S.type,a=ribs||S.elong||T==='caldera'?Math.atan2(dz,dx):0;
+    let q=d/R;if(S.elong){q*=1+S.elong*Math.cos(2*(a-S.ea));if(q>=1)return out;}
+    let c,ribMask=1,ribFrom=S.ribQ0,ribTo=S.ribQ1;
+    if(T==='caldera'){
+      const rq=S.rr*(1+S.rm1*Math.sin(2*a+S.p1)+S.rm2*Math.sin(3*a+S.p2)),Hr=S.Hr*(1+S.rh*Math.sin(2*a+S.p2+1)+.04*Math.sin(5*a+S.p1));
+      if(q>=rq){c=Hr*((1-q)/(1-rq))**S.po;out.frac=c/Hr;}
+      else if(!crater){c=Hr*((1-q)/(1-rq))**S.po;out.frac=1;}
+      else{const s=clamp((rq-q)/S.ww,0,1);c=S.fl+(Hr-S.fl)*(1-s)**2.5;out.frac=1;out.basin=1;}
+      out.crater=(q-rq)*R;out.ero=clamp((q-rq-.02)/.08,0,1);ribFrom=rq+.04;ribTo=rq+.16;
+    }else if(T==='shield'){
+      const q0=S.q0;if(q>q0)c=H*(1-q)**S.p;else{const f0=(1-q0)**S.p,s0=-S.p*(1-q0)**(S.p-1);c=H*(f0+s0*(q*q-q0*q0)/(2*q0));}
+      out.frac=c/H;
+      // Rift zones: low ridges running from the summit down two opposite-ish azimuths, fading out over the lower flank.
+      for(let i=0;i<S.rifts.length;i++){const ux=S.rifts[i][0],uz=S.rifts[i][1],u=dx*ux+dz*uz;if(u<=0)continue;const v=(-dx*uz+dz*ux)/(S.rw*R);if(v*v<1){const e=1-v*v;c+=H*S.ra*e*e*(1-q)**1.2*clamp(u/(.05*R),0,1);}}
+      if(crater){
+        // Summit caldera: an ellipse along the first rift, steep-walled and flat-floored; pit craters along the rifts.
+        const u=(dx*S.ux+dz*S.uz)/(S.ca*R),v=(-dx*S.uz+dz*S.ux)/(S.cb*R),e=Math.sqrt(u*u+v*v);
+        if(e<1.3){const s=clamp((1.12-e)/.2,0,1);c-=S.cd*H*sm(s);}
+        out.crater=(e-1)*S.cb*R;
+        for(let i=0;i<S.pits.length;i++){const P=S.pits[i],e2=Math.hypot(dx-P.x,dz-P.z)/P.r;if(e2<1.2){const s=clamp((1.1-e2)/.25,0,1);c-=P.d*sm(s);out.crater=Math.min(out.crater,(e2-1)*P.r);}}
+      }
+      out.ero=clamp((q-.06)/.06,0,1);
+    }else{
+      const qc=q/S.rc;
+      if(crater&&qc<1){c=H*(S.top-.09*(1-qc**4));out.frac=1;}else{c=H*(1-q)**S.p;out.frac=Math.min(1,(1-q)**S.p/S.top);}
+      if(crater){const e=1-Math.abs(qc-1)/(qc<1?.2:.5);if(e>0)c+=H*.02*e*e;}
+      out.crater=(qc-1)*S.cr;out.ero=clamp((qc-1.4)/1.6,0,1);
+      if(T==='rainier')for(let i=0;i<S.knobs.length;i++){const K=S.knobs[i],e=((dx-K.x)**2+(dz-K.z)**2)/(K.r*K.r);if(e<1)c+=K.h*(1-e)*(1-e);}
+      else if(T==='helens'){
+        // Truncated top (a little rounded), then the horseshoe crater cut down to its floor, the dome and the debris apron.
+        const top=H*S.trunc;if(c>top)c=top+(c-top)*.12;
+        const u=(dx*S.bx+dz*S.bz)/R,v=(-dx*S.bz+dz*S.bx)/R,cosb=d>1?u*R/d:0;
+        ribMask=1-clamp((cosb-.55)/.3,0,1);out.crater=1e9;out.ero=1;out.frac=Math.min(1,c/top);
+        if(crater){const uu=Math.max(0,u),dep=S.dep*(1-sm(clamp((u-.08)/(S.c1-.08),0,1))),fl=H*(Math.min(S.trunc,(1-uu)**S.p)-dep),wc=S.wc+S.wg*uu,dc=u<S.c0?Math.hypot(u-S.c0,v):Math.abs(v);
+          if(dep>0&&c>fl){const w=clamp((dc-wc)/S.ww,0,1),cut=fl+(c-fl)*w**2.5;if(cut<c-1){c=cut;out.frac=1;}if(dep>.05){out.crater=(dc-wc-S.ww*.4)*R;out.ero=clamp((dc-wc-S.ww*1.4)/S.ww,0,1);}}
+          const dd=Math.hypot(u-S.du,v);if(dd<S.dr){const e=1-(dd/S.dr)**2;c=Math.max(c,H*(S.trunc-S.dep+S.dh*Math.sqrt(e)*(.85+.3*noise(dx/90,dz/90,S.k+5))));}}
+        if(u>S.a0&&u<.95){const L=(u-S.a0)/(.95-S.a0),half=.1+.35*L,m=1-Math.abs(v)/half;
+          if(m>0){const f=sm(clamp(m*2,0,1))*sm(clamp(L*5,0,1))*Math.sqrt(1-L);c+=H*f*(.018+(ribs?.035*noise(dx/240,dz/240,S.k+7)**2:.012));}}
+      }
     }
+    const ramp=clamp((q-ribFrom)/(ribTo-ribFrom),0,1),fade=clamp((1-q)/.45,0,1),A=Math.min(H*S.ribA*sm(ramp)*sm(fade)*ribMask,c*.7);
+    if(A>0&&ribs){
+      const N=S.N,w=a+.1*Math.sin(3*a+S.p1+d/(R*.35))+.05*Math.sin(5*a+S.p2-d/(R*.17)),u=w/TAU*N,i=Math.floor(u),f=u-i,sf=f*f*(3-2*f);
+      const s=.65+.7*(hash(((i%N)+N)%N,S.k,4)*(1-sf)+hash((((i+1)%N)+N)%N,S.k,4)*sf);
+      const W=S.rw,tri=Math.asin(W.k*Math.cos(TAU*u))/W.A,o1=A*s*(((1+tri)/2)**1.4-W.mean);
+      let o2=0,A2=0;if(S.branch){A2=A*S.branch*clamp((q-.4)/.3,0,1);if(A2>0){const tri2=Math.asin(W.k*Math.cos(TAU*(2*u+.5)))/W.A;o2=A2*(((1+tri2)/2)**1.4-W.mean);}}
+      c+=o1+o2;out.rib=clamp((o1+o2)/((1-W.mean)*(A*s+A2)),-1,1);
+    }
+    // Cinder cones (world detail): ~30-degree cones with a crater, standing on whatever is under them.
+    if(ribs)for(let i=0;i<S.cc.length;i++){const C=S.cc[i],ex=dx-C.x,ez=dz-C.z;if(ex>C.r||ex<-C.r||ez>C.r||ez<-C.r)continue;const s=Math.hypot(ex,ez)/C.r;if(s>=1)continue;
+      c+=s<.22?C.h*(1-.3*(1-(s/.22)**2)):C.h*((1-s)/.78)**1.15;if(s<.22)out.crater=Math.min(out.crater,(s-.22)*C.r);}
     out.cone=Math.max(0,c);return out;
   }
-  const coneTmp={cone:0,rib:0,frac:0},coneAt=(Hv,dx,dz)=>volcanoCone(Hv,dx,dz,coneTmp,false,false).cone;
+  const coneTmp={cone:0,rib:0,frac:0,crater:0,ero:0,basin:0},coneAt=(S,dx,dz)=>volcanoCone(S,dx,dz,coneTmp,false,false).cone;
 
   function generate(seed,template){
     const t0=Date.now?Date.now():0,start=typeof performance!=='undefined'?performance.now():t0;
@@ -601,21 +708,25 @@ Range 6-8 40-50 5-95 10-90`};
     if(!home)throw new Error('Macro map: no land for a home start');
     // Ranges are laid on the template's continents (the home start picked on them), folded into the heights, and the
     // hydrology runs again on the result: rivers rise in the ranges and route around them, basins between them hold lakes.
-    const RL=buildRanges(G,h,seed,home),hc=new Float32Array(G.n),core=new Float32Array(G.n),q={};
+    const RL=buildRanges(G,h,seed,home,template),hc=new Float32Array(G.n),core=new Float32Array(G.n),q={};
     // A cone standing in the sea builds land out of it: the sea floor under it is raised to just under the sea (fully
     // once the cone stands 40 m, as the world does in tectonics), so the coast and the river mouths sit where the world's
     // cone meets the water, not inside its flanks.
-    for(let k=0;k<G.n;k++){let cone=0;for(const v of RL.volcanoes)cone=Math.max(cone,coneAt(v.H,G.px[k]-v.x,G.py[k]-v.y));
+    const specs=RL.volcanoes.map(volcanoSpec);
+    for(let k=0;k<G.n;k++){let cone=0;for(const S of specs){const dx=G.px[k]-S.x,dy=G.py[k]-S.y;if(Math.abs(dx)<S.R&&Math.abs(dy)<S.R)cone=Math.max(cone,coneAt(S,dx,dy));}
       if(h[k]<SEA_H){const m=metres(h[k]);hc[k]=cone>0?invMetres((m<SEA-1.5?m+(SEA-1.5-m)*clamp(cone/40,0,1):m)+cone):h[k];continue;}
       rangeField(RL.ranges,G.px[k],G.py[k],seed,q);
       const f=rangeMask(RL.land.t[k]*G.s);core[k]=q.core*f;hc[k]=invMetres(upland(metres(h[k]))+(q.core+q.apron)*f+cone);}
     const ground=hc;
     const hp=hc.map(v=>v<=60?v:60+(v-60)*.35);
-    X=hydrology(G,hc,mulberry(seed^0x7f4a7c15),latC,hp,false,core,G.px[home],G.py[home]);home=settleHome(G,ground,X,home);
+    // No macro river runs inside a caldera's rim (the world fills the caldera with a lake; the macro map sees the cone it
+    // collapsed from): courses rise where the flank leaves the rim.
+    const dry=new Uint8Array(G.n);for(const S of specs)if(S.type==='caldera')for(let k=0;k<G.n;k++)if(Math.hypot(G.px[k]-S.x,G.py[k]-S.y)<S.R*(S.rr*1.1+S.ww))dry[k]=1;
+    X=hydrology(G,hc,mulberry(seed^0x7f4a7c15),latC,hp,false,core,G.px[home],G.py[home],dry);home=settleHome(G,ground,X,home);
     const C=courses(G,X),ox=G.px[home],oy=G.py[home];
     const map={seed,template,W,H,s:G.s,cellsX:G.cellsX,cellsY:G.cellsY,n:G.n,px:G.px,py:G.py,heights:hc,templateHeights:h,ocean:X.ocean,lakeOf:X.lakeOf,temp:X.temp,prec:X.prec,flux:X.fl,ox,oy,latC,home:{cell:home,x:0,z:0}};
     map.ranges=RL.ranges.map(r=>({kind:r.kind,length:r.length,height:Math.max(...r.H),x:Float32Array.from(r.x,v=>v-ox),z:Float32Array.from(r.y,v=>v-oy),H:Float32Array.from(r.H),w:Float32Array.from(r.w),comp:RL.land.comp[Math.min(Math.floor(r.y[r.y.length>>1]/G.s),G.cellsY-1)*G.cellsX+Math.min(Math.floor(r.x[r.x.length>>1]/G.s),G.cellsX-1)]}));
-    map.volcanoes=RL.volcanoes.map(v=>({x:v.x-ox,z:v.y-oy,H:v.H}));
+    map.volcanoes=RL.volcanoes.map(v=>({x:v.x-ox,z:v.y-oy,H:v.H,type:v.type,...(v.breach!==undefined?{breach:v.breach}:{})}));
     bake(map,G,X,C,RL);
     map.ms=(typeof performance!=='undefined'?performance.now():Date.now())-start;
     return map;
@@ -822,6 +933,6 @@ Range 6-8 40-50 5-95 10-90`};
     if(home)plot(0,0,3,[220,30,30]);
     return rgba;
   }
-  const api={get,generate,image,volcanoCone,metres,invMetres,cooling,LAPSE,TEMPLATES,WEIGHTS,WIDTH:W,HEIGHT:H,SEA_H,SEA,hash,noise};
+  const api={get,generate,image,volcanoCone,volcanoSpec,volcanoRadius,VOLCANO_TYPES,metres,invMetres,cooling,LAPSE,TEMPLATES,WEIGHTS,WIDTH:W,HEIGHT:H,SEA_H,SEA,hash,noise};
   if(typeof module==='object'&&module.exports)module.exports=api;else root.MacroMap=api;
 })(typeof globalThis==='object'?globalThis:this);

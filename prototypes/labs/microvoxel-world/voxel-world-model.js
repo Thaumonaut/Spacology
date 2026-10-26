@@ -75,7 +75,7 @@
   function createWorld(seed=2718,cellMetres=CELL,extent=EXTENT,options={}){
     if(![CELL,CELL/2].includes(cellMetres))throw new Error('Cell size must be 0.25 or 0.125 metres');
     if(![EXTENT,EXTENT*2,'infinite'].includes(extent))throw new Error('World extent must be 128, 256 or infinite');
-    const infinite=extent==='infinite',revision=infinite?'micro-wilds-29':REVISION;
+    const infinite=extent==='infinite',revision=infinite?'micro-wilds-30-volcanoes':REVISION;
     const density=CELL/cellMetres,chunkCells=CHUNK*density,heightCells=(infinite?STREAM_HEIGHT:HEIGHT)*density;
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
@@ -107,7 +107,9 @@
       else if(relief>40)setting=mac.distToCoast<2400?'subduction':'collision';
       else if(relief>12&&mac.distToCoast<700)setting='arc';
       else if(relief<25){const n=noise(x*.0006,z*.0006,seed+931);if(n>.74){setting='rift';f=clamp((n-.74)/.08,0,1);}}
-      return {h,base:h-relief,relief,setting,f,cone:0,coast:mac.distToCoast,precip:mac.precip,lake:mac.lake,lakeD:mac.lakeD,valley:mac.valley,mesa:hill.mesa,wall:hill.wall};
+      // The volcano fields (see tectonics) start empty, so every relief sample has one shape.
+      return {h,base:h-relief,relief,setting,f,cone:0,cc:0,hill:hill.h,coast:mac.distToCoast,precip:mac.precip,lake:mac.lake,lakeD:mac.lakeD,valley:mac.valley,mesa:hill.mesa,wall:hill.wall,
+        vx:0,vz:0,vr:0,vh:0,rib:0,coneFrac:0,vtype:'',vsnow:1,vcrater:1e9,vero:1,vlake:0};
     }
     // Rolling hills and uplands everywhere on land, at ~150 m to 1.5 km wavelengths, in regional styles: plains (+-1-3 m),
     // rolling country (5-20 m) and hill country (20-60 m), chosen by a ~5 km field. Uplands rise toward the ranges (the
@@ -150,31 +152,42 @@
     const smooth01=v=>v*v*(3-2*v);
     // Tiers of the home massif rise from just above the home ground (8 m above the sea in the plate world).
     const homeLevel=infinite?plateRelief(0,0).h:SEA+6;
-    // Stratovolcanoes come from the macro map's range layer: on the seaward flanks of coastal ranges and now and then alone
-    // on a big landmass, each a smooth cone (base radius 3x its height, flanks steepening from gentle at the foot to ~34 degrees near the crater, like Rainier or Fuji) with a summit crater. They are
-    // part of plate relief, so rivers route around them and they cast rain shadows; tall cones are capped softly below the
-    // column ceiling. One volcano per 700 m lookup cell at most (their bases are narrower than a cell).
-    // Volcano lookup: each cone is registered in every VG cell its radius touches (R can be ~5 km now, far more than one
+    // Volcanoes come from the macro map's range layer: on the seaward flanks of coastal ranges and now and then alone on a
+    // big landmass, each of a real-world type (MacroLib.volcanoSpec: Fuji-like and Rainier-like stratovolcanoes, breached
+    // cones like St Helens, calderas like Crater Lake, Hawaiian shields), base radius ~4x the height (shields ~9.5x). They
+    // are part of plate relief, so rivers route around them and they cast rain shadows; tall cones are capped softly
+    // below the column ceiling.
+    // Volcano lookup: each cone is registered in every VG cell its radius touches (R reaches ~8 km, far more than one
     // cell), so a point anywhere on the flank finds its volcano with a single map hit instead of a fixed ±1-cell scan.
+    // base: plate relief at the vent; a caldera's floor and rim stand on it (so its lake is level and below the whole rim).
     const VG=700,volcanoCells=new Map();
-    if(infinite)for(const v of MM.volcanoes||[]){const V={x:v.x,z:v.z,H:v.H,R:v.H*3};
+    if(infinite)for(const v of MM.volcanoes||[]){const S=MacroLib.volcanoSpec(v),V={x:v.x,z:v.z,H:S.H,R:S.R,S,base:S.type==='caldera'?plateRelief(v.x,v.z).h:0};
       const i0=Math.floor((v.x-V.R)/VG),i1=Math.floor((v.x+V.R)/VG),j0=Math.floor((v.z-V.R)/VG),j1=Math.floor((v.z+V.R)/VG);
       for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const k=i*65536+j;let a=volcanoCells.get(k);if(!a)volcanoCells.set(k,a=[]);a.push(V);}}
     // The cone itself (shape, crater, radial ribs) is MacroLib.volcanoCone, shared with the macro map's hydrology. Under a
     // coastal cone the sea floor is raised to just under the sea first (fully once the cone stands 40 m), so the cone
-    // never dips into pockets of sea on its own flanks. t.rib: -1 gully floor .. +1 rib crest; t.coneFrac: the smooth
-    // cone's height as a share of the summit; t.vh: the volcano's height.
-    const vc={cone:0,rib:0,frac:0};
+    // never dips into pockets of sea on its own flanks. Under a caldera the ground eases to the vent's base level out to
+    // just past the rim, so the rim and the lake level stand on one datum. t.rib: -1 gully floor .. +1 rib crest;
+    // t.coneFrac: the smooth cone's height as a share of the summit (or rim); t.vh: the volcano's height; t.vtype, t.vsnow
+    // (coneFrac above which snow may lie), t.vcrater (signed distance to the crater edge, m), t.vero (0-1: where fine
+    // erosion may cut); t.vlake: a caldera lake's level (m) inside its rim, else 0.
+    const vc={cone:0,rib:0,frac:0,crater:0,ero:1,basin:0},vb={cone:0,rib:0,frac:0,crater:0,ero:1,basin:0};
     function tectonics(x,z){
-      const t=plateRelief(x,z),list=volcanoCells.get(Math.floor(x/VG)*65536+Math.floor(z/VG));let cone=0,vx=0,vz=0,vr=0,vh=0,rib=0,frac=0;
+      const t=plateRelief(x,z),list=volcanoCells.get(Math.floor(x/VG)*65536+Math.floor(z/VG));let cone=0,B=null,rib=0,frac=0,crater=0,ero=1,basin=0;
       if(list)for(const V of list){
         if(Math.abs(x-V.x)>=V.R||Math.abs(z-V.z)>=V.R)continue;
-        MacroLib.volcanoCone(V.H,x-V.x,z-V.z,vc);
-        if(vc.cone>cone){cone=vc.cone;vx=V.x;vz=V.z;vr=V.R;vh=V.H;rib=vc.rib;frac=vc.frac;}
+        MacroLib.volcanoCone(V.S,x-V.x,z-V.z,vc);
+        if(vc.cone>cone){cone=vc.cone;B=V;rib=vc.rib;frac=vc.frac;crater=vc.crater;ero=vc.ero;basin=vc.basin;}
       }
       if(!cone)return t;
-      let h=(t.h<SEA-1.5?t.h+(SEA-1.5-t.h)*clamp(cone/40,0,1):t.h)+cone;if(h>3200)h=3200+(h-3200)*.3;
-      return {...t,h,cone:h-t.h,vx,vz,vr,vh,rib,coneFrac:frac};
+      // The cone buries the rolling hills under it (they fade out over its first ~60 m) and, up its flanks, much of any
+      // range it stands on (S.bury: most under a shield or caldera, less under a Rainier-like giant on its range crest).
+      const S=B.S,bury=S.bury*clamp(frac*1.6,0,1);let g=t.h-t.hill*clamp(cone/60,0,1)-t.relief*bury;
+      if(S.type==='caldera'){const w=clamp((S.rr+.2-Math.hypot(x-B.x,z-B.z)/S.R)/.14,0,1);if(w>0)g+=(B.base-g)*w*w*(3-2*w);}
+      let h=(g<SEA-1.5?g+(SEA-1.5-g)*clamp(cone/40,0,1):g)+cone;if(h>3200)h=3200+(h-3200)*.3;
+      // plateRelief returns a fresh sample: fill in its volcano fields rather than copying it.
+      t.cone=h-t.h;t.cc=t.cone*S.rough;t.h=h;t.relief*=1-bury;t.vx=B.x;t.vz=B.z;t.vr=B.R;t.vh=B.H;t.rib=rib;t.coneFrac=frac;t.vtype=S.type;t.vsnow=S.snow;t.vcrater=crater;t.vero=ero;t.vlake=basin?B.base+S.lake:0;
+      return t;
     }
     // Climate on a 32 m grid: latitude temperature, banded prevailing winds, moisture carried from sea and rained out on rising ground.
     // Latitude runs north-south across the macro map (400 m per degree, folding at the poles far out at sea), the same
@@ -407,7 +420,7 @@
       const fed=new Uint8Array(n),src=new Map(),sink=new Uint8Array(n),sinkAt=new Map();
       for(let j=0;j<W;j++)for(let i=0;i<W;i++){
         const k=j*W+i,gi=i0+i,gj=j0+j;px[k]=(gi+.2+.6*hash(gi,gj,seed+D.salt))*G;pz[k]=(gj+.2+.6*hash(gi,gj,seed+D.salt+2))*G;
-        const t=tectonics(px[k],pz[k]);cragAt(px[k],pz[k],t.relief,t.cone);
+        const t=tectonics(px[k],pz[k]);cragAt(px[k],pz[k],t.relief,t.cc);
         const g=t.h+upliftAt(px[k],pz[k]).up+cragLow;h[k]=g<SEA?g:g-(creaseAt||ownCrease)(px[k],pz[k])*CREASE_DEPTH*clamp((g-SEA-.5)/12,0,1);rel[k]=Math.max(t.relief,t.cone);
         // The home start sits on a low drainage dome (in the routed surface only), so creeks rise around camp and flow
         // away from it instead of crossing the opening's gorge and massif.
@@ -416,6 +429,7 @@
         // at its level, so creeks and streams end in them (never crossing a lake) and never redraw the big rivers.
         if(h[k]>=SEA){
           if(t.lake>=0&&t.lakeD>.4){sink[k]=1;h[k]=Math.min(h[k],lakeLevel(t.lake));}
+          else if(t.vlake&&h[k]<t.vlake+1){sink[k]=1;h[k]=Math.min(h[k],t.vlake);}
           else if(MM.riverNear(px[k],pz[k],mr)&&mr.dist<mr.hw+G*.45){const lv=macroLevels(mr.river);sink[k]=2;h[k]=Math.min(h[k],lv[mr.seg]+(lv[mr.seg+1]-lv[mr.seg])*mr.t);sinkAt.set(k,[mr.x,mr.z]);}
         }
       }
@@ -563,7 +577,7 @@
       const r=MM.rivers[ri],m=r.x.length,D=deltaOf.get(ri);lv=new Float32Array(m);let run=Infinity;
       // A distributary leaves its river at the delta apex, at the river's level there.
       if(r.distributary){const P=macroLevels(r.distributary.river);run=levelAt(r.distributary.river,P,r.distributary.along)+.3;}
-      for(let i=0;i<m;i++){const t=tectonics(r.x[i],r.z[i]),c=cragAt(r.x[i],r.z[i],t.relief,t.cone);run=Math.min(run,t.h+Math.min(c,cragLow));lv[i]=run-.3;}
+      for(let i=0;i<m;i++){const t=tectonics(r.x[i],r.z[i]),c=cragAt(r.x[i],r.z[i],t.relief,t.cc);run=Math.min(run,t.h+Math.min(c,cragLow));lv[i]=run-.3;}
       // Rivers reaching the sea ease down to sea level at the shore (the second-to-last vertex; the last lies 30 m out in
       // open water): straight across a delta from its apex, over an estuary's funnel, else over the last 300 m.
       if(r.end==='ocean'){const shore=r.along[Math.max(0,m-2)],from=D?D.kind==='delta'&&!r.distributary?shore-D.along:D.kind==='delta'?shore:D.R:300;
@@ -772,7 +786,7 @@
     // floors where coarse erosion octaves converge, 0 off mountains), gradient [gx, gz] of the eroded mountain surface
     // (m/m)}. Pure function of (seed, x, z); costs one plate/crag evaluation plus three erosion octaves.
     function erosionAt(x,z){
-      const t=tectonics(x,z);cragAt(x,z,t.relief,t.cone);const s=mountainSurface(x,z,t);
+      const t=tectonics(x,z);cragAt(x,z,t.relief,t.cc);const s=mountainSurface(x,z,t);
       return {offset:s.erosion,crease:s.crease,gradient:[s.gx,s.gz]};
     }
     // Soft ceiling for the tallest summits: above 3 km, height eases toward 3.4 km, well inside the 10 km column.
@@ -785,7 +799,7 @@
     const erosionStrength=(t,x,z)=>{const patch=.3+.7*noise(x*.0009,z*.0009,seed+743);
       // Gully depth is capped at 10 m (about an eighth of the first octave's 84 m cell), so gullies stay V-shaped, not needle combs.
       // On volcanoes the radial ribs (volcanoCone) are the landform; this finer erosion is only a light texture on their sides.
-      return Math.min(10,clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cone/40,0,1)*t.cone*.04*clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1):0))*patch;};
+      return Math.min(10,clamp((t.relief-8)/40,0,1)*Math.min(t.relief,480)*.11+(t.cone?clamp(t.cc/40,0,1)*t.cc*.04*t.vero:0))*patch;};
     // Basalt outcrops: small scattered knolls (one candidate per 36 m cell, 2-4.5 m across), never broad sheets of rock.
     // They gather below the home massif's cliffs, where fallen blocks would lie.
     function outcropAt(x,z){
@@ -808,7 +822,7 @@
         if(p<.45*highlands*clamp((Math.max(t.relief,t.cone)-22)/15,0,1)&&Math.hypot(x,z)>90){
           // Hover clear of the highest ground beneath the whole slab.
           const r=8+13*hash(i,j,seed+377);let under=SEA;
-          for(const [u,v] of [[0,0],[r,0],[-r,0],[0,r],[0,-r],[.7*r,.7*r],[-.7*r,.7*r],[.7*r,-.7*r],[-.7*r,-.7*r]]){const q=tectonics(x+u,z+v);under=Math.max(under,q.h+cragAt(x+u,z+v,q.relief,q.cone)+12);}
+          for(const [u,v] of [[0,0],[r,0],[-r,0],[0,r],[0,-r],[.7*r,.7*r],[-.7*r,.7*r],[.7*r,-.7*r],[-.7*r,-.7*r]]){const q=tectonics(x+u,z+v);under=Math.max(under,q.h+cragAt(x+u,z+v,q.relief,q.cc)+12);}
           const top=Math.min(heightCells*cellMetres-14,under+22+30*hash(i,j,seed+379));
           v={x,z,r,top,cold:climate(x,z).T-(cool(top)-cool(t.h))<-5,fall:null};
           // About 40% of isles spill a thin waterfall from under the rim (the outermost point still on the slab).
@@ -1188,9 +1202,12 @@
           // The lake follows the land's contour: ground standing well above its level (a mountain flank that now rises where
           // the macro lake field reaches) is shore, not lake, so lakes never cut walls into hillsides.
           if(LD>.1){const L0=lakeLevel(t.lake);LD=Math.max(Math.min(LD,.16),Math.min(LD,.5+.4*clamp((L0+3-t.h)/6,-1,1)));if(LD>.1){lakeL=L0;RV.lake=lakeL;}}}
+        // Caldera lake: inside a caldera's rim the water stands level at the caldera's own lake level (tectonics) over all
+        // ground below it; the floor is the bed (no shelving needed: the walls fall steeply into it).
+        const calderaLake=!lakeL&&t.vlake>0;if(calderaLake){lakeL=t.vlake;RV.lake=lakeL;}
         const ridge=1-Math.abs(noise(x*.009,z*.009,seed+107)-.5)*2;
         const fault=Math.abs(noise(x*.04,z*.04,seed+109)-.5)*20;
-        const crag=cragAt(x,z,t.relief,t.cone),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
+        const crag=cragAt(x,z,t.relief,t.cc),low=cragLow,bump=noise(x*.032,z*.032,seed)*2.4+noise(x*.13,z*.13,seed+1)*.7+ridge**4*3;
         const {slope,erosion,crease,spur}=mountainSurface(x,z,t);
         let h=summit(t.h+bump*(t.h<SEA?.4:1)+crag+erosion);
         // Crags: steep mountain ground breaks into cliff bands, 2.5-6 m risers between narrower ledges along wandering
@@ -1212,17 +1229,18 @@
         // ridges and summits stand out of the ice fields as rock; ice thins out toward the warm margin.
         // Glacier surface follows the broad landform (the first erosion octaves): ice fills cirques and valleys carved below it.
         const C=climate(x,z),iceTop=summit(t.h+bump+low*.95-1),Tice=C.T-(cool(iceTop)-cool(t.h));
-        // A volcano's crater is bare dark rock to just over the rim, free of ice.
-        const crater=t.cone>20&&Math.hypot(x-t.vx,z-t.vz)<t.vr*.075+1.5+noise(x*.3,z*.3,seed+707)*2;
+        // A volcano's crater (and a caldera's walls, a cinder cone's or a pit's) is bare dark rock to just over the rim, free of ice.
+        const crater=t.cone>20&&t.vcrater<1.5+noise(x*.3,z*.3,seed+707)*2;
         // Ice is capped in thickness (thicker along erosion creases, where glaciers flow), so a glacier keeps the shape of
         // its gully or cirque instead of levelling it into a flat sheet.
         // hollow (m): depth of the ground below that broad surface: positive in cirques, gullies and cols, negative on peaks,
         // ridge crests and spurs that stand out of it. Snow gathers by it (biomeOf).
         const hollow=iceTop+1-h;
-        // Volcano zonation: snow and ice only on the upper cone (above ~72% of its height), the line ragged and following
-        // the ribs (lower in gullies where snow lingers, higher on bare ridge crests). Below it, whatever the climate:
-        // bare rock mid-slope, alpine meadow on the lower flanks, gravel scree and boulders down the gullies (see below).
-        const onCone=t.cone>20&&t.cone>t.relief&&t.vh>0,coneSnow=!onCone||t.coneFrac>.72+.07*t.rib+(noise(x*.012,z*.012,seed+709)-.5)*.08;
+        // Volcano zonation: snow and ice only on the upper cone (above ~72% of its height on a Fuji-like cone, ~45% on a
+        // glaciated Rainier-like giant, only the summit of a shield), the line ragged and following the ribs (lower in
+        // gullies where snow lingers, higher on bare ridge crests). Below it, whatever the climate: bare rock mid-slope,
+        // alpine meadow on the lower flanks, gravel scree and boulders down the gullies (see below).
+        const onCone=t.cone>20&&t.cone>t.relief&&t.vh>0,coneSnow=!onCone||t.coneFrac>t.vsnow+.07*t.rib+(noise(x*.012,z*.012,seed+709)-.5)*.08;
         let ice=0;if((t.relief>15||t.cone>20)&&!crater&&coneSnow&&Tice<-2&&iceTop>h)ice=Math.min(iceTop-h,2.5+7*crease)*clamp((-2-Tice)/3,0,1);
         let iceBase=h;h+=ice;
         // Rivers sit in valleys rather than slots: the taller the ground beside a river, the wider its valley. Width follows the
@@ -1253,7 +1271,8 @@
         // band holds the ground at least 0.2 m above the water (raising it only where the land would dip below the lake),
         // easing from a low beach up into the natural land.
         let underLake=false;
-        if(lakeL){
+        if(calderaLake){if(h<lakeL-.3)underLake=true;else if(h<lakeL+.2)h=lakeL+.2;}
+        else if(lakeL){
           if(LD>.5){const k=clamp((LD-.5)/.3,0,1),bed=lakeL-.3-(1.5+Math.min(5,Math.sqrt(MM.lakes[t.lake].cells)*1.2))*k*k*(3-2*k);h=Math.min(h,bed);underLake=true;}
           else{const k=(.5-LD)/.4,w=clamp((LD-.1)/.15,0,1),tgt=Math.max(lakeL+.2,Math.min(h,lakeL+.2+k*k*10)),/* shore shaping only near lake level: high ground (mountain walls above a lake) is left alone, not cut down */near=h>tgt?clamp(1-(h-lakeL-12)/30,0,1):1,d=(tgt-h)*w*w*(3-2*w)*near;h+=d;if(d>0)iceBase+=d;}
         }
@@ -2595,11 +2614,17 @@
     function nodeBound(L,nx,nz){
       if(!infinite)return heightCells*cellMetres;
       const k=L+':'+nx+':'+nz;let v=bounds.get(k);if(v!==undefined)return v;
-      const m=nodeMetres(L),n=m>64?4:2,x0=nx*m,z0=nz*m;v=SEA+12;let ground=SEA;
+      const m=nodeMetres(L),n=m>64?4:2,x0=nx*m,z0=nz*m;v=SEA+12;let ground=SEA,under=SEA;
       // Ground plus the most crag, erosion, bump and ice could add there, trees on top, and a margin for relief peaking
       // between the samples.
-      for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n),A=Math.max(cragRelief(t.relief),t.cone*.3)*.6;ground=Math.max(ground,t.h+A*1.4);
+      for(let j=0;j<=n;j++)for(let i=0;i<=n;i++){const t=tectonics(x0+m*i/n,z0+m*j/n),A=Math.max(cragRelief(t.relief),t.cone*.3)*.6;ground=Math.max(ground,t.h+A*1.4);under=Math.max(under,t.h-t.cone+A*1.4);
         v=Math.max(v,Math.max(t.h,SEA)+A*1.4+1.6*erosionStrength(t,x0+m*i/n,z0+m*j/n)+(t.relief>15?60:50)+(t.relief>0||t.cone>0?Math.min(m*.15,30):0));}
+      // Volcano summits, cinder cones, domes and a caldera's island can stand between the samples: bound each cone touching
+      // the node by its smooth shape at the node's nearest point to the vent (a caldera's as the cone it collapsed from)
+      // plus its tallest narrow feature, on the highest ground under it.
+      for(let j=Math.floor(z0/VG);j<=Math.floor((z0+m)/VG);j++)for(let i=Math.floor(x0/VG);i<=Math.floor((x0+m)/VG);i++)for(const V of volcanoCells.get(i*65536+j)||[]){
+        const px=clamp(V.x,x0,x0+m),pz=clamp(V.z,z0,z0+m);MacroLib.volcanoCone(V.S,px-V.x,pz-V.z,vb,false,false);
+        if(vb.cone>0||Math.hypot(px-V.x,pz-V.z)<V.R)v=Math.max(v,under+vb.cone*1.1+V.S.feat+60);}
       for(let j=Math.floor(z0/IG);j<=Math.floor((z0+m)/IG);j++)for(let i=Math.floor(x0/IG);i<=Math.floor((x0+m)/IG);i++){const I=isleCell(i,j);if(I)v=Math.max(v,I.top+3);}
       // Landmark trees: a cell already evaluated gives its exact top; an unevaluated one only matters if its cheap hash allows a
       // landmark at all, and then is bounded conservatively, so the bound never runs full geography for landmark sites.

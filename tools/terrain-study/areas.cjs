@@ -11,6 +11,12 @@ const REAL=[
   {name:'tetons',label:'Teton Range (young fault block)',kind:'young',lat:43.74,lon:-110.84,km:20},
   {name:'southern-alps',label:'Southern Alps NZ (Aoraki)',kind:'young',lat:-43.595,lon:170.142,km:20},
   {name:'smokies',label:'Great Smoky Mtns (old, rounded)',kind:'old',lat:35.58,lon:-83.48,km:20},
+  // Volcano types (artifacts/volcano-types): breached cone, caldera, shield (a broad window at 90 m from zoom 10 tiles), and
+  // the Kilauea summit caldera and its pit craters.
+  {name:'st-helens',label:'Mt St Helens (breached cone)',kind:'volcano',lat:46.2,lon:-122.188,km:24},
+  {name:'crater-lake',label:'Crater Lake (caldera)',kind:'volcano',lat:42.9446,lon:-122.109,km:30},
+  {name:'mauna-loa',label:'Mauna Loa (shield)',kind:'volcano',lat:19.4721,lon:-155.5922,km:90,step:90,zoom:10},
+  {name:'kilauea',label:'Kilauea summit (shield caldera)',kind:'volcano',lat:19.41,lon:-155.28,km:16},
   {name:'gallatin',label:'Gallatin Valley MT (intermontane plain)',kind:'plain',lat:45.75,lon:-111.2,km:20},
 ];
 // Generator areas (seed 2718), chosen from scan-ours.cjs: the two tallest volcanoes, both spines (tallest chains), a

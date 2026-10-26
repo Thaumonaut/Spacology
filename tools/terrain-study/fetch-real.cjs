@@ -5,7 +5,7 @@
 // Raw tiles and grids go under DATA (default $TMPDIR/terrain-study), never the repo.
 // Usage: node tools/terrain-study/fetch-real.cjs [name ...]
 const fs=require('node:fs'),path=require('node:path');
-const {decode}=require('./png.cjs'),{DATA,STEP,ZOOM,REAL}=require('./areas.cjs');
+const {decode}=require('./png.cjs'),{DATA,STEP:STEP0,ZOOM:ZOOM0,REAL}=require('./areas.cjs');
 const TILES=path.join(DATA,'tiles'),GRIDS=path.join(DATA,'grids');
 fs.mkdirSync(TILES,{recursive:true});fs.mkdirSync(GRIDS,{recursive:true});
 const merc=(lat,lon,z)=>{const n=2**z*256,s=Math.sin(lat*Math.PI/180);return [(lon+180)/360*n,(.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n];};
@@ -20,6 +20,7 @@ async function tile(z,x,y){
   cache.set(k,h);return h;
 }
 async function area(A){
+  const STEP=A.step||STEP0,ZOOM=A.zoom||ZOOM0;
   const n=Math.round(A.km*1000/STEP),half=(n-1)/2*STEP,mlat=111320,mlon=111320*Math.cos(A.lat*Math.PI/180);
   // Pixel bounds -> tiles.
   const [x0,y0]=merc(A.lat+half/mlat,A.lon-half/mlon,ZOOM),[x1,y1]=merc(A.lat-half/mlat,A.lon+half/mlon,ZOOM);

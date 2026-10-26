@@ -9,13 +9,7 @@ const fs=require('node:fs'),path=require('node:path'),{OURS}=require('./areas.cj
 const DIR=path.join(__dirname,'../../prototypes/labs/microvoxel-world');
 // Each patch: {about, macro: [[from, to], ...], world: [[from, to], ...]}. Every `from` must match exactly once.
 const PATCHES={
-  cone:{about:'volcanoCone: base radius 3H -> 4H, flank exponent 2 -> 2.2 (long concave apron, as Fuji/Rainier)',
-    macro:[['const R=Hv*3,d=Math.hypot(dx,dz)','const R=Hv*4,d=Math.hypot(dx,dz)'],
-      ['const q=d/R,rc=.075,qc=q/rc,top=(1-rc)**2;','const q=d/R,rc=.075*3/4,qc=q/rc,top=(1-rc)**2.2;'],
-      ['else{c=Hv*(1-q)**2;out.frac=Math.min(1,(1-q)**2/top);}','else{c=Hv*(1-q)**2.2;out.frac=Math.min(1,(1-q)**2.2/top);}']],
-    world:[['const V={x:v.x,z:v.z,H:v.H,R:v.H*3};','const V={x:v.x,z:v.z,H:v.H,R:v.H*4};'],
-      ['clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075)-1.4)/1.6,0,1)','clamp((Math.hypot(x-t.vx,z-t.vz)/(t.vr*.075*3/4)-1.4)/1.6,0,1)'],
-      ['Math.hypot(x-t.vx,z-t.vz)<t.vr*.075+1.5','Math.hypot(x-t.vx,z-t.vz)<t.vr*.075*3/4+1.5']]},
+  // cone (volcanoCone R 3H -> 4H, exponent 2 -> 2.2): applied in micro-wilds-30 (see artifacts/volcano-types), retired.
   bigridge:{about:'cragAt broad ridges: wavelength ~345 m -> ~625 m (fewer, larger sub-peaks)',
     world:[['let bx=x*.0029,bz=z*.0029,bs=0,bgx=0,bgz=0,ba=1,bn=0,bdx=0,bdz=0,J=.0029,K=0,L=0,N=.0029;','let bx=x*.0016,bz=z*.0016,bs=0,bgx=0,bgz=0,ba=1,bn=0,bdx=0,bdz=0,J=.0016,K=0,L=0,N=.0016;']]},
   rangepw:{about:'RANGE_KINDS: core profile exponent pw 1.9/1.5/1.4 -> 1.25/1.1/1.1 (fuller, higher massifs: hypsometric integral up)',

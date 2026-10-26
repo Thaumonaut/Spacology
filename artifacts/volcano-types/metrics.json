@@ -1,0 +1,590 @@
+{
+ "fuji": {
+  "real": {
+   "name": "fuji",
+   "label": "Mt Fuji (stratovolcano)",
+   "H": 2867.09,
+   "R": 11125,
+   "RH": 3.88,
+   "p": 1.47,
+   "slopes": {
+    "at20": 21.82,
+    "at40": 15.55,
+    "at60": 9,
+    "at80": 6.14
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 12,
+     "depth": 133.49
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 16,
+     "depth": 131.93
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 10,
+     "depth": 153.63
+    }
+   ],
+   "meanSlope": 16.31
+  },
+  "ideal": {
+   "name": "vt-fuji-ideal",
+   "label": "Ours: fuji cone alone",
+   "H": 1256.32,
+   "R": 4875,
+   "RH": 3.88,
+   "p": 1.37,
+   "slopes": {
+    "at20": 22.28,
+    "at40": 17.32,
+    "at60": 11.73,
+    "at80": 7.05
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 11,
+     "depth": 39.56
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 12,
+     "depth": 54.76
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 11,
+     "depth": 54.8
+    }
+   ],
+   "meanSlope": 18.74
+  },
+  "ours": {
+   "name": "vt-fuji",
+   "label": "vt-fuji",
+   "H": 1023.47,
+   "R": 4125,
+   "RH": 4.03,
+   "p": 1.46,
+   "slopes": {
+    "at20": 23.04,
+    "at40": 16.38,
+    "at60": 10.95,
+    "at80": 6.61
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 15,
+     "depth": 84.52
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 17,
+     "depth": 113.66
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 10,
+     "depth": 237.37
+    }
+   ],
+   "meanSlope": 20.45
+  }
+ },
+ "rainier": {
+  "real": {
+   "name": "rainier",
+   "label": "Mt Rainier (stratovolcano)",
+   "H": 3063.56,
+   "R": 11375,
+   "RH": 3.71,
+   "p": 1.67,
+   "slopes": {
+    "at20": 25.65,
+    "at40": 18.86,
+    "at60": 9.57,
+    "at80": 8.22
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 16,
+     "depth": 266.84
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 17,
+     "depth": 434.77
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 18,
+     "depth": 535.54
+    }
+   ],
+   "meanSlope": 24.85
+  },
+  "ideal": {
+   "name": "vt-rainier-ideal",
+   "label": "Ours: rainier cone alone",
+   "H": 1308.66,
+   "R": 4875,
+   "RH": 3.73,
+   "p": 1.33,
+   "slopes": {
+    "at20": 22.09,
+    "at40": 16.63,
+    "at60": 12,
+    "at80": 7.72
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 15,
+     "depth": 72.41
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 15,
+     "depth": 75.53
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 15,
+     "depth": 75.35
+    }
+   ],
+   "meanSlope": 20.65
+  },
+  "ours": {
+   "name": "vt-rainier",
+   "label": "vt-rainier",
+   "H": 1105.56,
+   "R": 4375,
+   "RH": 3.96,
+   "p": 1.27,
+   "slopes": {
+    "at20": 21.31,
+    "at40": 15.67,
+    "at60": 15.54,
+    "at80": 9.68
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 19,
+     "depth": 105.2
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 12,
+     "depth": 220.19
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 11,
+     "depth": 280.2
+    }
+   ],
+   "meanSlope": 24.09
+  }
+ },
+ "helens": {
+  "real": {
+   "name": "st-helens",
+   "label": "Mt St Helens (breached cone)",
+   "H": 1483.64,
+   "R": 7625,
+   "RH": 5.14,
+   "p": 1.39,
+   "slopes": {
+    "at20": 27.56,
+    "at40": 15.75,
+    "at60": 8.58,
+    "at80": 4.78
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 20,
+     "depth": 126.33
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 30,
+     "depth": 104.11
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 16,
+     "depth": 230.43
+    }
+   ],
+   "meanSlope": 19.74,
+   "breach": {
+    "rimRadius": 1125,
+    "rimMax": 2528.87,
+    "rimMin": 1819.34,
+    "craterFloor": 1891.56,
+    "craterDepth": 637.31,
+    "breachDeg": 75,
+    "rimRange": 709.53
+   }
+  },
+  "ideal": {
+   "name": "vt-helens-ideal",
+   "label": "Ours: helens cone alone",
+   "H": 923.43,
+   "R": 4875,
+   "RH": 5.28,
+   "p": 1.06,
+   "slopes": {
+    "at20": 4.19,
+    "at40": 17.41,
+    "at60": 12.73,
+    "at80": 7.88
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 9,
+     "depth": 113.01
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 10,
+     "depth": 54.15
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 11,
+     "depth": 55.43
+    }
+   ],
+   "meanSlope": 17.51,
+   "breach": {
+    "rimRadius": 900,
+    "rimMax": 1112.76,
+    "rimMin": 684.5,
+    "craterFloor": 679,
+    "craterDepth": 433.76,
+    "breachDeg": 85,
+    "rimRange": 428.25
+   }
+  },
+  "ours": {
+   "name": "vt-helens",
+   "label": "vt-helens",
+   "H": 704.75,
+   "R": 4125,
+   "RH": 5.85,
+   "p": 1.08,
+   "slopes": {
+    "at20": 12.04,
+    "at40": 11.67,
+    "at60": 9.81,
+    "at80": 8.04
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 6,
+     "depth": 207.44
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 14,
+     "depth": 140.07
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 19,
+     "depth": 72.04
+    }
+   ],
+   "meanSlope": 18.24,
+   "breach": {
+    "rimRadius": 150,
+    "rimMax": 1182.15,
+    "rimMin": 705.64,
+    "craterFloor": 679.14,
+    "craterDepth": 503.01,
+    "breachDeg": 229,
+    "rimRange": 476.51
+   }
+  }
+ },
+ "caldera": {
+  "real": {
+   "name": "crater-lake",
+   "label": "Crater Lake (caldera)",
+   "H": 243.81,
+   "R": 14875,
+   "RH": 61.01,
+   "p": 0.17,
+   "slopes": {
+    "at20": 0,
+    "at40": 4.63,
+    "at60": 2.12,
+    "at80": 2.05
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 12,
+     "depth": 254.47
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 18,
+     "depth": 237.15
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 18,
+     "depth": 205.27
+    }
+   ],
+   "meanSlope": 5.75,
+   "caldera": {
+    "rimRadius": 4830,
+    "diameterKm": 9.66,
+    "rimMedian": 2224.84,
+    "rimMin": 2036.52,
+    "rimMax": 2481.64,
+    "floor": 1882,
+    "wallMedian": 342.84,
+    "wallMin": 154.51,
+    "wallMax": 599.64,
+    "floorFlatness": 0,
+    "outerSlope": 4.59
+   }
+  },
+  "ideal": {
+   "name": "vt-caldera-ideal",
+   "label": "Ours: caldera cone alone",
+   "H": 225,
+   "R": 6625,
+   "RH": 29.44,
+   "p": 0.32,
+   "slopes": {
+    "at20": 0,
+    "at40": 5.36,
+    "at60": 5.01,
+    "at80": 4.45
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 6,
+     "depth": 61.09
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 11,
+     "depth": 36.05
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 11,
+     "depth": 28
+    }
+   ],
+   "meanSlope": 5.51,
+   "caldera": {
+    "rimRadius": 2040,
+    "diameterKm": 4.08,
+    "rimMedian": 418.85,
+    "rimMin": 380.15,
+    "rimMax": 463.8,
+    "floor": 259,
+    "wallMedian": 159.85,
+    "wallMin": 121.15,
+    "wallMax": 204.8,
+    "floorFlatness": 0,
+    "outerSlope": 5.36
+   }
+  },
+  "ours": {
+   "name": "vt-caldera",
+   "label": "vt-caldera",
+   "H": 343,
+   "R": 7625,
+   "RH": 22.23,
+   "p": 0.38,
+   "slopes": {
+    "at20": 0,
+    "at40": 7.23,
+    "at60": 5.43,
+    "at80": 5.11
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 6,
+     "depth": 85.64
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 19,
+     "depth": 100.09
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 17,
+     "depth": 244.15
+    }
+   ],
+   "meanSlope": 7.08,
+   "caldera": {
+    "rimRadius": 2415,
+    "diameterKm": 4.83,
+    "rimMedian": 554.25,
+    "rimMin": 501.23,
+    "rimMax": 602.14,
+    "floor": 357,
+    "wallMedian": 197.25,
+    "wallMin": 144.23,
+    "wallMax": 245.14,
+    "floorFlatness": 0,
+    "outerSlope": 6.73
+   }
+  }
+ },
+ "shield": {
+  "real": {
+   "name": "mauna-loa",
+   "label": "Mauna Loa (shield)",
+   "H": 3366.05,
+   "R": 41125,
+   "RH": 12.22,
+   "p": 1.27,
+   "slopes": {
+    "at20": 7.01,
+    "at40": 5.78,
+    "at60": 2.64,
+    "at80": 2.68
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 6,
+     "depth": 136.82
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 7,
+     "depth": 176.45
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 5,
+     "depth": 517.26
+    }
+   ],
+   "meanSlope": 6.05
+  },
+  "ideal": {
+   "name": "vt-shield-ideal",
+   "label": "Ours: shield cone alone",
+   "H": 525.36,
+   "R": 5875,
+   "RH": 11.18,
+   "p": 1.27,
+   "slopes": {
+    "at20": 7.35,
+    "at40": 6.25,
+    "at60": 4.7,
+    "at80": 3.06
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 25,
+     "depth": 7
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 24,
+     "depth": 7.06
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 24,
+     "depth": 6.91
+    }
+   ],
+   "meanSlope": 6.34
+  },
+  "ours": {
+   "name": "vt-shield",
+   "label": "vt-shield",
+   "H": 324.56,
+   "R": 3375,
+   "RH": 10.4,
+   "p": 1.97,
+   "slopes": {
+    "at20": 13.63,
+    "at40": 2.56,
+    "at60": 0.19,
+    "at80": 1.61
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 7,
+     "depth": 180.62
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 7,
+     "depth": 174.03
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 10,
+     "depth": 172.94
+    }
+   ],
+   "meanSlope": 21.64
+  },
+  "extra": {
+   "name": "kilauea",
+   "label": "Kilauea summit (shield caldera)",
+   "H": 118.09,
+   "R": 6625,
+   "RH": 56.1,
+   "p": 1.04,
+   "slopes": {
+    "at20": 1.83,
+    "at40": -0.91,
+    "at60": -1.49,
+    "at80": 0.47
+   },
+   "ribs": [
+    {
+     "rFrac": 0.3,
+     "ribs": 5,
+     "depth": 66.8
+    },
+    {
+     "rFrac": 0.5,
+     "ribs": 9,
+     "depth": 39.76
+    },
+    {
+     "rFrac": 0.7,
+     "ribs": 13,
+     "depth": 39.99
+    }
+   ],
+   "meanSlope": 2.25
+  }
+ }
+}
