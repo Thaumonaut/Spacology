@@ -21,9 +21,14 @@ main{flex:1;display:flex;min-height:0}
 #plan{width:100%;aspect-ratio:1;background:#f3ecdc;border-radius:6px;display:block}
 .rooms{margin:6px 0 0;color:var(--muted);line-height:1.45;font-size:12px}
 .stats{margin:0;font:11px/1.5 ui-monospace,monospace;color:var(--muted);white-space:pre-wrap}
+#architect-review summary{cursor:pointer;color:var(--accent)}#review-findings{padding-left:18px;line-height:1.4}#review-findings li{margin:6px 0}.review-label{display:block;margin-top:8px}.review-label select{max-width:100%;background:#172a28}#review-summary{line-height:1.4}
 .credit{margin:auto 0 0;font-size:10px;color:#7f8f84;line-height:1.4}
 .viewport{position:relative;flex:1;min-width:0}
 #view{width:100%;height:100%;display:block;touch-action:none;cursor:grab}#view:active{cursor:grabbing}
 #notice{position:absolute;left:50%;top:16px;transform:translateX(-50%);padding:6px 12px;border-radius:6px;background:#172a28d0;font-size:12px;pointer-events:none}
 #notice:empty{display:none}
+#walk-hud{position:absolute;left:12px;bottom:12px;max-width:calc(100% - 24px);padding:10px;border:1px solid var(--line);border-radius:6px;background:#172a28ed;font-size:12px;line-height:1.5}
+#walk-status{display:block;margin-bottom:6px}#walk-enter{margin-top:8px}#walk-start{max-width:100%;background:#172a28}
+.walk-pad{margin-top:8px;touch-action:none}.walk-pad button{min-width:62px;background:#172a28}.walk-pad>button{margin-left:66px}.walk-pad>div{display:flex;gap:4px;margin-top:4px}
+#hallway-width{width:65px;background:#172a28;border:1px solid var(--line)}
 @media(max-width:760px){main{flex-direction:column-reverse}.panel{width:auto;max-height:45dvh;border-right:none;border-top:1px solid var(--line)}.viewport{min-height:55dvh}}

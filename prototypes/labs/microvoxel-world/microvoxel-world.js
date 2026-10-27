@@ -1,8 +1,24 @@
-(function(){
+(async function(){
   'use strict';
   const M=MicroWorld,H=HexAtlas,$=id=>document.getElementById(id),canvas=$('world');
   const params=new URLSearchParams(location.search),mapParam=params.get('map')||null,galleryParam=params.get('gallery')==='1'||params.get('gallery')==='true',initial=Number(params.get('seed')??2718),initialCell=Number(params.get('cell')??M.CELL),initialExtent=(params.get('extent')??'infinite')==='infinite'?'infinite':Number(params.get('extent'));
-  let world=M.createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL,[128,256,'infinite'].includes(initialExtent)?initialExtent:'infinite',{map:mapParam,gallery:galleryParam});
+  const districtCount=Number(params.get('district')||0),districtRequested=params.has('district'),districtEngine=params.get('engine')||'js',districtFlat=params.get('districtTerrain')!=='uneven';
+  let districtCity=null,districtFixture=null,districtSession=null,districtError=null;
+  const worldGallery=galleryParam||districtRequested&&districtFlat;
+  if(districtRequested){let core;try{
+    if(![6,12].includes(districtCount)||!['js','rust'].includes(districtEngine))throw new Error('Use district=6|12 and engine=js|rust.');
+    const citySeed=Number(params.get('citySeed')??2718);if(!Number.isInteger(citySeed)||citySeed<0||citySeed>4294967295)throw new Error('citySeed must be an unsigned 32-bit integer.');
+    core=districtEngine==='rust'?await CityRust.load():null;
+    districtCity=CityRust.createAdapter(districtEngine,core).generate(citySeed,{count:24,layout:'woven',terrain:'flat'});
+  }catch(e){districtError=String(e.message||e);}finally{core?.dispose();}}
+  function createWorld(seed,cell,extent){const base=M.createWorld(seed,cell,extent,{map:mapParam,gallery:worldGallery});districtFixture=null;
+    if(!districtCity)return base;
+    try{districtFixture=CityWorld.place(base,districtCity,districtCount);districtError=null;return M.createWorld(seed,cell,extent,{map:mapParam,gallery:worldGallery,district:districtFixture.district});}
+    catch(e){districtError=String(e.message||e);return base;}
+  }
+  function stopDistrict(){districtSession?.dispose();districtSession=null;renderer?.clearBuildingPalette();}
+  function startDistrict(){if(!districtFixture||!renderer)return;try{renderer.setBuildingPalette(BuildingVoxels.palette());districtSession=CityWorld.create({renderer,fixture:districtFixture,engine:districtEngine,worldId:world.dataId,createWorker:()=>new Worker('labs/city-lab/city-world.js'),onError:text=>{districtError=text;}});}catch(e){districtError=String(e.message||e);stopDistrict();}}
+  let world=createWorld(Number.isInteger(initial)&&initial>=0&&initial<=4294967295?initial:2718,[.25,.125].includes(initialCell)?initialCell:M.CELL,[128,256,'infinite'].includes(initialExtent)?initialExtent:'infinite');
   if(world.gallerySpots)console.log('Specimen gallery — exhibits at:\n'+world.gallerySpots.map(s=>`  ${s.kind.padEnd(9)} ${s.label.padEnd(22)} ${Math.round(s.x)}, ${Math.round(s.z)}`).join('\n'));
   let renderer,worker,epoch=0,busy=false,failed=false,paused=false,economy=false,simTime=0,selection=null,visible=[],step=2,renderStep=null;
   const camera={x:60,y:8,z:62,span:88,mode:'map',yaw:Number(params.get('yaw')??35*Math.PI/180)||0,lookPitch:-.08,fov:Math.max(60,Math.min(90,Number(params.get('fov')??70)||70))},frameSamples=[],generationSamples=[],meshSamples=[],actors=[];
@@ -13,6 +29,7 @@
     const saved={cx:Number(params.get('cx')),cz:Number(params.get('cz')),x:Number(params.get('lx')),z:Number(params.get('lz'))};
     if(['cx','cz','lx','lz'].every(k=>params.has(k))&&[saved.cx,saved.cz].every(n=>Number.isInteger(n)&&Math.abs(n)<=M.MAX_CHUNK)&&[saved.x,saved.z].every(n=>Number.isFinite(n)&&n>=0&&n<8))position=M.movePosition(saved);
   }
+  if(districtFixture&&!['cx','cz','lx','lz'].every(k=>params.has(k))){position=M.positionAt(districtFixture.spawn.x,districtFixture.spawn.z);camera.yaw=districtFixture.yaw;}
   let voxelCacheBytes=0,voxelCacheEntries=0,cacheHits=0,completed=0,retainedMeshes=0,placeholders=0,workerStarted=0,firstReadyMs=null,viewDirty=false,persistOnStop=false;
   const heldKeys=new Set(),velocity={x:0,z:0};
   let born=performance.now();const motion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -24,9 +41,9 @@
   const pinnedVoxel=()=>lod?.[0]==='v'?Number(lod.slice(1)):null;
   const continent=()=>world.infinite&&camera.span>maximumSpan()+.01;
   function message(text){$('notice').textContent=text;$('notice').hidden=!text;}
-  function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();stream?.dispose();busy=false;}
+  function fail(text){failed=true;message(text);$('summary').textContent='Rendering unavailable';for(const id of ['wide','close','zoomIn','zoomOut','pause','economy','rootMarker','densityBase','densityFine'])$(id).disabled=true;worker?.terminate();stream?.dispose();stopDistrict();busy=false;}
   const makeWorker=()=>new Worker('labs/microvoxel-world/voxel-worker.js?v=wilds-29');
-  try{renderer=new MicroRenderer(canvas);worker=makeWorker();stream=MicroLOD.create({renderer,canvas,createWorker:makeWorker,onFail:text=>fail(text)});stream.setWorld(world);stream.setBudget(budgetMiB);}
+  try{renderer=new MicroRenderer(canvas);worker=makeWorker();stream=MicroLOD.create({renderer,canvas,createWorker:makeWorker,onFail:text=>fail(text)});stream.setWorld(world);stream.setBudget(districtRequested?80:budgetMiB);startDistrict();}
   catch(error){const localSource=location.protocol==='file:'&&document.currentScript?.src;fail(localSource&&error.name==='SecurityError'?'Local source launch blocked: browsers cannot load this separate worker via file://. Run npm run serve from the repository root and open http://localhost:4173/prototypes/microvoxel-world.html, or use the packaged standalone HTML.':error.message);}
   const key=(cx,cz,s=step)=>`${world.dataId}:${s}:${cx}:${cz}`;
   const placeholderStep=()=>pinnedVoxel()===null&&step*world.cell<.25?Math.min(1/world.cell,step*4):null;
@@ -233,7 +250,7 @@
   const VOXEL_PIN_SPAN=400;
   function limitSpan(){return world.infinite?FAR_SPAN:pinnedVoxel()?VOXEL_PIN_SPAN:maximumSpan();}
   function meshBudget(){
-    stream?.setBudget(economy?128:budgetMiB);
+    stream?.setBudget(districtRequested?80:economy?128:budgetMiB);
     const pin=!!pinnedVoxel()&&!world.infinite;cache.maxEntries=pin?2048:320;cache.maxBytes=(pin?256:32)*1024*1024;
     while(cache.items.size>cache.maxEntries||cache.bytes>cache.maxBytes)cache.delete(cache.items.keys().next().value);
   }
@@ -286,9 +303,10 @@
     if(coop.active&&!coopRegen)coop.stop();
     const resized=extent!==world.extent;
     const reseeded=seed!==world.seed;
-    walk.leave(true);stopKeys();world=M.createWorld(seed,cell,extent,{map:mapParam,gallery:galleryParam});cache.clear();stream?.setWorld(world);renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=placeholders=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
+    walk.leave(true);stopKeys();stopDistrict();world=createWorld(seed,cell,extent);startDistrict();cache.clear();stream?.setWorld(world);renderStep=null;voxelCacheBytes=vegetationEntries=0;voxelCacheEntries=0;cacheHits=completed=retainedMeshes=placeholders=0;generationSamples.length=meshSamples.length=frameSamples.length=0;firstReadyMs=null;born=performance.now();simTime=0;
     if(world.infinite&&(resized||reseeded)){position=M.positionAt(world.deposit.x+4,world.deposit.z+4);travelled=0;Object.assign(camera,{x:0,z:0,span:32});}
     else if(resized)Object.assign(camera,{x:world.extent/2,z:world.extent/2,span:world.extent===128?140:maximumSpan()});
+    if(districtFixture){position=M.positionAt(districtFixture.spawn.x,districtFixture.spawn.z);Object.assign(camera,{x:0,z:0,yaw:districtFixture.yaw});}
     anchor();
     identity();resetActors();$('closeInspection').click();
     persist();updateView();
@@ -334,7 +352,7 @@
   });
   function snapshot(){const base=chunkSnapshot();if(!world.infinite||!stream)return base;const L=stream.snapshot();
     return {...base,visible:L.visible,ready:L.ready,renderReady:L.ready,shown:L.covered,pending:stream.pending||viewDirty||L.fading>0,meshCacheEntries:L.entries,meshCacheBytes:L.bytes,meshCacheLimit:L.budget,completed:L.completed,placeholders:L.coarse,retainedMeshes:L.retained,maxRenderOrigin:L.maxOrigin,vegetationEntries:L.vegetation,voxelCacheBytes:0,voxelCacheEntries:0,farStep:null,stream:L};}
-  function chunkSnapshot(){return {lod:lod||'auto',worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},walk:walk.snapshot(),glError:renderer?.lastError||0,cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,farStep:null,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a,task:a.task&&{...a.task}})),atlas:{view:atlasView,selected:selectedHex&&{...selectedHex},...atlas.snapshot()},meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
+  function chunkSnapshot(){return {...(districtRequested?{district:districtSession?.snapshot()||{error:districtError,loaded:0,count:districtCount,enterable:false,engine:districtEngine}}:{}),lod:lod||'auto',worldId:world.id,dataId:world.dataId,seed:world.seed,revision:world.revision,extent:world.extent,position:world.infinite?{...position}:null,travelled,vegetationEntries,mainVegetationEntries:world.vegetationEntries(),maxRenderOrigin:world.infinite?Math.max(0,...visible.flatMap(v=>{const p=chunkOrigin(v.cx,v.cz);return [Math.abs(p.x),Math.abs(p.z)];})):null,deposit:{...world.deposit},camera:{...camera},walk:walk.snapshot(),glError:renderer?.lastError||0,cellMetres:world.cell,chunkCells:[world.chunkCells,world.heightCells,world.chunkCells],chunkMetres:world.chunkMetres,step,renderStep,viewUpdates:epoch,retainedMeshes,placeholders,shown:visible.filter(v=>fallback(v)).length,moving:heldKeys.size>0||velocity.x!==0||velocity.z!==0,visible:visible.length,ready:visible.filter(v=>cache.items.has(v.key)).length,farStep:null,renderReady:visible.filter(v=>cache.items.has(key(v.cx,v.cz,renderStep))).length,pending:busy||viewDirty,failed,paused,economy,reducedMotion:motion.matches,simTime,actors:actors.map(a=>({...a,task:a.task&&{...a.task}})),atlas:{view:atlasView,selected:selectedHex&&{...selectedHex},...atlas.snapshot()},meshCacheEntries:cache.items.size,meshCacheBytes:cache.bytes,meshCacheLimit:cache.maxBytes,voxelCacheBytes,voxelCacheEntries,cacheHits,completed,firstReadyMs,frameSamples:frameSamples.length,frameP50:percentile(frameSamples,.5),frameP95:percentile(frameSamples,.95),frameP99:percentile(frameSamples,.99),generationP95:percentile(generationSamples,.95),meshingP95:percentile(meshSamples,.95),drawCalls:renderer?.draws||0,triangles:renderer?.triangles||0,pixelRatio:renderer?.pixelRatio||0,viewport:{width:canvas.clientWidth,height:canvas.clientHeight},renderer:renderer?renderer.gl.getParameter(renderer.gl.RENDERER):null,userAgent:navigator.userAgent};}
   const walk=MicroWalk.create({canvas,camera,getWorld:()=>world,getPoint:()=>world.infinite?logical():{x:camera.x,z:camera.z},
     setPoint:p=>{stopKeys();if(world.infinite){position=M.positionAt(p.x,p.z);camera.x=camera.z=0;}else{camera.x=p.x;camera.z=p.z;}viewDirty=true;},
     move:moveCamera,onChange:()=>{stopKeys();freshView=true;viewDirty=true;},persist,reducedMotion:()=>motion.matches,
@@ -344,7 +362,7 @@
   function rootAPI(){window.MicroWorldLab=Object.freeze({snapshot,walk:Object.freeze({enter:walk.enter,leave:walk.leave}),pick:(x,y)=>renderer.pick(camera,x,y,{heightMetres:world.heightMetres,ground:(x,z)=>{const q=logical();return world.ground(world.infinite?q.x+x:x,world.infinite?q.z+z:z);}}),project:(x,y,z)=>{const p=localPoint({x,y,z});return renderer?.project(camera,p.x,p.y,p.z);},coop:Object.freeze({snapshot:coop.snapshot,start:coop.start,claim:coop.claim,act:coop.act,ready:coop.ready,stop:coop.stop,center:(q,r)=>atlas.center(q,r)})});}
   $('export').onclick=()=>{const blob=new Blob([JSON.stringify(snapshot(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`microvoxel-${world.seed}-metrics.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
   function hud(){
-    const s=snapshot();if(!failed){const missing=s.visible-s.ready;const unit=world.infinite?'nodes':'chunks';message(missing?`Streaming ${missing} / ${s.visible} ${unit}…`:'');$('summary').textContent=`${s.ready}/${s.visible} ${unit} · ${bytes(s.meshCacheBytes)} GPU · p95 ${s.frameP95.toFixed(1)} ms`;}
+    const s=snapshot();if(!failed){const missing=s.visible-s.ready;const unit=world.infinite?'nodes':'chunks';message(districtError?`District unavailable: ${districtError} No JS fallback.`:districtRequested?`EXTERIORS ONLY · ${districtEngine} · ${s.district.loaded}/${districtCount} buildings · closed collision · no interiors / E`:(missing?`Streaming ${missing} / ${s.visible} ${unit}…`:''));$('summary').textContent=`${s.ready}/${s.visible} ${unit} · ${bytes(s.meshCacheBytes)} GPU · p95 ${s.frameP95.toFixed(1)} ms`;}
     $('positionLabel').hidden=!world.infinite;
     if(world.infinite)$('positionLabel').textContent=`CHUNK ${position.cx}, ${position.cz} · LOCAL ${position.x.toFixed(2)}, ${position.z.toFixed(2)} m`;
     const fields=[['Frame p50 / p95 / p99',`${s.frameP50.toFixed(1)} / ${s.frameP95.toFixed(1)} / ${s.frameP99.toFixed(1)} ms`],['Frame sample count',s.frameSamples],['First complete view',firstReadyMs===null?'Loading':`${(firstReadyMs/1000).toFixed(2)} s`],['Voxel runs · worker cache',`${bytes(s.voxelCacheBytes)} / 4 MiB`],['Worker cached chunks',`${s.voxelCacheEntries} / 128`],['Vertex buffers · GPU estimate',`${bytes(s.meshCacheBytes)} / 32 MiB`],['GPU cached chunks',`${s.meshCacheEntries} / 320`],['Active / ready chunks',`${s.visible} / ${s.ready}`],['Generation / meshing p95',`${s.generationP95.toFixed(1)} / ${s.meshingP95.toFixed(1)} ms`],['Worker warm data hits',s.cacheHits],['Draw calls / triangles',`${s.drawCalls} / ${s.triangles.toLocaleString()}`],['Render step / pixel ratio',`${s.renderStep}× displayed / ${s.step}× requested / ${s.pixelRatio.toFixed(1)}×`],['Ground cell / world extent',`${world.cell} m / ${world.extent} m`],['Whole-process memory','Not measured']];
@@ -358,6 +376,7 @@
         ['GPU terrain time',s.stream.gpuTimer?(T.gpu.n?ms('gpu'):'Waiting for samples'):'Not exposed by this browser'],['Coarse-first nodes',s.stream.coarse]);
       for(const k of ['Voxel runs · worker cache','Worker cached chunks','Vertex buffers · GPU estimate','GPU cached chunks','Active / ready chunks','Generation / meshing p95','Worker warm data hits']){const i=fields.findIndex(f=>f[0]===k);if(i>=0)fields.splice(i,1);}
     }
+    if(districtRequested)fields.push(['District renderer',`${districtEngine} · ${s.district.loaded}/${districtCount} closed exteriors · 6.25 cm`],['District building GPU',`${bytes(s.district.gpuBytes||0)} / 47 MiB`],['District mesh budget','80 MiB terrain + 47 MiB buildings + palette (128 MiB ceiling; excludes framebuffers/driver)'],['District source/queue','0 retained dense volumes · 64 MiB per-building dense scratch preflight · one 32 MiB expanded reply'],['District interaction','Conservative closed parcels; no interiors or E doors']);
     fields.push(['Vegetation memo entries',`${s.vegetationEntries} worker + ${s.mainVegetationEntries} main / 2,048 each`]);
     fields.push(['Useful meshes retained after view changes',s.retainedMeshes],['Coarse placeholders while fine detail loads',s.placeholders]);
     if(world.infinite)fields.push(['Logical chunk / local metres',`${position.cx}, ${position.cz} / ${position.x.toFixed(3)}, ${position.z.toFixed(3)}`],['Largest render chunk origin',`${s.maxRenderOrigin.toFixed(2)} m`],['Travelled (excludes jumps)',`${travelled.toFixed(1)} m`]);
@@ -385,6 +404,7 @@
       if(stream&&camera.mode==='walk'){const want=Math.max(150,stream.loadedRadius()),cur=renderer.fogReach??want;renderer.fogReach=cur+(want-cur)*Math.min(1,delta/(want<cur?250:1500));}else if(renderer)renderer.fogReach=undefined;
       renderer.begin(camera,motion.matches?0:simTime,economy);
       if(world.infinite)stream.draw(now);
+      if(districtSession){const q=logical();districtSession.update({x:q.x+camera.x,z:q.z+camera.z});districtSession.draw(q);}
       for(const v of visible){
         const requested=cache.get(v.key),coarse=placeholderStep(),mesh=cache.items.get(key(v.cx,v.cz,renderStep))||requested||coarse&&cache.items.get(key(v.cx,v.cz,coarse));
         if(mesh){const p=chunkOrigin(v.cx,v.cz);renderer.draw(mesh,[p.x,(mesh.y0||0)*world.cell,p.z],[world.cell*mesh.step,world.cell*mesh.step,world.cell*mesh.step],0,0,0,[0,0,0],world.infinite?[(v.cx%512)*8,(mesh.y0||0)*world.cell,(v.cz%512)*8]:[p.x,0,p.z]);}
@@ -400,7 +420,8 @@
     if(now-lastHud>500){lastHud=now;hud();}requestAnimationFrame(frame);
   }
   window.addEventListener('resize',updateView);
-  window.addEventListener('pagehide',()=>{worker?.terminate();stream?.dispose();cache.clear();});
+  window.addEventListener('pagehide',()=>{stopDistrict();worker?.terminate();stream?.dispose();cache.clear();});
+  if(districtRequested)canvas.addEventListener('webglcontextlost',()=>stopDistrict());
   window.addEventListener('pageshow',e=>{if(e.persisted)location.reload();});
   identity();meshBudget();anchor();resetActors();if(params.get('walk')==='1')walk.enter(null,true);if(!failed){updateView();requestAnimationFrame(frame);}
 })();

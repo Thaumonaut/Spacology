@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict'),B=require('../../tools/benchmark-city.cjs'),S=require('../../prototypes/labs/city-lab/city-sparse.js');
+const dims=[16,8,12],vol=new Uint8Array(dims[0]*dims[1]*dims[2]);
+for(let y=0;y<8;y++)for(let z=0;z<12;z++)for(let x=0;x<16;x++)vol[x+16*(z+12*y)]=(x+y+z)%3===0?0:x%4+1;
+const matrix=B.occupancyMaterials(vol);for(let i=0;i<vol.length;i++)assert.equal(matrix.sample(i),vol[i],'ranked occupancy retains all material IDs');
+const v=S.fromVolume({dims,vol,cell:.0625,palette:new Uint8Array(1024),M:{}},[1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],{deduplicate:false,crop:false}),c=B.compactBricks(v);
+assert.ok(c.uniqueBricks<v.nb,'repeated mixed bricks share one index');
+for(let y=0;y<8;y++)for(let z=0;z<12;z++)for(let x=0;x<16;x++)assert.equal(S.sample(c.deduplicated,x,y,z),vol[x+16*(z+12*y)]);
+assert.ok(c.paletteBytes>0);assert.equal(matrix.bits.byteLength,vol.length/8);assert.ok(matrix.bytes>matrix.bits.byteLength,'materials and rank indices are not free');
+console.log('lossless bitset+material rank and deduplicated/palette-packed mixed-brick storage prototypes');

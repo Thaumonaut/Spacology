@@ -10,6 +10,7 @@
     entry('runner-next','Relay Runner · 3D','../runner/','Exploration','Experiment','The newer Three.js / ECS runner experiment.'),
     entry('microvoxel-world','Microvoxel World','microvoxel-world.html','Exploration','Experiment','A seeded river catchment: compressed voxels, worker meshing and a moving crew. Separate world-quality proof.'),
     entry('building-lab','Building lab','building-lab.html','Exploration','Experiment','One seeded building, inside and out: plot, room program, floor plans, 6.25 cm voxel shell and kit-bashed furniture.'),
+    entry('city-lab','City district lab','city-lab.html','Exploration','Experiment','A seeded gate–plaza–castle district: weaving streets, varied widths, fitted plots, flat/uneven ground and bounded Building Lab geometry.'),
     ...K.GAMES.map(g=>({...g,category:g.role,status:g.role==='Reserve'?'Reserve':'Experiment',description:g.output,station:true})),
     entry('battle','Animated battle stage','watchable-fight.html','Combat','Reusable','The original combat choreography, with team and planet controls.'),
     entry('weaver-voyage','Weaver voyage lab','weaver-voyage-lab.html','Combat','Earlier experiment','A 21-node Aether and equipment-set voyage; its own balance model.'),

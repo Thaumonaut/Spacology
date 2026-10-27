@@ -8,6 +8,7 @@
     "serve:pages": "node tests/serve.cjs --root dist",
     "test:pages": "node tests/pages-smoke.cjs",
     "test": "node tests/run.cjs",
+    "review:buildings": "node tools/review-buildings.cjs",
     "test:unit": "node tests/run.cjs --unit",
     "test:browser": "node tests/run.cjs --browser",
     "test:browser:release": "node tests/run.cjs --browser aether-attunement sensor-grid dna-sequencing signal-decoding intel-check core-assay supply-run gear-pack pallet-stacking route-planning pipes depot-sorting synergy-links minigames-hub offline-battle-launch battle-safe-area microvoxel-world",

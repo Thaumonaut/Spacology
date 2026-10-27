@@ -7,10 +7,16 @@ const P=require('../../prototypes/labs/building-lab/plan.js'),V=require('../../p
 const R=require('../../prototypes/labs/building-lab/renderer.js');
 
 // Kit: every piece decodes to its stated size, uses only kit palette slots and has a real-world scale.
-for(const [id,p] of Object.entries(KIT.pieces)){const piece=V.piece(id),[X,Y,Z]=p.dims;assert.equal(piece.v.length,X*Y*Z);
+for(const [id,p] of Object.entries(KIT.pieces)){const piece=V.piece(id),[X,Y,Z]=piece.dims;assert.equal(piece.v.length,X*Y*Z);
+  assert.equal(X,p.dims[0],'height correction preserves furniture footprint width');assert.equal(Z,p.dims[2],'height correction preserves furniture footprint depth');
   let solid=0;for(const v of piece.v){if(v){solid++;assert.ok(v>=KIT.first&&v<KIT.first+KIT.palette.length,`${id}: colour ${v} outside the kit palette`);}}
   assert.ok(solid>0,`${id} is not empty`);assert.ok(p.metres.every(m=>m>0&&m<2.2),`${id} is furniture-sized`);}
 assert.equal(KIT.cell,V.V,'kit and building share the 6.25 cm cell');
+for(const [id,h] of [['bed_double_A',16],['kitchencounter_straight_A',18],['table_medium',15],['cabinet_medium_decorated',22],['kitchencabinet',30],['stove_single',16]])
+  assert.equal(V.piece(id).dims[1],h,`${id}: corrected human-scale height`);
+for(const id of ['sales_counter','sales_counter_small','hall_planter']){const p=V.piece(id);
+  assert.equal(p.v.length,p.dims.reduce((a,b)=>a*b,1));assert.ok(p.v.some(Boolean),`${id}: real geometry, not a metadata-only fixture`);}
+assert.equal(V.piece('sales_counter').dims[0]*V.V,2,'sales counter is visibly wider than a kitchen module');
 
 let built=0,doorsChecked=0,pieces=0;
 const CASES=[];for(const [type,T] of Object.entries(P.TYPES))for(const typology of Object.keys(T.typologies)){for(let s=1;s<60;s++){const p=P.makePlot(s,{type,context:'corner'}),Y=P.TYPOLOGIES[typology];if(p.w>=Y.minW&&!(Y.straight&&p.storeys>2)){CASES.push([s,type,typology]);break;}}}
@@ -52,14 +58,20 @@ for(const [seed,type,typology,extra] of [...CASES.map(c=>[...c,{context:'corner'
   // Roofs: every footprint cell with nothing built above it is covered above its own storey.
   plan.plot.masks.forEach((m,L)=>{for(let z=0;z<plan.plot.d;z++)for(let x=0;x<plan.plot.w;x++){const i=x+plan.plot.w*z;if(!m[i]||(L<plan.plot.masks.length-1&&plan.plot.masks[L+1][i]))continue;
     let covered=false;for(let yy=b.levels[L+1];yy<Y&&!covered;yy++)if(at(cx(x)+4,yy,cz(z)+4))covered=true;assert.ok(covered,`${type} ${seed}: roof covers level ${L} cell ${x},${z}`);}});
+  const ceiling=plan.plot.masks.at(-1);
+  for(let z=0;z<plan.plot.d;z++)for(let x=0;x<plan.plot.w;x++)if(ceiling[x+plan.plot.w*z])
+    for(let y=b.plate-V.SLAB;y<b.plate;y++)assert.ok(at(cx(x)+4,y,cz(z)+4),`${type}/${typology} ${seed}: a real top-storey ceiling closes the room below the roof`);
   // Stairs: each flight climbs one riser per tread and ends where its risers say (a full storey over the whole stair).
   for(const fl of plan.stair.flights){const y0=b.levels[fl.from],[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),along=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=along/fl.risers,base=y0+fl.start*3;let last=base;
     for(let k=0;k<fl.risers;k++){const a=Math.floor((k+.5)*t),[px,pz]=fl.dir==='zp'?[(X0+X1)>>1,Z0+a]:fl.dir==='zm'?[(X0+X1)>>1,Z1-1-a]:fl.dir==='xp'?[X0+a,(Z0+Z1)>>1]:[X1-1-a,(Z0+Z1)>>1];
-      let h=base;while(at(px,h,pz))h++;assert.ok(h>last,`${type}/${typology} ${seed}: flight ${fl.dir} ${fl.risers} step ${k} climbs (${h-base} after ${last-base})`);last=h;}
+      const h=base+(k+1)*3;assert.equal(at(px,h-1,pz),b.M.plank,`${type}/${typology} ${seed}: flight tread ${k} has its planned surface`);
+      for(let yy=h;yy<h+26;yy++)assert.equal(at(px,yy,pz),0,`${type}/${typology} ${seed}: tread ${k} has standing headroom`);last=h;}
     assert.equal(last,y0+(fl.start+fl.risers)*3,`${type} ${seed}: the flight ends at its height`);}
   // Spirals: walking round from the entry, each tread is higher than the last and the last reaches the next floor.
   for(const sp of plan.stair.spirals||[]){const y0=b.levels[sp.from],cxs=MX+sp.centre[0]*V.CV,czs=MZ+sp.centre[1]*V.CV,rr=sp.r*V.CV*.7,step=sp.sweep/sp.risers;let last=y0;
-    for(let k=0;k<sp.risers;k++){const a=sp.a0-(k+.5)*step,px=Math.floor(cxs+Math.cos(a)*rr),pz=Math.floor(czs+Math.sin(a)*rr);let h=y0;for(let yy=y0;yy<y0+V.SH;yy++)if(at(px,yy,pz))h=yy+1;assert.ok(h>last,`${type}/${typology} ${seed}: spiral tread ${k} climbs (${h-y0})`);last=h;}
+    for(let k=0;k<sp.risers;k++){const a=sp.a0-(k+.5)*step,px=Math.floor(cxs+Math.cos(a)*rr),pz=Math.floor(czs+Math.sin(a)*rr),top=y0+(k+1)*3;
+      assert.equal(at(px,top-1,pz),b.M.plank,`${type}/${typology} ${seed}: spiral tread ${k} has its planned walking surface`);
+      for(let yy=top;yy<top+26;yy++)assert.equal(at(px,yy,pz),0,`${type}/${typology} ${seed}: spiral tread ${k} has standing headroom`);last=top;}
     assert.equal(last,y0+V.SH,`${type}/${typology} ${seed}: the spiral lands on the next floor`);}
   const climbs=[...plan.stair.flights.filter(fl=>fl.from===0).map(fl=>(fl.start+fl.risers)*3),...(plan.stair.spirals||[]).filter(sp=>sp.from===0).map(sp=>sp.risers*3)];
   assert.equal(Math.max(...climbs),V.SH,'the ground-floor stair reaches the next floor');
@@ -71,7 +83,53 @@ for(const [seed,type,typology,extra] of [...CASES.map(c=>[...c,{context:'corner'
   // Deterministic.
   if(built<=2||extra.look){const again=V.build(P.generate(seed,{type,typology,...extra}));assert.ok(Buffer.from(again.vol).equals(Buffer.from(vol)),'same plan, same voxels');}
 }
+{
+  const plan=P.generate(550298,{type:'shophouse',style:'fairytale',context:'terrace',lot:'wedge'}),b=V.build(plan),[X,,Z]=b.dims;
+  for(const o of plan.floors[0].openings.filter(o=>o.kind==='shopfront')){
+    const [x,z]=o.cells[0],axis=o.side[0],a0=b.origin[axis==='x'?2:0]+Math.min(...o.cells.map(c=>c[axis==='x'?1:0]))*V.CV,
+      a1=a0+o.cells.length*V.CV,c=axis==='x'?b.origin[0]+x*V.CV+(o.side==='xm'?1:6):b.origin[2]+z*V.CV+(o.side==='zm'?1:6);
+    for(let a=a0+2;a<a1-2;a++)for(let y=b.levels[0]+9;y<b.levels[0]+34;y++){
+      const px=axis==='x'?c:a,pz=axis==='x'?a:c;
+      assert.ok(b.vol[px+X*(pz+Z*y)],'shopfront glazing has no unexplained open half or missing pane');
+    }
+  }
+}
+let chimneys=0;
+for(let seed=1;seed<=20;seed++){
+  const plan=P.generate(seed,{style:'fairytale'}),b=V.build(plan),chimney=b.info.chimney,[X,,Z]=b.dims;
+  if(!chimney)continue;chimneys++;
+  assert.ok(chimney,'retain a real generated chimney rather than passing only chimney-free buildings');
+  const stove=b.info.furniture.find(it=>it.piece==='stove_single'&&it.floor===chimney.floor&&it.room===chimney.room);
+  assert.ok(stove,'the flue belongs to an actual kitchen stove');
+  const [x,y,z]=chimney.source,model=V.rotated(V.piece(stove.piece),stove.face);
+  assert.equal(b.vol[x+X*(z+Z*y)],b.M.iron,'the connector reaches its recorded source');
+  const contact=model.get(x-stove.x,y-1-stove.y,z-stove.z);
+  assert.ok(contact,'the connector touches solid stove geometry, not an empty model corner');
+  assert.equal(b.vol[x+X*(z+Z*(y-1))],contact,'the stove contact survives the finished build');
+  const conflict=structuredClone(plan),gx=Math.floor((x-b.origin[0])/V.CV),gz=Math.floor((z-b.origin[2])/V.CV);
+  const side={xm:'xp',xp:'xm',zm:'zp',zp:'zm'}[stove.face],cells=side[0]==='x'?[[gx,gz],[gx,gz+1]]:[[gx,gz],[gx+1,gz]];
+  conflict.floors[1].openings.push({room:Math.max(1,conflict.floors[1].grid[gx+plan.plot.w*gz]),kind:'window',side,cells});
+  assert.equal(V.build(conflict).info.chimney,undefined,'an upper-floor window in the flue envelope prevents the chimney');
+}
+assert.ok(chimneys,'the deterministic cohort, including exact seed 13, must exercise real stove-connected chimneys, not only chimney-free buildings');
+// Broad roofs scale to the occupied walls, not indefinitely with the footprint's width or depth.
+for(const form of ['gable','hip','halfhip','gambrel'])for(const ridge of ['frontage','depth']){
+  const plan=P.generate(3,{type:'home',typology:'centre',style:'fairytale',context:'detached',look:{roof:{form,ridge,pitch:1.2,cross:null,dormers:0,turret:null}}}),b=V.build(plan),[X,Y,Z]=b.dims;
+  const roof=new Set([b.M[plan.roof.mat],b.M[plan.roof.mat+'_dark'],b.M.ridge]);let peak=b.plate;
+  for(let y=b.plate;y<Y;y++)for(let i=X*Z*y;i<X*Z*(y+1);i++)if(roof.has(b.vol[i])){peak=y;break;}
+  assert.ok(peak-b.plate<=Math.floor(plan.floors.length*V.SH*P.ARCHITECTURE.roof.maxWallRatio),`${form}/${ridge}: finished roof and ridge trim stay within the wall-height budget`);
+  assert.ok(peak>b.plate+12,`${form}/${ridge}: the roof remains pitched, not sliced into a flat cap`);
+  const mask=plan.plot.masks.at(-1);
+  for(let z=0;z<plan.plot.d;z++)for(let x=0;x<plan.plot.w;x++)if(mask[x+plan.plot.w*z]){
+    const px=b.origin[0]+x*V.CV+4,pz=b.origin[2]+z*V.CV+4;let covered=false;
+    for(let y=b.plate;y<=peak;y++)if(b.vol[px+X*(pz+Z*y)]){covered=true;break;}
+    assert.ok(covered,`${form}/${ridge}: reducing pitch does not leave exposed rooms`);
+  }
+}
 // Greedy mesher: a closed box meshes to exactly 6 quads; a segment boundary caps the cut.
 {const dims=[6,6,6],vol=new Uint8Array(216);for(let y=1;y<5;y++)for(let z=1;z<5;z++)for(let x=1;x<5;x++)vol[x+6*(z+6*y)]=3;
   assert.equal(R.meshSegment(vol,dims,0,6).quads,6);assert.equal(R.meshSegment(vol,dims,0,3).quads,6,'a cut segment is closed on its own');}
+{const dims=[6,6,6],vol=new Uint8Array(216),i=2+6*(2+6*2),ownership=new Map([[i,1]]);vol[i]=3;
+  assert.equal(R.meshSegment(vol,dims,0,3,ownership,0).quads,0,'an upper-floor bracket must disappear when its floor is hidden');
+  assert.equal(R.meshSegment(vol,dims,3,6,ownership,1).quads,6,'its own floor retains the bracket below the slab cut');}
 console.log(`PASS building voxels: ${Object.keys(KIT.pieces).length} kit pieces, ${built} buildings, ${doorsChecked} doors open, roofs closed, stairs climb, ${pieces} pieces in walkable rooms`);

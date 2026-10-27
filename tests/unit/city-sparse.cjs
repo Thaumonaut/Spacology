@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict'),S=require('../../prototypes/labs/city-lab/city-sparse.js');
+const dims=[11,9,13],vol=new Uint8Array(dims[0]*dims[1]*dims[2]),palette=new Uint8Array(1024);palette.set([10,20,30,255],4);palette.set([40,50,60,255],8);
+for(let y=0;y<dims[1];y++)for(let z=0;z<dims[2];z++)for(let x=0;x<dims[0];x++)vol[x+dims[0]*(z+dims[2]*y)]=x<4&&y<4&&z<4?1:(x+y+z)%7===0?2:0;
+const model=[1,0,0,0,0,1,0,0,0,0,1,0,12,3,-8,1],v=S.fromVolume({dims,vol,cell:.0625,palette,M:{lantern_glow:2,shoji:3}},model);
+assert.deepEqual(v.n,[3,3,4]);assert.equal(v.cvs,.25);assert.equal(v.sub,4);assert.deepEqual(v.frame,{x:12,z:-8,rot:0});assert.equal(v.o[1],3);assert.equal(v.coarse[0],1,'homogeneous cells stay solid without bricks');
+assert.deepEqual([...v.pal.slice(0,3)],[10,20,30]);assert.equal(v.pal[7],128,'glow material retains its flag');
+for(let y=0;y<12;y++)for(let z=0;z<16;z++)for(let x=0;x<12;x++)assert.equal(S.sample(v,x,y,z),x<11&&y<9&&z<13?vol[x+11*(z+13*y)]:0,'coarse and brick paths decode exactly, including padded edge cells');
+assert.equal(v.bytes,v.coarse.byteLength+v.bricks.byteLength+v.pal.byteLength);assert.ok(v.nb>0);
+const paddedDims=[24,24,24],padded=new Uint8Array(24**3);for(let y=8;y<16;y++)for(let z=8;z<16;z++)for(let x=8;x<16;x++)padded[x+24*(z+24*y)]=(x+y+z)%2+1;
+const input={dims:paddedDims,vol:padded,cell:.0625,palette,M:{}},plain=S.fromVolume(input,model,{deduplicate:false,crop:false}),compact=S.fromVolume(input,model);
+assert.equal(compact.nb,1,'identical mixed bricks share one atlas entry');assert.equal(plain.nb,8);assert.deepEqual(compact.offset,[8,8,8]);assert.deepEqual(compact.n,[2,2,2]);assert.deepEqual(compact.o,[.5,3.5,.5]);assert.deepEqual(compact.frame,plain.frame,'cropping preserves the rigid world frame');assert.ok(compact.bytes<plain.bytes);
+for(let y=0;y<24;y++)for(let z=0;z<24;z++)for(let x=0;x<24;x++)assert.equal(S.sample(compact,x,y,z),padded[x+24*(z+24*y)],'cropped coordinates retain exact materials and padded air');
+const empty=S.fromVolume({...input,vol:new Uint8Array(24**3)},model);assert.deepEqual(empty.n,[1,1,1]);assert.equal(S.sample(empty,12,12,12),0);
+console.log('lossless Building Lab volume → CastleVox sparse-brick contract');

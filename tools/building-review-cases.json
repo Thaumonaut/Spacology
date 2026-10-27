@@ -1,0 +1,11 @@
+[
+  {"seed":550298,"type":"shophouse","style":"fairytale","context":"terrace","lot":"wedge","reason":"User baseline: functional journeys, spiral stairs, furnishing and extension joins"},
+  {"seed":550300,"type":"workshop","style":"fairytale","context":"terrace","lot":"rect","typology":"side","reason":"Explicit-options replay regression: forcing resolved options changes RNG consumption; review straight-stair circulation"},
+  {"seed":898408,"type":"shophouse","style":"fairytale","reason":"User programme reference: private arrival, compact bath and an employee yard route to the workshop; do not force auto-selected options"},
+  {"seed":1,"style":"fairytale","reason":"Automatic-settings mixed-use entry regression; keep this earlier chimney case even though the selected stove no longer permits a flue"},
+  {"seed":13,"style":"fairytale","reason":"Earlier stove-connected chimney case; retain exact settings even when the widened plan no longer permits its flue"},
+  {"seed":551498,"style":"fairytale","reason":"Previously threw no side plan; retain the exact request even after repairs, never silently substitute it"},
+  {"seed":85,"style":"fairytale","reason":"Automatic-options workshop: front and side service doors previously met at one corner. Also exposes pre-existing rear-workshop/stock service isolation: do not certify the whole building. Retain actual options, not the resolved type/plot"},
+  {"seed":1,"type":"home","typology":"tower","context":"detached","lot":"rect","style":"fairytale","reason":"Compact front tower: retain usable annex rooms, circulation and upper-floor projections"},
+  {"seed":1,"type":"home","typology":"undercroft","context":"detached","lot":"rect","style":"fairytale","reason":"Compact open-front undercroft: an inward-standing entrance leaf previously pinched the cross hall"}
+]
