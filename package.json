@@ -10,7 +10,7 @@
     "test": "node tests/run.cjs",
     "test:unit": "node tests/run.cjs --unit",
     "test:browser": "node tests/run.cjs --browser",
-    "test:browser:release": "node tests/run.cjs --browser aether-attunement sensor-grid dna-sequencing signal-decoding intel-check core-assay supply-run gear-pack pallet-stacking route-planning pipes depot-sorting synergy-links minigames-hub offline-battle-launch battle-safe-area",
+    "test:browser:release": "node tests/run.cjs --browser aether-attunement sensor-grid dna-sequencing signal-decoding intel-check core-assay supply-run gear-pack pallet-stacking route-planning pipes depot-sorting synergy-links minigames-hub offline-battle-launch battle-safe-area microvoxel-world",
     "test:balance": "node tests/run.cjs --balance"
   },
   "devDependencies": {

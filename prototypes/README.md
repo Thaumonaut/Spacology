@@ -78,6 +78,10 @@ state and returns a plain event object; `playAction()` then animates that event.
 simulation never depends on the animation, which means fights can be run headlessly for
 balance testing and replayed deterministically.
 
+## microvoxel-world.html
+
+The separate [Microvoxel World Lab](microvoxel-world.html) proves a bounded, non-editable seeded catchment with compressed material voxels, worker-built greedy meshes and animated voxel crew. It does not replace this editor or the route-planning game. See its [representation, budgets and verification](labs/microvoxel-world/README.md).
+
 ## worldgen.html
 
 A tectonic world editor with a separate alien environment layer. Open the file in

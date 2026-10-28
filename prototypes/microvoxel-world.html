@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#172a28"><title>Microvoxel World · Spacology</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="labs/microvoxel-world/microvoxel-world.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="minigames.html" aria-label="Back to playtest library">S<span>SPACOLOGY</span></a>
+    <div class="title"><span class="eyebrow">WORLD LAB / 001</span><h1 id="worldTitle">The ferrite catchment</h1></div>
+    <button id="info" aria-haspopup="dialog">Field notes <span aria-hidden="true">↗</span></button>
+  </header>
+  <main>
+    <section class="viewport" aria-label="Orthographic microvoxel world">
+      <canvas id="world" tabindex="0" aria-label="World map. Drag or arrow keys to pan; plus and minus to zoom; R to return to the root; Space to pause. Tap terrain to inspect."></canvas>
+      <div id="walkFade" aria-hidden="true"></div><span id="walkCrosshair" aria-hidden="true"></span><div id="walkHint" class="faded" role="status"></div><div id="walkTouch" aria-hidden="true"><span><i id="walkStick"></i>MOVE</span><span>LOOK</span></div>
+      <canvas id="atlasLayer" class="atlas-layer" aria-hidden="true"></canvas>
+      <div class="map-caption"><span class="eyebrow" id="regionLabel">SURVEYED REGION</span><b id="regionDetail">Basalt ridge / river basin</b><span id="seedLabel"></span><span id="positionLabel" hidden></span></div>
+      <div class="compass" aria-hidden="true">N<br>↑</div>
+      <button id="rootMarker" class="root-marker" aria-label="Inspect surveyed ferrite root"><span class="diamond" aria-hidden="true"></span><span>FERRITE <small>ROOT 01</small></span></button>
+      <span id="groundMarker" class="ground-marker" hidden aria-hidden="true"></span>
+      <div id="notice" role="status">Starting the catchment… If this stays here in iOS Files preview, use a hosted copy in Safari; the downloaded-file preview may not run the world.</div>
+      <aside id="inspection" class="inspection" hidden aria-label="Selected terrain">
+        <button id="closeInspection" class="close" aria-label="Close inspection">×</button>
+        <span class="eyebrow" id="inspectKicker">SURVEYED ROOT</span><h2 id="inspectTitle">Ferrite</h2>
+        <p id="inspectBody"></p><p id="hexSummary" class="hex-summary"></p><button id="hexTask" type="button" hidden>Send explorer</button><button id="hexTask2" type="button" hidden></button><p id="hexStatus" class="hex-status" role="status"></p><code id="inspectPosition"></code>
+      </aside>
+      <aside id="coop" class="coop" aria-label="Co-op supply line">
+        <div class="coop-head"><span class="eyebrow">SUPPLY LINE · CO-OP</span> <span id="coopRoom" class="coop-room"></span><button id="coopFold" class="coop-fold" type="button" aria-expanded="true" aria-controls="coop" aria-label="Collapse co-op panel">–</button></div>
+        <div class="coop-roles" role="group" aria-label="Your role"><button data-role="explore" aria-pressed="true">Exploration</button><button data-role="research" aria-pressed="false">Research</button><button data-role="logistics" aria-pressed="false">Logistics</button></div>
+        <div id="coopStart" class="coop-row"><button id="coopSolo" type="button">Play solo</button><button id="coopHost" type="button">Host room</button><input id="coopCode" maxlength="8" placeholder="CODE" aria-label="Room code" autocomplete="off"><button id="coopJoin" type="button">Join</button></div>
+        <div id="coopGame" hidden>
+          <strong id="coopPhase"></strong>
+          <p id="coopBrief"></p>
+          <div id="coopPack" class="coop-row" hidden><span>Supplies</span><button data-pack="4" aria-pressed="false">4</button><button data-pack="8" aria-pressed="false">8 · −1 build</button></div>
+          <p id="coopReport" class="coop-report" hidden></p>
+          <p id="coopSeats" class="coop-seats"></p>
+          <div class="coop-row coop-actions"><button id="coopReady" type="button">Ready</button><button id="coopLeave" type="button">Leave</button></div>
+        </div>
+        <p id="coopStatus" class="hex-status" role="status"></p>
+      </aside>
+      <div class="scale" aria-hidden="true"><span id="scaleText">10 m</span><i id="scaleLine"></i></div>
+      <span class="view-label" id="viewLabel">SITE VIEW · 0.25 m CELLS</span>
+    </section>
+    <nav class="toolbar" aria-label="World controls">
+      <div class="view-controls"><button id="wide">Catchment</button><button id="close">Root site</button></div>
+      <div class="zoom-controls"><button id="zoomOut" aria-label="Zoom out">−</button><button id="zoomIn" aria-label="Zoom in">+</button></div>
+      <div class="atlas-controls" role="group" aria-label="Hex atlas view"><button data-atlas="off" aria-pressed="false">Terrain</button><button data-atlas="explore" aria-pressed="true">Explore</button><button data-atlas="logistics" aria-pressed="false">Logistics</button><button data-atlas="research" aria-pressed="false">Research</button></div>
+      <button id="walk" title="Walk at eye height">Walk</button><button id="map" hidden title="Return to overhead map (M)">Map</button><output id="walkCompass" aria-label="Compass bearing"></output>
+      <button id="pause" aria-pressed="false">Pause crew</button>
+      <div class="peek-control"><button id="peek" aria-pressed="false" title="See under tree cover around the mouse (P)">Peek</button><input id="peekSize" type="range" min="40" max="320" value="110" aria-label="Peek size" title="Peek size ([ and ])"></div>
+      <div class="settings"><button id="settings" aria-haspopup="true" aria-expanded="false" aria-controls="settingsPanel" title="View settings">⚙ View</button>
+        <div class="settings-panel" id="settingsPanel" hidden>
+          <div class="setting-row"><span>Voxel size</span><div class="density-controls" role="group" aria-label="Voxel cell size"><button id="densityBase" aria-pressed="true" title="Baseline: 25 centimetre voxels">25 cm</button><button id="densityFine" aria-pressed="false" title="Compare finer 12.5 centimetre voxels">12.5 cm</button></div></div>
+          <label class="setting-row lod-control" title="Pin the render level of detail instead of choosing it from the zoom"><span>Detail level</span><select id="lod"></select></label>
+          <label class="setting-row lod-control" title="How solid the clouds are in wide views"><span>Clouds</span><input id="clouds" type="range" min="0" max="100" value="85" aria-label="Cloud opacity"></label>
+          <label class="setting-row lod-control" title="How thick the mist over the lowlands is"><span>Fog</span><input id="fog" type="range" min="0" max="100" value="50" aria-label="Ground fog"></label>
+          <label class="setting-row"><span>Walk FOV</span><input id="walkFov" type="range" min="60" max="90" value="70" aria-label="Walk field of view"></label>
+          <div class="setting-row"><span>Quality</span><button id="economy" aria-pressed="false" title="Voxels only, no extras">Economy</button></div>
+          <button id="metrics" aria-haspopup="dialog">Performance</button>
+        </div>
+      </div>
+    </nav>
+    <footer><span id="summary">Preparing voxel stream</span><span>Drag to pan · tap to inspect <span class="desktop-hint">· arrows / + − / Space</span></span></footer>
+  </main>
+  <dialog id="notes">
+    <button id="closeNotes" type="button" class="close" aria-label="Close field notes">×</button>
+    <span class="eyebrow">WORLD LAB PROOF</span><h2>Small cells.<br>One coherent landscape.</h2>
+    <p>The default <strong>streamed world</strong> regenerates nearby 8 m chunks from the seed as you travel. The finite <strong>128 × 128 m catchment or 256 × 256 m region</strong> remain available under World footprint. All use 25 cm or 12.5 cm material voxels. In the finite worlds, the western basalt fault exposes ferrite above a river basin. One root is already surveyed; camera zoom does not reveal hidden resources. The larger region extends the same seeded geography beyond the original boundary; pan to explore it.</p>
+    <p>The density buttons compare the same geography, seed and resource identity. <strong>12.5 cm regenerates finer voxel ground</strong>, not just a closer camera. Trees, water, crew and world bounds keep their metre scale. Choose Root site, then + to inspect full detail; wider views use render-only LOD. The 25 cm baseline remains the default. Performance samples reset when density changes.</p>
+    <p>Crew follow tasks, not the camera: the explorer surveys frontier hexes and the researcher carries samples to the root camp for study. Tap a hex to assign a task. The hex atlas is a summary layer sampled from the voxel ground; Explore, Logistics and Research show the same hexes through each role. Knowledge is in-memory only; travel is straight-line. Their feet follow the same voxel-ground queries used by inspection. Natural terrain is not editable. This is a visual/engineering lab, not yet the persistent Logistics game.</p>
+    <h3>How it stays small</h3>
+    <ul><li>Vertical material runs, rather than objects for every cell.</li><li>Worker-generated greedy surface meshes; internal faces never reach the GPU.</li><li>View-based chunk requests, bounded CPU/GPU caches and explicit buffer disposal.</li><li>Render-only LOD; camera zoom never changes the selected voxel ground or deposit IDs.</li><li>Reusable character parts; no per-frame voxel meshing. Economy caps pixel density and uses coarser render sampling.</li></ul>
+    <p class="muted">Fixed 50° orthographic tilt and the streamed world at 25 cm are prototype defaults. The finite regional view shows only a portion of the larger world at once to respect chunk-cache limits. Geography is still a single river/ridge template with seeded surface variation, not a finished procedural planet. No phone performance claim.</p>
+    <form id="seedForm"><label for="worldSize">World footprint</label><select id="worldSize"><option value="infinite">Streamed world (default)</option><option value="128">128 × 128 m catchment (finite fixture)</option><option value="256">256 × 256 m region (four times the area)</option></select><label for="seed">World seed</label><div class="seed-row"><input id="seed" type="number" min="0" max="4294967295" step="1" required><button type="button">Generate</button></div></form>
+    <h3>World beneath your feet</h3>
+    <p>The streamed world keeps the camera at the rendering origin while dragging the world underneath it; crew stay at their task sites. Arrows travel; +/− zoom; Root site returns home. Only nearby chunks stay in memory. Seeded ridges and wet corridors are a streaming fixture, not finished river drainage or a planet. Travel ignores obstacles, water and slopes; this is not character navigation.</p>
+    <p class="muted">Location is an 8 m chunk pair plus a small local offset, retained in the URL. No terrain or visited-world history is saved. Numeric guardrail: ±16,777,215 chunks (about ±134,218 km), not literal infinity. The finite worlds use a separate fixed river/ridge template.</p>
+    <form id="travelForm" hidden><h3>Long-distance probe</h3><div class="travel-coordinates"><label>Chunk X<input id="chunkX" type="number" value="125" min="-16777215" max="16777215" step="1" required></label><label>Chunk Z<input id="chunkZ" type="number" value="0" min="-16777215" max="16777215" step="1" required></label></div><button type="button">Travel to chunk centre</button></form>
+    <p id="worldId" class="muted identity"></p>
+  </dialog>
+  <dialog id="performance">
+    <button id="closePerformance" type="button" class="close" aria-label="Close performance">×</button>
+    <span class="eyebrow">LIVE INSTRUMENTATION</span><h2>What does it cost?</h2>
+    <dl id="metricList"></dl>
+    <p class="muted">Frame p50/p95/p99 are recent requestAnimationFrame intervals, including stalls, not GPU timestamps. Generation/meshing times run in a worker. GPU bytes are uploaded vertex buffers only; driver/framebuffers and whole-process memory are unknown. Encoded bytes are the worker's bounded voxel cache; transient mesh/scratch arrays are not resident-cache bytes.</p>
+    <p class="muted">Newly exposed chunks show unfilled background while loading. A previous LOD stays visible during a zoom transition until replacement meshes for the visible view are ready. Rendering approximation never replaces exact ground queries.</p>
+    <button id="export">Export measurements</button>
+  </dialog>
+  <script src="labs/microvoxel-world/macro-map.js"></script>
+  <script src="labs/microvoxel-world/voxel-world-model.js"></script>
+  <script src="labs/microvoxel-world/voxel-renderer.js"></script>
+  <script src="labs/microvoxel-world/lod-stream.js"></script>
+  <script src="labs/microvoxel-world/hex-atlas.js"></script>
+  <script src="labs/microvoxel-world/vendor/peerjs-1.5.5.min.js"></script>
+  <script src="labs/microvoxel-world/coop-session.js"></script>
+  <script src="labs/microvoxel-world/coop-net.js"></script>
+  <script src="labs/microvoxel-world/coop-play.js"></script>
+  <script src="labs/microvoxel-world/walk-camera.js"></script>
+  <script src="labs/microvoxel-world/microvoxel-world.js"></script>
+</body></html>

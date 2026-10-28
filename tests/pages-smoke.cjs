@@ -33,6 +33,9 @@ const entries=require('../prototypes/library/catalogue.js');
     await p.locator('#mgStage').waitFor();await p.locator('#mgAuto').click();await p.locator('#mgResult:not([hidden])').waitFor();
     await p.goto(site.url+'/prototypes/watchable-fight.html');await p.locator('#fab').click();
     await p.waitForFunction(()=>G.actions>0);assert.deepEqual(errors,[],'offline station game and animated battle');
+    await p.goto(site.url+'/prototypes/microvoxel-world.html');
+    await p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.ready===s.visible&&s.ready>0;},null,{timeout:60000});
+    assert.deepEqual(errors,[],'offline microvoxel page and worker load under project prefix');
     await offline.close();
     console.log(`PASS Pages: ${entries.length} destinations; current pages, embedded puzzle, runner and offline library/battle under /Spacology/`);
   }finally{await browser.close();await site.close();}

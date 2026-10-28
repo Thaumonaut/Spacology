@@ -1,0 +1,72 @@
+'use strict';
+const {chromium}=require('playwright'),assert=require('node:assert/strict');
+const BASE=process.env.SPACOLOGY_BASE_URL||'http://127.0.0.1:4173',URL=BASE+'/prototypes/microvoxel-world.html?seed=2718&extent=128&coopNet=local';
+const ready=p=>p.waitForFunction(()=>{const s=window.MicroWorldLab?.snapshot();return s&&!s.failed&&s.visible>0&&s.ready===s.visible&&!s.pending;},null,{timeout:90000});
+const coop=p=>p.evaluate(()=>MicroWorldLab.coop.snapshot());
+const until=(p,fn,arg)=>p.waitForFunction(fn,arg,{timeout:10000});
+(async()=>{const browser=await chromium.launch({headless:process.env.SPACOLOGY_HEADED!=='1'});
+try{
+  const context=await browser.newContext({viewport:{width:1280,height:800}}),a=await context.newPage(),b=await context.newPage(),errors=[];
+  for(const p of [a,b]){p.on('pageerror',e=>errors.push(e.message));await p.goto(URL);await ready(p);}
+  await a.locator('[data-role="explore"]').click();await a.locator('#coopHost').click();
+  await until(a,()=>MicroWorldLab.coop.snapshot().mode==='host');const room=(await coop(a)).room.replace('ROOM ','');assert.match(room,/^[A-Z0-9]{5}$/);
+  await b.locator('[data-role="research"]').click();await b.locator('#coopCode').fill(room.toLowerCase());await b.locator('#coopJoin').click();
+  await until(b,()=>MicroWorldLab.coop.snapshot().role==='research');
+  let A=await coop(a),B=await coop(b);
+  assert.deepEqual(A.view.seats,{explore:'you',research:'teammate',logistics:'autopilot'});assert.equal(B.view.seats.research,'you');
+  assert.equal(A.folded,false,'roomy windows open the full co-op panel');
+  await a.locator('#coopFold').click();assert.equal((await coop(a)).folded,true);
+  assert.equal(await a.locator('#coopPhase').isVisible(),true);assert.equal(await a.locator('#coopReady').isVisible(),true);assert.equal(await a.locator('#coopBrief').isVisible(),false);
+  assert.ok((await a.locator('#coop').boundingBox()).height<56,'folded panel is one compact row');
+  await a.locator('#coopFold').click();assert.equal(await a.locator('#coopBrief').isVisible(),true);
+  assert.equal(A.phase,'night');assert.match(await a.locator('#coopPhase').innerText(),/DAY 1 · NIGHT · TARGET 6/);
+  console.log('PASS host opens a room code; a teammate joins and claims Research; Logistics runs on autopilot');
+  let lines=0,sawSample=false,sawHint=false;
+  for(let day=1;day<=5&&lines<2;day++){
+    A=await coop(a);B=await coop(b);
+    const frontier=A.view.hexes.filter(h=>['frontier','hinted'].includes(h.state)).sort((x,y)=>(y.state==='hinted')-(x.state==='hinted')||x.cost-y.cost||x.key.localeCompare(y.key)).slice(0,3);
+    for(const h of frontier)await a.evaluate(k=>MicroWorldLab.coop.act({kind:'toggle',key:k}),h.key);
+    for(const h of B.view.hexes.filter(h=>h.state==='signs').slice(0,2))await b.evaluate(k=>MicroWorldLab.coop.act({kind:'toggle',key:k}),h.key);
+    A=await coop(a);B=await coop(b);
+    assert.ok(A.view.plan.length>0,'explorer planned frontier hexes');
+    assert.ok(!B.view.hexes.some(h=>h.state==='planned'),'research never sees the explorer plan');
+    const hinted=B.view.hints.slice();
+    await a.locator('#coopReady').click();await until(b,()=>MicroWorldLab.coop.snapshot().view.waiting.join()==='research');
+    assert.equal((await coop(a)).phase,'night','night waits for the unready teammate');assert.match(await a.locator('#coopSeats').innerText(),/waiting for Research/);
+    await b.locator('#coopReady').click();await until(a,()=>MicroWorldLab.coop.snapshot().phase==='day');
+    A=await coop(a);
+    if(hinted.length){sawHint=true;assert.ok(hinted.every(k=>A.view.hexes.some(h=>h.key===k&&['hinted','planned','surveyed'].includes(h.state))),'hints reach Exploration at dawn');}
+    B=await coop(b);const before=B.view.samples.length;
+    for(const k of B.view.samples.slice(0,2))await b.evaluate(k=>MicroWorldLab.coop.act({kind:'toggle',key:k}),k);
+    await a.locator('#coopReady').click();await b.locator('#coopReady').click();await until(a,()=>MicroWorldLab.coop.snapshot().phase==='dusk');
+    A=await coop(a);B=await coop(b);
+    assert.equal(A.view.report.target,6+3*(day-1));assert.match(await b.locator('#coopReport').innerText(),new RegExp(`Day ${day}: delivered ${A.view.report.delivered} / ${A.view.report.target}`));
+    if(A.view.report.samples){sawSample=true;assert.ok(B.view.samples.length>before-Math.min(2,before),'samples reach Research at dusk');}
+    lines=A.view.report.lines.length;
+    await a.locator('#coopReady').click();await b.locator('#coopReady').click();await until(a,d=>MicroWorldLab.coop.snapshot().day===d+1,day);
+  }
+  assert.ok(sawSample,'surveys produced samples');assert.ok(lines>=2,'a second supply line was connected and delivered');
+  const S=(await coop(a)).session;assert.ok(S.logistics.lines>=1&&S.research.identified>=1);
+  console.log(`PASS split-role days hand off at phase turns only: surveys → samples → identification → second supply line (${lines} lines${sawHint?', hints delivered at dawn':''})`);
+  await b.locator('#coopLeave').click();await until(a,()=>MicroWorldLab.coop.snapshot().view.seats.research==='autopilot');
+  await a.locator('#coopReady').click();await until(a,()=>MicroWorldLab.coop.snapshot().phase==='day');
+  console.log('PASS a leaving teammate is replaced by the autopilot and play continues');
+  await a.locator('#coopLeave').click();await b.close();
+  const solo=await context.newPage();solo.on('pageerror',e=>errors.push(e.message));await solo.goto(URL);await ready(solo);
+  await solo.locator('[data-role="logistics"]').click();await solo.locator('#coopSolo').click();
+  await until(solo,()=>MicroWorldLab.coop.snapshot().role==='logistics');await solo.locator('[data-pack="4"]').click();
+  assert.equal((await coop(solo)).view.packed,4);
+  for(let i=0;i<2;i++)await solo.locator('#coopReady').click();
+  await until(solo,()=>MicroWorldLab.coop.snapshot().phase==='dusk');assert.equal((await coop(solo)).view.report.day,1);
+  const crew=await solo.evaluate(()=>MicroWorldLab.snapshot().actors?.length??null);
+  await solo.evaluate(()=>document.getElementById('info').click());await solo.locator('#seed').fill('39');await solo.locator('#seed').press('Enter');await ready(solo);
+  assert.equal((await coop(solo)).mode,'off','regenerating the world ends the session');
+  const small=await browser.newPage({viewport:{width:700,height:560}});small.on('pageerror',e=>errors.push(e.message));await small.goto(URL);await ready(small);
+  assert.equal((await coop(small)).folded,true,'small windows start with the panel folded');
+  await small.locator('#coopFold').click();await small.locator('[data-role="research"]').click();await small.locator('#coopSolo').click();await until(small,()=>MicroWorldLab.coop.snapshot().role==='research');await small.locator('#coopFold').click();
+  const cv=await small.locator('#world').boundingBox();await small.mouse.click(cv.x+cv.width/2,cv.y+cv.height/2);await until(small,()=>!document.getElementById('inspection').hidden);
+  const [pb,ib]=[await small.locator('#coop').boundingBox(),await small.locator('#inspection').boundingBox()];
+  assert.ok(pb.height<56&&(ib.x>=pb.x+pb.width||ib.y>=pb.y+pb.height),'folded panel and inspection do not overlap');
+  await small.screenshot({path:'/tmp/spacology-coop-small.png'});await small.close();
+  assert.deepEqual(errors,[]);console.log(`PASS solo play fills the other roles by autopilot; regenerating ends the session (crew ${crew})`);
+}finally{await browser.close();}})().catch(e=>{console.error(e);process.exit(1);});

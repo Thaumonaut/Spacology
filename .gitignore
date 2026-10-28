@@ -12,8 +12,23 @@ node_modules/
 # Local terrain inference outputs and Python caches
 artifacts/terrain-diffusion/
 __pycache__/
+*/artifacts/
 
 
 /output
 /.playwright-cli
 .DS_Store
+
+# Claude Code: per-agent git worktrees (each is its own checkout) and local settings
+.claude/worktrees/
+.claude/settings.local.json
+
+# Browser test output, logs and performance traces
+test-results/
+playwright-report/
+*.log
+reports/Trace-*.json.gz
+*.cpuprofile
+
+# Python bytecode outside __pycache__
+*.pyc
