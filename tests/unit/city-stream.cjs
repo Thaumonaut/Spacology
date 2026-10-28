@@ -1,0 +1,27 @@
+'use strict';
+const assert=require('node:assert/strict'),C=require('../../prototypes/labs/city-lab/city-model.js'),S=require('../../prototypes/labs/city-lab/city-stream.js');
+const c=C.generate(1),position=[0,2,c.landmarks.gate.z],a=S.targets(c,position),tiers=[...a.values()].map(t=>t.mode);
+assert.equal(tiers.filter(t=>t==='full').length,0,'proximity never loads an interior');
+assert.ok([...a.values()].filter(t=>t.near).length<=6,'bounded near/sparse all-around protection');
+assert.ok(tiers.filter(t=>t==='exterior').length<=64,'bounded all-around, visible and held exteriors including pinned, never interiors');
+assert.ok(tiers.includes('facade'),'nearby buildings beyond the detailed budget still need fast architectural facades');
+assert.ok(!tiers.includes('low'),'small city has no far-far buildings to reduce to boxes');
+const same=S.targets(c,position,a);assert.deepEqual(same,a,'stationary camera keeps the same jobs');
+const far=S.targets(c,[999,2,999]),sizes=[...far.values()].map(t=>t.voxelSize);
+assert.ok(sizes.every(s=>s===2),'far voxels scale up to 2 m');
+assert.ok([...a.values()].some(t=>t.voxelSize<2),'nearby voxels stay smaller');
+const large=C.generate(1,{count:1000}),largeTargets=[...S.targets(large,position).values()];assert.ok(largeTargets.some(t=>t.mode==='facade'),'large cities retain architecture where it is visible');assert.ok(largeTargets.every(t=>t.mode!=='low'||t.projected<=12),'coarse boxes require a genuinely small screen footprint');
+const zoomed=S.targets(c,[500,2,500],new Map(),'stream',null,{height:1440,fov:.4}),wide=S.targets(c,[500,2,500]);assert.ok([...zoomed.values()].every(t=>t.mode==='facade'));assert.ok([...wide.values()].every(t=>t.mode==='low'||t.mode==='facade'),'far architecture uses projected size, not a distance-only cutoff');assert.ok([...wide.values()].every(t=>t.mode!=='low'||t.projected<=12),'only genuinely tiny far projections become boxes');
+const facade=S.targets(c,[9999,2,9999],a);assert.equal([...facade.values()].every(t=>t.mode==='low'),true,'facade proxies release only when genuinely tiny');
+assert.equal(S.key({mode:'low',voxelSize:.5}),'low:0.5');
+assert.equal(S.key({mode:'facade',voxelSize:.5}),'facade');
+assert.equal(S.key({mode:'full',voxelSize:2}),'full');
+const n=S.targets(c,position,new Map(),'detailed');assert.ok([...n.values()].every(t=>t.mode==='exterior'),'comparison mode also starts without interiors');
+const e=S.targets(c,position,new Map(),'exterior');assert.ok([...e.values()].every(t=>t.mode==='low'));
+const pinned=S.targets(c,[999,2,999],a,'stream',0);assert.equal(pinned.get(0).mode,'exterior','a prefetched building keeps its exterior pinned');
+assert.equal([...pinned.values()].filter(t=>t.mode==='full').length,0,'interior prefetch is a separate bounded job');
+const closed=S.targets(c,position,pinned);assert.equal([...closed.values()].filter(t=>t.mode==='full').length,0,'closing the door releases the full target');
+for(const p of c.parcels){const point=[p.origin[0],p.padY+1.6,p.origin[1]],near=S.targets(c,point);assert.equal([...near.values()].filter(t=>t.mode==='full').length,0,'walking past every house never generates interiors');}
+assert.notEqual(S.key({mode:'exterior',near:true}),S.key({mode:'exterior',near:false}));
+const summaries={0:{entry:[0,0]},1:{entry:[20,0]}};assert.equal(S.prefetch(null,summaries),null);assert.equal(S.prefetch([0,2,10],summaries),0);assert.equal(S.prefetch([0,2,17],summaries,0),0);assert.equal(S.prefetch([0,2,19],summaries,0),null);assert.equal(S.prefetch([999,2,999],summaries,0,true),0);assert.equal(S.prefetch([20,2,1],summaries,0),1);
+console.log('camera-driven detail tiers and coarse voxel steps');

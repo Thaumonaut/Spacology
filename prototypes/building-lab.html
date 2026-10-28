@@ -20,6 +20,7 @@
         <label>Plot <select id="context"><option value="">Any</option></select></label>
         <label>Plan <select id="typology"><option value="">Any</option></select></label>
         <label>Plot shape <select id="lot"><option value="">Any</option></select></label>
+        <label>Upper projection <select id="projection"><option value="">Automatic</option><option value="0">None</option><option value="0.5">0.5 m</option><option value="1">1 m</option><option value="1.5">1.5 m</option><option value="2">2 m</option><option value="2.5">2.5 m</option><option value="3">3 m</option></select></label>
         <button id="build" type="submit">Build</button>
       </form>
       <section class="summary" aria-live="polite"><h2 id="name">…</h2><p id="facts"></p></section>
@@ -36,18 +37,39 @@
         <canvas id="plan" width="560" height="560" aria-label="Floor plan of the visible top floor"></canvas>
         <p id="rooms" class="rooms"></p>
       </section>
+      <section aria-label="Human-scale walkthrough">
+        <div class="eyebrow">HUMAN SCALE</div>
+        <label class="review-label">Start at <select id="walk-start"><option value="resident">Resident entrance</option><option value="customer">Business entrance</option><option value="floor">Shown floor (inspection spawn)</option></select></label>
+        <button id="walk-enter" type="button">Walk through building</button>
+        <p class="rooms">1.60 m eye height · 1.75 m tall · 0.50 m wide. Doors held open for inspection. WASD/arrows move; drag to look; Esc leaves. No flight or walking through walls.</p>
+      </section>
+      <details id="architect-review">
+        <summary>Architect review</summary>
+        <p id="review-summary">Functional journeys, voxel probes and visual-review checklist. Fantasy physics are allowed.</p>
+        <label class="review-label">Minimum clear hall width (m) <input id="hallway-width" type="number" min="0.5" max="3" step="0.05" value="1.2" required></label>
+        <button id="review-run" type="button">Review this building</button>
+        <label class="review-label">Route overlay <select id="review-route" aria-label="Review route"><option value="">None</option></select></label>
+        <ul id="review-findings"></ul>
+      </details>
       <p id="stats" class="stats"></p>
       <p class="credit">Furniture and kitchen pieces: KayKit Furniture Bits and Restaurant Bits by Kay Lousberg (CC0), voxelised at 6.25 cm.</p>
     </aside>
     <section class="viewport">
       <canvas id="view" tabindex="0" aria-label="Building view. Drag to orbit, scroll or pinch to zoom, shift-drag to pan."></canvas>
       <div id="notice" role="status">Building…</div>
+      <div id="walk-hud" hidden>
+        <span id="walk-status" role="status"></span>
+        <div class="seg"><button id="walk-exit" type="button">Exit walk</button><button id="walk-lock" type="button">Mouse look</button></div>
+        <div class="walk-pad" aria-label="Walk controls"><button data-walk-key="w" aria-label="Walk forward">Forward</button><div><button data-walk-key="a" aria-label="Strafe left">Left</button><button data-walk-key="s" aria-label="Walk backward">Back</button><button data-walk-key="d" aria-label="Strafe right">Right</button></div></div>
+      </div>
     </section>
   </main>
   <script src="labs/building-lab/plan.js"></script>
   <script src="labs/building-lab/kit-pieces.js"></script>
   <script src="labs/building-lab/voxels.js"></script>
+  <script src="labs/building-lab/review.js"></script>
   <script src="labs/building-lab/renderer.js"></script>
+  <script src="labs/building-lab/walk.js"></script>
   <script src="labs/building-lab/building-lab.js"></script>
 </body>
 </html>

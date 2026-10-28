@@ -82,7 +82,7 @@
   layout(location=3) in vec3 smoothNormal;
   uniform vec3 origin, scale, localOffset, center, patternOrigin;
   uniform vec2 halfView;
-  uniform float yaw, pitch, overrideMaterial, depth, smoothMesh, xray, smoothQ;
+  uniform float yaw, pitch, overrideMaterial, depth, smoothMesh, xray, smoothQ, buildingKind;
   uniform vec2 dither;
   uniform vec3 lightAt, lightHalf;
   uniform mat3 lightAxes;
@@ -104,7 +104,7 @@
     normal=vec3(n.x*cos(yaw)+n.z*sin(yaw),n.y,-n.x*sin(yaw)+n.z*cos(yaw));
     int raw=int(overrideMaterial>0.?overrideMaterial:material);
     // Foam voxels stamped on rapids draw as water surface; the water shader paints the white water itself.
-    mat=raw&127;if(mat==${M.MAT.foam})mat=${M.MAT.water};shaded=raw>>7;
+    if(buildingKind>.5){mat=raw;shaded=0;}else{mat=raw&127;if(mat==${M.MAT.foam})mat=${M.MAT.water};shaded=raw>>7;}
     // Sun-view clip space: x/y across the light box, z increasing away from the sun.
     vec3 l=(p-lightAt)*lightAxes/lightHalf;
     lightCoord=l*.5+.5;
@@ -268,6 +268,8 @@
   in vec3 lightCoord, localPosition;
   flat in int mat;
   flat in int shaded;
+  uniform float buildingKind;
+  uniform sampler2D buildingPalette;
   uniform vec3 palette[96];
   uniform vec3 lightHalf;
   uniform float shadowOn, shadowTexel;
@@ -289,6 +291,12 @@
   ${BIOME_TINT}
   ${PEEK}
   void main(){
+    // Hard architecture bypasses all terrain/plant material branches (including the 7-bit palette).
+    if(buildingKind>.5){
+      vec3 base=texelFetch(buildingPalette,ivec2(mat,0),0).rgb;
+      float sun=max(0.,dot(normalize(normal),SUN))*sunlight()*clouds(localPosition+vec3(0,yBase,0));
+      color=vec4(base*(vec3(.40,.43,.49)+vec3(.64,.59,.48)*sun),1.);glowOut=vec4(0,0,0,1);return;
+    }
     // LOD dissolve: an incoming node keeps pixels below the fade threshold, the node it replaces keeps the rest.
     if(dither.x>0.){vec3 vc=floor(block-normal*.01);float n=fract(sin(dot(vc,vec3(12.9898,78.233,37.719)))*43758.5453);if(n>=dither.y)discard;}
     // A coarse stand-in skips the quarters already drawn by finished finer nodes (bit per quarter, x then z).
@@ -1566,7 +1574,7 @@ tintBase=palette[mat];crownKey=vec4(0);
   const SUN=(()=>{const l=Math.hypot(.5,1,.4);return [-.5/l,1/l,.4/l];})(),SHADOW_SIZE=2048;
   // Sun-view axes as mat3 columns: right, up, and forward (away from the sun).
   const LIGHT_AXES=(()=>{const f=SUN.map(v=>-v),r=[f[2],0,-f[0]],rl=Math.hypot(...r),R=r.map(v=>v/rl),U=[R[1]*f[2]-R[2]*f[1],R[2]*f[0]-R[0]*f[2],R[0]*f[1]-R[1]*f[0]];return [...R,...U,...f];})();
-  const DRAW_UNIFORMS=['smoothQ','rockMap','rockOn','quadMask','origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
+  const DRAW_UNIFORMS=['buildingKind','buildingPalette','smoothQ','rockMap','rockOn','quadMask','origin','scale','localOffset','patternOrigin','yaw','pitch','overrideMaterial','smoothMesh','normalMap','canopyMap','biomeMap','waterMap','normalSize','groundBase','blockSize','lightAt','lightHalf','lightAxes'];
   const skyFragment=`#version 300 es
   precision highp float;
   uniform vec3 eye,camForward,camRight,camUp,skyHorizon,skyZenith;
@@ -1683,7 +1691,7 @@ tintBase=palette[mat];crownKey=vec4(0);
     geometry(mesh){const gl=this.gl,vao=gl.createVertexArray(),buffer=gl.createBuffer();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);gl.bufferData(gl.ARRAY_BUFFER,mesh.buffer,gl.STATIC_DRAW);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,3,gl.UNSIGNED_SHORT,false,8,0);gl.enableVertexAttribArray(1);gl.vertexAttribPointer(1,1,gl.UNSIGNED_BYTE,false,8,6);gl.enableVertexAttribArray(2);gl.vertexAttribPointer(2,1,gl.UNSIGNED_BYTE,false,8,7);
       // Highest vertex in blocks, so the sun's shadow box can reach the tallest thing drawn.
       const ys=new Uint16Array(mesh.buffer);let top=0;for(let i=1;i<ys.length;i+=4)top=Math.max(top,ys[i]);
-      const out={vao,buffer,count:mesh.count,bytes:mesh.buffer.byteLength,top};
+      const out={vao,buffer,count:mesh.count,bytes:mesh.buffer.byteLength,top,...(mesh.kind==='building'?{kind:'building',bounds:mesh.bounds}:{})};
       if(mesh.smooth?.count){
         // Smooth terrain: float position, signed-byte normal, byte material (16 bytes a vertex).
         const svao=gl.createVertexArray(),sbuf=gl.createBuffer();gl.bindVertexArray(svao);gl.bindBuffer(gl.ARRAY_BUFFER,sbuf);gl.bufferData(gl.ARRAY_BUFFER,mesh.smooth.buffer,gl.STATIC_DRAW);
@@ -1838,6 +1846,13 @@ tintBase=palette[mat];crownKey=vec4(0);
     placeholder(on){this.flat=on;}
     // Quarters of the next drawn node to skip (finished finer nodes cover them); a masked stand-in draws ground only.
     mask(bits){this.maskBits=bits||0;}
+    setBuildingPalette(rgba){
+      if(!(rgba instanceof Uint8Array)||rgba.length!==1024)throw new Error('Building palette must have 256 RGBA entries');
+      this.clearBuildingPalette();const gl=this.gl,t=this.buildingPalette=gl.createTexture();gl.activeTexture(gl.TEXTURE9);gl.bindTexture(gl.TEXTURE_2D,t);
+      gl.texStorage2D(gl.TEXTURE_2D,1,gl.RGBA8,256,1);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,256,1,gl.RGBA,gl.UNSIGNED_BYTE,rgba);
+      for(const [k,v] of [[gl.TEXTURE_MIN_FILTER,gl.NEAREST],[gl.TEXTURE_MAG_FILTER,gl.NEAREST],[gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE],[gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE]])gl.texParameteri(gl.TEXTURE_2D,k,v);gl.activeTexture(gl.TEXTURE0);
+    }
+    clearBuildingPalette(){if(this.buildingPalette){this.gl.deleteTexture(this.buildingPalette);this.buildingPalette=null;}}
     disposeGeometry(g){const gl=this.gl;gl.deleteBuffer(g.buffer);gl.deleteVertexArray(g.vao);if(g.seams){gl.deleteBuffer(g.seams.buffer);gl.deleteVertexArray(g.seams.vao);}if(g.smooth){gl.deleteBuffer(g.smooth.buffer);if(g.smooth.indexBuffer)gl.deleteBuffer(g.smooth.indexBuffer);gl.deleteVertexArray(g.smooth.vao);}}
     dispose(mesh){for(const k of ['treeSegs','treeLimbs','treeLobes','treeTiers','treeShadows'])if(mesh[k]){this.gl.deleteBuffer(mesh[k].buffer);this.gl.deleteVertexArray(mesh[k].vao);}if(mesh.slices)for(const sl of mesh.slices)this.disposeGeometry(sl);else this.disposeGeometry(mesh);if(mesh.normalMap)this.gl.deleteTexture(mesh.normalMap);if(mesh.canopyMap)this.gl.deleteTexture(mesh.canopyMap);if(mesh.biomeMap)this.gl.deleteTexture(mesh.biomeMap);if(mesh.rockMap)this.gl.deleteTexture(mesh.rockMap);if(mesh.waterTex)this.gl.deleteTexture(mesh.waterTex);if(mesh.grass){this.gl.deleteBuffer(mesh.grass.buffer);this.gl.deleteVertexArray(mesh.grass.vao);}if(mesh.leaves){this.gl.deleteBuffer(mesh.leaves.buffer);this.gl.deleteVertexArray(mesh.leaves.vao);}if(mesh.skirts){this.gl.deleteBuffer(mesh.skirts.buffer);this.gl.deleteVertexArray(mesh.skirts.vao);}if(mesh.fronds){this.gl.deleteBuffer(mesh.fronds.buffer);this.gl.deleteVertexArray(mesh.fronds.vao);}if(mesh.mushrooms){this.gl.deleteBuffer(mesh.mushrooms.buffer);this.gl.deleteVertexArray(mesh.mushrooms.vao);}if(mesh.stalks){this.gl.deleteBuffer(mesh.stalks.buffer);this.gl.deleteVertexArray(mesh.stalks.vao);}if(mesh.ferns){this.gl.deleteBuffer(mesh.ferns.buffer);this.gl.deleteVertexArray(mesh.ferns.vao);}if(mesh.flowers){this.gl.deleteBuffer(mesh.flowers.buffer);this.gl.deleteVertexArray(mesh.flowers.vao);}}
     resize(economy){const r=this.canvas.getBoundingClientRect();this.width=r.width;this.height=r.height;this.pixelRatio=Math.min(devicePixelRatio||1,economy?1:1.5);const w=Math.max(1,Math.round(r.width*this.pixelRatio)),h=Math.max(1,Math.round(r.height*this.pixelRatio));if(this.canvas.width!==w||this.canvas.height!==h){this.canvas.width=w;this.canvas.height=h;}this.aspect=w/h;}
@@ -1877,8 +1892,11 @@ tintBase=palette[mat];crownKey=vec4(0);
     // Draws are recorded and replayed by end(): first into the sun's depth map (casters only), then to the screen.
     draw(mesh,origin,scale=[M.CELL,M.CELL,M.CELL],material=0,yaw=0,pitch=0,offset=[0,0,0],patternOrigin=origin){
       const mask=this.maskBits||0;if(mask)mesh={...mesh,grass:null,leaves:null,flowers:null,stalks:null,ferns:null,mushrooms:null,fronds:null,skirts:null,treeSegs:null,treeLimbs:null,treeLobes:null,treeTiers:null};
-      this.queue.push({mesh,origin,scale,material,yaw,pitch,offset,patternOrigin,dither:this.dithering,flat:!!this.flat,caster:this.casting,mask});}
-    replay(u,d){const gl=this.gl,m=d.mesh,yb=this.yBase||0;gl.uniform1f(u.quadMask,d.mask||0);gl.uniform3f(u.origin,d.origin[0],d.origin[1]-yb,d.origin[2]);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}gl.uniform1f(u.rockOn,m.rockMap?1:0);if(m.rockMap){gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,m.rockMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}
+      const building=mesh.kind==='building';let bounds=null;
+      if(building){bounds={lo:[Infinity,Infinity,Infinity],hi:[-Infinity,-Infinity,-Infinity]};const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+        for(const x of [mesh.bounds.lo[0],mesh.bounds.hi[0]])for(const z of [mesh.bounds.lo[2],mesh.bounds.hi[2]])for(const y of [mesh.bounds.lo[1],mesh.bounds.hi[1]]){const a=(x*16+offset[0])*scale[0],b=(y*16+offset[1])*scale[1],c=(z*16+offset[2])*scale[2],py=b*cp-c*sp,pz=b*sp+c*cp,p=[origin[0]+a*cy+pz*sy,origin[1]+py,origin[2]-a*sy+pz*cy];for(let k=0;k<3;k++){bounds.lo[k]=Math.min(bounds.lo[k],p[k]);bounds.hi[k]=Math.max(bounds.hi[k],p[k]);}}}
+      this.queue.push({mesh,origin,scale,material,yaw,pitch,offset,patternOrigin,bounds,dither:building?[0,0]:this.dithering,flat:building?false:!!this.flat,caster:building||this.casting,xray:!building&&!!this.casting,mask:building?0:mask});}
+    replay(u,d){const gl=this.gl,m=d.mesh,yb=this.yBase||0;gl.uniform1f(u.buildingKind,m.kind==='building'?1:0);if(m.kind==='building'&&this.buildingPalette){gl.uniform1i(u.buildingPalette,9);gl.activeTexture(gl.TEXTURE9);gl.bindTexture(gl.TEXTURE_2D,this.buildingPalette);gl.activeTexture(gl.TEXTURE0);}gl.uniform1f(u.quadMask,d.mask||0);gl.uniform3f(u.origin,d.origin[0],d.origin[1]-yb,d.origin[2]);gl.uniform3fv(u.scale,d.scale);gl.uniform3fv(u.localOffset,d.offset);gl.uniform1f(u.overrideMaterial,d.material);gl.uniform1f(u.yaw,d.yaw);gl.uniform1f(u.pitch,d.pitch);gl.uniform1f(u.blockSize,d.scale[0]);gl.uniform1f(u.normalSize,m.normalSize||0);if(m.normalMap){gl.uniform1f(u.groundBase,m.groundBase);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,m.normalMap);if(m.canopyMap){gl.activeTexture(gl.TEXTURE2);gl.bindTexture(gl.TEXTURE_2D,m.canopyMap);gl.activeTexture(gl.TEXTURE0);}if(m.biomeMap){gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,m.biomeMap);gl.activeTexture(gl.TEXTURE0);}gl.uniform1f(u.rockOn,m.rockMap?1:0);if(m.rockMap){gl.activeTexture(gl.TEXTURE8);gl.bindTexture(gl.TEXTURE_2D,m.rockMap);gl.activeTexture(gl.TEXTURE0);}if(m.waterTex){gl.activeTexture(gl.TEXTURE6);gl.bindTexture(gl.TEXTURE_2D,m.waterTex);gl.activeTexture(gl.TEXTURE0);}}
       if(!m.slices){this.drawGeometry(u,m);return;}
       // Vertical slices: each draws at its own origin (y in blocks), with the pattern frame and the hillshade's ground base
       // moved by the same amount so shading stays in absolute world height.
@@ -1932,6 +1950,10 @@ tintBase=palette[mat];crownKey=vec4(0);
       return box>0?area*seen/box:0;
     }
     onScreen(d,margin=40){
+      if(d.bounds){const b=d.bounds,points=[];for(const x of [b.lo[0],b.hi[0]])for(const y of [b.lo[1],b.hi[1]])for(const z of [b.lo[2],b.hi[2]])points.push([x,y,z]);
+        if(this.camera.mode==='walk'){const m=this.view.viewProj,P=points.map(([x,y,z])=>[0,1,2,3].map(i=>m[i]*x+m[i+4]*y+m[i+8]*z+m[i+12]));return ![p=>p[3]+12,p=>p[3]*1.2+p[0]+12,p=>p[3]*1.2-p[0]+12,p=>p[3]*1.2+p[1]+12,p=>p[3]*1.2-p[1]+12].some(plane=>P.every(p=>plane(p)<0));}
+        const P=points.map(p=>this.project(this.camera,...p));return Math.max(...P.map(p=>p.x))>-margin&&Math.min(...P.map(p=>p.x))<this.width+margin&&Math.max(...P.map(p=>p.y))>-margin&&Math.min(...P.map(p=>p.y))<this.height+margin;
+      }
       if(this.camera.mode==='walk'){
         if(d.caster)return true;
         const v=this.view,m=v.viewProj,size=32*d.scale[0],top=d.origin[1]+(d.mesh.top||0)*d.scale[1];
@@ -1979,7 +2001,7 @@ tintBase=palette[mat];crownKey=vec4(0);
       // The box spans the drawn content's height range: from the lowest ground any drawn node holds (not sea level, which
       // can lie kilometres below a mountain view) to the tallest thing drawn.
       let bottom=Infinity;
-      if(shadows)for(const d of this.queue){top=Math.max(top,d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1],d.mesh.frondTop||0);bottom=Math.min(bottom,d.origin[1]+(d.mesh.normalMap?d.mesh.groundBase:0)*d.scale[1]-2);}
+      if(shadows)for(const d of this.queue){top=Math.max(top,d.bounds?d.bounds.hi[1]:d.origin[1]+(d.mesh.top+Math.abs(d.offset[1]))*d.scale[1],d.mesh.frondTop||0);bottom=Math.min(bottom,d.bounds?d.bounds.lo[1]:d.origin[1]+(d.mesh.normalMap?d.mesh.groundBase:0)*d.scale[1]-2);}
       const box=shadows?this.lightBox(c,this.shadowTarget().size,top,Math.max(0,Math.min(bottom,(c.y??8)-c.span))):null,yb=this.yBase||0,lightAt=box&&[box.at[0],box.at[1]-yb,box.at[2]],cy=(c.y??8)-yb;
       // Props whose instance data was rebased at upload (see upload) draw from the node's own height reference.
       const propOrigin=(d,metres)=>[d.origin[0],d.origin[1]+(metres?d.mesh.propMetres||0:(d.mesh.propBlocks||0)*d.scale[1])-yb,d.origin[2]];
@@ -1987,7 +2009,7 @@ tintBase=palette[mat];crownKey=vec4(0);
         const t=this.shadow;gl.bindFramebuffer(gl.FRAMEBUFFER,t.framebuffer);gl.viewport(0,0,t.size,t.size);gl.clear(gl.DEPTH_BUFFER_BIT);
         // Back faces only: the sun-facing side of a caster never compares against its own depth, so it cannot self-shadow.
         gl.useProgram(this.casterProgram);gl.uniform3fv(this.cu.lightAt,lightAt);gl.uniform3fv(this.cu.lightHalf,box.half);gl.uniformMatrix3fv(this.cu.lightAxes,false,LIGHT_AXES);gl.cullFace(gl.FRONT);
-        for(const d of this.queue){if(d.flat||d.dither[0]<0||c.mode==='walk'&&(Math.abs(d.origin[0]-c.x)>96+32*d.scale[0]||Math.abs(d.origin[2]-c.z)>96+32*d.scale[0]))continue;gl.uniform1f(this.cu.caster,d.caster?1:0);this.replay(this.cu,d);}
+        for(const d of this.queue){const b=d.bounds,far=b?b.lo[0]>c.x+96||b.hi[0]<c.x-96||b.lo[2]>c.z+96||b.hi[2]<c.z-96:Math.abs(d.origin[0]-c.x)>96+32*d.scale[0]||Math.abs(d.origin[2]-c.z)>96+32*d.scale[0];if(d.flat||d.dither[0]<0||c.mode==='walk'&&far)continue;gl.uniform1f(this.cu.caster,d.caster?1:0);this.replay(this.cu,d);}
         gl.cullFace(gl.BACK);
         this.drawTrees(true,c,{lightAt,box,cy});
       }
@@ -2070,10 +2092,10 @@ tintBase=palette[mat];crownKey=vec4(0);
         gl.disable(gl.SAMPLE_ALPHA_TO_COVERAGE);gl.enable(gl.CULL_FACE);
       }
       // X-ray pass: crew parts drawn again only where something nearer covers them.
-      if(this.queue.some(d=>d.caster)){
+      if(this.queue.some(d=>d.xray)){
         gl.useProgram(this.program);gl.uniform1f(this.u.xray,1);gl.uniform1f(this.u.placeholder,0);gl.uniform2f(this.u.dither,0,0);
         gl.depthFunc(gl.GREATER);gl.depthMask(false);gl.enable(gl.BLEND);gl.blendFuncSeparate(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA,gl.ZERO,gl.ONE);
-        for(const d of this.queue)if(d.caster){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);this.replay(this.u,d);}
+        for(const d of this.queue)if(d.xray){gl.uniform3fv(this.u.patternOrigin,d.patternOrigin);this.replay(this.u,d);}
         gl.disable(gl.BLEND);gl.depthMask(true);gl.depthFunc(gl.LESS);gl.uniform1f(this.u.xray,0);
       }
       if(scene){

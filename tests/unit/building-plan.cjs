@@ -6,20 +6,51 @@
 // building. Also checks that every typology actually turns up, so the layouts vary. Prints one plan per typology.
 const assert=require('node:assert/strict');
 const P=require('../../prototypes/labs/building-lab/plan.js');
+assert.equal(P.ARCHITECTURE.door.cells,3,'doorways reserve 1.5 m independently of circulation');
+assert.equal(P.ARCHITECTURE.hallway.cells,4,'hallways retain their approved 2 m planned width');
+assert.equal(P.STAIRS.straight.U,4,'straight stair flights retain their approved 2 m width');
+for(const orient of ['zp','zm','xp','xm']){
+  const stair=P.stairBay('spiral',orient,8,12,3);
+  for(const spiral of stair.spirals){
+    assert.equal(spiral.sweep,2*Math.PI,'a spiral returns to its doorway side after one full turn');
+    const entry=stair.floors[spiral.from].open[0],arrival=stair.floors[spiral.from+1].open.find(o=>o.dir===entry.dir);
+    assert.deepEqual(arrival.cells,entry.cells,`${orient}: lower and upper doorway approaches align`);
+    const lower=stair.landings.find(l=>l.from===spiral.from&&l.rise===0),upper=stair.landings.find(l=>l.from===spiral.from&&l.rise===16);
+    assert.deepEqual(upper.rect,lower.rect,`${orient}: the doorway has a real landing on both floors`);
+    assert.ok((upper.rect[2]-upper.rect[0])*(upper.rect[3]-upper.rect[1])>=P.ARCHITECTURE.hallway.cells**2,'a landing has useful standing space');
+  }
+}
 const SEEDS=12;let floors=0,rooms=0,buildings=0;const seen={};
 function check(plan,tag){
   const {w,d}=plan.plot;buildings++;seen[plan.typology]=(seen[plan.typology]||0)+1;
+  let rear=-1;
+  plan.floors[0].grid.forEach((k,i)=>{if(k>=0)rear=Math.max(rear,Math.floor(i/w));});
+  assert.ok(Number.isFinite(plan.plot.compactDepth),`${tag}: occupied depth has an explicit frontage-based budget`);
+  assert.ok(rear-plan.plot.front+1<=plan.plot.compactDepth,`${tag}: wings and lot extensions stay within the ground-floor depth budget`);
+  const kitchenArea=Math.min(...plan.floors.flatMap(F=>F.rooms.filter(r=>r.type==='kitchen'&&r.cells).map(r=>r.area)));
   assert.equal(plan.floors.length,plan.plot.masks.length);
   plan.floors.forEach((F,f)=>{floors++;const mask=plan.plot.masks[f],show=()=>`\n[${plan.typology}]\n`+P.ascii(plan,f);
-    for(let i=0;i<w*d;i++)assert.equal(F.grid[i]>=0,mask[i]===1,`${tag} floor ${f}: cell ${i} coverage`+show());
+    for(let i=0;i<w*d;i++)if((F.grid[i]>=0)!==(mask[i]===1))assert.fail(`${tag} floor ${f}: cell ${i} coverage`+show());
     assert.equal(F.rooms[0].type,'stair');
-    F.rooms.forEach((r,k)=>{if(k<2||!r.cells||P.ROOMS[r.type].circ)return;const [x0,z0,x1,z1]=r.box;assert.equal(r.cells,(x1-x0+1)*(z1-z0+1),`${tag} floor ${f}: ${r.label} is a rectangle`+show());});
+    for(const r of F.rooms.filter(r=>r.type==='bath'&&r.cells)){
+      assert.ok(r.area<=P.ARCHITECTURE.bath.preferred[1],`${tag}: bathrooms stay within their fixture-sized budget`);
+      assert.ok(r.area<kitchenArea,`${tag}: a bathroom must be smaller than the kitchen`);
+    }
+    for(const r of F.rooms.filter(r=>r.cells&&P.roomBudget(plan.type,f,r).maxA))assert.ok(r.area<=P.roomBudget(plan.type,f,r).maxA,`${tag}: ${r.label} stays within its programme area budget`);
+    F.rooms.forEach((r,k)=>{if(k<2||!r.cells||P.ROOMS[r.type].circ||r.annex)return;const [x0,z0,x1,z1]=r.box;assert.equal(r.cells,(x1-x0+1)*(z1-z0+1),`${tag} floor ${f}: ${r.label} is a rectangle`+show());});
     const adj=new Map();for(const dr of F.doors){for(const [a,b] of [[dr.a,dr.b],[dr.b,dr.a]]){if(!adj.has(a))adj.set(a,[]);adj.get(a).push(b);}
       if(dr.kind==='open'){const [dx,dz]={xm:[-1,0],xp:[1,0],zm:[0,-1],zp:[0,1]}[dr.dir];
         for(const [x,z] of dr.cells)assert.ok(mask[(x-dx)+w*(z-dz)],`${tag} floor ${f}: the stair landing at ${x},${z} has floor beyond it, not an outside wall`+show());
         assert.equal(F.rooms[dr.b].type,'stair');assert.ok(P.ROOMS[F.rooms[dr.a].type].circ,`${tag}: the stair opens onto circulation (${F.rooms[dr.a].type})`+show());}
       else assert.ok(P.canLink(F.rooms[dr.a].type,F.rooms[dr.b].type),`${tag}: no door between ${F.rooms[dr.a].type} and ${F.rooms[dr.b].type}`);
-      assert.ok(dr.cells.length>=2,'doors are at least 1 m wide');}
+      if(dr.kind==='open')assert.ok(dr.cells.length>=4,'stair openings retain at least 2 m');
+      else assert.equal(dr.cells.length,3,'room doorways are three-quarters of the previous 2 m width');
+      if(dr.kind==='door')for(const k of [dr.a,dr.b])if(F.rooms[k].type==='shop')assert.ok(P.shopDoorAtRear(F.rooms[k],dr),`${tag}: shop connection belongs toward the rear`);}
+    for(const o of F.openings)if(o.kind==='front'||o.kind==='back')assert.equal(o.cells.length,3,'street and service doorways also reserve 1.5 m');
+    for(const o of F.openings.filter(o=>o.kind==='back'&&F.rooms[o.room].type==='shop'))assert.ok(P.shopDoorAtRear(F.rooms[o.room],o),`${tag}: shop staff exit belongs toward the rear`);
+    const exterior=F.openings.filter(o=>o.kind==='front'||o.kind==='back');
+    assert.deepEqual(P.redundantExteriorDoors(plan.plot,F,F.doors,F.openings),[],`${tag}: every exterior entrance has a distinct purpose`);
+    for(let i=0;i<exterior.length;i++)for(let j=0;j<i;j++)assert.ok(!P.exteriorDoorsConflict(exterior[i],exterior[j]),`${tag}: exterior doors never overlap or meet at a corner`);
     // Where you arrive: the front door's room on the ground floor, the stair head upstairs.
     const opens=F.doors.filter(dr=>dr.kind==='open');
     assert.ok(opens.length>=1,`${tag} floor ${f}: the stair opens onto this floor`+show());
@@ -36,20 +67,34 @@ function check(plan,tag){
       // has a yard door of its own.
       if(biz>0){const ground=F.rooms.reduce((a,r)=>a+(r.extension?0:r.cells),0); // of the main house, not its extensions
         assert.ok(fronts.some(o=>o.room===biz&&o.side==='zm'),`${tag}: the business has a street door`+show());
-        assert.ok(F.rooms[biz].cells>=ground*.4,`${tag}: the ${F.rooms[biz].type} is most of the ground floor (${F.rooms[biz].cells}/${ground})`+show());
+        assert.ok(F.rooms[biz].cells>=ground*P.ARCHITECTURE.shop.minFloorShare,`${tag}: the ${F.rooms[biz].type} has its programme share of the ground floor (${F.rooms[biz].cells}/${ground})`+show());
         assert.ok(F.doors.some(dr=>(dr.a===biz||dr.b===biz)&&P.ROOMS[F.rooms[dr.a===biz?dr.b:dr.a].type].circ),`${tag}: a door from the ${F.rooms[biz].type} to the living area`+show());
-        assert.ok(F.openings.some(o=>o.kind==='back'),`${tag}: the home has a yard door`+show());}}
+      }}
     for(const i of [...F.steps,...F.voids])assert.equal(F.rooms[F.grid[i]].type,'stair');
     assert.deepEqual(F.notes,[],`${tag} floor ${f}: no hard failures`);});
 }
-// Shaped lots: nothing is built outside the lot (upper floors may overhang only the street), extensions are
+// A long property may retain a deep yard, but must not turn it into a long occupied building.
+for(const type of Object.keys(P.TYPES)){
+  const plan=P.generate(1,{type,context:'detached',lot:'deep',projection:3}),{w,front,compactDepth,lot}=plan.plot;
+  const frontage=lot?.main.w??plan.plot.overhang?.core.w??w;
+  assert.equal(compactDepth,Math.max(26,Math.floor(frontage*P.ARCHITECTURE.depthRatio[type])),`${type}: default generation cannot silently enlarge its depth allowance`);
+  check(plan,`${type}/compact deep lot`);
+  assert.ok(plan.plot.overhang?.metres===3,`${type}: shortening the core preserves the requested usable upper-floor overhang`);
+}
+for(const context of Object.keys(P.CONTEXTS))for(const projection of [2,2.5,3]){
+  const plan=P.generate(3,{type:'home',context,projection}),{core}=plan.plot.overhang,depth=projection/P.CELL;
+  assert.equal(core.x,plan.plot.party[0]?0:depth,`${context}: left projection respects party walls`);
+  assert.equal(plan.plot.w-core.x-core.w,plan.plot.party[1]?0:depth,`${context}: right projection respects party walls`);
+  check(plan,`${context}/${projection} m upper projection`);
+}
+// Shaped lots: ground stays on the lot; upper floors may use their explicit exposed-side projection envelope. Extensions are
 // rectangles that each have a door, and most shaped lots are built out with at least one extension.
 {let shaped=0,withExt=0;
   for(const lot of Object.keys(P.LOTS).filter(k=>k!=='rect'))for(const type of Object.keys(P.TYPES))for(let seed=1;seed<=6;seed++){const plan=P.generate(seed,{type,lot}),tag=`${type}/${lot} seed ${seed}`;check(plan,tag);
     if(plan.lotKind==='rect')continue;shaped++;const {w,d,front}=plan.plot,L=plan.plot.lot.mask;
-    plan.floors.forEach((F,f)=>{for(let i=0;i<w*d;i++)if(F.grid[i]>=0)assert.ok(L[i]||Math.floor(i/w)<front,`${tag} floor ${f}: cell ${i%w},${Math.floor(i/w)} is inside the lot`);});
+    plan.floors.forEach((F,f)=>{for(let i=0;i<w*d;i++)if(F.grid[i]>=0)assert.ok(L[i]||Math.floor(i/w)<front||f>0&&plan.plot.overhang?.masks[f][i],`${tag} floor ${f}: cell ${i%w},${Math.floor(i/w)} is inside the lot or its upper projection envelope`);});
     const F=plan.floors[0],ext=F.rooms.filter(r=>r.extension);if(ext.length)withExt++;
-    for(const r of ext){const [x0,z0,x1,z1]=r.box;assert.equal(r.cells,(x1-x0+1)*(z1-z0+1),`${tag}: the ${r.label} extension is a rectangle`);
+    for(const r of ext){const [x0,z0,x1,z1]=r.box;if(!P.ROOMS[r.type].circ)assert.equal(r.cells,(x1-x0+1)*(z1-z0+1),`${tag}: the ${r.label} extension is a rectangle`);
       assert.ok(F.doors.some(dr=>dr.a===r.id||dr.b===r.id)||F.openings.some(o=>o.room===r.id&&(o.kind==='back'||o.kind==='front')),`${tag}: the ${r.label} extension has a door`);}}
   assert.ok(withExt>=shaped*.6,`most shaped lots get extensions (${withExt}/${shaped})`);console.log(`shaped lots: ${shaped} built, ${withExt} with extensions`);}
 for(const type of Object.keys(P.TYPES))for(const context of Object.keys(P.CONTEXTS))for(let seed=1;seed<=SEEDS;seed++)check(P.generate(seed,{type,context}),`${type}/${context} seed ${seed}`);
@@ -58,10 +103,10 @@ for(const [type,T] of Object.entries(P.TYPES))for(const typology of Object.keys(
   const Y=P.TYPOLOGIES[typology];let plan=null;
   for(let s=seed;s<seed+40&&!plan;s++){const p=P.makePlot(s,{type,context});if(p.w>=Y.minW&&!(Y.straight&&p.storeys>2))plan=P.generate(s,{type,context,typology});}
   if(plan)check(plan,`${type}/${typology}/${context}`);}
-// Variety: chosen freely, the plans spread across typologies and stair kinds.
-const free={},kinds=new Set();for(let s=1;s<=120;s++){const p=P.generate(s);free[p.typology]=(free[p.typology]||0)+1;kinds.add(p.stair.kind);}
-for(const t of Object.keys(P.TYPOLOGIES))assert.ok(free[t]>=1,`typology ${t} turns up when chosen freely (${JSON.stringify(free)})`);
-assert.ok(Math.max(...Object.values(free))<=120*.35,`no typology dominates (${JSON.stringify(free)})`);
+// Include enough freely chosen buildings to sample the rarer front-tower and undercroft forms.
+const VARIATION_SEEDS=240,free={},kinds=new Set();for(let s=1;s<=VARIATION_SEEDS;s++){const p=P.generate(s);free[p.typology]=(free[p.typology]||0)+1;kinds.add(p.stair.kind);}
+for(const t of Object.keys(P.TYPOLOGIES).filter(t=>!P.TYPOLOGIES[t].parcelOnly))assert.ok(free[t]>=1,`typology ${t} turns up when chosen freely (${JSON.stringify(free)})`);
+assert.ok(Math.max(...Object.values(free))<=VARIATION_SEEDS*.35,`no typology dominates (${JSON.stringify(free)})`);
 // Stairs vary: every kind turns up when chosen freely, some in exterior towers, and the L-shaped one (which arrives on
 // its side) only ever stands in a tower.
 {const seen={},towers={};for(let s=1;s<=300;s++){const p=P.generate(s);seen[p.stair.kind]=(seen[p.stair.kind]||0)+1;if(p.stair.tower)towers[p.stair.kind]=(towers[p.stair.kind]||0)+1;
@@ -81,4 +126,4 @@ for(const style of Object.keys(P.STYLES)){const seen={wall:new Set(),window:new 
   assert.ok(seen.wall.size>=3,`${style}: at least 3 wall colours`);assert.ok(seen.window.size>=2,`${style}: at least 2 window kinds`);
   assert.ok(seen.frame.size>=Math.min(2,Object.keys(P.STYLES[style].frames).length),`${style}: frame patterns vary`);assert.ok(seen.roof.size>=3,`${style}: roofs vary`);}
 for(const [typology,type] of [['side','shophouse'],['cross','home'],['courtyard','inn']]){const p=P.generate(3,{type,typology,context:'corner'});console.log(`${type} / ${P.TYPOLOGIES[typology].label}, ground floor:`);console.log(P.ascii(p,0));}
-console.log(`PASS building plan: ${buildings} buildings, ${floors} floors, ${rooms} rooms; typologies ${JSON.stringify(free)} over 120 free seeds`);
+console.log(`PASS building plan: ${buildings} buildings, ${floors} floors, ${rooms} rooms; typologies ${JSON.stringify(free)} over ${VARIATION_SEEDS} free seeds`);

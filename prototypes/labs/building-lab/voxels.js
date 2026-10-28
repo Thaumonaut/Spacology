@@ -5,7 +5,7 @@
   // stamped from the voxelised KayKit pieces (kit-pieces.js) by room rules. Pure and seeded, like the planner.
   const isNode=typeof module==='object'&&module.exports;
   const Plan=isNode?require('./plan.js'):root.BuildingPlan,KIT=isNode?require('./kit-pieces.js'):root.BuildingKitPieces;
-  const V=0.0625,CV=8,SH=48,SLAB=3,PLINTH=4,GROUND=3,REVISION='building-voxels-2';
+  const V=0.0625,CV=8,SH=48,SLAB=3,PLINTH=4,GROUND=3,REVISION='building-voxels-3';
   const DOOR_H=34,SILL=14,HEAD=34;
 
   // Architecture palette (1-127). Kit pieces own 128-255 (kit-pieces.js). Order is the material id.
@@ -35,9 +35,17 @@
 
   // Kit stamps are decoded once.
   const pieces={};
+  function furnitureHeight(id,h){
+    const target=/^bed_/.test(id)?16:/^kitchencabinet/.test(id)?30:/^cabinet_medium/.test(id)?22:/^cabinet_small/.test(id)?12:
+      /^kitchencounter/.test(id)?18:/^stove/.test(id)?16:/^(table_(?!low)|kitchentable)/.test(id)?15:
+      /^(couch|armchair)/.test(id)?18:/^chair_stool/.test(id)?10:/^chair_/.test(id)?18:/^cactus/.test(id)?18:h;
+    return Math.max(h,target);
+  }
   function piece(id){if(pieces[id])return pieces[id];const src=KIT.pieces[id];if(!src)throw new Error('unknown kit piece '+id);
     const [X,Y,Z]=src.dims,v=new Uint8Array(X*Y*Z);let o=0;for(let i=0;i<src.rle.length;i+=2){v.fill(src.rle[i+1],o,o+src.rle[i]);o+=src.rle[i];}
-    return pieces[id]={id,dims:src.dims,tags:src.tags,v};}
+    const H=furnitureHeight(id,Y),scaled=new Uint8Array(X*H*Z);
+    for(let y=0;y<H;y++){const row=Math.min(Y-1,Math.floor(y*Y/H))*X*Z;scaled.set(v.subarray(row,row+X*Z),y*X*Z);}
+    return pieces[id]={id,dims:[X,H,Z],tags:src.tags,v:scaled};}
 
   function build(plan,opts={}){
     const t0=Date.now(),FA=plan.facade,RF=plan.roof,{w,d,front,party}=plan.plot,storeys=plan.floors.length,r=Plan.rng(Plan.hash('voxels:'+plan.seed));
@@ -50,11 +58,13 @@
     const fillIfAir=(x,y,z,m)=>{if(!at(x,y,z))set(x,y,z,m);};
     const airFill=(x0,y0,z0,x1,y1,z1,m)=>{for(let y=y0;y<y1;y++)for(let z=z0;z<z1;z++)for(let x=x0;x<x1;x++)fillIfAir(x,y,z,m);};
     const cx=x=>MX+x*CV,cz=z=>MZ+z*CV,mask=(f,x,z)=>x>=0&&z>=0&&x<w&&z<d&&plan.plot.masks[f][x+w*z]===1;
-    const info={furniture:[],rooms:[],lights:[]};
+    const info={furniture:[],rooms:[],lights:[],doorLeaves:[],balconies:[],brackets:[]};
 
     // Ground: a cobbled street in front, packed earth and grass behind and in any yard or courtyard.
-    const LOT=plan.plot.lot,inLot=(gx,gz)=>!LOT||(gx>=0&&gz>=0&&gx<w&&gz<d&&LOT.mask[gx+w*gz]===1);
-    for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),street=z<MZ+front*CV,own=inLot(gx,gz),yard=!street&&!mask(0,gx,gz);
+    const LOT=plan.plot.lot,inLot=(gx,gz)=>!LOT||(gx>=0&&gz>=0&&gx<w&&gz<d&&LOT.mask[gx+w*gz]===1),entryCells=new Set(),entryMouth=new Set();
+    for(const o of plan.floors[0].openings){if(o.kind==='front'&&o.side==='zm')for(const [x,z] of o.cells)for(let row=front;row<=z;row++)entryMouth.add(x+w*row);
+      if(o.recess)for(const [x,z] of o.recess.mouth){entryMouth.add(x+w*z);for(let v=0;v<o.recess.depth;v++)entryCells.add(x+w*(z+v));}}
+    for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),street=z<MZ+front*CV||gx>=0&&gx<w&&entryCells.has(gx+w*gz),own=inLot(gx,gz),yard=!street&&!mask(0,gx,gz);
       // the street; the building's own yard (grass); the neighbours' land beyond the lot line (trodden earth)
       for(let y=0;y<Y0;y++)set(x,y,z,y<Y0-1?M.earth:street?(((x>>2)+(z>>2)*3)%5===0||((x+z*7)%11===0)?M.cobble_dark:M.cobble):yard&&own?((x*31+z*17)%13===0?M.grass_dark:M.grass):yard?((x*7+z*3)%9===0?M.earth:M.cobble_dark):M.earth);}
 
@@ -70,6 +80,9 @@
         if(f===0)box(cx(x),Y0,cz(z),cx(x)+CV,yTop-1,cz(z)+CV,C.base);else box(cx(x),yTop-SLAB,cz(z),cx(x)+CV,yTop-1,cz(z)+CV,M.timber_brown);
         for(let a=0;a<CV;a++)for(let b=0;b<CV;b++)set(cx(x)+a,yTop-1,cz(z)+b,room?floorMat(room,x*CV+a,z*CV+b):M.plank);}}
 
+    for(let z=0;z<d;z++)for(let x=0;x<w;x++)if(mask(storeys-1,x,z))
+      box(cx(x),plate-SLAB,cz(z),cx(x)+CV,plate,cz(z)+CV,M.plaster_inside);
+
     // --- Facade ---------------------------------------------------------------------------------------------------
     // Exterior walls are 3 voxels thick in the outer edge of each cell. The face is drawn from plan.facade: the timber
     // frame snaps to the window grid (plan.facade.bays: a window on cells p, p+1 of every 4, so a post stands at the
@@ -84,45 +97,52 @@
     const postAt=(s,A)=>{const [c,o]=cellOf(s,A),p=FA.bays[s];return (o===0&&((c-p-3)%4+4)%4===0)||(o===CV-1&&((c+1-p-3)%4+4)%4===0);};
     // distance (in the wall plane) from (u,v) to a segment; braces are 2 voxels thick
     const segDist=(u,v,u0,v0,u1,v1)=>{const du=u1-u0,dv=v1-v0,t=Math.max(0,Math.min(1,((u-u0)*du+(v-v0)*dv)/(du*du+dv*dv)));return Math.hypot(u-u0-t*du,v-v0-t*dv);};
-    const frameAt=(f,s,A,v,corner)=>{
+    const frameAt=(f,s,A,v,corner,post=postAt(s,A)||postAt(s,A-1),edge=false)=>{
       if(v<0||v>=SH-3)return C.timber;                                         // floor beam band
       if(f===0&&v<baseH)return null;                                           // base course drawn separately
       if(corner)return C.timber;
       const kind=FA.frame;if(kind==='none')return null;
-      if(postAt(s,A)||postAt(s,A-1))return C.timber;
+      if(post)return C.timber;
       if(f===0&&FA.groundBoards&&v<SILL)return null;
       if(kind==='posts')return null;
       // rails at sill and head height on framed styles
       if((v===SILL-2||v===SILL-1||v===HEAD+1||v===HEAD+2)&&(kind==='grid'||kind==='braced'||kind==='cross'))return C.timber;
+      if(edge)return null;
       const [c,o]=cellOf(s,A),p=FA.bays[s],k=((c-p)%4+4)%4,u=k*CV+o; // position within the 4-cell bay: window on k 0-1, post at k 3
       if(kind==='braced'&&f>0){const pu=3*CV;if(segDist(u,v,pu,SILL,pu-7,HEAD)<=1||segDist(u,v,pu,SILL,pu+7,HEAD)<=1)return C.timber;
         const pv=pu-4*CV;if(segDist(u,v,pv,SILL,pv+7,HEAD)<=1)return C.timber;}
       if(kind==='cross'&&k<2&&v<SILL-2){if(segDist(u,v,1,0,2*CV-2,SILL-3)<=1||segDist(u,v,2*CV-2,0,1,SILL-3)<=1)return C.timber;}
       return null;};
     const baseAt=(A,v)=>{const row=v>>2,j=(A+row*5)%9;if(v===baseH-1)return C.base;if((v&3)===3||j===0)return C.baseDk;return C.base;};
-    const facade=(f,s,A,v,depth,party_,corner)=>{
+    const facade=(f,s,A,v,depth,party_,corner,post,edge)=>{
       if(depth>0)return M.plaster_inside;
       if(party_)return v>=SH-3||v<0?C.timber:f===0&&v<baseH?C.base:C.wall; // a neighbour will stand against it
-      const fr=frameAt(f,s,A,v,corner);if(fr)return fr;
+      const fr=frameAt(f,s,A,v,corner,post,edge);if(fr)return fr;
       if(f===0&&v<baseH)return baseAt(A,v);
       if(f===0&&FA.groundBoards&&v<SILL)return (A%3===0)?M.timber_dark:C.timber;
       return C.wall;};
     // Proud parts (1 voxel out from the plaster): the timber frame and the base course cap.
-    const proudAt=(f,s,A,v,corner)=>{const fr=frameAt(f,s,A,v,corner);if(fr)return fr;if(f===0&&v===baseH-1)return C.base;return null;};
+    const proudAt=(f,s,A,v,corner,post,edge)=>{const fr=frameAt(f,s,A,v,corner,post,edge);if(fr)return fr;if(f===0&&v===baseH-1)return C.base;return null;};
     for(let f=0;f<storeys;f++){const y0=FL(f)-(f===0?PLINTH:SLAB),y1=FL(f+1),cols=new Set();extWall.push(cols);
+      const spans=Plan.facadeSpans(plan.plot,f,FA.bays);
       for(let z=0;z<d;z++)for(let x=0;x<w;x++){if(!mask(f,x,z))continue;
         for(const [s,dx,dz] of DIRS){if(mask(f,x+dx,z+dz))continue;const party_=isParty(s,x,z);
           // a corner post where the wall turns: the along-wall neighbour has no wall on this side
           const along=s[0]==='z'?[[-1,0],[1,0]]:[[0,-1],[0,1]],endLo=!mask(f,x+along[0][0],z+along[0][1])||mask(f,x+along[0][0]+dx,z+along[0][1]+dz),endHi=!mask(f,x+along[1][0],z+along[1][1])||mask(f,x+along[1][0]+dx,z+along[1][1]+dz);
           const [ax0,ax1]=s==='xm'?[cx(x),cx(x)+3]:s==='xp'?[cx(x)+5,cx(x)+8]:[cx(x),cx(x)+8],[az0,az1]=s==='zm'?[cz(z),cz(z)+3]:s==='zp'?[cz(z)+5,cz(z)+8]:[cz(z),cz(z)+8];
-          const lo=s[0]==='z'?cx(x):cz(z),cornerOf=A=>(endLo&&A-lo<2)||(endHi&&A-lo>=CV-2);
-          for(let y=y0;y<y1;y++)for(let zz=az0;zz<az1;zz++)for(let xx=ax0;xx<ax1;xx++){
+          const lo=s[0]==='z'?cx(x):cz(z),cornerOf=A=>(endLo&&A-lo<2)||(endHi&&A-lo>=CV-2),origin=s[0]==='z'?MX:MZ,
+            wall=spans.find(p=>p.side===s&&p.fixed===(s[0]==='z'?z:x)&&lo>=origin+p.start*CV&&lo<origin+p.end*CV),
+            profiles=Array.from({length:CV},(_,a)=>{const A=lo+a;return [wall.posts.slice(1,-1).some(p=>Math.abs(A-(origin+p*CV))<=1),Math.min(A-origin-wall.start*CV,origin+wall.end*CV-1-A)<2*CV];});
+          const wallTop=f+1<storeys&&mask(f+1,x,z)?y1-SLAB:y1;
+          for(let y=y0;y<wallTop;y++)for(let zz=az0;zz<az1;zz++)for(let xx=ax0;xx<ax1;xx++){
             const depth=s==='xm'?xx-cx(x):s==='xp'?cx(x)+7-xx:s==='zm'?zz-cz(z):cz(z)+7-zz,A=s[0]==='x'?zz:xx;
-            set(xx,y,zz,facade(f,s,A,y-FL(f),depth,party_,cornerOf(A)));cols.add(xx+','+zz);}
-          if(!party_)for(let y=y0;y<y1;y++)for(let A=lo;A<lo+CV;A++){const m=proudAt(f,s,A,y-FL(f),cornerOf(A));if(m===null)continue;
+            const material=facade(f,s,A,y-FL(f),depth,party_,cornerOf(A),...profiles[A-lo]);
+            if(depth===0)set(xx,y,zz,material);else fillIfAir(xx,y,zz,material);cols.add(xx+','+zz);}
+          if(!party_)for(let y=y0;y<wallTop;y++)for(let A=lo;A<lo+CV;A++){const m=proudAt(f,s,A,y-FL(f),cornerOf(A),...profiles[A-lo]);if(m===null)continue;
             const ox=s==='xm'?cx(x)-1:s==='xp'?cx(x)+8:A,oz=s==='zm'?cz(z)-1:s==='zp'?cz(z)+8:A;fillIfAir(s[0]==='x'?ox:A,y,s[0]==='x'?A:oz,m);}}}
       // Interior walls between different rooms, with a post at each wall corner; they only fill air, so they never
       // paint over the facade. A stairwell is open (railed) only towards circulation.
+      if(opts.exterior)continue;
       const F=plan.floors[f],g=F.grid,yw0=FL(f),yw1=FL(f+1)-SLAB;
       const voidSet=new Set(F.voids),circ=k=>k>=0&&['hall','living','common'].includes(F.rooms[k].type),railed=(i,j)=>(voidSet.has(i)&&circ(g[j]))||(voidSet.has(j)&&circ(g[i]));
       for(let z=0;z<d;z++)for(let x=0;x<w;x++){const a=g[x+w*z];if(a<0)continue;const i=x+w*z;
@@ -135,22 +155,23 @@
     // air, so a flight against an outside wall never punches through it. A railing goes round every stair void that
     // opens onto circulation, except where the stair opens onto the hall (the foot of the next flight, the head of
     // the last); bedrooms, baths and stores beside a stairwell keep their wall.
-    for(const fl of plan.stair.flights){const yb=FL(fl.from),[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),len=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=len/fl.risers;
+    for(const fl of opts.exterior?[]:plan.stair.flights){const yb=FL(fl.from),[x0,z0,x1,z1]=fl.rect,X0=cx(x0),X1=cx(x1),Z0=cz(z0),Z1=cz(z1),len=fl.dir[0]==='z'?Z1-Z0:X1-X0,t=len/fl.risers;
       for(let k=0;k<fl.risers;k++){const a=Math.round(k*t),b=Math.round((k+1)*t),top=yb+(fl.start+k+1)*3;
         const [bx0,bx1,bz0,bz1]=fl.dir==='zp'?[X0,X1,Z0+a,Z0+b]:fl.dir==='zm'?[X0,X1,Z1-b,Z1-a]:fl.dir==='xp'?[X0+a,X0+b,Z0,Z1]:[X1-b,X1-a,Z0,Z1];
-        airFill(bx0,top-1,bz0,bx1,top,bz1,M.plank);airFill(bx0,yb+(fl.start?fl.start*3-2:0),bz0,bx1,top-1,bz1,M.stair_wood);}}
-    for(const ld of plan.stair.landings){const yb=FL(ld.from),[x0,z0,x1,z1]=ld.rect,top=yb+ld.rise*3;airFill(cx(x0),top-1,cz(z0),cx(x1),top,cz(z1),M.plank);airFill(cx(x0),top-6,cz(z0),cx(x1),top-1,cz(z1),M.stair_wood);
+        airFill(bx0,top-1,bz0,bx1,top,bz1,M.plank);airFill(bx0,top-5,bz0,bx1,top-1,bz1,M.stair_wood);}}
+    for(const ld of opts.exterior?[]:plan.stair.landings){const yb=FL(ld.from),[x0,z0,x1,z1]=ld.rect,top=yb+ld.rise*3;airFill(cx(x0),top-1,cz(z0),cx(x1),top,cz(z1),M.plank);airFill(cx(x0),top-6,cz(z0),cx(x1),top-1,cz(z1),M.stair_wood);
       // a landing is carried on posts at its corners, not a solid block
-      for(const [px,pz] of [[cx(x0),cz(z0)],[cx(x1)-2,cz(z0)],[cx(x0),cz(z1)-2],[cx(x1)-2,cz(z1)-2]])airFill(px,yb,pz,px+2,top-6,pz+2,C.timber);}
-    // Spiral stairs: wedge treads round a central post, each a riser higher, turning 300 degrees per storey from the
-    // entry to the arrival. Treads are 3 voxels thick and open underneath.
-    for(const sp of plan.stair.spirals||[]){const yb=FL(sp.from),cxs=MX+sp.centre[0]*CV,czs=MZ+sp.centre[1]*CV,R=sp.r*CV,post=Math.max(1.2,sp.post*CV),step=sp.sweep/sp.risers;
+      if(ld.rise>0&&ld.rise<16)for(const [px,pz] of [[cx(x0),cz(z0)],[cx(x1)-2,cz(z0)],[cx(x0),cz(z1)-2],[cx(x1)-2,cz(z1)-2]])airFill(px,yb,pz,px+2,top-6,pz+2,C.timber);}
+    // Spiral stairs make a full turn between aligned doorway landings. Treads remain open underneath.
+    for(const sp of opts.exterior?[]:plan.stair.spirals||[]){const yb=FL(sp.from),cxs=MX+sp.centre[0]*CV,czs=MZ+sp.centre[1]*CV,R=sp.r*CV,post=Math.max(1.2,sp.post*CV),step=sp.sweep/sp.risers;
       for(let z=Math.floor(czs-R-1);z<czs+R+1;z++)for(let x=Math.floor(cxs-R-1);x<cxs+R+1;x++){const dx=x+.5-cxs,dz=z+.5-czs,dd=Math.hypot(dx,dz);if(dd>R)continue;
         if(dd<post){for(let yy=yb;yy<yb+SH;yy++)set(x,yy,z,C.timber);continue;}
-        const t=(((sp.a0-Math.atan2(dz,dx))%(Math.PI*2))+Math.PI*2)%(Math.PI*2);if(t>=sp.sweep)continue;
-        const kk=Math.floor(t/step),top=yb+(kk+1)*3,edge=dd>R-1.2;fillIfAir(x,top-1,z,edge?C.timber:M.plank);fillIfAir(x,top-2,z,M.stair_wood);fillIfAir(x,top-3,z,M.stair_wood);
-        if(edge&&(x+z)%3===0)for(let yy=top;yy<top+14;yy++)fillIfAir(x,yy,z,C.timber);}}                // balusters on the outer edge
-    for(let f=1;f<storeys;f++){const voids=new Set(plan.floors[f].voids),yr=FL(f),open=new Set();
+        const t=(((sp.a0-Math.atan2(dz,dx))%(Math.PI*2))+Math.PI*2)%(Math.PI*2);if(t>=sp.sweep){
+          fillIfAir(x,yb+SH-1,z,M.plank);fillIfAir(x,yb+SH-2,z,M.stair_wood);fillIfAir(x,yb+SH-3,z,M.stair_wood);continue;}
+        const kk=Math.floor(t/step),top=yb+(kk+1)*3,edge=dd>R-1.2;fillIfAir(x,top-1,z,M.plank);fillIfAir(x,top-2,z,M.stair_wood);fillIfAir(x,top-3,z,M.stair_wood);
+        const landing=plan.stair.landings.some(ld=>ld.from===sp.from&&[0,16].includes(ld.rise)&&x>=cx(ld.rect[0])&&x<cx(ld.rect[2])&&z>=cz(ld.rect[1])&&z<cz(ld.rect[3]));
+        if(edge&&!landing&&(x+z)%3===0)for(let yy=top;yy<top+14;yy++)fillIfAir(x,yy,z,C.timber);}}                // balusters on the outer edge
+    for(let f=1;f<storeys&&!opts.exterior;f++){const voids=new Set(plan.floors[f].voids),yr=FL(f),open=new Set();
       for(const dr of plan.floors[f].doors)if(dr.kind==='open')for(const [x,z] of dr.cells)open.add(x+','+z);
       for(const i of voids){const x=i%w,z=Math.floor(i/w);for(const [s,dx,dz] of DIRS){const n=x+dx+w*(z+dz);if(voids.has(n)||!mask(f,x+dx,z+dz))continue;
         const nk=plan.floors[f].grid[x+dx+w*(z+dz)];if(open.has((x+dx)+','+(z+dz))||!['hall','living','common'].includes(plan.floors[f].rooms[nk]?.type))continue;
@@ -181,11 +202,14 @@
       // layer(dep): wall layer at depth dep from the face; proud(n): n voxels out from the face
       const layer=dep=>k<0?c0+1+dep:c1-2-dep,proud=n=>k<0?c0+1-n:c1-2+n,face=layer(0),mid=Math.floor((c0+c1)/2);
       const ins=n=>s[0]==='x'?[0,0,n,n]:[n,n,0,0];
-      if(kind==='open'){cut(b,y,y+DOOR_H+4,ins(0));return;}
+      if(kind==='open'){
+        for(let xx=b[0];xx<b[1];xx++)for(let zz=b[2];zz<b[3];zz++)if(!extWall[f].has(xx+','+zz))for(let yy=y;yy<y+DOOR_H+4;yy++)set(xx,yy,zz,0);
+        return;}
       // The timber frame stands proud of the plaster; an opening clears it in front of itself, so no post, rail or
       // brace floats across a window, door or shopfront.
-      if(!interior){const ylo=y+(kind==='window'||kind==='small'?(f===0&&FA.groundWindow==='tall'||f>0&&FA.window==='tall'?4:SILL-4):0),yhi=y+(kind==='shopfront'||kind==='bay'?HEAD+3:HEAD+4);
-        for(let a=a0;a<a1;a++)for(let yy=ylo;yy<yhi;yy++)for(let n=1;n<=2;n++)put(s,a,proud(n),yy,0);}
+      if(!interior){const ylo=y+(kind==='window'||kind==='small'?(f===0&&FA.groundWindow==='tall'||f>0&&FA.window==='tall'?4:SILL-4):0),yhi=y+(kind==='shopfront'||kind==='bay'?HEAD+3:HEAD+4),
+          margin=kind==='window'||kind==='small'?Math.max(0,Math.floor((a1-a0-16)/2)):0;
+        for(let a=a0+margin;a<a1-margin;a++)for(let yy=ylo;yy<yhi;yy++)for(let n=1;n<=2;n++)put(s,a,proud(n),yy,0);}
       if(interior&&kind==='door'){cut(b,y,y+DOOR_H,ins(1));for(let yy=y;yy<y+DOOR_H+1;yy++)for(let c=c0;c<c1;c++){put(s,a0,c,yy,M.timber_dark);put(s,a1-1,c,yy,M.timber_dark);}
         for(let a=a0;a<a1;a++)for(let c=c0;c<c1;c++)put(s,a,c,y+DOOR_H,M.timber_dark);return;}
       if(kind==='front'||kind==='back'){
@@ -194,17 +218,22 @@
         for(let yy=y;yy<y+DOOR_H+2;yy++)for(let dep=-1;dep<3;dep++){put(s,L,dep<0?proud(1):layer(dep),yy,C.trim);put(s,R,dep<0?proud(1):layer(dep),yy,C.trim);}
         for(let a=L-1;a<=R+1;a++)for(let n=0;n<2;n++)put(s,a,proud(n),y+DOOR_H+n,C.trim);   // lintel
         for(let a=L+1;a<R;a++)for(let n=1;n<6;n++)fillAt(s,a,proud(n),y-1-Math.floor(n/3),M.stone_grey); // threshold step
-        if(kind==='back'){for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,((a-L)%4===0)||yy===y+DOOR_H-1||yy===y+12?M.timber_dark:M.door_wood);return;}
-        if(FA.lattice){// sliding shoji door pushed half open, a noren across the head, paper lanterns either side
+        if(opts.closedDoors&&f===0)for(let a=L+1;a<R;a++)for(let n=6;n<11;n++)fillAt(s,a,proud(n),Y0,M.stone_grey);
+        if(kind==='back'){for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,((a-L)%4===0)||yy===y+DOOR_H-1||yy===y+12?M.timber_dark:M.door_wood);
+          info.doorLeaves.push({floor:f,room:o.room,box:s[0]==='x'?[layer(1),y,L+1,layer(1)+1,y+DOOR_H,R]:[L+1,y,layer(1),R,y+DOOR_H,layer(1)+1]});return;}
+        if(opts.closedDoors){for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,((a-L)%4===0)||yy===y+DOOR_H-1||yy===y+12?M.timber_dark:M.door_wood);
+          info.doorLeaves.push({floor:f,room:o.room,box:s[0]==='x'?[layer(1),y,L+1,layer(1)+1,y+DOOR_H,R]:[L+1,y,layer(1),R,y+DOOR_H,layer(1)+1]});}
+        else if(FA.lattice){// sliding shoji door pushed half open, a noren across the head, paper lanterns either side
           for(let a=L+1;a<L+7;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,(yy-y)%6===0||(a-L)%5===1?M.timber_dark:M.shoji);
-          for(let a=L;a<=R;a++)for(let yy=y+DOOR_H-12;yy<y+DOOR_H;yy++)if((a-L)%6!==0||yy>y+DOOR_H-3)put(s,a,proud(1),yy,yy>y+DOOR_H-3?M.timber_dark:C.noren);
+          for(let a=L;a<=R;a++)for(let yy=y+DOOR_H-4;yy<y+DOOR_H;yy++)if((a-L)%6!==0||yy>y+DOOR_H-3)put(s,a,proud(1),yy,yy>y+DOOR_H-3?M.timber_dark:C.noren);
           for(const a of [L-5,R+5])later.push(()=>{if(atS(s,a,face,y+DOOR_H)&&atS(s,a,face,y+DOOR_H-12))paperLantern(s,a,proud(3),y+DOOR_H+1);});} // only against wall
-        else{// a panelled door standing open into the room, a small canopy over the step and a wall lamp
-          for(let n=0;n<11;n++)for(let yy=y;yy<y+DOOR_H-1;yy++)fillAt(s,L+1,layer(2)-k*n,yy,(yy-y)%9===0||n===0||n===10?M.timber_dark:M.door_wood);
+        else{// a panelled door held open, a small canopy and a wall lamp; hall entries swing over the exterior step
+          const hall=plan.floors[f].rooms[o.room].type==='hall';
+          for(let n=0;n<11;n++)for(let yy=y;yy<y+DOOR_H-1;yy++)fillAt(s,plan.typology==='rowhouse'?R+1+n:L+1,plan.typology==='rowhouse'?proud(1):hall?proud(n):layer(2)-k*n,yy,(yy-y)%9===0||n===0||n===10?M.timber_dark:M.door_wood);
           if(FA.canopy)later.push(()=>{const cells=[];for(let a=L-2;a<=R+2;a++)for(let n=1;n<6;n++){const yy=y+DOOR_H+5-Math.floor(n/2);cells.push([a,proud(n),yy,C.tile],[a,proud(n),yy-1,C.timber]);}
             for(const a of [L-2,R+2])for(let n=1;n<5;n++)cells.push([a,proud(n),y+DOOR_H+3-n,C.timber]);clearPut(s,cells);});
           later.push(()=>{if(atS(s,R+4,face,y+DOOR_H-4)&&atS(s,R+4,face,y+DOOR_H+2))wallLamp(s,R+4,proud(1),y+DOOR_H-4);});}
-        if(f===0)for(const a of [L-9,R+9])later.push(()=>pot(s,a,proud(4),Y0,face));
+        if(f===0&&!o.recess)for(const a of [L-9,R+9])later.push(()=>pot(s,a,proud(4),Y0,face));
         return;}
       if(kind==='shopfront'||kind==='bay'){
         const top=y+HEAD+2;for(let a=a0;a<a1;a++)for(let yy=y+1;yy<top;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
@@ -212,10 +241,10 @@
         // uprights at the ends and on the facade's post grid (so they continue the frame above), 2 voxels wide
         const ups=[a0];for(let a=a0+3;a<a1-4;a++)if(postAt(s,a)&&!postAt(s,a-1))ups.push(a);if(ups.length===1&&a1-a0>36)ups.push(Math.floor((a0+a1)/2)-1);ups.push(a1-2);
         for(const u of ups)for(let a=u;a<u+2;a++)for(let yy=y;yy<top;yy++)for(let dep=-1;dep<3;dep++)put(s,a,dep<0?proud(1):layer(dep),yy,C.timber);
-        // stall riser below, then lattice or glazing; a wide sliding section stands open on a shop
+        // Stall riser below, then continuous glazing; shop entry is a separate doorway.
         for(let a=a0;a<a1;a++)for(let yy=y;yy<y+8;yy++)put(s,a,layer(1),yy,(a-a0)%4===0?M.timber_dark:C.timber);
         for(let a=a0;a<a1;a++)put(s,a,proud(1),y+8,C.timber),put(s,a,proud(2),y+8,C.timber); // a display ledge
-        const openFrom=kind==='shopfront'?a0+Math.floor((a1-a0)*.55):a1;
+        const openFrom=a1;
         // glazing or lattice between the uprights: one bar midway between each pair, one transom; lattice counts from
         // each upright so its bars stay even
         for(let i=0;i+1<ups.length;i++){const u0=ups[i]+2,u1=ups[i+1],midA=Math.floor((u0+u1)/2);if(u0>=openFrom)break;
@@ -225,15 +254,17 @@
         return;}
       if(kind==='balcony'){const W=windowShape('tall'),L=a0+1,R=a1-2;
         for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)for(let dep=0;dep<3;dep++)put(s,a,layer(dep),yy,0);
-        for(let a=L+1;a<R;a++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,layer(1),yy,(a-L)%6===0||(yy-y)%8===0||yy===y+DOOR_H-1?M.timber_dark:FA.lattice?M.shoji:M.glass);
+        // Open French leaves rest beside the jambs, leaving a body-clear route onto the deck.
+        for(const a of [L+1,R-1])for(let n=1;n<=10;n++)for(let yy=y;yy<y+DOOR_H;yy++)put(s,a,proud(n),yy,n===1||n===10||(yy-y)%8===0||yy===y+DOOR_H-1?M.timber_dark:FA.lattice?M.shoji:M.glass);
         for(let yy=y;yy<y+DOOR_H+1;yy++){put(s,L,face,yy,C.trim);put(s,R,face,yy,C.trim);}for(let a=L;a<=R;a++)put(s,a,face,y+DOOR_H,C.trim);
-        // a deck 10 voxels deep on brackets, with a railing of balusters and a top rail
-        for(let n=1;n<=10;n++)for(let a=a0-2;a<a1+2;a++){const c=face+k*n;put(s,a,c,y-1,C.timber);if(n===10||a===a0-2||a===a1+1){put(s,a,c,y+13,C.trim);put(s,a,c,y+14,C.trim);if((a+n)%3===0||a===a0-2||a===a1+1)for(let yy=y;yy<y+13;yy++)put(s,a,c,yy,C.trim);}}
-        for(let a=a0;a<a1;a+=8)for(let n=1;n<=9;n++)fillAt(s,a,face+k*n,y-2-Math.floor((10-n)/2),C.timber);
+        const origin=s[0]==='z'?MX:MZ,deck0=o.deck?origin+o.deck.start*CV:a0-4,deck1=o.deck?origin+o.deck.end*CV:a1+4,depth=o.deck?o.deck.depth*CV:24;
+        for(let n=1;n<=depth;n++)for(let a=deck0;a<deck1;a++){const c=face+k*n;put(s,a,c,y-1,C.timber);put(s,a,c,y-2,C.timber);if(n===depth||a===deck0||a===deck1-1){put(s,a,c,y+16,C.trim);put(s,a,c,y+17,C.trim);if((a+n)%3===0||a===deck0||a===deck1-1)for(let yy=y;yy<y+16;yy++)put(s,a,c,yy,C.trim);}}
+        for(let a=deck0+2;a<deck1;a+=8)for(let n=1;n<depth;n++)fillAt(s,a,face+k*n,y-3-Math.floor((depth-n)*.6),C.timber);
+        info.balconies.push({floor:f,room:o.room,side:s,along:[deck0,deck1],face,depth,threshold:[L+2,R-1],y});
         void W;return;}
       if(oriels.has(o)){oriel(s,a0,a1,y,layer,proud,face,k);return;}
       // windows: a recessed light with glazing bars, a 1-voxel frame, a lintel and a 2-deep sill
-      const small=kind==='small',wk=small?'rect':f===0?FA.groundWindow:FA.window,shape=windowShape(wk,small,f),wa=a0+2;
+      const small=kind==='small',wk=small?'rect':f===0?FA.groundWindow:FA.window,shape=windowShape(wk,small,f),wa=Math.floor((a0+a1-shape.W)/2);
       for(let u=-1;u<=shape.W;u++)for(let yy=y+shape.lo-1;yy<=y+shape.hi;yy++){const v=yy-y,isClear=shape.clear(u,v),near=!isClear&&[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]].some(([du,dv])=>shape.clear(u+du,v+dv));
         if(isClear){for(let dep=0;dep<3;dep++)put(s,wa+u,layer(dep),yy,0);
           const gl=FA.glazing==='lattice'?(u%3===2||(v-shape.lo)%4===3):FA.glazing==='grid'?(u%4===3||(v-shape.lo)%5===4):(u===5||u===6||v===shape.lo+Math.floor((shape.hi-shape.lo)*.6));
@@ -286,20 +317,35 @@
     const zones={},later=[];for(const o of plan.floors[0].openings){const b=span(o.cells,o.side,false),[a0,a1]=alongOf(b,o.side);(zones[o.side]??=[]).push([a0,a1]);}
     // Oriels: the front windows nearest the middle on each upper floor, up to plan.facade.oriels.
     const oriels=new Set();if(FA.oriels)for(let f=1;f<storeys;f++){const ws=plan.floors[f].openings.filter(o=>o.kind==='window'&&o.side==='zm').sort((a,b)=>Math.abs(a.cells[0][0]+1-w/2)-Math.abs(b.cells[0][0]+1-w/2));for(const o of ws.slice(0,FA.oriels))oriels.add(o);}
-    for(let f=0;f<storeys;f++){const F=plan.floors[f];for(const dr of F.doors)opening(f,dr,true);for(const o of F.openings)opening(f,o,false);}
+    for(let f=0;f<storeys;f++){const F=plan.floors[f];if(!opts.exterior)for(const dr of F.doors)opening(f,dr,true);for(const o of F.openings)opening(f,o,false);}
     for(const job of later)job();
 
     // Jetty brackets under every step where a floor overhangs the one below, on the post grid: each rises from the
     // lower floor's wall to the edge of the slab above.
-    if(plan.plot.jetty)for(let f=1;f<storeys;f++){const zWall=cz(front-(f-1));
-      for(let A=cx(0);A<cx(w);A++){const gx=Math.floor((A-MX)/CV);if(!mask(f,gx,front-f)||mask(f-1,gx,front-f))continue;const edgeL=!mask(f,gx-1,front-f),edgeR=!mask(f,gx+1,front-f);
-        if(postAt('zm',A)&&!postAt('zm',A-1)||(edgeL&&A===cx(gx))||(edgeR&&A===cx(gx)+CV-2))for(let t=0;t<CV;t++){const zz=zWall-1-t,yy=FL(f)-SLAB-1-(CV-1-t);box(A,yy,zz,A+2,yy+1,zz+1,C.timber);}}}
+    if(plan.plot.jetty)for(let f=1;f<storeys;f++)for(const span of Plan.facadeSpans(plan.plot,f,FA.bays)){
+      const s=span.side,[dx,dz]={xm:[-1,0],xp:[1,0],zm:[0,-1],zp:[0,1]}[s],origin=s[0]==='z'?MX:MZ;
+      for(const p of span.posts){const along=Math.min(span.end-1,p),x=dx?span.fixed:along,z=dz?span.fixed:along;if(mask(f-1,x,z))continue;
+        let n=1;while(n<=6&&!mask(f-1,x-dx*n,z-dz*n))n++;if(n>6)continue;
+        const face=s==='xm'?cx(x):s==='xp'?cx(x+1)-1:s==='zm'?cz(z):cz(z+1)-1,depth=n*CV,A=origin+Math.min(span.end*CV-2,p*CV);
+        const points=[];for(let t=0;t<depth;t++){const c=face-(dx||dz)*t,y=FL(f)-SLAB-1-Math.floor(t/depth*10);for(let a=A;a<A+2;a++)points.push(dx?[c,y,a]:[a,y,c]);}
+        const touches=([x,y,z])=>[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]].some(([a,b,c])=>at(x+a,y+b,z+c));
+        if(!points.slice(0,2).some(touches)||!points.slice(-2).some(touches))continue;
+        const voxels=[];for(const [x,y,z] of points)if(!at(x,y,z)){set(x,y,z,C.timber);voxels.push(x+X*(z+Z*y));}if(voxels.length)info.brackets.push({floor:f,voxels});
+      }
+    }
+
+    for(const feature of plan.plot.features||[])if(feature.kind==='undercroft'){
+      const [a,b,c,e]=feature.rect,x0=cx(a)+2,x1=cx(c)-3,z0=cz(b)+2,z1=cz(e),top=FL(1)-SLAB-1,mid=(x0+x1)/2,half=(x1-x0)/2;
+      box(x0,FL(0)-1,z0,x1+1,FL(0),z1,M.floor_stone);
+      for(const x of [x0,x1-3]){box(x,GROUND,z0-2,x+4,top-8,z0+3,C.base);box(x-1,GROUND,z0-3,x+5,FL(0),z0+4,C.base);}
+      for(let x=x0;x<=x1;x++){const drop=2+Math.round(8*((x-mid)/half)**2);box(x,top-drop,z0-2,x+1,top+1,z0+3,C.base);}
+    }
 
     // A fence round the unbuilt lot line: pickets with two rails on the street, a low stone wall elsewhere, and a gate
     // where the yard meets the street.
     if(LOT){let gate=null;for(let x=0;x<w&&!gate;x++)if(inLot(x,front)&&!mask(0,x,front)&&inLot(x+1,front)&&!mask(0,x+1,front))gate=x;
       for(let z=front;z<d;z++)for(let x=0;x<w;x++){if(!inLot(x,z)||mask(0,x,z))continue;
-        for(const [s_,dx,dz] of DIRS){const nx=x+dx,nz=z+dz;if(inLot(nx,nz)&&!(s_==='zm'&&nz<front))continue;const streetSide=s_==='zm'&&nz<front;if(streetSide&&(x===gate||x===gate+1))continue;
+        for(const [s_,dx,dz] of DIRS){const nx=x+dx,nz=z+dz;if(inLot(nx,nz)&&!(s_==='zm'&&nz<front))continue;const streetSide=s_==='zm'&&nz<front;if(streetSide&&(x===gate||x===gate+1||entryMouth.has(x+w*z)))continue;
           const [x0,x1]=s_==='xm'?[cx(x),cx(x)+1]:s_==='xp'?[cx(x)+7,cx(x)+8]:[cx(x),cx(x)+8],[z0,z1]=s_==='zm'?[cz(z),cz(z)+1]:s_==='zp'?[cz(z)+7,cz(z)+8]:[cz(z),cz(z)+8];
           for(let zz=z0;zz<z1;zz++)for(let xx=x0;xx<x1;xx++){const a=s_[0]==='z'?xx:zz;
             if(streetSide){const post=a%8===0;for(let yy=Y0;yy<Y0+(post?13:11);yy++){const rail=yy===Y0+4||yy===Y0+9;if(post||rail||a%2===0)fillIfAir(xx,yy,zz,post||rail?C.timber:M.paint_white);}}
@@ -329,7 +375,10 @@
         const noEave=s_=>sideParty(s_)||(isLean&&s_===lean[0])||(isCross&&s_==='zp');
         const eS=s_=>noEave(s_)?0:(shape==='gable'&&((ridgeX&&s_[0]==='x')||(!ridgeX&&s_[0]==='z'))?Math.round(eave*.5):eave);
         const gx0=x0-eS('xm'),gx1=x1+eS('xp'),gz0=z0-eS('zm'),gz1=z1+eS('zp');
-        const span=ridgeX?deep:wide,half=span/2,lp=isLean?Math.min(pitch,(SH-14)/span):pitch;
+        const span=ridgeX?deep:wide,half=span/2,maxRise=Math.floor((L+1)*SH*Plan.ARCHITECTURE.roof.maxWallRatio);
+        // Budget the whole profile, including gambrel slopes, curved corners and ridge trim, before drawing it.
+        const profileRise=isLean?span:(shape==='hip'?Math.min(wide,deep)/2:half)*(main&&RF.form==='gambrel'?1.13:1),reserve=6+Math.ceil(curve*12);
+        const lp=Math.min(pitch,(maxRise-reserve)/profileRise,isLean?(SH-14)/span:Infinity);
         for(let z=gz0;z<gz1;z++)for(let x=gx0;x<gx1;x++){
           const wz=Math.min(z-z0,z1-1-z),wx=Math.min(x-x0,x1-1-x);let dist,full,slopeAlongZ;
           if(isLean){const s_=lean[0];dist=s_==='xm'?x1-1-x:s_==='xp'?x-x0:s_==='zm'?z1-1-z:z-z0;full=span;slopeAlongZ=s_[0]==='z';}
@@ -344,9 +393,14 @@
           const tipEave=slopeAlongZ?Math.min(z-gz0,gz1-1-z):Math.min(x-gx0,gx1-1-x),tipVerge=shape==='gable'?(ridgeX?Math.min(x-gx0,gx1-1-x):Math.min(z-gz0,gz1-1-z)):1e9;
           const hipLine=shape==='hip'&&Math.abs(wz-wx)<1&&dist<half-1,yy=Math.round(lvlPlate+2+h),i=x+X*z;
           if(yy>lvY[i]){lvY[i]=yy;kind[i]=(!isLean&&dist>=full-1?2:0)|(tipEave<1?4:0)|(tipVerge<2?8:0)|(hipLine?16:0);eaveAxisX[i]=slopeAlongZ?1:0;}}}
-      const cols=extWall[L],lower=L<top,put3=(x,y,z,m)=>lower?fillIfAir(x,y,z,m):set(x,y,z,m);
+      const cols=extWall[L],lower=L<top,put3=(x,y,z,m)=>{
+        const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV);
+        if(lower&&mask(L+1,gx,gz))return;
+        if(lower)fillIfAir(x,y,z,m);else set(x,y,z,m);
+      };
       for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const i=x+X*z,ry=lvY[i];if(ry<0)continue;roofY[i]=Math.max(roofY[i],ry);
         const gx=Math.floor((x-MX)/CV),gz=Math.floor((z-MZ)/CV),inside=x>=MX&&z>=MZ&&gx<w&&gz<d&&region[gx+w*gz],ea=eaveAxisX[i]?x:z,kd=kind[i];
+        if(lower&&mask(L+1,gx,gz))continue;
         // gable infill: the outer wall rises to meet the roof
         const ox_=((x-MX)%CV+CV)%CV,oz_=((z-MZ)%CV+CV)%CV,gs=ox_<3&&!mask(L,gx-1,gz)?'xm':ox_>=5&&!mask(L,gx+1,gz)?'xp':oz_<3&&!mask(L,gx,gz-1)?'zm':'zp';
         if(cols.has(x+','+z)&&inside)for(let yy=lvlPlate;yy<ry-2;yy++){const s_=gs,par=isParty(s_,gx,gz);
@@ -356,14 +410,23 @@
         if(!inside&&!(kd&4)&&!(kd&8)&&(ea%8)<2)put3(x,ry-3,z,M.timber_dark);                       // rafter tails under the overhang
         if(kd&4)for(let n=1;n<3;n++)put3(x,ry-n,z,C.trim);                                        // fascia board
         if(kd&8)for(let n=0;n<4;n++)put3(x,ry-n,z,C.trim);                                        // bargeboard on the verge
-        if(!(kd&(2|4|8|16))&&ea%4===0)fillIfAir(x,ry+1,z,C.tileDk);                                // round-tile ribs, a shade darker
-        if(kd&2){fillIfAir(x,ry+1,z,M.ridge);fillIfAir(x,ry+2,z,M.ridge);}
-        if(kd&16)fillIfAir(x,ry+1,z,M.ridge);}
+        if(!(kd&(2|4|8|16))&&ea%4===0)put3(x,ry+1,z,C.tileDk);
+        if(kd&2){put3(x,ry+1,z,M.ridge);put3(x,ry+2,z,M.ridge);}
+        if(kd&16)put3(x,ry+1,z,M.ridge);}
       // The ridge cap runs 3 voxels wide; ridge ends carry an ornament on lattice styles, a plain end tile otherwise.
       for(let z=1;z<Z-1;z++)for(let x=1;x<X-1;x++){const i=x+X*z;if(!(kind[i]&2))continue;
-        for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]])if(lvY[(x+a)+X*(z+b)]>=lvY[i]-1&&!(kind[(x+a)+X*(z+b)]&2))fillIfAir(x+a,lvY[i]+1,z+b,M.ridge);
+        for(const [a,b] of [[1,0],[-1,0],[0,1],[0,-1]])if(lvY[(x+a)+X*(z+b)]>=lvY[i]-1&&!(kind[(x+a)+X*(z+b)]&2))put3(x+a,lvY[i]+1,z+b,M.ridge);
         const nb=[[1,0],[-1,0],[0,1],[0,-1]].filter(([a,b])=>kind[(x+a)+X*(z+b)]&2).length;
-        if(nb===1)for(let yy=lvY[i]+1;yy<lvY[i]+(FA.lattice?6:4);yy++)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)fillIfAir(x+a,yy,z+b,FA.lattice&&plan.style==='spire'?M.gold:M.ridge);}}
+        if(nb===1)for(let yy=lvY[i]+1;yy<lvY[i]+(FA.lattice?6:4);yy++)for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)put3(x+a,yy,z+b,FA.lattice&&plan.style==='spire'?M.gold:M.ridge);}}
+
+    for(const feature of plan.plot.features||[])if(feature.kind==='tower'){
+      const [a,b,c,e]=feature.rect,x0=cx(a)-3,x1=cx(c)+3,z0=cz(b)-3,z1=cz(e)+3,half=Math.min(x1-x0,z1-z0)/2;
+      for(let z=z0;z<z1;z++)for(let x=x0;x<x1;x++){
+        const dist=Math.min(x-x0,x1-1-x,z-z0,z1-1-z),y=plate+2+Math.round(dist/half*32),i=x+X*z;
+        if(y<roofY[i])continue;for(let yy=plate;yy<y-2;yy++)fillIfAir(x,yy,z,C.wall);
+        set(x,y,z,dist===0?C.trim:C.tile);set(x,y-1,z,C.tile);set(x,y-2,z,C.tile);roofY[i]=y;
+      }
+    }
 
     // Dormers on a street-facing slope, on the window grid: a walled box with a window and its own small gable.
     if(RF.dormers){const zTop=Math.min(...[...plan.plot.masks[top].keys()].filter(i=>plan.plot.masks[top][i]).map(i=>Math.floor(i/w))),zf=cz(zTop)+5,p0=FA.bays.zm,slots=[];
@@ -400,17 +463,36 @@
         if(dd<R+3){const h=Math.round(topWall+(R+3-dd)*1.75);for(let k=0;k<3;k++)set(x,h-k,z,k===0&&(Math.floor(Math.atan2(z-czT,x-cxT)*8/Math.PI)&1)?C.tileDk:C.tile);if(dd>=R+1)set(x,h-3,z,C.trim);}}
       const apex=Math.round(topWall+(R+3)*1.75);for(let y=apex;y<apex+7;y++)set(Math.round(cxT),y,Math.round(czT),y>apex+4?M.gold:M.iron);}
 
-    // Chimney over the kitchen's back wall: brick with a stone cap and a pot.
-    const kitchenFloor=plan.floors.findIndex(F=>F.rooms.some(r=>r.type==='kitchen'));
-    if(kitchenFloor>=0){const F=plan.floors[kitchenFloor],k=F.rooms.findIndex(r=>r.type==='kitchen'),cells=[];for(let i=0;i<w*d;i++)if(F.grid[i]===k)cells.push(i);
-      const c=cells.sort((a,b)=>Math.floor(b/w)-Math.floor(a/w)||((a%w)-(b%w)))[0],x=c%w,z=Math.floor(c/w),bx=cx(x)+1,bz=cz(z)+(mask(kitchenFloor,x,z+1)?1:-2);
-      let peak=0;for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++)peak=Math.max(peak,roofY[xx+X*zz]);
-      for(let yy=FL(kitchenFloor);yy<peak+12;yy++)for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++){const edge=xx===bx||xx===bx+8||zz===bz||zz===bz+8;if(!edge&&yy>peak)continue;
-        set(xx,yy,zz,(yy%3===2)||((xx+zz+(yy/3|0)*2)%5===0)?M.brick_dark:M.brick);}
-      box(bx-1,peak+12,bz-1,bx+10,peak+14,bz+10,M.stone_grey);for(let yy=peak+14;yy<peak+18;yy++)for(let zz=bz+3;zz<bz+6;zz++)for(let xx=bx+3;xx<bx+6;xx++)if(xx!==bx+4||zz!==bz+4)set(xx,yy,zz,M.terracotta);}
-
     // Furniture.
-    furnish(plan,{vol,X,Y,Z,at,set,cx,cz,FL,mask,r,info,M,MX,MZ});
+    if(!opts.exterior)furnish(plan,{vol,X,Y,Z,at,set,cx,cz,FL,mask,r,info,M,MX,MZ});
+
+    // A chimney needs a stove, an exterior backing wall and an unobstructed flue.
+    const stove=info.furniture.find(it=>it.piece==='stove_single'&&plan.floors[it.floor].rooms[it.room].type==='kitchen');
+    if(stove){const s={xm:'xp',xp:'xm',zm:'zp',zp:'zm'}[stove.face],[dx,dz]=outward(s),f=stove.floor;
+      const backX=stove.face==='xm'?stove.x+stove.w-1:stove.face==='xp'?stove.x:Math.floor(stove.x+stove.w/2),
+        backZ=stove.face==='zm'?stove.z+stove.d-1:stove.face==='zp'?stove.z:Math.floor(stove.z+stove.d/2),model=rotated(piece(stove.piece),stove.face);
+      let contact=null;
+      for(let zz=0;zz<model.d;zz++)for(let xx=0;xx<model.w;xx++)for(let yy=model.h-1;yy>=0;yy--)if(model.get(xx,yy,zz)){
+        const cost=Math.abs(stove.x+xx-backX)*4+Math.abs(stove.z+zz-backZ)*4+(model.h-1-yy)*2;
+        if(!contact||cost<contact.cost)contact={x:xx,y:yy,z:zz,cost};break;}
+      const sourceX=stove.x+contact.x,sourceZ=stove.z+contact.z,pipeY=stove.y+contact.y+1,
+        x=Math.floor((backX-MX)/CV),z=Math.floor((backZ-MZ)/CV),
+        bx=s==='xm'?cx(x)-9:s==='xp'?cx(x+1):Math.floor(stove.x+stove.w/2-4),
+        bz=s==='zm'?cz(z)-9:s==='zp'?cz(z+1):Math.floor(stove.z+stove.d/2-4);
+      const bounds=[Math.min(bx-1,sourceX-1),Math.min(bz-1,sourceZ-1),Math.max(bx+10,sourceX+2),Math.max(bz+10,sourceZ+2)];
+      const blocked=plan.floors.some((F,level)=>level>=f&&F.openings.some(o=>{const b=span(o.cells,o.side,false);
+        return bounds[0]<b[1]+2&&bounds[2]>b[0]-2&&bounds[1]<b[3]+2&&bounds[3]>b[2]-2;}));
+      const covered=plan.floors.some((_,level)=>{if(level<=f)return false;for(let xx=bx;xx<bx+9;xx++)for(let zz=bz;zz<bz+9;zz++)if(mask(level,Math.floor((xx-MX)/CV),Math.floor((zz-MZ)/CV)))return true;return false;});
+      if(!mask(f,x+dx,z+dz)&&!isParty(s,x,z)&&!blocked&&!covered){
+      let peak=0;for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++)peak=Math.max(peak,roofY[xx+X*zz]);
+      peak=Math.max(peak,FL(f+1));
+      for(let yy=FL(f);yy<peak+12;yy++)for(let zz=bz;zz<bz+9;zz++)for(let xx=bx;xx<bx+9;xx++){const edge=xx===bx||xx===bx+8||zz===bz||zz===bz+8;if(!edge&&yy>peak)continue;
+        set(xx,yy,zz,(yy%3===2)||((xx+zz+(yy/3|0)*2)%5===0)?M.brick_dark:M.brick);}
+      box(Math.min(sourceX,bx+4)-1,pipeY,Math.min(sourceZ,bz+4)-1,Math.max(sourceX,bx+4)+2,pipeY+3,Math.max(sourceZ,bz+4)+2,M.iron);
+      box(bx-1,peak+12,bz-1,bx+10,peak+14,bz+10,M.stone_grey);
+      box(bx+4,pipeY+3,bz+4,bx+5,peak+18,bz+5,0);
+      for(let yy=peak+14;yy<peak+18;yy++)for(let zz=bz+3;zz<bz+6;zz++)for(let xx=bx+3;xx<bx+6;xx++)if(xx!==bx+4||zz!==bz+4)set(xx,yy,zz,M.terracotta);
+      info.chimney={floor:f,room:stove.room,source:[sourceX,pipeY,sourceZ],box:[bx,bz,bx+9,bz+9],top:peak+18};}}
 
     info.ms=Date.now()-t0;let solid=0;for(let i=0;i<vol.length;i++)if(vol[i])solid++;
     return {revision:REVISION,cell:V,dims:[X,Y,Z],origin:[MX,Y0,MZ],levels:Array.from({length:storeys+1},(_,f)=>FL(f)),plate,vol,palette:palette(),info,solid,materials:MATS.map(m=>m[0]),M};
@@ -437,15 +519,15 @@
   // Options: c clearance in voxels (default 10), long (prefer the longest wall), far (away from doors), window
   // (prefer a window behind), street (face the street), run (continue the previous piece's wall run), chairs, n.
   const WANTS={
-    bed:[['wall','bed_double_A',{long:true,far:true,c:10}],['beside','cabinet_small',{c:6}],['onTop','lamp_table'],['rug','rug_oval_A'],['wall','cabinet_medium_decorated',{c:8}],['high','shelf_B_small_decorated'],['corner','cactus_medium_A',{c:4}]],
+    bed:[['wall','bed_double_A|bed_single_A',{long:true,far:true,c:10}],['beside','cabinet_small',{c:6}],['onTop','lamp_table'],['rug','rug_oval_A'],['wall','cabinet_medium_decorated',{c:8}],['high','shelf_B_small_decorated'],['corner','cactus_medium_A',{c:4}]],
     guest:[['wall','bed_single_A',{far:true,c:10}],['beside','cabinet_small',{c:6}],['onTop','lamp_table'],['wall','table_small',{window:true,c:4}],['tuck','chair_A_wood'],['corner','lamp_standing',{c:4}]],
-    living:[['wall','couch_pillows',{long:true,c:22}],['front','table_low',{gap:6}],['rug','rug_rectangle_A'],['corner','armchair_pillows',{c:8}],['wall','cabinet_medium_decorated',{c:8}],['wall','table_small',{c:6}],['onTop','lamp_table'],['corner','lamp_standing',{c:4}],['corner','cactus_medium_A',{c:4}],['high','shelf_B_large_decorated']],
+    living:[['wall','couch_pillows',{long:true,c:22}],['front','table_low',{gap:10}],['rug','rug_rectangle_A'],['corner','armchair_pillows',{c:8}],['wall','cabinet_medium_decorated',{c:8}],['wall','table_small',{c:6}],['onTop','lamp_table'],['corner','lamp_standing',{c:4}],['corner','cactus_medium_A',{c:4}],['high','shelf_B_large_decorated']],
     common:[['wall','kitchencounter_straight_A_decorated',{c:14,far:true}],['beside','kitchencounter_straight_A',{c:14}],['beside','kitchencounter_straight_A',{c:14}],['centre','table_round_A_decorated',{chairs:'chair_B',n:4}],['centre','table_medium_long',{chairs:'chair_A_wood',n:6}],['centre','table_round_A_decorated',{chairs:'chair_B',n:4}],['centre','table_round_A_decorated',{chairs:'chair_B',n:3}],['high','shelf_B_large_decorated'],['corner','crate_potatoes',{c:4}],['corner','jar_C_large',{c:4}],['corner','cactus_medium_A',{c:4}]],
-    dining:[['centre','table_medium_long|table_medium|table_round_A_decorated',{chairs:'chair_A_wood',n:6}],['rug','rug_rectangle_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','cactus_medium_A',{c:4}],['high','shelf_B_small_decorated']],
-    kitchen:[['wall','kitchencounter_sink',{window:true,c:12}],['beside','stove_single',{c:12}],['beside','kitchencounter_straight_A_decorated',{c:12}],['beside','kitchencounter_straight_A',{c:12}],['wall','kitchencabinet',{c:10}],['beside','kitchencabinet',{c:10}],['centre','table_medium_long|table_medium',{chairs:'chair_A_wood',n:6,minArea:16}],['centre','kitchentable_A_large_decorated',{chairs:'chair_stool_wood',n:2}],['onTop','pot_large'],['rug','rug_rectangle_A'],['corner','crate_carrots',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_small_decorated']],
+    dining:[['centre','table_medium_long|table_medium|table_round_A_decorated|table_small',{chairs:'chair_A_wood',n:6}],['rug','rug_rectangle_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','cactus_medium_A',{c:4}],['high','shelf_B_small_decorated']],
+    kitchen:[['wall','kitchencounter_sink',{window:true,end:true,c:12}],['wall','stove_single',{c:12}],['beside','kitchencounter_straight_A_decorated',{c:12}],['beside','kitchencounter_straight_A',{c:12}],['wall','kitchencabinet',{c:10}],['beside','kitchencabinet',{c:10}],['centre','table_medium_long|table_medium',{chairs:'chair_A_wood',n:6,minArea:16}],['centre','kitchentable_A_large_decorated',{chairs:'chair_stool_wood',n:2}],['onTop','pot_large'],['rug','rug_rectangle_A'],['corner','crate_carrots',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_small_decorated']],
     // A shop: a counter across the back facing the street (the till on it), shelving and cabinets down both side
     // walls, and rows of display tables with aisles between them, each with goods on top; produce crates by the door.
-    shop:[['wall','kitchencounter_straight_A',{street:true,c:16}],['beside','kitchencounter_straight_A_decorated',{c:16}],['beside','kitchencounter_straight_A',{c:16}],['onTop','book_set'],
+    shop:[['sales','sales_counter|sales_counter_small',{c:16}],
       ['wall','kitchencabinet',{side:true,c:12}],['beside','cabinet_medium_decorated',{c:12}],['beside','kitchencabinet',{c:12}],['beside','cabinet_medium_decorated',{c:12}],['beside','kitchencabinet',{c:12}],
       ['wall','cabinet_medium_decorated',{side:true,c:12}],['beside','kitchencabinet',{c:12}],['beside','cabinet_medium_decorated',{c:12}],['beside','kitchencabinet',{c:12}],['beside','cabinet_medium_decorated',{c:12}],
       ['rows','table_medium_long|table_medium',{n:6,gap:14,goods:['jar_C_large','crate_tomatoes','pot_large','crate_carrots','book_set','crate_potatoes']}],
@@ -458,14 +540,42 @@
       ['rows','table_medium_long',{n:3,gap:16,goods:['book_set','pot_large','jar_C_large']}],
       ['corner','crate',{c:4}],['onTop','crate_potatoes'],['corner','crate',{c:4}],['corner','jar_C_large',{c:4}],['high','shelf_B_large_decorated'],['high','shelf_B_large_decorated']],
     store:[['wall','kitchencabinet',{c:8}],['beside','kitchencabinet',{c:8}],['corner','crate',{c:2}],['onTop','crate_potatoes'],['corner','crate_carrots',{c:2}],['corner','crate',{c:2}],['onTop','crate_tomatoes'],['corner','jar_C_large',{c:2}],['corner','jar_C_large',{c:2}],['high','shelf_B_small_decorated']],
-    study:[['wall','table_medium',{window:true,c:4}],['tuck','chair_A_wood'],['onTop','book_set'],['rug','rug_rectangle_stripes_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','armchair_pillows',{c:8}],['corner','lamp_standing',{c:4}],['high','shelf_B_large_decorated'],['corner','cactus_medium_A',{c:4}]],
+    study:[['wall','table_medium',{window:true,c:20}],['tuck','chair_A_wood'],['onTop','book_set'],['rug','rug_rectangle_stripes_A'],['wall','cabinet_medium_decorated',{c:8}],['corner','armchair_pillows',{c:8}],['corner','lamp_standing',{c:4}],['high','shelf_B_large_decorated'],['corner','cactus_medium_A',{c:4}]],
     office:[['wall','table_medium',{window:true,c:4}],['tuck','chair_A_wood'],['onTop','book_set'],['wall','cabinet_medium_decorated',{c:8}],['corner','crate',{c:4}],['high','shelf_B_large_decorated']],
-    bath:[['wall','tub',{long:true,c:8}],['beside','chair_stool_wood',{c:4}],['corner','jar_C_large',{c:2}]],
-    hall:[['corner','cactus_medium_A',{c:2,max:1}]]
+    bath:[['wall','tub',{long:true,end:true,c:10}],['wall','toilet',{end:true,c:12}],['wall','washbasin',{end:true,c:12}],['corner','jar_C_large',{c:2}]],
+    hall:[['wall','hall_planter',{c:20,minArea:18}],['wall','hall_planter',{c:20,minArea:25}]]
   };
+  for(const [id,X] of [['sales_counter',32],['sales_counter_small',24]]){
+    const Y=23,Z=12,v=new Uint8Array(X*Y*Z);
+    for(let y=0;y<Y;y++)for(let z=0;z<Z;z++)for(let x=0;x<X;x++){
+      const top=y>=16&&y<18,body=y<16&&(z<2||z>=Z-2||x<2||x>=X-2),till=y>=18&&y<22&&x>=X-11&&x<X-3&&z>=3&&z<9;
+      if(top||body)v[x+X*(z+Z*y)]=top?M.timber_dark:(x%8<2?M.timber_brown:M.timber_honey);
+      if(till)v[x+X*(z+Z*y)]=y===21?M.gold:M.iron;
+      if(y===18&&x>=3&&x<9&&z>=3&&z<8)v[x+X*(z+Z*y)]=M.cloth_white;
+    }
+    pieces[id]={id,dims:[X,Y,Z],tags:['sales-counter'],v};
+  }
+  pieces.hall_planter=(()=>{const X=6,Y=22,Z=6,v=new Uint8Array(X*Y*Z);
+    for(let y=0;y<Y;y++)for(let z=0;z<Z;z++)for(let x=0;x<X;x++){
+      const pot=y<7&&(y>1||x>0&&x<X-1&&z>0&&z<Z-1),stem=y>=7&&x===3&&z===3,
+        leaf=y>=9&&Math.abs(x-2.5)+Math.abs(z-2.5)<(y>18?2:4)&&((x+z+y)%4!==0);
+      if(pot||stem||leaf)v[x+X*(z+Z*y)]=pot?M.terracotta:leaf?((x+y)%3?M.leaf:M.leaf_dark):M.timber_brown;
+    }return {id:'hall_planter',dims:[X,Y,Z],tags:['decoration'],v};})();
   // The kit has no bath, so the tub is a voxel piece built here: a wooden tub of steaming water.
   pieces.tub=(()=>{const X=22,Y=10,Z=14,v=new Uint8Array(X*Y*Z);for(let y=0;y<Y;y++)for(let z=0;z<Z;z++)for(let x=0;x<X;x++){const ex=Math.min(x,X-1-x),ez=Math.min(z,Z-1-z),wall=ex<2||ez<2,corner=ex+ez<3;
     if(corner)continue;v[x+X*(z+Z*y)]=wall||y===0?((x+z)%4?M.timber_honey:M.timber_brown):y<Y-2?M.water:0;}return {id:'tub',dims:[X,Y,Z],tags:['wall'],v};})();
+  pieces.toilet=(()=>{const X=10,Y=16,Z=13,v=new Uint8Array(X*Y*Z);
+    for(let y=0;y<Y;y++)for(let z=0;z<Z;z++)for(let x=0;x<X;x++){
+      const tank=z<3&&y>=7,bowl=z>=3&&y>=4&&y<=8&&Math.abs(x-4.5)+Math.abs(z-7)<7,
+        base=y<5&&x>=2&&x<8&&z>=4&&z<11,hole=y>=7&&x>=3&&x<7&&z>=5&&z<10;
+      if(tank||base||bowl&&!hole)v[x+X*(z+Z*y)]=y===8&&!tank?M.timber_honey:M.paint_white;
+    }return {id:'toilet',dims:[X,Y,Z],tags:['wall'],v};})();
+  pieces.washbasin=(()=>{const X=12,Y=15,Z=9,v=new Uint8Array(X*Y*Z);
+    for(let y=0;y<Y;y++)for(let z=0;z<Z;z++)for(let x=0;x<X;x++){
+      const stand=y<10&&x>=4&&x<8&&z>=2&&z<6,bowl=y>=10&&y<14,
+        rim=x<2||x>=10||z<2||z>=7;
+      if(stand||bowl&&(y===10||rim))v[x+X*(z+Z*y)]=stand?M.stone_white:!rim&&y===10?M.water:M.paint_white;
+    }return {id:'washbasin',dims:[X,Y,Z],tags:['wall'],v};})();
   function rotated(p,face){const [X,Y,Z]=p.dims,sw=face==='xp'||face==='xm';return {w:sw?Z:X,d:sw?X:Z,h:Y,
     get:(x,y,z)=>{let lx,lz;if(face==='zp'){lx=x;lz=z;}else if(face==='zm'){lx=X-1-x;lz=Z-1-z;}else if(face==='xp'){lx=X-1-z;lz=x;}else{lx=z;lz=Z-1-x;}return p.v[lx+X*(lz+Z*y)];}};}
   const FACES=['zp','zm','xp','xm'],OPP={zp:'zm',zm:'zp',xp:'xm',xm:'xp'};
@@ -492,9 +602,9 @@
       for(const dr of F.doors)zone(dr.cells,dr.dir,true);
       for(const o of F.openings)if(o.kind==='front'||o.kind==='back'||o.kind==='balcony')zone(o.cells,o.side,false);
       // Reachability: every door point of room k can reach the others through columns that are not footprints.
-      const reach=k=>{const pts=doorPts.get(k)||[];if(pts.length<2)return true;const S=2,seen=new Uint8Array(X*Z),q=[];
-        const ok=(x,z)=>{for(let a=-2;a<=2;a+=2)for(let b=-2;b<=2;b+=2){const i=x+a+X*(z+b);if(!inside(x+a,z+b)||roomOf[i]!==k||!floor[i]&&!occ[i]||occ[i]===1)return false;}return true;};
-        const start=pts[0];let s0=null;for(let a=-4;a<=4&&!s0;a++)for(let b=-4;b<=4&&!s0;b++)if(ok(start[0]+a,start[1]+b))s0=[start[0]+a,start[1]+b];if(!s0)return false;
+      const reach=k=>{const pts=doorPts.get(k)||[];if(pts.length<2)return true;const radius=4,search=radius+2,S=2,seen=new Uint8Array(X*Z),q=[];
+        const ok=(x,z)=>{for(let a=-radius;a<=radius;a+=2)for(let b=-radius;b<=radius;b+=2){const i=x+a+X*(z+b);if(!inside(x+a,z+b)||roomOf[i]!==k||!floor[i]||occ[i]===1)return false;}return true;};
+        const start=pts[0];let s0=null;for(let a=-search;a<=search&&!s0;a++)for(let b=-search;b<=search&&!s0;b++)if(ok(start[0]+a,start[1]+b))s0=[start[0]+a,start[1]+b];if(!s0)return false;
         q.push(s0);seen[s0[0]+X*s0[1]]=1;while(q.length){const [x,z]=q.pop();for(const [a,b] of [[S,0],[-S,0],[0,S],[0,-S]]){const nx=x+a,nz=z+b,i=nx+X*nz;if(!inside(nx,nz)||seen[i]||!ok(nx,nz))continue;seen[i]=1;q.push([nx,nz]);}}
         return pts.every(([px,pz])=>{for(let a=-5;a<=5;a++)for(let b=-5;b<=5;b++)if(inside(px+a,pz+b)&&seen[px+a+X*(pz+b)])return true;return false;});};
       F.rooms.forEach((room,k)=>{const wants=WANTS[room.type];if(!wants||k<1||!room.box)return;
@@ -512,21 +622,40 @@
         const stamp=(p,face,x0,z0,y0,mark=true)=>{const R=rotated(p,face);for(let yy=0;yy<R.h;yy++)for(let zz=0;zz<R.d;zz++)for(let xx=0;xx<R.w;xx++){const v=R.get(xx,yy,zz);if(v&&!at(x0+xx,y0+yy,z0+zz))set(x0+xx,y0+yy,z0+zz,v);}
           if(mark)for(let zz=0;zz<R.d;zz++)for(let xx=0;xx<R.w;xx++)occ[x0+xx+X*(z0+zz)]=1;const rec={floor:f,room:k,piece:p.id,face,x:x0,z:z0,y:y0,w:R.w,d:R.d,h:R.h};placed.push(rec);info.furniture.push(rec);return rec;};
         // Try a floor piece: footprint free, walking space clear, then the room must stay walkable.
-        const tryPut=(p,face,x0,z0,c,extra,inWalk)=>{const R=rotated(p,face);if(!fits(x0,z0,R.w,R.d,inWalk?3:1))return null;const fr=frontRect(x0,z0,R.w,R.d,face,c);if(c&&!clearOk(...fr))return null;
+        const tryPut=(p,face,x0,z0,c,extra,inWalk,back=0)=>{const R=rotated(p,face),fixture=room.type==='bath'&&['tub','toilet','washbasin'].includes(p.id);if(!fits(x0,z0,R.w,R.d,inWalk||fixture?3:1))return null;const fr=frontRect(x0,z0,R.w,R.d,face,c),br=frontRect(x0,z0,R.w,R.d,OPP[face],back);
+          if(fixture){const axis=face[0]==='z'?0:1,span=axis===0?2:3,clear=Math.min(10,fr[span]);fr[axis]+=Math.floor((fr[span]-clear)/2);fr[span]=clear;}
+          if(c&&!clearOk(...fr)||back&&!clearOk(...br))return null;
+          if(room.type==='hall'){
+            const pad=Math.ceil(Plan.ARCHITECTURE.hallway.clear/V),space=face[0]==='z'?[fr[0]-pad,fr[1],fr[2]+pad*2,Math.max(c,pad)]:[fr[0],fr[1]-pad,Math.max(c,pad),fr[3]+pad*2];
+            if(!clearOk(...space))return null;
+          }
           if(extra&&!extra(R))return null;const saved=[];for(let zz=0;zz<R.d;zz++)for(let xx=0;xx<R.w;xx++){const i=x0+xx+X*(z0+zz);saved.push([i,occ[i]]);occ[i]=1;}
-          if(!reach(k)){for(const [i,v] of saved)occ[i]=v;return null;}for(const [i,v] of saved)occ[i]=v;
-          const rec=stamp(p,face,x0,z0,y);if(c)reserve(fr[0],fr[1],fr[0]+fr[2],fr[1]+fr[3],k);return rec;};
+          const essential=/^(bed_|tub$|toilet$|washbasin$)|stove|workbench|counter/.test(p.id)||room.type==='study'&&/^table_/.test(p.id),pts=doorPts.get(k)||[],previous=pts.length;if(c&&essential)addPt(k,Math.round(fr[0]+fr[2]/2),Math.round(fr[1]+fr[3]/2));
+          if(back)addPt(k,Math.round(br[0]+br[2]/2),Math.round(br[1]+br[3]/2));
+          if(!reach(k)){for(const [i,v] of saved)occ[i]=v;if(doorPts.has(k))doorPts.get(k).length=previous;return null;}for(const [i,v] of saved)occ[i]=v;
+          const rec=stamp(p,face,x0,z0,y),pad=essential&&room.type!=='bath'?8:0;if(c)reserve(fr[0]-pad,fr[1]-pad,fr[0]+fr[2]+pad,fr[1]+fr[3]+pad,k);
+          if(back)reserve(br[0]-pad,br[1]-pad,br[0]+br[2]+pad,br[1]+br[3]+pad,k);return rec;};
         // Wall slots for a piece facing `face`: its back touches the room edge, so the wall is right behind it.
         const wallSlots=(R,face)=>{const out=[];
           if(face==='zp'||face==='zm'){const z0=face==='zp'?rz0:rz1-R.d,bz=face==='zp'?rz0-1:rz1;for(let x=rx0;x+R.w<=rx1;x++)out.push([x,z0,bz,'x']);}
           else{const x0=face==='xp'?rx0:rx1-R.w,bx=face==='xp'?rx0-1:rx1;for(let z=rz0;z+R.d<=rz1;z++)out.push([x0,z,bx,'z']);}return out;};
-        const solidBehind=(x0,z0,R,face,b,axis)=>{const tall=R.h>15,ys=[y+3,y+Math.min(R.h,30)-1];const n=axis==='x'?R.w:R.d;
-          for(let t=0;t<n;t++){const [bx,bz]=axis==='x'?[x0+t,b]:[b,z0+t];for(const yy of tall?ys:[y+3])if(!at(bx,yy,bz))return false;}return true;};
+        const solidBehind=(x0,z0,R,face,b,axis)=>{const tall=R.h>15,ys=[y+3,y+Math.min(R.h,30)-1],n=axis==='x'?R.w:R.d,[dx,dz]={zp:[0,-1],zm:[0,1],xp:[-1,0],xm:[1,0]}[face];
+          for(let t=0;t<n;t++){const [bx,bz]=axis==='x'?[x0+t,b]:[b,z0+t];for(const yy of tall?ys:[y+3]){let solid=false;for(let a=0;a<=3;a++){const m=at(bx+dx*a,yy,bz+dz*a);if(m&&!(R.h>22&&(m===ctx.M.glass||m===ctx.M.shoji))){solid=true;break;}}if(!solid)return false;}}return true;};
         const windowBehind=(x0,z0,R,b,axis)=>{const n=axis==='x'?R.w:R.d,[bx,bz]=axis==='x'?[x0+(n>>1),b]:[b,z0+(n>>1)];for(let t=1;t<4;t++){const m=at(axis==='x'?bx:bx+(b<(axis==='x'?z0:x0)?-t:t),y+24,axis==='x'?bz+(b<z0?-t:t):bz);if(m===ctx.M.glass||m===ctx.M.shoji||m===0)return true;}return false;};
         const distDoor=(x,z)=>doors.length?Math.min(...doors.map(([px,pz])=>Math.hypot(px-x,pz-z))):99;
         let last=null,main=null;const count={},faceUse={};
         const area=(rx1-rx0)*(rz1-rz0)*V*V;
         for(const [anchor,ids,o={}] of wants){if(o.minArea&&area<o.minArea)continue;const alts=ids.split('|');let id=alts[0],p=piece(id),c=o.c??10,rec=null;if(o.max&&(count[id]||0)>=o.max)continue;
+          if(anchor==='sales'){
+            for(const alt of alts){const counter=piece(alt),cands=[];
+              for(const face of FACES){const R=rotated(counter,face);
+                for(let z0=rz0+16;z0+R.d+16<=rz1;z0+=4)for(let x0=rx0+16;x0+R.w+16<=rx1;x0+=4){
+                  const s=(face==='zm'?0:face[0]==='x'?80:160)+Math.abs(x0+R.w/2-mx)+Math.abs(z0+R.d+20-rz1)*2;
+                  cands.push({s,face,x0,z0});}}
+              cands.sort((a,b)=>a.s-b.s);for(const a of cands){rec=tryPut(counter,a.face,a.x0,a.z0,c,null,false,16);if(rec)break;}
+              if(rec)break;
+            }if(rec){last=main=rec;}continue;
+          }
           if(anchor==='onTop'){if(!last)continue;const host=last,R=rotated(p,host.face);if(R.w>host.w||R.d>host.d)continue;const x0=host.x+((host.w-R.w)>>1),z0=host.z+((host.d-R.d)>>1);let top=host.y;
             for(let yy=host.y;yy<host.y+host.h+1;yy++)if(at(x0+(R.w>>1),yy,z0+(R.d>>1)))top=yy+1;rec=stamp(p,host.face,x0,z0,top,false);count[id]=(count[id]||0)+1;continue;}
           if(anchor==='rug'){const m=main;if(!m)continue;const host=m.group||(last?.main===m?last:null)||(()=>{const fr=frontRect(m.x,m.z,m.w,m.d,m.face,14);return {x:fr[0],z:fr[1],w:fr[2],d:fr[3]};})();const R=rotated(p,'zp');const cxh=host.x+host.w/2,czh=host.z+host.d/2,x0=Math.round(cxh-R.w/2),z0=Math.round(czh-R.d/2);
@@ -534,7 +663,7 @@
           if(anchor==='high'){const R0=rotated(p,'zp');let best=null;
             for(const face of FACES){const R=rotated(p,face);for(const [x0,z0,b,axis] of wallSlots(R,face)){const hy=y+22;let ok=true;const n=axis==='x'?R.w:R.d;
               for(let t=0;t<n&&ok;t++){const [bx,bz]=axis==='x'?[x0+t,b]:[b,z0+t];for(let yy=hy;yy<hy+R.h;yy++)if(!at(bx,yy,bz)){ok=false;break;}}
-              for(let zz=0;zz<R.d&&ok;zz++)for(let xx=0;xx<R.w&&ok;xx++)for(let yy=hy-2;yy<hy+R.h;yy++)if(at(x0+xx,yy,z0+zz)){ok=false;break;}
+              for(let zz=0;zz<R.d&&ok;zz++)for(let xx=0;xx<R.w&&ok;xx++){const x=x0+xx,z=z0+zz,i=x+X*z;if(!inside(x,z)||roomOf[i]!==k||occ[i]===2){ok=false;break;}for(let yy=hy-2;yy<hy+R.h;yy++)if(at(x,yy,z)){ok=false;break;}}
               if(!ok)continue;const s=Math.abs((axis==='x'?x0+R.w/2-mx:z0+R.d/2-mz))+r()*4;if(!best||s<best.s)best={s,face,x0,z0};}}
             if(best){stamp(p,best.face,best.x0,best.z0,y+22,false);}void R0;continue;}
           if(anchor==='beside'||anchor==='tuck'||anchor==='front'){if(!last||last.group)continue;const L=last;let cand=[];
@@ -544,9 +673,15 @@
             else{const face=anchor==='tuck'?OPP[L.face]:L.face,R=rotated(p,face),g=anchor==='tuck'?-Math.round(R.d/3):(o.gap??6);
               if(L.face==='zp')cand=[[L.x+((L.w-R.w)>>1),L.z+L.d+g,face]];else if(L.face==='zm')cand=[[L.x+((L.w-R.w)>>1),L.z-R.d-g,face]];
               else if(L.face==='xp')cand=[[L.x+L.w+g,L.z+((L.d-R.d)>>1),face]];else cand=[[L.x-R.w-g,L.z+((L.d-R.d)>>1),face]];}
-            for(const [x0,z0,face] of cand){if(anchor==='tuck'){// a chair may slide under its desk: only its outer part needs free floor
-                const R=rotated(p,face);let ok=true;for(let zz=0;zz<R.d&&ok;zz++)for(let xx=0;xx<R.w;xx++){const i=x0+xx+X*(z0+zz);if(!inside(x0+xx,z0+zz)||roomOf[i]!==k){ok=false;break;}}
-                if(ok){rec=stamp(p,face,x0,z0,y,false);break;}continue;}
+            for(const [x0,z0,face] of cand){if(anchor==='tuck'){
+                const R=rotated(p,face),outside=[];let ok=true;
+                for(let zz=0;zz<R.d&&ok;zz++)for(let xx=0;xx<R.w;xx++){
+                  const x=x0+xx,z=z0+zz,i=x+X*z,under=x>=L.x&&x<L.x+L.w&&z>=L.z&&z<L.z+L.d;
+                  if(!inside(x,z)||roomOf[i]!==k||!floor[i]||!under&&occ[i]===1){ok=false;break;}
+                  if(!under)outside.push([i,occ[i]]);
+                }
+                if(ok){for(const [i] of outside)occ[i]=1;ok=reach(k);if(ok){rec=stamp(p,face,x0,z0,y,false);break;}for(const [i,v] of outside)occ[i]=v;}
+                continue;}
               rec=tryPut(p,face,x0,z0,anchor==='front'?0:c,null,anchor==='front');if(rec)break;}
             if(rec&&anchor==='beside'){last=rec;faceUse[rec.face]=(faceUse[rec.face]||0)+1;}if(rec&&anchor==='front'){rec.main=main;last=rec;}if(rec)count[id]=(count[id]||0)+1;continue;}
           if(anchor==='rows'){// display tables in rows with aisles: long side running back from the street, centred in the floor
@@ -571,21 +706,27 @@
                 for(let q=0;q<per;q++){const off=per===2?(q?.72:.28):.5;let x,z;
                   if(cf==='zm'){x=Math.round(x0+R.w*off-C.w/2);z=z0+R.d+1;}else if(cf==='zp'){x=Math.round(x0+R.w*off-C.w/2);z=z0-C.d-1;}
                   else if(cf==='xm'){x=x0+R.w+1;z=Math.round(z0+R.d*off-C.d/2);}else{x=x0-C.w-1;z=Math.round(z0+R.d*off-C.d/2);}seats.push([cf,x,z]);}}
-              let put=0;for(const [cf,x,z] of seats){if(put>=n)break;const C=rotated(ch,cf);if(fits(x,z,C.w,C.d,1)){stamp(ch,cf,x,z,y);put++;}}}
+              let put=0;for(const [cf,x,z] of seats){if(put>=n)break;if(tryPut(ch,cf,x,z,0))put++;}}
             reserve(x0-pad,z0-pad,x0+R.w+pad,z0+R.d+pad,k);
             rec=t;rec.group={x:x0-ring,z:z0-ring,w:R.w+2*ring,d:R.d+2*ring};last=main=rec;count[id]=(count[id]||0)+1;continue;}
           // wall and corner: score every slot on every wall.
           const cands=[];
-          for(const face of FACES){const R=rotated(p,face),slots=wallSlots(R,face),wallLen=face[0]==='z'?rx1-rx0:rz1-rz0;
-            for(const [x0,z0,b,axis] of slots){if(!fits(x0,z0,R.w,R.d))continue;if(!solidBehind(x0,z0,R,face,b,axis))continue;
+          for(const [rank,alt] of alts.entries()){const candidate=piece(alt);for(const face of FACES){const R=rotated(candidate,face),slots=wallSlots(R,face),wallLen=face[0]==='z'?rx1-rx0:rz1-rz0;
+            for(const [x0,z0,b,axis] of slots){if(!fits(x0,z0,R.w,R.d,room.type==='bath'?3:1))continue;if(!solidBehind(x0,z0,R,face,b,axis))continue;
               const along=axis==='x'?x0+R.w/2:z0+R.d/2,lo=axis==='x'?rx0:rz0,hi=axis==='x'?rx1:rz1,toEnd=Math.min(along-lo,hi-along)-(axis==='x'?R.w:R.d)/2;
-              let s=r()*3;
-              if(anchor==='corner')s+=toEnd*3;else s+=Math.abs(along-(lo+hi)/2)*.5;
+              let s=rank*1000+r()*3;
+              if(alt==='stove_single'){
+                const [dx,dz]={xm:[1,0],xp:[-1,0],zm:[0,1],zp:[0,-1]}[face],bx=axis==='x'?x0+(R.w>>1):b-dx,bz=axis==='x'?b-dz:z0+(R.d>>1),
+                  gx=Math.floor((bx-ctx.MX)/CV),gz=Math.floor((bz-ctx.MZ)/CV),nx=gx+dx,nz=gz+dz,side={xm:'xp',xp:'xm',zm:'zp',zp:'zm'}[face];
+                if((nx<0||nx>=w||nz<0||nz>=d||!plan.plot.masks[f][nx+w*nz])&&!Plan.isPartyEdge(plan.plot,gx,gz,side))s-=60;
+                const m=at(axis==='x'?bx:b,y+24,axis==='x'?b:bz);if(!m||m===ctx.M.glass||m===ctx.M.shoji)s+=80;
+              }
+              if(anchor==='corner'||o.end)s+=toEnd*3;else s+=Math.abs(along-(lo+hi)/2)*.5;
               if(o.long)s-=wallLen*.8;if(o.far)s-=Math.min(60,distDoor(x0+R.w/2,z0+R.d/2))*.6;s+=(faceUse[face]||0)*12; // spread wall pieces round the room
               if(o.window&&windowBehind(x0,z0,R,b,axis))s-=40;if(o.street)s+=face==='zm'?-60:face[0]==='x'?0:40;if(o.side)s+=face[0]==='x'?-50:40;
-              cands.push({face,x0,z0,s});}}
+              cands.push({face,x0,z0,s,p:candidate,id:alt});}}}
           cands.sort((a,b)=>a.s-b.s);
-          for(const cd of cands.slice(0,80)){rec=tryPut(p,cd.face,cd.x0,cd.z0,c);if(rec)break;}
+          for(const cd of cands){rec=tryPut(cd.p,cd.face,cd.x0,cd.z0,c);if(rec){id=cd.id;break;}}
           if(rec){last=rec;if(anchor==='wall')main=rec;count[id]=(count[id]||0)+1;faceUse[rec.face]=(faceUse[rec.face]||0)+1;}}
         {const ok=reach(k);info.rooms.push({floor:f,room:k,type:room.type,pieces:placed.length,reachable:ok,...(ok?{}:{doorPoints:(doorPts.get(k)||[]).map(([x,z])=>[+((x-ctx.MX)/CV).toFixed(1),+((z-ctx.MZ)/CV).toFixed(1)])})});}});
     }

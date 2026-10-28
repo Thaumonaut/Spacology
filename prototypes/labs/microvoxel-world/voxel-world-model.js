@@ -80,9 +80,14 @@
     seed=Number(seed)>>>0;const mapTemplate=infinite&&options&&MacroLib&&MacroLib.TEMPLATES[options.map]?options.map:null;
     // gallery: a flat specimen field instead of terrain — exhibits for eyeballing props outside worldgen (see below).
     const gallery=infinite&&options&&!!options.gallery;
+    const district=infinite&&options?.district?JSON.parse(JSON.stringify(options.district)):null;
+    if(district){const d=district;if(![d.x0,d.x1,d.z0,d.z1,d.height,d.halo].every(Number.isFinite)||d.x1<=d.x0||d.z1<=d.z0||d.x1-d.x0>96||d.z1-d.z0>96||d.halo<0||d.halo>8||d.height<1||d.height>heightCells*cellMetres-32)throw new Error('Invalid bounded district site');
+      if(!Array.isArray(d.closed)||d.closed.length>12)throw new Error('Invalid bounded district collision');
+      for(const p of d.closed){if(![p.origin,p.right,p.inward].every(v=>Array.isArray(v)&&v.length===2&&v.every(Number.isFinite))||![p.width,p.depth,p.projection].every(Number.isFinite)||p.width<=0||p.width>96||p.depth<=0||p.depth>96||Math.abs(p.projection)>4)throw new Error('Invalid district parcel');for(const v of [p.origin,p.right,p.inward])Object.freeze(v);Object.freeze(p);}Object.freeze(d.closed);Object.freeze(district);}
+    const siteDistance=(x,z)=>district?Math.max(district.x0-x,0,x-district.x1,district.z0-z,z-district.z1):Infinity;
     const massifAngle=hash(seed,7,seed+241)*Math.PI*2,massifX=Math.cos(massifAngle)*70,massifZ=Math.sin(massifAngle)*70;
     const gorgeX=-Math.cos(massifAngle)*58,gorgeZ=-Math.sin(massifAngle)*58,gorgeDX=-Math.sin(massifAngle),gorgeDZ=Math.cos(massifAngle);
-    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}${gallery?':gallery':''}`,trees=new Map();
+    const id=`${infinite?'wilds':'catchment'}:${revision}:${seed}${mapTemplate?':'+mapTemplate:''}${gallery?':gallery':''}${district?':district:'+JSON.stringify(district):''}`,trees=new Map();
     // Streamed geography is a pure function of (seed, x, z): macro map → relief → climate → biome. Nothing is stored
     // per column; the macro map (MacroMap, one finite Azgaar-style continent map per seed) is built once and cached.
     const SEA=14,MM=infinite?MacroLib.get(seed,mapTemplate):null;
@@ -1177,6 +1182,12 @@
     const landmarkNear=(x,z)=>{const A=ancientNear(x,z),R=ruinNear(x,z),K=rockNear(x,z);return !!A&&Math.hypot(x-A.x,z-A.z)<A.reach+1||!!R&&Math.hypot(x-R.x,z-R.z)<R.reach&&ruinBlocks(R,x,z,.6)||!!K&&Math.hypot(x-K.x,z-K.z)<K.reach+2;};
     const spireNear=(x,z,margin)=>{const S=spiresNear(x,z);return !!S&&S.list.some(p=>Math.hypot(x-p.x,z-p.z)<p.r+margin);};
     function geography(x,z){
+      const g=naturalGeography(x,z);if(!district)return g;
+      const dist=siteDistance(x,z);if(dist>district.halo)return g;
+      const blend=district.halo?Math.min(1,dist/district.halo):0,s=blend*blend*(3-2*blend),height=Math.round((district.height/cellMetres)*(1-s)+g.height*s);
+      return {...g,height,surface:height*cellMetres,water:0,sea:false,iceCells:0,exposed:true,site:true,clearing:1,riverDistance:999};
+    }
+    function naturalGeography(x,z){
       if(infinite){
         if(gallery)return galleryGeo(x,z);
         const t=tectonics(x,z);
@@ -1628,6 +1639,8 @@
       if(coarseTrees.size>=16384)coarseTrees.delete(coarseTrees.keys().next().value);coarseTrees.set(key,value);return value;
     }
     function tree(gx,gz){
+      // Root exclusion includes the maximum nearby crown reach; keep props outside the graded access site.
+      if(district&&siteDistance((gx+.5)*TG,(gz+.5)*TG)<district.halo+40)return null;
       if(infinite){
         if(gallery)return galleryTreeCell(gx,gz);
         const key=gx*134217728+gz;if(trees.has(key))return trees.get(key);
@@ -2294,6 +2307,7 @@
       if(!infinite&&(x<0||z<0||x>=extent||z>=extent))return values;
       let t0=prof&&prof.on&&now();
       const g=geography(x,z);let h=g.height,written=h+density,top=h,scree=false;columnTone=GRASS_TONE[g.biome]??.3;colH=h;colSurf=g.surface!=null?g.surface/cellMetres:NaN;
+      if(g.site){colFloor=into?bandFloor(h,0):0;values.fill(MAT.basalt,colFloor,Math.max(colFloor,h-4*density));values.fill(MAT.soil,Math.max(colFloor,h-4*density),h);values[h-1]=MAT.stone;colTop=h;return values;}
       if(prof&&prof.on){const t=now();prof.geography+=t-t0;t0=t;}
       colFloor=into?bandFloor(h,g.iceCells):0;
       values.fill(MAT.basalt,colFloor,Math.max(colFloor,h-4*density));
@@ -2548,6 +2562,8 @@
     // True when the column at (x,z) metres holds a body-solid voxel between `low` and `high` metres.
     // Walk mode tests the body capsule against this so trunks, boulders and ruin walls stop the walker.
     function blockingAt(x,z,low,high){
+      // Exterior proof: closed conservative parcel volumes, including front overhang clearance; not room collision.
+      if(district&&high>district.height&&low<district.height+30&&district.closed?.some(p=>{const dx=x-p.origin[0],dz=z-p.origin[1],u=dx*p.right[0]+dz*p.right[1],v=dx*p.inward[0]+dz*p.inward[1];return u>-.25&&u<p.width+.25&&v>-(p.projection||0)-.5&&v<p.depth+.25;}))return true;
       bodyCol.fill(0);const v=column(Math.floor(x/cellMetres),Math.floor(z/cellMetres),bodyCol);
       for(let y=Math.max(0,Math.floor(low/cellMetres)),e=Math.min(heightCells,Math.ceil(high/cellMetres));y<e;y++)if(BODY_SOLID.has(v[y]))return true;
       return false;
@@ -3049,7 +3065,7 @@
       }
       return {normals:out,groundBase};
     }
-    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,nodeBoundCached:(L,nx,nz)=>infinite?bounds.get(L+':'+nx+':'+nz):heightCells*cellMetres,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite&&!gallery?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,gallery,gallerySpots:gallery?Object.freeze(GAL_SPOTS.slice()):null,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
+    return Object.freeze({id,dataId:`${id}:cell:${cellMetres}:extent:${extent}`,seed,revision,extent,infinite,map:mapTemplate,macro:MM,riverProfile:id=>infinite?riverProfile(id):null,cell:cellMetres,chunkCells,heightCells,chunkMetres:chunkCells*cellMetres,heightMetres:heightCells*cellMetres,deposit,geography,erosionAt,ground,column,blockingAt,mushroomsNear,palmsNear,bouldersNear:(x,z,radius)=>infinite?bouldersNear(x,z,radius):[],tree,generateChunk,columnBand,node,landmarksAt:(x,z)=>infinite?{ancient:ancientNear(x,z),ruin:ruinNear(x,z),rock:rockNear(x,z)}:{ancient:null,ruin:null,rock:null},nodeBound,nodeBoundCached:(L,nx,nz)=>infinite?bounds.get(L+':'+nx+':'+nz):heightCells*cellMetres,heightBound,contentTop,slice:SLICE,streamMouths:(x0,z0,x1,z1)=>infinite&&!gallery?streamMouths(x0,z0,x1,z1):[],nodeSize:NODE,maxLevel:MAX_LEVEL,nodeMetres,gallery,...(district?{district}:{}),gallerySpots:gallery?Object.freeze(GAL_SPOTS.slice()):null,vegetationEntries:()=>trees.size,setDrainageCrease:fn=>{creaseAt=typeof fn==='function'?fn:null;for(const D of DRAIN)D.tiles.clear();}});
   }
   function voxel(chunk,x,y,z){
     const {size:CHUNK,height:HEIGHT}=chunk,y0=chunk.y0||0;
