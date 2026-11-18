@@ -78,9 +78,21 @@ export function chooseApproach(s:Session,value:'careful'|'direct'):Session{
   return say({...s,approach:value},'exploration',value==='careful'?'Approach set: careful, the crew takes its time.':'Approach set: direct, faster but exposed.');
 }
 
-function davenKit(s:Session):{crew:string;stats:Stats}|undefined{
+export function davenKit(s:Session):{crew:string;stats:Stats}|undefined{
   const d=s.tasks.assembly.receipt?.delivery;
   return d&&d.kind==='gear'?d.kits.find(k=>k.crew==='Daven'):undefined;
+}
+
+export function expeditionLoadout(s:Session){
+  const d=s.tasks.dispatch.receipt?.delivery;
+  const shippedIds=d&&d.kind==='cargo'?d.shippedIds:[];
+  const kit=davenKit(s),kitShipped=shippedIds.includes(0);
+  return {kit,shippedIds,kitShipped,equipped:!!kit&&kitShipped,supplied:shippedIds.filter(id=>id!==0).length};
+}
+
+export function researchDelivery(s:Session){
+  const d=s.tasks.study.receipt?.delivery;
+  return d&&d.kind==='research'?d:null;
 }
 
 export function canRetry(s:Session,job:Job):boolean{
@@ -88,8 +100,8 @@ export function canRetry(s:Session,job:Job):boolean{
   if(t.status!=='complete')return t.status==='idle';
   const d=t.receipt?.delivery;
   if(job==='study')return !!d&&d.kind==='research'&&d.removed.length===0;
-  if(job==='assembly')return !d||d.kind!=='gear'||!d.kits.some(k=>k.crew==='Daven');
-  return !d||d.kind!=='cargo'||!d.shippedIds.includes(0);
+  if(job==='assembly')return !davenKit(s);
+  return !expeditionLoadout(s).kitShipped;
 }
 
 export function startJob(s:Session,job:Job):Session{
@@ -154,17 +166,13 @@ export function acceptResult(s:Session,job:Job,attempt:number,receipt:Receipt):S
 }
 
 export function previewEncounter(s:Session):EncounterReport{
-  const research=s.tasks.study.receipt?.delivery.kind==='research'?s.tasks.study.receipt.delivery:null;
-  const gear=s.tasks.assembly.receipt?.delivery.kind==='gear'?s.tasks.assembly.receipt.delivery.kits.find(k=>k.crew==='Daven'):undefined;
-  const cargo=s.tasks.dispatch.receipt?.delivery.kind==='cargo'?s.tasks.dispatch.receipt.delivery:null;
-  const equipped=!!gear&&!!cargo?.shippedIds.includes(0);
-  const supplied=cargo?cargo.shippedIds.filter(id=>id!==0).length:0;
+  const research=researchDelivery(s),{kit:gear,equipped,supplied}=expeditionLoadout(s);
   const base=4;
   const approach=s.approach==='careful'?1:0;
   const study=(research?.removed.length||0)*2+(research?.weakened.length||0);
-  const kit=equipped?Math.floor((gear.stats.Guard+gear.stats.Mend)/3):0;
+  const kitBonus=equipped&&gear?Math.floor((gear.stats.Guard+gear.stats.Mend)/3):0;
   const supply=supplied>=4?1:0;
-  const strength=base+approach+study+kit+supply;
+  const strength=base+approach+study+kitBonus+supply;
   const difficulty=s.destination==='ridge'?9:5;
   const success=strength>=difficulty;
   const archive=success?(s.destination==='ridge'?3:1):0;
@@ -172,7 +180,7 @@ export function previewEncounter(s:Session):EncounterReport{
     gear:equipped&&gear?{...gear.stats}:null,supplied,
     research:research?{boss:research.boss,removed:[...research.removed],weakened:[...research.weakened],weakness:research.weakness}:null,
     breakdown:[{label:'Field crew',value:base},{label:s.approach==='careful'?'Careful approach':'Direct approach',value:approach},
-      {label:'Boss study',value:study},{label:"Daven's kit",value:kit},{label:'Supplies',value:supply}],
+      {label:'Boss study',value:study},{label:"Daven's kit",value:kitBonus},{label:'Supplies',value:supply}],
     samples:1};
 }
 

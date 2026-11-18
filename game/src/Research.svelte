@@ -1,13 +1,12 @@
 <script lang="ts">
-  import {canRetry} from './lib/session.ts';
+  import {canRetry,researchDelivery} from './lib/session.ts';
   import type {Session} from './lib/session.ts';
   import ProjectCard from './ProjectCard.svelte';
 
   let {state,onopen,onretry}:{state:Session;onopen:()=>void;onretry:()=>void}=$props();
 
   const t=$derived(state.tasks.study);
-  const d=$derived(t.receipt?.delivery);
-  const research=$derived(d&&d.kind==='research'?d:null);
+  const research=$derived(researchDelivery(state));
   const label=$derived(t.status==='idle'?'Open the sample':t.status==='active'?'Resume the study':'Review the delivery');
   const status=$derived(t.status==='idle'?'Sample ready':t.status==='active'?'Testing in progress':`Delivered · ${t.receipt!.tier}`);
 </script>

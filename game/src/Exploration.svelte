@@ -1,4 +1,5 @@
 <script lang="ts">
+  import {expeditionLoadout} from './lib/session.ts';
   import type {Session} from './lib/session.ts';
 
   let {state,ondestination,onapproach,onrequest,ondepart}:{
@@ -9,10 +10,9 @@
     ondepart:()=>void}=$props();
 
   const base=import.meta.env.BASE_URL;
-  const gear=$derived(state.tasks.assembly.receipt?.delivery);
-  const kit=$derived(gear&&gear.kind==='gear'?gear.kits.find(k=>k.crew==='Daven'):undefined);
-  const cargo=$derived(state.tasks.dispatch.receipt?.delivery);
-  const aboard=$derived(!!kit&&!!cargo&&cargo.kind==='cargo'&&cargo.shippedIds.includes(0));
+  const loadout=$derived(expeditionLoadout(state));
+  const kit=$derived(loadout.kit);
+  const aboard=$derived(loadout.equipped);
   const CREW=[
     {name:'Daven',role:'front line',img:'assets/cast/daven-pell-v7.png'},
     {name:'Hanae',role:'recovery',img:'assets/cast/hanae-mori-v3.png'},
