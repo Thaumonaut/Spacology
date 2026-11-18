@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {acceptResult,canRetry,chooseApproach,chooseDestination,createSession,depart,JOBS,previewEncounter,requestKit,restoreSession,startJob} from '../src/lib/session.ts';
+import {acceptResult,canRetry,chooseApproach,chooseDestination,createSession,davenKit,depart,expeditionLoadout,JOBS,previewEncounter,requestKit,restoreSession,researchDelivery,startJob} from '../src/lib/session.ts';
 import type {Receipt,Session,Stats} from '../src/lib/session.ts';
 
 const STATS:Stats={Guard:5,Pace:0,Burst:0,Mend:3};
@@ -9,6 +9,47 @@ const gear=(kits:{crew:string;stats:Stats}[]=[{crew:'Daven',stats:STATS}]):Recei
 const cargo=(shippedIds:number[]=[0,1,2,3,4,5,6,7,8]):Receipt=>({tier:'perfect',output:'',delivery:{kind:'cargo',shippedIds,total:9}});
 const open=(s:Session,job:keyof typeof JOBS)=>startJob(s,job);
 const deliver=(s:Session,job:keyof typeof JOBS,r:Receipt)=>acceptResult(s,job,s.tasks[job].attempt,r);
+const withReceipt=(s:Session,job:keyof typeof JOBS,r:Receipt|null):Session=>({...s,tasks:{...s.tasks,[job]:{...s.tasks[job],receipt:r}}});
+
+test('delivery selectors handle absent, empty and wrong-kind receipts',()=>{
+  const s=createSession('r1');
+  const empty={kit:undefined,shippedIds:[],kitShipped:false,equipped:false,supplied:0};
+  assert.deepEqual(expeditionLoadout(s),empty);assert.equal(researchDelivery(s),null);assert.equal(davenKit(s),undefined);
+  const emptyDeliveries=withReceipt(withReceipt(withReceipt(s,'study',research([],[],null)),'assembly',gear([])),'dispatch',cargo([]));
+  assert.deepEqual(expeditionLoadout(emptyDeliveries),empty);
+  assert.deepEqual(researchDelivery(emptyDeliveries),{kind:'research',boss:'CURATOR // LAST INSTRUCTION',removed:[],weakened:[],weakness:null});
+  const wrongKinds=withReceipt(withReceipt(withReceipt(s,'study',gear()),'assembly',research()),'dispatch',gear());
+  assert.deepEqual(expeditionLoadout(wrongKinds),empty);assert.equal(researchDelivery(wrongKinds),null);assert.equal(davenKit(wrongKinds),undefined);
+});
+
+test('loadout keeps kit, shipment and supply selectors independent',()=>{
+  let s=createSession('r1');s=open(s,'assembly');s=deliver(s,'assembly',gear());
+  assert.deepEqual(davenKit(s),{crew:'Daven',stats:STATS});
+  assert.deepEqual(expeditionLoadout(s),{kit:davenKit(s),shippedIds:[],kitShipped:false,equipped:false,supplied:0},'kit built but not shipped');
+  s=open(s,'dispatch');s=deliver(s,'dispatch',cargo([0]));
+  assert.deepEqual(expeditionLoadout(s),{kit:davenKit(s),shippedIds:[0],kitShipped:true,equipped:true,supplied:0},'crate 0 only');
+  const suppliesOnly=withReceipt(s,'dispatch',cargo([1,2,3,4,5]));
+  assert.deepEqual(expeditionLoadout(suppliesOnly),{kit:davenKit(suppliesOnly),shippedIds:[1,2,3,4,5],kitShipped:false,equipped:false,supplied:5},'supplies without crate 0');
+});
+
+test('crate 0 is shipped without equipping a kit when no kit was built',()=>{
+  const s=withReceipt(createSession('r1'),'dispatch',cargo([0]));
+  assert.deepEqual(expeditionLoadout(s),{kit:undefined,shippedIds:[0],kitShipped:true,equipped:false,supplied:0});
+});
+
+test('selectors read retained receipts during retries without mutating the session',()=>{
+  let s=createSession('r1');
+  s=open(s,'study');s=deliver(s,'study',research([],[],null));
+  s=open(s,'assembly');s=deliver(s,'assembly',gear());
+  s=open(s,'dispatch');s=deliver(s,'dispatch',cargo([1,2,3,4,5]));
+  s=startJob(s,'study');s=startJob(s,'dispatch');
+  assert.equal(s.tasks.study.status,'active');assert.equal(s.tasks.dispatch.status,'active');
+  assert.deepEqual(researchDelivery(s),research([],[],null).delivery);
+  assert.deepEqual(expeditionLoadout(s),{kit:davenKit(s),shippedIds:[1,2,3,4,5],kitShipped:false,equipped:false,supplied:5});
+  const snapshot=JSON.stringify(s);
+  davenKit(s);expeditionLoadout(s);researchDelivery(s);
+  assert.equal(JSON.stringify(s),snapshot);
+});
 
 test('clean initial session',()=>{
   const s=createSession('r1');

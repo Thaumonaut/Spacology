@@ -1,15 +1,13 @@
 <script lang="ts">
-  import {canRetry} from './lib/session.ts';
+  import {canRetry,expeditionLoadout} from './lib/session.ts';
   import type {Job,Session} from './lib/session.ts';
   import ProjectCard from './ProjectCard.svelte';
 
   let {state,onopen,onretry}:{state:Session;onopen:(job:Job)=>void;onretry:(job:Job)=>void}=$props();
 
   const a=$derived(state.tasks.assembly),c=$derived(state.tasks.dispatch);
-  const ad=$derived(a.receipt?.delivery),cd=$derived(c.receipt?.delivery);
-  const kit=$derived(ad&&ad.kind==='gear'?ad.kits.find(k=>k.crew==='Daven'):undefined);
-  const shipped=$derived(cd&&cd.kind==='cargo'?cd.shippedIds:[]);
-  const aboard=$derived(shipped.includes(0));
+  const loadout=$derived(expeditionLoadout(state));
+  const kit=$derived(loadout.kit),shipped=$derived(loadout.shippedIds),aboard=$derived(loadout.kitShipped);
 
   const aLabel=$derived(a.status==='idle'?'Open the workshop':a.status==='active'?'Resume assembly':'Review the build');
   const aStatus=$derived(a.status==='idle'?'Order standing':a.status==='active'?'Assembly in progress':kit?`Built · Guard ${kit.stats.Guard} / Mend ${kit.stats.Mend}`:'Built nothing for Daven');
